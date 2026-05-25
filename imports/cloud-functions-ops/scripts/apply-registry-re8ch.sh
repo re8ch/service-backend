@@ -2,8 +2,8 @@
 set -euo pipefail
 
 NAMESPACE="${NAMESPACE:-nuclio}"
-REGISTRY_SERVER="${REGISTRY_SERVER:-registry.ynzs.com}"
-SECRET_NAME="${SECRET_NAME:-registry-ynzs}"
+REGISTRY_SERVER="${REGISTRY_SERVER:-registry.re8ch.com}"
+SECRET_NAME="${SECRET_NAME:-registry-re8ch}"
 
 if [[ -z "${REGISTRY_USERNAME:-}" || -z "${REGISTRY_PASSWORD:-}" ]]; then
   cat >&2 <<'EOF'
@@ -12,7 +12,7 @@ Missing registry credentials.
 Usage:
   REGISTRY_USERNAME='robot$nuclio+nuclio-builder' \
   REGISTRY_PASSWORD='***' \
-  ./nuclio/apply-registry-ynzs.sh
+  ./nuclio/apply-registry-re8ch.sh
 EOF
   exit 2
 fi
