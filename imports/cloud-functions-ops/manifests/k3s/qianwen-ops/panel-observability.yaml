@@ -35,6 +35,10 @@ data:
               - "192.0.2.172:9100"
               - "192.0.2.141:9100"
               - "192.0.2.33:9100"
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
 
       - job_name: k3s-node-exporter
         scrape_interval: 120s
@@ -53,6 +57,9 @@ data:
             action: keep
           - source_labels: [__meta_kubernetes_endpoint_node_name]
             target_label: node
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
           - target_label: source
             replacement: k3s
           - target_label: cls
@@ -101,8 +108,27 @@ data:
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             regex: metrics-(.+)
             target_label: component
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
           - source_labels: [__meta_kubernetes_endpoint_hostname]
             target_label: ins
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-pg
+            target_label: job
+            replacement: pgsql
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-pgbouncer
+            target_label: job
+            replacement: pgbouncer
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-patroni
+            target_label: job
+            replacement: patroni
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-pgbackrest
+            target_label: job
+            replacement: pgbackrest
           - target_label: source
             replacement: pigsty
           - target_label: cls
@@ -470,6 +496,93 @@ spec:
   ports:
     - name: http
       port: 8428
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-pigsty-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-pigsty-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-pigsty-vmalert
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-pigsty-vmalert
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: vmalert
+          image: victoriametrics/vmalert:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -rule=/etc/vmalert/rules/*.yml
+            - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428?extra_label=source%3Dpigsty
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -evaluationInterval=60s
+            - -notifier.blackhole=true
+            - -httpListenAddr=:8880
+          ports:
+            - name: http
+              containerPort: 8880
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: rules
+              mountPath: /etc/vmalert/rules
+              readOnly: true
+      volumes:
+        - name: rules
+          configMap:
+            name: panel-pigsty-vmalert-rules
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-pigsty-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-pigsty-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-pigsty-vmalert
+  ports:
+    - name: http
+      port: 8880
       targetPort: http
 ---
 apiVersion: v1
