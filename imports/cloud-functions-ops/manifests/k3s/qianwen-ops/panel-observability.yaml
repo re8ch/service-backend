@@ -25,13 +25,24 @@ data:
             labels:
               node: rancher-panel
 
-      - job_name: node-exporter
+      - job_name: pigsty-infra-node-exporter
         static_configs:
           - labels:
               source: pigsty
-              cls: pigsty
+              cls: pigsty-infra
             targets:
               - "192.0.2.67:9100"
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
+
+      - job_name: pigsty-pg-meta-node-exporter
+        static_configs:
+          - labels:
+              source: pigsty
+              cls: pg-meta
+            targets:
               - "192.0.2.172:9100"
               - "192.0.2.141:9100"
               - "192.0.2.33:9100"
@@ -534,7 +545,8 @@ spec:
             - -rule=/etc/vmalert/rules/*.yml
             - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428?extra_label=source%3Dpigsty
             - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
-            - -evaluationInterval=60s
+            - -evaluationInterval=30s
+            - -external.label=source=pigsty
             - -notifier.blackhole=true
             - -httpListenAddr=:8880
           ports:
