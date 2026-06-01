@@ -57,6 +57,79 @@ data:
             replacement: k3s
           - target_label: cls
             replacement: k3s
+
+      - job_name: pigsty-infra-exporters
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: pigsty-icp-infra-exporters
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-.+
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-(.+)
+            target_label: component
+          - source_labels: [__meta_kubernetes_endpoint_hostname]
+            target_label: node
+          - target_label: source
+            replacement: pigsty
+          - target_label: cls
+            replacement: pigsty-infra
+
+      - job_name: pigsty-pgsql-exporters
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: pigsty-pg-meta-exporters
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-.+
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-(.+)
+            target_label: component
+          - source_labels: [__meta_kubernetes_endpoint_hostname]
+            target_label: ins
+          - target_label: source
+            replacement: pigsty
+          - target_label: cls
+            replacement: pg-meta
+
+      - job_name: pigsty-blackbox-probe
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        metrics_path: /probe
+        params:
+          module: [icmp]
+        static_configs:
+          - labels:
+              source: pigsty
+              cls: pg-meta
+            targets:
+              - 192.0.2.67
+              - 192.0.2.172
+              - 192.0.2.141
+              - 192.0.2.33
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: pigsty-icp-infra-exporters.qianwen-ops.svc.cluster.local:9115
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -97,6 +170,90 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: panel-victoria-metrics-discovery
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pigsty-icp-infra-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-icp-infra-exporters
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  ports:
+    - name: metrics-alertmanager
+      port: 9059
+      targetPort: 9059
+    - name: metrics-blackbox
+      port: 9115
+      targetPort: 9115
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: pigsty-icp-infra-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-icp-infra-exporters
+    app.kubernetes.io/part-of: panel-observability
+subsets:
+  - addresses:
+      - ip: 192.0.2.67
+        hostname: icp
+    ports:
+      - name: metrics-alertmanager
+        port: 9059
+      - name: metrics-blackbox
+        port: 9115
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pigsty-pg-meta-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-pg-meta-exporters
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  ports:
+    - name: metrics-pg
+      port: 9630
+      targetPort: 9630
+    - name: metrics-pgbouncer
+      port: 9631
+      targetPort: 9631
+    - name: metrics-patroni
+      port: 8008
+      targetPort: 8008
+    - name: metrics-pgbackrest
+      port: 9854
+      targetPort: 9854
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: pigsty-pg-meta-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-pg-meta-exporters
+    app.kubernetes.io/part-of: panel-observability
+subsets:
+  - addresses:
+      - ip: 192.0.2.172
+        hostname: pg-meta-1
+      - ip: 192.0.2.141
+        hostname: pg-meta-2
+      - ip: 192.0.2.33
+        hostname: pg-meta-3
+    ports:
+      - name: metrics-pg
+        port: 9630
+      - name: metrics-pgbouncer
+        port: 9631
+      - name: metrics-patroni
+        port: 8008
+      - name: metrics-pgbackrest
+        port: 9854
 ---
 apiVersion: v1
 kind: Service
