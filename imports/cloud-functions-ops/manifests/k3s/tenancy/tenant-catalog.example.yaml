@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-catalog-example
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: tenant-catalog
+    saas.re8ch.com/layer: example
+data:
+  tenants.yaml: |
+    tenants:
+      - id: qianwen-prod
+        product: qianwen
+        layer: prod
+        defaultRegion: guangzhou
+        domains:
+          frontend: jz.ynzs.com
+          api: api.jz.ynzs.com
+          dbRw: mgr-rw.jz.ynzs.com
+          dbRo: mgr-ro.jz.ynzs.com
+        registry:
+          harborProject: qianwen
+          pullSecret: registry-qianwen
+          robotAccount: robot-qianwen-pull
+        database:
+          mode: database-per-tenant
+          database: qianwen_prod
+          schema: public
+          roles:
+            readonly: qianwen_prod_ro
+            readwrite: qianwen_prod_rw
+            migrator: qianwen_prod_migrator
+            pgadmin: qianwen_prod_pgadmin
+        kubernetes:
+          namespace: saas-qianwen-prod
+          legacyNamespace: nuclio
+          serviceAccount: qianwen-prod-runtime
+          labels:
+            saas.re8ch.com/product: qianwen
+            saas.re8ch.com/tenant: qianwen-prod
+            saas.re8ch.com/layer: prod
+        observability:
+          grafanaFolder: Tenant / Qianwen Prod
+          grafanaTeam: qianwen-prod-viewers
+          portainerTeam: qianwen-prod-operators
+          pgAdminGroup: qianwen-prod-db-viewers
+
+      - id: ledger-prod
+        product: ledger
+        layer: prod
+        defaultRegion: shanghai
+        domains:
+          frontend: ledger.re8ch.com
+          api: api-ledger.re8ch.com
+          dbRw: mgr-rw.jz.ynzs.com
+          dbRo: mgr-ro.jz.ynzs.com
+        registry:
+          harborProject: ledger
+          pullSecret: registry-ledger
+          robotAccount: robot-ledger-pull
+        database:
+          mode: database-per-tenant
+          database: ledger
+          schema: public
+          roles:
+            readonly: ledger_ro
+            readwrite: ledger_rw
+            migrator: ledger_migrator
+            pgadmin: ledger_pgadmin
+        kubernetes:
+          namespace: saas-ledger-prod
+          legacyNamespace: nuclio
+          serviceAccount: ledger-prod-runtime
+          labels:
+            saas.re8ch.com/product: ledger
+            saas.re8ch.com/tenant: ledger-prod
+            saas.re8ch.com/layer: prod
+        observability:
+          grafanaFolder: Tenant / Ledger Prod
+          grafanaTeam: ledger-prod-viewers
+          portainerTeam: ledger-prod-operators
+          pgAdminGroup: ledger-prod-db-viewers
