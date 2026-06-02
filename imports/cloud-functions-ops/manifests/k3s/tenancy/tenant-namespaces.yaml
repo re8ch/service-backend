@@ -1,0 +1,267 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: qwen
+  labels:
+    app.kubernetes.io/part-of: re8ch-saas
+    saas.re8ch.com/product: qianwen
+    saas.re8ch.com/tenant: qwen
+    saas.re8ch.com/layer: prod
+    portainer.re8ch.com/team: qwen-operators
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ledger
+  labels:
+    app.kubernetes.io/part-of: re8ch-saas
+    saas.re8ch.com/product: ledger
+    saas.re8ch.com/tenant: ledger
+    saas.re8ch.com/layer: prod
+    portainer.re8ch.com/team: ledger-operators
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: anycam
+  labels:
+    app.kubernetes.io/part-of: re8ch-saas
+    saas.re8ch.com/product: anycam
+    saas.re8ch.com/tenant: anycam
+    saas.re8ch.com/layer: prod
+    portainer.re8ch.com/team: anycam-operators
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bench
+  labels:
+    app.kubernetes.io/part-of: re8ch-saas
+    saas.re8ch.com/product: bench
+    saas.re8ch.com/tenant: bench
+    saas.re8ch.com/layer: bench
+    portainer.re8ch.com/team: bench-operators
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qwen-runtime
+  namespace: qwen
+  labels:
+    saas.re8ch.com/tenant: qwen
+imagePullSecrets:
+  - name: harbor-qianwen-pull
+  - name: harbor-functions-shared-pull
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ledger-runtime
+  namespace: ledger
+  labels:
+    saas.re8ch.com/tenant: ledger
+imagePullSecrets:
+  - name: harbor-ledger-pull
+  - name: harbor-functions-shared-pull
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: anycam-runtime
+  namespace: anycam
+  labels:
+    saas.re8ch.com/tenant: anycam
+imagePullSecrets:
+  - name: harbor-anycam-pull
+  - name: harbor-functions-shared-pull
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bench-runtime
+  namespace: bench
+  labels:
+    saas.re8ch.com/tenant: bench
+imagePullSecrets:
+  - name: harbor-bench-pull
+  - name: harbor-functions-shared-pull
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: qwen
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 25m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: ledger
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 25m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: anycam
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 25m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: bench
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 25m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-object-quota
+  namespace: qwen
+spec:
+  hard:
+    pods: "120"
+    services: "120"
+    configmaps: "200"
+    secrets: "200"
+    persistentvolumeclaims: "20"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-object-quota
+  namespace: ledger
+spec:
+  hard:
+    pods: "40"
+    services: "60"
+    configmaps: "100"
+    secrets: "100"
+    persistentvolumeclaims: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-object-quota
+  namespace: anycam
+spec:
+  hard:
+    pods: "40"
+    services: "60"
+    configmaps: "100"
+    secrets: "100"
+    persistentvolumeclaims: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-object-quota
+  namespace: bench
+spec:
+  hard:
+    pods: "20"
+    services: "40"
+    configmaps: "60"
+    secrets: "60"
+    persistentvolumeclaims: "5"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-viewer
+  namespace: qwen
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-operator
+  namespace: qwen
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-viewer
+  namespace: ledger
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-operator
+  namespace: ledger
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-viewer
+  namespace: anycam
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-operator
+  namespace: anycam
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-viewer
+  namespace: bench
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-operator
+  namespace: bench
+rules:
+  - apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

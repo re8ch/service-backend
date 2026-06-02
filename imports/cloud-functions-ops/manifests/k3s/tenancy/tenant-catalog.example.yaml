@@ -9,7 +9,7 @@ metadata:
 data:
   tenants.yaml: |
     tenants:
-      - id: qianwen-prod
+      - id: qwen
         product: qianwen
         layer: prod
         defaultRegion: guangzhou
@@ -20,8 +20,8 @@ data:
           dbRo: mgr-ro.jz.ynzs.com
         registry:
           harborProject: qianwen
-          pullSecret: registry-qianwen
-          robotAccount: robot-qianwen-pull
+          pullSecret: harbor-qianwen-pull
+          robotAccount: robot$qianwen+qianwen-pull-20260602b
         database:
           mode: database-per-tenant
           database: qianwen_prod
@@ -32,20 +32,20 @@ data:
             migrator: qianwen_prod_migrator
             pgadmin: qianwen_prod_pgadmin
         kubernetes:
-          namespace: saas-qianwen-prod
+          namespace: qwen
           legacyNamespace: nuclio
-          serviceAccount: qianwen-prod-runtime
+          serviceAccount: qwen-runtime
           labels:
             saas.re8ch.com/product: qianwen
-            saas.re8ch.com/tenant: qianwen-prod
+            saas.re8ch.com/tenant: qwen
             saas.re8ch.com/layer: prod
         observability:
-          grafanaFolder: Tenant / Qianwen Prod
-          grafanaTeam: qianwen-prod-viewers
-          portainerTeam: qianwen-prod-operators
-          pgAdminGroup: qianwen-prod-db-viewers
+          grafanaFolder: Tenant / Qwen
+          grafanaTeam: qwen-viewers
+          portainerTeam: qwen-operators
+          pgAdminGroup: qwen-db-viewers
 
-      - id: ledger-prod
+      - id: ledger
         product: ledger
         layer: prod
         defaultRegion: shanghai
@@ -56,8 +56,8 @@ data:
           dbRo: mgr-ro.jz.ynzs.com
         registry:
           harborProject: ledger
-          pullSecret: registry-ledger
-          robotAccount: robot-ledger-pull
+          pullSecret: harbor-ledger-pull
+          robotAccount: robot$ledger+ledger-pull-20260602b
         database:
           mode: database-per-tenant
           database: ledger
@@ -68,15 +68,16 @@ data:
             migrator: ledger_migrator
             pgadmin: ledger_pgadmin
         kubernetes:
-          namespace: saas-ledger-prod
-          legacyNamespace: nuclio
-          serviceAccount: ledger-prod-runtime
+          namespace: ledger
+          previousNamespace: nuclio
+          migratedAt: "2026-06-02T17:50:00+08:00"
+          serviceAccount: ledger-runtime
           labels:
             saas.re8ch.com/product: ledger
-            saas.re8ch.com/tenant: ledger-prod
+            saas.re8ch.com/tenant: ledger
             saas.re8ch.com/layer: prod
         observability:
-          grafanaFolder: Tenant / Ledger Prod
-          grafanaTeam: ledger-prod-viewers
-          portainerTeam: ledger-prod-operators
-          pgAdminGroup: ledger-prod-db-viewers
+          grafanaFolder: Tenant / Ledger
+          grafanaTeam: ledger-viewers
+          portainerTeam: ledger-operators
+          pgAdminGroup: ledger-db-viewers
