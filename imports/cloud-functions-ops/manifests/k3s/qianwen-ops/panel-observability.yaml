@@ -623,6 +623,306 @@ data:
         url: http://loki-lite.qianwen-ops.svc.cluster.local:3100
         isDefault: false
         editable: true
+      - name: pg-meta-1.anycam_prod
+        uid: pg-meta-1-anycam-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: anycam_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: anycam_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.qianwen_prod
+        uid: pg-meta-1-qianwen-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: qianwen_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: qianwen_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.ledger
+        uid: pg-meta-1-ledger
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: ledger
+        isDefault: false
+        editable: true
+        jsonData:
+          database: ledger
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.meta
+        uid: pg-meta-1-meta
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: meta
+        isDefault: false
+        editable: true
+        jsonData:
+          database: meta
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.postgres
+        uid: pg-meta-1-postgres
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: postgres
+        isDefault: false
+        editable: true
+        jsonData:
+          database: postgres
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.anycam_prod
+        uid: pg-meta-2-anycam-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: anycam_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: anycam_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.qianwen_prod
+        uid: pg-meta-2-qianwen-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: qianwen_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: qianwen_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.ledger
+        uid: pg-meta-2-ledger
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: ledger
+        isDefault: false
+        editable: true
+        jsonData:
+          database: ledger
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.meta
+        uid: pg-meta-2-meta
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: meta
+        isDefault: false
+        editable: true
+        jsonData:
+          database: meta
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.postgres
+        uid: pg-meta-2-postgres
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: postgres
+        isDefault: false
+        editable: true
+        jsonData:
+          database: postgres
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.anycam_prod
+        uid: pg-meta-3-anycam-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: anycam_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: anycam_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.qianwen_prod
+        uid: pg-meta-3-qianwen-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: qianwen_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: qianwen_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.ledger
+        uid: pg-meta-3-ledger
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: ledger
+        isDefault: false
+        editable: true
+        jsonData:
+          database: ledger
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.meta
+        uid: pg-meta-3-meta
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: meta
+        isDefault: false
+        editable: true
+        jsonData:
+          database: meta
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.postgres
+        uid: pg-meta-3-postgres
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: postgres
+        isDefault: false
+        editable: true
+        jsonData:
+          database: postgres
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -722,6 +1022,11 @@ spec:
               value: "false"
             - name: GF_ANALYTICS_CHECK_FOR_UPDATES
               value: "false"
+            - name: PG_MONITOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: panel-grafana-pg-monitor
+                  key: password
           ports:
             - name: http
               containerPort: 3000
