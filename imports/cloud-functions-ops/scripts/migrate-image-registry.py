@@ -126,11 +126,20 @@ class MigrationResult:
     ready: str
 
 
-def migrate_one(namespace: str, function: str, from_host: str, to_host: str, rollout_timeout: str, dry_run: bool) -> MigrationResult:
+def migrate_one(
+    namespace: str,
+    function: str,
+    from_host: str,
+    to_host: str,
+    rollout_timeout: str,
+    dry_run: bool,
+    prefer_deployment_image: bool = False,
+) -> MigrationResult:
     nf_raw = kctl(["-n", namespace, "get", "nucliofunction", function, "-o", "json"]).stdout
     nf = json.loads(nf_raw)
     spec = nf.get("spec", {})
-    old_image = spec.get("image") or image_from_deployment(namespace, function)
+    deployment_image = image_from_deployment(namespace, function)
+    old_image = (deployment_image or spec.get("image")) if prefer_deployment_image else (spec.get("image") or deployment_image)
     if not old_image:
         return MigrationResult(function, "", "", False, "no-image")
     new_image = target_image(old_image, from_host, to_host)
@@ -232,6 +241,7 @@ def main() -> None:
     parser.add_argument("--to-host", default=os.environ.get("TO_REGISTRY_HOST", "registry.re8ch.com"))
     parser.add_argument("--rollout-timeout", default=os.environ.get("ROLLOUT_TIMEOUT", "600s"))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--prefer-deployment-image", action="store_true")
     parser.add_argument("functions", nargs="*")
     args = parser.parse_args()
 
@@ -239,7 +249,17 @@ def main() -> None:
     results = []
     for name in names:
         try:
-            results.append(migrate_one(args.namespace, name, args.from_host, args.to_host, args.rollout_timeout, args.dry_run))
+            results.append(
+                migrate_one(
+                    args.namespace,
+                    name,
+                    args.from_host,
+                    args.to_host,
+                    args.rollout_timeout,
+                    args.dry_run,
+                    args.prefer_deployment_image,
+                )
+            )
         except subprocess.CalledProcessError as exc:
             print(exc.stderr or exc.stdout, file=sys.stderr)
             raise
