@@ -39,7 +39,7 @@ re8ch_checks = {
     "coredns_series": 'count(coredns_build_info{job="k8s-coredns"})',
     "http_probe_series": 'count(probe_success{job="http-probe"})',
     "nuclio_info_series": "count(qianwen_nuclio_function_info)",
-    "nuclio_scrape_targets": 'count(up{job=~"k8s-nuclio-functions|k8s-nuclio-edge"})',
+    "nuclio_processor_series": 'count({__name__=~"nuclio_processor_.*"})',
 }
 for name, query in re8ch_checks.items():
     result = vm_query(query).get("data", {}).get("result", [])
