@@ -35,6 +35,25 @@ if not health_result:
 print(f"vm_url={vm_url}")
 print(f"pg_up_count={health_result[0]['value'][1]}")
 
+re8ch_checks = {
+    "coredns_series": 'count(coredns_build_info{job="k8s-coredns"})',
+    "http_probe_series": 'count(probe_success{job="http-probe"})',
+    "nuclio_info_series": "count(qianwen_nuclio_function_info)",
+    "nuclio_scrape_targets": 'count(up{job=~"k8s-nuclio-functions|k8s-nuclio-edge"})',
+}
+for name, query in re8ch_checks.items():
+    result = vm_query(query).get("data", {}).get("result", [])
+    value = result[0]["value"][1] if result else "0"
+    print(f"{name}={value}")
+
+tenant_result = vm_query("count(qianwen_nuclio_function_info) by (tenant)").get("data", {}).get("result", [])
+if tenant_result:
+    tenants = ", ".join(
+        f"{item.get('metric', {}).get('tenant', '<none>')}={item['value'][1]}"
+        for item in tenant_result
+    )
+    print(f"nuclio_tenants={tenants}")
+
 dashboards = {}
 for name in sorted(os.listdir(dashboard_dir)):
     if not name.endswith(".json") or not name.startswith(("pgsql-", "pgrds-")):

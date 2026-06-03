@@ -24,6 +24,18 @@ data:
           - targets: ["kube-state-metrics.kube-system.svc.cluster.local:8080"]
             labels:
               node: rancher-panel
+              source: k3s
+              cls: k3s
+
+      - job_name: k8s-coredns
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["192.0.2.131:9153"]
+            labels:
+              node: rancher-panel
+              source: k3s
+              cls: k3s
 
       - job_name: pigsty-infra-node-exporter
         static_configs:
@@ -148,6 +160,119 @@ data:
             replacement: pigsty
           - target_label: cls
             replacement: pg-meta
+
+      - job_name: k8s-nuclio-functions
+        scrape_interval: 120s
+        scrape_timeout: 5s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nuclio
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_class]
+            regex: function
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: http
+            action: keep
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            target_label: function
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: ([^-]+).*
+            target_label: tenant
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: "[^-]+-([^-]+).*"
+            target_label: layer
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: "[^-]+-[^-]+-([^-]+).*"
+            target_label: category
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: "[^-]+-(.+)"
+            target_label: service
+          - target_label: source
+            replacement: re8ch
+          - target_label: cls
+            replacement: nuclio
+
+      - job_name: k8s-nuclio-edge
+        scrape_interval: 120s
+        scrape_timeout: 5s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nuclio
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_class]
+            regex: function
+            action: keep
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: .*-gateway
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: http
+            action: keep
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            target_label: function
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: ([^-]+).*
+            target_label: tenant
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: "[^-]+-([^-]+).*"
+            target_label: layer
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: "[^-]+-[^-]+-([^-]+).*"
+            target_label: category
+          - source_labels: [__meta_kubernetes_service_label_nuclio_io_function_name]
+            regex: "[^-]+-(.+)"
+            target_label: service
+          - target_label: source
+            replacement: re8ch
+          - target_label: cls
+            replacement: nuclio-edge
+
+      - job_name: http-probe
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        static_configs:
+          - labels:
+              tenant: platform
+              layer: panel
+              category: grafana
+              service: portainer-grafana
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://portainer.re8ch.com/grafana/
+          - labels:
+              tenant: platform
+              layer: network
+              category: planet
+              service: zt-planet
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://zt.re8ch.com/
+          - labels:
+              tenant: re8ch
+              layer: public
+              category: api
+              service: api-root
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://api.re8ch.com/health
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: pigsty-icp-infra-exporters.qianwen-ops.svc.cluster.local:9115
 
       - job_name: pigsty-blackbox-probe
         scrape_interval: 60s
@@ -516,6 +641,232 @@ spec:
   ports:
     - name: http
       port: 8428
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-re8ch-vmalert-rules
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+    app.kubernetes.io/part-of: panel-observability
+data:
+  re8ch.yml: |
+    groups:
+      - name: re8ch-observability-lite-rules
+        interval: 30s
+        rules:
+          - record: qianwen_nuclio_function_info
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      label_replace(
+                        kube_deployment_status_replicas_available{namespace="nuclio",deployment=~"nuclio-.+",deployment!~"nuclio-(controller|dashboard)"}
+                      , "function", "$1", "deployment", "nuclio-(.*)")
+                    , "tenant", "$1", "deployment", "nuclio-([^-]+).*")
+                  , "layer", "$1", "deployment", "nuclio-[^-]+-([^-]+).*")
+                , "category", "$1", "deployment", "nuclio-[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "deployment", "nuclio-[^-]+-(.*)")
+          - record: qianwen_nuclio_function_requests_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_requests_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_errors_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_errors_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_request_duration_seconds_bucket
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_request_duration_seconds_bucket
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_request_duration_seconds_sum
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_request_duration_seconds_sum
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_request_duration_seconds_count
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_request_duration_seconds_count
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_edge_requests_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      api_edge_requests_total
+                    , "tenant", "qianwen", "__name__", ".*")
+                  , "layer", "edge", "__name__", ".*")
+                , "category", "api", "__name__", ".*")
+              , "service", "edge-router", "__name__", ".*")
+          - record: qianwen_edge_errors_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      api_edge_errors_total
+                    , "tenant", "qianwen", "__name__", ".*")
+                  , "layer", "edge", "__name__", ".*")
+                , "category", "api", "__name__", ".*")
+              , "service", "edge-router", "__name__", ".*")
+          - record: qianwen_edge_request_duration_seconds_bucket
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      api_edge_request_duration_seconds_bucket
+                    , "tenant", "qianwen", "__name__", ".*")
+                  , "layer", "edge", "__name__", ".*")
+                , "category", "api", "__name__", ".*")
+              , "service", "edge-router", "__name__", ".*")
+          - record: qianwen_edge_request_duration_seconds_sum
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      api_edge_request_duration_seconds_sum
+                    , "tenant", "qianwen", "__name__", ".*")
+                  , "layer", "edge", "__name__", ".*")
+                , "category", "api", "__name__", ".*")
+              , "service", "edge-router", "__name__", ".*")
+          - record: qianwen_edge_request_duration_seconds_count
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      api_edge_request_duration_seconds_count
+                    , "tenant", "qianwen", "__name__", ".*")
+                  , "layer", "edge", "__name__", ".*")
+                , "category", "api", "__name__", ".*")
+              , "service", "edge-router", "__name__", ".*")
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-re8ch-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-re8ch-vmalert
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-re8ch-vmalert
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: vmalert
+          image: victoriametrics/vmalert:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -rule=/etc/vmalert/rules/*.yml
+            - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -evaluationInterval=30s
+            - -external.label=source=re8ch
+            - -notifier.blackhole=true
+            - -httpListenAddr=:8880
+          ports:
+            - name: http
+              containerPort: 8880
+          resources:
+            requests:
+              cpu: 15m
+              memory: 48Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: rules
+              mountPath: /etc/vmalert/rules
+              readOnly: true
+      volumes:
+        - name: rules
+          configMap:
+            name: panel-re8ch-vmalert-rules
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-re8ch-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+  ports:
+    - name: http
+      port: 8880
       targetPort: http
 ---
 apiVersion: apps/v1
