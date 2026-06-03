@@ -137,6 +137,10 @@ data:
             target_label: job
             replacement: patroni
           - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-haproxy
+            target_label: job
+            replacement: haproxy
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
             regex: metrics-pgbackrest
             target_label: job
             replacement: pgbackrest
@@ -262,6 +266,9 @@ spec:
     - name: metrics-patroni
       port: 8008
       targetPort: 8008
+    - name: metrics-haproxy
+      port: 9101
+      targetPort: 9101
     - name: metrics-pgbackrest
       port: 9854
       targetPort: 9854
@@ -289,6 +296,8 @@ subsets:
         port: 9631
       - name: metrics-patroni
         port: 8008
+      - name: metrics-haproxy
+        port: 9101
       - name: metrics-pgbackrest
         port: 9854
 ---
@@ -613,7 +622,7 @@ data:
         uid: ds-prometheus
         type: prometheus
         access: proxy
-        url: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+        url: http://${PANEL_VICTORIA_METRICS_SERVICE_HOST}:8428
         isDefault: true
         editable: true
       - name: Re8ch Loki
@@ -621,6 +630,12 @@ data:
         type: loki
         access: proxy
         url: http://loki-lite.qianwen-ops.svc.cluster.local:3100
+        isDefault: false
+        editable: true
+      - name: Static
+        uid: ds-static
+        type: marcusolsson-static-datasource
+        access: proxy
         isDefault: false
         editable: true
       - name: pg-meta-1.anycam_prod
