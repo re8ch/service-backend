@@ -18,6 +18,7 @@ infer_registry_project() {
 
   case "${function_name}" in
     qianwen-*|nuclio-qianwen-*) printf 'qianwen' ;;
+    cardcat-*|nuclio-cardcat-*) printf 'cardcat' ;;
     ledger-*|nuclio-ledger-*) printf 'ledger' ;;
     anycam-*|nuclio-anycam-*) printf 'anycam' ;;
     bench-*|nuclio-bench-*) printf 'bench' ;;
@@ -32,4 +33,3 @@ tenant_registry_for_function() {
   project="$(infer_registry_project "${function_name}")"
   printf '%s/%s' "${host}" "${project}"
 }
-
