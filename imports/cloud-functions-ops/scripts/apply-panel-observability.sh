@@ -7,6 +7,7 @@ MANIFEST="${MANIFEST:-manifests/k3s/qianwen-ops/panel-observability.yaml}"
 PG_MONITOR_SECRET="${PG_MONITOR_SECRET:-panel-grafana-pg-monitor}"
 GRAFANA_DEPLOYMENT="${GRAFANA_DEPLOYMENT:-panel-grafana}"
 VM_DEPLOYMENT="${VM_DEPLOYMENT:-panel-victoria-metrics}"
+RE8CH_VMALERT_DEPLOYMENT="${RE8CH_VMALERT_DEPLOYMENT:-panel-re8ch-vmalert}"
 SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=20 -o ServerAliveCountMax=6)
 
 tmpdir="$(mktemp -d)"
@@ -84,8 +85,10 @@ set -euo pipefail
 kubectl apply -f /tmp/panel-observability.yaml
 kubectl -n '$NAMESPACE' rollout restart deploy/'$VM_DEPLOYMENT'
 kubectl -n '$NAMESPACE' rollout restart deploy/'$GRAFANA_DEPLOYMENT'
+kubectl -n '$NAMESPACE' rollout restart deploy/'$RE8CH_VMALERT_DEPLOYMENT'
 kubectl -n '$NAMESPACE' rollout status deploy/'$VM_DEPLOYMENT' --timeout=180s
 kubectl -n '$NAMESPACE' rollout status deploy/'$GRAFANA_DEPLOYMENT' --timeout=180s
+kubectl -n '$NAMESPACE' rollout status deploy/'$RE8CH_VMALERT_DEPLOYMENT' --timeout=180s
 "
 
 PIGSTY_HOST="$PIGSTY_HOST" NAMESPACE="$NAMESPACE" ./scripts/apply-pigsty-vmalert-rules.sh
@@ -94,9 +97,9 @@ PIGSTY_HOST="$PIGSTY_HOST" NAMESPACE="$NAMESPACE" ./scripts/apply-pigsty-grafana
 ssh "${SSH_OPTS[@]}" "$PIGSTY_HOST" "
 set -euo pipefail
 kubectl -n '$NAMESPACE' wait --for=condition=Available \
-  deploy/'$GRAFANA_DEPLOYMENT' deploy/'$VM_DEPLOYMENT' deploy/panel-pigsty-vmalert \
+  deploy/'$GRAFANA_DEPLOYMENT' deploy/'$VM_DEPLOYMENT' deploy/panel-pigsty-vmalert deploy/'$RE8CH_VMALERT_DEPLOYMENT' \
   --timeout=180s
-kubectl -n '$NAMESPACE' get deploy panel-grafana panel-victoria-metrics panel-pigsty-vmalert \
+kubectl -n '$NAMESPACE' get deploy panel-grafana panel-victoria-metrics panel-pigsty-vmalert panel-re8ch-vmalert \
   -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,AVAILABLE:.status.availableReplicas,IMAGE:.spec.template.spec.containers[0].image
 kubectl -n '$NAMESPACE' get secret '$PG_MONITOR_SECRET' -o jsonpath='{.data.password}' | grep -q . && echo PG_MONITOR_SECRET_PRESENT
 kubectl -n '$NAMESPACE' get deploy '$GRAFANA_DEPLOYMENT' \
