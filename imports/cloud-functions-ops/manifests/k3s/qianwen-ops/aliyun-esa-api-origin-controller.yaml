@@ -10,8 +10,9 @@ data:
   API_ORIGIN_POOL_NAME: api
   API_READY_HOST: api.jz.ynzs.com
   API_ORIGINS: api-2,nuc-2.ynzs.com api-1,nuc-3.ynzs.com
-  API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 POST:/client-events:204 GET:/homepage:200
-  API_READY_ATTEMPTS: "2"
+  API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 OPTIONS:/client-events:204 GET:/homepage:200
+  API_READY_ATTEMPTS: "3"
+  API_READY_MIN_SUCCESS_ATTEMPTS: "2"
   API_READY_TIMEOUT_SECONDS: "6"
   API_MIN_HEALTHY_ORIGINS: "1"
   API_MAX_HEALTHY_ORIGINS: "2"
@@ -170,6 +171,7 @@ data:
         data = None
         if method == "OPTIONS":
             headers["Access-Control-Request-Method"] = "POST"
+            headers["Access-Control-Request-Headers"] = "content-type,x-trace-id"
         elif method == "POST":
             headers["Content-Type"] = "application/json"
             data = "{}"
@@ -185,18 +187,39 @@ data:
         return status == check["status"], status
 
 
-    def origin_healthy(origin, host, checks, attempts, timeout):
+    def origin_healthy(origin, host, checks, attempts, timeout, min_successes):
+        last_failure = None
+        successes = 0
         for attempt in range(1, attempts + 1):
+            attempt_ok = True
             for check in checks:
                 ok, status = check_once(origin["address"], host, check, timeout)
                 if not ok:
+                    attempt_ok = False
+                    last_failure = (check, status, attempt)
                     log(
-                        "origin=%s address=%s check=%s:%s want=%s got=%s attempt=%s healthy=false"
+                        "origin=%s address=%s check=%s:%s want=%s got=%s attempt=%s healthy=retry"
                         % (origin["name"], origin["address"], check["method"], check["path"], check["status"], status, attempt)
                     )
-                    return False
-        log(f"origin={origin['name']} address={origin['address']} healthy=true")
-        return True
+                    break
+            if attempt_ok:
+                successes += 1
+                log(
+                    "origin=%s address=%s attempt=%s success=%s/%s"
+                    % (origin["name"], origin["address"], attempt, successes, min_successes)
+                )
+        if successes >= min_successes:
+            log(f"origin={origin['name']} address={origin['address']} healthy=true successes={successes}/{attempts}")
+            return True
+        if last_failure:
+            check, status, attempt = last_failure
+            log(
+                "origin=%s address=%s check=%s:%s want=%s got=%s attempt=%s healthy=false successes=%s/%s"
+                % (origin["name"], origin["address"], check["method"], check["path"], check["status"], status, attempt, successes, min_successes)
+            )
+            return False
+        log(f"origin={origin['name']} address={origin['address']} healthy=false reason=no-checks successes={successes}/{min_successes}")
+        return False
 
 
     def existing_origin(pool, origin):
@@ -279,13 +302,15 @@ data:
         checks = parse_checks(required("API_READY_CHECKS"))
         candidates = parse_origins(required("API_ORIGINS"))
         attempts = int(env("API_READY_ATTEMPTS", "2"))
+        min_successes = int(env("API_READY_MIN_SUCCESS_ATTEMPTS", str(attempts)))
+        min_successes = max(1, min(min_successes, attempts))
         timeout = int(env("API_READY_TIMEOUT_SECONDS", "6"))
         current_site_id = site_id()
         pool = find_pool(current_site_id, required("API_ORIGIN_POOL_NAME"))
         healthy = set()
         log(f"probe api origins; apply={int(apply)}; site_id={current_site_id}; pool={pool['Name']}")
         for origin in candidates:
-            if origin_healthy(origin, host, checks, attempts, timeout):
+            if origin_healthy(origin, host, checks, attempts, timeout, min_successes):
                 healthy.add(origin["name"])
         sync_pool(current_site_id, pool, candidates, healthy, apply)
 
