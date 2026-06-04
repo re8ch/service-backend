@@ -21,7 +21,7 @@ data:
         }
 
         default_type application/json;
-        return 200 '{"clientRegion":"global","preferredApi":"https://api.jz.ynzs.com","preferredApiName":"api-jz","readApi":"https://api.jz.ynzs.com","writeApi":"https://api.jz.ynzs.com","fallbackApis":["https://api-shanghai217.re8ch.com"],"reason":"static_native_gateway_primary","routeSource":"qwen_region_metadata","selectedRegion":"global","ttlSeconds":60,"version":2}';
+        return 200 '{"clientRegion":"global","preferredApi":"https://api-shanghai217.re8ch.com","preferredApiName":"api-shanghai217","readApi":"https://api-shanghai217.re8ch.com","writeApi":"https://api-shanghai217.re8ch.com","fallbackApis":["https://api-guangzhou24.re8ch.com"],"reason":"static_native_gateway_primary","routeSource":"qwen_region_metadata","selectedRegion":"global","ttlSeconds":60,"version":3}';
       }
     }
 ---
