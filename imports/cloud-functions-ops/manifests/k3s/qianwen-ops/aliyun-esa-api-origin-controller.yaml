@@ -1,0 +1,362 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aliyun-esa-api-origin-controller-config
+  namespace: qianwen-ops
+data:
+  APPLY: "1"
+  ESA_SITE_NAME: ynzs.com
+  ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
+  API_ORIGIN_POOL_NAME: api
+  API_READY_HOST: api.jz.ynzs.com
+  API_ORIGINS: api-2,nuc-2.ynzs.com api-1,nuc-3.ynzs.com
+  API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 POST:/client-events:204 GET:/homepage:200
+  API_READY_ATTEMPTS: "2"
+  API_READY_TIMEOUT_SECONDS: "6"
+  API_MIN_HEALTHY_ORIGINS: "1"
+  API_MAX_HEALTHY_ORIGINS: "2"
+  RUN_INTERVAL_SECONDS: "30"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aliyun-esa-api-origin-controller-script
+  namespace: qianwen-ops
+data:
+  aliyun_esa_api_origin_controller.py: |
+    #!/usr/bin/env python3
+    import base64
+    import hashlib
+    import hmac
+    import json
+    import os
+    import ssl
+    import sys
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    import uuid
+
+    VERSION = "2024-09-10"
+
+
+    def env(name, default=""):
+        return os.environ.get(name, default).strip()
+
+
+    def required(name):
+        value = env(name)
+        if not value:
+            raise SystemExit(f"missing {name}")
+        return value
+
+
+    def log(message):
+        ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        print(f"{ts} {message}", file=sys.stderr, flush=True)
+
+
+    def percent(value):
+        return urllib.parse.quote(str(value), safe="~")
+
+
+    def http_request(method, url, headers=None, data=None, timeout=10, insecure=False, read_body=True):
+        body = data.encode("utf-8") if isinstance(data, str) else data
+        req = urllib.request.Request(url, data=body, method=method, headers=headers or {})
+        context = ssl._create_unverified_context() if insecure else None
+        try:
+            with urllib.request.urlopen(req, timeout=timeout, context=context) as resp:
+                return resp.status, resp.read() if read_body else b""
+        except urllib.error.HTTPError as exc:
+            return exc.code, exc.read()
+        except Exception:
+            return 0, b""
+
+
+    def esa_call(action, params=None, method="GET"):
+        endpoint = env("ESA_ENDPOINT", "esa.cn-hangzhou.aliyuncs.com")
+        query = dict(params or {})
+        query.update({
+            "Action": action,
+            "Version": VERSION,
+            "Format": "JSON",
+            "AccessKeyId": required("ALIYUN_ACCESS_KEY_ID"),
+            "SignatureMethod": "HMAC-SHA1",
+            "SignatureNonce": str(uuid.uuid4()),
+            "SignatureVersion": "1.0",
+            "Timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        })
+        canonical = "&".join(f"{percent(k)}={percent(query[k])}" for k in sorted(query))
+        string_to_sign = f"{method}&%2F&{percent(canonical)}"
+        digest = hmac.new(
+            (required("ALIYUN_ACCESS_KEY_SECRET") + "&").encode("utf-8"),
+            string_to_sign.encode("utf-8"),
+            hashlib.sha1,
+        ).digest()
+        query["Signature"] = base64.b64encode(digest).decode("ascii")
+        encoded = urllib.parse.urlencode(query)
+        url = f"https://{endpoint}/"
+        data = None
+        if method == "GET":
+            url = f"{url}?{encoded}"
+        else:
+            data = encoded.encode("utf-8")
+        status, raw = http_request(
+            method,
+            url,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data=data,
+            timeout=20,
+        )
+        if status < 200 or status >= 300:
+            raise RuntimeError(f"esa {action} failed: http {status}: {raw.decode('utf-8', 'replace')}")
+        payload = json.loads(raw.decode("utf-8"))
+        if payload.get("Code"):
+            raise RuntimeError(f"esa {action} failed: {payload}")
+        return payload
+
+
+    def site_id():
+        configured = env("ESA_SITE_ID")
+        if configured:
+            return int(configured)
+        name = required("ESA_SITE_NAME")
+        payload = esa_call("ListSites", {"SiteName": name, "PageSize": 20})
+        for site in payload.get("Sites", []):
+            if site.get("SiteName") == name:
+                return int(site["SiteId"])
+        raise RuntimeError(f"site not found: {name}")
+
+
+    def parse_origins(raw):
+        origins = []
+        for item in raw.split():
+            parts = item.split(",")
+            if len(parts) != 2:
+                raise ValueError(f"invalid API_ORIGINS item: {item}")
+            origins.append({"name": parts[0], "address": parts[1]})
+        return origins
+
+
+    def parse_checks(raw):
+        checks = []
+        for item in raw.split():
+            parts = item.split(":")
+            if len(parts) != 3:
+                raise ValueError(f"invalid API_READY_CHECKS item: {item}")
+            checks.append({"method": parts[0].upper(), "path": parts[1], "status": int(parts[2])})
+        return checks
+
+
+    def list_origin_pools(site_id_value):
+        return esa_call("ListOriginPools", {"SiteId": site_id_value, "PageSize": 100}).get("OriginPools", [])
+
+
+    def get_origin_pool(site_id_value, pool_id):
+        return esa_call("GetOriginPool", {"SiteId": site_id_value, "Id": pool_id})
+
+
+    def find_pool(site_id_value, name):
+        for pool in list_origin_pools(site_id_value):
+            if pool.get("Name") == name or pool.get("RecordName") == name:
+                return get_origin_pool(site_id_value, pool["Id"])
+        raise RuntimeError(f"origin pool not found: {name}")
+
+
+    def check_once(address, host, check, timeout):
+        method = check["method"]
+        headers = {"Host": host, "Origin": "https://jz.ynzs.com"}
+        data = None
+        if method == "OPTIONS":
+            headers["Access-Control-Request-Method"] = "POST"
+        elif method == "POST":
+            headers["Content-Type"] = "application/json"
+            data = "{}"
+        status, _ = http_request(
+            method,
+            f"https://{address}{check['path']}",
+            headers=headers,
+            data=data,
+            timeout=timeout,
+            insecure=True,
+            read_body=False,
+        )
+        return status == check["status"], status
+
+
+    def origin_healthy(origin, host, checks, attempts, timeout):
+        for attempt in range(1, attempts + 1):
+            for check in checks:
+                ok, status = check_once(origin["address"], host, check, timeout)
+                if not ok:
+                    log(
+                        "origin=%s address=%s check=%s:%s want=%s got=%s attempt=%s healthy=false"
+                        % (origin["name"], origin["address"], check["method"], check["path"], check["status"], status, attempt)
+                    )
+                    return False
+        log(f"origin={origin['name']} address={origin['address']} healthy=true")
+        return True
+
+
+    def existing_origin(pool, origin):
+        for item in pool.get("Origins", []):
+            if item.get("Name") == origin["name"] or item.get("Address") == origin["address"]:
+                return item
+        return {}
+
+
+    def sync_pool(site_id_value, pool, candidates, healthy, apply):
+        max_healthy = int(env("API_MAX_HEALTHY_ORIGINS", "0") or "0")
+        healthy_names = [origin["name"] for origin in candidates if origin["name"] in healthy]
+        if max_healthy > 0:
+            healthy_names = healthy_names[:max_healthy]
+        min_healthy = int(env("API_MIN_HEALTHY_ORIGINS", "1"))
+        if len(healthy_names) < min_healthy:
+            log(f"only {len(healthy_names)} healthy origins; leaving pool untouched")
+            return
+
+        origins_payload = []
+        changed = False
+        enabled_weight = 100 // max(1, len(healthy_names))
+        managed_names = {origin["name"] for origin in candidates}
+        managed_addresses = {origin["address"] for origin in candidates}
+        existing_unmanaged = []
+        for item in pool.get("Origins", []):
+            if item.get("Name") not in managed_names and item.get("Address") not in managed_addresses:
+                existing_unmanaged.append(item)
+
+        for origin in candidates:
+            current = existing_origin(pool, origin)
+            enabled = origin["name"] in healthy_names
+            desired_weight = enabled_weight if enabled else 0
+            payload = {
+                "Name": origin["name"],
+                "Address": origin["address"],
+                "Type": current.get("Type", "ip_domain"),
+                "Enabled": enabled,
+                "Weight": desired_weight,
+                "Header": current.get("Header", {"Host": [env("API_READY_HOST", "api.jz.ynzs.com")]}),
+                "IpVersionPolicy": current.get("IpVersionPolicy", "ipv4_first"),
+            }
+            origins_payload.append(payload)
+            if bool(current.get("Enabled")) != enabled or int(current.get("Weight") or 0) != desired_weight:
+                changed = True
+
+        for item in existing_unmanaged:
+            payload = {
+                "Name": item["Name"],
+                "Address": item["Address"],
+                "Type": item.get("Type", "ip_domain"),
+                "Enabled": False,
+                "Weight": 0,
+                "Header": item.get("Header", {"Host": [env("API_READY_HOST", "api.jz.ynzs.com")]}),
+                "IpVersionPolicy": item.get("IpVersionPolicy", "ipv4_first"),
+            }
+            origins_payload.append(payload)
+            if bool(item.get("Enabled")) or int(item.get("Weight") or 0) != 0:
+                changed = True
+
+        log("desired enabled origins: " + ",".join(healthy_names))
+        if not changed:
+            log("api origin pool already in sync")
+            return
+        if not apply:
+            log("apply disabled; not updating api origin pool")
+            return
+        esa_call("UpdateOriginPool", {
+            "SiteId": site_id_value,
+            "Id": pool["Id"],
+            "Enabled": "true",
+            "Origins": json.dumps(origins_payload, separators=(",", ":")),
+        }, method="POST")
+        log("api origin pool updated")
+
+
+    def run_once():
+        apply = env("APPLY", "0") == "1"
+        host = env("API_READY_HOST", "api.jz.ynzs.com")
+        checks = parse_checks(required("API_READY_CHECKS"))
+        candidates = parse_origins(required("API_ORIGINS"))
+        attempts = int(env("API_READY_ATTEMPTS", "2"))
+        timeout = int(env("API_READY_TIMEOUT_SECONDS", "6"))
+        current_site_id = site_id()
+        pool = find_pool(current_site_id, required("API_ORIGIN_POOL_NAME"))
+        healthy = set()
+        log(f"probe api origins; apply={int(apply)}; site_id={current_site_id}; pool={pool['Name']}")
+        for origin in candidates:
+            if origin_healthy(origin, host, checks, attempts, timeout):
+                healthy.add(origin["name"])
+        sync_pool(current_site_id, pool, candidates, healthy, apply)
+
+
+    def main():
+        interval = int(env("RUN_INTERVAL_SECONDS", "0") or "0")
+        if interval <= 0:
+            run_once()
+            return
+        log(f"start api origin controller interval={interval}s")
+        while True:
+            started = time.monotonic()
+            try:
+                run_once()
+            except Exception as exc:
+                log(f"controller iteration failed: {exc}")
+            elapsed = time.monotonic() - started
+            time.sleep(max(0, interval - elapsed))
+
+
+    if __name__ == "__main__":
+        main()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aliyun-esa-api-origin-controller
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: aliyun-esa-api-origin-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aliyun-esa-api-origin-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aliyun-esa-api-origin-controller
+    spec:
+      nodeSelector:
+        qianwen.cc/dns-controller: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: controller
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python3
+            - /scripts/aliyun_esa_api_origin_controller.py
+          envFrom:
+            - configMapRef:
+                name: aliyun-esa-api-origin-controller-config
+            - secretRef:
+                name: aliyun-esa-pg-dns-controller-secret
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: aliyun-esa-api-origin-controller-script
+            defaultMode: 0555
