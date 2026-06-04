@@ -267,6 +267,125 @@ roleRef:
   name: panel-victoria-metrics-discovery
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-qwen-nodeport-vmagent-config
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-qwen-nodeport-vmagent
+    app.kubernetes.io/part-of: panel-observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 1m
+      scrape_timeout: 20s
+
+    scrape_configs:
+      - job_name: k8s-nuclio-edge
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:30740"]
+            labels:
+              tenant: qianwen
+              layer: agent
+              category: api
+              service: agent-api
+              source: re8ch
+              cls: qwen-nodeport-metrics
+          - targets: ["127.0.0.1:31995"]
+            labels:
+              tenant: qianwen
+              layer: mcp
+              category: gateway
+              service: mcp-gateway
+              source: re8ch
+              cls: qwen-nodeport-metrics
+          - targets: ["127.0.0.1:31998"]
+            labels:
+              tenant: qianwen
+              layer: prod
+              category: api
+              service: api-gateway
+              source: re8ch
+              cls: qwen-nodeport-metrics
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'api_edge_.*'
+            action: keep
+          - source_labels: [path_template]
+            regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
+            action: drop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-qwen-nodeport-vmagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-qwen-nodeport-vmagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-qwen-nodeport-vmagent
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-qwen-nodeport-vmagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: vm-20-12-ubuntu
+        kubernetes.io/os: linux
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -promscrape.config=/etc/vmagent/prometheus.yml
+            - -remoteWrite.url=http://192.0.2.192:30428/api/v1/write
+            - -httpListenAddr=:8429
+            - -promscrape.fileSDCheckInterval=30s
+          ports:
+            - name: http
+              containerPort: 8429
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /etc/vmagent
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: panel-qwen-nodeport-vmagent-config
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: pigsty-icp-infra-exporters
@@ -564,13 +683,182 @@ metadata:
     app.kubernetes.io/name: panel-victoria-metrics
     app.kubernetes.io/part-of: panel-observability
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app.kubernetes.io/name: panel-victoria-metrics
   ports:
     - name: http
       port: 8428
       targetPort: http
+      nodePort: 30428
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-qwen-functions-vmagent-config
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-qwen-functions-vmagent
+    app.kubernetes.io/part-of: panel-observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5m
+      scrape_timeout: 20s
+
+    scrape_configs:
+      - job_name: k8s-nuclio-functions
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - qwen
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: qwen
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_class]
+            regex: function
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            regex: __NODE_NAME__
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:8080
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            target_label: function
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: ([^-]+).*
+            target_label: tenant
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-([^-]+).*'
+            target_label: layer
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-[^-]+-([^-]+).*'
+            target_label: category
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-(.*)'
+            target_label: service
+            replacement: ${1}
+          - target_label: source
+            replacement: re8ch
+          - target_label: cls
+            replacement: qwen-function-metrics
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 're8ch_cloud_function_.*'
+            action: keep
+          - source_labels: [path_template]
+            regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
+            action: drop
+          - source_labels: [path]
+            regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
+            action: drop
+          - source_labels: [path_template, path]
+            separator: ';'
+            regex: ';(.+)'
+            target_label: path_template
+            replacement: ${1}
+            action: replace
+          - regex: 'path|status|exported_.*'
+            action: labeldrop
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-qwen-functions-vmagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-qwen-functions-vmagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-qwen-functions-vmagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-qwen-functions-vmagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: panel-victoria-metrics
+      nodeSelector:
+        pigsty.cc/workload: nuclio
+      tolerations:
+        - operator: Exists
+      initContainers:
+        - name: render-config
+          image: busybox:1.36
+          command: ["/bin/sh", "-ec"]
+          args:
+            - sed "s/__NODE_NAME__/${NODE_NAME}/g" /template/prometheus.yml > /generated/prometheus.yml
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: config-template
+              mountPath: /template
+              readOnly: true
+            - name: generated-config
+              mountPath: /generated
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -promscrape.config=/generated/prometheus.yml
+            - -remoteWrite.url=http://192.0.2.192:30428/api/v1/write
+            - -httpListenAddr=:8429
+            - -promscrape.fileSDCheckInterval=30s
+          ports:
+            - name: http
+              containerPort: 8429
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: generated-config
+              mountPath: /generated
+              readOnly: true
+      volumes:
+        - name: config-template
+          configMap:
+            name: panel-qwen-functions-vmagent-config
+        - name: generated-config
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -593,12 +881,34 @@ data:
                   label_replace(
                     label_replace(
                       label_replace(
-                        kube_deployment_status_replicas_available{namespace="nuclio",deployment=~"nuclio-.+",deployment!~"nuclio-(controller|dashboard)"}
+                        kube_deployment_status_replicas_available{namespace=~"nuclio|qwen|ledger|anycam|cardcat|bench",deployment=~"nuclio-.+",deployment!~"nuclio-(controller|dashboard)"}
                       , "function", "$1", "deployment", "nuclio-(.*)")
                     , "tenant", "$1", "deployment", "nuclio-([^-]+).*")
-                  , "layer", "$1", "deployment", "nuclio-[^-]+-([^-]+).*")
-                , "category", "$1", "deployment", "nuclio-[^-]+-[^-]+-([^-]+).*")
+                , "layer", "$1", "deployment", "nuclio-[^-]+-([^-]+).*")
+              , "category", "$1", "deployment", "nuclio-[^-]+-[^-]+-([^-]+).*")
               , "service", "$1", "deployment", "nuclio-[^-]+-(.*)")
+          - record: qianwen_nuclio_function_started_unixtime
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_started_unixtime
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_cold_starts_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_cold_starts_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
           - record: qianwen_nuclio_function_requests_total
             expr: |
               label_replace(
@@ -658,55 +968,42 @@ data:
             expr: |
               label_replace(
                 label_replace(
-                  label_replace(
-                    label_replace(
-                      api_edge_requests_total
-                    , "tenant", "qianwen", "__name__", ".*")
-                  , "layer", "edge", "__name__", ".*")
+                  api_edge_requests_total
                 , "category", "api", "__name__", ".*")
               , "service", "edge-router", "__name__", ".*")
           - record: qianwen_edge_errors_total
             expr: |
               label_replace(
                 label_replace(
-                  label_replace(
-                    label_replace(
-                      api_edge_errors_total
-                    , "tenant", "qianwen", "__name__", ".*")
-                  , "layer", "edge", "__name__", ".*")
+                  api_edge_errors_total
                 , "category", "api", "__name__", ".*")
               , "service", "edge-router", "__name__", ".*")
           - record: qianwen_edge_request_duration_seconds_bucket
             expr: |
               label_replace(
                 label_replace(
-                  label_replace(
-                    label_replace(
-                      api_edge_request_duration_seconds_bucket
-                    , "tenant", "qianwen", "__name__", ".*")
-                  , "layer", "edge", "__name__", ".*")
+                  api_edge_request_duration_seconds_bucket
                 , "category", "api", "__name__", ".*")
               , "service", "edge-router", "__name__", ".*")
           - record: qianwen_edge_request_duration_seconds_sum
             expr: |
               label_replace(
                 label_replace(
-                  label_replace(
-                    label_replace(
-                      api_edge_request_duration_seconds_sum
-                    , "tenant", "qianwen", "__name__", ".*")
-                  , "layer", "edge", "__name__", ".*")
+                  api_edge_request_duration_seconds_sum
                 , "category", "api", "__name__", ".*")
               , "service", "edge-router", "__name__", ".*")
           - record: qianwen_edge_request_duration_seconds_count
             expr: |
               label_replace(
                 label_replace(
-                  label_replace(
-                    label_replace(
-                      api_edge_request_duration_seconds_count
-                    , "tenant", "qianwen", "__name__", ".*")
-                  , "layer", "edge", "__name__", ".*")
+                  api_edge_request_duration_seconds_count
+                , "category", "api", "__name__", ".*")
+              , "service", "edge-router", "__name__", ".*")
+          - record: qianwen_edge_cold_starts_total
+            expr: |
+              label_replace(
+                label_replace(
+                  api_edge_cold_starts_total
                 , "category", "api", "__name__", ".*")
               , "service", "edge-router", "__name__", ".*")
 ---
@@ -745,7 +1042,7 @@ spec:
           args:
             - -rule=/etc/vmalert/rules/*.yml
             - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
-            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -remoteWrite.url=http://192.0.2.192:30428
             - -evaluationInterval=30s
             - -external.label=source=re8ch
             - -notifier.blackhole=true
