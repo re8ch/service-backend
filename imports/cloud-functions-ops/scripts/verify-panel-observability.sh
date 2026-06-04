@@ -53,6 +53,10 @@ if tenant_result:
         for item in tenant_result
     )
     print(f"nuclio_tenants={tenants}")
+    if not any(item.get("metric", {}).get("tenant") == "qianwen" for item in tenant_result):
+        raise SystemExit("qianwen_nuclio_function_info is missing tenant=qianwen")
+else:
+    raise SystemExit("qianwen_nuclio_function_info returned no tenant series")
 
 dashboards = {}
 for name in sorted(os.listdir(dashboard_dir)):
