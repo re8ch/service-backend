@@ -9,6 +9,8 @@ data:
   ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
   ESA_TTL: "1"
   ESA_PROXIED: "false"
+  ESA_RW_PROXIED: "false"
+  ESA_RO_SLOT_PROXIED: "false"
   ESA_RW_RECORD_NAMES: mgr-rw.jz.ynzs.com
   ESA_RO_SLOT_RECORD_NAMES: pg-2.ynzs.com pg-3.ynzs.com
   PG_EDGE_NODES: pg-meta-1,192.0.2.72,192.0.2.172 pg-meta-2,192.0.2.110,192.0.2.141 pg-meta-3,192.0.2.92,192.0.2.33
@@ -237,7 +239,9 @@ data:
     def run_once():
         apply = env("APPLY", "0") == "1"
         ttl = int(env("ESA_TTL", "1"))
-        proxied = env("ESA_PROXIED", "false").lower() in ("1", "true", "yes", "on")
+        default_proxied = env("ESA_PROXIED", "false").lower() in ("1", "true", "yes", "on")
+        rw_proxied = env("ESA_RW_PROXIED", str(default_proxied).lower()).lower() in ("1", "true", "yes", "on")
+        ro_slot_proxied = env("ESA_RO_SLOT_PROXIED", str(default_proxied).lower()).lower() in ("1", "true", "yes", "on")
         patroni_port = env("PATRONI_PORT", "8008")
         ready_host = env("READY_HOST", "db.re8ch.com")
         ready_path = env("READY_PATH", "/__lb/ready")
@@ -249,7 +253,10 @@ data:
         current_site_id = site_id()
         ready_primary_ip = ""
         ro_ips = []
-        log(f"probe nodes; apply={int(apply)}; ttl={ttl}; proxied={str(proxied).lower()}; site_id={current_site_id}")
+        log(
+            "probe nodes; apply=%s; ttl=%s; rw_proxied=%s; ro_slot_proxied=%s; site_id=%s"
+            % (int(apply), ttl, str(rw_proxied).lower(), str(ro_slot_proxied).lower(), current_site_id)
+        )
         for node in nodes:
             role = patroni_role(node["zt_ip"], patroni_port)
             ready = public_ready(node["public_ip"], ready_host, ready_path)
@@ -261,7 +268,7 @@ data:
 
         if ready_primary_ip:
             for name in rw_names:
-                sync_a_record(current_site_id, name, ready_primary_ip, ttl, proxied, apply)
+                sync_a_record(current_site_id, name, ready_primary_ip, ttl, rw_proxied, apply)
         else:
             log(f"no ready primary; leaving RW records untouched: {','.join(rw_names)}")
 
@@ -270,7 +277,7 @@ data:
             ro_ips = [ready_primary_ip]
         if ro_ips and (len(ro_ips) >= len(ro_slot_names) or allow_ro_fallback):
             for name, ip in zip(ro_slot_names, expand_slot_ips(ro_ips, len(ro_slot_names))):
-                sync_a_record(current_site_id, name, ip, ttl, proxied, apply)
+                sync_a_record(current_site_id, name, ip, ttl, ro_slot_proxied, apply)
         elif ro_ips:
             log(
                 f"only {len(ro_ips)} ready replicas for {len(ro_slot_names)} RO slots; "
