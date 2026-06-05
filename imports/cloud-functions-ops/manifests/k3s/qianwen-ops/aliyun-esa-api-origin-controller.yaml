@@ -9,13 +9,16 @@ data:
   ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
   API_ORIGIN_POOL_NAME: api
   API_READY_HOST: api.jz.ynzs.com
-  API_ORIGINS: api-2,nuc-2.ynzs.com api-1,nuc-3.ynzs.com
+  API_ORIGINS: api-2,nuc-2.ynzs.com
+  API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.45
   API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 OPTIONS:/client-events:204 GET:/homepage:200
   API_READY_ATTEMPTS: "3"
-  API_READY_MIN_SUCCESS_ATTEMPTS: "2"
+  API_READY_MIN_SUCCESS_ATTEMPTS: "1"
   API_READY_TIMEOUT_SECONDS: "6"
   API_MIN_HEALTHY_ORIGINS: "1"
   API_MAX_HEALTHY_ORIGINS: "2"
+  API_ENABLE_AFTER_SUCCESS_ITERATIONS: "1"
+  API_DISABLE_AFTER_FAILURE_ITERATIONS: "2"
   RUN_INTERVAL_SECONDS: "30"
 ---
 apiVersion: v1
@@ -31,6 +34,7 @@ data:
     import hmac
     import json
     import os
+    import socket
     import ssl
     import sys
     import time
@@ -40,6 +44,8 @@ data:
     import uuid
 
     VERSION = "2024-09-10"
+    HEALTH_STREAKS = {}
+    FAILURE_STREAKS = {}
 
 
     def env(name, default=""):
@@ -71,6 +77,51 @@ data:
                 return resp.status, resp.read() if read_body else b""
         except urllib.error.HTTPError as exc:
             return exc.code, exc.read()
+        except Exception:
+            return 0, b""
+
+
+    def origin_http_request(method, address, host, path, headers=None, data=None, timeout=10):
+        """Probe an origin address using the same public Host/SNI expected by ESA."""
+        body = data.encode("utf-8") if isinstance(data, str) else (data or b"")
+        connect_host = address
+        connect_port = 443
+        if ":" in address and not address.startswith("["):
+            raw_host, raw_port = address.rsplit(":", 1)
+            if raw_port.isdigit():
+                connect_host = raw_host
+                connect_port = int(raw_port)
+        request_headers = {
+            "Host": host,
+            "User-Agent": "qwen-esa-origin-controller/1.0",
+            "Connection": "close",
+        }
+        for key, value in (headers or {}).items():
+            if key.lower() == "host":
+                continue
+            request_headers[key] = value
+        if body:
+            request_headers["Content-Length"] = str(len(body))
+        request = [f"{method} {path} HTTP/1.1"]
+        request.extend(f"{key}: {value}" for key, value in request_headers.items())
+        raw_request = ("\r\n".join(request) + "\r\n\r\n").encode("utf-8") + body
+        context = ssl._create_unverified_context()
+        try:
+            with socket.create_connection((connect_host, connect_port), timeout=timeout) as sock:
+                with context.wrap_socket(sock, server_hostname=host) as tls:
+                    tls.settimeout(timeout)
+                    tls.sendall(raw_request)
+                    chunks = []
+                    while b"\r\n" not in b"".join(chunks):
+                        part = tls.recv(512)
+                        if not part:
+                            break
+                        chunks.append(part)
+                        if sum(len(x) for x in chunks) > 4096:
+                            break
+            first_line = b"".join(chunks).split(b"\r\n", 1)[0].decode("iso-8859-1", "replace")
+            parts = first_line.split()
+            return int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 0, b""
         except Exception:
             return 0, b""
 
@@ -150,6 +201,17 @@ data:
         return checks
 
 
+    def parse_probe_addresses(raw):
+        mapping = {}
+        for item in raw.split():
+            if "=" not in item:
+                raise ValueError(f"invalid API_ORIGIN_PROBE_ADDRESSES item: {item}")
+            name, address = item.split("=", 1)
+            if name and address:
+                mapping[name] = address
+        return mapping
+
+
     def list_origin_pools(site_id_value):
         return esa_call("ListOriginPools", {"SiteId": site_id_value, "PageSize": 100}).get("OriginPools", [])
 
@@ -175,14 +237,14 @@ data:
         elif method == "POST":
             headers["Content-Type"] = "application/json"
             data = "{}"
-        status, _ = http_request(
+        status, _ = origin_http_request(
             method,
-            f"https://{address}{check['path']}",
+            address,
+            host,
+            check["path"],
             headers=headers,
             data=data,
             timeout=timeout,
-            insecure=True,
-            read_body=False,
         )
         return status == check["status"], status
 
@@ -190,35 +252,36 @@ data:
     def origin_healthy(origin, host, checks, attempts, timeout, min_successes):
         last_failure = None
         successes = 0
+        probe_address = origin.get("probe_address") or origin["address"]
         for attempt in range(1, attempts + 1):
             attempt_ok = True
             for check in checks:
-                ok, status = check_once(origin["address"], host, check, timeout)
+                ok, status = check_once(probe_address, host, check, timeout)
                 if not ok:
                     attempt_ok = False
                     last_failure = (check, status, attempt)
                     log(
-                        "origin=%s address=%s check=%s:%s want=%s got=%s attempt=%s healthy=retry"
-                        % (origin["name"], origin["address"], check["method"], check["path"], check["status"], status, attempt)
+                        "origin=%s address=%s probe_address=%s public_host=%s check=%s:%s want=%s got=%s attempt=%s healthy=retry"
+                        % (origin["name"], origin["address"], probe_address, host, check["method"], check["path"], check["status"], status, attempt)
                     )
                     break
             if attempt_ok:
                 successes += 1
                 log(
-                    "origin=%s address=%s attempt=%s success=%s/%s"
-                    % (origin["name"], origin["address"], attempt, successes, min_successes)
+                    "origin=%s address=%s probe_address=%s public_host=%s attempt=%s success=%s/%s"
+                    % (origin["name"], origin["address"], probe_address, host, attempt, successes, min_successes)
                 )
         if successes >= min_successes:
-            log(f"origin={origin['name']} address={origin['address']} healthy=true successes={successes}/{attempts}")
+            log(f"origin={origin['name']} address={origin['address']} probe_address={probe_address} public_host={host} healthy=true successes={successes}/{attempts}")
             return True
         if last_failure:
             check, status, attempt = last_failure
             log(
-                "origin=%s address=%s check=%s:%s want=%s got=%s attempt=%s healthy=false successes=%s/%s"
-                % (origin["name"], origin["address"], check["method"], check["path"], check["status"], status, attempt, successes, min_successes)
+                "origin=%s address=%s probe_address=%s public_host=%s check=%s:%s want=%s got=%s attempt=%s healthy=false successes=%s/%s"
+                % (origin["name"], origin["address"], probe_address, host, check["method"], check["path"], check["status"], status, attempt, successes, min_successes)
             )
             return False
-        log(f"origin={origin['name']} address={origin['address']} healthy=false reason=no-checks successes={successes}/{min_successes}")
+        log(f"origin={origin['name']} address={origin['address']} probe_address={probe_address} public_host={host} healthy=false reason=no-checks successes={successes}/{min_successes}")
         return False
 
 
@@ -231,7 +294,30 @@ data:
 
     def sync_pool(site_id_value, pool, candidates, healthy, apply):
         max_healthy = int(env("API_MAX_HEALTHY_ORIGINS", "0") or "0")
-        healthy_names = [origin["name"] for origin in candidates if origin["name"] in healthy]
+        enable_after = max(1, int(env("API_ENABLE_AFTER_SUCCESS_ITERATIONS", "1") or "1"))
+        disable_after = max(1, int(env("API_DISABLE_AFTER_FAILURE_ITERATIONS", "1") or "1"))
+        current_enabled_names = {
+            item.get("Name")
+            for item in pool.get("Origins", [])
+            if item.get("Enabled") and any(item.get("Name") == origin["name"] or item.get("Address") == origin["address"] for origin in candidates)
+        }
+        healthy_names = []
+        for origin in candidates:
+            name = origin["name"]
+            if name in healthy:
+                if name in current_enabled_names or HEALTH_STREAKS.get(name, 0) >= enable_after:
+                    healthy_names.append(name)
+                else:
+                    log(
+                        "origin=%s address=%s enable=pending healthy_streak=%s/%s"
+                        % (name, origin["address"], HEALTH_STREAKS.get(name, 0), enable_after)
+                    )
+            elif name in current_enabled_names and FAILURE_STREAKS.get(name, 0) < disable_after:
+                healthy_names.append(name)
+                log(
+                    "origin=%s address=%s disable=deferred failure_streak=%s/%s"
+                    % (name, origin["address"], FAILURE_STREAKS.get(name, 0), disable_after)
+                )
         if max_healthy > 0:
             healthy_names = healthy_names[:max_healthy]
         min_healthy = int(env("API_MIN_HEALTHY_ORIGINS", "1"))
@@ -301,6 +387,9 @@ data:
         host = env("API_READY_HOST", "api.jz.ynzs.com")
         checks = parse_checks(required("API_READY_CHECKS"))
         candidates = parse_origins(required("API_ORIGINS"))
+        probe_addresses = parse_probe_addresses(env("API_ORIGIN_PROBE_ADDRESSES", ""))
+        for origin in candidates:
+            origin["probe_address"] = probe_addresses.get(origin["name"], origin["address"])
         attempts = int(env("API_READY_ATTEMPTS", "2"))
         min_successes = int(env("API_READY_MIN_SUCCESS_ATTEMPTS", str(attempts)))
         min_successes = max(1, min(min_successes, attempts))
@@ -312,6 +401,18 @@ data:
         for origin in candidates:
             if origin_healthy(origin, host, checks, attempts, timeout, min_successes):
                 healthy.add(origin["name"])
+        for origin in candidates:
+            name = origin["name"]
+            if name in healthy:
+                HEALTH_STREAKS[name] = HEALTH_STREAKS.get(name, 0) + 1
+                FAILURE_STREAKS[name] = 0
+            else:
+                FAILURE_STREAKS[name] = FAILURE_STREAKS.get(name, 0) + 1
+                HEALTH_STREAKS[name] = 0
+            log(
+                "origin=%s health_streak=%s failure_streak=%s"
+                % (name, HEALTH_STREAKS.get(name, 0), FAILURE_STREAKS.get(name, 0))
+            )
         sync_pool(current_site_id, pool, candidates, healthy, apply)
 
 
