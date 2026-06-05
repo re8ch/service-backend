@@ -1,0 +1,11 @@
+[Unit]
+Description=Watchdog for Qwen Realtime primary role sync
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec={{ qwen_realtime_timer_interval }}
+AccuracySec=10s
+Unit=qwen-realtime-role-sync.service
+
+[Install]
+WantedBy=timers.target
