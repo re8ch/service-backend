@@ -1,0 +1,36 @@
+---
+qwen_realtime_image: supabase/realtime:v2.102.3
+qwen_realtime_container_name: qwen-realtime
+qwen_realtime_port: 4000
+qwen_realtime_memory_limit: 512m
+qwen_realtime_cpus: "1.0"
+
+qwen_realtime_db_name: qianwen_prod
+qwen_realtime_db_host: 127.0.0.1
+qwen_realtime_db_port: 5432
+qwen_realtime_db_user: qwen_realtime
+
+qwen_realtime_tenant_id: api
+qwen_realtime_publication: qwen_task_events_pub
+qwen_realtime_slot_name: qwen_task_events_slot
+
+qwen_realtime_state_dir: /opt/qwen-realtime
+qwen_realtime_env_file: /opt/qwen-realtime/qwen-realtime.env
+qwen_realtime_role_sync_path: /usr/local/bin/qwen-realtime-role-sync
+qwen_realtime_patroni_callback_path: /usr/local/bin/qwen-realtime-patroni-callback
+qwen_realtime_patroni_config_path: /etc/patroni/patroni.yml
+qwen_realtime_patroni_service: patroni
+qwen_realtime_manage_patroni_callbacks: true
+qwen_realtime_patroni_callback_events:
+  - on_role_change
+  - on_start
+  - on_restart
+  - on_stop
+
+# Patroni callbacks are the primary sync path. The timer is only a watchdog.
+qwen_realtime_timer_interval: 60s
+
+qwen_realtime_seed_tenant: true
+qwen_realtime_disable_healthcheck_logging: true
+qwen_realtime_run_janitor: true
+qwen_realtime_rlimit_nofile: 10000

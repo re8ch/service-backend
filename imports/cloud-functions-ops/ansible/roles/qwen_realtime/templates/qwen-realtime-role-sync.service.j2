@@ -1,0 +1,8 @@
+[Unit]
+Description=Qwen Realtime primary role sync
+After=postgresql.service patroni.service docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart={{ qwen_realtime_role_sync_path }}

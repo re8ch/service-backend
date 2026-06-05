@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+import os
+import pathlib
+import shutil
+import sys
+import time
+
+try:
+    import yaml
+except ImportError as exc:
+    raise SystemExit("python3-yaml is required to patch Patroni callbacks") from exc
+
+if len(sys.argv) < 4:
+    raise SystemExit("usage: patch-patroni-callbacks.py <patroni.yml> <callback> <event>...")
+
+path = pathlib.Path(sys.argv[1])
+callback = sys.argv[2]
+events = sys.argv[3:]
+
+if not path.exists():
+    raise SystemExit(f"Patroni config not found: {path}")
+
+original = path.read_text()
+data = yaml.safe_load(original) or {}
+postgresql = data.setdefault("postgresql", {})
+callbacks = postgresql.setdefault("callbacks", {})
+
+changed = False
+for event in events:
+    if callbacks.get(event) != callback:
+        callbacks[event] = callback
+        changed = True
+
+if not changed:
+    print("ok")
+    raise SystemExit(0)
+
+stat = path.stat()
+backup = path.with_name(f"{path.name}.qwen-realtime.{time.strftime('%Y%m%d%H%M%S')}.bak")
+shutil.copy2(path, backup)
+
+tmp = path.with_suffix(path.suffix + ".qwen-realtime.tmp")
+tmp.write_text(yaml.safe_dump(data, default_flow_style=False, sort_keys=False))
+os.chown(tmp, stat.st_uid, stat.st_gid)
+os.chmod(tmp, stat.st_mode & 0o777)
+tmp.replace(path)
+
+print(f"changed backup={backup}")
