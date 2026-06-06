@@ -128,7 +128,7 @@ metadata:
   name: tenant-operator
   namespace: ${tenant}
 rules:
-- apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+- apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "discovery.k8s.io", "jobset.x-k8s.io", "nuclio.io"]
   resources: ["*"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
@@ -138,7 +138,7 @@ metadata:
   name: tenant-viewer
   namespace: ${tenant}
 rules:
-- apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "nuclio.io"]
+- apiGroups: ["", "apps", "batch", "autoscaling", "networking.k8s.io", "discovery.k8s.io", "jobset.x-k8s.io", "nuclio.io"]
   resources: ["*"]
   verbs: ["get", "list", "watch"]
 ---
