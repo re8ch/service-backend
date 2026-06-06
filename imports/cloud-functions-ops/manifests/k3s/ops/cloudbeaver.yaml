@@ -1,0 +1,248 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudbeaver-datasources
+  namespace: ops
+data:
+  data-sources.json: |
+    {
+      "folders": {},
+      "connections": {
+        "qianwen-prod-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Qianwen Prod - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "qianwen_prod",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/qianwen_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "qianwen-prod-read-sh": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Qianwen Prod - Read SH",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgread-sh.zt.re8ch.com",
+            "port": "5432",
+            "database": "qianwen_prod",
+            "url": "jdbc:postgresql://pgread-sh.zt.re8ch.com:5432/qianwen_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "qianwen-test-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Qianwen Test - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "qianwen_test",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/qianwen_test",
+            "configurationType": "MANUAL",
+            "type": "dev",
+            "closeIdleConnection": true
+          }
+        },
+        "cardcat-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Cardcat - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "cardcat",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/cardcat",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "ledger-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Ledger - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "ledger",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/ledger",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "ledger-read-gz": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Ledger - Read GZ",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgread-gz.zt.re8ch.com",
+            "port": "5432",
+            "database": "ledger",
+            "url": "jdbc:postgresql://pgread-gz.zt.re8ch.com:5432/ledger",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloudbeaver-workspace
+  namespace: ops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbeaver
+  namespace: ops
+  labels:
+    app: cloudbeaver
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloudbeaver
+  template:
+    metadata:
+      labels:
+        app: cloudbeaver
+    spec:
+      serviceAccountName: default
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 8978
+      initContainers:
+        - name: seed-config
+          image: mjhsdd6xkcym4k.xuanyuan.run/library/busybox:1.36
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLOUDBEAVER_ADMIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudbeaver-admin
+                  key: username
+            - name: CLOUDBEAVER_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudbeaver-admin
+                  key: password
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              mkdir -p /workspace/conf /workspace/workspace/GlobalConfiguration/.dbeaver
+              if [ ! -f /workspace/conf/initial-data.conf ]; then
+                cat > /workspace/conf/initial-data.conf <<EOF
+              {
+                adminName: "${CLOUDBEAVER_ADMIN_NAME}",
+                adminPassword: "${CLOUDBEAVER_ADMIN_PASSWORD}",
+                teams: [
+                  {
+                    subjectId: "admin",
+                    teamName: "Admin",
+                    description: "Administrative access.",
+                    permissions: ["admin"]
+                  },
+                  {
+                    subjectId: "qwen",
+                    teamName: "Qwen",
+                    description: "Qwen database tenant.",
+                    permissions: []
+                  },
+                  {
+                    subjectId: "ledger",
+                    teamName: "Ledger",
+                    description: "Ledger database tenant.",
+                    permissions: []
+                  }
+                ]
+              }
+              EOF
+              fi
+              cp /seed/data-sources.json /workspace/workspace/GlobalConfiguration/.dbeaver/data-sources.json
+              chown -R 8978:8978 /workspace || true
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+            - name: datasource-config
+              mountPath: /seed
+              readOnly: true
+      containers:
+        - name: cloudbeaver
+          image: mjhsdd6xkcym4k.xuanyuan.run/dbeaver/cloudbeaver:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLOUDBEAVER_DB_INITIAL_DATA
+              value: /opt/cloudbeaver/workspace/conf/initial-data.conf
+            - name: CLOUDBEAVER_WEB_SERVER_PORT
+              value: "8978"
+            - name: JAVA_TOOL_OPTIONS
+              value: -Xms128m -Xmx768m
+          ports:
+            - name: http
+              containerPort: 8978
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8978
+            initialDelaySeconds: 40
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8978
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: workspace
+              mountPath: /opt/cloudbeaver/workspace
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: cloudbeaver-workspace
+        - name: datasource-config
+          configMap:
+            name: cloudbeaver-datasources
