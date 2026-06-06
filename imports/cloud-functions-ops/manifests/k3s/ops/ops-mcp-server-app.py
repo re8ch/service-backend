@@ -116,6 +116,7 @@ HTTP API:
 - POST /api/restart {"deployment":"name"}
 - GET  /api/admin/dex-users                    admin token required
 - GET  /api/admin/dex-hash-instructions        admin token required
+- POST /api/admin/generate-pg-tenant-database-plan admin token required
 - POST /api/admin/ensure-tenant-access         admin token required
 - POST /api/admin/create-dex-user              admin token required
 - POST /api/admin/grant-user-namespace         admin token required
@@ -318,6 +319,100 @@ def grafana_links():
         "tenantDashboard": TENANT_GRAFANA_DASHBOARD,
         "suggestedUse": ["inspect service health", "check node and pod trends", "compare deployment impact"],
     }
+
+TENANT_RESOURCE_CATALOG = {
+    "qwen": {
+        "canonicalTenant": "qwen",
+        "displayName": "Qianwen / Qwen",
+        "notes": "Historical exception: K3s/Dex namespace is qwen, but Harbor/Grafana tenant label and main databases use qianwen.",
+        "kubernetes": {
+            "namespace": "qwen",
+            "dexGroup": "re8ch:qwen-operators",
+            "serviceAccount": "qwen-kubectl-operator",
+            "tokenSecret": "qwen-kubectl-operator-permanent-token",
+        },
+        "harbor": {
+            "project": "qianwen",
+            "webUsername": "zhangrh",
+            "robotSecret": "harbor-qianwen-admin",
+            "pullSecret": "harbor-qianwen-pull",
+            "imagePath": "registry.re8ch.com/qianwen/<image>:<tag>",
+            "altImagePath": "registry.ynzs.com/qianwen/<image>:<tag>",
+        },
+        "grafana": {
+            "org": "Tenant qianwen",
+            "orgId": "2",
+            "dashboardUid": "tenant-qianwen-overview",
+            "serviceAccount": "qianwen-ai-agent-viewer",
+            "tokenSecret": "grafana-qianwen-viewer",
+            "tenantLabel": "qianwen",
+        },
+        "pigsty": {
+            "databases": ["qianwen_prod", "qianwen_test", "cardcat"],
+            "defaultWriteDatabase": "qianwen_prod",
+            "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+        },
+        "cloudbeaver": {
+            "team": "qwen",
+            "preconfiguredConnections": ["qianwen_prod_rw", "qianwen_prod_ro", "qianwen_test_ro", "cardcat_ro"],
+        },
+    },
+    "ledger": {
+        "canonicalTenant": "ledger",
+        "displayName": "Ledger",
+        "kubernetes": {
+            "namespace": "ledger",
+            "dexGroup": "re8ch:ledger-operators",
+            "serviceAccount": "ledger-kubectl-operator",
+            "tokenSecret": "ledger-kubectl-operator-permanent-token",
+        },
+        "harbor": {
+            "project": "ledger",
+            "webUsername": "ledger",
+            "robotSecret": "harbor-ledger-admin",
+            "imagePath": "registry.re8ch.com/ledger/<image>:<tag>",
+            "altImagePath": "registry.ynzs.com/ledger/<image>:<tag>",
+        },
+        "grafana": {
+            "org": "Tenant ledger",
+            "orgId": "3",
+            "dashboardUid": "tenant-ledger-overview",
+            "serviceAccount": "ledger-ai-agent-viewer",
+            "tokenSecret": "grafana-ledger-viewer",
+            "tenantLabel": "ledger",
+        },
+        "pigsty": {
+            "databases": ["ledger"],
+            "defaultWriteDatabase": "ledger",
+            "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+        },
+        "cloudbeaver": {
+            "team": "ledger",
+            "preconfiguredConnections": ["ledger_rw", "ledger_ro"],
+        },
+    },
+    "anycam": {
+        "canonicalTenant": "anycam",
+        "displayName": "Anycam",
+        "notes": "Partial tenant. Grafana tenant org was intentionally deferred.",
+        "kubernetes": {"namespace": "anycam"},
+        "pigsty": {
+            "databases": ["anycam_prod", "anycam_test"],
+            "defaultWriteDatabase": "anycam_prod",
+            "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+        },
+    },
+}
+
+
+def tenant_resource_catalog(all_tenants=False):
+    if all_tenants:
+        return {"tenants": TENANT_RESOURCE_CATALOG}
+    key = TENANT
+    if key not in TENANT_RESOURCE_CATALOG and TENANT_METRICS_TENANT in TENANT_RESOURCE_CATALOG:
+        key = TENANT_METRICS_TENANT
+    return {"tenant": key, "resources": TENANT_RESOURCE_CATALOG.get(key, {})}
+
 
 def grafana_access():
     data = get_secret_data(TENANT_GRAFANA_TOKEN_SECRET)
@@ -1173,7 +1268,7 @@ def get_dex_hash_instructions():
 
 def get_tenancy_admin_workflow():
     return {
-        "purpose": "Standardize Headlamp/Dex human access, kubectl robot access, and Harbor registry identity for a tenant namespace.",
+        "purpose": "Standardize Headlamp/Dex human access, kubectl robot access, Harbor registry identity, and optional Pigsty PostgreSQL database planning for a tenant namespace.",
         "auth": "Use Ops MCP admin token. Normal Ops token cannot call these tools.",
         "principle": "Human OIDC group, Dex local OIDC user, and robot ServiceAccount are reconciled to tenant operator permissions, plus the same read-only cluster UI view.",
         "steps": [
@@ -1182,10 +1277,141 @@ def get_tenancy_admin_workflow():
             {"step": 3, "tool": "create_dex_user", "when": "Create a new human login and grant namespace access in one call.", "arguments": {"email": "alice@example.com", "username": "alice", "userID": "alice", "passwordHash": "$2a$10$...", "namespace": "ledger"}, "result": "Adds static Dex user to re8ch:ledger-operators, binds oidc:<email> directly for Dex local login, reconciles tenant RBAC, and restarts Dex."},
             {"step": 4, "tool": "grant_user_namespace", "when": "Existing Dex user needs access to another namespace.", "arguments": {"email": "alice@example.com", "namespace": "ledger"}, "result": "Adds re8ch:ledger-operators to existing Dex user, binds oidc:<email> directly for Dex local login, reconciles tenant RBAC, and restarts Dex."},
             {"step": 5, "tool": "ensure_harbor_tenant", "when": "Create or repair the matching Harbor project, web login, project admin membership, robot token secret, and imagePullSecrets.", "arguments": {"namespace": "ledger", "email": "ledger@re8ch.com"}, "result": "Ensures Harbor project ledger, Harbor username ledger, K8s secret ledger/harbor-ledger-admin, and registry image path registry.re8ch.com/ledger/<image>:<tag>."},
-            {"step": 6, "verify": ["kubectl auth can-i --as=oidc:<email> --as-group=oidc:re8ch:<namespace>-operators -n <namespace> create deployments.apps", "kubectl auth can-i --as=system:serviceaccount:<namespace>:<namespace>-kubectl-operator -n <namespace> create deployments.apps", "kubectl auth can-i --as=oidc:<email> --as-group=oidc:re8ch:<namespace>-operators -n other-namespace get pods should be no", "kubectl -n <namespace> get secret harbor-<namespace>-admin"]},
+            {"step": 6, "tool": "generate_pg_tenant_database_plan", "when": "The tenant also needs a Pigsty PostgreSQL database and standard roles.", "arguments": {"database": "ledger", "tenant": "ledger", "schema": "app", "generatePasswords": True}, "result": "Returns SQL, psql execution hints, role names, connection routes, and secret storage paths. It does not touch PostgreSQL by itself."},
+            {"step": 7, "verify": ["kubectl auth can-i --as=oidc:<email> --as-group=oidc:re8ch:<namespace>-operators -n <namespace> create deployments.apps", "kubectl auth can-i --as=system:serviceaccount:<namespace>:<namespace>-kubectl-operator -n <namespace> create deployments.apps", "kubectl auth can-i --as=oidc:<email> --as-group=oidc:re8ch:<namespace>-operators -n other-namespace get pods should be no", "kubectl -n <namespace> get secret harbor-<namespace>-admin", "PGPASSWORD='<password>' psql -h pgwrite.zt.re8ch.com -U <database>_app_rw -d <database> -c 'select current_database(), current_user'"]},
         ],
         "createdObjects": ["namespace/<namespace>", "role/<namespace>/tenant-operator", "role/<namespace>/tenant-viewer", "rolebinding/<namespace>/<namespace>-operators-tenant-operator-oidc", "serviceaccount/<namespace>/<namespace>-kubectl-operator", "secret/<namespace>/<namespace>-kubectl-operator-permanent-token", "rolebinding/<namespace>/<namespace>-kubectl-operator", "clusterrole/tenant-ui-cluster-viewer", "clusterrolebinding/<namespace>-headlamp-ui-cluster-viewer-oidc", "clusterrolebinding/<namespace>-kubectl-operator-ui-cluster-viewer", "harbor project/<namespace>", "harbor user/<namespace>", "secret/<namespace>/harbor-<namespace>-admin"],
-        "safety": ["The workflow is idempotent and uses apply-like create/update behavior.", "It does not delete existing namespace workloads or business secrets.", "Dex user creation requires passwordHash, not plaintext password.", "Harbor robot tokens are stored in Kubernetes secrets and are not returned by the API.", "Dex changes restart the Dex deployment; existing users may need to log in again to receive new groups."],
+        "safety": ["The workflow is idempotent and uses apply-like create/update behavior.", "It does not delete existing namespace workloads or business secrets.", "Dex user creation requires passwordHash, not plaintext password.", "Harbor robot tokens are stored in Kubernetes secrets and are not returned by the API.", "Pigsty database SQL must be executed by a DBA or by a separately authorized database automation; the public Ops MCP server does not hold PostgreSQL superuser credentials.", "Dex changes restart the Dex deployment; existing users may need to log in again to receive new groups."],
+    }
+
+
+def pg_ident(name):
+    if not name or not re.match(r"^[a-z][a-z0-9_]{0,62}$", name):
+        raise ValueError("PostgreSQL identifiers must match ^[a-z][a-z0-9_]{0,62}$: %s" % name)
+    return name
+
+
+def sql_literal(value):
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def tenant_pg_passwords(database, generate=False, provided=None):
+    provided = provided or {}
+    roles = ["admin", "migrator", "app_rw", "app_ro", "pgrst"]
+    out = {}
+    for suffix in roles:
+        key = "%s_%s" % (database, suffix)
+        if suffix in provided and provided[suffix]:
+            out[suffix] = provided[suffix]
+        elif key in provided and provided[key]:
+            out[suffix] = provided[key]
+        elif generate:
+            out[suffix] = secrets.token_urlsafe(36)
+        else:
+            out[suffix] = "<%s_PASSWORD>" % key.upper()
+    return out
+
+
+def generate_pg_tenant_database_plan(args):
+    database = pg_ident((args or {}).get("database") or (args or {}).get("db") or "")
+    tenant = pg_ident((args or {}).get("tenant") or database)
+    schema = pg_ident((args or {}).get("schema") or "app")
+    generate_passwords = bool((args or {}).get("generatePasswords", False))
+    grant_create_role = bool((args or {}).get("grantCreateRole", False))
+    passwords = tenant_pg_passwords(database, generate=generate_passwords, provided=(args or {}).get("passwords") or {})
+
+    roles = {
+        "owner": "%s_owner" % database,
+        "admin": "%s_admin" % database,
+        "migrator": "%s_migrator" % database,
+        "app_rw": "%s_app_rw" % database,
+        "app_ro": "%s_app_ro" % database,
+        "pgrst": "%s_pgrst" % database,
+    }
+    for value in roles.values():
+        pg_ident(value)
+
+    connect_roles = ", ".join([roles["admin"], roles["migrator"], roles["app_rw"], roles["app_ro"], roles["pgrst"]])
+    dml_roles = ", ".join([roles["app_rw"], roles["pgrst"]])
+    all_default_owners = [roles["owner"], roles["admin"], roles["migrator"]]
+
+    sql = [
+        "-- Run on the Pigsty PostgreSQL write leader as a DBA/superuser.",
+        "-- Current preferred write entry: pgwrite.zt.re8ch.com:5432 or 192.0.2.251:5432 if pg-meta-3 is leader.",
+        "CREATE ROLE %s NOLOGIN;" % roles["owner"],
+        "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["admin"], sql_literal(passwords["admin"])),
+        "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["migrator"], sql_literal(passwords["migrator"])),
+        "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["app_rw"], sql_literal(passwords["app_rw"])),
+        "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["app_ro"], sql_literal(passwords["app_ro"])),
+        "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["pgrst"], sql_literal(passwords["pgrst"])),
+    ]
+    if grant_create_role:
+        sql.append("-- WARNING: CREATEROLE is cluster-wide. Grant only to trusted tenant admins.")
+        sql.append("ALTER ROLE %s CREATEROLE;" % roles["admin"])
+    sql += [
+        "CREATE DATABASE %s OWNER %s TEMPLATE template0 ENCODING 'UTF8';" % (database, roles["owner"]),
+        "REVOKE ALL ON DATABASE %s FROM PUBLIC;" % database,
+        "GRANT CONNECT, TEMPORARY ON DATABASE %s TO %s;" % (database, connect_roles),
+        "GRANT CREATE ON DATABASE %s TO %s, %s;" % (database, roles["admin"], roles["migrator"]),
+        "\\connect %s" % database,
+        "REVOKE CREATE ON SCHEMA public FROM PUBLIC;",
+        "CREATE SCHEMA IF NOT EXISTS %s AUTHORIZATION %s;" % (schema, roles["owner"]),
+        "GRANT USAGE ON SCHEMA %s TO %s, %s, %s, %s;" % (schema, roles["admin"], roles["migrator"], roles["app_ro"], roles["app_rw"]),
+        "GRANT USAGE ON SCHEMA %s TO %s;" % (schema, roles["pgrst"]),
+        "GRANT CREATE ON SCHEMA %s TO %s, %s;" % (schema, roles["admin"], roles["migrator"]),
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA %s TO %s;" % (schema, dml_roles),
+        "GRANT SELECT ON ALL TABLES IN SCHEMA %s TO %s;" % (schema, roles["app_ro"]),
+        "GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA %s TO %s;" % (schema, dml_roles),
+        "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %s TO %s;" % (schema, roles["app_ro"]),
+    ]
+    for owner_role in all_default_owners:
+        sql += [
+            "ALTER DEFAULT PRIVILEGES FOR ROLE %s IN SCHEMA %s GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO %s;" % (owner_role, schema, dml_roles),
+            "ALTER DEFAULT PRIVILEGES FOR ROLE %s IN SCHEMA %s GRANT SELECT ON TABLES TO %s;" % (owner_role, schema, roles["app_ro"]),
+            "ALTER DEFAULT PRIVILEGES FOR ROLE %s IN SCHEMA %s GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO %s;" % (owner_role, schema, dml_roles),
+            "ALTER DEFAULT PRIVILEGES FOR ROLE %s IN SCHEMA %s GRANT USAGE, SELECT ON SEQUENCES TO %s;" % (owner_role, schema, roles["app_ro"]),
+        ]
+    sql += [
+        "ALTER ROLE %s IN DATABASE %s SET search_path = %s, public;" % (roles["admin"], database, schema),
+        "ALTER ROLE %s IN DATABASE %s SET search_path = %s, public;" % (roles["migrator"], database, schema),
+        "ALTER ROLE %s IN DATABASE %s SET search_path = %s, public;" % (roles["app_rw"], database, schema),
+        "ALTER ROLE %s IN DATABASE %s SET search_path = %s, public;" % (roles["app_ro"], database, schema),
+        "ALTER ROLE %s IN DATABASE %s SET search_path = %s, public;" % (roles["pgrst"], database, schema),
+    ]
+
+    secret_paths = {
+        suffix: "/home/ubuntu/.pgbiz-secrets/%s_%s.password" % (database, suffix)
+        for suffix in ["admin", "migrator", "app_rw", "app_ro", "pgrst"]
+    }
+    return {
+        "tenant": tenant,
+        "database": database,
+        "schema": schema,
+        "rolePattern": roles,
+        "passwords": passwords if generate_passwords or (args or {}).get("passwords") else "not returned; pass generatePasswords=true for one-time generation or provide passwords explicitly",
+        "secretPathsOnPrimary": secret_paths,
+        "connectionRoutes": {
+            "write": "pgwrite.zt.re8ch.com:5432",
+            "read": "pgread-sh.zt.re8ch.com:5432 or pgread-gz.zt.re8ch.com:5432",
+            "pool": "pgwrite.zt.re8ch.com:6432",
+            "postgrestGateway": "http://192.0.2.89:3080, http://192.0.2.112:3080, http://192.0.2.251:3080",
+        },
+        "recommendedWebAccess": {
+            "tenantReadOnly": "%s_app_ro" % database,
+            "migrationOperator": "%s_migrator" % database,
+            "adminOperator": "%s_admin" % database,
+            "tools": ["DBeaver desktop", "CloudBeaver if a shared web SQL console is required", "Bytebase if migration review/audit is required", "pgAdmin only as a simple optional GUI"],
+        },
+        "psqlCommand": "psql -h pgwrite.zt.re8ch.com -p 5432 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
+        "sql": "\n".join(sql) + "\n",
+        "safety": [
+            "This tool generates a database plan and SQL; it does not execute SQL and does not store PostgreSQL superuser credentials.",
+            "Do not grant CREATEROLE by default. It is cluster-wide, not database-local.",
+            "app_rw is for runtime DML and should not create tenant roles.",
+            "migrator is for migrations and DDL within the tenant database.",
+            "pgrst is for PostgREST integration.",
+            "owner is NOLOGIN and should own database/schema objects.",
+        ],
     }
 
 def mcp_tools(include_admin=False):
@@ -1198,6 +1424,7 @@ def mcp_tools(include_admin=False):
         {"name": "list_k8s_resources", "description": "List qwen Kubernetes resources or read-only nodes.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}})},
         {"name": "restart_deployment", "description": "Restart one Deployment in qwen namespace.", "inputSchema": schema({"deployment": {"type": "string"}}, ["deployment"])},
         {"name": "get_registry_info", "description": "Return Harbor registry information for qwen images.", "inputSchema": schema()},
+        {"name": "get_tenant_resource_catalog", "description": "Return the tenant resource name catalog. Normal token returns this tenant; admin token can pass allTenants=true.", "inputSchema": schema({"allTenants": {"type": "boolean", "default": False}})},
         {"name": "get_grafana_links", "description": "Return Grafana links and intended usage.", "inputSchema": schema()},
         {"name": "get_grafana_access", "description": "Return the tenant Grafana service account token and API usage hints for AI agents. The token is Viewer-scoped to the tenant Grafana org.", "inputSchema": schema()},
         {"name": "get_tenant_metrics_summary", "description": "Return tenant-scoped function, namespace, and database metrics. The tenant filters are enforced by Ops MCP configuration; arbitrary PromQL is not accepted.", "inputSchema": schema()},
@@ -1207,6 +1434,7 @@ def mcp_tools(include_admin=False):
             {"name": "list_dex_users", "description": "Admin: list Dex static users without password hashes.", "inputSchema": schema()},
             {"name": "get_tenancy_admin_workflow", "description": "Admin: explain the standard tenant/user access workflow for Headlamp, Dex OIDC, RBAC, and robot kubeconfig.", "inputSchema": schema()},
             {"name": "get_dex_hash_instructions", "description": "Admin: return commands for generating Dex bcrypt passwordHash.", "inputSchema": schema()},
+            {"name": "generate_pg_tenant_database_plan", "description": "Admin: generate the standard Pigsty PostgreSQL tenant database plan, roles, secret paths, SQL, and connection routes. This does not execute SQL.", "inputSchema": schema({"database": {"type": "string"}, "tenant": {"type": "string"}, "schema": {"type": "string", "default": "app"}, "generatePasswords": {"type": "boolean", "default": False}, "grantCreateRole": {"type": "boolean", "default": False}, "passwords": {"type": "object"}}, ["database"])},
             {"name": "ensure_tenant_access", "description": "Admin: create namespace, tenant roles, OIDC group RoleBinding, robot ServiceAccount token, and cluster read-only bindings.", "inputSchema": schema({"namespace": {"type": "string"}, "group": {"type": "string"}, "serviceAccount": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["namespace"])},
             {"name": "create_dex_user", "description": "Admin: create a Dex static user and optionally grant namespace operator access. Requires passwordHash, not plaintext password. Can also reconcile the matching Harbor tenant when ensureHarbor=true.", "inputSchema": schema({"email": {"type": "string"}, "username": {"type": "string"}, "userID": {"type": "string"}, "passwordHash": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "createNamespace": {"type": "boolean", "default": True}, "updateExisting": {"type": "boolean", "default": False}, "ensureHarbor": {"type": "boolean", "default": False}, "harborPassword": {"type": "string"}, "rotateHarborRobot": {"type": "boolean", "default": False}}, ["email", "passwordHash"])},
             {"name": "grant_user_namespace", "description": "Admin: grant an existing Dex static user operator access to a namespace and reconcile tenant RBAC.", "inputSchema": schema({"email": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["email", "namespace"])},
@@ -1228,13 +1456,15 @@ def call_tool(name, args, admin=False):
         return restart_deployment(args.get("deployment"))
     if name == "get_registry_info":
         return registry_info()
+    if name == "get_tenant_resource_catalog":
+        return tenant_resource_catalog(all_tenants=bool(args.get("allTenants", False)) and admin)
     if name == "get_grafana_links":
         return grafana_links()
     if name == "get_grafana_access":
         return grafana_access()
     if name == "get_tenant_metrics_summary":
         return get_tenant_metrics_summary()
-    admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
+    admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)
     if name == "list_dex_users":
@@ -1243,6 +1473,8 @@ def call_tool(name, args, admin=False):
         return get_tenancy_admin_workflow()
     if name == "get_dex_hash_instructions":
         return get_dex_hash_instructions()
+    if name == "generate_pg_tenant_database_plan":
+        return generate_pg_tenant_database_plan(args)
     if name == "ensure_tenant_access":
         return ensure_tenant_access(args.get("namespace"), group=args.get("group"), serviceaccount=args.get("serviceAccount"), create_namespace=bool(args.get("createNamespace", True)))
     if name == "create_dex_user":
@@ -1376,6 +1608,9 @@ class Handler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/admin/ensure-tenant-access":
                 if self.require_admin():
                     self.send_json(ensure_tenant_access(body.get("namespace"), group=body.get("group"), serviceaccount=body.get("serviceAccount"), create_namespace=bool(body.get("createNamespace", True))))
+            elif parsed.path == "/api/admin/generate-pg-tenant-database-plan":
+                if self.require_admin():
+                    self.send_json(generate_pg_tenant_database_plan(body))
             elif parsed.path == "/api/admin/create-dex-user":
                 if self.require_admin():
                     self.send_json(create_dex_user(body))
