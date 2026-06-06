@@ -91,6 +91,8 @@ kind: Service
 metadata:
   name: qianwen-region-metadata
   namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
   labels:
     app.kubernetes.io/name: qianwen-region-metadata
     saas.re8ch.com/tenant: qianwen
