@@ -19,9 +19,12 @@ data:
           project: qianwen
           webUsername: zhangrh
           robotSecret: harbor-qianwen-admin
+          buildSecret: harbor-qianwen-build
           pullSecret: harbor-qianwen-pull
+          sharedBuilderPullSecret: harbor-functions-shared-pull
           imagePath: registry.re8ch.com/qianwen/<image>:<tag>
           altImagePath: registry.ynzs.com/qianwen/<image>:<tag>
+          buildNotes: functions-shared is Harbor public-pull for platform builder/base images; build credentials still need push access to qianwen processor images.
         grafana:
           org: Tenant qianwen
           orgId: "2"
@@ -184,7 +187,9 @@ data:
           url: https://dbgui.re8ch.com
           webUsername: anycam
           team: tenant-anycam
-          notes: CloudBeaver tenant login can be reconciled after the web account is created.
+          loginSecret:
+            namespace: anycam
+            name: cloudbeaver-login
           preconfiguredConnections:
             - anycam-prod-write
             - anycam-prod-read-gz
