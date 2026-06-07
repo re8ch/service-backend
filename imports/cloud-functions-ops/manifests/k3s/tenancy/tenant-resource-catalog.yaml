@@ -36,6 +36,17 @@ data:
             - cardcat
           defaultWriteDatabase: qianwen_prod
           rolePattern: <db>_{owner,admin,migrator,app_rw,app_ro,pgrst}
+          recommendedRoutes:
+            writeService: pgwrite.zt.re8ch.com:5433
+            readServiceShanghai: pgread-sh.zt.re8ch.com:5434
+            readServiceGuangzhou: pgread-gz.zt.re8ch.com:5434
+            poolRw: pgwrite.zt.re8ch.com:6432
+            instancePort: pgwrite.zt.re8ch.com:5432
+            instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
+            postgrestGateway:
+              shanghaiWrite: http://192.0.2.89:3080
+              shanghaiRead: http://192.0.2.112:3080
+              guangzhouRead: http://192.0.2.251:3080
           credentialSecrets:
             qianwen_prod:
               namespace: qwen
@@ -93,6 +104,17 @@ data:
             - ledger
           defaultWriteDatabase: ledger
           rolePattern: <db>_{owner,admin,migrator,app_rw,app_ro,pgrst}
+          recommendedRoutes:
+            writeService: pgwrite.zt.re8ch.com:5433
+            readServiceShanghai: pgread-sh.zt.re8ch.com:5434
+            readServiceGuangzhou: pgread-gz.zt.re8ch.com:5434
+            poolRw: pgwrite.zt.re8ch.com:6432
+            instancePort: pgwrite.zt.re8ch.com:5432
+            instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
+            postgrestGateway:
+              shanghaiWrite: http://192.0.2.89:3080
+              shanghaiRead: http://192.0.2.112:3080
+              guangzhouRead: http://192.0.2.251:3080
           credentialSecrets:
             ledger:
               namespace: ledger
@@ -124,6 +146,17 @@ data:
             - anycam_test
           defaultWriteDatabase: anycam_prod
           rolePattern: <db>_{owner,admin,migrator,app_rw,app_ro,pgrst}
+          recommendedRoutes:
+            writeService: pgwrite.zt.re8ch.com:5433
+            readServiceShanghai: pgread-sh.zt.re8ch.com:5434
+            readServiceGuangzhou: pgread-gz.zt.re8ch.com:5434
+            poolRw: pgwrite.zt.re8ch.com:6432
+            instancePort: pgwrite.zt.re8ch.com:5432
+            instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
+            postgrestGateway:
+              shanghaiWrite: http://192.0.2.89:3080
+              shanghaiRead: http://192.0.2.112:3080
+              guangzhouRead: http://192.0.2.251:3080
           credentialSecrets:
             anycam_prod:
               namespace: anycam
