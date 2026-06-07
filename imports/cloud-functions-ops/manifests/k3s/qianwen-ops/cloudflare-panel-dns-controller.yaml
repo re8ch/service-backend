@@ -13,6 +13,7 @@ data:
   DNS_RECORDS: |
     portainer.re8ch.com=192.0.2.192
     grafana.re8ch.com=192.0.2.192
+    dbgui.re8ch.com=192.0.2.192
     registry.re8ch.com=192.0.2.185
 ---
 apiVersion: v1
