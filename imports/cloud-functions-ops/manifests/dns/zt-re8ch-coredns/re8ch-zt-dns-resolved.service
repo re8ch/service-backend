@@ -1,0 +1,13 @@
+[Unit]
+Description=Route zt.re8ch.com DNS queries to re8ch ZeroTier DNS servers
+After=systemd-resolved.service zerotier-one.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/resolvectl dns zto5uhdriy 192.0.2.67 192.0.2.79 192.0.2.203
+ExecStart=/usr/bin/resolvectl domain zto5uhdriy ~zt.re8ch.com
+
+[Install]
+WantedBy=multi-user.target
