@@ -131,6 +131,7 @@ HTTP API:
 - POST /api/secrets/database-credentials {"database":"qianwen_test"}
 - GET  /api/secrets/web-logins
 - POST /api/restart {"deployment":"name"}
+- POST /api/k8s/proxy {"method":"GET","path":"/api/v1/namespaces/<ns>/pods","kubeToken":"..."}
 - GET  /api/admin/dex-users                    admin token required
 - GET  /api/admin/dex-hash-instructions        admin token required
 - POST /api/admin/generate-pg-tenant-database-plan admin token required
@@ -170,6 +171,7 @@ Safety boundary:
 - Normal token writes are limited to restarting deployments in qwen.
 - Node access is read-only for topology and metrics.
 - Admin token can reconcile Dex static users and tenant RBAC.
+- k8s_api_proxy only forwards Kubernetes API paths. The caller-provided kubeToken controls Kubernetes RBAC; Ops MCP only solves public-to-ZT/K3s API reachability.
 """
 
 def read_file(path):
@@ -199,6 +201,75 @@ def kube_request(method, path, body=None, content_type="application/json"):
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace")
         raise KubeError(exc.code, "kubernetes %s %s failed: %s %s" % (method, path, exc.code, raw))
+
+
+def parse_maybe_json(raw):
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        return raw
+
+
+def validate_k8s_proxy_path(path):
+    if not path or not isinstance(path, str):
+        raise ValueError("path is required")
+    parsed = urllib.parse.urlsplit(path)
+    if parsed.scheme or parsed.netloc:
+        raise ValueError("path must be a Kubernetes API path, not a full URL")
+    if not path.startswith("/"):
+        raise ValueError("path must start with /")
+    allowed_exact = {"/api", "/apis", "/version", "/healthz", "/livez", "/readyz"}
+    if path in allowed_exact or path.startswith("/api/") or path.startswith("/apis/"):
+        return path
+    raise ValueError("path is not an allowed Kubernetes API path")
+
+
+def k8s_api_proxy(args):
+    args = args or {}
+    method = str(args.get("method") or "GET").upper()
+    if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+        raise ValueError("unsupported method: %s" % method)
+    path = validate_k8s_proxy_path(args.get("path"))
+    kube_token = args.get("kubeToken") or args.get("token")
+    if not kube_token or not isinstance(kube_token, str):
+        raise ValueError("kubeToken is required and must be provided by the caller")
+    content_type = args.get("contentType") or args.get("content_type") or "application/json"
+    body = args.get("body", None)
+    data = None
+    headers = {"Authorization": "Bearer " + kube_token}
+    if body is not None:
+        if isinstance(body, (dict, list)):
+            data = json.dumps(body).encode("utf-8")
+        elif isinstance(body, str):
+            data = body.encode("utf-8")
+        else:
+            raise ValueError("body must be an object, array, string, or null")
+        if len(data) > 1024 * 1024:
+            raise ValueError("body too large; max 1 MiB")
+        headers["Content-Type"] = content_type
+    req = urllib.request.Request(KUBE_API + path, data=data, method=method, headers=headers)
+    context = ssl.create_default_context(cafile=SERVICE_ACCOUNT_CA)
+    try:
+        with urllib.request.urlopen(req, timeout=int(args.get("timeoutSeconds") or 20), context=context) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            return {
+                "kubernetesApi": KUBE_API,
+                "method": method,
+                "path": path,
+                "status": resp.status,
+                "body": parse_maybe_json(raw),
+            }
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        return {
+            "kubernetesApi": KUBE_API,
+            "method": method,
+            "path": path,
+            "status": exc.code,
+            "body": parse_maybe_json(raw),
+        }
 
 def resource_path(kind):
     if kind == "nodes":
@@ -270,6 +341,7 @@ def get_secret_data(secret_name):
 
 ALLOWED_TENANT_SECRET_PURPOSES = {
     "postgres-credentials",
+    "headlamp-login",
     "cloudbeaver-login",
     "grafana-web-login",
     "grafana-token",
@@ -435,12 +507,14 @@ def get_tenant_web_logins(args=None, admin=False):
     args = args or {}
     namespace = namespace_for_secret_args(args, admin=admin)
     docs = list_allowed_secret_docs(namespace)
-    result = {"namespace": namespace, "cloudbeaver": None, "grafana": [], "harbor": []}
+    result = {"namespace": namespace, "headlamp": None, "cloudbeaver": None, "grafana": [], "harbor": []}
     for doc in docs:
         labels = doc.get("metadata", {}).get("labels", {})
         purpose = labels.get("re8ch.com/secret-purpose")
         name = doc.get("metadata", {}).get("name")
-        if purpose == "cloudbeaver-login":
+        if purpose == "headlamp-login":
+            result["headlamp"] = {"secret": "%s/%s" % (namespace, name), **decode_secret_data(doc)}
+        elif purpose == "cloudbeaver-login":
             result["cloudbeaver"] = {"secret": "%s/%s" % (namespace, name), **decode_secret_data(doc)}
         elif purpose in ("grafana-token", "grafana-web-login"):
             data = decode_secret_data(doc)
@@ -1913,6 +1987,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_tenant_secret_refs", "description": "Return tenant-readable Kubernetes Secret references. Normal token is limited to this tenant namespace; admin can pass allTenants=true.", "inputSchema": schema({"namespace": {"type": "string"}, "allTenants": {"type": "boolean", "default": False}})},
         {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
         {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
+        {"name": "k8s_api_proxy", "description": "Forward one request to the internal Kubernetes API server using the caller-provided kubeToken. Ops MCP only solves reachability; Kubernetes RBAC is enforced by kubeToken. Path must be a Kubernetes API path such as /api/v1/namespaces/anycam/pods.", "inputSchema": schema({"method": {"type": "string", "default": "GET"}, "path": {"type": "string"}, "kubeToken": {"type": "string"}, "body": {}, "contentType": {"type": "string", "default": "application/json"}, "timeoutSeconds": {"type": "integer", "default": 20}}, ["path", "kubeToken"])},
     ]
     if include_admin:
         tools.extend([
@@ -1957,6 +2032,8 @@ def call_tool(name, args, admin=False):
         return get_tenant_database_credentials(args, admin=admin)
     if name == "get_tenant_web_logins":
         return get_tenant_web_logins(args, admin=admin)
+    if name == "k8s_api_proxy":
+        return k8s_api_proxy(args)
     admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)
@@ -2140,6 +2217,8 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(raw.decode("utf-8") or "{}")
             if parsed.path == "/api/restart":
                 self.send_json(restart_deployment(body.get("deployment")))
+            elif parsed.path == "/api/k8s/proxy":
+                self.send_json(k8s_api_proxy(body))
             elif parsed.path == "/api/secrets/database-credentials":
                 self.send_json(get_tenant_database_credentials(body, admin=self.admin_authorized()))
             elif parsed.path == "/api/admin/ensure-tenant-access":
