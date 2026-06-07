@@ -36,6 +36,16 @@ TENANT_GRAFANA_DASHBOARD = os.getenv("TENANT_GRAFANA_DASHBOARD", "")
 TENANT_GRAFANA_TOKEN_SECRET = os.getenv("TENANT_GRAFANA_TOKEN_SECRET", "grafana-%s-viewer" % TENANT_METRICS_TENANT)
 SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+PG_SERVICE_ROUTES = {
+    "writeService": {"host": "pgwrite.zt.re8ch.com", "port": "5433", "purpose": "HA primary/write service; recommended for migrations, admin SQL, and direct runtime writes."},
+    "readService": {"host": "pgread-sh.zt.re8ch.com", "port": "5434", "purpose": "HA replica/read service in Shanghai when healthy."},
+    "readServiceGz": {"host": "pgread-gz.zt.re8ch.com", "port": "5434", "purpose": "HA replica/read service in Guangzhou when healthy."},
+    "poolRw": {"host": "pgwrite.zt.re8ch.com", "port": "6432", "purpose": "PgBouncer pooled connection entry for high-churn app clients."},
+    "instancePrimaryName": {"host": "pgwrite.zt.re8ch.com", "port": "5432", "purpose": "Direct PostgreSQL instance port. Use only when a GUI/JDBC tool or a DBA intentionally targets an instance; it is not the preferred HA write route."},
+    "postgrestGatewayShanghaiWrite": {"url": "http://192.0.2.172:3080", "purpose": "PostgREST/HA gateway near Shanghai primary path; use for HTTP CRUD from functions."},
+    "postgrestGatewayShanghaiRead": {"url": "http://192.0.2.141:3080", "purpose": "PostgREST/HA gateway near Shanghai read path."},
+    "postgrestGatewayGuangzhouRead": {"url": "http://192.0.2.33:3080", "purpose": "PostgREST/HA gateway near Guangzhou read path and current leader region when applicable."},
+}
 KUBE_API = "https://%s:%s" % (
     os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"),
     os.getenv("KUBERNETES_SERVICE_PORT", "443"),
@@ -141,6 +151,15 @@ Grafana for AI agents:
 - Datasource query: POST https://grafana.re8ch.com/ui/api/ds/query with datasource uid tenant-metrics.
 - The tenant Grafana datasource still goes through the tenant metrics proxy, so arbitrary PromQL and cross-tenant queries are rejected.
 - Do not use human Grafana web passwords for AI agents.
+
+Recommended PostgreSQL routing:
+- Prefer tenant Secrets and the get_tenant_database_credentials tool instead of hardcoding database hosts.
+- Direct write/admin/migration SQL: pgwrite.zt.re8ch.com:5433.
+- Pooled app read/write direct PG: pgwrite.zt.re8ch.com:6432 when PgBouncer semantics fit the app.
+- Direct normal reads: pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434, chosen by region and health.
+- CloudBeaver/DBeaver JDBC templates may use pgwrite.zt.re8ch.com:5432 for intentional instance-level GUI access, but do not treat 5432 as the HA write route.
+- Cloud functions should prefer the PostgREST HA gateway on :3080 for simple CRUD: Shanghai write/strong read http://192.0.2.172:3080, Shanghai read http://192.0.2.141:3080, Guangzhou read http://192.0.2.33:3080.
+- PostgreSQL 5432 is the instance port. It is useful for DBA inspection and some GUI clients, but the tenant default write route is 5433 or PgBouncer 6432.
 
 Safety boundary:
 - Tenant namespace: qwen
@@ -379,6 +398,14 @@ def get_tenant_database_credentials(args=None, admin=False):
         "database": database,
         "secret": "%s/%s" % (ref_namespace, name),
         "status": doc.get("metadata", {}).get("annotations", {}).get("re8ch.com/credential-status", "complete"),
+        "recommendedRoutes": PG_SERVICE_ROUTES,
+        "usageNotes": [
+            "Prefer DATABASE_URL_RW from this Secret for direct writes/admin SQL; new Secrets use pgwrite.zt.re8ch.com:5433.",
+            "Prefer DATABASE_URL_POOL_RW for high-churn app clients when PgBouncer transaction/session semantics are acceptable.",
+            "Prefer DATABASE_URL_RO for normal reads; choose the regional read service by health.",
+            "For simple HTTP CRUD from Nuclio/cloud functions, prefer the PostgREST :3080 gateways instead of direct PostgreSQL.",
+            "CloudBeaver/DBeaver may use 5432 JDBC templates for GUI inspection, but 5432 is a PostgreSQL instance port, not the recommended HA write route.",
+        ],
         "metadata": secret_summary(doc),
         "data": decode_secret_data(doc),
     }
@@ -477,6 +504,7 @@ def tenant_context():
         "registry": REGISTRY_PUBLIC,
         "registryAlternate": REGISTRY_ALT,
         "registryProject": TENANT_HARBOR_PROJECT,
+        "postgresRecommendedRoutes": PG_SERVICE_ROUTES,
         "allowedOperations": ["list qwen resources", "read nodes", "read metrics", "restart qwen deployments", "download qwen kubeconfig"],
     }
 
@@ -534,6 +562,7 @@ TENANT_RESOURCE_CATALOG = {
             "databases": ["qianwen_prod", "qianwen_test", "cardcat"],
             "defaultWriteDatabase": "qianwen_prod",
             "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+            "recommendedRoutes": PG_SERVICE_ROUTES,
             "credentialSecrets": {
                 "qianwen_prod": {
                     "namespace": "qwen",
@@ -586,6 +615,7 @@ TENANT_RESOURCE_CATALOG = {
             "databases": ["ledger"],
             "defaultWriteDatabase": "ledger",
             "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+            "recommendedRoutes": PG_SERVICE_ROUTES,
             "credentialSecrets": {
                 "ledger": {"namespace": "ledger", "name": "ledger-db-credentials", "status": "complete"},
             },
@@ -612,6 +642,7 @@ TENANT_RESOURCE_CATALOG = {
             "databases": ["anycam_prod", "anycam_test"],
             "defaultWriteDatabase": "anycam_prod",
             "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+            "recommendedRoutes": PG_SERVICE_ROUTES,
             "credentialSecrets": {
                 "anycam_prod": {"namespace": "anycam", "name": "anycam-prod-db-credentials", "status": "complete"},
                 "anycam_test": {"namespace": "anycam", "name": "anycam-test-db-credentials", "status": "complete"},
@@ -1550,11 +1581,14 @@ def build_database_secret_values(database, passwords, read_host=None):
     values = {
         "PGDATABASE": database,
         "PGPORT": "5432",
+        "PGWRITE_PORT": "5433",
+        "PGREAD_PORT": "5434",
         "PGPOOL_PORT": "6432",
         "PGHOST_WRITE": "pgwrite.zt.re8ch.com",
         "PGHOST_READ_SH": "pgread-sh.zt.re8ch.com",
         "PGHOST_READ_GZ": "pgread-gz.zt.re8ch.com",
         "PGHOST_POOL": "pgwrite.zt.re8ch.com",
+        "PGROUTE_NOTE": "Recommended direct write/admin/migration route is pgwrite.zt.re8ch.com:5433; 5432 is a PostgreSQL instance/JDBC GUI port, not the default HA write route.",
     }
     for suffix, password in passwords.items():
         if not password or str(password).startswith("<"):
@@ -1563,14 +1597,14 @@ def build_database_secret_values(database, passwords, read_host=None):
         values["%s_%s_USER" % (prefix, role_key)] = "%s_%s" % (database, suffix)
         values["%s_%s_PASSWORD" % (prefix, role_key)] = password
     if passwords.get("app_rw") and not str(passwords.get("app_rw")).startswith("<"):
-        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "5432", database)
+        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "5433", database)
         values["DATABASE_URL_POOL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "6432", database)
     if passwords.get("app_ro") and not str(passwords.get("app_ro")).startswith("<"):
-        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5432", database)
+        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5434", database)
     if passwords.get("migrator") and not str(passwords.get("migrator")).startswith("<"):
-        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], "pgwrite.zt.re8ch.com", "5432", database)
+        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], "pgwrite.zt.re8ch.com", "5433", database)
     if passwords.get("pgrst") and not str(passwords.get("pgrst")).startswith("<"):
-        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], "pgwrite.zt.re8ch.com", "5432", database)
+        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], "pgwrite.zt.re8ch.com", "5433", database)
     return values
 
 
@@ -1677,7 +1711,8 @@ def generate_pg_tenant_database_plan(args):
 
     sql = [
         "-- Run on the Pigsty PostgreSQL write leader as a DBA/superuser.",
-        "-- Current preferred write entry: pgwrite.zt.re8ch.com:5432 or 192.0.2.33:5432 if pg-meta-3 is leader.",
+        "-- Preferred HA write/admin entry: pgwrite.zt.re8ch.com:5433.",
+        "-- Avoid using PostgreSQL instance port 5432 as the default write route unless intentionally targeting one instance.",
         "CREATE ROLE %s NOLOGIN;" % roles["owner"],
         "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["admin"], sql_literal(passwords["admin"])),
         "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["migrator"], sql_literal(passwords["migrator"])),
@@ -1737,18 +1772,21 @@ def generate_pg_tenant_database_plan(args):
             "note": "K3s Secret is the credential source of truth after SQL execution.",
         },
         "connectionRoutes": {
-            "write": "pgwrite.zt.re8ch.com:5432",
-            "read": "pgread-sh.zt.re8ch.com:5432 or pgread-gz.zt.re8ch.com:5432",
+            "recommendedWrite": "pgwrite.zt.re8ch.com:5433",
+            "recommendedRead": "pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434",
             "pool": "pgwrite.zt.re8ch.com:6432",
+            "instancePort": "pgwrite.zt.re8ch.com:5432; direct instance/JDBC GUI path, not the default HA write route",
             "postgrestGateway": "http://192.0.2.172:3080, http://192.0.2.141:3080, http://192.0.2.33:3080",
+            "details": PG_SERVICE_ROUTES,
         },
         "recommendedWebAccess": {
             "tenantReadOnly": "%s_app_ro" % database,
             "migrationOperator": "%s_migrator" % database,
             "adminOperator": "%s_admin" % database,
             "tools": ["DBeaver desktop", "CloudBeaver if a shared web SQL console is required", "Bytebase if migration review/audit is required", "pgAdmin only as a simple optional GUI"],
+            "note": "CloudBeaver/DBeaver may use PostgreSQL JDBC against 5432 for GUI inspection, but automation and migrations should prefer the HA write service on 5433 or PgBouncer on 6432.",
         },
-        "psqlCommand": "psql -h pgwrite.zt.re8ch.com -p 5432 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
+        "psqlCommand": "psql -h pgwrite.zt.re8ch.com -p 5433 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
         "sql": "\n".join(sql) + "\n",
         "safety": [
             "This tool generates a database plan and SQL; it does not execute SQL and does not store PostgreSQL superuser credentials.",
