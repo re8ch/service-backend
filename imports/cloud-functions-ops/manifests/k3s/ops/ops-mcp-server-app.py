@@ -113,6 +113,9 @@ HTTP API:
 - GET  /api/grafana/links
 - GET  /api/grafana/access
 - GET  /api/metrics/summary
+- GET  /api/secrets/refs
+- POST /api/secrets/database-credentials {"database":"qianwen_test"}
+- GET  /api/secrets/web-logins
 - POST /api/restart {"deployment":"name"}
 - GET  /api/admin/dex-users                    admin token required
 - GET  /api/admin/dex-hash-instructions        admin token required
@@ -121,6 +124,8 @@ HTTP API:
 - POST /api/admin/create-dex-user              admin token required
 - POST /api/admin/grant-user-namespace         admin token required
 - POST /api/admin/ensure-harbor-tenant         admin token required
+- POST /api/admin/ensure-tenant-database-secrets admin token required
+- POST /api/admin/ensure-tenant-database-bundle  admin token required
 
 MCP endpoint:
 - POST /mcp with JSON-RPC 2.0
@@ -240,6 +245,184 @@ def get_secret_data(secret_name):
         data[key] = base64.b64decode(value).decode("utf-8")
     return data
 
+ALLOWED_TENANT_SECRET_PURPOSES = {
+    "postgres-credentials",
+    "cloudbeaver-login",
+    "grafana-token",
+    "harbor-project-admin",
+    "harbor-pull",
+    "harbor-web-login",
+    "kubectl-operator-token",
+    "kubectl-viewer-token",
+    "kubectl-user-token",
+}
+
+
+def secret_name_for_database(database):
+    return database.replace("_", "-") + "-db-credentials"
+
+
+def database_env_prefix(database):
+    return "".join(ch.upper() if ch.isalnum() else "_" for ch in database)
+
+
+def decode_secret_data(doc):
+    out = {}
+    for key, value in doc.get("data", {}).items():
+        out[key] = base64.b64decode(value).decode("utf-8")
+    return out
+
+
+def secret_summary(doc):
+    meta = doc.get("metadata", {})
+    labels = meta.get("labels", {})
+    annotations = meta.get("annotations", {})
+    return {
+        "namespace": meta.get("namespace"),
+        "name": meta.get("name"),
+        "type": doc.get("type", "Opaque"),
+        "purpose": labels.get("re8ch.com/secret-purpose", ""),
+        "tenant": labels.get("re8ch.com/tenant", ""),
+        "database": labels.get("re8ch.com/database", ""),
+        "credentialStatus": annotations.get("re8ch.com/credential-status", ""),
+        "keys": sorted((doc.get("data") or {}).keys()),
+    }
+
+
+def tenant_catalog_for_namespace(namespace):
+    for key, value in TENANT_RESOURCE_CATALOG.items():
+        if value.get("kubernetes", {}).get("namespace") == namespace:
+            return key, value
+    return namespace, TENANT_RESOURCE_CATALOG.get(namespace, {})
+
+
+def namespace_for_secret_args(args, admin=False):
+    namespace = args.get("namespace") or TENANT
+    validate_k8s_name(namespace, "namespace")
+    if not admin and namespace != TENANT:
+        raise PermissionError("normal token can only read tenant namespace: %s" % TENANT)
+    return namespace
+
+
+def list_allowed_secret_docs(namespace):
+    doc = kube_request("GET", "/api/v1/namespaces/%s/secrets" % namespace)
+    out = []
+    for item in doc.get("items", []):
+        labels = item.get("metadata", {}).get("labels", {})
+        if labels.get("re8ch.com/tenant") != namespace:
+            continue
+        if labels.get("re8ch.com/secret-purpose") not in ALLOWED_TENANT_SECRET_PURPOSES:
+            continue
+        out.append(item)
+    return out
+
+
+def get_tenant_secret_refs(args=None, admin=False):
+    args = args or {}
+    if admin and bool(args.get("allTenants", False)):
+        tenants = sorted({v.get("kubernetes", {}).get("namespace") for v in TENANT_RESOURCE_CATALOG.values() if v.get("kubernetes", {}).get("namespace")})
+    else:
+        tenants = [namespace_for_secret_args(args, admin=admin)]
+    result = {}
+    for namespace in tenants:
+        result[namespace] = [secret_summary(item) for item in list_allowed_secret_docs(namespace)]
+    return {"tenant": TENANT, "secrets": result}
+
+
+def allowed_databases_for_namespace(namespace):
+    _, catalog = tenant_catalog_for_namespace(namespace)
+    return catalog.get("pigsty", {}).get("databases", [])
+
+
+def get_database_secret_reference(namespace, database):
+    _, catalog = tenant_catalog_for_namespace(namespace)
+    refs = catalog.get("pigsty", {}).get("credentialSecrets", {})
+    if database in refs:
+        return refs[database]
+    return {"namespace": namespace, "name": secret_name_for_database(database), "status": "unknown"}
+
+
+def read_allowed_tenant_secret(namespace, name, expected_purpose=None):
+    name = validate_k8s_name(name, "secret")
+    doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (namespace, name))
+    labels = doc.get("metadata", {}).get("labels", {})
+    purpose = labels.get("re8ch.com/secret-purpose", "")
+    if labels.get("re8ch.com/tenant") != namespace or purpose not in ALLOWED_TENANT_SECRET_PURPOSES:
+        raise PermissionError("secret is not a tenant-readable credential: %s/%s" % (namespace, name))
+    if expected_purpose and purpose != expected_purpose:
+        raise PermissionError("secret purpose mismatch for %s/%s" % (namespace, name))
+    return doc
+
+
+def get_tenant_database_credentials(args=None, admin=False):
+    args = args or {}
+    namespace = namespace_for_secret_args(args, admin=admin)
+    database = args.get("database") or args.get("db") or ""
+    if not database:
+        raise ValueError("database is required")
+    pg_ident(database)
+    allowed = allowed_databases_for_namespace(namespace)
+    if not admin and database not in allowed:
+        raise PermissionError("database is not in tenant catalog: %s" % database)
+    ref = get_database_secret_reference(namespace, database)
+    ref_namespace = ref.get("namespace", namespace)
+    if not admin and ref_namespace != namespace:
+        raise PermissionError("normal token cannot read cross-namespace database secret")
+    name = ref.get("name") or secret_name_for_database(database)
+    try:
+        doc = read_allowed_tenant_secret(ref_namespace, name, expected_purpose="postgres-credentials")
+    except KubeError as exc:
+        if exc.status == 404:
+            return {"database": database, "secret": "%s/%s" % (ref_namespace, name), "status": ref.get("status", "missing"), "note": ref.get("note", "credential secret not found")}
+        raise
+    return {
+        "database": database,
+        "secret": "%s/%s" % (ref_namespace, name),
+        "status": doc.get("metadata", {}).get("annotations", {}).get("re8ch.com/credential-status", "complete"),
+        "metadata": secret_summary(doc),
+        "data": decode_secret_data(doc),
+    }
+
+
+def decode_dockerconfig_secret(doc):
+    encoded = (doc.get("data") or {}).get(".dockerconfigjson")
+    if not encoded:
+        return None
+    cfg = json.loads(base64.b64decode(encoded).decode("utf-8"))
+    entries = []
+    for registry, auth in cfg.get("auths", {}).items():
+        entries.append({
+            "registry": registry,
+            "username": auth.get("username", ""),
+            "password": auth.get("password", ""),
+        })
+    return entries
+
+
+def get_tenant_web_logins(args=None, admin=False):
+    args = args or {}
+    namespace = namespace_for_secret_args(args, admin=admin)
+    docs = list_allowed_secret_docs(namespace)
+    result = {"namespace": namespace, "cloudbeaver": None, "grafana": [], "harbor": []}
+    for doc in docs:
+        labels = doc.get("metadata", {}).get("labels", {})
+        purpose = labels.get("re8ch.com/secret-purpose")
+        name = doc.get("metadata", {}).get("name")
+        if purpose == "cloudbeaver-login":
+            result["cloudbeaver"] = {"secret": "%s/%s" % (namespace, name), **decode_secret_data(doc)}
+        elif purpose == "grafana-token":
+            data = decode_secret_data(doc)
+            result["grafana"].append({"secret": "%s/%s" % (namespace, name), **data})
+        elif purpose in ("harbor-project-admin", "harbor-pull", "harbor-web-login"):
+            decoded = decode_dockerconfig_secret(doc)
+            if decoded is not None:
+                for item in decoded:
+                    result["harbor"].append({"secret": "%s/%s" % (namespace, name), "purpose": purpose, **item})
+            else:
+                data = decode_secret_data(doc)
+                result["harbor"].append({"secret": "%s/%s" % (namespace, name), "purpose": purpose, **data})
+    return result
+
 def build_kubeconfig():
     token = get_secret_token("qwen-kubectl-operator-permanent-token")
     ca_data = base64.b64encode(open(SERVICE_ACCOUNT_CA, "rb").read()).decode("ascii")
@@ -351,10 +534,28 @@ TENANT_RESOURCE_CATALOG = {
             "databases": ["qianwen_prod", "qianwen_test", "cardcat"],
             "defaultWriteDatabase": "qianwen_prod",
             "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+            "credentialSecrets": {
+                "qianwen_prod": {
+                    "namespace": "qwen",
+                    "name": "qianwen-prod-db-credentials",
+                    "status": "pending-source",
+                    "note": "No trusted server-side password source has been confirmed yet.",
+                },
+                "qianwen_test": {"namespace": "qwen", "name": "qianwen-test-db-credentials", "status": "complete"},
+                "cardcat": {"namespace": "qwen", "name": "cardcat-db-credentials", "status": "complete", "compatibilityCopyOf": "cardcat/cardcat-db-credentials"},
+            },
         },
         "cloudbeaver": {
-            "team": "qwen",
-            "preconfiguredConnections": ["qianwen_prod_rw", "qianwen_prod_ro", "qianwen_test_ro", "cardcat_ro"],
+            "url": "https://dbgui.re8ch.com",
+            "webUsername": "qwen",
+            "team": "tenant-qwen",
+            "loginSecret": {"namespace": "qwen", "name": "cloudbeaver-login"},
+            "preconfiguredConnections": ["qianwen-prod-write", "qianwen-prod-read-sh", "qianwen-test-write", "cardcat-write"],
+            "recommendedDbRoles": {
+                "readOnly": "<db>_app_ro",
+                "migrations": "<db>_migrator",
+                "tenantAdmin": "<db>_admin",
+            },
         },
     },
     "ledger": {
@@ -385,10 +586,21 @@ TENANT_RESOURCE_CATALOG = {
             "databases": ["ledger"],
             "defaultWriteDatabase": "ledger",
             "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+            "credentialSecrets": {
+                "ledger": {"namespace": "ledger", "name": "ledger-db-credentials", "status": "complete"},
+            },
         },
         "cloudbeaver": {
-            "team": "ledger",
-            "preconfiguredConnections": ["ledger_rw", "ledger_ro"],
+            "url": "https://dbgui.re8ch.com",
+            "webUsername": "ledger",
+            "team": "tenant-ledger",
+            "loginSecret": {"namespace": "ledger", "name": "cloudbeaver-login"},
+            "preconfiguredConnections": ["ledger-write", "ledger-read-gz"],
+            "recommendedDbRoles": {
+                "readOnly": "ledger_app_ro",
+                "migrations": "ledger_migrator",
+                "tenantAdmin": "ledger_admin",
+            },
         },
     },
     "anycam": {
@@ -400,6 +612,16 @@ TENANT_RESOURCE_CATALOG = {
             "databases": ["anycam_prod", "anycam_test"],
             "defaultWriteDatabase": "anycam_prod",
             "rolePattern": "<db>_{owner,admin,migrator,app_rw,app_ro,pgrst}",
+            "credentialSecrets": {
+                "anycam_prod": {"namespace": "anycam", "name": "anycam-prod-db-credentials", "status": "complete"},
+                "anycam_test": {"namespace": "anycam", "name": "anycam-test-db-credentials", "status": "complete"},
+            },
+        },
+        "cloudbeaver": {
+            "url": "https://dbgui.re8ch.com",
+            "team": "admin",
+            "notes": "Admin-only CloudBeaver entries until Anycam receives a full tenant web account.",
+            "preconfiguredConnections": ["anycam-prod-write", "anycam-prod-read-gz", "anycam-test-write"],
         },
     },
 }
@@ -1312,6 +1534,124 @@ def tenant_pg_passwords(database, generate=False, provided=None):
     return out
 
 
+def postgres_url(user, password, host, port, database):
+    return "postgresql://%s:%s@%s:%s/%s" % (
+        urllib.parse.quote(user, safe=""),
+        urllib.parse.quote(password, safe=""),
+        host,
+        port,
+        database,
+    )
+
+
+def build_database_secret_values(database, passwords, read_host=None):
+    read_host = read_host or "pgread-gz.zt.re8ch.com"
+    prefix = database_env_prefix(database)
+    values = {
+        "PGDATABASE": database,
+        "PGPORT": "5432",
+        "PGPOOL_PORT": "6432",
+        "PGHOST_WRITE": "pgwrite.zt.re8ch.com",
+        "PGHOST_READ_SH": "pgread-sh.zt.re8ch.com",
+        "PGHOST_READ_GZ": "pgread-gz.zt.re8ch.com",
+        "PGHOST_POOL": "pgwrite.zt.re8ch.com",
+    }
+    for suffix, password in passwords.items():
+        if not password or str(password).startswith("<"):
+            continue
+        role_key = suffix.upper()
+        values["%s_%s_USER" % (prefix, role_key)] = "%s_%s" % (database, suffix)
+        values["%s_%s_PASSWORD" % (prefix, role_key)] = password
+    if passwords.get("app_rw") and not str(passwords.get("app_rw")).startswith("<"):
+        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "5432", database)
+        values["DATABASE_URL_POOL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "6432", database)
+    if passwords.get("app_ro") and not str(passwords.get("app_ro")).startswith("<"):
+        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5432", database)
+    if passwords.get("migrator") and not str(passwords.get("migrator")).startswith("<"):
+        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], "pgwrite.zt.re8ch.com", "5432", database)
+    if passwords.get("pgrst") and not str(passwords.get("pgrst")).startswith("<"):
+        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], "pgwrite.zt.re8ch.com", "5432", database)
+    return values
+
+
+def upsert_database_credentials_secret(namespace, database, passwords, tenant=None, read_host=None):
+    namespace = validate_k8s_name(namespace, "namespace")
+    database = pg_ident(database)
+    tenant = tenant or namespace
+    values = build_database_secret_values(database, passwords, read_host=read_host)
+    present_roles = sorted([k for k, v in passwords.items() if v and not str(v).startswith("<")])
+    obj = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "type": "Opaque",
+        "metadata": {
+            "name": secret_name_for_database(database),
+            "namespace": namespace,
+            "labels": {
+                "re8ch.com/tenant": namespace,
+                "re8ch.com/secret-purpose": "postgres-credentials",
+                "re8ch.com/database": database,
+            },
+            "annotations": {
+                "re8ch.com/source": "ops-mcp",
+                "re8ch.com/credential-status": "complete" if {"migrator", "app_rw", "app_ro", "pgrst"}.issubset(set(present_roles)) else "partial",
+                "re8ch.com/roles": ",".join(present_roles),
+                "re8ch.com/tenant-catalog-key": tenant,
+            },
+        },
+        "data": {k: b64encode_text(str(v)) for k, v in values.items()},
+    }
+    base = "/api/v1/namespaces/%s/secrets" % namespace
+    kube_apply(base, base + "/" + secret_name_for_database(database), obj)
+    return {"namespace": namespace, "name": secret_name_for_database(database), "database": database, "storedKeys": sorted(values.keys()), "roles": present_roles}
+
+
+def ensure_tenant_database_secrets(args):
+    args = args or {}
+    namespace = validate_k8s_name(args.get("namespace") or args.get("tenant") or "", "namespace")
+    database = pg_ident(args.get("database") or args.get("db") or "")
+    tenant = args.get("tenant") or namespace
+    generate_passwords = bool(args.get("generatePasswords", False))
+    passwords = tenant_pg_passwords(database, generate=generate_passwords, provided=args.get("passwords") or {})
+    if not generate_passwords and not args.get("passwords"):
+        raise ValueError("provide passwords or set generatePasswords=true")
+    read_host = args.get("readHost") or "pgread-gz.zt.re8ch.com"
+    return upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=read_host)
+
+
+def ensure_tenant_database_bundle(args):
+    args = args or {}
+    namespace = validate_k8s_name(args.get("namespace") or args.get("tenant") or "", "namespace")
+    database = pg_ident(args.get("database") or args.get("db") or "")
+    tenant = args.get("tenant") or namespace
+    schema = args.get("schema") or "app"
+    generate_passwords = bool(args.get("generatePasswords", False))
+    passwords = tenant_pg_passwords(database, generate=generate_passwords, provided=args.get("passwords") or {})
+    pg_plan = generate_pg_tenant_database_plan({
+        "database": database,
+        "tenant": tenant,
+        "schema": schema,
+        "grantCreateRole": bool(args.get("grantCreateRole", False)),
+        "passwords": passwords,
+    })
+    secret = None
+    if generate_passwords or args.get("passwords"):
+        secret = upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=args.get("readHost") or "pgread-gz.zt.re8ch.com")
+    return {
+        "tenant": tenant,
+        "namespace": namespace,
+        "database": database,
+        "databaseSecret": secret or {"namespace": namespace, "name": secret_name_for_database(database), "status": "not-created; provide passwords or generatePasswords=true"},
+        "pigstyPlan": pg_plan,
+        "cloudbeaver": {
+            "webLoginSecret": "%s/cloudbeaver-login" % namespace,
+            "expectedTeam": "tenant-%s" % namespace,
+            "expectedConnectionIds": ["%s-write" % database.replace("_", "-"), "%s-read-gz" % database.replace("_", "-")],
+            "note": "CloudBeaver connection/user reconciliation should use the same tenant Secret model; existing CloudBeaver API state is not stored in Ops MCP.",
+        },
+    }
+
+
 def generate_pg_tenant_database_plan(args):
     database = pg_ident((args or {}).get("database") or (args or {}).get("db") or "")
     tenant = pg_ident((args or {}).get("tenant") or database)
@@ -1390,6 +1730,12 @@ def generate_pg_tenant_database_plan(args):
         "rolePattern": roles,
         "passwords": passwords if generate_passwords or (args or {}).get("passwords") else "not returned; pass generatePasswords=true for one-time generation or provide passwords explicitly",
         "secretPathsOnPrimary": secret_paths,
+        "k8sCredentialSecret": {
+            "namespace": tenant,
+            "name": secret_name_for_database(database),
+            "purpose": "postgres-credentials",
+            "note": "K3s Secret is the credential source of truth after SQL execution.",
+        },
         "connectionRoutes": {
             "write": "pgwrite.zt.re8ch.com:5432",
             "read": "pgread-sh.zt.re8ch.com:5432 or pgread-gz.zt.re8ch.com:5432",
@@ -1428,6 +1774,9 @@ def mcp_tools(include_admin=False):
         {"name": "get_grafana_links", "description": "Return Grafana links and intended usage.", "inputSchema": schema()},
         {"name": "get_grafana_access", "description": "Return the tenant Grafana service account token and API usage hints for AI agents. The token is Viewer-scoped to the tenant Grafana org.", "inputSchema": schema()},
         {"name": "get_tenant_metrics_summary", "description": "Return tenant-scoped function, namespace, and database metrics. The tenant filters are enforced by Ops MCP configuration; arbitrary PromQL is not accepted.", "inputSchema": schema()},
+        {"name": "get_tenant_secret_refs", "description": "Return tenant-readable Kubernetes Secret references. Normal token is limited to this tenant namespace; admin can pass allTenants=true.", "inputSchema": schema({"namespace": {"type": "string"}, "allTenants": {"type": "boolean", "default": False}})},
+        {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
+        {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
     ]
     if include_admin:
         tools.extend([
@@ -1435,6 +1784,8 @@ def mcp_tools(include_admin=False):
             {"name": "get_tenancy_admin_workflow", "description": "Admin: explain the standard tenant/user access workflow for Headlamp, Dex OIDC, RBAC, and robot kubeconfig.", "inputSchema": schema()},
             {"name": "get_dex_hash_instructions", "description": "Admin: return commands for generating Dex bcrypt passwordHash.", "inputSchema": schema()},
             {"name": "generate_pg_tenant_database_plan", "description": "Admin: generate the standard Pigsty PostgreSQL tenant database plan, roles, secret paths, SQL, and connection routes. This does not execute SQL.", "inputSchema": schema({"database": {"type": "string"}, "tenant": {"type": "string"}, "schema": {"type": "string", "default": "app"}, "generatePasswords": {"type": "boolean", "default": False}, "grantCreateRole": {"type": "boolean", "default": False}, "passwords": {"type": "object"}}, ["database"])},
+            {"name": "ensure_tenant_database_secrets", "description": "Admin: create or repair the standard per-database PostgreSQL credential Secret in a tenant namespace. Provide passwords or set generatePasswords=true.", "inputSchema": schema({"namespace": {"type": "string"}, "tenant": {"type": "string"}, "database": {"type": "string"}, "passwords": {"type": "object"}, "generatePasswords": {"type": "boolean", "default": False}, "readHost": {"type": "string"}}, ["namespace", "database"])},
+            {"name": "ensure_tenant_database_bundle", "description": "Admin: produce the Pigsty database plan and, when credentials are provided/generated, write the standard database Secret and CloudBeaver access expectations.", "inputSchema": schema({"namespace": {"type": "string"}, "tenant": {"type": "string"}, "database": {"type": "string"}, "schema": {"type": "string", "default": "app"}, "passwords": {"type": "object"}, "generatePasswords": {"type": "boolean", "default": False}, "grantCreateRole": {"type": "boolean", "default": False}, "readHost": {"type": "string"}}, ["namespace", "database"])},
             {"name": "ensure_tenant_access", "description": "Admin: create namespace, tenant roles, OIDC group RoleBinding, robot ServiceAccount token, and cluster read-only bindings.", "inputSchema": schema({"namespace": {"type": "string"}, "group": {"type": "string"}, "serviceAccount": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["namespace"])},
             {"name": "create_dex_user", "description": "Admin: create a Dex static user and optionally grant namespace operator access. Requires passwordHash, not plaintext password. Can also reconcile the matching Harbor tenant when ensureHarbor=true.", "inputSchema": schema({"email": {"type": "string"}, "username": {"type": "string"}, "userID": {"type": "string"}, "passwordHash": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "createNamespace": {"type": "boolean", "default": True}, "updateExisting": {"type": "boolean", "default": False}, "ensureHarbor": {"type": "boolean", "default": False}, "harborPassword": {"type": "string"}, "rotateHarborRobot": {"type": "boolean", "default": False}}, ["email", "passwordHash"])},
             {"name": "grant_user_namespace", "description": "Admin: grant an existing Dex static user operator access to a namespace and reconcile tenant RBAC.", "inputSchema": schema({"email": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["email", "namespace"])},
@@ -1464,7 +1815,13 @@ def call_tool(name, args, admin=False):
         return grafana_access()
     if name == "get_tenant_metrics_summary":
         return get_tenant_metrics_summary()
-    admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
+    if name == "get_tenant_secret_refs":
+        return get_tenant_secret_refs(args, admin=admin)
+    if name == "get_tenant_database_credentials":
+        return get_tenant_database_credentials(args, admin=admin)
+    if name == "get_tenant_web_logins":
+        return get_tenant_web_logins(args, admin=admin)
+    admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)
     if name == "list_dex_users":
@@ -1475,6 +1832,10 @@ def call_tool(name, args, admin=False):
         return get_dex_hash_instructions()
     if name == "generate_pg_tenant_database_plan":
         return generate_pg_tenant_database_plan(args)
+    if name == "ensure_tenant_database_secrets":
+        return ensure_tenant_database_secrets(args)
+    if name == "ensure_tenant_database_bundle":
+        return ensure_tenant_database_bundle(args)
     if name == "ensure_tenant_access":
         return ensure_tenant_access(args.get("namespace"), group=args.get("group"), serviceaccount=args.get("serviceAccount"), create_namespace=bool(args.get("createNamespace", True)))
     if name == "create_dex_user":
@@ -1582,6 +1943,18 @@ class Handler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/metrics/summary":
                 if self.require_auth():
                     self.send_json(get_tenant_metrics_summary())
+            elif parsed.path == "/api/secrets/refs":
+                if self.require_auth():
+                    params = urllib.parse.parse_qs(parsed.query)
+                    args = {
+                        "namespace": params.get("namespace", [None])[0],
+                        "allTenants": params.get("allTenants", ["false"])[0].lower() in ("1", "true", "yes"),
+                    }
+                    self.send_json(get_tenant_secret_refs(args, admin=self.admin_authorized()))
+            elif parsed.path == "/api/secrets/web-logins":
+                if self.require_auth():
+                    params = urllib.parse.parse_qs(parsed.query)
+                    self.send_json(get_tenant_web_logins({"namespace": params.get("namespace", [None])[0]}, admin=self.admin_authorized()))
             elif parsed.path == "/api/admin/dex-users":
                 if self.require_admin():
                     self.send_json(list_dex_users())
@@ -1593,6 +1966,8 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"name": "ops-mcp", "transport": "http-jsonrpc", "endpoint": "/mcp"})
             else:
                 self.send_json({"error": "not found"}, 404)
+        except PermissionError as exc:
+            self.send_json({"error": str(exc)}, 403)
         except Exception as exc:
             self.send_json({"error": str(exc)}, 500)
 
@@ -1605,12 +1980,20 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(raw.decode("utf-8") or "{}")
             if parsed.path == "/api/restart":
                 self.send_json(restart_deployment(body.get("deployment")))
+            elif parsed.path == "/api/secrets/database-credentials":
+                self.send_json(get_tenant_database_credentials(body, admin=self.admin_authorized()))
             elif parsed.path == "/api/admin/ensure-tenant-access":
                 if self.require_admin():
                     self.send_json(ensure_tenant_access(body.get("namespace"), group=body.get("group"), serviceaccount=body.get("serviceAccount"), create_namespace=bool(body.get("createNamespace", True))))
             elif parsed.path == "/api/admin/generate-pg-tenant-database-plan":
                 if self.require_admin():
                     self.send_json(generate_pg_tenant_database_plan(body))
+            elif parsed.path == "/api/admin/ensure-tenant-database-secrets":
+                if self.require_admin():
+                    self.send_json(ensure_tenant_database_secrets(body))
+            elif parsed.path == "/api/admin/ensure-tenant-database-bundle":
+                if self.require_admin():
+                    self.send_json(ensure_tenant_database_bundle(body))
             elif parsed.path == "/api/admin/create-dex-user":
                 if self.require_admin():
                     self.send_json(create_dex_user(body))
@@ -1624,6 +2007,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.handle_mcp(body)
             else:
                 self.send_json({"error": "not found"}, 404)
+        except PermissionError as exc:
+            self.send_json({"error": str(exc)}, 403)
         except Exception as exc:
             self.send_json({"error": str(exc)}, 500)
 
