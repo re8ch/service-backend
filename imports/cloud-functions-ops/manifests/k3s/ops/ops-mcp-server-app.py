@@ -1,4 +1,5 @@
 import base64
+import contextvars
 import json
 import os
 import re
@@ -15,6 +16,8 @@ LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.getenv("LISTEN_PORT", "8088"))
 OPS_TOKEN = os.getenv("OPS_TOKEN", "")
 OPS_ADMIN_TOKEN = os.getenv("OPS_ADMIN_TOKEN", "")
+OPS_AUTH_SECRET_NAMESPACE = os.getenv("OPS_AUTH_SECRET_NAMESPACE", "ops")
+OPS_AUTH_SECRET_NAME = os.getenv("OPS_AUTH_SECRET_NAME", "ops-mcp-auth")
 KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.67:6443")
 REGISTRY_PUBLIC = os.getenv("REGISTRY_PUBLIC", "https://registry.re8ch.com")
 REGISTRY_ALT = os.getenv("REGISTRY_ALT", "https://registry.ynzs.com")
@@ -34,6 +37,7 @@ TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT).s
 TENANT_DB_NAMES = [x.strip() for x in os.getenv("TENANT_DB_NAMES", "").split(",") if x.strip()]
 TENANT_GRAFANA_DASHBOARD = os.getenv("TENANT_GRAFANA_DASHBOARD", "")
 TENANT_GRAFANA_TOKEN_SECRET = os.getenv("TENANT_GRAFANA_TOKEN_SECRET", "grafana-%s-viewer" % TENANT_METRICS_TENANT)
+ACTIVE_TENANT = contextvars.ContextVar("active_tenant", default=TENANT)
 SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 PG_SERVICE_ROUTES = {
@@ -203,7 +207,7 @@ def resource_path(kind):
         return "/apis/metrics.k8s.io/v1beta1/nodes"
     if kind not in RESOURCE_PATHS:
         raise ValueError("unsupported kind: %s" % kind)
-    return RESOURCE_PATHS[kind] % TENANT
+    return RESOURCE_PATHS[kind] % current_namespace()
 
 def simplify_resource(item, default_kind=None):
     meta = item.get("metadata", {})
@@ -248,17 +252,17 @@ def list_resources(kind):
     doc = kube_request("GET", resource_path(kind))
     items = doc.get("items", [])
     default_kind = RESOURCE_KINDS.get(kind)
-    return {"kind": kind, "tenant": TENANT, "count": len(items), "items": [simplify_resource(x, default_kind) for x in items]}
+    return {"kind": kind, "tenant": current_tenant(), "namespace": current_namespace(), "count": len(items), "items": [simplify_resource(x, default_kind) for x in items]}
 
 def get_secret_token(secret_name):
-    doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (TENANT, secret_name))
+    doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (current_namespace(), secret_name))
     encoded = doc.get("data", {}).get("token")
     if not encoded:
         raise RuntimeError("secret %s has no data.token" % secret_name)
     return base64.b64decode(encoded).decode("utf-8")
 
 def get_secret_data(secret_name):
-    doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (TENANT, secret_name))
+    doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (current_namespace(), secret_name))
     data = {}
     for key, value in doc.get("data", {}).items():
         data[key] = base64.b64decode(value).decode("utf-8")
@@ -267,6 +271,7 @@ def get_secret_data(secret_name):
 ALLOWED_TENANT_SECRET_PURPOSES = {
     "postgres-credentials",
     "cloudbeaver-login",
+    "grafana-web-login",
     "grafana-token",
     "harbor-project-admin",
     "harbor-pull",
@@ -316,10 +321,10 @@ def tenant_catalog_for_namespace(namespace):
 
 
 def namespace_for_secret_args(args, admin=False):
-    namespace = args.get("namespace") or TENANT
+    namespace = args.get("namespace") or current_namespace()
     validate_k8s_name(namespace, "namespace")
-    if not admin and namespace != TENANT:
-        raise PermissionError("normal token can only read tenant namespace: %s" % TENANT)
+    if not admin and namespace != current_namespace():
+        raise PermissionError("normal token can only read tenant namespace: %s" % current_namespace())
     return namespace
 
 
@@ -345,7 +350,7 @@ def get_tenant_secret_refs(args=None, admin=False):
     result = {}
     for namespace in tenants:
         result[namespace] = [secret_summary(item) for item in list_allowed_secret_docs(namespace)]
-    return {"tenant": TENANT, "secrets": result}
+    return {"tenant": current_tenant(), "namespace": current_namespace(), "secrets": result}
 
 
 def allowed_databases_for_namespace(namespace):
@@ -437,9 +442,9 @@ def get_tenant_web_logins(args=None, admin=False):
         name = doc.get("metadata", {}).get("name")
         if purpose == "cloudbeaver-login":
             result["cloudbeaver"] = {"secret": "%s/%s" % (namespace, name), **decode_secret_data(doc)}
-        elif purpose == "grafana-token":
+        elif purpose in ("grafana-token", "grafana-web-login"):
             data = decode_secret_data(doc)
-            result["grafana"].append({"secret": "%s/%s" % (namespace, name), **data})
+            result["grafana"].append({"secret": "%s/%s" % (namespace, name), "purpose": purpose, **data})
         elif purpose in ("harbor-project-admin", "harbor-pull", "harbor-web-login"):
             decoded = decode_dockerconfig_secret(doc)
             if decoded is not None:
@@ -451,8 +456,10 @@ def get_tenant_web_logins(args=None, admin=False):
     return result
 
 def build_kubeconfig():
-    token = get_secret_token("qwen-kubectl-operator-permanent-token")
+    token = get_secret_token(current_kube_token_secret())
     ca_data = base64.b64encode(open(SERVICE_ACCOUNT_CA, "rb").read()).decode("ascii")
+    namespace = current_namespace()
+    user = "%s-operator" % namespace
     return """apiVersion: v1
 kind: Config
 clusters:
@@ -461,17 +468,17 @@ clusters:
     server: %s
     certificate-authority-data: %s
 contexts:
-- name: qwen@re8ch-k3s
+- name: %s@re8ch-k3s
   context:
     cluster: re8ch-k3s
     namespace: %s
-    user: qwen-operator
-current-context: qwen@re8ch-k3s
+    user: %s
+current-context: %s@re8ch-k3s
 users:
-- name: qwen-operator
+- name: %s
   user:
     token: %s
-""" % (KUBE_SERVER_PUBLIC, ca_data, TENANT, token)
+""" % (KUBE_SERVER_PUBLIC, ca_data, namespace, namespace, user, namespace, user, token)
 
 def restart_deployment(name):
     if not name or "/" in name:
@@ -489,37 +496,39 @@ def restart_deployment(name):
     }
     doc = kube_request(
         "PATCH",
-        "/apis/apps/v1/namespaces/%s/deployments/%s" % (TENANT, urllib.parse.quote(name)),
+        "/apis/apps/v1/namespaces/%s/deployments/%s" % (current_namespace(), urllib.parse.quote(name)),
         patch,
         "application/strategic-merge-patch+json",
     )
-    return {"tenant": TENANT, "deployment": name, "generation": doc.get("metadata", {}).get("generation")}
+    return {"tenant": current_tenant(), "namespace": current_namespace(), "deployment": name, "generation": doc.get("metadata", {}).get("generation")}
 
 def tenant_context():
     return {
-        "tenant": TENANT,
+        "tenant": current_tenant(),
+        "namespace": current_namespace(),
         "kubeServer": KUBE_SERVER_PUBLIC,
         "headlamp": HEADLAMP_PUBLIC,
         "grafana": GRAFANA_PUBLIC,
         "registry": REGISTRY_PUBLIC,
         "registryAlternate": REGISTRY_ALT,
-        "registryProject": TENANT_HARBOR_PROJECT,
+        "registryProject": current_harbor_project(),
         "postgresRecommendedRoutes": PG_SERVICE_ROUTES,
-        "allowedOperations": ["list qwen resources", "read nodes", "read metrics", "restart qwen deployments", "download qwen kubeconfig"],
+        "allowedOperations": ["list tenant resources", "read nodes", "read metrics", "restart tenant deployments", "download tenant kubeconfig"],
     }
 
 def registry_info():
+    project = current_harbor_project()
     return {
         "primary": REGISTRY_PUBLIC,
         "alternate": REGISTRY_ALT,
-        "tenantNamespace": TENANT,
-        "projectPath": "/%s" % TENANT_HARBOR_PROJECT,
-        "k8sPullSecret": TENANT_HARBOR_SECRET,
-        "pullRobotUsername": TENANT_HARBOR_ROBOT,
+        "tenantNamespace": current_namespace(),
+        "projectPath": "/%s" % project,
+        "k8sPullSecret": current_harbor_secret(),
+        "pullRobotUsername": current_harbor_robot(),
         "examples": [
             "docker login registry.re8ch.com",
-            "docker pull registry.re8ch.com/%s/<image>:<tag>" % TENANT_HARBOR_PROJECT,
-            "kubectl -n %s get secret %s" % (TENANT, TENANT_HARBOR_SECRET),
+            "docker pull registry.re8ch.com/%s/<image>:<tag>" % project,
+            "kubectl -n %s get secret %s" % (current_namespace(), current_harbor_secret()),
         ],
     }
 
@@ -527,7 +536,7 @@ def grafana_links():
     return {
         "grafana": GRAFANA_PUBLIC,
         "purpose": "metrics and observability dashboards",
-        "tenantDashboard": TENANT_GRAFANA_DASHBOARD,
+        "tenantDashboard": current_grafana_dashboard(),
         "suggestedUse": ["inspect service health", "check node and pod trends", "compare deployment impact"],
     }
 
@@ -636,8 +645,21 @@ TENANT_RESOURCE_CATALOG = {
     "anycam": {
         "canonicalTenant": "anycam",
         "displayName": "Anycam",
-        "notes": "Partial tenant. Grafana tenant org was intentionally deferred.",
-        "kubernetes": {"namespace": "anycam"},
+        "notes": "Partial tenant. Grafana tenant org is still deferred; K3s, Harbor, CloudBeaver, and PostgreSQL tenant credentials are active.",
+        "kubernetes": {
+            "namespace": "anycam",
+            "dexGroup": "re8ch:anycam-operators",
+            "serviceAccount": "anycam-kubectl-operator",
+            "tokenSecret": "anycam-kubectl-operator-permanent-token",
+        },
+        "harbor": {
+            "project": "anycam",
+            "webUsername": "anycam",
+            "robotSecret": "harbor-anycam-admin",
+            "pullSecret": "harbor-anycam-pull",
+            "imagePath": "registry.re8ch.com/anycam/<image>:<tag>",
+            "altImagePath": "registry.ynzs.com/anycam/<image>:<tag>",
+        },
         "pigsty": {
             "databases": ["anycam_prod", "anycam_test"],
             "defaultWriteDatabase": "anycam_prod",
@@ -650,34 +672,108 @@ TENANT_RESOURCE_CATALOG = {
         },
         "cloudbeaver": {
             "url": "https://dbgui.re8ch.com",
-            "team": "admin",
-            "notes": "Admin-only CloudBeaver entries until Anycam receives a full tenant web account.",
+            "webUsername": "anycam",
+            "team": "tenant-anycam",
+            "notes": "CloudBeaver tenant login can be reconciled after the web account is created.",
             "preconfiguredConnections": ["anycam-prod-write", "anycam-prod-read-gz", "anycam-test-write"],
         },
     },
 }
 
 
+def current_tenant():
+    return ACTIVE_TENANT.get()
+
+
+def current_catalog_key():
+    key = current_tenant()
+    if key in TENANT_RESOURCE_CATALOG:
+        return key
+    if TENANT_METRICS_TENANT in TENANT_RESOURCE_CATALOG:
+        return TENANT_METRICS_TENANT
+    return key
+
+
+def current_catalog():
+    return TENANT_RESOURCE_CATALOG.get(current_catalog_key(), {})
+
+
+def current_namespace():
+    return current_catalog().get("kubernetes", {}).get("namespace", current_tenant())
+
+
+def current_harbor_project():
+    return current_catalog().get("harbor", {}).get("project", TENANT_HARBOR_PROJECT)
+
+
+def current_harbor_secret():
+    return current_catalog().get("harbor", {}).get("robotSecret", TENANT_HARBOR_SECRET)
+
+
+def current_harbor_robot():
+    project = current_harbor_project()
+    if project == TENANT_HARBOR_PROJECT:
+        return TENANT_HARBOR_ROBOT
+    return current_catalog().get("harbor", {}).get("robotUsername", "robot$%s+%s-admin-20260606" % (project, project))
+
+
+def current_metrics_tenant():
+    return current_catalog().get("grafana", {}).get("tenantLabel", current_harbor_project())
+
+
+def current_namespaces():
+    namespace = current_namespace()
+    if namespace == TENANT:
+        return TENANT_NAMESPACES
+    return [namespace]
+
+
+def current_db_names():
+    names = current_catalog().get("pigsty", {}).get("databases", [])
+    if names:
+        return names
+    return TENANT_DB_NAMES
+
+
+def current_grafana_dashboard():
+    grafana = current_catalog().get("grafana", {})
+    uid = grafana.get("dashboardUid")
+    if uid:
+        slug = uid
+        return "%s/ui/d/%s/%s" % (GRAFANA_PUBLIC.rstrip("/"), uid, slug)
+    if current_tenant() == TENANT:
+        return TENANT_GRAFANA_DASHBOARD
+    return ""
+
+
+def current_grafana_token_secret():
+    return current_catalog().get("grafana", {}).get("tokenSecret", TENANT_GRAFANA_TOKEN_SECRET)
+
+
+def current_kube_token_secret():
+    kube = current_catalog().get("kubernetes", {})
+    return kube.get("tokenSecret", "%s-kubectl-operator-permanent-token" % current_namespace())
+
+
 def tenant_resource_catalog(all_tenants=False):
     if all_tenants:
         return {"tenants": TENANT_RESOURCE_CATALOG}
-    key = TENANT
-    if key not in TENANT_RESOURCE_CATALOG and TENANT_METRICS_TENANT in TENANT_RESOURCE_CATALOG:
-        key = TENANT_METRICS_TENANT
+    key = current_catalog_key()
     return {"tenant": key, "resources": TENANT_RESOURCE_CATALOG.get(key, {})}
 
 
 def grafana_access():
-    data = get_secret_data(TENANT_GRAFANA_TOKEN_SECRET)
+    token_secret = current_grafana_token_secret()
+    data = get_secret_data(token_secret)
     token = data.get("token")
     if not token:
-        raise RuntimeError("secret %s has no data.token" % TENANT_GRAFANA_TOKEN_SECRET)
+        raise RuntimeError("secret %s has no data.token" % token_secret)
     url = data.get("url", GRAFANA_PUBLIC).rstrip("/")
     org_id = data.get("orgId", "")
-    dashboard = data.get("dashboard", TENANT_GRAFANA_DASHBOARD)
+    dashboard = data.get("dashboard", current_grafana_dashboard())
     datasource_uid = data.get("datasourceUid", "tenant-metrics")
     dashboard_uid = dashboard.rstrip("/").split("/")[-2] if "/d/" in dashboard else "<dashboard-uid>"
-    sample_expr = 'sum(rate(qianwen_nuclio_function_requests_total{tenant="%s"}[5m])) or vector(0)' % TENANT_METRICS_TENANT
+    sample_expr = 'sum(rate(qianwen_nuclio_function_requests_total{tenant="%s"}[5m])) or vector(0)' % current_metrics_tenant()
     sample_ds_query = {
         "queries": [
             {
@@ -693,8 +789,8 @@ def grafana_access():
     }
     return {
         "grafana": url,
-        "tenant": TENANT_METRICS_TENANT,
-        "namespace": TENANT,
+        "tenant": current_metrics_tenant(),
+        "namespace": current_namespace(),
         "orgId": org_id,
         "orgName": data.get("orgName", ""),
         "role": data.get("role", "Viewer"),
@@ -774,9 +870,11 @@ def regex_or_empty(values):
 
 
 def get_tenant_metrics_summary():
-    tenant = TENANT_METRICS_TENANT
-    ns_re = regex_or_empty(TENANT_NAMESPACES)
-    db_re = regex_or_empty(TENANT_DB_NAMES)
+    tenant = current_metrics_tenant()
+    namespaces = current_namespaces()
+    databases_for_tenant = current_db_names()
+    ns_re = regex_or_empty(namespaces)
+    db_re = regex_or_empty(databases_for_tenant)
     function_count = prom_scalar('count(qianwen_nuclio_function_info{tenant="%s"})' % tenant)
     request_rps = prom_scalar('sum(rate(qianwen_nuclio_function_requests_total{tenant="%s"}[5m]))' % tenant)
     error_rps = prom_scalar('sum(rate(qianwen_nuclio_function_errors_total{tenant="%s"}[5m]))' % tenant)
@@ -786,12 +884,12 @@ def get_tenant_metrics_summary():
     running_pods = prom_vector('sum by (namespace) (kube_pod_status_phase{namespace=~"%s",phase="Running"})' % ns_re, ["namespace"])
     restarts = prom_vector('sum by (namespace,pod) (kube_pod_container_status_restarts_total{namespace=~"%s"})' % ns_re, ["namespace", "pod"])
     databases = []
-    if TENANT_DB_NAMES:
+    if databases_for_tenant:
         backends = {x["datname"]: x["value"] for x in prom_vector('pg:db:num_backends{datname=~"%s"}' % db_re, ["datname"])}
         xact = {x["datname"]: x["value"] for x in prom_vector('pg:db:xact_total_rate5m{datname=~"%s"}' % db_re, ["datname"])}
         size = {x["datname"]: x["value"] for x in prom_vector('pg:db:db_size{datname=~"%s"}' % db_re, ["datname"])}
         conn = {x["datname"]: x["value"] for x in prom_vector('pg:db:conn_usage{datname=~"%s"}' % db_re, ["datname"])}
-        for name in TENANT_DB_NAMES:
+        for name in databases_for_tenant:
             databases.append({
                 "datname": name,
                 "backends": backends.get(name, 0.0),
@@ -801,11 +899,11 @@ def get_tenant_metrics_summary():
             })
     return {
         "tenant": tenant,
-        "namespace": TENANT,
-        "namespaces": TENANT_NAMESPACES,
-        "databases": TENANT_DB_NAMES,
+        "namespace": current_namespace(),
+        "namespaces": namespaces,
+        "databases": databases_for_tenant,
         "metricsSource": METRICS_URL,
-        "grafanaDashboard": TENANT_GRAFANA_DASHBOARD,
+        "grafanaDashboard": current_grafana_dashboard(),
         "summary": {
             "functionCount": function_count,
             "requestRps5m": request_rps,
@@ -1803,11 +1901,11 @@ def mcp_tools(include_admin=False):
         return {"type": "object", "properties": props or {}, "required": required or []}
     tools = [
         {"name": "get_usage_guide", "description": "Return the Ops usage guide.", "inputSchema": schema()},
-        {"name": "get_tenant_context", "description": "Return qwen tenant endpoints and safety boundaries.", "inputSchema": schema()},
-        {"name": "get_kubeconfig", "description": "Return qwen operator kubeconfig for CLI automation.", "inputSchema": schema()},
-        {"name": "list_k8s_resources", "description": "List qwen Kubernetes resources or read-only nodes.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}})},
-        {"name": "restart_deployment", "description": "Restart one Deployment in qwen namespace.", "inputSchema": schema({"deployment": {"type": "string"}}, ["deployment"])},
-        {"name": "get_registry_info", "description": "Return Harbor registry information for qwen images.", "inputSchema": schema()},
+        {"name": "get_tenant_context", "description": "Return the authenticated tenant endpoints and safety boundaries.", "inputSchema": schema()},
+        {"name": "get_kubeconfig", "description": "Return the authenticated tenant operator kubeconfig for CLI automation.", "inputSchema": schema()},
+        {"name": "list_k8s_resources", "description": "List tenant Kubernetes resources or read-only nodes.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}})},
+        {"name": "restart_deployment", "description": "Restart one Deployment in the authenticated tenant namespace.", "inputSchema": schema({"deployment": {"type": "string"}}, ["deployment"])},
+        {"name": "get_registry_info", "description": "Return Harbor registry information for authenticated tenant images.", "inputSchema": schema()},
         {"name": "get_tenant_resource_catalog", "description": "Return the tenant resource name catalog. Normal token returns this tenant; admin token can pass allTenants=true.", "inputSchema": schema({"allTenants": {"type": "boolean", "default": False}})},
         {"name": "get_grafana_links", "description": "Return Grafana links and intended usage.", "inputSchema": schema()},
         {"name": "get_grafana_access", "description": "Return the tenant Grafana service account token and API usage hints for AI agents. The token is Viewer-scoped to the tenant Grafana org.", "inputSchema": schema()},
@@ -1896,9 +1994,32 @@ class Handler(BaseHTTPRequestHandler):
             return auth[7:]
         return self.headers.get("X-Ops-Admin-Token") or self.headers.get("X-Ops-Token", "")
 
+    def tenant_token_map(self):
+        mapping = {}
+        if OPS_TOKEN:
+            mapping[OPS_TOKEN] = TENANT
+        try:
+            doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (OPS_AUTH_SECRET_NAMESPACE, OPS_AUTH_SECRET_NAME))
+            for key, value in (doc.get("data") or {}).items():
+                if key in ("admin-token", "api-token") or not key.endswith("-token"):
+                    continue
+                tenant = key[:-len("-token")]
+                if not tenant or tenant == "admin":
+                    continue
+                mapping[base64.b64decode(value).decode("utf-8")] = tenant
+        except Exception as exc:
+            print("failed to load tenant token map: %s" % exc, flush=True)
+        return mapping
+
+    def token_tenant(self):
+        token = self.presented_token()
+        if bool(OPS_ADMIN_TOKEN) and token == OPS_ADMIN_TOKEN:
+            return TENANT
+        return self.tenant_token_map().get(token)
+
     def authorized(self):
         token = self.presented_token()
-        return bool(token) and token in [OPS_TOKEN, OPS_ADMIN_TOKEN]
+        return bool(token) and (token in [OPS_TOKEN, OPS_ADMIN_TOKEN] or self.token_tenant() is not None)
 
     def admin_authorized(self):
         token = self.presented_token()
@@ -1923,6 +2044,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def require_auth(self):
         if self.authorized():
+            ACTIVE_TENANT.set(self.token_tenant() or TENANT)
             return True
         self.send_json({"error": "unauthorized", "hint": "send Authorization: Bearer <ops-token>"}, 401)
         return False

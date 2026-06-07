@@ -95,6 +95,10 @@ data:
         grafana:
           org: Tenant ledger
           orgId: "3"
+          webUsername: ledger
+          webLoginSecret:
+            namespace: ledger
+            name: grafana-ledger-web-login
           dashboardUid: tenant-ledger-overview
           serviceAccount: ledger-ai-agent-viewer
           tokenSecret: grafana-ledger-viewer
@@ -137,9 +141,19 @@ data:
       anycam:
         canonicalTenant: anycam
         displayName: Anycam
-        notes: Partial tenant. Grafana tenant org was intentionally deferred.
+        notes: Partial tenant. Grafana tenant org is still deferred; K3s, Harbor, CloudBeaver, and PostgreSQL tenant credentials are active.
         kubernetes:
           namespace: anycam
+          dexGroup: re8ch:anycam-operators
+          serviceAccount: anycam-kubectl-operator
+          tokenSecret: anycam-kubectl-operator-permanent-token
+        harbor:
+          project: anycam
+          webUsername: anycam
+          robotSecret: harbor-anycam-admin
+          pullSecret: harbor-anycam-pull
+          imagePath: registry.re8ch.com/anycam/<image>:<tag>
+          altImagePath: registry.ynzs.com/anycam/<image>:<tag>
         pigsty:
           databases:
             - anycam_prod
@@ -168,8 +182,9 @@ data:
               status: complete
         cloudbeaver:
           url: https://dbgui.re8ch.com
-          team: admin
-          notes: Admin-only CloudBeaver entries until Anycam receives a full tenant web account.
+          webUsername: anycam
+          team: tenant-anycam
+          notes: CloudBeaver tenant login can be reconciled after the web account is created.
           preconfiguredConnections:
             - anycam-prod-write
             - anycam-prod-read-gz
