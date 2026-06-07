@@ -68,6 +68,51 @@ data:
             "closeIdleConnection": true
           }
         },
+        "anycam-prod-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Anycam Prod - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "anycam_prod",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/anycam_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "anycam-prod-read-gz": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Anycam Prod - Read GZ",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgread-gz.zt.re8ch.com",
+            "port": "5432",
+            "database": "anycam_prod",
+            "url": "jdbc:postgresql://pgread-gz.zt.re8ch.com:5432/anycam_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "anycam-test-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Anycam Test - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "anycam_test",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/anycam_test",
+            "configurationType": "MANUAL",
+            "type": "dev",
+            "closeIdleConnection": true
+          }
+        },
         "ledger-write": {
           "provider": "postgresql",
           "driver": "postgres-jdbc",
@@ -149,51 +194,12 @@ spec:
         - name: seed-config
           image: mjhsdd6xkcym4k.xuanyuan.run/library/busybox:1.36
           imagePullPolicy: IfNotPresent
-          env:
-            - name: CLOUDBEAVER_ADMIN_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: cloudbeaver-admin
-                  key: username
-            - name: CLOUDBEAVER_ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cloudbeaver-admin
-                  key: password
           command:
             - /bin/sh
             - -ec
             - |
-              mkdir -p /workspace/conf /workspace/workspace/GlobalConfiguration/.dbeaver
-              if [ ! -f /workspace/conf/initial-data.conf ]; then
-                cat > /workspace/conf/initial-data.conf <<EOF
-              {
-                adminName: "${CLOUDBEAVER_ADMIN_NAME}",
-                adminPassword: "${CLOUDBEAVER_ADMIN_PASSWORD}",
-                teams: [
-                  {
-                    subjectId: "admin",
-                    teamName: "Admin",
-                    description: "Administrative access.",
-                    permissions: ["admin"]
-                  },
-                  {
-                    subjectId: "qwen",
-                    teamName: "Qwen",
-                    description: "Qwen database tenant.",
-                    permissions: []
-                  },
-                  {
-                    subjectId: "ledger",
-                    teamName: "Ledger",
-                    description: "Ledger database tenant.",
-                    permissions: []
-                  }
-                ]
-              }
-              EOF
-              fi
-              cp /seed/data-sources.json /workspace/workspace/GlobalConfiguration/.dbeaver/data-sources.json
+              mkdir -p /workspace/GlobalConfiguration/.dbeaver
+              cp /seed/data-sources.json /workspace/GlobalConfiguration/.dbeaver/data-sources.json
               chown -R 8978:8978 /workspace || true
           volumeMounts:
             - name: workspace
@@ -203,14 +209,12 @@ spec:
               readOnly: true
       containers:
         - name: cloudbeaver
-          image: mjhsdd6xkcym4k.xuanyuan.run/dbeaver/cloudbeaver:latest
+          image: mjhsdd6xkcym4k.xuanyuan.run/dbeaver/cloudbeaver:24.3.5
           imagePullPolicy: IfNotPresent
           env:
-            - name: CLOUDBEAVER_DB_INITIAL_DATA
-              value: /opt/cloudbeaver/workspace/conf/initial-data.conf
             - name: CLOUDBEAVER_WEB_SERVER_PORT
               value: "8978"
-            - name: JAVA_TOOL_OPTIONS
+            - name: JAVA_OPTS
               value: -Xms128m -Xmx768m
           ports:
             - name: http
