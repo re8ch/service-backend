@@ -1,10 +1,14 @@
 import base64
 import contextvars
+import hashlib
+import hmac
 import json
 import os
 import re
 import secrets
+import socket
 import ssl
+import struct
 import time
 import urllib.error
 import urllib.parse
@@ -132,6 +136,7 @@ HTTP API:
 - GET  /api/secrets/web-logins
 - POST /api/restart {"deployment":"name"}
 - POST /api/k8s/proxy {"method":"GET","path":"/api/v1/namespaces/<ns>/pods","kubeToken":"..."}
+- POST /api/postgres/query {"database":"qianwen_test","sql":"select now()","role":"app_ro"}
 - GET  /api/admin/dex-users                    admin token required
 - GET  /api/admin/dex-hash-instructions        admin token required
 - POST /api/admin/generate-pg-tenant-database-plan admin token required
@@ -165,6 +170,7 @@ Recommended PostgreSQL routing:
 - CloudBeaver/DBeaver JDBC templates may use pgwrite.zt.re8ch.com:5432 for intentional instance-level GUI access, but do not treat 5432 as the HA write route.
 - Cloud functions should prefer the PostgREST HA gateway on :3080 for simple CRUD: Shanghai write/strong read http://192.0.2.89:3080, Shanghai read http://192.0.2.112:3080, Guangzhou read http://192.0.2.251:3080.
 - PostgreSQL 5432 is the instance port. It is useful for DBA inspection and some GUI clients, but the tenant default write route is 5433 or PgBouncer 6432.
+- For Ops MCP postgres_sql_proxy specifically, the default route is instancePrimaryName / pgwrite.zt.re8ch.com:5432 because it is a network reachability helper for external agents and current tenant roles authenticate reliably on that direct instance entry. Use explicit route only when you intentionally need to test 5433/5434/6432.
 
 Safety boundary:
 - Tenant namespace: qwen
@@ -172,6 +178,7 @@ Safety boundary:
 - Node access is read-only for topology and metrics.
 - Admin token can reconcile Dex static users and tenant RBAC.
 - k8s_api_proxy only forwards Kubernetes API paths. The caller-provided kubeToken controls Kubernetes RBAC; Ops MCP only solves public-to-ZT/K3s API reachability.
+- postgres_sql_proxy executes lightweight SQL from the Ops MCP network position. PostgreSQL username/password or tenant DB Secret role still controls database permissions; normal Ops tokens are limited to cataloged tenant databases.
 """
 
 def read_file(path):
@@ -270,6 +277,282 @@ def k8s_api_proxy(args):
             "status": exc.code,
             "body": parse_maybe_json(raw),
         }
+
+
+class PgProtocolError(RuntimeError):
+    pass
+
+
+def pg_read_message(sock):
+    header = sock.recv(5)
+    if len(header) != 5:
+        raise PgProtocolError("short PostgreSQL message header")
+    msg_type = header[:1]
+    length = struct.unpack("!I", header[1:])[0]
+    payload = b""
+    remaining = length - 4
+    while remaining > 0:
+        chunk = sock.recv(remaining)
+        if not chunk:
+            raise PgProtocolError("short PostgreSQL message body")
+        payload += chunk
+        remaining -= len(chunk)
+    return msg_type, payload
+
+
+def pg_send_message(sock, msg_type, payload=b""):
+    sock.sendall(msg_type + struct.pack("!I", len(payload) + 4) + payload)
+
+
+def pg_error_message(payload):
+    parts = payload.split(b"\x00")
+    fields = {}
+    for part in parts:
+        if len(part) >= 2:
+            fields[part[:1].decode("ascii", errors="ignore")] = part[1:].decode("utf-8", errors="replace")
+    return fields.get("M") or fields.get("S") or "PostgreSQL error"
+
+
+def pg_cstring(value):
+    return str(value).encode("utf-8") + b"\x00"
+
+
+def parse_scram_fields(text):
+    fields = {}
+    for part in text.split(","):
+        if "=" in part:
+            key, value = part.split("=", 1)
+            fields[key] = value
+    return fields
+
+
+def xor_bytes(left, right):
+    return bytes(a ^ b for a, b in zip(left, right))
+
+
+def pg_authenticate(sock, user, password, auth_payload):
+    auth_code = struct.unpack("!I", auth_payload[:4])[0]
+    if auth_code == 0:
+        return
+    if auth_code == 3:
+        pg_send_message(sock, b"p", password.encode("utf-8") + b"\x00")
+        return
+    if auth_code == 5:
+        salt = auth_payload[4:8]
+        inner = hashlib.md5((password + user).encode("utf-8")).hexdigest().encode("ascii")
+        outer = hashlib.md5(inner + salt).hexdigest()
+        pg_send_message(sock, b"p", ("md5" + outer).encode("ascii") + b"\x00")
+        return
+    if auth_code == 10:
+        mechanisms = [x.decode("ascii", errors="replace") for x in auth_payload[4:].split(b"\x00") if x]
+        if "SCRAM-SHA-256" not in mechanisms:
+            raise PgProtocolError("unsupported SASL mechanisms: %s" % ",".join(mechanisms))
+        nonce = base64.b64encode(secrets.token_bytes(18)).decode("ascii").rstrip("=")
+        client_first_bare = "n=%s,r=%s" % (user.replace("=", "=3D").replace(",", "=2C"), nonce)
+        client_first = "n,," + client_first_bare
+        first_payload = b"SCRAM-SHA-256\x00" + struct.pack("!I", len(client_first.encode("utf-8"))) + client_first.encode("utf-8")
+        pg_send_message(sock, b"p", first_payload)
+        msg_type, payload = pg_read_message(sock)
+        if msg_type == b"E":
+            raise PgProtocolError(pg_error_message(payload))
+        if msg_type != b"R" or struct.unpack("!I", payload[:4])[0] != 11:
+            raise PgProtocolError("expected SASLContinue")
+        server_first = payload[4:].decode("utf-8", errors="replace")
+        fields = parse_scram_fields(server_first)
+        server_nonce = fields.get("r", "")
+        if not server_nonce.startswith(nonce):
+            raise PgProtocolError("invalid SCRAM server nonce")
+        salt = base64.b64decode(fields.get("s", ""))
+        iterations = int(fields.get("i", "0"))
+        if iterations <= 0:
+            raise PgProtocolError("invalid SCRAM iteration count")
+        client_final_without_proof = "c=biws,r=%s" % server_nonce
+        auth_message = "%s,%s,%s" % (client_first_bare, server_first, client_final_without_proof)
+        salted = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        client_key = hmac.new(salted, b"Client Key", hashlib.sha256).digest()
+        stored_key = hashlib.sha256(client_key).digest()
+        signature = hmac.new(stored_key, auth_message.encode("utf-8"), hashlib.sha256).digest()
+        proof = base64.b64encode(xor_bytes(client_key, signature)).decode("ascii")
+        client_final = "%s,p=%s" % (client_final_without_proof, proof)
+        pg_send_message(sock, b"p", client_final.encode("utf-8"))
+        msg_type, payload = pg_read_message(sock)
+        if msg_type == b"E":
+            raise PgProtocolError(pg_error_message(payload))
+        if msg_type != b"R" or struct.unpack("!I", payload[:4])[0] != 12:
+            raise PgProtocolError("expected SASLFinal")
+        return
+    raise PgProtocolError("unsupported PostgreSQL authentication code: %s" % auth_code)
+
+
+def pg_connect(host, port, database, user, password, timeout=10):
+    sock = socket.create_connection((host, int(port)), timeout=timeout)
+    sock.settimeout(timeout)
+    params = {
+        "user": user,
+        "database": database,
+        "application_name": "ops-mcp-sql-proxy",
+        "client_encoding": "UTF8",
+    }
+    payload = struct.pack("!I", 196608)
+    for key, value in params.items():
+        payload += pg_cstring(key) + pg_cstring(value)
+    payload += b"\x00"
+    sock.sendall(struct.pack("!I", len(payload) + 4) + payload)
+    while True:
+        msg_type, msg_payload = pg_read_message(sock)
+        if msg_type == b"R":
+            pg_authenticate(sock, user, password, msg_payload)
+        elif msg_type == b"E":
+            raise PgProtocolError(pg_error_message(msg_payload))
+        elif msg_type == b"Z":
+            return sock
+        elif msg_type in (b"S", b"K", b"N"):
+            continue
+        else:
+            continue
+
+
+def pg_execute_simple(sock, sql, max_rows=100):
+    pg_send_message(sock, b"Q", sql.encode("utf-8") + b"\x00")
+    columns = []
+    rows = []
+    command = ""
+    notices = []
+    truncated = False
+    while True:
+        msg_type, payload = pg_read_message(sock)
+        if msg_type == b"T":
+            count = struct.unpack("!H", payload[:2])[0]
+            offset = 2
+            columns = []
+            for _ in range(count):
+                end = payload.index(b"\x00", offset)
+                name = payload[offset:end].decode("utf-8", errors="replace")
+                offset = end + 1 + 18
+                columns.append(name)
+        elif msg_type == b"D":
+            count = struct.unpack("!H", payload[:2])[0]
+            offset = 2
+            row = []
+            for _ in range(count):
+                length = struct.unpack("!i", payload[offset:offset + 4])[0]
+                offset += 4
+                if length == -1:
+                    row.append(None)
+                else:
+                    value = payload[offset:offset + length].decode("utf-8", errors="replace")
+                    offset += length
+                    row.append(value)
+            if len(rows) < max_rows:
+                rows.append(row)
+            else:
+                truncated = True
+        elif msg_type == b"C":
+            command = payload.rstrip(b"\x00").decode("utf-8", errors="replace")
+        elif msg_type == b"N":
+            notices.append(pg_error_message(payload))
+        elif msg_type == b"E":
+            raise PgProtocolError(pg_error_message(payload))
+        elif msg_type == b"Z":
+            return {"columns": columns, "rows": rows, "rowCount": len(rows), "truncated": truncated, "command": command, "notices": notices}
+
+
+READONLY_SQL_RE = re.compile(r"^\s*(select|with|show|explain|values)\b", re.IGNORECASE | re.DOTALL)
+
+
+def normalize_sql_for_safety(sql):
+    if not isinstance(sql, str) or not sql.strip():
+        raise ValueError("sql is required")
+    if len(sql.encode("utf-8")) > 20000:
+        raise ValueError("sql too large; max 20 KB")
+    stripped = sql.strip()
+    if ";" in stripped[:-1]:
+        raise ValueError("multiple SQL statements are not allowed")
+    return stripped[:-1].strip() if stripped.endswith(";") else stripped
+
+
+def tenant_db_secret_role(secret_data, database, role):
+    prefix = database_env_prefix(database)
+    role_key = "".join(ch.upper() if ch.isalnum() else "_" for ch in role)
+    user = secret_data.get("%s_%s_USER" % (prefix, role_key))
+    password = secret_data.get("%s_%s_PASSWORD" % (prefix, role_key))
+    if user and password:
+        return user, password
+    if role == "app_ro":
+        return secret_data.get("%s_APP_RO_USER" % prefix), secret_data.get("%s_APP_RO_PASSWORD" % prefix)
+    if role == "app_rw":
+        return secret_data.get("%s_APP_RW_USER" % prefix), secret_data.get("%s_APP_RW_PASSWORD" % prefix)
+    if role == "migrator":
+        return secret_data.get("%s_MIGRATOR_USER" % prefix), secret_data.get("%s_MIGRATOR_PASSWORD" % prefix)
+    if role == "pgrst":
+        return secret_data.get("%s_PGRST_USER" % prefix), secret_data.get("%s_PGRST_PASSWORD" % prefix)
+    if role == "admin":
+        return secret_data.get("%s_ADMIN_USER" % prefix), secret_data.get("%s_ADMIN_PASSWORD" % prefix)
+    raise ValueError("unsupported database role: %s" % role)
+
+
+def pg_route_from_args(args, read_only=True):
+    route = args.get("route") or "instancePrimaryName"
+    if route not in PG_SERVICE_ROUTES or "host" not in PG_SERVICE_ROUTES[route]:
+        raise ValueError("route must be one of: %s" % ", ".join(sorted(k for k, v in PG_SERVICE_ROUTES.items() if "host" in v)))
+    return PG_SERVICE_ROUTES[route]["host"], int(PG_SERVICE_ROUTES[route]["port"]), route
+
+
+def postgres_sql_proxy(args=None, admin=False):
+    args = args or {}
+    namespace = namespace_for_secret_args(args, admin=admin)
+    database = args.get("database") or args.get("db") or ""
+    pg_ident(database)
+    allowed = allowed_databases_for_namespace(namespace)
+    if not admin and database not in allowed:
+        raise PermissionError("database is not in tenant catalog: %s" % database)
+    read_only = bool(args.get("readOnly", True))
+    sql = normalize_sql_for_safety(args.get("sql"))
+    if read_only and not READONLY_SQL_RE.match(sql):
+        raise PermissionError("readOnly SQL proxy only allows SELECT/WITH/SHOW/EXPLAIN/VALUES")
+    max_rows = min(max(int(args.get("maxRows") or 100), 1), 500)
+    timeout = min(max(int(args.get("timeoutSeconds") or 10), 1), 30)
+    role = args.get("role") or ("app_ro" if read_only else "app_rw")
+    user = args.get("user") or args.get("username")
+    password = args.get("password")
+    secret_ref = None
+    if not (user and password):
+        creds = get_tenant_database_credentials({"namespace": namespace, "database": database}, admin=admin)
+        if creds.get("status") != "complete":
+            raise RuntimeError("database credential secret is not complete: %s" % creds)
+        user, password = tenant_db_secret_role(creds.get("data", {}), database, role)
+        secret_ref = creds.get("secret")
+    if not user or not password:
+        raise ValueError("database user/password not available for role: %s" % role)
+    host, port, route = pg_route_from_args(args, read_only=read_only)
+    sock = None
+    try:
+        sock = pg_connect(host, port, database, user, password, timeout=timeout)
+        pg_execute_simple(sock, "SET statement_timeout = %s" % sql_literal("%sms" % (timeout * 1000)), max_rows=1)
+        if read_only:
+            pg_execute_simple(sock, "SET default_transaction_read_only = on", max_rows=1)
+        result = pg_execute_simple(sock, sql, max_rows=max_rows)
+        result.update({
+            "tenant": current_tenant(),
+            "namespace": namespace,
+            "database": database,
+            "route": route,
+            "host": host,
+            "port": port,
+            "user": user,
+            "role": role,
+            "readOnly": read_only,
+            "credentialSecret": secret_ref,
+            "note": "Ops MCP only proxies network reachability. PostgreSQL authentication and role permissions are still enforced by the supplied database credentials.",
+        })
+        return result
+    finally:
+        if sock is not None:
+            try:
+                pg_send_message(sock, b"X", b"")
+                sock.close()
+            except Exception:
+                pass
 
 def resource_path(kind):
     if kind == "nodes":
@@ -1988,6 +2271,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
         {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
         {"name": "k8s_api_proxy", "description": "Forward one request to the internal Kubernetes API server using the caller-provided kubeToken. Ops MCP only solves reachability; Kubernetes RBAC is enforced by kubeToken. Path must be a Kubernetes API path such as /api/v1/namespaces/anycam/pods.", "inputSchema": schema({"method": {"type": "string", "default": "GET"}, "path": {"type": "string"}, "kubeToken": {"type": "string"}, "body": {}, "contentType": {"type": "string", "default": "application/json"}, "timeoutSeconds": {"type": "integer", "default": 20}}, ["path", "kubeToken"])},
+        {"name": "postgres_sql_proxy", "description": "Execute lightweight PostgreSQL SQL from the Ops MCP network position, useful when external agents cannot resolve or reach pgwrite.zt.re8ch.com. Default route is instancePrimaryName, currently pgwrite.zt.re8ch.com:5432, because tenant roles authenticate there reliably. Default is readOnly=true and only allows SELECT/WITH/SHOW/EXPLAIN/VALUES. PostgreSQL credentials and tenant catalog still enforce access.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}, "sql": {"type": "string"}, "role": {"type": "string", "default": "app_ro"}, "route": {"type": "string", "default": "instancePrimaryName"}, "readOnly": {"type": "boolean", "default": True}, "user": {"type": "string"}, "password": {"type": "string"}, "maxRows": {"type": "integer", "default": 100}, "timeoutSeconds": {"type": "integer", "default": 10}}, ["database", "sql"])},
     ]
     if include_admin:
         tools.extend([
@@ -2034,6 +2318,8 @@ def call_tool(name, args, admin=False):
         return get_tenant_web_logins(args, admin=admin)
     if name == "k8s_api_proxy":
         return k8s_api_proxy(args)
+    if name == "postgres_sql_proxy":
+        return postgres_sql_proxy(args, admin=admin)
     admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)
@@ -2219,6 +2505,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(restart_deployment(body.get("deployment")))
             elif parsed.path == "/api/k8s/proxy":
                 self.send_json(k8s_api_proxy(body))
+            elif parsed.path == "/api/postgres/query":
+                self.send_json(postgres_sql_proxy(body, admin=self.admin_authorized()))
             elif parsed.path == "/api/secrets/database-credentials":
                 self.send_json(get_tenant_database_credentials(body, admin=self.admin_authorized()))
             elif parsed.path == "/api/admin/ensure-tenant-access":
