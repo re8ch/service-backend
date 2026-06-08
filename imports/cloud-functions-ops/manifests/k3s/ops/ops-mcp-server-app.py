@@ -26,6 +26,7 @@ KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.192:6443")
 REGISTRY_PUBLIC = os.getenv("REGISTRY_PUBLIC", "https://registry.re8ch.com")
 REGISTRY_ALT = os.getenv("REGISTRY_ALT", "https://registry.ynzs.com")
 GRAFANA_PUBLIC = os.getenv("GRAFANA_PUBLIC", "https://grafana.re8ch.com")
+GRAFANA_INTERNAL = os.getenv("GRAFANA_INTERNAL", "http://192.0.2.192:3001/ui")
 HEADLAMP_PUBLIC = os.getenv("HEADLAMP_PUBLIC", "https://headlamp.re8ch.com")
 HARBOR_URL = os.getenv("HARBOR_URL", REGISTRY_PUBLIC).rstrip("/")
 HARBOR_API_URL = os.getenv("HARBOR_API_URL", HARBOR_URL).rstrip("/")
@@ -41,6 +42,17 @@ TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT).s
 TENANT_DB_NAMES = [x.strip() for x in os.getenv("TENANT_DB_NAMES", "").split(",") if x.strip()]
 TENANT_GRAFANA_DASHBOARD = os.getenv("TENANT_GRAFANA_DASHBOARD", "")
 TENANT_GRAFANA_TOKEN_SECRET = os.getenv("TENANT_GRAFANA_TOKEN_SECRET", "grafana-%s-viewer" % TENANT_METRICS_TENANT)
+GRAFANA_RENDER_PRESETS = {
+    "traffic": {"panelId": "7", "title": "Function Requests by Function", "width": 1000, "height": 500},
+    "errors": {"panelId": "8", "title": "Function Errors by Function", "width": 1000, "height": 500},
+    "latency": {"panelId": "9", "title": "Function P95 by Function", "width": 1200, "height": 520},
+    "pods": {"panelId": "13", "title": "Pod Placement", "width": 1100, "height": 520},
+    "deployments": {"panelId": "15", "title": "Deployment Unavailable Replicas", "width": 1000, "height": 460},
+    "db": {"panelId": "21", "title": "DB Transaction Rate", "width": 1000, "height": 500},
+    "pg-lag": {"panelId": "32", "title": "PG Lag Seconds", "width": 1000, "height": 420},
+    "pg-xact": {"panelId": "37", "title": "PG Instance Xact Rate", "width": 1000, "height": 500},
+    "k3s-nodes": {"panelId": "45", "title": "K3s Node Ready", "width": 1000, "height": 460},
+}
 ACTIVE_TENANT = contextvars.ContextVar("active_tenant", default=TENANT)
 SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
@@ -130,6 +142,7 @@ HTTP API:
 - GET  /api/registry/info
 - GET  /api/grafana/links
 - GET  /api/grafana/access
+- GET  /api/grafana/render?preset=errors
 - GET  /api/metrics/summary
 - GET  /api/secrets/refs
 - POST /api/secrets/database-credentials {"database":"qianwen_test"}
@@ -1189,6 +1202,64 @@ def grafana_access():
     }
 
 
+def parse_render_size(value, default, min_value, max_value):
+    try:
+        parsed = int(str(value))
+    except Exception:
+        return default
+    return max(min(parsed, max_value), min_value)
+
+
+def safe_time_range_value(value, default):
+    value = str(value or default)
+    if re.match(r"^(now(-\d+[smhdwMy])?|[0-9]{10,13})$", value):
+        return value
+    return default
+
+
+def grafana_render_panel(args):
+    args = args or {}
+    preset = str(args.get("preset") or "errors").strip().lower()
+    if preset not in GRAFANA_RENDER_PRESETS:
+        raise ValueError("unsupported grafana render preset: %s" % preset)
+    spec = GRAFANA_RENDER_PRESETS[preset]
+    access = grafana_access()
+    dashboard = str(access.get("dashboard") or current_grafana_dashboard())
+    expected_uid = current_catalog().get("grafana", {}).get("dashboardUid", "")
+    dashboard_uid = dashboard.rstrip("/").split("/")[-2] if "/d/" in dashboard else expected_uid
+    if expected_uid and dashboard_uid != expected_uid:
+        raise ValueError("dashboard mismatch")
+    if not dashboard_uid:
+        raise RuntimeError("grafana dashboard uid is not configured")
+    org_id = str(access.get("orgId") or current_catalog().get("grafana", {}).get("orgId") or "")
+    slug = dashboard.rstrip("/").split("/")[-1] if "/d/" in dashboard else dashboard_uid
+    query = {
+        "orgId": org_id,
+        "panelId": spec["panelId"],
+        "from": safe_time_range_value(args.get("from"), "now-1h"),
+        "to": safe_time_range_value(args.get("to"), "now"),
+        "width": str(parse_render_size(args.get("width"), spec["width"], 400, 1800)),
+        "height": str(parse_render_size(args.get("height"), spec["height"], 240, 1200)),
+        "tz": str(args.get("tz") or "Asia/Shanghai"),
+        "theme": "light" if str(args.get("theme") or "dark").lower() == "light" else "dark",
+    }
+    if not query["orgId"]:
+        query.pop("orgId", None)
+    url = "%s/render/d-solo/%s/%s?%s" % (
+        GRAFANA_INTERNAL.rstrip("/"),
+        urllib.parse.quote(dashboard_uid, safe=""),
+        urllib.parse.quote(slug, safe=""),
+        urllib.parse.urlencode(query),
+    )
+    req = urllib.request.Request(url, headers={"Authorization": "Bearer " + access["token"]})
+    with urllib.request.urlopen(req, timeout=65) as resp:
+        content_type = resp.headers.get("Content-Type", "")
+        payload = resp.read(8 * 1024 * 1024)
+    if "image/png" not in content_type.lower():
+        raise RuntimeError("grafana render returned non-png content type: %s" % content_type)
+    return {"preset": preset, "title": spec["title"], "contentType": "image/png", "bytes": payload}
+
+
 def prom_query(expr):
     url = METRICS_URL + "/api/v1/query?" + urllib.parse.urlencode({"query": expr})
     with urllib.request.urlopen(url, timeout=15) as resp:
@@ -1697,14 +1768,16 @@ def ensure_tenant_access(namespace, group=None, serviceaccount=None, create_name
     ensure_serviceaccount_token_secret(namespace, token_secret, serviceaccount)
     human_rb = "%s-operators-tenant-operator-oidc" % namespace
     robot_rb = "%s-kubectl-operator" % namespace
+    ops_mcp_rb = "ops-mcp-%s-operator" % namespace
     ensure_rolebinding(namespace, human_rb, "tenant-operator", [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": rbac_group_name(group)}], labels={"re8ch.com/tenant": namespace, "re8ch.com/access-level": "operator", "re8ch.com/principal-type": "human-oidc-group"}, annotations={"re8ch.com/pairs-with-serviceaccount": "%s/%s" % (namespace, serviceaccount)})
     ensure_rolebinding(namespace, robot_rb, "tenant-operator", [{"kind": "ServiceAccount", "name": serviceaccount, "namespace": namespace}], labels={"re8ch.com/tenant": namespace, "re8ch.com/access-level": "operator", "re8ch.com/principal-type": "robot-serviceaccount"}, annotations={"re8ch.com/pairs-with-oidc-group": rbac_group_name(group)})
+    ensure_rolebinding(namespace, ops_mcp_rb, "tenant-operator", [{"kind": "ServiceAccount", "name": "ops-mcp-server", "namespace": "ops"}], labels={"re8ch.com/tenant": namespace, "re8ch.com/access-level": "operator", "re8ch.com/principal-type": "ops-mcp-serviceaccount"}, annotations={"re8ch.com/reason": "Ops MCP uses this binding for tenant-scoped list/restart helpers; caller tenant token still selects the namespace."})
     ensure_clusterrole("tenant-ui-cluster-viewer", tenant_ui_cluster_viewer_rules())
     human_crb = "%s-headlamp-ui-cluster-viewer-oidc" % namespace
     robot_crb = "%s-kubectl-operator-ui-cluster-viewer" % namespace
     ensure_clusterrolebinding(human_crb, "tenant-ui-cluster-viewer", [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": rbac_group_name(group)}], labels={"re8ch.com/tenant": namespace, "re8ch.com/access-level": "cluster-readonly", "re8ch.com/principal-type": "human-oidc-group"})
     ensure_clusterrolebinding(robot_crb, "tenant-ui-cluster-viewer", [{"kind": "ServiceAccount", "name": serviceaccount, "namespace": namespace}], labels={"re8ch.com/tenant": namespace, "re8ch.com/access-level": "cluster-readonly", "re8ch.com/principal-type": "robot-serviceaccount"})
-    return {"namespace": namespace, "dexGroup": group, "rbacGroup": rbac_group_name(group), "serviceAccount": "%s/%s" % (namespace, serviceaccount), "tokenSecret": "%s/%s" % (namespace, token_secret), "role": "%s/tenant-operator" % namespace, "humanRoleBinding": "%s/%s" % (namespace, human_rb), "robotRoleBinding": "%s/%s" % (namespace, robot_rb), "clusterRole": "tenant-ui-cluster-viewer", "humanClusterRoleBinding": human_crb, "robotClusterRoleBinding": robot_crb}
+    return {"namespace": namespace, "dexGroup": group, "rbacGroup": rbac_group_name(group), "serviceAccount": "%s/%s" % (namespace, serviceaccount), "tokenSecret": "%s/%s" % (namespace, token_secret), "role": "%s/tenant-operator" % namespace, "humanRoleBinding": "%s/%s" % (namespace, human_rb), "robotRoleBinding": "%s/%s" % (namespace, robot_rb), "opsMcpRoleBinding": "%s/%s" % (namespace, ops_mcp_rb), "clusterRole": "tenant-ui-cluster-viewer", "humanClusterRoleBinding": human_crb, "robotClusterRoleBinding": robot_crb}
 
 
 
@@ -2405,6 +2478,15 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def send_binary(self, payload, content_type, status=200):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def require_auth(self):
         if self.authorized():
             ACTIVE_TENANT.set(self.token_tenant() or TENANT)
@@ -2463,6 +2545,12 @@ class Handler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/grafana/access":
                 if self.require_auth():
                     self.send_json(grafana_access())
+            elif parsed.path == "/api/grafana/render":
+                if self.require_auth():
+                    params = urllib.parse.parse_qs(parsed.query)
+                    args = {key: values[0] for key, values in params.items() if values}
+                    rendered = grafana_render_panel(args)
+                    self.send_binary(rendered["bytes"], rendered["contentType"])
             elif parsed.path == "/api/metrics/summary":
                 if self.require_auth():
                     self.send_json(get_tenant_metrics_summary())
@@ -2491,6 +2579,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "not found"}, 404)
         except PermissionError as exc:
             self.send_json({"error": str(exc)}, 403)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, 400)
         except Exception as exc:
             self.send_json({"error": str(exc)}, 500)
 
