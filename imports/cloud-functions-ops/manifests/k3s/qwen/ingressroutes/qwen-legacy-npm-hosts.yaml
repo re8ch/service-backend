@@ -1,0 +1,163 @@
+# Remaining NPM proxy_host entries migrated to Traefik.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qwen-legacy-nuc-2-ynzs
+  namespace: qwen
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`nuc-2.ynzs.com`)
+      kind: Rule
+      services:
+        - name: nuclio-qianwen-prod-api-gateway
+          port: 8080
+  tls:
+    secretName: nuc-2-ynzs-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qwen-legacy-test-api-jz
+  namespace: qwen
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`test.api.jz.ynzs.com`)
+      kind: Rule
+      services:
+        - name: nuclio-qianwen-prod-api-gateway
+          port: 8080
+  tls:
+    secretName: test-api-jz-ynzs-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-mgr-postgrest-upstream
+  namespace: qwen
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3080
+      targetPort: 3080
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: test-mgr-postgrest-upstream
+  namespace: qwen
+subsets:
+  - addresses:
+      - ip: 192.0.2.172
+    ports:
+      - name: http
+        port: 3080
+        protocol: TCP
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qwen-legacy-test-mgr-jz
+  namespace: qwen
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`test.mgr.jz.ynzs.com`)
+      kind: Rule
+      services:
+        - name: test-mgr-postgrest-upstream
+          port: 3080
+  tls:
+    secretName: test-mgr-jz-ynzs-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cardcatdemo-upstream
+  namespace: qwen
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: cardcatdemo-upstream
+  namespace: qwen
+subsets:
+  - addresses:
+      - ip: 192.0.2.82
+    ports:
+      - name: http
+        port: 3000
+        protocol: TCP
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qwen-legacy-cardcatdemo
+  namespace: qwen
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`cardcatdemo.ynzs.com`)
+      kind: Rule
+      services:
+        - name: cardcatdemo-upstream
+          port: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: animationcomposer-upstream
+  namespace: qwen
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 4317
+      targetPort: 4317
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: animationcomposer-upstream
+  namespace: qwen
+subsets:
+  - addresses:
+      - ip: 192.0.2.82
+    ports:
+      - name: http
+        port: 4317
+        protocol: TCP
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qwen-legacy-animationcomposer
+  namespace: qwen
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`animationcomposer.ynzs.com`)
+      kind: Rule
+      services:
+        - name: animationcomposer-upstream
+          port: 4317
+  tls:
+    secretName: animationcomposer-ynzs-tls

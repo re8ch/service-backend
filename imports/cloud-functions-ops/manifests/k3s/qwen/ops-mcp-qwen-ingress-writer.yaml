@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ops-mcp-qwen-ingress-writer
+  namespace: qwen
+  labels:
+    re8ch.com/tenant: qwen
+    re8ch.com/purpose: ops-mcp-ingress-management
+rules:
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ops-mcp-qwen-ingress-writer
+  namespace: qwen
+  labels:
+    re8ch.com/tenant: qwen
+    re8ch.com/purpose: ops-mcp-ingress-management
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-server
+    namespace: ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ops-mcp-qwen-ingress-writer
