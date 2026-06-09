@@ -1,0 +1,109 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: qianwen-prod-api-re8ch-alias-hosts
+  namespace: qwen
+  labels:
+    saas.re8ch.com/tenant: qianwen
+    saas.re8ch.com/product: qianwen
+    saas.re8ch.com/layer: prod
+  annotations:
+    traefik.ingress.kubernetes.io/router.priority: "50"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: api.re8ch.com
+      http:
+        paths:
+          - path: /_region
+            pathType: Exact
+            backend: {service: {name: qianwen-region-metadata, port: {number: 8080}}}
+          - path: /callback-code/
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /callback
+            pathType: Exact
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /homepage
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /client-events
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-analytics, port: {number: 8080}}}
+          - path: /analytics/events
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-analytics, port: {number: 8080}}}
+          - path: /other/ossSts
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-oss-sts, port: {number: 8080}}}
+          - path: /tasks
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-tasks, port: {number: 8080}}}
+          - path: /assets
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-assets-api, port: {number: 8080}}}
+          - path: /publicAssets
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-assets-api, port: {number: 8080}}}
+          - path: /script
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-script-api, port: {number: 8080}}}
+          - path: /storyboard
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-storyboard-api, port: {number: 8080}}}
+          - path: /video
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-video-api, port: {number: 8080}}}
+          - path: /billing
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /admin
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/playgroundVideoMeta
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-video-meta, port: {number: 8080}}}
+          - path: /other/reverseImagePrompt
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-reverse-image-prompt, port: {number: 8080}}}
+          - path: /other/playgroundImage
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-image-api, port: {number: 8080}}}
+          - path: /other/playgroundText
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-text-api, port: {number: 8080}}}
+          - path: /other/playgroundVideo
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-video-api, port: {number: 8080}}}
+          - path: /other/wechatWeb
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/wechatMini
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/loginWechat
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/registerWechat
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/sendPhoneCode
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/getCaptcha
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/registerPhone
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/extension
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-integrations-api, port: {number: 8080}}}
+          - path: /other/loginPhone
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-api-core, port: {number: 8080}}}
+          - path: /feishu-agent
+            pathType: Prefix
+            backend: {service: {name: nuclio-qianwen-prod-feishu-agent, port: {number: 8080}}}
