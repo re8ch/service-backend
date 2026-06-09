@@ -4,7 +4,7 @@ metadata:
   name: aliyun-esa-api-origin-controller-config
   namespace: qianwen-ops
 data:
-  APPLY: "1"
+  APPLY: "0"
   ESA_SITE_NAME: ynzs.com
   ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
   API_ORIGIN_POOL_NAME: api
@@ -443,7 +443,7 @@ metadata:
   labels:
     app.kubernetes.io/name: aliyun-esa-api-origin-controller
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: aliyun-esa-api-origin-controller
