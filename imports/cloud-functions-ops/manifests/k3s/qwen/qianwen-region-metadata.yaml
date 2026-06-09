@@ -23,7 +23,7 @@ data:
         default_type application/json;
 
         if ($host ~* (^|\.)ynzs\.com$) {
-          return 200 '{"clientRegion":"global","regionFamily":"ynzs","preferredApi":"https://nuc-2.ynzs.com","preferredApiName":"ynzs-shanghai217","readApi":"https://nuc-2.ynzs.com","writeApi":"https://nuc-2.ynzs.com","fallbackApis":["https://nuc-3.ynzs.com","https://api.jz.ynzs.com"],"reason":"static_ynzs_primary","routeSource":"qwen_ynzs_region_metadata","selectedRegion":"shanghai","ttlSeconds":60,"version":4}';
+          return 200 '{"clientRegion":"global","regionFamily":"ynzs","preferredApi":"https://api.jz.ynzs.com","preferredApiName":"ynzs-esa-api","readApi":"https://api.jz.ynzs.com","writeApi":"https://api.jz.ynzs.com","fallbackApis":[],"reason":"static_ynzs_esa_origin_pool","routeSource":"qwen_ynzs_region_metadata","selectedRegion":"shanghai","ttlSeconds":60,"version":6}';
         }
 
         return 200 '{"clientRegion":"global","regionFamily":"re8ch","preferredApi":"https://api-shanghai217.re8ch.com","preferredApiName":"api-shanghai217","readApi":"https://api-shanghai217.re8ch.com","writeApi":"https://api-shanghai217.re8ch.com","fallbackApis":["https://api-guangzhou24.re8ch.com"],"reason":"static_native_gateway_primary","routeSource":"qwen_region_metadata","selectedRegion":"global","ttlSeconds":60,"version":3}';

@@ -9,8 +9,8 @@ data:
   ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
   API_ORIGIN_POOL_NAME: api
   API_READY_HOST: api.jz.ynzs.com
-  API_ORIGINS: api-2,nuc-2.ynzs.com
-  API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.122
+  API_ORIGINS: api-2,nuc-2.ynzs.com api-3,nuc-3.ynzs.com
+  API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.122 api-3=192.0.2.183
   API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 OPTIONS:/client-events:204 GET:/homepage:200
   API_READY_ATTEMPTS: "3"
   API_READY_MIN_SUCCESS_ATTEMPTS: "1"

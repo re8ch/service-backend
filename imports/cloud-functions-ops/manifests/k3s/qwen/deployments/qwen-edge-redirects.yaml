@@ -26,6 +26,8 @@ kind: Deployment
 metadata:
   name: qwen-edge-redirects
   namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
   labels:
     app.kubernetes.io/name: qwen-edge-redirects
     saas.re8ch.com/product: qianwen
