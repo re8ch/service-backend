@@ -1,0 +1,97 @@
+# Metadata-only Service patches for the Qwen Traefik native ingress paths.
+# Apply these to existing Nuclio-generated Services with server-side apply or patch.
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-api-core
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-integrations-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-oss-sts
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-tasks
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-assets-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-script-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-storyboard-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-video-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-video-meta
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-reverse-image-prompt
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-image-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-qianwen-prod-text-api
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
