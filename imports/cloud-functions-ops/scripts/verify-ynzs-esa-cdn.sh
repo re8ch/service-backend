@@ -4,6 +4,7 @@ set -euo pipefail
 SITE_ID="${ESA_SITE_ID:-158897763809500}"
 API_POOL_ID="${ESA_API_POOL_ID:-158904865282276}"
 ENDPOINT="${ESA_ENDPOINT:-esa.cn-hangzhou.aliyuncs.com}"
+REGION="${ESA_REGION:-cn-hangzhou}"
 API_HOST="${API_HOST:-api.jz.ynzs.com}"
 MGR_RO_HOST="${MGR_RO_HOST:-mgr-ro.jz.ynzs.com}"
 ORIGIN="${ORIGIN:-https://jz.ynzs.com}"
@@ -86,7 +87,7 @@ fetch_status_retry() {
 echo "site_id=$SITE_ID api_pool_id=$API_POOL_ID"
 
 cache_json="$tmpdir/cache-rules.json"
-aliyun esa ListCacheRules --SiteId "$SITE_ID" --endpoint "$ENDPOINT" > "$cache_json"
+aliyun esa ListCacheRules --region "$REGION" --SiteId "$SITE_ID" --endpoint "$ENDPOINT" > "$cache_json"
 python3 - "$cache_json" <<'PY'
 import json
 import sys
@@ -162,6 +163,8 @@ for name, rule in [("public", public.get("Rule", ""))]:
     missing = sorted(item for item in public_allowed if item not in rule)
     if missing:
         raise SystemExit(f"{name} rule missing allowlist entries: {missing}")
+    if 'http.host eq "api.jz.ynzs.com"' not in rule or 'http.request.uri.path eq "/_region"' not in rule:
+        raise SystemExit(f"{name} rule missing api.jz.ynzs.com /_region cache branch")
     leaked_private = sorted(item for item in private_allowed if item in rule)
     if leaked_private:
         raise SystemExit(f"{name} rule contains private entries: {leaked_private}")
@@ -194,7 +197,7 @@ print("mgr_ro_cache_rules=ok")
 PY
 
 pool_json="$tmpdir/api-origin-pool.json"
-aliyun esa GetOriginPool --SiteId "$SITE_ID" --Id "$API_POOL_ID" --endpoint "$ENDPOINT" > "$pool_json"
+aliyun esa GetOriginPool --region "$REGION" --SiteId "$SITE_ID" --Id "$API_POOL_ID" --endpoint "$ENDPOINT" > "$pool_json"
 python3 - "$pool_json" "$API_HOST" > "$tmpdir/enabled-origins.tsv" <<'PY'
 import json
 import sys
@@ -230,6 +233,15 @@ private_output="$(fetch_status_retry "private-me-no-auth" 401 5 2 \
 need_header "$private_output.headers" '^X-Swift-CacheTime: 0' private_me_error_ttl_zero
 need_header "$private_output.headers" '^Cache-Control: no-cache' private_me_no_cache
 echo "mgr_ro_private_error_no_cache=ok"
+
+region_output="$(fetch_status_retry "api-region" 200 5 3 \
+  "https://$API_HOST/_region" \
+  -H 'accept: application/json' --connect-timeout 5 --max-time 12)"
+need_header "$region_output.headers" '^Cache-Control: max-age=30' api_region_browser_cache_control
+need_header "$region_output.headers" '^X-Swift-CacheTime: 60' api_region_edge_cache_ttl
+need_header "$region_output.headers" '^X-Region-Cache-Version: ' api_region_cache_version
+need_header "$region_output.headers" '^Via: ' api_region_esa_via
+echo "api_region_cache=ok"
 
 while IFS=$'\t' read -r name address weight; do
   [[ -n "$name" && -n "$address" ]] || continue
