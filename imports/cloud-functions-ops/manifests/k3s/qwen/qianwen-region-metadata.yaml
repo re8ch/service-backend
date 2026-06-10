@@ -14,7 +14,8 @@ data:
         add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
         add_header Access-Control-Allow-Headers "Accept, Authorization, Content-Length, Content-Type, X-Requested-With, X-Trace-Id, X-Client-Trace-Id, X-Request-Id, X-Error-Id, X-Client-Region, X-Preferred-Api, X-Region-Cache-Version, X-Client-Event-Id, X-Client-Interaction-Id, X-Client-Interaction-Name, X-Client-Visitor-Id, X-Client-Visitor-Token, X-Visitor-Id, X-Visitor-Token, X-PostHog-Distinct-Id, X-PostHog-Session-Id, X-PostHog-Window-Id, X-PostHog-Replay-Id, X-PostHog-Person-Properties, X-PostHog-Groups, X-PostHog-Group-Properties, X-Qianwen-Visitor-Id, X-Qianwen-Visitor-Token, X-Qianwen-Trace-Id" always;
         add_header Access-Control-Max-Age "86400" always;
-        add_header Cache-Control "no-store" always;
+        add_header Cache-Control "public, max-age=60, stale-while-revalidate=300" always;
+        add_header X-Region-Cache-Version "20260610-esa-origin-v6" always;
 
         if ($request_method = OPTIONS) {
           return 204;
