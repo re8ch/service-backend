@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qwen-image-prepull-images
+  namespace: qwen
+  labels:
+    app.kubernetes.io/name: qwen-image-prepull
+    app.kubernetes.io/component: image-prepull
+    app.kubernetes.io/part-of: qwen
+    re8ch.com/tenant: qwen
+data:
+  images.txt: |
+    registry.re8ch.com/qianwen/processor-qianwen-agent-api:agent-tool-allowlist-20260531165859
+    registry.re8ch.com/qianwen/processor-qianwen-mcp-gateway:mcp-gateway-20260531114748
+    registry.re8ch.com/qianwen/processor-qianwen-prod-analytics:prod-posthog-drop-noise-20260603212715
+    registry.re8ch.com/qianwen/processor-qianwen-prod-api-core:prod-api-core-read-cache-20260610054254
+    registry.re8ch.com/qianwen/processor-qianwen-prod-api-gateway:prod-edge-video-meta-cache-20260610032953
+    registry.re8ch.com/qianwen/processor-qianwen-prod-assets-api:prod-sentry-sdk-20260523113137
+    registry.re8ch.com/qianwen/processor-qianwen-prod-feishu-agent:prod-feishu-agent-grafana-catalog-20260609013358
+    registry.re8ch.com/qianwen/processor-qianwen-prod-image-api:prod-image-status-cache-20260610045755
+    registry.re8ch.com/qianwen/processor-qianwen-prod-image-worker:prod-structured-task-errors-go1259-20260611161832
+    registry.re8ch.com/qianwen/processor-qianwen-prod-integrations-api:wechat-native-20260530125612
+    registry.re8ch.com/qianwen/processor-qianwen-prod-oss-sts:prod-oss-sts-cache-20260610051907
+    registry.re8ch.com/qianwen/processor-qianwen-prod-reverse-image-prompt:prod-sentry-sdk-20260523113137
+    registry.re8ch.com/qianwen/processor-qianwen-prod-script-api:prod-sentry-sdk-20260523113137
+    registry.re8ch.com/qianwen/processor-qianwen-prod-storyboard-api:prod-sentry-sdk-20260523113137
+    registry.re8ch.com/qianwen/processor-qianwen-prod-tasks:prod-tasks-list-cache-20260610044317
+    registry.re8ch.com/qianwen/processor-qianwen-prod-text-api:prod-text-config-cache-20260610053132
+    registry.re8ch.com/qianwen/processor-qianwen-prod-video-api:prod-task-status-cache-20260610041013
+    registry.re8ch.com/qianwen/processor-qianwen-prod-video-meta:prod-vidu-drama-20260610155240
+    registry.re8ch.com/qianwen/processor-qianwen-prod-workflow-api:prod-task-status-cache-20260610041013
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: qwen-image-prepull
+  namespace: qwen
+  labels:
+    app.kubernetes.io/name: qwen-image-prepull
+    app.kubernetes.io/component: image-prepull
+    app.kubernetes.io/part-of: qwen
+    re8ch.com/tenant: qwen
+spec:
+  schedule: "17 4 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      completions: 3
+      parallelism: 3
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: qwen-image-prepull
+            app.kubernetes.io/component: image-prepull
+            app.kubernetes.io/part-of: qwen
+            re8ch.com/tenant: qwen
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            pigsty.cc/workload: nuclio
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: qwen-image-prepull
+                  matchLabelKeys:
+                    - batch.kubernetes.io/job-name
+                  topologyKey: kubernetes.io/hostname
+          containers:
+            - name: prepull
+              image: busybox:1.36
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -ec
+                - |
+                  ln -sf /host/usr/local/bin/k3s /tmp/crictl
+                  cat > /tmp/crictl.yaml <<'CFG'
+                  runtime-endpoint: unix:///host/run/k3s/containerd/containerd.sock
+                  image-endpoint: unix:///host/run/k3s/containerd/containerd.sock
+                  timeout: 30
+                  debug: false
+                  CFG
+
+                  auth="$(sed -n 's/.*"auth"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' /harbor/.dockerconfigjson | head -n1)"
+                  if [ -z "${auth}" ]; then
+                    echo "ERROR missing Harbor docker auth" >&2
+                    exit 2
+                  fi
+
+                  node="${NODE_NAME:-unknown}"
+                  ok=0
+                  fail=0
+                  total=0
+                  echo "qwen prepull start node=${node}"
+                  while IFS= read -r image || [ -n "${image}" ]; do
+                    case "${image}" in
+                      ""|\#*) continue ;;
+                    esac
+                    total=$((total + 1))
+                    echo "PULL start node=${node} image=${image}"
+                    if /tmp/crictl --config /tmp/crictl.yaml pull --auth "${auth}" --pull-timeout 10m "${image}"; then
+                      ok=$((ok + 1))
+                      echo "PULL ok node=${node} image=${image}"
+                    else
+                      fail=$((fail + 1))
+                      echo "PULL fail node=${node} image=${image}" >&2
+                    fi
+                  done < /images/images.txt
+                  echo "qwen prepull summary node=${node} total=${total} ok=${ok} fail=${fail}"
+                  if [ "${QW_PREPULL_FAIL_ON_ERROR:-false}" = "true" ] && [ "${fail}" -ne 0 ]; then
+                    exit 1
+                  fi
+              env:
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: QW_PREPULL_FAIL_ON_ERROR
+                  value: "false"
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - name: host-root
+                  mountPath: /host
+                  readOnly: true
+                - name: harbor-auth
+                  mountPath: /harbor
+                  readOnly: true
+                - name: images
+                  mountPath: /images
+                  readOnly: true
+          volumes:
+            - name: host-root
+              hostPath:
+                path: /
+                type: Directory
+            - name: harbor-auth
+              secret:
+                secretName: harbor-qianwen-admin
+                items:
+                  - key: .dockerconfigjson
+                    path: .dockerconfigjson
+            - name: images
+              configMap:
+                name: qwen-image-prepull-images
+                items:
+                  - key: images.txt
+                    path: images.txt
