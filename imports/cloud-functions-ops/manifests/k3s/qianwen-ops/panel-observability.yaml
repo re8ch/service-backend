@@ -759,7 +759,7 @@ data:
             replacement: qwen-function-metrics
         metric_relabel_configs:
           - source_labels: [__name__]
-            regex: 're8ch_cloud_function_.*'
+            regex: 're8ch_cloud_function_.*|re8ch_generation_task_failures_total'
             action: keep
           - source_labels: [path_template]
             regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
@@ -960,6 +960,17 @@ data:
                   label_replace(
                     label_replace(
                       re8ch_cloud_function_request_duration_seconds_count
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_generation_task_failures_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_generation_task_failures_total
                     , "tenant", "$1", "function", "([^-]+).*")
                   , "layer", "$1", "function", "[^-]+-([^-]+).*")
                 , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
