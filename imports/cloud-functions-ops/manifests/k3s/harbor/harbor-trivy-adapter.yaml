@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy-adapter
+  namespace: harbor
+  labels:
+    app.kubernetes.io/name: harbor-registry
+    app.kubernetes.io/component: trivy-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: harbor-registry
+      app.kubernetes.io/component: trivy-adapter
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: harbor-registry
+        app.kubernetes.io/component: trivy-adapter
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: harbor-registry
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+        - key: harbor.re8ch.com/standalone
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 10000
+      containers:
+        - name: trivy-adapter
+          image: goharbor/trivy-adapter-photon:v2.15.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SCANNER_LOG_LEVEL
+              value: info
+            - name: SCANNER_API_SERVER_ADDR
+              value: :8080
+            - name: SCANNER_REDIS_URL
+              value: redis://redis:6379/5
+            - name: SCANNER_JOB_QUEUE_WORKER_CONCURRENCY
+              value: "1"
+            - name: SCANNER_TRIVY_SECURITY_CHECKS
+              value: vuln
+            - name: SCANNER_TRIVY_VULN_TYPE
+              value: os,library
+            - name: SCANNER_TRIVY_SEVERITY
+              value: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+            - name: SCANNER_TRIVY_IGNORE_UNFIXED
+              value: "false"
+            - name: SCANNER_TRIVY_SKIP_JAVA_DB_UPDATE
+              value: "true"
+            - name: SCANNER_TRIVY_TIMEOUT
+              value: 5m0s
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          readinessProbe:
+            httpGet:
+              path: /probe/healthy
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /probe/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: trivy-cache
+              mountPath: /home/scanner/.cache
+      volumes:
+        - name: trivy-cache
+          hostPath:
+            path: /data/harbor/trivy-adapter-cache
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trivy-adapter
+  namespace: harbor
+  labels:
+    app.kubernetes.io/name: harbor-registry
+    app.kubernetes.io/component: trivy-adapter
+spec:
+  selector:
+    app.kubernetes.io/name: harbor-registry
+    app.kubernetes.io/component: trivy-adapter
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
