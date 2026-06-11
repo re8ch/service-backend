@@ -1306,9 +1306,11 @@ def get_tenant_metrics_summary():
     function_count = prom_scalar('count(qianwen_nuclio_function_info{tenant="%s"})' % tenant)
     request_rps = prom_scalar('sum(rate(qianwen_nuclio_function_requests_total{tenant="%s"}[5m]))' % tenant)
     error_rps = prom_scalar('sum(rate(qianwen_nuclio_function_errors_total{tenant="%s"}[5m]))' % tenant)
+    generation_failure_rps = prom_scalar('sum(rate(qianwen_generation_task_failures_total{tenant="%s"}[5m]))' % tenant)
     p95 = prom_scalar('histogram_quantile(0.95, sum by (le) (rate(qianwen_nuclio_function_request_duration_seconds_bucket{tenant="%s"}[5m])))' % tenant)
     functions = prom_vector('sum by (function) (rate(qianwen_nuclio_function_requests_total{tenant="%s"}[5m]))' % tenant, ["function"])
     errors = prom_vector('sum by (function) (rate(qianwen_nuclio_function_errors_total{tenant="%s"}[5m]))' % tenant, ["function"])
+    generation_failures = prom_vector('sum by (task_type,provider,error_code,error_phase,error_origin,severity) (rate(qianwen_generation_task_failures_total{tenant="%s"}[5m]))' % tenant, ["task_type", "provider", "error_code", "error_phase", "error_origin", "severity"])
     running_pods = prom_vector('sum by (namespace) (kube_pod_status_phase{namespace=~"%s",phase="Running"})' % ns_re, ["namespace"])
     restarts = prom_vector('sum by (namespace,pod) (kube_pod_container_status_restarts_total{namespace=~"%s"})' % ns_re, ["namespace", "pod"])
     databases = []
@@ -1336,10 +1338,12 @@ def get_tenant_metrics_summary():
             "functionCount": function_count,
             "requestRps5m": request_rps,
             "errorRps5m": error_rps,
+            "generationTaskFailureRps5m": generation_failure_rps,
             "functionP95Seconds5m": p95,
         },
         "functionsByRps": sorted(functions, key=lambda x: x["value"], reverse=True)[:20],
         "errorsByRps": sorted(errors, key=lambda x: x["value"], reverse=True)[:20],
+        "generationFailuresByCode5m": sorted(generation_failures, key=lambda x: x["value"], reverse=True)[:20],
         "runningPods": running_pods,
         "topRestarts": sorted(restarts, key=lambda x: x["value"], reverse=True)[:20],
         "databaseMetrics": databases,
