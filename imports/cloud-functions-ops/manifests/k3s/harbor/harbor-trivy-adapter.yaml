@@ -49,6 +49,8 @@ spec:
               value: redis://redis:6379/5
             - name: SCANNER_JOB_QUEUE_WORKER_CONCURRENCY
               value: "1"
+            - name: TRIVY_DB_REPOSITORY
+              value: ghcr.io/aquasecurity/trivy-db:2
             - name: SCANNER_TRIVY_SECURITY_CHECKS
               value: vuln
             - name: SCANNER_TRIVY_VULN_TYPE
@@ -60,14 +62,14 @@ spec:
             - name: SCANNER_TRIVY_SKIP_JAVA_DB_UPDATE
               value: "true"
             - name: SCANNER_TRIVY_TIMEOUT
-              value: 5m0s
+              value: 10m0s
           resources:
             requests:
-              cpu: 50m
-              memory: 128Mi
+              cpu: 100m
+              memory: 256Mi
             limits:
               cpu: "1"
-              memory: 768Mi
+              memory: 1Gi
           readinessProbe:
             httpGet:
               path: /probe/healthy
