@@ -10,25 +10,25 @@ metadata:
     re8ch.com/tenant: qwen
 data:
   images.txt: |
-    registry.re8ch.com/qianwen/processor-qianwen-agent-api:agent-tool-allowlist-20260531165859
-    registry.re8ch.com/qianwen/processor-qianwen-mcp-gateway:mcp-gateway-20260531114748
-    registry.re8ch.com/qianwen/processor-qianwen-prod-analytics:prod-posthog-drop-noise-20260603212715
-    registry.re8ch.com/qianwen/processor-qianwen-prod-api-core:prod-api-core-read-cache-20260610054254
-    registry.re8ch.com/qianwen/processor-qianwen-prod-api-gateway:prod-edge-video-meta-cache-20260610032953
-    registry.re8ch.com/qianwen/processor-qianwen-prod-assets-api:prod-sentry-sdk-20260523113137
-    registry.re8ch.com/qianwen/processor-qianwen-prod-feishu-agent:prod-feishu-agent-grafana-catalog-20260609013358
-    registry.re8ch.com/qianwen/processor-qianwen-prod-image-api:prod-image-status-cache-20260610045755
-    registry.re8ch.com/qianwen/processor-qianwen-prod-image-worker:prod-structured-task-errors-go1259-20260611161832
-    registry.re8ch.com/qianwen/processor-qianwen-prod-integrations-api:wechat-native-20260530125612
-    registry.re8ch.com/qianwen/processor-qianwen-prod-oss-sts:prod-oss-sts-cache-20260610051907
-    registry.re8ch.com/qianwen/processor-qianwen-prod-reverse-image-prompt:prod-sentry-sdk-20260523113137
-    registry.re8ch.com/qianwen/processor-qianwen-prod-script-api:prod-sentry-sdk-20260523113137
-    registry.re8ch.com/qianwen/processor-qianwen-prod-storyboard-api:prod-sentry-sdk-20260523113137
-    registry.re8ch.com/qianwen/processor-qianwen-prod-tasks:prod-tasks-list-cache-20260610044317
-    registry.re8ch.com/qianwen/processor-qianwen-prod-text-api:prod-text-config-cache-20260610053132
-    registry.re8ch.com/qianwen/processor-qianwen-prod-video-api:prod-task-status-cache-20260610041013
-    registry.re8ch.com/qianwen/processor-qianwen-prod-video-meta:prod-vidu-drama-20260610155240
-    registry.re8ch.com/qianwen/processor-qianwen-prod-workflow-api:prod-task-status-cache-20260610041013
+    registry.re8ch.com/qianwen/processor-qianwen-agent-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-mcp-gateway:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-analytics:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-api-core:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-api-gateway:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-assets-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-feishu-agent:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-image-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-image-worker:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-integrations-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-oss-sts:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-reverse-image-prompt:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-script-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-storyboard-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-tasks:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-text-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-video-api:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-video-meta:security-go1264-cgo-20260612034000
+    registry.re8ch.com/qianwen/processor-qianwen-prod-workflow-api:security-go1264-cgo-20260612034000
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -51,7 +51,7 @@ spec:
       completions: 3
       parallelism: 3
       backoffLimit: 0
-      activeDeadlineSeconds: 1800
+      activeDeadlineSeconds: 7200
       ttlSecondsAfterFinished: 3600
       template:
         metadata:
@@ -81,6 +81,7 @@ spec:
                 - sh
                 - -ec
                 - |
+                  export K3S_DATA_DIR=/host/var/lib/rancher/k3s
                   ln -sf /host/usr/local/bin/k3s /tmp/crictl
                   cat > /tmp/crictl.yaml <<'CFG'
                   runtime-endpoint: unix:///host/run/k3s/containerd/containerd.sock
@@ -89,24 +90,48 @@ spec:
                   debug: false
                   CFG
 
-                  auth="$(sed -n 's/.*"auth"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' /harbor/.dockerconfigjson | head -n1)"
-                  if [ -z "${auth}" ]; then
+                  auth_b64="$(sed -n 's/.*"auth"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' /harbor/.dockerconfigjson | head -n1)"
+                  if [ -z "${auth_b64}" ]; then
                     echo "ERROR missing Harbor docker auth" >&2
                     exit 2
                   fi
+                  auth="$(printf '%s' "${auth_b64}" | base64 -d)"
 
                   node="${NODE_NAME:-unknown}"
                   ok=0
                   fail=0
                   total=0
                   echo "qwen prepull start node=${node}"
+                  case "${node}" in
+                    qianwen-test-nuclio-2) stagger=0 ;;
+                    artchais-nuclio-1) stagger=90 ;;
+                    qianwen-prod-nuclio-3) stagger=180 ;;
+                    *) stagger=30 ;;
+                  esac
+                  if [ "${stagger}" -gt 0 ]; then
+                    echo "qwen prepull stagger node=${node} seconds=${stagger}"
+                    sleep "${stagger}"
+                  fi
                   while IFS= read -r image || [ -n "${image}" ]; do
                     case "${image}" in
                       ""|\#*) continue ;;
                     esac
                     total=$((total + 1))
                     echo "PULL start node=${node} image=${image}"
-                    if /tmp/crictl --config /tmp/crictl.yaml pull --auth "${auth}" --pull-timeout 10m "${image}"; then
+                    attempt=1
+                    pulled=0
+                    max_attempts="${PREPULL_RETRIES:-3}"
+                    while [ "${attempt}" -le "${max_attempts}" ]; do
+                      echo "PULL attempt node=${node} attempt=${attempt}/${max_attempts} image=${image}"
+                      if /tmp/crictl --config /tmp/crictl.yaml pull --creds "${auth}" --pull-timeout 30m "${image}"; then
+                        pulled=1
+                        break
+                      fi
+                      echo "PULL attempt fail node=${node} attempt=${attempt}/${max_attempts} image=${image}" >&2
+                      sleep $((attempt * 15))
+                      attempt=$((attempt + 1))
+                    done
+                    if [ "${pulled}" -eq 1 ]; then
                       ok=$((ok + 1))
                       echo "PULL ok node=${node} image=${image}"
                     else
@@ -124,7 +149,9 @@ spec:
                     fieldRef:
                       fieldPath: spec.nodeName
                 - name: QW_PREPULL_FAIL_ON_ERROR
-                  value: "false"
+                  value: "true"
+                - name: PREPULL_RETRIES
+                  value: "3"
               resources:
                 requests:
                   cpu: 25m
