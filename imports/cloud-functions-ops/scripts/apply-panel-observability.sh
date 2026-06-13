@@ -8,6 +8,8 @@ PG_MONITOR_SECRET="${PG_MONITOR_SECRET:-panel-grafana-pg-monitor}"
 GRAFANA_DEPLOYMENT="${GRAFANA_DEPLOYMENT:-panel-grafana}"
 VM_DEPLOYMENT="${VM_DEPLOYMENT:-panel-victoria-metrics}"
 RE8CH_VMALERT_DEPLOYMENT="${RE8CH_VMALERT_DEPLOYMENT:-panel-re8ch-vmalert}"
+FUNCTIONS_VMAGENT_DAEMONSET="${FUNCTIONS_VMAGENT_DAEMONSET:-panel-qwen-functions-vmagent}"
+HARBOR_VMAGENT_DAEMONSET="${HARBOR_VMAGENT_DAEMONSET:-panel-harbor-node-vmagent}"
 SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=20 -o ServerAliveCountMax=6)
 
 tmpdir="$(mktemp -d)"
@@ -83,24 +85,37 @@ scp "${SSH_OPTS[@]}" "$MANIFEST" "$PIGSTY_HOST:/tmp/panel-observability.yaml" >/
 ssh "${SSH_OPTS[@]}" "$PIGSTY_HOST" "
 set -euo pipefail
 kubectl apply -f /tmp/panel-observability.yaml
+kubectl -n '$NAMESPACE' delete deploy panel-qwen-nodeport-vmagent --ignore-not-found
+kubectl -n '$NAMESPACE' delete cm panel-qwen-nodeport-vmagent-config --ignore-not-found
 kubectl -n '$NAMESPACE' rollout restart deploy/'$VM_DEPLOYMENT'
 kubectl -n '$NAMESPACE' rollout restart deploy/'$GRAFANA_DEPLOYMENT'
 kubectl -n '$NAMESPACE' rollout restart deploy/'$RE8CH_VMALERT_DEPLOYMENT'
+kubectl -n '$NAMESPACE' rollout restart deploy/panel-blackbox-exporter
+kubectl -n '$NAMESPACE' rollout restart ds/'$FUNCTIONS_VMAGENT_DAEMONSET'
+kubectl -n '$NAMESPACE' rollout restart ds/'$HARBOR_VMAGENT_DAEMONSET'
 kubectl -n '$NAMESPACE' rollout status deploy/'$VM_DEPLOYMENT' --timeout=180s
 kubectl -n '$NAMESPACE' rollout status deploy/'$GRAFANA_DEPLOYMENT' --timeout=180s
 kubectl -n '$NAMESPACE' rollout status deploy/'$RE8CH_VMALERT_DEPLOYMENT' --timeout=180s
+kubectl -n '$NAMESPACE' rollout status deploy/panel-blackbox-exporter --timeout=180s
+kubectl -n '$NAMESPACE' rollout status ds/'$FUNCTIONS_VMAGENT_DAEMONSET' --timeout=180s
+kubectl -n '$NAMESPACE' rollout status ds/'$HARBOR_VMAGENT_DAEMONSET' --timeout=180s
 "
 
 PIGSTY_HOST="$PIGSTY_HOST" NAMESPACE="$NAMESPACE" ./scripts/apply-pigsty-vmalert-rules.sh
 PIGSTY_HOST="$PIGSTY_HOST" NAMESPACE="$NAMESPACE" ./scripts/apply-pigsty-grafana-dashboards.sh
+PIGSTY_HOST="$PIGSTY_HOST" NAMESPACE="$NAMESPACE" ./scripts/apply-re8ch-grafana-dashboards.sh
 
 ssh "${SSH_OPTS[@]}" "$PIGSTY_HOST" "
 set -euo pipefail
 kubectl -n '$NAMESPACE' wait --for=condition=Available \
-  deploy/'$GRAFANA_DEPLOYMENT' deploy/'$VM_DEPLOYMENT' deploy/panel-pigsty-vmalert deploy/'$RE8CH_VMALERT_DEPLOYMENT' \
+  deploy/'$GRAFANA_DEPLOYMENT' deploy/'$VM_DEPLOYMENT' deploy/panel-pigsty-vmalert deploy/'$RE8CH_VMALERT_DEPLOYMENT' deploy/panel-blackbox-exporter \
   --timeout=180s
-kubectl -n '$NAMESPACE' get deploy panel-grafana panel-victoria-metrics panel-pigsty-vmalert panel-re8ch-vmalert \
+kubectl -n '$NAMESPACE' get deploy panel-grafana panel-victoria-metrics panel-pigsty-vmalert panel-re8ch-vmalert panel-blackbox-exporter \
   -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,AVAILABLE:.status.availableReplicas,IMAGE:.spec.template.spec.containers[0].image
+kubectl -n '$NAMESPACE' get ds '$FUNCTIONS_VMAGENT_DAEMONSET' \
+  -o custom-columns=NAME:.metadata.name,READY:.status.numberReady,DESIRED:.status.desiredNumberScheduled,IMAGE:.spec.template.spec.containers[0].image
+kubectl -n '$NAMESPACE' get ds '$HARBOR_VMAGENT_DAEMONSET' \
+  -o custom-columns=NAME:.metadata.name,READY:.status.numberReady,DESIRED:.status.desiredNumberScheduled,IMAGE:.spec.template.spec.containers[0].image
 kubectl -n '$NAMESPACE' get secret '$PG_MONITOR_SECRET' -o jsonpath='{.data.password}' | grep -q . && echo PG_MONITOR_SECRET_PRESENT
 kubectl -n '$NAMESPACE' get deploy '$GRAFANA_DEPLOYMENT' \
   -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name==\"PG_MONITOR_PASSWORD\")].valueFrom.secretKeyRef.name}' |
