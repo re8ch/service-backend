@@ -21,10 +21,6 @@ from pathlib import Path
 root = Path(sys.argv[1])
 manifest = Path(sys.argv[2])
 func_dirs = {p.parent.name for p in (root / "functions").glob("*/main.go")}
-override = {
-    "qianwen-prod-api-gateway": "edge-router",
-    "qianwen-api-gateway": "edge-router",
-}
 
 for raw in manifest.read_text().splitlines():
     line = raw.strip()
@@ -38,7 +34,6 @@ for raw in manifest.read_text().splitlines():
         if function_dir.startswith(prefix):
             function_dir = function_dir[len(prefix):]
             break
-    function_dir = override.get(function_name, function_dir)
     if function_dir not in func_dirs:
         print(f"MISSING\t{function_name}\t{function_dir}", file=sys.stderr)
         continue
