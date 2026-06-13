@@ -14,7 +14,6 @@ data:
     registry.re8ch.com/qianwen/processor-qianwen-mcp-gateway:security-go1264-cgo-20260612034000
     registry.re8ch.com/qianwen/processor-qianwen-prod-analytics:security-go1264-cgo-20260612034000
     registry.re8ch.com/qianwen/processor-qianwen-prod-api-core:security-go1264-cgo-20260612034000
-    registry.re8ch.com/qianwen/processor-qianwen-prod-api-gateway:security-go1264-cgo-20260612034000
     registry.re8ch.com/qianwen/processor-qianwen-prod-assets-api:security-go1264-cgo-20260612034000
     registry.re8ch.com/qianwen/processor-qianwen-prod-feishu-agent:security-go1264-cgo-20260612034000
     registry.re8ch.com/qianwen/processor-qianwen-prod-image-api:security-go1264-cgo-20260612034000
