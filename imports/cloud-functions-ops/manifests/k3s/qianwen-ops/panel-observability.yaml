@@ -18,6 +18,60 @@ data:
           - targets: ["127.0.0.1:8428"]
             labels:
               node: rancher-panel
+              source: k3s
+              cls: observability
+
+      - job_name: victoria-logs-self
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["panel-victoria-logs.qianwen-ops.svc.cluster.local:9428"]
+            labels:
+              tenant: platform
+              layer: observability
+              category: logs
+              service: victoria-logs
+              node: rancher-panel
+              source: k3s
+              cls: observability
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vl_.*|vm_.*|process_.*|go_.*'
+            action: keep
+
+      - job_name: victoria-logs-vlagent
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: panel-vlagent
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: http
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_node_name]
+            target_label: node
+          - target_label: tenant
+            replacement: platform
+          - target_label: layer
+            replacement: observability
+          - target_label: category
+            replacement: logs
+          - target_label: service
+            replacement: vlagent
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: observability
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vl_.*|vm_.*|process_.*|go_.*'
+            action: keep
 
       - job_name: kube-state-metrics
         static_configs:
@@ -814,6 +868,702 @@ spec:
       nodePort: 30428
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-victoria-logs-data
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-logs
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-victoria-logs
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-logs
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-victoria-logs
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-victoria-logs
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: victoria-logs
+          image: victoriametrics/victoria-logs:v1.50.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -storageDataPath=/victoria-logs-data
+            - -httpListenAddr=:9428
+            - -retentionPeriod=7d
+            - -retention.maxDiskSpaceUsageBytes=6GiB
+          ports:
+            - name: http
+              containerPort: 9428
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: data
+              mountPath: /victoria-logs-data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: panel-victoria-logs-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-victoria-logs
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-logs
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-victoria-logs
+  ports:
+    - name: http
+      port: 9428
+      targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: panel-vlagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: panel-vlagent
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: panel-vlagent
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+subjects:
+  - kind: ServiceAccount
+    name: panel-vlagent
+    namespace: qianwen-ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: panel-vlagent
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-vlagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-vlagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-vlagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      serviceAccountName: panel-vlagent
+      nodeSelector:
+        pigsty.cc/workload: nuclio
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: vlagent
+          image: victoriametrics/vlagent:v1.50.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -kubernetesCollector
+            - -loggerFormat=json
+            - -envflag.enable
+            - -httpListenAddr=:9429
+            - -tmpDataPath=/var/lib/vlagent
+            - -remoteWrite.url=http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/insert/native
+            - -remoteWrite.maxDiskUsagePerURL=512MiB
+            - -kubernetesCollector.extraFields={"job":"nuclio-pod-logs","cluster":"re8ch-k3s"}
+            - -kubernetesCollector.excludeFilter=kubernetes.pod_name:=%{HOSTNAME} or kubernetes.pod_namespace:in(kube-system,harbor,qianwen-ops,ops,dex,headlamp,portainer)
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: http
+              containerPort: 9429
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/vlagent
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: data
+          hostPath:
+            path: /var/lib/re8ch-vlagent
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-vlagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: panel-vlagent
+  ports:
+    - name: http
+      port: 9429
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-tenant-logs-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+    app.kubernetes.io/part-of: panel-observability
+data:
+  tenant-logs-proxy.py: |
+    #!/usr/bin/env python3
+    import json
+    import os
+    import re
+    import urllib.parse
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    UPSTREAM = os.getenv("VLOGS_UPSTREAM", "http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428").rstrip("/")
+    TENANTS = {
+        "qianwen": {"tenant": "qianwen", "namespaces": ["qwen"], "dashboardUid": "tenant-qianwen-overview", "orgId": "2"},
+        "ledger": {"tenant": "ledger", "namespaces": ["ledger"], "dashboardUid": "tenant-ledger-overview", "orgId": "3"},
+        "anycam": {"tenant": "anycam", "namespaces": ["anycam"], "dashboardUid": "", "orgId": ""},
+        "bench": {"tenant": "bench", "namespaces": ["bench"], "dashboardUid": "", "orgId": ""},
+        "cardcat": {"tenant": "cardcat", "namespaces": ["cardcat"], "dashboardUid": "", "orgId": ""},
+    }
+    ALLOWED_ENDPOINTS = {
+        "select/logsql/query",
+        "select/logsql/tail",
+        "select/logsql/hits",
+        "select/logsql/field_names",
+        "select/logsql/field_values",
+        "select/logsql/stats_query_range",
+    }
+
+    def scoped_query(cfg, query):
+        query = (query or "*").strip() or "*"
+        namespace = cfg["namespaces"][0]
+        scope = "kubernetes.pod_namespace:%s" % namespace
+        if query == "*":
+            return scope
+        if query.startswith(scope):
+            return query
+        return "%s %s" % (scope, query)
+
+    def query_looks_cross_tenant(cfg, query):
+        query = query or ""
+        allowed_namespaces = set(cfg["namespaces"])
+        allowed_tenant = cfg["tenant"]
+        for match in re.findall(r"\b(?:tenant|kubernetes\.pod_namespace|namespace):([A-Za-z0-9_-]+)", query):
+            if match != allowed_tenant and match not in allowed_namespaces:
+                return True
+        for tenant, other in TENANTS.items():
+            if tenant != allowed_tenant and re.search(r"\b%s\b" % re.escape(tenant), query):
+                return True
+            for namespace in other["namespaces"]:
+                if namespace not in allowed_namespaces and re.search(r"\b%s\b" % re.escape(namespace), query):
+                    return True
+        return False
+
+    def update_form_query(raw_body, cfg):
+        params = urllib.parse.parse_qs(raw_body.decode(), keep_blank_values=True)
+        query = params.get("query", [""])[0]
+        if query_looks_cross_tenant(cfg, query):
+            raise PermissionError("query references another tenant or namespace")
+        params["query"] = [scoped_query(cfg, query)]
+        return urllib.parse.urlencode(params, doseq=True).encode()
+
+    def update_url_query(raw_query, cfg):
+        params = urllib.parse.parse_qs(raw_query, keep_blank_values=True)
+        query = params.get("query", [""])[0]
+        if query_looks_cross_tenant(cfg, query):
+            raise PermissionError("query references another tenant or namespace")
+        params["query"] = [scoped_query(cfg, query)]
+        return urllib.parse.urlencode(params, doseq=True)
+
+    class Handler(BaseHTTPRequestHandler):
+        def send_json(self, status, obj):
+            data = json.dumps(obj).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def forward(self, method):
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path in ("/health", "/-/healthy"):
+                self.send_json(200, {"status": "ok"})
+                return
+            parts = parsed.path.strip("/").split("/", 1)
+            if len(parts) != 2 or parts[0] not in TENANTS:
+                self.send_json(404, {"status": "error", "error": "unknown tenant path"})
+                return
+            tenant, rest = parts
+            if rest not in ALLOWED_ENDPOINTS:
+                self.send_json(404, {"status": "error", "error": "unsupported VictoriaLogs endpoint"})
+                return
+            cfg = TENANTS[tenant]
+            body = None
+            query = parsed.query
+            headers = {}
+            try:
+                if method == "POST":
+                    length = int(self.headers.get("Content-Length") or 0)
+                    body = self.rfile.read(length) if length else b""
+                    content_type = self.headers.get("Content-Type", "application/x-www-form-urlencoded")
+                    headers["Content-Type"] = content_type
+                    if "application/x-www-form-urlencoded" in content_type:
+                        body = update_form_query(body, cfg)
+                    else:
+                        query = update_url_query(query, cfg)
+                else:
+                    query = update_url_query(query, cfg)
+            except PermissionError as exc:
+                self.send_json(403, {"status": "error", "error": str(exc)})
+                return
+            target = "%s/%s" % (UPSTREAM, rest)
+            if query:
+                target += "?" + query
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            try:
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = resp.read()
+                    self.send_response(resp.status)
+                    self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+            except Exception as exc:
+                self.send_json(502, {"status": "error", "error": str(exc)})
+
+        def do_GET(self):
+            self.forward("GET")
+
+        def do_POST(self):
+            self.forward("POST")
+
+        def log_message(self, fmt, *args):
+            print(fmt % args, flush=True)
+
+    if __name__ == "__main__":
+        ThreadingHTTPServer(("0.0.0.0", 39092), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-tenant-logs-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-tenant-logs-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-tenant-logs-proxy
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: proxy
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/app/tenant-logs-proxy.py"]
+          env:
+            - name: VLOGS_UPSTREAM
+              value: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428
+          ports:
+            - name: http
+              containerPort: 39092
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: panel-tenant-logs-proxy
+            defaultMode: 0555
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-tenant-logs-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+  ports:
+    - name: http
+      port: 39092
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-tenant-metrics-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+    app.kubernetes.io/part-of: panel-observability
+data:
+  tenant-metrics-proxy.py: |
+    #!/usr/bin/env python3
+    import json
+    import os
+    import re
+    import urllib.parse
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    UPSTREAM = os.getenv("VM_UPSTREAM", "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428").rstrip("/")
+    TENANTS = {
+        "qianwen": {"tenant": "qianwen", "namespaces": ["qwen"]},
+        "ledger": {"tenant": "ledger", "namespaces": ["ledger"]},
+        "anycam": {"tenant": "anycam", "namespaces": ["anycam"]},
+        "bench": {"tenant": "bench", "namespaces": ["bench"]},
+        "cardcat": {"tenant": "cardcat", "namespaces": ["cardcat"]},
+    }
+    QUERY_ENDPOINTS = {"api/v1/query", "api/v1/query_range"}
+    READONLY_ENDPOINTS = {"api/v1/status/buildinfo"}
+    SHARED_NODE_PATTERNS = [
+        re.compile(r"\bnode_cpu_seconds_total\s*\{\s*node\s*="),
+        re.compile(r"\brate\s*\(\s*node_cpu_seconds_total\s*\{\s*node\s*="),
+    ]
+
+    def query_looks_cross_tenant(cfg, query):
+        allowed_tenant = cfg["tenant"]
+        allowed_namespaces = set(cfg["namespaces"])
+        for label, value in re.findall(r'\b(tenant|namespace|kubernetes_namespace|kubernetes_pod_namespace)\s*=~?\s*"([^"]+)"', query or ""):
+            values = {part for part in re.split(r"[|,]", value) if part}
+            if label == "tenant" and any(part != allowed_tenant for part in values):
+                return True
+            if label != "tenant" and any(part not in allowed_namespaces for part in values):
+                return True
+        for tenant, other in TENANTS.items():
+            if tenant != allowed_tenant and re.search(r"\b%s\b" % re.escape(tenant), query or ""):
+                return True
+            for namespace in other["namespaces"]:
+                if namespace not in allowed_namespaces and re.search(r"\b%s\b" % re.escape(namespace), query or ""):
+                    return True
+        return False
+
+    def query_is_allowed(cfg, query):
+        query = (query or "").strip()
+        if not query or query_looks_cross_tenant(cfg, query):
+            return False
+        tenant_label = 'tenant="%s"' % cfg["tenant"]
+        tenant_regex = 'tenant=~"%s"' % cfg["tenant"]
+        namespace_labels = []
+        for namespace in cfg["namespaces"]:
+            namespace_labels.extend([
+                'namespace="%s"' % namespace,
+                'kubernetes_namespace="%s"' % namespace,
+                'kubernetes_pod_namespace="%s"' % namespace,
+            ])
+        if tenant_label in query or tenant_regex in query or any(label in query for label in namespace_labels):
+            return True
+        return any(pattern.search(query) for pattern in SHARED_NODE_PATTERNS)
+
+    def read_body_params(handler):
+        length = int(handler.headers.get("Content-Length") or 0)
+        body = handler.rfile.read(length) if length else b""
+        content_type = handler.headers.get("Content-Type", "application/x-www-form-urlencoded")
+        if body and "application/x-www-form-urlencoded" in content_type:
+            return body, urllib.parse.parse_qs(body.decode(), keep_blank_values=True), content_type
+        return body, {}, content_type
+
+    class Handler(BaseHTTPRequestHandler):
+        def send_json(self, status, obj):
+            data = json.dumps(obj).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def forward(self, method):
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path in ("/health", "/-/healthy"):
+                self.send_json(200, {"status": "ok"})
+                return
+            parts = parsed.path.strip("/").split("/", 1)
+            if len(parts) != 2 or parts[0] not in TENANTS:
+                self.send_json(404, {"status": "error", "error": "unknown tenant path"})
+                return
+            tenant, rest = parts
+            cfg = TENANTS[tenant]
+            body = None
+            query = parsed.query
+            headers = {}
+            if rest in QUERY_ENDPOINTS:
+                if method == "POST":
+                    body, form, content_type = read_body_params(self)
+                    headers["Content-Type"] = content_type
+                    promql = form.get("query", [""])[0] if form else urllib.parse.parse_qs(query).get("query", [""])[0]
+                else:
+                    promql = urllib.parse.parse_qs(query).get("query", [""])[0]
+                if not query_is_allowed(cfg, promql):
+                    self.send_json(403, {"status": "error", "error": "query is outside tenant allowlist"})
+                    return
+            elif rest in READONLY_ENDPOINTS:
+                pass
+            else:
+                self.send_json(403, {"status": "error", "error": "endpoint is disabled for tenant datasource"})
+                return
+            target = "%s/%s" % (UPSTREAM, rest)
+            if query:
+                target += "?" + query
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            try:
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = resp.read()
+                    self.send_response(resp.status)
+                    self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+            except Exception as exc:
+                self.send_json(502, {"status": "error", "error": str(exc)})
+
+        def do_GET(self):
+            self.forward("GET")
+
+        def do_POST(self):
+            self.forward("POST")
+
+        def log_message(self, fmt, *args):
+            print(fmt % args, flush=True)
+
+    if __name__ == "__main__":
+        ThreadingHTTPServer(("0.0.0.0", 39091), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-tenant-metrics-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-tenant-metrics-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-tenant-metrics-proxy
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: proxy
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/app/tenant-metrics-proxy.py"]
+          env:
+            - name: VM_UPSTREAM
+              value: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+          ports:
+            - name: http
+              containerPort: 39091
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: panel-tenant-metrics-proxy
+            defaultMode: 0555
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-tenant-metrics-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+  ports:
+    - name: http
+      port: 39091
+      targetPort: http
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: panel-harbor-node-vmagent-config
@@ -1604,10 +2354,36 @@ data:
         url: http://loki-lite.qianwen-ops.svc.cluster.local:3100
         isDefault: false
         editable: true
+      - name: Re8ch VictoriaLogs
+        uid: re8ch-vlogs
+        type: victoriametrics-logs-datasource
+        access: proxy
+        url: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428
+        isDefault: false
+        editable: true
       - name: Static
         uid: ds-static
         type: marcusolsson-static-datasource
         access: proxy
+        isDefault: false
+        editable: true
+      - name: Tenant Metrics
+        uid: tenant-metrics
+        orgId: 2
+        type: prometheus
+        access: proxy
+        url: http://panel-tenant-metrics-proxy.qianwen-ops.svc.cluster.local:39091/qianwen
+        isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: "30s"
+          queryTimeout: "30s"
+      - name: Tenant Logs
+        uid: tenant-vlogs
+        orgId: 2
+        type: victoriametrics-logs-datasource
+        access: proxy
+        url: http://panel-tenant-logs-proxy.qianwen-ops.svc.cluster.local:39092/qianwen
         isDefault: false
         editable: true
       - name: pg-meta-1.anycam_prod
@@ -2008,6 +2784,10 @@ spec:
             - name: GF_ANALYTICS_REPORTING_ENABLED
               value: "false"
             - name: GF_ANALYTICS_CHECK_FOR_UPDATES
+              value: "false"
+            - name: GF_PLUGINS_PREINSTALL
+              value: victoriametrics-metrics-datasource,victoriametrics-logs-datasource,yesoreyeram-infinity-datasource,marcusolsson-static-datasource
+            - name: GF_PLUGINS_PREINSTALL_AUTO_UPDATE
               value: "false"
             - name: GF_RENDERING_SERVER_URL
               value: http://panel-grafana-renderer.qianwen-ops.svc.cluster.local:8081/render

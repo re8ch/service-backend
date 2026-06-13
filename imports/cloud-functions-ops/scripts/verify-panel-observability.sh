@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import urllib.parse
+import urllib.error
 import urllib.request
 
 namespace = os.environ["NAMESPACE"]
@@ -50,6 +51,109 @@ datasources = subprocess.check_output(
 if "uid: pigsty-metrics" not in datasources or "url: http://192.0.2.67:8428" not in datasources:
     raise SystemExit("panel Grafana is missing the Pigsty Metrics datasource")
 print("pigsty_metrics_datasource=present")
+if "uid: re8ch-vlogs" not in datasources or "type: victoriametrics-logs-datasource" not in datasources:
+    raise SystemExit("panel Grafana is missing the Re8ch VictoriaLogs datasource")
+if "uid: tenant-metrics" not in datasources or "panel-tenant-metrics-proxy" not in datasources:
+    raise SystemExit("panel Grafana is missing tenant metrics datasource provisioning")
+if "uid: tenant-vlogs" not in datasources or "panel-tenant-logs-proxy" not in datasources:
+    raise SystemExit("panel Grafana is missing tenant VictoriaLogs datasource provisioning")
+print("victorialogs_datasources=present")
+grafana_deploy = subprocess.check_output(
+    ["kubectl", "-n", namespace, "get", "deploy", "panel-grafana", "-o", "yaml"],
+    text=True,
+)
+for plugin in ("victoriametrics-metrics-datasource", "victoriametrics-logs-datasource", "yesoreyeram-infinity-datasource", "marcusolsson-static-datasource"):
+    if plugin not in grafana_deploy:
+        raise SystemExit(f"panel Grafana is missing plugin preinstall entry: {plugin}")
+print("grafana_plugin_preinstall=present")
+
+plugin_check = " && ".join(
+    f"test -d /var/lib/grafana/plugins/{plugin}"
+    for plugin in ("victoriametrics-metrics-datasource", "victoriametrics-logs-datasource", "yesoreyeram-infinity-datasource", "marcusolsson-static-datasource")
+)
+subprocess.check_call(
+    ["kubectl", "-n", namespace, "exec", "deploy/panel-grafana", "--", "sh", "-lc", plugin_check],
+    stdout=subprocess.DEVNULL,
+)
+print("grafana_plugins_installed=present")
+
+for kind_name in ("deploy/panel-victoria-logs", "deploy/panel-tenant-logs-proxy", "deploy/panel-tenant-metrics-proxy", "ds/panel-vlagent", "svc/panel-victoria-logs", "svc/panel-tenant-logs-proxy", "svc/panel-tenant-metrics-proxy"):
+    subprocess.check_call(["kubectl", "-n", namespace, "get", kind_name], stdout=subprocess.DEVNULL)
+print("victorialogs_runtime_resources=present")
+
+vlogs_ip = subprocess.check_output(
+    ["kubectl", "-n", namespace, "get", "svc", "panel-victoria-logs", "-o", "jsonpath={.spec.clusterIP}"],
+    text=True,
+).strip()
+with urllib.request.urlopen(f"http://{vlogs_ip}:9428/health", timeout=10) as response:
+    if response.status != 200:
+        raise SystemExit("VictoriaLogs health check failed")
+print("victorialogs_health=ok")
+
+tenant_logs_ip = subprocess.check_output(
+    ["kubectl", "-n", namespace, "get", "svc", "panel-tenant-logs-proxy", "-o", "jsonpath={.spec.clusterIP}"],
+    text=True,
+).strip()
+bad_query = urllib.parse.urlencode({"query": "kubernetes.pod_namespace:qwen"})
+try:
+    urllib.request.urlopen(f"http://{tenant_logs_ip}:39092/ledger/select/logsql/query?{bad_query}", timeout=10)
+    raise SystemExit("tenant logs proxy allowed a cross-tenant qwen query through ledger path")
+except urllib.error.HTTPError as exc:
+    if exc.code != 403:
+        raise
+print("tenant_logs_proxy_cross_tenant_rejected=ok")
+
+tenant_metrics_ip = subprocess.check_output(
+    ["kubectl", "-n", namespace, "get", "svc", "panel-tenant-metrics-proxy", "-o", "jsonpath={.spec.clusterIP}"],
+    text=True,
+).strip()
+with urllib.request.urlopen(f"http://{tenant_metrics_ip}:39091/health", timeout=10) as response:
+    if response.status != 200:
+        raise SystemExit("tenant metrics proxy health check failed")
+allowed_promql = urllib.parse.urlencode({"query": 'sum(rate(qianwen_nuclio_function_requests_total{tenant="qianwen"}[5m])) or vector(0)'})
+with urllib.request.urlopen(f"http://{tenant_metrics_ip}:39091/qianwen/api/v1/query?{allowed_promql}", timeout=10) as response:
+    if response.status != 200:
+        raise SystemExit("tenant metrics proxy rejected allowed qianwen query")
+bad_promql = urllib.parse.urlencode({"query": 'sum(rate(qianwen_nuclio_function_requests_total{tenant="ledger"}[5m]))'})
+try:
+    urllib.request.urlopen(f"http://{tenant_metrics_ip}:39091/qianwen/api/v1/query?{bad_promql}", timeout=10)
+    raise SystemExit("tenant metrics proxy allowed a cross-tenant ledger query through qianwen path")
+except urllib.error.HTTPError as exc:
+    if exc.code != 403:
+        raise
+print("tenant_metrics_proxy_scope=ok")
+
+def decode_secret_key(secret, key):
+    value = subprocess.check_output(
+        ["kubectl", "-n", namespace, "get", "secret", secret, "-o", "jsonpath={.data.%s}" % key],
+        text=True,
+    ).strip()
+    import base64
+    return base64.b64decode(value).decode()
+
+grafana_user = decode_secret_key("panel-grafana-admin-recovery", "username")
+grafana_password = decode_secret_key("panel-grafana-admin-recovery", "password")
+grafana_ip = subprocess.check_output(
+    ["kubectl", "-n", namespace, "get", "svc", "panel-grafana", "-o", "jsonpath={.spec.clusterIP}"],
+    text=True,
+).strip()
+grafana_auth = "Basic " + __import__("base64").b64encode(f"{grafana_user}:{grafana_password}".encode()).decode()
+
+def grafana_api(path, org_id=None):
+    req = urllib.request.Request(f"http://{grafana_ip}:3000/grafana{path}", headers={"Authorization": grafana_auth, "Accept": "application/json"})
+    if org_id is not None:
+        req.add_header("X-Grafana-Org-Id", str(org_id))
+    with urllib.request.urlopen(req, timeout=10) as response:
+        return json.load(response)
+
+main_prom = grafana_api("/api/datasources/uid/ds-prometheus/correlations")
+main_logs = grafana_api("/api/datasources/uid/re8ch-vlogs/correlations")
+tenant_logs = grafana_api("/api/datasources/uid/tenant-vlogs/correlations", org_id=2)
+if len(main_prom) < 2 or len(main_logs) < 4:
+    raise SystemExit("main org Grafana correlations are incomplete; run scripts/apply-grafana-correlations.sh")
+if len(tenant_logs) < 3:
+    raise SystemExit("tenant qianwen Grafana correlations are incomplete; run scripts/apply-grafana-correlations.sh")
+print("grafana_correlations=present")
 
 with open("/infra/prometheus.yml") as f:
     pigsty_prometheus = f.read().lower()

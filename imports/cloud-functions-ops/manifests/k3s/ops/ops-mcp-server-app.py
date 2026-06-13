@@ -1142,7 +1142,10 @@ def grafana_access():
     org_id = data.get("orgId", "")
     dashboard = data.get("dashboard", current_grafana_dashboard())
     datasource_uid = data.get("datasourceUid", "tenant-metrics")
+    logs_datasource_uid = data.get("logsDatasourceUid", current_catalog().get("grafana", {}).get("logsDatasourceUid", "tenant-vlogs"))
     dashboard_uid = dashboard.rstrip("/").split("/")[-2] if "/d/" in dashboard else "<dashboard-uid>"
+    namespace = current_namespace()
+    tenant = current_metrics_tenant()
     sample_expr = 'sum(rate(qianwen_nuclio_function_requests_total{tenant="%s"}[5m])) or vector(0)' % current_metrics_tenant()
     sample_ds_query = {
         "queries": [
@@ -1157,16 +1160,19 @@ def grafana_access():
         "from": "now-5m",
         "to": "now",
     }
+    sample_logs_query = 'kubernetes.pod_namespace:%s job:nuclio-pod-logs' % namespace
     return {
         "grafana": url,
-        "tenant": current_metrics_tenant(),
-        "namespace": current_namespace(),
+        "tenant": tenant,
+        "namespace": namespace,
         "orgId": org_id,
         "orgName": data.get("orgName", ""),
         "role": data.get("role", "Viewer"),
         "serviceAccount": data.get("serviceAccount", ""),
         "dashboard": dashboard,
         "datasourceUid": datasource_uid,
+        "logsDatasourceUid": logs_datasource_uid,
+        "correlationsEnabled": True,
         "tokenType": "Grafana service account token",
         "token": token,
         "headers": {"Authorization": "Bearer <token>"},
@@ -1175,14 +1181,16 @@ def grafana_access():
             "searchDashboards": '%s/ui/api/search?type=dash-db' % url,
             "getDashboard": '%s/ui/api/dashboards/uid/%s' % (url, dashboard_uid),
             "queryDatasource": '%s/ui/api/ds/query' % url,
+            "queryLogs": '%s/ui/api/ds/query' % url,
         },
         "grafanaApiHowTo": {
             "step1": "Call get_grafana_access through Ops MCP using the tenant Ops token.",
-            "step2": "Read token, grafana, dashboard, datasourceUid, and examples from this response.",
+            "step2": "Read token, grafana, dashboard, datasourceUid, logsDatasourceUid, and examples from this response.",
             "step3": "Send Grafana API requests with Authorization: Bearer <token>.",
             "step4": "Use /ui/api/search?type=dash-db to list tenant-visible dashboards.",
             "step5": "Use /ui/api/dashboards/uid/<uid> to retrieve dashboard JSON and panel PromQL.",
-            "step6": "Use /ui/api/ds/query to execute allowed tenant datasource queries.",
+            "step6": "Use /ui/api/ds/query to execute allowed tenant metrics and logs datasource queries.",
+            "step7": "In Explore, use correlations from tenant logs fields such as function, pod, and node to jump to tenant-scoped metrics. Tenant dashboard links are intentionally omitted until tenant dashboards are provisioned in the tenant org.",
         },
         "curlExamples": {
             "searchDashboards": 'curl -sS -H "Authorization: Bearer <token>" "%s/ui/api/search?type=dash-db"' % url,
@@ -1190,12 +1198,18 @@ def grafana_access():
             "queryDatasource": 'curl -sS -H "Authorization: Bearer <token>" -H "Content-Type: application/json" "%s/ui/api/ds/query" -d %s' % (url, json.dumps(sample_ds_query, ensure_ascii=False)),
         },
         "sampleDatasourceQuery": sample_ds_query,
+        "sampleLogsQuery": {
+            "datasourceUid": logs_datasource_uid,
+            "logsQL": sample_logs_query,
+            "notes": "The tenant-vlogs datasource is backed by the tenant logs proxy. It automatically scopes VictoriaLogs queries to this tenant namespace.",
+        },
         "safety": [
             "Use this token for tenant AI agents, not human browser login.",
             "The token is Viewer-scoped to the tenant Grafana org.",
-            "The token only sees the tenant org dashboard and the tenant-metrics datasource.",
+            "The token only sees the tenant org dashboard, tenant-metrics datasource, and tenant-vlogs datasource.",
             "The tenant-metrics datasource is protected by the tenant metrics proxy allowlist.",
-            "Cross-tenant database, namespace, and global label discovery queries are rejected.",
+            "The tenant-vlogs datasource is protected by the tenant logs proxy namespace scope.",
+            "Cross-tenant database, namespace, global label discovery, arbitrary PromQL, and cross-tenant LogsQL queries are rejected.",
             "Do not store this token in source code or prompt history.",
             "For simple metrics summaries, prefer get_tenant_metrics_summary because it does not expose raw Grafana API access.",
         ],
