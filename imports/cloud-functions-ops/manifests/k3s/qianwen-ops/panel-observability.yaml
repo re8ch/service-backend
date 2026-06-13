@@ -37,6 +37,58 @@ data:
               source: k3s
               cls: k3s
 
+      - job_name: k8s-traefik
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - kube-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            regex: traefik
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:9100
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s-gateway
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'traefik_(entrypoint|service|router)_.*|traefik_config_.*'
+            action: keep
+          - source_labels: [service]
+            target_label: backend_service
+          - source_labels: [service]
+            regex: '^([^-]+)-nuclio-(.+)-8080@kubernetes$'
+            target_label: namespace
+            replacement: ${1}
+          - source_labels: [service]
+            regex: '^([^-]+)-nuclio-(.+)-8080@kubernetes$'
+            target_label: function
+            replacement: ${2}
+          - source_labels: [function]
+            regex: '^([^-]+).*'
+            target_label: tenant
+            replacement: ${1}
+          - source_labels: [function]
+            regex: '^[^-]+-([^-]+).*'
+            target_label: layer
+            replacement: ${1}
+          - source_labels: [function]
+            regex: '^[^-]+-[^-]+-([^-]+).*'
+            target_label: category
+            replacement: ${1}
+
       - job_name: pigsty-infra-node-exporter
         static_configs:
           - labels:
@@ -252,13 +304,66 @@ data:
               cls: http-probe
             targets:
               - https://api.re8ch.com/health
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-public
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://registry.re8ch.com/
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-api-ping
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://registry.re8ch.com/api/v2.0/ping
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-core-internal
+              source: re8ch
+              cls: http-probe
+            targets:
+              - http://core.harbor.svc.cluster.local:8080/api/v2.0/ping
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-registry-v2
+              source: re8ch
+              cls: http-probe
+            targets:
+              - http://registry.harbor.svc.cluster.local:5000/v2/
         relabel_configs:
           - source_labels: [__address__]
             target_label: __param_target
           - source_labels: [__param_target]
             target_label: instance
           - target_label: __address__
-            replacement: pigsty-icp-infra-exporters.qianwen-ops.svc.cluster.local:9115
+            replacement: panel-blackbox-exporter.qianwen-ops.svc.cluster.local:9115
+
+      - job_name: harbor-trivy-adapter
+        scrape_interval: 120s
+        scrape_timeout: 30s
+        static_configs:
+          - targets: ["trivy-adapter.harbor.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              layer: registry
+              category: scanner
+              service: trivy-adapter
+              source: k3s
+              cls: harbor
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'trivy_.*|go_goroutines|go_memstats_alloc_bytes|process_cpu_seconds_total|process_resident_memory_bytes|up'
+            action: keep
 
       - job_name: pigsty-blackbox-probe
         scrape_interval: 60s
@@ -322,141 +427,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: panel-victoria-metrics-discovery
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: panel-qwen-nodeport-vmagent-config
-  namespace: qianwen-ops
-  labels:
-    app.kubernetes.io/name: panel-qwen-nodeport-vmagent
-    app.kubernetes.io/part-of: panel-observability
-data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 1m
-      scrape_timeout: 20s
-
-    scrape_configs:
-      - job_name: qwen-nodeport-vmagent-self
-        metrics_path: /metrics
-        static_configs:
-          - targets: ["127.0.0.1:8429"]
-            labels:
-              tenant: qianwen
-              layer: observability
-              category: vmagent
-              service: nodeport-vmagent
-              source: re8ch
-              cls: qwen-vmagent
-        metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: 'vmagent_remotewrite_.*|vm_promscrape_.*|process_.*|go_.*'
-            action: keep
-
-      - job_name: k8s-nuclio-edge
-        metrics_path: /metrics
-        static_configs:
-          - targets: ["127.0.0.1:30740"]
-            labels:
-              tenant: qianwen
-              layer: agent
-              category: api
-              service: agent-api
-              source: re8ch
-              cls: qwen-nodeport-metrics
-          - targets: ["127.0.0.1:31995"]
-            labels:
-              tenant: qianwen
-              layer: mcp
-              category: gateway
-              service: mcp-gateway
-              source: re8ch
-              cls: qwen-nodeport-metrics
-          - targets: ["127.0.0.1:31998"]
-            labels:
-              tenant: qianwen
-              layer: prod
-              category: api
-              service: api-gateway
-              source: re8ch
-              cls: qwen-nodeport-metrics
-        metric_relabel_configs:
-          - source_labels: [__name__]
-            regex: 'api_edge_.*'
-            action: keep
-          - source_labels: [path_template]
-            regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
-            action: drop
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: panel-qwen-nodeport-vmagent
-  namespace: qianwen-ops
-  labels:
-    app.kubernetes.io/name: panel-qwen-nodeport-vmagent
-    app.kubernetes.io/part-of: panel-observability
-spec:
-  replicas: 1
-  revisionHistoryLimit: 2
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: panel-qwen-nodeport-vmagent
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: panel-qwen-nodeport-vmagent
-        app.kubernetes.io/part-of: panel-observability
-    spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      nodeSelector:
-        kubernetes.io/hostname: vm-20-12-ubuntu
-        kubernetes.io/os: linux
-      tolerations:
-        - operator: Exists
-      containers:
-        - name: vmagent
-          image: victoriametrics/vmagent:v1.142.0
-          imagePullPolicy: IfNotPresent
-          args:
-            - -promscrape.config=/etc/vmagent/prometheus.yml
-            - -remoteWrite.url=http://192.0.2.67:30428/api/v1/write
-            - -httpListenAddr=:8429
-            - -promscrape.fileSDCheckInterval=30s
-          ports:
-            - name: http
-              containerPort: 8429
-          resources:
-            requests:
-              cpu: 10m
-              memory: 64Mi
-            limits:
-              cpu: 150m
-              memory: 192Mi
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 30
-            periodSeconds: 30
-          volumeMounts:
-            - name: config
-              mountPath: /etc/vmagent
-              readOnly: true
-      volumes:
-        - name: config
-          configMap:
-            name: panel-qwen-nodeport-vmagent-config
 ---
 apiVersion: v1
 kind: Service
@@ -546,6 +516,81 @@ subsets:
         port: 9101
       - name: metrics-pgbackrest
         port: 9854
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-blackbox-exporter
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-blackbox-exporter
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-blackbox-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-blackbox-exporter
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: blackbox-exporter
+          image: quay.io/prometheus/blackbox-exporter:v0.27.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/blackbox_exporter/config.yml
+            - --web.listen-address=:9115
+          ports:
+            - name: http
+              containerPort: 9115
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-blackbox-exporter
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-blackbox-exporter
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-blackbox-exporter
+  ports:
+    - name: http
+      port: 9115
+      targetPort: http
 ---
 apiVersion: v1
 kind: Service
@@ -771,6 +816,136 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: panel-harbor-node-vmagent-config
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-harbor-node-vmagent
+    app.kubernetes.io/part-of: panel-observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 2m
+      scrape_timeout: 25s
+
+    scrape_configs:
+      - job_name: harbor-node-vmagent-self
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:8429"]
+            labels:
+              tenant: platform
+              layer: registry
+              category: vmagent
+              service: harbor-node-vmagent
+              source: k3s
+              cls: harbor
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vmagent_remotewrite_.*|vm_promscrape_.*|process_.*|go_.*'
+            action: keep
+
+      - job_name: k8s-kubelet
+        scheme: https
+        metrics_path: /metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        static_configs:
+          - targets: ["127.0.0.1:10250"]
+            labels:
+              node: harbor-registry
+              source: k3s
+              cls: k3s
+
+      - job_name: k8s-cadvisor
+        scheme: https
+        metrics_path: /metrics/cadvisor
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        static_configs:
+          - targets: ["127.0.0.1:10250"]
+            labels:
+              node: harbor-registry
+              source: k3s
+              cls: k3s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_fs_.*|container_network_.*|machine_.*'
+            action: keep
+          - source_labels: [container]
+            regex: ''
+            action: drop
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-harbor-node-vmagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-harbor-node-vmagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-harbor-node-vmagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-harbor-node-vmagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: panel-victoria-metrics
+      nodeSelector:
+        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/os: linux
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -promscrape.config=/etc/vmagent/prometheus.yml
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/api/v1/write
+            - -httpListenAddr=:8429
+            - -promscrape.fileSDCheckInterval=30s
+          ports:
+            - name: http
+              containerPort: 8429
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /etc/vmagent
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: panel-harbor-node-vmagent-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: panel-qwen-functions-vmagent-config
   namespace: qianwen-ops
   labels:
@@ -867,6 +1042,75 @@ data:
             action: replace
           - regex: 'path|status|exported_.*'
             action: labeldrop
+
+      - job_name: k8s-nuclio-functions-runtime
+        scrape_interval: 2m
+        scrape_timeout: 20s
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - qwen
+                - ledger
+                - anycam
+                - nuclio
+                - bench
+                - cardcat
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_class]
+            regex: function
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            regex: __NODE_NAME__
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:8090
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            target_label: function
+          - source_labels: [__meta_kubernetes_pod_label_saas_re8ch_com_tenant]
+            target_label: tenant
+          - source_labels: [__meta_kubernetes_pod_label_saas_re8ch_com_layer]
+            target_label: layer
+          - source_labels: [__meta_kubernetes_pod_label_saas_re8ch_com_function]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: ([^-]+).*
+            target_label: tenant
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-([^-]+).*'
+            target_label: layer
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-[^-]+-([^-]+).*'
+            target_label: category
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-(.*)'
+            target_label: service
+            replacement: ${1}
+          - target_label: source
+            replacement: re8ch
+          - target_label: cls
+            replacement: nuclio-runtime
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'nuclio_processor_.*|up'
+            action: keep
+          - regex: 'path|exported_.*'
+            action: labeldrop
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -916,7 +1160,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - -promscrape.config=/generated/prometheus.yml
-            - -remoteWrite.url=http://192.0.2.67:30428/api/v1/write
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/api/v1/write
             - -httpListenAddr=:8429
             - -promscrape.fileSDCheckInterval=30s
           ports:
@@ -1067,6 +1311,84 @@ data:
                   , "layer", "$1", "function", "[^-]+-([^-]+).*")
                 , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
               , "service", "$1", "function", "[^-]+-(.*)")
+      - name: re8ch-headlamp-recording-rules
+        interval: 30s
+        rules:
+          - record: re8ch:nuclio:function_info
+            expr: qianwen_nuclio_function_info
+          - record: re8ch:nuclio:function_requests:rate5m
+            expr: |
+              sum by (tenant, layer, category, service, function) (
+                rate(qianwen_nuclio_function_requests_total[5m])
+              )
+          - record: re8ch:nuclio:function_errors:rate5m
+            expr: |
+              sum by (tenant, layer, category, service, function) (
+                rate(qianwen_nuclio_function_errors_total[5m])
+              )
+          - record: re8ch:gateway:requests:rate5m
+            expr: |
+              sum by (tenant, layer, category, namespace, function, backend_service, code, method) (
+                rate(traefik_service_request_duration_seconds_count[5m])
+              )
+          - record: re8ch:gateway:errors:rate5m
+            expr: |
+              sum by (tenant, layer, category, namespace, function, backend_service, code, method) (
+                rate(traefik_service_request_duration_seconds_count{code=~"[45].*"}[5m])
+              )
+          - record: re8ch:harbor:container_cpu:rate5m
+            expr: |
+              sum by (namespace, pod, container, node) (
+                rate(container_cpu_usage_seconds_total{namespace="harbor"}[5m])
+              )
+      - name: re8ch-headlamp-alert-rules
+        interval: 30s
+        rules:
+          - alert: Re8chVMAgentRemoteWriteBacklog
+            expr: sum(vmagent_remotewrite_pending_data_bytes{job=~".*vmagent-self"}) > 0
+            for: 10m
+            labels:
+              severity: warning
+              service: observability
+            annotations:
+              summary: vmagent remote write backlog is non-zero
+          - alert: Re8chTraefikScrapeDown
+            expr: up{job="k8s-traefik"} == 0
+            for: 5m
+            labels:
+              severity: warning
+              service: gateway
+            annotations:
+              summary: Traefik metrics scrape is down
+          - alert: Re8chNuclioRuntimeScrapeDown
+            expr: up{job="k8s-nuclio-functions-runtime"} == 0
+            for: 10m
+            labels:
+              severity: warning
+              service: nuclio
+            annotations:
+              summary: Nuclio runtime metrics scrape is down
+          - alert: Re8chHarborProbeFailed
+            expr: probe_success{job="http-probe", category="harbor"} == 0
+            for: 5m
+            labels:
+              severity: warning
+              service: harbor
+            annotations:
+              summary: Harbor public or internal probe failed
+          - alert: Re8chPanelVMDiskFreeLow
+            expr: |
+              100 * min by (node, mountpoint) (
+                node_filesystem_avail_bytes{job="k3s-node-exporter", node="rancher-panel", fstype!~"tmpfs|overlay"}
+                /
+                node_filesystem_size_bytes{job="k3s-node-exporter", node="rancher-panel", fstype!~"tmpfs|overlay"}
+              ) < 15
+            for: 10m
+            labels:
+              severity: warning
+              service: observability
+            annotations:
+              summary: Panel VictoriaMetrics node disk free is below 15 percent
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1103,7 +1425,7 @@ spec:
           args:
             - -rule=/etc/vmalert/rules/*.yml
             - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
-            - -remoteWrite.url=http://192.0.2.67:30428
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
             - -evaluationInterval=30s
             - -external.label=source=re8ch
             - -notifier.blackhole=true
@@ -1263,6 +1585,18 @@ data:
         url: http://${PANEL_VICTORIA_METRICS_SERVICE_HOST}:8428
         isDefault: true
         editable: true
+      - name: Pigsty Metrics
+        uid: pigsty-metrics
+        type: prometheus
+        access: proxy
+        url: http://192.0.2.67:8428
+        isDefault: false
+        editable: true
+        jsonData:
+          timeInterval: "60s"
+          queryTimeout: "60s"
+          tlsAuth: false
+          tlsAuthWithCACert: false
       - name: Re8ch Loki
         uid: re8ch-loki
         type: loki

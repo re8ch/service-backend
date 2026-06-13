@@ -1,0 +1,357 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "re8ch-loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "re8ch-loki"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"nuclio-pod-logs\", namespace=~\"$namespace\", function=~\"$function\", layer=~\"$layer\", pod=~\"$pod\", node=~\"$node\"} |~ \"$severity\" |~ \"$contains\" !~ \"$exclude\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Nuclio Recent Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "re8ch-loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 2,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "re8ch-loki"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"nuclio-pod-logs\", namespace=~\"$namespace\", function=~\".*api-gateway.*\", layer=~\"$layer\", pod=~\"$pod\", node=~\"$node\"} |~ \"$severity\" |~ \"$contains\" !~ \"$exclude\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "API Gateway Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "re8ch-loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "re8ch-loki"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"nuclio-pod-logs\", namespace=~\"$namespace\", function=~\"$function\", layer=~\"$layer\", pod=~\"$pod\", node=~\"$node\"} |~ \"$severity\" |~ \"$contains\" !~ \"$exclude\" |~ \"(?i)(mgr_rpc|mgr-ro|mgr-rw|mgr)\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "MGR RPC Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "re8ch-loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 4,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "re8ch-loki"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"nuclio-pod-logs\", namespace=~\"$namespace\", function=~\"$function\", layer=~\"$layer\", pod=~\"$pod\", node=~\"$node\"} |~ \"(?i)(error|exception|panic|failed|warn|warning|\\(E\\)|\\(W\\))\" |~ \"$contains\" !~ \"$exclude\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Warnings And Errors",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": [
+    "re8ch",
+    "nuclio",
+    "logs",
+    "loki"
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "namespace",
+        "label": "Namespace",
+        "hide": 0,
+        "datasource": {
+          "type": "loki",
+          "uid": "re8ch-loki"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "query": "label_values({job=\"nuclio-pod-logs\"}, namespace)",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "function",
+        "label": "Function",
+        "hide": 0,
+        "datasource": {
+          "type": "loki",
+          "uid": "re8ch-loki"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "query": "label_values({job=\"nuclio-pod-logs\", namespace=~\"$namespace\"}, function)",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "layer",
+        "label": "Layer",
+        "hide": 0,
+        "datasource": {
+          "type": "loki",
+          "uid": "re8ch-loki"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "query": "label_values({job=\"nuclio-pod-logs\", namespace=~\"$namespace\", function=~\"$function\"}, layer)",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "pod",
+        "label": "Pod",
+        "hide": 0,
+        "datasource": {
+          "type": "loki",
+          "uid": "re8ch-loki"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "query": "label_values({job=\"nuclio-pod-logs\", namespace=~\"$namespace\", function=~\"$function\", layer=~\"$layer\"}, pod)",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "query",
+        "name": "node",
+        "label": "Node",
+        "hide": 0,
+        "datasource": {
+          "type": "loki",
+          "uid": "re8ch-loki"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "query": "label_values({job=\"nuclio-pod-logs\", namespace=~\"$namespace\"}, node)",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "type": "custom",
+        "name": "severity",
+        "label": "Severity Regex",
+        "hide": 0,
+        "query": ".*,(?i)(error|exception|panic|failed|\\(E\\)),(?i)(warn|warning|failed|\\(W\\)),(?i)(info|\\(I\\))",
+        "current": {
+          "selected": true,
+          "text": ".*",
+          "value": ".*"
+        },
+        "options": [],
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "type": "textbox",
+        "name": "contains",
+        "label": "Contains Regex",
+        "hide": 0,
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "options": []
+      },
+      {
+        "type": "textbox",
+        "name": "exclude",
+        "label": "Exclude Regex",
+        "hide": 0,
+        "query": "$^",
+        "current": {
+          "text": "$^",
+          "value": "$^"
+        },
+        "options": []
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Re8ch Nuclio Logs",
+  "uid": "re8ch-nuclio-logs",
+  "version": 1,
+  "weekStart": ""
+}
