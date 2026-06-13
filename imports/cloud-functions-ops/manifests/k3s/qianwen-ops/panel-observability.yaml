@@ -1067,48 +1067,6 @@ data:
                   , "layer", "$1", "function", "[^-]+-([^-]+).*")
                 , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
               , "service", "$1", "function", "[^-]+-(.*)")
-          - record: qianwen_edge_requests_total
-            expr: |
-              label_replace(
-                label_replace(
-                  api_edge_requests_total
-                , "category", "api", "__name__", ".*")
-              , "service", "edge-router", "__name__", ".*")
-          - record: qianwen_edge_errors_total
-            expr: |
-              label_replace(
-                label_replace(
-                  api_edge_errors_total
-                , "category", "api", "__name__", ".*")
-              , "service", "edge-router", "__name__", ".*")
-          - record: qianwen_edge_request_duration_seconds_bucket
-            expr: |
-              label_replace(
-                label_replace(
-                  api_edge_request_duration_seconds_bucket
-                , "category", "api", "__name__", ".*")
-              , "service", "edge-router", "__name__", ".*")
-          - record: qianwen_edge_request_duration_seconds_sum
-            expr: |
-              label_replace(
-                label_replace(
-                  api_edge_request_duration_seconds_sum
-                , "category", "api", "__name__", ".*")
-              , "service", "edge-router", "__name__", ".*")
-          - record: qianwen_edge_request_duration_seconds_count
-            expr: |
-              label_replace(
-                label_replace(
-                  api_edge_request_duration_seconds_count
-                , "category", "api", "__name__", ".*")
-              , "service", "edge-router", "__name__", ".*")
-          - record: qianwen_edge_cold_starts_total
-            expr: |
-              label_replace(
-                label_replace(
-                  api_edge_cold_starts_total
-                , "category", "api", "__name__", ".*")
-              , "service", "edge-router", "__name__", ".*")
 ---
 apiVersion: apps/v1
 kind: Deployment
