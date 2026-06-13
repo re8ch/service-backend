@@ -64,7 +64,7 @@ data:
             target_label: ip
 
       - job_name: k3s-node-exporter
-        scrape_interval: 120s
+        scrape_interval: 60s
         scrape_timeout: 45s
         kubernetes_sd_configs:
           - role: endpoints
@@ -88,9 +88,66 @@ data:
           - target_label: cls
             replacement: k3s
 
+      - job_name: k8s-kubelet
+        scrape_interval: 60s
+        scrape_timeout: 20s
+        scheme: https
+        metrics_path: /metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: harbor-registry
+            action: drop
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:10250
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s
+
+      - job_name: k8s-cadvisor
+        scrape_interval: 120s
+        scrape_timeout: 25s
+        scheme: https
+        metrics_path: /metrics/cadvisor
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: harbor-registry
+            action: drop
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:10250
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_fs_.*|container_network_.*|machine_.*'
+            action: keep
+          - source_labels: [container]
+            regex: ''
+            action: drop
+
       - job_name: pigsty-infra-exporters
         scrape_interval: 30s
-        scrape_timeout: 10s
+        scrape_timeout: 20s
         kubernetes_sd_configs:
           - role: endpoints
             namespaces:
@@ -115,7 +172,7 @@ data:
 
       - job_name: pigsty-pgsql-exporters
         scrape_interval: 30s
-        scrape_timeout: 10s
+        scrape_timeout: 20s
         kubernetes_sd_configs:
           - role: endpoints
             namespaces:
@@ -244,7 +301,7 @@ metadata:
     app.kubernetes.io/part-of: panel-observability
 rules:
   - apiGroups: [""]
-    resources: ["endpoints", "services", "pods"]
+    resources: ["endpoints", "services", "pods", "nodes", "nodes/proxy", "nodes/metrics"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
@@ -281,6 +338,22 @@ data:
       scrape_timeout: 20s
 
     scrape_configs:
+      - job_name: qwen-nodeport-vmagent-self
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:8429"]
+            labels:
+              tenant: qianwen
+              layer: observability
+              category: vmagent
+              service: nodeport-vmagent
+              source: re8ch
+              cls: qwen-vmagent
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vmagent_remotewrite_.*|vm_promscrape_.*|process_.*|go_.*'
+            action: keep
+
       - job_name: k8s-nuclio-edge
         metrics_path: /metrics
         static_configs:
@@ -510,6 +583,8 @@ spec:
         app.kubernetes.io/name: panel-node-exporter
         app.kubernetes.io/part-of: panel-observability
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       hostPID: true
       affinity:
         nodeAffinity:
@@ -522,6 +597,7 @@ spec:
                       - artchais-nuclio-1
                       - qianwen-prod-nuclio-3
                       - qianwen-test-nuclio-2
+                      - vm-20-12-ubuntu
                       - rancher-panel
                       - harbor-registry
       tolerations:
@@ -534,7 +610,7 @@ spec:
             - --path.procfs=/host/proc
             - --path.sysfs=/host/sys
             - --path.rootfs=/host/root
-            - --web.listen-address=:9100
+            - --web.listen-address=:19100
             - --collector.disable-defaults
             - --collector.cpu
             - --collector.meminfo
@@ -547,7 +623,7 @@ spec:
             - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
           ports:
             - name: metrics
-              containerPort: 9100
+              containerPort: 19100
           resources:
             requests:
               cpu: 20m
@@ -703,10 +779,26 @@ metadata:
 data:
   prometheus.yml: |
     global:
-      scrape_interval: 5m
+      scrape_interval: 2m
       scrape_timeout: 20s
 
     scrape_configs:
+      - job_name: qwen-functions-vmagent-self
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:8429"]
+            labels:
+              tenant: qianwen
+              layer: observability
+              category: vmagent
+              service: functions-vmagent
+              source: re8ch
+              cls: qwen-vmagent
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vmagent_remotewrite_.*|vm_promscrape_.*|process_.*|go_.*'
+            action: keep
+
       - job_name: k8s-nuclio-functions
         metrics_path: /metrics
         kubernetes_sd_configs:
