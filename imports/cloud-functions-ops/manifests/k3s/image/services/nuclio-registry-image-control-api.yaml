@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-registry-image-control-api
+  namespace: image
+  labels:
+    nuclio.io/app: functionres
+    nuclio.io/class: function
+    nuclio.io/function-name: registry-image-control-api
+    nuclio.io/function-version: latest
+    nuclio.io/project-name: default
+    saas.re8ch.com/tenant: image
+    saas.re8ch.com/product: registry-image
+    saas.re8ch.com/function: control-api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    nuclio.io/app: functionres
+    nuclio.io/class: function
+    nuclio.io/function-name: registry-image-control-api
+    nuclio.io/function-version: latest
+    nuclio.io/project-name: default

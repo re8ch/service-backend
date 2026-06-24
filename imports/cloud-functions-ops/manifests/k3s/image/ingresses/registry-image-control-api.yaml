@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: registry-image-control-api
+  namespace: image
+  labels:
+    saas.re8ch.com/tenant: image
+    saas.re8ch.com/product: registry-image
+    saas.re8ch.com/layer: prod
+    saas.re8ch.com/function: control-api
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: api.re8ch.com
+      http: &registry_image_paths
+        paths:
+          - path: /image
+            pathType: Prefix
+            backend:
+              service:
+                name: nuclio-registry-image-control-api
+                port:
+                  number: 8080
+    - host: api-guangzhou24.re8ch.com
+      http: *registry_image_paths
+    - host: api-shanghai217.re8ch.com
+      http: *registry_image_paths
+    - host: api-shanghai77.re8ch.com
+      http: *registry_image_paths
