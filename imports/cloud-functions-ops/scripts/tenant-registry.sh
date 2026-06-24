@@ -17,6 +17,8 @@ infer_registry_project() {
   fi
 
   case "${function_name}" in
+    re8ch-auth-*|nuclio-re8ch-auth-*) printf 'auth' ;;
+    registry-image-*|nuclio-registry-image-*) printf 'image' ;;
     qianwen-*|nuclio-qianwen-*) printf 'qianwen' ;;
     cardcat-*|nuclio-cardcat-*) printf 'cardcat' ;;
     ledger-*|nuclio-ledger-*) printf 'ledger' ;;
