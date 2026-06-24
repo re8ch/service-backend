@@ -1,0 +1,82 @@
+global:
+  image:
+    repository: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/server
+    tag: "2026.5.3"
+    pullPolicy: IfNotPresent
+  nodeSelector:
+    kubernetes.io/hostname: rancher-panel
+  tolerations: []
+  env:
+    - name: AUTHENTIK_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secrets
+          key: AUTHENTIK_SECRET_KEY
+    - name: AUTHENTIK_POSTGRESQL__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secrets
+          key: AUTHENTIK_POSTGRESQL__PASSWORD
+    - name: AUTHENTIK_BOOTSTRAP_EMAIL
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: AUTHENTIK_BOOTSTRAP_EMAIL
+    - name: AUTHENTIK_BOOTSTRAP_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: AUTHENTIK_BOOTSTRAP_PASSWORD
+    - name: AUTHENTIK_BOOTSTRAP_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: AUTHENTIK_BOOTSTRAP_TOKEN
+
+authentik:
+  log_level: info
+  secret_key: env://AUTHENTIK_SECRET_KEY
+  outposts:
+    container_image_base: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/%(type)s:%(version)s
+  # Authentik is intentionally disabled until its storage path is adapted to the
+  # RE8CH db-rw/db-ro PostgREST gateway contract. Do not point this chart at
+  # Pigsty PostgreSQL wire-protocol hosts.
+  postgresql:
+    host: disabled-no-direct-postgres-use-db-rw-pgrest
+    port: 5432
+    name: auth
+    user: authentik
+    password: env://AUTHENTIK_POSTGRESQL__PASSWORD
+
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false
+
+server:
+  replicas: 0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - auth.re8ch.com
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+
+worker:
+  replicas: 0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi
