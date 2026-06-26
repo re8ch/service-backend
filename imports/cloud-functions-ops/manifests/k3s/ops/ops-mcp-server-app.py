@@ -914,7 +914,7 @@ TENANT_RESOURCE_CATALOG = {
     "qwen": {
         "canonicalTenant": "qwen",
         "displayName": "Qianwen / Qwen",
-        "notes": "Historical exception: K3s/Dex namespace is qwen, but Harbor/Grafana tenant label and main databases use qianwen.",
+        "notes": "Historical exception: K3s/Dex namespace and Grafana org are qwen, but Harbor/metrics/Observable tenant label and main databases use qianwen.",
         "kubernetes": {
             "namespace": "qwen",
             "dexGroup": "re8ch:qwen-operators",
@@ -930,11 +930,14 @@ TENANT_RESOURCE_CATALOG = {
             "altImagePath": "registry.ynzs.com/qianwen/<image>:<tag>",
         },
         "grafana": {
-            "org": "Tenant qianwen",
+            "org": "qwen",
             "orgId": "2",
             "dashboardUid": "tenant-qianwen-overview",
             "serviceAccount": "qianwen-ai-agent-viewer",
             "tokenSecret": "grafana-qianwen-viewer",
+            "metricsDatasourceUid": "tenant-metrics",
+            "logsDatasourceUid": "tenant-vlogs",
+            "observableEventsDatasourceUid": "observable-events",
             "tenantLabel": "qianwen",
         },
         "pigsty": {

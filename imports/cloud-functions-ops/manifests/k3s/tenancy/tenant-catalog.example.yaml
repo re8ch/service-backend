@@ -40,8 +40,18 @@ data:
             saas.re8ch.com/tenant: qwen
             saas.re8ch.com/layer: prod
         observability:
+          tenantId: qianwen
+          namespace: qwen
+          grafanaOrg: qwen
           grafanaFolder: Tenant / Qwen
           grafanaTeam: qwen-viewers
+          dashboardUid: tenant-qianwen-overview
+          metricsDatasourceUid: tenant-metrics
+          logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
+          metricsPath: /qianwen
+          logsPath: /qianwen
+          eventReadRole: observable_app_ro
           portainerTeam: qwen-operators
           pgAdminGroup: qwen-db-viewers
 
@@ -77,7 +87,17 @@ data:
             saas.re8ch.com/tenant: ledger
             saas.re8ch.com/layer: prod
         observability:
+          tenantId: ledger
+          namespace: ledger
+          grafanaOrg: Tenant ledger
           grafanaFolder: Tenant / Ledger
           grafanaTeam: ledger-viewers
+          dashboardUid: tenant-ledger-overview
+          metricsDatasourceUid: tenant-metrics
+          logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
+          metricsPath: /ledger
+          logsPath: /ledger
+          eventReadRole: observable_app_ro
           portainerTeam: ledger-operators
           pgAdminGroup: ledger-db-viewers

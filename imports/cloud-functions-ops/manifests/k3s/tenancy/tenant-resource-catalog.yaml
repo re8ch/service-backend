@@ -9,7 +9,7 @@ data:
       qwen:
         canonicalTenant: qwen
         displayName: Qianwen / Qwen
-        notes: K3s/Dex namespace is qwen; Harbor/Grafana tenant label and main databases use qianwen.
+        notes: K3s/Dex namespace and Grafana org are qwen; Harbor/metrics/Observable tenant label and main databases use qianwen.
         kubernetes:
           namespace: qwen
           dexGroup: re8ch:qwen-operators
@@ -26,12 +26,14 @@ data:
           altImagePath: registry.ynzs.com/qianwen/<image>:<tag>
           buildNotes: functions-shared is Harbor public-pull for platform builder/base images; build credentials still need push access to qianwen processor images.
         grafana:
-          org: Tenant qianwen
+          org: qwen
           orgId: "2"
           dashboardUid: tenant-qianwen-overview
           serviceAccount: qianwen-ai-agent-viewer
           tokenSecret: grafana-qianwen-viewer
+          metricsDatasourceUid: tenant-metrics
           logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
           tenantLabel: qianwen
         pigsty:
           databases:
@@ -106,7 +108,9 @@ data:
           dashboardUid: tenant-ledger-overview
           serviceAccount: ledger-ai-agent-viewer
           tokenSecret: grafana-ledger-viewer
+          metricsDatasourceUid: tenant-metrics
           logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
           tenantLabel: ledger
         pigsty:
           databases:
