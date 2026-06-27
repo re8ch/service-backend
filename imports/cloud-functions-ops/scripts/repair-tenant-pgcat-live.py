@@ -116,7 +116,7 @@ def patch_treemap_panels(panels: list[dict[str, Any]]) -> int:
     return changes
 
 
-def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_dsn_uid: str) -> int:
+def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_dsn_uid: str, allowed_dsn_regex: str) -> int:
     changes = 0
     defaults = {
         "dsn": {"text": default_dsn_text, "value": default_dsn_uid},
@@ -127,10 +127,10 @@ def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_ds
     for var in (dashboard.get("templating") or {}).get("list", []):
         name = var.get("name")
         if name == "dsn":
-            # Filter the datasource selector to the one tenant database that is
-            # confirmed connectable today. qianwen_test/cardcat remain blocked
-            # at PostgreSQL CONNECT privilege and should move to snapshots.
-            regex = "^%s$" % default_dsn_text.replace(".", r"\.")
+            # Keep the datasource picker constrained to databases that belong
+            # to the tenant namespace. Other tenant PostgreSQL datasources may
+            # exist in the org during the raw-PG compatibility window.
+            regex = allowed_dsn_regex
             if var.get("regex") != "/" + regex + "/":
                 var["regex"] = "/" + regex + "/"
                 changes += 1
@@ -145,14 +145,25 @@ def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_ds
             if var.get("multi"):
                 var["multi"] = False
                 changes += 1
+        if name in {"ins", "datname", "cls", "ip", "node"}:
+            # Some links include empty var-ins/var-datname/etc. Empty URL
+            # values override computed variable defaults and blank panels.
+            if var.get("skipUrlSync") is not True:
+                var["skipUrlSync"] = True
+                changes += 1
     return changes
 
 
-def repair_dashboard(dashboard: dict[str, Any], default_dsn_text: str, default_dsn_uid: str) -> tuple[dict[str, Any], int]:
+def repair_dashboard(
+    dashboard: dict[str, Any],
+    default_dsn_text: str,
+    default_dsn_uid: str,
+    allowed_dsn_regex: str,
+) -> tuple[dict[str, Any], int]:
     patched = strip_main_org_link(json.loads(json.dumps(dashboard)))
     changes = 0
     changes += patch_treemap_panels(patched.get("panels") or [])
-    changes += patch_variables(patched, default_dsn_text, default_dsn_uid)
+    changes += patch_variables(patched, default_dsn_text, default_dsn_uid, allowed_dsn_regex)
     return patched, changes
 
 
@@ -176,6 +187,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--org-id", type=int, default=int(os.environ.get("GRAFANA_TENANT_ORG_ID", "2")))
     parser.add_argument("--default-dsn-text", default="pg-meta-1.qianwen_prod")
     parser.add_argument("--default-dsn-uid", default="qianwen-pg-meta-1-qianwen-prod")
+    parser.add_argument(
+        "--allowed-dsn-regex",
+        default=r"^pg-meta-[123]\.(qianwen_prod|qianwen_test|cardcat)$",
+    )
     parser.add_argument("--apply", action="store_true")
     return parser.parse_args()
 
@@ -185,7 +200,12 @@ def main() -> int:
     grafana = Grafana(args.grafana_url, auth_header(args))
     for uid in PGCAT_UIDS:
         dashboard = grafana.get_dashboard(args.org_id, uid)
-        patched, changes = repair_dashboard(dashboard, args.default_dsn_text, args.default_dsn_uid)
+        patched, changes = repair_dashboard(
+            dashboard,
+            args.default_dsn_text,
+            args.default_dsn_uid,
+            args.allowed_dsn_regex,
+        )
         info("dashboard=%s changes=%d" % (uid, changes))
         if changes:
             grafana.import_dashboard(args.org_id, patched, args.apply)
