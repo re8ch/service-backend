@@ -26,6 +26,8 @@ TENANTS = {
         "serviceAccountSecret": {"namespace": "qwen", "name": "grafana-qianwen-viewer"},
         "humanEnvPrefix": "QIANWEN",
         "allowedDatasources": {"tenant-metrics", "tenant-vlogs", "observable-events"},
+        "allowedDatasourcePrefixes": {"qianwen-pg-"},
+        "requiredPgDatasourceCount": 9,
         "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-1-ledger", "pg-meta-1-anycam-prod", "pg-meta-1-postgres"},
     },
     "ledger": {
@@ -34,6 +36,8 @@ TENANTS = {
         "serviceAccountSecret": {"namespace": "ledger", "name": "grafana-ledger-viewer"},
         "humanEnvPrefix": "LEDGER",
         "allowedDatasources": {"tenant-metrics", "tenant-vlogs", "observable-events"},
+        "allowedDatasourcePrefixes": {"ledger-pg-"},
+        "requiredPgDatasourceCount": 3,
         "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-1-qianwen-prod", "pg-meta-1-anycam-prod", "pg-meta-1-postgres"},
     },
 }
@@ -114,17 +118,38 @@ def verify_auth_scope(base_url: str, auth: Auth, tenant: str, cfg: dict[str, Any
     titles = {item.get("uid") or item.get("title") for item in search}
     if cfg["dashboardUid"] not in titles:
         raise RuntimeError("%s cannot see tenant dashboard %s" % (auth.label, cfg["dashboardUid"]))
-    if any(str(item.get("folderTitle", "")).startswith("Pigsty") for item in search):
-        raise RuntimeError("%s can see Pigsty folder dashboards" % auth.label)
+    raw_pigsty = [
+        item.get("uid") for item in search
+        if str(item.get("folderTitle", "")).startswith("Pigsty") and not str(item.get("uid", "")).startswith("tenant-%s-" % tenant)
+    ]
+    if raw_pigsty:
+        raise RuntimeError("%s can see raw Pigsty folder dashboards: %s" % (auth.label, sorted(raw_pigsty)))
 
     _, datasources = request(base_url, auth, "/api/datasources")
     uids = {item.get("uid") for item in datasources}
     missing = cfg["allowedDatasources"] - uids
     if missing:
         raise RuntimeError("%s missing tenant datasources: %s" % (auth.label, sorted(missing)))
+    allowed_prefixes = tuple(cfg.get("allowedDatasourcePrefixes", set()))
+    unexpected = {
+        uid for uid in uids
+        if uid not in cfg["allowedDatasources"] and not str(uid).startswith(allowed_prefixes)
+    }
+    if unexpected:
+        raise RuntimeError("%s can see unexpected datasources: %s" % (auth.label, sorted(unexpected)))
     forbidden = cfg["forbiddenDatasources"].intersection(uids) or {uid for uid in uids if str(uid).startswith("pg-meta-")}
     if forbidden:
         raise RuntimeError("%s can see forbidden datasources: %s" % (auth.label, sorted(forbidden)))
+    pg_datasources = [item for item in datasources if str(item.get("uid", "")).startswith(allowed_prefixes)]
+    expected_pg_count = int(cfg.get("requiredPgDatasourceCount", 0))
+    if expected_pg_count and len(pg_datasources) != expected_pg_count:
+        raise RuntimeError("%s tenant PG datasource count=%s, expected %s" % (auth.label, len(pg_datasources), expected_pg_count))
+    bad_pool = [
+        item.get("uid") for item in pg_datasources
+        if int((item.get("jsonData") or {}).get("maxOpenConns") or 0) > 2
+    ]
+    if bad_pool:
+        raise RuntimeError("%s tenant PG datasources exceed maxOpenConns=2: %s" % (auth.label, sorted(bad_pool)))
 
     code, _ = request(base_url, auth, "/api/org", org_id=1, ok={200, 401, 403})
     if expected_org_id != 1 and code == 200:
