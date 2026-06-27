@@ -1399,6 +1399,19 @@ data:
     READONLY_ENDPOINTS = {"api/v1/status/buildinfo"}
     METADATA_ENDPOINTS = {"api/v1/labels", "api/v1/series"}
     SHARED_TENANTS = {"re8ch"}
+    TENANT_DB_METRIC_PREFIXES = (
+        "pg_db",
+        "pg:db:",
+        "pg_activity",
+        "pg_lock",
+        "pg_size",
+        "pg_query",
+        "pg_table",
+        "pg_index",
+        "pg_class",
+        "pg_namespace",
+        "pg_stat",
+    )
     SHARED_NODE_PATTERNS = [
         re.compile(r"\bnode_cpu_seconds_total\s*\{\s*node\s*="),
         re.compile(r"\brate\s*\(\s*node_cpu_seconds_total\s*\{\s*node\s*="),
@@ -1417,6 +1430,13 @@ data:
         re.compile(r"\bpgbouncer:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bhaproxy_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpgbackrest_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_lock_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_repl_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_slot_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_timeline_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_xact_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_checkpoint_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bALERTS(?:\{|,|\)|$)"),
     ]
 
     def query_looks_cross_tenant(cfg, query):
@@ -1441,15 +1461,31 @@ data:
                     return True
         return False
 
+    def tenantize_db_metric_query(cfg, query):
+        def replace_selector(match):
+            metric = match.group("metric")
+            labels = match.group("labels")
+            if not metric.startswith(TENANT_DB_METRIC_PREFIXES):
+                return match.group(0)
+            if re.search(r'\btenant\s*=~?\s*["\']', labels):
+                return match.group(0)
+            labels = labels.strip()
+            if labels:
+                labels = 'tenant="%s",%s' % (cfg["tenant"], labels)
+            else:
+                labels = 'tenant="%s"' % cfg["tenant"]
+            return "%s{%s}" % (metric, labels)
+        return re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, query)
+
     def query_is_allowed(cfg, query):
         query = (query or "").strip()
-        if not query or query_looks_cross_tenant(cfg, query):
+        if not query:
             return False
-        if (
-            "datname" not in query
-            and "database" not in query
-            and any(pattern.search(query) for pattern in SHARED_PIGSTY_CLUSTER_PATTERNS)
-        ):
+        if re.fullmatch(r"\s*(?:vector\s*\(\s*)?-?\d+(?:\.\d+)?\s*\)?\s*", query):
+            return True
+        if query_looks_cross_tenant(cfg, query):
+            return False
+        if any(pattern.search(query) for pattern in SHARED_PIGSTY_CLUSTER_PATTERNS):
             return True
         tenant_label = 'tenant="%s"' % cfg["tenant"]
         tenant_regex = 'tenant=~"%s"' % cfg["tenant"]
@@ -1572,8 +1608,23 @@ data:
                     body, form, content_type = read_body_params(self)
                     headers["Content-Type"] = content_type
                     promql = form.get("query", [""])[0] if form else urllib.parse.parse_qs(query).get("query", [""])[0]
+                    scoped_promql = tenantize_db_metric_query(cfg, promql)
+                    if form and scoped_promql != promql:
+                        form["query"] = [scoped_promql]
+                        body = urllib.parse.urlencode(form, doseq=True).encode()
+                    elif scoped_promql != promql:
+                        params = urllib.parse.parse_qs(query, keep_blank_values=True)
+                        params["query"] = [scoped_promql]
+                        query = urllib.parse.urlencode(params, doseq=True)
+                    promql = scoped_promql
                 else:
                     promql = urllib.parse.parse_qs(query).get("query", [""])[0]
+                    scoped_promql = tenantize_db_metric_query(cfg, promql)
+                    if scoped_promql != promql:
+                        params = urllib.parse.parse_qs(query, keep_blank_values=True)
+                        params["query"] = [scoped_promql]
+                        query = urllib.parse.urlencode(params, doseq=True)
+                    promql = scoped_promql
                 if not query_is_allowed(cfg, promql):
                     self.send_json(403, {"status": "error", "error": "query is outside tenant allowlist"})
                     return
