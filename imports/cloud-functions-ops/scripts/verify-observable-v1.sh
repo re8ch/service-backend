@@ -3,12 +3,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SQL="$ROOT/sql/011_observable_events.sql"
+PGCAT_SQL="$ROOT/sql/013_observable_pgcat_snapshots.sql"
 MANIFEST="$ROOT/manifests/k3s/qianwen-ops/observable-collector.yaml"
 COLLECTOR="$ROOT/scripts/observable_collector.py"
+PGCAT_COLLECTOR="$ROOT/scripts/observable_pgcat_collector.py"
 KUBECTL_CMD="${KUBECTL_CMD:-kubectl}"
 NAMESPACE="${NAMESPACE:-qianwen-ops}"
 
-python3 -m py_compile "$COLLECTOR"
+python3 -m py_compile "$COLLECTOR" "$PGCAT_COLLECTOR"
 
 for required in \
   "create table if not exists api.observable_events" \
@@ -19,6 +21,31 @@ for required in \
 do
   if ! grep -Fq "$required" "$SQL"; then
     echo "missing SQL guardrail: $required" >&2
+    exit 1
+  fi
+done
+
+for required in \
+  "create table if not exists api.observable_pgcat_snapshots" \
+  "create or replace function api.service_observable_pgcat_snapshot_ingest" \
+  "alter table api.observable_pgcat_snapshots enable row level security" \
+  "create policy observable_pgcat_snapshots_tenant_select" \
+  "tenant_id <> 'platform'"
+do
+  if ! grep -Fq "$required" "$PGCAT_SQL"; then
+    echo "missing PGCAT SQL guardrail: $required" >&2
+    exit 1
+  fi
+done
+
+for required in \
+  "GRAFANA_URL" \
+  "SQL_ALLOWLIST" \
+  "/api/ds/query" \
+  "service_observable_pgcat_snapshot_ingest"
+do
+  if ! grep -Fq "$required" "$PGCAT_COLLECTOR"; then
+    echo "missing PGCAT collector guardrail: $required" >&2
     exit 1
   fi
 done
