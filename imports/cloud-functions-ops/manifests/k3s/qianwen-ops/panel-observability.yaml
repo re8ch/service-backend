@@ -1406,6 +1406,18 @@ data:
         re.compile(r"\bkube_node_status_condition\s*\{\s*condition\s*=\s*\"Ready\"\s*,\s*status\s*=\s*\"true\""),
         re.compile(r"\bpg_up\s*\{\s*source\s*=\s*\"pigsty\""),
     ]
+    SHARED_PIGSTY_CLUSTER_PATTERNS = [
+        re.compile(r"\bpg_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpg:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_in_recovery(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_uptime(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_meta_info(?:\{|,|\)|$)"),
+        re.compile(r"\bpatroni_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bhaproxy_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbackrest_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+    ]
 
     def query_looks_cross_tenant(cfg, query):
         allowed_tenant = cfg["tenant"]
@@ -1433,6 +1445,12 @@ data:
         query = (query or "").strip()
         if not query or query_looks_cross_tenant(cfg, query):
             return False
+        if (
+            "datname" not in query
+            and "database" not in query
+            and any(pattern.search(query) for pattern in SHARED_PIGSTY_CLUSTER_PATTERNS)
+        ):
+            return True
         tenant_label = 'tenant="%s"' % cfg["tenant"]
         tenant_regex = 'tenant=~"%s"' % cfg["tenant"]
         shared_tenant_labels = ['tenant="%s"' % tenant for tenant in SHARED_TENANTS]

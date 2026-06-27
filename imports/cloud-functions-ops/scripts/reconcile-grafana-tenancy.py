@@ -13,6 +13,7 @@ import base64
 import datetime as dt
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.error
@@ -32,6 +33,18 @@ FORBIDDEN_TENANT_DATASOURCES = {
     "ds-prometheus",
     "ds-static",
 }
+TENANT_DB_METRIC_PREFIXES = (
+    "pg_db",
+    "pg:db:",
+    "pg_activity",
+    "pg_size",
+    "pg_query",
+    "pg_table",
+    "pg_index",
+    "pg_class",
+    "pg_namespace",
+    "pg_stat",
+)
 
 
 TENANTS: dict[str, dict[str, Any]] = {
@@ -89,10 +102,13 @@ class GrafanaError(RuntimeError):
 
 
 class GrafanaClient:
-    def __init__(self, base_url: str, username: str, password: str):
+    def __init__(self, base_url: str, username: str = "", password: str = "", token: str = ""):
         self.base_url = base_url.rstrip("/")
-        raw = ("%s:%s" % (username, password)).encode()
-        self.auth = "Basic " + base64.b64encode(raw).decode()
+        if token:
+            self.auth = "Bearer " + token
+        else:
+            raw = ("%s:%s" % (username, password)).encode()
+            self.auth = "Basic " + base64.b64encode(raw).decode()
 
     def request(self, method: str, path: str, body: Any | None = None, org_id: int | None = None, ok: set[int] | None = None) -> tuple[int, Any]:
         ok = ok or {200}
@@ -446,6 +462,41 @@ def patch_panels(panels: list[dict[str, Any]]) -> int:
     return changes
 
 
+def tenantize_promql_expr(expr: str, tenant: str) -> str:
+    def replace_selector(match: Any) -> str:
+        metric = match.group("metric")
+        labels = match.group("labels")
+        if not metric.startswith(TENANT_DB_METRIC_PREFIXES):
+            return match.group(0)
+        if re.search(r'\btenant\s*=~?\s*"', labels):
+            return match.group(0)
+        labels = labels.strip()
+        if labels:
+            labels = 'tenant="%s",%s' % (tenant, labels)
+        else:
+            labels = 'tenant="%s"' % tenant
+        return "%s{%s}" % (metric, labels)
+
+    return re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+
+
+def patch_promql_targets(value: Any, tenant: str) -> int:
+    changes = 0
+    if isinstance(value, dict):
+        expr = value.get("expr")
+        if isinstance(expr, str):
+            patched = tenantize_promql_expr(expr, tenant)
+            if patched != expr:
+                value["expr"] = patched
+                changes += 1
+        for child in value.values():
+            changes += patch_promql_targets(child, tenant)
+    elif isinstance(value, list):
+        for child in value:
+            changes += patch_promql_targets(child, tenant)
+    return changes
+
+
 def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str) -> dict[str, Any]:
     dashboard = strip_main_org_link(json.loads(json.dumps(dashboard)))
     uid = dashboard.get("uid") or ""
@@ -458,6 +509,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str) -> dict[s
     dashboard.pop("version", None)
     patch_datasource_ref(dashboard)
     patch_panels(dashboard.get("panels") or [])
+    patch_promql_targets(dashboard, tenant)
     return dashboard
 
 
@@ -489,38 +541,41 @@ data:
 
 
 def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], args: argparse.Namespace) -> None:
-    org_id = client.ensure_org(cfg["org"], args.apply)
+    org_id = args.org_id or client.ensure_org(cfg["org"], args.apply)
     if org_id < 0:
         return
 
     user_ids: list[tuple[int, str]] = []
-    for user in cfg.get("users", []):
-        user_id = client.ensure_user_in_org(org_id, user["loginOrEmail"], user.get("role", "Viewer"), args.apply)
-        if user_id:
-            user_ids.append((user_id, user["loginOrEmail"]))
-    if args.remove_tenant_users_from_main:
-        for user_id, login_or_email in user_ids:
-            client.remove_user_from_org(1, user_id, login_or_email, args.apply)
+    if not args.skip_membership_reconcile:
+        for user in cfg.get("users", []):
+            user_id = client.ensure_user_in_org(org_id, user["loginOrEmail"], user.get("role", "Viewer"), args.apply)
+            if user_id:
+                user_ids.append((user_id, user["loginOrEmail"]))
+        if args.remove_tenant_users_from_main:
+            for user_id, login_or_email in user_ids:
+                client.remove_user_from_org(1, user_id, login_or_email, args.apply)
 
-    for datasource in tenant_datasources(tenant, cfg):
-        client.upsert_datasource(org_id, datasource, args.apply)
+    if not args.skip_datasource_reconcile:
+        for datasource in tenant_datasources(tenant, cfg):
+            client.upsert_datasource(org_id, datasource, args.apply)
 
-    pg_password = None
     pg_datasources = tenant_pg_datasources(tenant, cfg)
-    if pg_datasources and args.apply:
+    if pg_datasources and args.apply and not args.skip_datasource_reconcile:
         pg_password = secret_key(args.namespace, cfg.get("pgMonitorSecret", "panel-grafana-pg-monitor"), "password")
         pg_datasources = tenant_pg_datasources(tenant, cfg, pg_password)
-    for datasource in pg_datasources:
-        client.upsert_datasource(org_id, datasource, args.apply)
+    if not args.skip_datasource_reconcile:
+        for datasource in pg_datasources:
+            client.upsert_datasource(org_id, datasource, args.apply)
 
     allowed_uids = {"tenant-metrics", "tenant-vlogs", "observable-events"}
     allowed_uids.update(datasource["uid"] for datasource in pg_datasources)
-    for datasource in client.list_datasources(org_id):
-        uid = datasource.get("uid", "")
-        if uid in allowed_uids:
-            continue
-        if uid.startswith("pg-meta-") or uid in FORBIDDEN_TENANT_DATASOURCES:
-            client.delete_datasource(org_id, uid, args.apply)
+    if not args.skip_datasource_reconcile:
+        for datasource in client.list_datasources(org_id):
+            uid = datasource.get("uid", "")
+            if uid in allowed_uids:
+                continue
+            if uid.startswith("pg-meta-") or uid in FORBIDDEN_TENANT_DATASOURCES:
+                client.delete_datasource(org_id, uid, args.apply)
 
     dashboard_path = args.dashboard_dir / cfg["dashboard"]
     if dashboard_path.exists():
@@ -540,10 +595,11 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
                 args.apply,
             )
 
-    account_id = client.ensure_service_account(org_id, cfg["serviceAccount"], "Viewer", args.apply)
-    if account_id and args.rotate_service_account_tokens:
-        token = client.rotate_service_account_token(org_id, account_id, "tenant-%s-%s" % (tenant, now_suffix()), args.apply)
-        apply_k8s_token_secret(cfg, token, args.apply)
+    if not args.skip_service_account_reconcile:
+        account_id = client.ensure_service_account(org_id, cfg["serviceAccount"], "Viewer", args.apply)
+        if account_id and args.rotate_service_account_tokens:
+            token = client.rotate_service_account_token(org_id, account_id, "tenant-%s-%s" % (tenant, now_suffix()), args.apply)
+            apply_k8s_token_secret(cfg, token, args.apply)
 
 
 def parse_args() -> argparse.Namespace:
@@ -553,11 +609,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery"))
     parser.add_argument("--admin-user", default=os.environ.get("GRAFANA_ADMIN_USER", ""))
     parser.add_argument("--admin-password", default=os.environ.get("GRAFANA_ADMIN_PASSWORD", ""))
+    parser.add_argument("--admin-token", default=os.environ.get("GRAFANA_ADMIN_TOKEN", ""))
     parser.add_argument("--dashboard-dir", type=Path, default=DEFAULT_DASHBOARD_DIR)
     parser.add_argument("--tenant", action="append", choices=sorted(TENANTS), help="Tenant to reconcile. Repeatable. Default: qianwen and ledger.")
     parser.add_argument("--apply", action="store_true", help="Mutate Grafana. Without this flag the script is dry-run.")
     parser.add_argument("--main-org-id", type=int, default=int(os.environ.get("GRAFANA_MAIN_ORG_ID", "1")))
+    parser.add_argument("--org-id", type=int, default=int(os.environ.get("GRAFANA_TENANT_ORG_ID", "0")), help="Use an already-known tenant org id and skip org lookup/create.")
     parser.add_argument("--sync-pigsty-dashboards", action="store_true", help="Copy Main Org Pigsty dashboards into tenant orgs with tenant datasource rewrites.")
+    parser.add_argument("--skip-membership-reconcile", action="store_true")
+    parser.add_argument("--skip-datasource-reconcile", action="store_true")
+    parser.add_argument("--skip-service-account-reconcile", action="store_true")
     parser.add_argument("--remove-tenant-users-from-main", action="store_true", default=True)
     parser.add_argument("--keep-tenant-users-in-main", action="store_false", dest="remove_tenant_users_from_main")
     parser.add_argument("--rotate-service-account-tokens", action="store_true", help="Create new tenant service account tokens and store them in K8S Secrets.")
@@ -566,8 +627,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    username, password = admin_credentials(args)
-    client = GrafanaClient(args.grafana_url, username, password)
+    if args.admin_token:
+        client = GrafanaClient(args.grafana_url, token=args.admin_token)
+    else:
+        username, password = admin_credentials(args)
+        client = GrafanaClient(args.grafana_url, username, password)
     tenants = args.tenant or sorted(TENANTS)
     for tenant in tenants:
         reconcile_tenant(client, tenant, TENANTS[tenant], args)
