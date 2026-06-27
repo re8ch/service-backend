@@ -86,3 +86,24 @@ groups:
         expr: label_set(pg_db_xact_rollback{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_xact_rollback{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_xact_rollback{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_xact_rollback{tenant="",datname="bench"}, "tenant", "bench")
       - record: "pg_db_xact_total"
         expr: label_set(pg_db_xact_total{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_xact_total{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_xact_total{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_xact_total{tenant="",datname="bench"}, "tenant", "bench")
+  - name: pigsty-tenant-derived-db-recording-rules
+    interval: 60s
+    rules:
+      - record: "pg:table:scan_rate1m"
+        expr: label_set(pg:table:scan_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:table:scan_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:table:scan_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:table:scan_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:query:call_rate1m"
+        expr: label_set(pg:query:call_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:query:call_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:query:call_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:query:call_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:conn_usage"
+        expr: label_set(pgbouncer:db:conn_usage{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:conn_usage{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:conn_usage{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:conn_usage{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:xact_rate1m"
+        expr: label_set(pgbouncer:db:xact_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:xact_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:xact_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:xact_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:xact_rate5m"
+        expr: label_set(pgbouncer:db:xact_rate5m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:xact_rate5m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:xact_rate5m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:xact_rate5m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:xact_rt_1m"
+        expr: label_set(pgbouncer:db:xact_rt_1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:xact_rt_1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:xact_rt_1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:xact_rt_1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:query_rate1m"
+        expr: label_set(pgbouncer:db:query_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:query_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:query_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:query_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:query_rate5m"
+        expr: label_set(pgbouncer:db:query_rate5m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:query_rate5m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:query_rate5m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:query_rate5m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pgbouncer:db:query_rt_1m"
+        expr: label_set(pgbouncer:db:query_rt_1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pgbouncer:db:query_rt_1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pgbouncer:db:query_rt_1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pgbouncer:db:query_rt_1m{tenant="",datname="bench"}, "tenant", "bench")

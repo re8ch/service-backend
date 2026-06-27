@@ -60,6 +60,7 @@ TENANTS: dict[str, dict[str, Any]] = {
         "logsPath": "qianwen",
         "observableTenant": "qianwen",
         "pgMonitorSecret": "panel-grafana-pg-monitor",
+        "pgcatSnapshots": True,
         "pgInstances": [
             {"ins": "pg-meta-1", "url": "192.0.2.89:5432"},
             {"ins": "pg-meta-2", "url": "192.0.2.112:5432"},
@@ -78,6 +79,7 @@ TENANTS: dict[str, dict[str, Any]] = {
         "logsPath": "ledger",
         "observableTenant": "ledger",
         "pgMonitorSecret": "panel-grafana-pg-monitor",
+        "pgcatSnapshots": True,
         "pgInstances": [
             {"ins": "pg-meta-1", "url": "192.0.2.89:5432"},
             {"ins": "pg-meta-2", "url": "192.0.2.112:5432"},
@@ -354,6 +356,20 @@ def tenant_datasources(tenant: str, cfg: dict[str, Any]) -> list[dict[str, Any]]
                 "customHealthCheckUrl": "https://db-ro.re8ch.com/observable/observable_events?tenant_id=eq.%s&limit=1" % observable_tenant,
             },
         },
+        {
+            "name": "Observable PGCAT",
+            "uid": "observable-pgcat",
+            "type": "yesoreyeram-infinity-datasource",
+            "access": "proxy",
+            "url": "https://db-ro.re8ch.com/observable",
+            "isDefault": False,
+            "editable": True,
+            "jsonData": {
+                "allowedHosts": ["https://db-ro.re8ch.com"],
+                "customHealthCheckEnabled": True,
+                "customHealthCheckUrl": "https://db-ro.re8ch.com/observable/observable_pgcat_latest_rows?tenant_id=eq.%s&limit=1" % observable_tenant,
+            },
+        },
     ]
 
 
@@ -363,6 +379,39 @@ def tenant_pg_datasources(tenant: str, cfg: dict[str, Any], password: str | None
         ins = instance["ins"]
         for database in cfg.get("pgDatabases", []):
             uid = "%s-%s-%s" % (tenant, ins, database.replace("_", "-"))
+            datasource = {
+                "name": "%s.%s" % (ins, database),
+                "uid": uid,
+                "type": "grafana-postgresql-datasource",
+                "access": "proxy",
+                "url": instance["url"],
+                "user": "dbuser_monitor",
+                "database": database,
+                "isDefault": False,
+                "editable": True,
+                "jsonData": {
+                    "database": database,
+                    "connMaxLifetime": 3600,
+                    "maxIdleConns": 1,
+                    "maxOpenConns": 2,
+                    "postgresVersion": 1500,
+                    "sslmode": "require",
+                    "tlsAuth": False,
+                    "tlsAuthWithCACert": False,
+                },
+            }
+            if password:
+                datasource["secureJsonData"] = {"password": password}
+            datasources.append(datasource)
+    return datasources
+
+
+def platform_pg_datasources(cfg: dict[str, Any], password: str | None = None) -> list[dict[str, Any]]:
+    datasources: list[dict[str, Any]] = []
+    for instance in cfg.get("pgInstances", []):
+        ins = instance["ins"]
+        for database in cfg.get("pgDatabases", []):
+            uid = "%s-%s" % (ins, database.replace("_", "-"))
             datasource = {
                 "name": "%s.%s" % (ins, database),
                 "uid": uid,
@@ -497,7 +546,145 @@ def patch_promql_targets(value: Any, tenant: str) -> int:
     return changes
 
 
-def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str) -> dict[str, Any]:
+PGCAT_DASHBOARD_KINDS = {
+    "pgcat-database": "database",
+    "pgcat-instance": "instance",
+    "pgcat-locks": "locks",
+    "pgcat-query": "query",
+    "pgcat-schema": "schema",
+    "pgcat-table": "table",
+}
+
+
+def infinity_pgcat_target(tenant_id: str, kind: str, ref_id: str = "A") -> dict[str, Any]:
+    query = urllib.parse.urlencode({
+        "tenant_id": "eq.%s" % tenant_id,
+        "snapshot_kind": "eq.%s" % kind,
+        "order": "database_name.asc,instance_name.asc,observed_at.desc",
+        "limit": "500",
+    })
+    return {
+        "refId": ref_id,
+        "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "observable-pgcat"},
+        "type": "json",
+        "source": "url",
+        "format": "table",
+        "parser": "backend",
+        "url": "https://db-ro.re8ch.com/observable/observable_pgcat_latest_rows?%s" % query,
+        "root_selector": "$",
+    }
+
+
+def pgcat_table_panel(title: str, tenant_id: str, kind: str, y: int, h: int = 12) -> dict[str, Any]:
+    return {
+        "id": y + 1,
+        "type": "table",
+        "title": title,
+        "gridPos": {"h": h, "w": 24, "x": 0, "y": y},
+        "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "observable-pgcat"},
+        "targets": [infinity_pgcat_target(tenant_id, kind)],
+        "fieldConfig": {
+            "defaults": {"custom": {"align": "auto", "inspect": False}},
+            "overrides": [
+                {
+                    "matcher": {"id": "byName", "options": "row_payload"},
+                    "properties": [{"id": "custom.width", "value": 600}],
+                }
+            ],
+        },
+        "options": {
+            "showHeader": True,
+            "cellHeight": "sm",
+            "footer": {"show": False},
+        },
+    }
+
+
+def pgcat_summary_panel(tenant_id: str, kind: str) -> dict[str, Any]:
+    return {
+        "id": 100,
+        "type": "stat",
+        "title": "Latest Snapshot Rows",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+        "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "observable-pgcat"},
+        "targets": [infinity_pgcat_target(tenant_id, kind)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["count"], "fields": ""},
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+        },
+    }
+
+
+def tenant_pgcat_dashboard(source: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
+    source_uid = source.get("uid") or ""
+    kind = PGCAT_DASHBOARD_KINDS.get(source_uid)
+    if not kind:
+        return None
+    tenant_id = cfg.get("observableTenant", tenant)
+    dashboard = {
+        "id": None,
+        "uid": "tenant-%s-%s" % (tenant, source_uid),
+        "title": "%s - %s" % (tenant, source.get("title", source_uid)),
+        "tags": sorted(set((source.get("tags") or []) + ["tenant", tenant, "Observable", "PGCAT"])),
+        "timezone": "browser",
+        "schemaVersion": 41,
+        "version": 0,
+        "refresh": "5m",
+        "time": {"from": "now-6h", "to": "now"},
+        "templating": {
+            "list": [
+                {
+                    "name": "tenant",
+                    "type": "constant",
+                    "query": tenant_id,
+                    "current": {"text": tenant_id, "value": tenant_id},
+                    "hide": 2,
+                },
+                {
+                    "name": "datname",
+                    "type": "custom",
+                    "query": ",".join(cfg.get("pgDatabases", [])),
+                    "current": {
+                        "text": cfg.get("pgDatabases", [""])[0],
+                        "value": cfg.get("pgDatabases", [""])[0],
+                    },
+                    "includeAll": True,
+                    "multi": False,
+                },
+            ]
+        },
+        "panels": [
+            pgcat_summary_panel(tenant_id, kind),
+            pgcat_table_panel("%s Snapshot Rows" % source.get("title", source_uid), tenant_id, kind, 4, 16),
+        ],
+    }
+    return dashboard
+
+
+def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any]) -> None:
+    defaults = {
+        "cls": "pg-meta",
+        "primary": "pg-meta-1",
+        "ins": "pg-meta-1",
+        "datname": (cfg.get("pgDatabases") or [""])[0],
+    }
+    for var in (dashboard.get("templating") or {}).get("list", []):
+        name = var.get("name")
+        if name not in defaults or not defaults[name]:
+            continue
+        var["current"] = {"text": defaults[name], "value": defaults[name], "selected": True}
+        if name == "datname":
+            var["includeAll"] = False
+            var["multi"] = False
+
+
+def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
+    if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS:
+        return tenant_pgcat_dashboard(dashboard, tenant, cfg)
     dashboard = strip_main_org_link(json.loads(json.dumps(dashboard)))
     uid = dashboard.get("uid") or ""
     dashboard["id"] = None
@@ -510,6 +697,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str) -> dict[s
     patch_datasource_ref(dashboard)
     patch_panels(dashboard.get("panels") or [])
     patch_promql_targets(dashboard, tenant)
+    patch_tenant_template_defaults(dashboard, cfg)
     return dashboard
 
 
@@ -545,6 +733,13 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
     if org_id < 0:
         return
 
+    if args.ensure_main_pg_datasources and not args.skip_datasource_reconcile:
+        pg_password = None
+        if args.apply:
+            pg_password = secret_key(args.namespace, cfg.get("pgMonitorSecret", "panel-grafana-pg-monitor"), "password")
+        for datasource in platform_pg_datasources(cfg, pg_password):
+            client.upsert_datasource(args.main_org_id, datasource, args.apply)
+
     user_ids: list[tuple[int, str]] = []
     if not args.skip_membership_reconcile:
         for user in cfg.get("users", []):
@@ -559,22 +754,14 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
         for datasource in tenant_datasources(tenant, cfg):
             client.upsert_datasource(org_id, datasource, args.apply)
 
-    pg_datasources = tenant_pg_datasources(tenant, cfg)
-    if pg_datasources and args.apply and not args.skip_datasource_reconcile:
-        pg_password = secret_key(args.namespace, cfg.get("pgMonitorSecret", "panel-grafana-pg-monitor"), "password")
-        pg_datasources = tenant_pg_datasources(tenant, cfg, pg_password)
-    if not args.skip_datasource_reconcile:
-        for datasource in pg_datasources:
-            client.upsert_datasource(org_id, datasource, args.apply)
-
-    allowed_uids = {"tenant-metrics", "tenant-vlogs", "observable-events"}
-    allowed_uids.update(datasource["uid"] for datasource in pg_datasources)
+    pg_datasources: list[dict[str, Any]] = []
+    allowed_uids = {"tenant-metrics", "tenant-vlogs", "observable-events", "observable-pgcat"}
     if not args.skip_datasource_reconcile:
         for datasource in client.list_datasources(org_id):
             uid = datasource.get("uid", "")
             if uid in allowed_uids:
                 continue
-            if uid.startswith("pg-meta-") or uid in FORBIDDEN_TENANT_DATASOURCES:
+            if uid.startswith("pg-meta-") or uid.startswith("%s-pg-" % tenant) or uid in FORBIDDEN_TENANT_DATASOURCES:
                 client.delete_datasource(org_id, uid, args.apply)
 
     dashboard_path = args.dashboard_dir / cfg["dashboard"]
@@ -587,7 +774,9 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
         dashboards = client.search_dashboards(args.main_org_id, folder_title=PIGSTY_DASHBOARD_FOLDER)
         for item in dashboards:
             source = client.get_dashboard(args.main_org_id, item["uid"])
-            tenant_dashboard = tenantize_pigsty_dashboard(source, tenant)
+            tenant_dashboard = tenantize_pigsty_dashboard(source, tenant, cfg)
+            if not tenant_dashboard:
+                continue
             client.import_dashboard_payload(
                 org_id,
                 tenant_dashboard,
@@ -616,6 +805,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--main-org-id", type=int, default=int(os.environ.get("GRAFANA_MAIN_ORG_ID", "1")))
     parser.add_argument("--org-id", type=int, default=int(os.environ.get("GRAFANA_TENANT_ORG_ID", "0")), help="Use an already-known tenant org id and skip org lookup/create.")
     parser.add_argument("--sync-pigsty-dashboards", action="store_true", help="Copy Main Org Pigsty dashboards into tenant orgs with tenant datasource rewrites.")
+    parser.add_argument("--ensure-main-pg-datasources", action="store_true", help="Ensure Main Org has platform PostgreSQL datasources needed by collectors.")
     parser.add_argument("--skip-membership-reconcile", action="store_true")
     parser.add_argument("--skip-datasource-reconcile", action="store_true")
     parser.add_argument("--skip-service-account-reconcile", action="store_true")
