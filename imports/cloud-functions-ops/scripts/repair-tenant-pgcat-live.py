@@ -28,6 +28,35 @@ PGCAT_UIDS = (
     "tenant-qianwen-pgcat-table",
 )
 
+PG_META_NODE_DEFAULTS = {
+    "pg-meta-1": {"ip": "192.0.2.89", "node": "VM-0-5-ubuntu"},
+    "pg-meta-2": {"ip": "192.0.2.112", "node": "iZuf6idwzv85k3l3kstj6iZ"},
+    "pg-meta-3": {"ip": "192.0.2.251", "node": "iZ7xv81uwok72sii7seok0Z"},
+}
+
+PG18_SAFE_PG_STAT_WAL_SQL = """SELECT
+  wal_records,
+  wal_fpi,
+  wal_bytes,
+  wal_buffers_full,
+  NULL::bigint AS wal_write,
+  NULL::bigint AS wal_sync,
+  NULL::double precision AS wal_write_time,
+  NULL::double precision AS wal_sync_time
+FROM pg_stat_wal;"""
+
+TENANT_DATABASES = ("qianwen_prod", "qianwen_test", "cardcat")
+TENANT_DATABASE_SQL = ", ".join("'%s'" % database for database in TENANT_DATABASES)
+TENANT_ACTIVITY_SCOPE_SQL = "(datname IS NULL OR datname IN (%s))" % TENANT_DATABASE_SQL
+TENANT_ROLE_SCOPE_SQL = (
+    "(r.rolname ~ '^(qianwen_prod|qianwen_test|cardcat)($|_)' "
+    "OR r.rolname = 'dbuser_monitor')"
+)
+TENANT_MEMBER_ROLE_SCOPE_SQL = (
+    "(b.rolname ~ '^(qianwen_prod|qianwen_test|cardcat)($|_)' "
+    "OR b.rolname IN ('dbuser_monitor', 'web_user', 'web_anon'))"
+)
+
 
 def info(message: str) -> None:
     print(message, flush=True)
@@ -118,11 +147,15 @@ def patch_treemap_panels(panels: list[dict[str, Any]]) -> int:
 
 def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_dsn_uid: str, allowed_dsn_regex: str) -> int:
     changes = 0
+    default_ins = default_dsn_text.split(".", 1)[0]
+    node_defaults = PG_META_NODE_DEFAULTS.get(default_ins, {})
     defaults = {
         "dsn": {"text": default_dsn_text, "value": default_dsn_uid},
-        "ins": {"text": default_dsn_text.split(".", 1)[0], "value": default_dsn_text.split(".", 1)[0]},
+        "ins": {"text": default_ins, "value": default_ins},
         "datname": {"text": default_dsn_text.split(".", 1)[1], "value": default_dsn_text.split(".", 1)[1]},
         "cls": {"text": "pg-meta", "value": "pg-meta"},
+        "ip": {"text": node_defaults.get("ip", ""), "value": node_defaults.get("ip", "")},
+        "node": {"text": node_defaults.get("node", ""), "value": node_defaults.get("node", "")},
     }
     for var in (dashboard.get("templating") or {}).get("list", []):
         name = var.get("name")
@@ -151,6 +184,168 @@ def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_ds
             if var.get("skipUrlSync") is not True:
                 var["skipUrlSync"] = True
                 changes += 1
+        if name in {"ip", "node"}:
+            wanted_query = defaults[name]["value"]
+            if var.get("type") != "custom":
+                var["type"] = "custom"
+                changes += 1
+            if var.get("query") != wanted_query:
+                var["query"] = wanted_query
+                changes += 1
+            if var.get("hide") != 2:
+                var["hide"] = 2
+                changes += 1
+    return changes
+
+
+def patch_pg18_stat_wal(panels: list[dict[str, Any]]) -> int:
+    changes = 0
+    for panel in panels:
+        for target in panel.get("targets") or []:
+            raw_sql = target.get("rawSql")
+            if not isinstance(raw_sql, str):
+                continue
+            if "FROM pg_stat_wal" in raw_sql and "wal_write" in raw_sql:
+                if raw_sql != PG18_SAFE_PG_STAT_WAL_SQL:
+                    target["rawSql"] = PG18_SAFE_PG_STAT_WAL_SQL
+                    changes += 1
+        changes += patch_pg18_stat_wal(panel.get("panels") or [])
+    return changes
+
+
+def patch_instance_tenant_scope(panels: list[dict[str, Any]]) -> int:
+    changes = 0
+    panel_sql_by_id = {
+        180: (
+            "SELECT * FROM "
+            "(SELECT count(*) AS databases FROM pg_database WHERE datname IN (%s)) d, "
+            "(SELECT count(*) AS roles FROM pg_roles r WHERE %s) r, "
+            "(SELECT count(*) AS tablespaces FROM pg_tablespace) tsp;"
+            % (TENANT_DATABASE_SQL, TENANT_ROLE_SCOPE_SQL)
+        ),
+        57: (
+            "SELECT d.datname, d.oid::INTEGER, d.datconnlimit, d.datfrozenxid, age(d.datfrozenxid) AS age, "
+            "datistemplate, datallowconn, "
+            "1 - (datistemplate)::INTEGER + 2 * d.datallowconn::INTEGER AS status, "
+            "psd.numbackends AS sessions, "
+            "pg_catalog.pg_get_userbyid(d.datdba) as owner, pg_catalog.pg_encoding_to_char(d.encoding) as encoding, "
+            "d.datcollate, d.datctype, pg_catalog.array_to_string(d.datacl, E'\\n') AS acl, "
+            "CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT') THEN pg_catalog.pg_database_size(d.datname) ELSE -1 END AS size, "
+            "t.spcname as tablespace, pg_catalog.shobj_description(d.oid, 'pg_database') as description "
+            "FROM pg_catalog.pg_database d "
+            "JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid "
+            "JOIN pg_stat_database psd on d.oid = psd.datid "
+            "WHERE d.datname IN (%s) ORDER BY 1;" % TENANT_DATABASE_SQL
+        ),
+        59: (
+            "SELECT pg_blocking_pids(pid) AS blocking_pids, datid, datname, pid, leader_pid, usesysid, usename, "
+            "application_name, client_addr, client_hostname, client_port, "
+            "extract(epoch from now() - backend_start) AS conn_time, "
+            "extract(epoch from now() - xact_start) AS xact_time, "
+            "extract(epoch from now() - query_start) AS query_time, "
+            "extract(epoch from now() - state_change) AS state_time, "
+            "wait_event_type, wait_event, state, backend_xid, backend_xmin, query_id, query, backend_type, "
+            "query_id::TEXT AS qid "
+            "FROM pg_stat_activity WHERE %s;" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        105: (
+            "SELECT extract(epoch from now()) AS time, coalesce(backend_type, 'null') as metric, count(*) as value "
+            "FROM pg_stat_activity WHERE %s GROUP BY coalesce(backend_type, 'null');" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        104: (
+            "SELECT extract(epoch from now()) AS time, coalesce(state, '_system') AS metric, count(*) AS value "
+            "FROM pg_stat_activity WHERE %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        103: (
+            "SELECT extract(epoch from now()) AS time, coalesce(wait_event, 'Running') as metric, count(*) as value "
+            "FROM pg_stat_activity WHERE %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        107: (
+            "SELECT now() AS time, metric AS metric, value FROM ("
+            "SELECT coalesce(host(client_addr),'') || CASE client_port WHEN -1 THEN 'unix socket' ELSE ':' || client_port::TEXT END AS metric, count(*) AS value "
+            "FROM pg_stat_activity WHERE state IS NOT NULL AND %s GROUP BY 1) s;" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        109: (
+            "SELECT extract(epoch from now()) AS time, coalesce(usename, '_system') as metric, count(*) as value "
+            "FROM pg_stat_activity WHERE state IS NOT NULL AND %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        106: (
+            "SELECT extract(epoch from now()) AS time, CASE application_name WHEN '' THEN 'unknown' ELSE application_name END as metric, count(*) as value "
+            "FROM pg_stat_activity WHERE state IS NOT NULL AND %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL
+        ),
+        172: (
+            "SELECT queryid::TEXT AS qid, d.datname, r.rolname, "
+            "s.userid, s.dbid, s.toplevel, s.queryid, "
+            "('[redacted queryid=' || s.queryid::text || ']')::text AS query, "
+            "s.plans, s.total_plan_time, s.min_plan_time, s.max_plan_time, s.mean_plan_time, s.stddev_plan_time, "
+            "s.calls, s.total_exec_time, s.min_exec_time, s.max_exec_time, s.mean_exec_time, s.stddev_exec_time, s.rows, "
+            "s.shared_blks_hit, s.shared_blks_read, s.shared_blks_dirtied, s.shared_blks_written, "
+            "s.local_blks_hit, s.local_blks_read, s.local_blks_dirtied, s.local_blks_written, "
+            "s.temp_blks_read, s.temp_blks_written, "
+            "s.shared_blk_read_time, s.shared_blk_write_time, s.local_blk_read_time, s.local_blk_write_time, "
+            "s.temp_blk_read_time, s.temp_blk_write_time, "
+            "s.wal_records, s.wal_fpi, s.wal_bytes, s.wal_buffers_full, "
+            "s.jit_functions, s.jit_generation_time, s.jit_inlining_count, s.jit_inlining_time, "
+            "s.jit_optimization_count, s.jit_optimization_time, s.jit_emission_count, s.jit_emission_time, "
+            "s.jit_deform_count, s.jit_deform_time, "
+            "s.parallel_workers_to_launch, s.parallel_workers_launched, "
+            "s.stats_since, s.minmax_stats_since "
+            "FROM pg_stat_statements s "
+            "LEFT JOIN pg_database d ON s.dbid = d.oid "
+            "LEFT JOIN pg_roles r ON s.userid = r.oid "
+            "WHERE d.datname IN (%s) ORDER BY total_exec_time DESC LIMIT 100;" % TENANT_DATABASE_SQL
+        ),
+        84: (
+            "SELECT r.oid, r.rolname, r.rolsuper, r.rolinherit, r.rolcreaterole, r.rolcreatedb, r.rolcanlogin, "
+            "r.rolconnlimit, "
+            "ARRAY(SELECT b.rolname FROM pg_catalog.pg_auth_members m JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid) WHERE m.member = r.oid AND %s) as memberof, "
+            "pg_catalog.shobj_description(r.oid, 'pg_authid') AS description, r.rolreplication, r.rolbypassrls "
+            "FROM pg_catalog.pg_roles r WHERE r.rolname !~ '^pg_' AND %s ORDER BY 1;"
+            % (TENANT_MEMBER_ROLE_SCOPE_SQL, TENANT_ROLE_SCOPE_SQL)
+        ),
+    }
+    replacements = {
+        "SELECT * FROM (SELECT count(*) AS databases FROM pg_database) d,      (SELECT count(*) AS roles FROM pg_roles) r,      (SELECT count(*) AS tablespaces FROM pg_tablespace) tsp     -- (SELECT count(*) AS session FROM pg_stat_activity) proc,     -- (SELECT current_setting('max_connections')::INTEGER AS maxconn) mc ;":
+            "SELECT * FROM "
+            "(SELECT count(*) AS databases FROM pg_database WHERE datname IN (%s)) d, "
+            "(SELECT count(*) AS roles FROM pg_roles r WHERE %s) r, "
+            "(SELECT count(*) AS tablespaces FROM pg_tablespace) tsp;"
+            % (TENANT_DATABASE_SQL, TENANT_ROLE_SCOPE_SQL),
+        "FROM pg_catalog.pg_database d JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid JOIN pg_stat_database psd on d.oid = psd.datid ORDER BY 1;":
+            "FROM pg_catalog.pg_database d "
+            "JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid "
+            "JOIN pg_stat_database psd on d.oid = psd.datid "
+            "WHERE d.datname IN (%s) ORDER BY 1;" % TENANT_DATABASE_SQL,
+        "FROM pg_stat_activity;":
+            "FROM pg_stat_activity WHERE %s;" % TENANT_ACTIVITY_SCOPE_SQL,
+        "FROM pg_stat_activity GROUP BY coalesce(backend_type, 'null');":
+            "FROM pg_stat_activity WHERE %s GROUP BY coalesce(backend_type, 'null');" % TENANT_ACTIVITY_SCOPE_SQL,
+        "FROM pg_stat_activity -- WHERE state IS NOT NULL GROUP BY 2;":
+            "FROM pg_stat_activity WHERE %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL,
+        "FROM pg_stat_activity GROUP BY 2;":
+            "FROM pg_stat_activity WHERE %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL,
+        "FROM pg_stat_activity WHERE state IS NOT NULL GROUP BY 1);":
+            "FROM pg_stat_activity WHERE state IS NOT NULL AND %s GROUP BY 1);" % TENANT_ACTIVITY_SCOPE_SQL,
+        "FROM pg_stat_activity WHERE state IS NOT NULL GROUP BY 2;":
+            "FROM pg_stat_activity WHERE state IS NOT NULL AND %s GROUP BY 2;" % TENANT_ACTIVITY_SCOPE_SQL,
+        "LEFT JOIN pg_roles r ON s.userid = r.oid ORDER BY total_exec_time DESC LIMIT 100;":
+            "LEFT JOIN pg_roles r ON s.userid = r.oid "
+            "WHERE d.datname IN (%s) ORDER BY total_exec_time DESC LIMIT 100;" % TENANT_DATABASE_SQL,
+        "FROM pg_catalog.pg_roles r WHERE r.rolname !~ '^pg_' ORDER BY 1;":
+            "FROM pg_catalog.pg_roles r WHERE r.rolname !~ '^pg_' AND %s ORDER BY 1;" % TENANT_ROLE_SCOPE_SQL,
+    }
+    for panel in panels:
+        for target in panel.get("targets") or []:
+            raw_sql = target.get("rawSql")
+            if not isinstance(raw_sql, str):
+                continue
+            patched_sql = panel_sql_by_id.get(panel.get("id"), raw_sql)
+            for before, after in replacements.items():
+                patched_sql = patched_sql.replace(before, after)
+            if patched_sql != raw_sql:
+                target["rawSql"] = patched_sql
+                changes += 1
+        changes += patch_instance_tenant_scope(panel.get("panels") or [])
     return changes
 
 
@@ -164,6 +359,9 @@ def repair_dashboard(
     changes = 0
     changes += patch_treemap_panels(patched.get("panels") or [])
     changes += patch_variables(patched, default_dsn_text, default_dsn_uid, allowed_dsn_regex)
+    changes += patch_pg18_stat_wal(patched.get("panels") or [])
+    if patched.get("uid") == "tenant-qianwen-pgcat-instance":
+        changes += patch_instance_tenant_scope(patched.get("panels") or [])
     return patched, changes
 
 
