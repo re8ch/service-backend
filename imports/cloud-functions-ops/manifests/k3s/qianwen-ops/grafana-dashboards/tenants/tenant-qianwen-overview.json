@@ -220,7 +220,7 @@
             "type": "prometheus",
             "uid": "tenant-metrics"
           },
-          "expr": "sum by (datname) (pg_db_numbackends{datname=~\"qianwen_prod|qianwen_test|cardcat\"}) or vector(0)",
+          "expr": "sum by (datname) (pg_db_numbackends{tenant=\"qianwen\",datname=~\"qianwen_prod|qianwen_test|cardcat\"}) or vector(0)",
           "legendFormat": "{{datname}}",
           "refId": "A"
         }
@@ -263,7 +263,7 @@
             "type": "prometheus",
             "uid": "tenant-metrics"
           },
-          "expr": "sum by (datname) (rate(pg_db_xact_commit{datname=~\"qianwen_prod|qianwen_test|cardcat\"}[5m])) or vector(0)",
+          "expr": "sum by (datname) (rate(pg_db_xact_commit{tenant=\"qianwen\",datname=~\"qianwen_prod|qianwen_test|cardcat\"}[5m])) or vector(0)",
           "legendFormat": "{{datname}}",
           "refId": "A"
         }
@@ -306,7 +306,7 @@
             "type": "prometheus",
             "uid": "tenant-metrics"
           },
-          "expr": "sum by (datname) (rate(pg_db_xact_rollback{datname=~\"qianwen_prod|qianwen_test|cardcat\"}[5m])) or vector(0)",
+          "expr": "sum by (datname) (rate(pg_db_xact_rollback{tenant=\"qianwen\",datname=~\"qianwen_prod|qianwen_test|cardcat\"}[5m])) or vector(0)",
           "legendFormat": "{{datname}}",
           "refId": "A"
         }
@@ -349,7 +349,7 @@
             "type": "prometheus",
             "uid": "tenant-metrics"
           },
-          "expr": "pg_up{source=\"pigsty\"} or vector(0)",
+          "expr": "pg_up{tenant=\"re8ch\",source=\"pigsty\"} or vector(0)",
           "legendFormat": "{{ins}}",
           "refId": "A"
         }
@@ -392,7 +392,7 @@
             "type": "prometheus",
             "uid": "tenant-metrics"
           },
-          "expr": "up{job=~\".*node.*\"} or vector(0)",
+          "expr": "up{tenant=\"re8ch\",job=~\".*node.*\"} or vector(0)",
           "legendFormat": "{{node}}",
           "refId": "A"
         }
@@ -435,7 +435,7 @@
             "type": "prometheus",
             "uid": "tenant-metrics"
           },
-          "expr": "kube_node_status_condition{condition=\"Ready\",status=\"true\"} or vector(0)",
+          "expr": "kube_node_status_condition{tenant=\"re8ch\",condition=\"Ready\",status=\"true\"} or vector(0)",
           "legendFormat": "{{exported_node}}",
           "refId": "A"
         }
@@ -461,6 +461,6 @@
   "timezone": "browser",
   "title": "Tenant - qianwen Overview",
   "uid": "tenant-qianwen-overview",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
