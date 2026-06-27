@@ -6,12 +6,16 @@ NAMESPACE="${NAMESPACE:-qianwen-ops}"
 CONFIGMAP="${CONFIGMAP:-panel-pigsty-vmalert-rules}"
 DEPLOYMENT="${DEPLOYMENT:-panel-pigsty-vmalert}"
 SUPPLEMENTAL_RULES="${SUPPLEMENTAL_RULES:-manifests/k3s/qianwen-ops/pigsty-vmalert-supplemental.yml}"
+SUPPLEMENTAL_RULE_FILES="${SUPPLEMENTAL_RULE_FILES:-$SUPPLEMENTAL_RULES manifests/k3s/qianwen-ops/pigsty-tenant-recording-rules.yml}"
 SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=20 -o ServerAliveCountMax=6)
 
-if [[ ! -f "$SUPPLEMENTAL_RULES" ]]; then
-  echo "supplemental rules not found: $SUPPLEMENTAL_RULES" >&2
-  exit 1
-fi
+read -r -a supplemental_files <<<"$SUPPLEMENTAL_RULE_FILES"
+for rules_file in "${supplemental_files[@]}"; do
+  if [[ ! -f "$rules_file" ]]; then
+    echo "supplemental rules not found: $rules_file" >&2
+    exit 1
+  fi
+done
 
 tmpdir="$(mktemp -d)"
 cleanup() {
@@ -20,22 +24,29 @@ cleanup() {
 trap cleanup EXIT
 
 ssh "${SSH_OPTS[@]}" "$PIGSTY_HOST" 'timeout 45s cat /data/infra/rules/pgsql.yml' >"$tmpdir/pgsql.yml"
-cp "$SUPPLEMENTAL_RULES" "$tmpdir/supplemental.raw.yml"
 
-python3 - "$tmpdir/pgsql.yml" "$tmpdir/pgsql.patched.yml" "$tmpdir/supplemental.raw.yml" "$tmpdir/supplemental.yml" <<'PY'
+python3 - "$tmpdir/pgsql.yml" "$tmpdir/pgsql.patched.yml" "$tmpdir/supplemental.yml" "${supplemental_files[@]}" <<'PY'
 from pathlib import Path
 import sys
 import yaml
 
-src, dst, supplemental_raw, supplemental_dst = map(Path, sys.argv[1:])
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+supplemental_dst = Path(sys.argv[3])
+supplemental_paths = [Path(path) for path in sys.argv[4:]]
 
-supplemental = supplemental_raw.read_text()
-start = supplemental.find("groups:")
-if start < 0:
-    raise SystemExit("could not find groups: in supplemental rules")
-supplemental = supplemental[start:]
-yaml.safe_load(supplemental)
-supplemental_dst.write_text(supplemental)
+merged = {"groups": []}
+for supplemental_raw in supplemental_paths:
+    supplemental = supplemental_raw.read_text()
+    start = supplemental.find("groups:")
+    if start < 0:
+        raise SystemExit(f"could not find groups: in supplemental rules: {supplemental_raw}")
+    supplemental = supplemental[start:]
+    loaded = yaml.safe_load(supplemental)
+    if not isinstance(loaded, dict) or not isinstance(loaded.get("groups"), list):
+        raise SystemExit(f"supplemental rules must contain a groups list: {supplemental_raw}")
+    merged["groups"].extend(loaded["groups"])
+supplemental_dst.write_text(yaml.safe_dump(merged, sort_keys=False))
 
 rules = src.read_text()
 

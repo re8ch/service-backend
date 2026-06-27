@@ -1,0 +1,88 @@
+groups:
+  - name: pigsty-tenant-db-recording-rules
+    interval: 60s
+    rules:
+      - record: "pg:db:active_time_rate1m"
+        expr: label_set(pg:db:active_time_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:active_time_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:active_time_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:active_time_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:age"
+        expr: label_set(pg:db:age{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:age{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:age{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:age{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:blk_read_time_seconds_rate1m"
+        expr: label_set(pg:db:blk_read_time_seconds_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:blk_read_time_seconds_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:blk_read_time_seconds_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:blk_read_time_seconds_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:blk_write_time_seconds_rate1m"
+        expr: label_set(pg:db:blk_write_time_seconds_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:blk_write_time_seconds_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:blk_write_time_seconds_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:blk_write_time_seconds_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:blks_access_1m"
+        expr: label_set(pg:db:blks_access_1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:blks_access_1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:blks_access_1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:blks_access_1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:blks_hit_ratio1m"
+        expr: label_set(pg:db:blks_hit_ratio1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:blks_hit_ratio1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:blks_hit_ratio1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:blks_hit_ratio1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:blks_read_1m"
+        expr: label_set(pg:db:blks_read_1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:blks_read_1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:blks_read_1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:blks_read_1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:conn_usage"
+        expr: label_set(pg:db:conn_usage{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:conn_usage{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:conn_usage{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:conn_usage{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:ixact_backends"
+        expr: label_set(pg:db:ixact_backends{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:ixact_backends{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:ixact_backends{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:ixact_backends{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:num_backends"
+        expr: label_set(pg:db:num_backends{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:num_backends{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:num_backends{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:num_backends{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:rlock_count"
+        expr: label_set(pg:db:rlock_count{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:rlock_count{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:rlock_count{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:rlock_count{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:tup_fetched_rate1m"
+        expr: label_set(pg:db:tup_fetched_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:tup_fetched_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:tup_fetched_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:tup_fetched_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:tup_modified_rate1m"
+        expr: label_set(pg:db:tup_modified_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:tup_modified_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:tup_modified_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:tup_modified_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:wlock_count"
+        expr: label_set(pg:db:wlock_count{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:wlock_count{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:wlock_count{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:wlock_count{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:xact_commit_rate1m"
+        expr: label_set(pg:db:xact_commit_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:xact_commit_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:xact_commit_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:xact_commit_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:xact_rollback_rate1m"
+        expr: label_set(pg:db:xact_rollback_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:xact_rollback_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:xact_rollback_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:xact_rollback_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:xact_total_rate1m"
+        expr: label_set(pg:db:xact_total_rate1m{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:xact_total_rate1m{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:xact_total_rate1m{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:xact_total_rate1m{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg:db:xlock_count"
+        expr: label_set(pg:db:xlock_count{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg:db:xlock_count{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg:db:xlock_count{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg:db:xlock_count{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_activity_count"
+        expr: label_set(pg_activity_count{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_activity_count{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_activity_count{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_activity_count{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_activity_max_tx_duration"
+        expr: label_set(pg_activity_max_tx_duration{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_activity_max_tx_duration{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_activity_max_tx_duration{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_activity_max_tx_duration{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_active_time"
+        expr: label_set(pg_db_active_time{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_active_time{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_active_time{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_active_time{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_age"
+        expr: label_set(pg_db_age{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_age{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_age{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_age{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_allow_conn"
+        expr: label_set(pg_db_allow_conn{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_allow_conn{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_allow_conn{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_allow_conn{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_cks_fails"
+        expr: label_set(pg_db_cks_fails{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_cks_fails{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_cks_fails{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_cks_fails{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_conn_limit"
+        expr: label_set(pg_db_conn_limit{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_conn_limit{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_conn_limit{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_conn_limit{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_datid"
+        expr: label_set(pg_db_datid{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_datid{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_datid{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_datid{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_is_template"
+        expr: label_set(pg_db_is_template{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_is_template{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_is_template{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_is_template{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_numbackends"
+        expr: label_set(pg_db_numbackends{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_numbackends{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_numbackends{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_numbackends{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_session_time"
+        expr: label_set(pg_db_session_time{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_session_time{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_session_time{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_session_time{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_sessions"
+        expr: label_set(pg_db_sessions{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_sessions{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_sessions{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_sessions{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_sessions_abandoned"
+        expr: label_set(pg_db_sessions_abandoned{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_sessions_abandoned{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_sessions_abandoned{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_sessions_abandoned{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_sessions_fatal"
+        expr: label_set(pg_db_sessions_fatal{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_sessions_fatal{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_sessions_fatal{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_sessions_fatal{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_sessions_killed"
+        expr: label_set(pg_db_sessions_killed{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_sessions_killed{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_sessions_killed{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_sessions_killed{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_temp_bytes"
+        expr: label_set(pg_db_temp_bytes{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_temp_bytes{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_temp_bytes{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_temp_bytes{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_tup_deleted"
+        expr: label_set(pg_db_tup_deleted{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_tup_deleted{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_tup_deleted{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_tup_deleted{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_tup_fetched"
+        expr: label_set(pg_db_tup_fetched{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_tup_fetched{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_tup_fetched{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_tup_fetched{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_tup_inserted"
+        expr: label_set(pg_db_tup_inserted{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_tup_inserted{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_tup_inserted{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_tup_inserted{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_tup_returned"
+        expr: label_set(pg_db_tup_returned{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_tup_returned{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_tup_returned{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_tup_returned{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_tup_updated"
+        expr: label_set(pg_db_tup_updated{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_tup_updated{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_tup_updated{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_tup_updated{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_xact_commit"
+        expr: label_set(pg_db_xact_commit{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_xact_commit{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_xact_commit{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_xact_commit{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_xact_rollback"
+        expr: label_set(pg_db_xact_rollback{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_xact_rollback{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_xact_rollback{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_xact_rollback{tenant="",datname="bench"}, "tenant", "bench")
+      - record: "pg_db_xact_total"
+        expr: label_set(pg_db_xact_total{tenant="",datname=~"qianwen_prod|qianwen_test|cardcat"}, "tenant", "qianwen") or label_set(pg_db_xact_total{tenant="",datname="ledger"}, "tenant", "ledger") or label_set(pg_db_xact_total{tenant="",datname="anycam_prod"}, "tenant", "anycam") or label_set(pg_db_xact_total{tenant="",datname="bench"}, "tenant", "bench")
