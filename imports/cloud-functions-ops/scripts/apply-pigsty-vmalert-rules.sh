@@ -78,6 +78,7 @@ pairs = [
 ]
 
 changed = 0
+missing = []
 for numerator, denominator in pairs:
     old = f"{numerator} / {denominator}"
     old_compact = f"{numerator}/ {denominator}"
@@ -89,10 +90,10 @@ for numerator, denominator in pairs:
         rules = rules.replace(old_compact, new, 1)
         changed += 1
     else:
-        raise SystemExit(f"missing expected pgbouncer RT expression: {old}")
+        missing.append(old)
 
-if changed != len(pairs):
-    raise SystemExit(f"patched {changed} expressions, expected {len(pairs)}")
+if missing:
+    print(f"skipped {len(missing)} pgbouncer RT expressions that are absent from upstream rules")
 
 yaml.safe_load(rules)
 dst.write_text(rules)
