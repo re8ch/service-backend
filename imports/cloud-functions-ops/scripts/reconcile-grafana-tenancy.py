@@ -24,6 +24,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DASHBOARD_DIR = ROOT / "manifests/k3s/qianwen-ops/grafana-dashboards/tenants"
+PIGSTY_DASHBOARD_FOLDER = "Pigsty PGSQL"
 FORBIDDEN_TENANT_DATASOURCES = {
     "pigsty-metrics",
     "re8ch-vlogs",
@@ -45,6 +46,14 @@ TENANTS: dict[str, dict[str, Any]] = {
         "metricsPath": "qianwen",
         "logsPath": "qianwen",
         "observableTenant": "qianwen",
+        "pgMonitorSecret": "panel-grafana-pg-monitor",
+        "pgInstances": [
+            {"ins": "pg-meta-1", "url": "192.0.2.89:5432"},
+            {"ins": "pg-meta-2", "url": "192.0.2.112:5432"},
+            {"ins": "pg-meta-3", "url": "192.0.2.251:5432"},
+        ],
+        "pgDatabases": ["qianwen_prod", "qianwen_test", "cardcat"],
+        "pigstyDashboards": True,
     },
     "ledger": {
         "org": "Tenant ledger",
@@ -55,6 +64,14 @@ TENANTS: dict[str, dict[str, Any]] = {
         "metricsPath": "ledger",
         "logsPath": "ledger",
         "observableTenant": "ledger",
+        "pgMonitorSecret": "panel-grafana-pg-monitor",
+        "pgInstances": [
+            {"ins": "pg-meta-1", "url": "192.0.2.89:5432"},
+            {"ins": "pg-meta-2", "url": "192.0.2.112:5432"},
+            {"ins": "pg-meta-3", "url": "192.0.2.251:5432"},
+        ],
+        "pgDatabases": ["ledger"],
+        "pigstyDashboards": True,
     },
 }
 
@@ -238,13 +255,28 @@ class GrafanaClient:
         with dashboard_path.open() as handle:
             dashboard = json.load(handle)
         dashboard["id"] = None
-        body = {"dashboard": dashboard, "overwrite": True, "message": "reconcile tenant org dashboard"}
-        uid = dashboard.get("uid", dashboard_path.stem)
+        self.import_dashboard_payload(org_id, dashboard, "reconcile tenant org dashboard", apply)
+
+    def import_dashboard_payload(self, org_id: int, dashboard: dict[str, Any], message: str, apply: bool) -> None:
+        dashboard["id"] = None
+        body = {"dashboard": dashboard, "overwrite": True, "message": message}
+        uid = dashboard.get("uid", "unknown")
         if not apply:
             info("dashboard=%s org=%s action=would_import" % (uid, org_id))
             return
         self.request("POST", "/api/dashboards/db", body, org_id=org_id, ok={200})
         info("dashboard=%s org=%s action=imported" % (uid, org_id))
+
+    def search_dashboards(self, org_id: int, query: str = "", folder_title: str | None = None) -> list[dict[str, Any]]:
+        path = "/api/search?type=dash-db&query=" + urllib.parse.quote(query, safe="")
+        _, payload = self.request("GET", path, org_id=org_id)
+        if folder_title is None:
+            return payload
+        return [item for item in payload if item.get("folderTitle") == folder_title]
+
+    def get_dashboard(self, org_id: int, uid: str) -> dict[str, Any]:
+        _, payload = self.request("GET", "/api/dashboards/uid/%s" % urllib.parse.quote(uid, safe=""), org_id=org_id)
+        return payload["dashboard"]
 
 
 def kubectl(args: list[str], input_text: str | None = None) -> str:
@@ -309,6 +341,126 @@ def tenant_datasources(tenant: str, cfg: dict[str, Any]) -> list[dict[str, Any]]
     ]
 
 
+def tenant_pg_datasources(tenant: str, cfg: dict[str, Any], password: str | None = None) -> list[dict[str, Any]]:
+    datasources: list[dict[str, Any]] = []
+    for instance in cfg.get("pgInstances", []):
+        ins = instance["ins"]
+        for database in cfg.get("pgDatabases", []):
+            uid = "%s-%s-%s" % (tenant, ins, database.replace("_", "-"))
+            datasource = {
+                "name": "%s.%s" % (ins, database),
+                "uid": uid,
+                "type": "grafana-postgresql-datasource",
+                "access": "proxy",
+                "url": instance["url"],
+                "user": "dbuser_monitor",
+                "database": database,
+                "isDefault": False,
+                "editable": True,
+                "jsonData": {
+                    "database": database,
+                    "connMaxLifetime": 3600,
+                    "maxIdleConns": 1,
+                    "maxOpenConns": 2,
+                    "postgresVersion": 1500,
+                    "sslmode": "require",
+                    "tlsAuth": False,
+                    "tlsAuthWithCACert": False,
+                },
+            }
+            if password:
+                datasource["secureJsonData"] = {"password": password}
+            datasources.append(datasource)
+    return datasources
+
+
+def datasource_uid(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("uid") or "")
+    if isinstance(value, str):
+        return value
+    return ""
+
+
+def patch_datasource_ref(value: Any) -> int:
+    changes = 0
+    if isinstance(value, dict):
+        uid = value.get("uid")
+        if uid in {"ds-prometheus", "pigsty-metrics"}:
+            value["uid"] = "tenant-metrics"
+            value["type"] = "prometheus"
+            changes += 1
+        elif uid in {"ds-vlogs", "re8ch-vlogs", "re8ch-loki"}:
+            value["uid"] = "tenant-vlogs"
+            value["type"] = "victoriametrics-logs-datasource"
+            changes += 1
+        elif uid in {"$dsn", "${dsn}"}:
+            value["uid"] = "${dsn}"
+            value["type"] = "grafana-postgresql-datasource"
+            changes += 1
+        for child in value.values():
+            changes += patch_datasource_ref(child)
+    elif isinstance(value, list):
+        for child in value:
+            changes += patch_datasource_ref(child)
+    elif isinstance(value, str) and "orgId=1" in value:
+        changes += 1
+    return changes
+
+
+def strip_main_org_link(value: Any) -> Any:
+    if isinstance(value, str):
+        value = value.replace("?orgId=1&", "?")
+        value = value.replace("&orgId=1&", "&")
+        value = value.replace("?orgId=1", "")
+        value = value.replace("&orgId=1", "")
+        return value
+    if isinstance(value, dict):
+        return {key: strip_main_org_link(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [strip_main_org_link(child) for child in value]
+    return value
+
+
+def panel_uses_static(panel: dict[str, Any]) -> bool:
+    if datasource_uid(panel.get("datasource")) == "ds-static":
+        return True
+    targets = panel.get("targets") or []
+    return bool(targets) and all(datasource_uid(target.get("datasource")) == "ds-static" for target in targets)
+
+
+def patch_panels(panels: list[dict[str, Any]]) -> int:
+    changes = 0
+    for panel in panels:
+        if "panels" in panel:
+            changes += patch_panels(panel.get("panels") or [])
+        if panel_uses_static(panel):
+            panel["type"] = "text"
+            panel["datasource"] = {"type": "grafana", "uid": "-- Grafana --"}
+            panel["targets"] = []
+            panel["options"] = {
+                "mode": "markdown",
+                "content": "Static Pigsty metadata card removed from the tenant view.",
+            }
+            changes += 1
+    return changes
+
+
+def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str) -> dict[str, Any]:
+    dashboard = strip_main_org_link(json.loads(json.dumps(dashboard)))
+    uid = dashboard.get("uid") or ""
+    dashboard["id"] = None
+    dashboard["uid"] = "tenant-%s-%s" % (tenant, uid)
+    dashboard["title"] = "%s - %s" % (tenant, dashboard.get("title", uid))
+    dashboard["folderUid"] = ""
+    dashboard.pop("folderId", None)
+    dashboard.pop("folderTitle", None)
+    dashboard.pop("version", None)
+    patch_datasource_ref(dashboard)
+    patch_panels(dashboard.get("panels") or [])
+    return dashboard
+
+
 def apply_k8s_token_secret(cfg: dict[str, Any], token: str | None, apply: bool) -> None:
     secret = cfg["serviceAccountSecret"]
     namespace = secret["namespace"]
@@ -353,7 +505,16 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
     for datasource in tenant_datasources(tenant, cfg):
         client.upsert_datasource(org_id, datasource, args.apply)
 
+    pg_password = None
+    pg_datasources = tenant_pg_datasources(tenant, cfg)
+    if pg_datasources and args.apply:
+        pg_password = secret_key(args.namespace, cfg.get("pgMonitorSecret", "panel-grafana-pg-monitor"), "password")
+        pg_datasources = tenant_pg_datasources(tenant, cfg, pg_password)
+    for datasource in pg_datasources:
+        client.upsert_datasource(org_id, datasource, args.apply)
+
     allowed_uids = {"tenant-metrics", "tenant-vlogs", "observable-events"}
+    allowed_uids.update(datasource["uid"] for datasource in pg_datasources)
     for datasource in client.list_datasources(org_id):
         uid = datasource.get("uid", "")
         if uid in allowed_uids:
@@ -366,6 +527,18 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
         client.import_dashboard(org_id, dashboard_path, args.apply)
     else:
         info("dashboard=missing tenant=%s path=%s" % (tenant, dashboard_path))
+
+    if cfg.get("pigstyDashboards") and args.sync_pigsty_dashboards:
+        dashboards = client.search_dashboards(args.main_org_id, folder_title=PIGSTY_DASHBOARD_FOLDER)
+        for item in dashboards:
+            source = client.get_dashboard(args.main_org_id, item["uid"])
+            tenant_dashboard = tenantize_pigsty_dashboard(source, tenant)
+            client.import_dashboard_payload(
+                org_id,
+                tenant_dashboard,
+                "sync tenant pigsty dashboard from Main Org",
+                args.apply,
+            )
 
     account_id = client.ensure_service_account(org_id, cfg["serviceAccount"], "Viewer", args.apply)
     if account_id and args.rotate_service_account_tokens:
@@ -383,6 +556,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dashboard-dir", type=Path, default=DEFAULT_DASHBOARD_DIR)
     parser.add_argument("--tenant", action="append", choices=sorted(TENANTS), help="Tenant to reconcile. Repeatable. Default: qianwen and ledger.")
     parser.add_argument("--apply", action="store_true", help="Mutate Grafana. Without this flag the script is dry-run.")
+    parser.add_argument("--main-org-id", type=int, default=int(os.environ.get("GRAFANA_MAIN_ORG_ID", "1")))
+    parser.add_argument("--sync-pigsty-dashboards", action="store_true", help="Copy Main Org Pigsty dashboards into tenant orgs with tenant datasource rewrites.")
     parser.add_argument("--remove-tenant-users-from-main", action="store_true", default=True)
     parser.add_argument("--keep-tenant-users-in-main", action="store_false", dest="remove_tenant_users_from_main")
     parser.add_argument("--rotate-service-account-tokens", action="store_true", help="Create new tenant service account tokens and store them in K8S Secrets.")
