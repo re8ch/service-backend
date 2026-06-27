@@ -1424,6 +1424,7 @@ data:
         re.compile(r"\bup\s*\{\s*job\s*=~\s*\"\.\*node\.\*\""),
         re.compile(r"\bkube_node_status_condition\s*\{\s*condition\s*=\s*\"Ready\"\s*,\s*status\s*=\s*\"true\""),
         re.compile(r"\bpg_up\s*\{\s*source\s*=\s*\"pigsty\""),
+        re.compile(r"\bup\s*\{\s*job\s*=\s*\"pgsql\""),
     ]
     SHARED_PIGSTY_CLUSTER_PATTERNS = [
         re.compile(r"\bpg_up(?:\{|,|\)|$)"),
@@ -1455,6 +1456,10 @@ data:
         re.compile(r"\bpg_is_wal_replay_paused(?:\{|,|\)|$)"),
         re.compile(r"\bpgbouncer:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bnode:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bins:pressure1(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_downstream_count(?:\{|,|\)|$)"),
         re.compile(r"\bALERTS(?:\{|,|\)|$)"),
     ]
 
@@ -1463,12 +1468,12 @@ data:
         allowed_namespaces = set(cfg["namespaces"])
         allowed_databases = set(cfg.get("databases", []))
         for label, value in re.findall(r'\b(tenant|namespace|kubernetes_namespace|kubernetes_pod_namespace|datname|database)\s*=~?\s*"([^"]+)"', query or ""):
-            values = {part for part in re.split(r"[|,]", value) if part}
+            values = {re.sub(r"[^A-Za-z0-9_-]", "", part) for part in re.split(r"[|,]", value) if part}
             if label == "tenant" and any(part != allowed_tenant and part not in SHARED_TENANTS for part in values):
                 return True
             if label in ("datname", "database"):
                 allowed_db_values = allowed_databases | SHARED_SYSTEM_DATABASES
-                if any(part not in allowed_db_values and part != "template\\\\d" for part in values):
+                if any(part not in allowed_db_values and not part.startswith("template") for part in values):
                     return True
                 continue
             if label != "tenant" and any(part not in allowed_namespaces for part in values):
@@ -1495,7 +1500,14 @@ data:
             else:
                 labels = 'tenant="%s"' % cfg["tenant"]
             return "%s{%s}" % (metric, labels)
-        return re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, query)
+        query = re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, query)
+        for prefix in TENANT_DB_METRIC_PREFIXES:
+            query = re.sub(
+                r'(?<![A-Za-z0-9_:])(%s[A-Za-z0-9_:]*)(?!\s*\{|[A-Za-z0-9_:])' % re.escape(prefix),
+                r'\1{tenant="%s"}' % cfg["tenant"],
+                query,
+            )
+        return query
 
     def query_is_allowed(cfg, query):
         query = (query or "").strip()
