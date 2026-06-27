@@ -24,6 +24,9 @@ DEFAULT_RW_BASE = os.getenv("OBSERVABLE_RPC_RW_BASE_URL", "https://db-rw.re8ch.c
 GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.re8ch.com/grafana").rstrip("/")
 GRAFANA_TOKEN = os.getenv("GRAFANA_TOKEN", "")
 GRAFANA_BASIC_AUTH = os.getenv("GRAFANA_BASIC_AUTH", "")
+GRAFANA_BASIC_AUTH_USER = os.getenv("GRAFANA_BASIC_AUTH_USER", "")
+GRAFANA_BASIC_AUTH_PASSWORD = os.getenv("GRAFANA_BASIC_AUTH_PASSWORD", "")
+GRAFANA_ORG_ID = os.getenv("GRAFANA_ORG_ID", "")
 JWT_SECRET = os.getenv("PGRST_JWT_SECRET", "")
 JWT_ROLE = os.getenv("OBSERVABLE_SERVICE_ROLE", "observable_app_rw")
 JWT_AUD = os.getenv("PGRST_JWT_AUD", DEFAULT_RW_BASE)
@@ -35,6 +38,16 @@ TARGETS_FILE = os.getenv("OBSERVABLE_PGCAT_TARGETS_FILE", "")
 
 
 SQL_ALLOWLIST = {
+    "instance": """
+select
+  current_database() as datname,
+  version() as version,
+  pg_is_in_recovery() as in_recovery,
+  current_setting('server_version') as server_version,
+  current_setting('max_connections')::int as max_connections,
+  inet_server_addr()::text as server_addr,
+  inet_server_port()::int as server_port
+""",
     "database": """
 select
   datname,
@@ -56,6 +69,7 @@ where datname = current_database()
 """,
     "locks": """
 select
+  current_database() as datname,
   mode,
   granted,
   count(*)::bigint as lock_count
@@ -66,6 +80,7 @@ limit 64
 """,
     "schema": """
 select
+  current_database() as datname,
   schemaname,
   count(*)::bigint as table_count,
   sum(n_live_tup)::bigint as live_tuples,
@@ -79,6 +94,7 @@ limit 128
 """,
     "table": """
 select
+  current_database() as datname,
   schemaname,
   relname,
   n_live_tup,
@@ -94,6 +110,7 @@ limit 100
 """,
     "query": """
 select
+  current_database() as datname,
   queryid::text as queryid,
   calls,
   total_exec_time,
@@ -162,11 +179,19 @@ def http_json(method: str, url: str, body: Any | None = None, headers: dict[str,
 
 
 def grafana_headers() -> dict[str, str]:
+    headers: dict[str, str] = {}
     if GRAFANA_TOKEN:
-        return {"Authorization": "Bearer " + GRAFANA_TOKEN}
-    if GRAFANA_BASIC_AUTH:
-        return {"Authorization": "Basic " + GRAFANA_BASIC_AUTH}
-    raise RuntimeError("GRAFANA_TOKEN or GRAFANA_BASIC_AUTH is required")
+        headers["Authorization"] = "Bearer " + GRAFANA_TOKEN
+    elif GRAFANA_BASIC_AUTH:
+        headers["Authorization"] = "Basic " + GRAFANA_BASIC_AUTH
+    elif GRAFANA_BASIC_AUTH_USER and GRAFANA_BASIC_AUTH_PASSWORD:
+        raw = ("%s:%s" % (GRAFANA_BASIC_AUTH_USER, GRAFANA_BASIC_AUTH_PASSWORD)).encode()
+        headers["Authorization"] = "Basic " + base64.b64encode(raw).decode()
+    else:
+        raise RuntimeError("GRAFANA_TOKEN, GRAFANA_BASIC_AUTH, or GRAFANA_BASIC_AUTH_USER/PASSWORD is required")
+    if GRAFANA_ORG_ID:
+        headers["X-Grafana-Org-Id"] = GRAFANA_ORG_ID
+    return headers
 
 
 def load_targets() -> list[dict[str, Any]]:

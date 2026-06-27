@@ -1399,18 +1399,24 @@ data:
     READONLY_ENDPOINTS = {"api/v1/status/buildinfo"}
     METADATA_ENDPOINTS = {"api/v1/labels", "api/v1/series"}
     SHARED_TENANTS = {"re8ch"}
+    SHARED_PIGSTY_INS = ["pg-meta-1", "pg-meta-2", "pg-meta-3"]
+    SHARED_PIGSTY_IPS = ["192.0.2.172", "192.0.2.141", "192.0.2.33"]
+    SHARED_SYSTEM_DATABASES = {"wal", "log", "pgbouncer", "template0", "template1"}
     TENANT_DB_METRIC_PREFIXES = (
         "pg_db",
         "pg:db:",
+        "pg_table",
+        "pg:table:",
+        "pg_query",
+        "pg:query:",
         "pg_activity",
         "pg_lock",
         "pg_size",
-        "pg_query",
-        "pg_table",
         "pg_index",
         "pg_class",
         "pg_namespace",
         "pg_stat",
+        "pgbouncer:db:",
     )
     SHARED_NODE_PATTERNS = [
         re.compile(r"\bnode_cpu_seconds_total\s*\{\s*node\s*="),
@@ -1432,10 +1438,23 @@ data:
         re.compile(r"\bpgbackrest_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_lock_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_repl_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_recv_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_sync_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_pub[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_sub[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_slot_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_timeline_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_xact_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_checkpoint_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_checkpointer_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_bgwriter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_backend_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_wait_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_version(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_conf_reload_time(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_is_wal_replay_paused(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bALERTS(?:\{|,|\)|$)"),
     ]
 
@@ -1448,7 +1467,8 @@ data:
             if label == "tenant" and any(part != allowed_tenant and part not in SHARED_TENANTS for part in values):
                 return True
             if label in ("datname", "database"):
-                if any(part not in allowed_databases for part in values):
+                allowed_db_values = allowed_databases | SHARED_SYSTEM_DATABASES
+                if any(part not in allowed_db_values and part != "template\\\\d" for part in values):
                     return True
                 continue
             if label != "tenant" and any(part not in allowed_namespaces for part in values):
@@ -1527,6 +1547,10 @@ data:
             "datname": cfg.get("databases", []),
             "database": cfg.get("databases", []),
             "cls": ["k3s", "pg-meta", "pigsty-infra"],
+            "ins": SHARED_PIGSTY_INS,
+            "ip": SHARED_PIGSTY_IPS,
+            "node": SHARED_PIGSTY_IPS,
+            "nodename": ["pg-meta-1", "pg-meta-2", "pg-meta-3"],
             "job": [
                 "http-probe",
                 "k3s-node-exporter",

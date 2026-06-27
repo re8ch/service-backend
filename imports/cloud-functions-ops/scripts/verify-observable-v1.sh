@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SQL="$ROOT/sql/011_observable_events.sql"
 PGCAT_SQL="$ROOT/sql/013_observable_pgcat_snapshots.sql"
 MANIFEST="$ROOT/manifests/k3s/qianwen-ops/observable-collector.yaml"
+PGCAT_MANIFEST="$ROOT/manifests/k3s/qianwen-ops/observable-pgcat-collector.yaml"
 COLLECTOR="$ROOT/scripts/observable_collector.py"
 PGCAT_COLLECTOR="$ROOT/scripts/observable_pgcat_collector.py"
 KUBECTL_CMD="${KUBECTL_CMD:-kubectl}"
@@ -27,6 +28,7 @@ done
 
 for required in \
   "create table if not exists api.observable_pgcat_snapshots" \
+  "create or replace view api.observable_pgcat_latest_rows" \
   "create or replace function api.service_observable_pgcat_snapshot_ingest" \
   "alter table api.observable_pgcat_snapshots enable row level security" \
   "create policy observable_pgcat_snapshots_tenant_select" \
@@ -68,6 +70,18 @@ if grep -Eq 'nuclio|registry\.re8ch\.com/.*/processor' "$MANIFEST"; then
 fi
 if ! grep -Fq "OBSERVABLE_TENANT_ALIASES" "$MANIFEST"; then
   echo "observable collector missing tenant alias configuration" >&2
+  exit 1
+fi
+if ! grep -Fq "name: observable-pgcat-collector" "$PGCAT_MANIFEST"; then
+  echo "observable PGCAT collector CronJob missing" >&2
+  exit 1
+fi
+if ! grep -Fq "kubernetes.io/hostname: rancher-panel" "$PGCAT_MANIFEST"; then
+  echo "observable PGCAT collector must be pinned to rancher-panel" >&2
+  exit 1
+fi
+if ! grep -Fq "GRAFANA_ORG_ID" "$PGCAT_MANIFEST"; then
+  echo "observable PGCAT collector must query the platform Grafana org" >&2
   exit 1
 fi
 
