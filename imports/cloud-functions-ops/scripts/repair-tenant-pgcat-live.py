@@ -45,6 +45,31 @@ PG18_SAFE_PG_STAT_WAL_SQL = """SELECT
   NULL::double precision AS wal_sync_time
 FROM pg_stat_wal;"""
 
+EMPTY_WAIT_HISTORY_SQL = """SELECT
+  NULL::timestamptz AS ts,
+  NULL::integer AS pid,
+  NULL::text AS event_type,
+  NULL::text AS event
+WHERE false;"""
+
+EMPTY_WAIT_PROFILE_SQL = """SELECT
+  NULL::text AS event_type,
+  NULL::text AS event,
+  NULL::bigint AS count
+WHERE false;"""
+
+EMPTY_WAIT_COUNT_SQL = """SELECT
+  NULL::text AS event_type,
+  NULL::text AS event,
+  NULL::bigint AS count
+WHERE false;"""
+
+EMPTY_WAIT_PIE_SQL = """SELECT
+  now() AS time,
+  NULL::text AS metric,
+  NULL::bigint AS value
+WHERE false;"""
+
 TENANT_DATABASES = ("qianwen_prod", "qianwen_test", "cardcat")
 TENANT_DATABASE_SQL = ", ".join("'%s'" % database for database in TENANT_DATABASES)
 TENANT_ACTIVITY_SCOPE_SQL = "(datname IS NULL OR datname IN (%s))" % TENANT_DATABASE_SQL
@@ -130,10 +155,10 @@ def strip_main_org_link(value: Any) -> Any:
     return value
 
 
-def patch_treemap_panels(panels: list[dict[str, Any]]) -> int:
+def patch_missing_plugin_panels(panels: list[dict[str, Any]]) -> int:
     changes = 0
     for panel in panels:
-        if panel.get("type") == "marcusolsson-treemap-panel":
+        if panel.get("type") in {"marcusolsson-treemap-panel", "marcusolsson-dynamictext-panel"}:
             panel["type"] = "table"
             panel["options"] = {
                 "showHeader": True,
@@ -141,7 +166,7 @@ def patch_treemap_panels(panels: list[dict[str, Any]]) -> int:
                 "footer": {"show": False},
             }
             changes += 1
-        changes += patch_treemap_panels(panel.get("panels") or [])
+        changes += patch_missing_plugin_panels(panel.get("panels") or [])
     return changes
 
 
@@ -195,6 +220,53 @@ def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_ds
             if var.get("hide") != 2:
                 var["hide"] = 2
                 changes += 1
+        if name == "query":
+            current = {"text": "0", "value": "0", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+        if name == "schema":
+            current = {"text": "public", "value": "public", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+        if name == "nspid":
+            current = {"text": "2200", "value": "2200", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+            if var.get("skipUrlSync") is not True:
+                var["skipUrlSync"] = True
+                changes += 1
+        if name == "relname":
+            current = {"text": "public.t_bg_task", "value": "public.t_bg_task", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+        if name == "nspname":
+            current = {"text": "public", "value": "public", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+            if var.get("skipUrlSync") is not True:
+                var["skipUrlSync"] = True
+                changes += 1
+        if name == "tblname":
+            current = {"text": "t_bg_task", "value": "t_bg_task", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+            if var.get("skipUrlSync") is not True:
+                var["skipUrlSync"] = True
+                changes += 1
+        if name == "oid":
+            current = {"text": "24988", "value": "24988", "selected": True}
+            if var.get("current") != current:
+                var["current"] = current
+                changes += 1
+            if var.get("skipUrlSync") is not True:
+                var["skipUrlSync"] = True
+                changes += 1
     return changes
 
 
@@ -210,6 +282,79 @@ def patch_pg18_stat_wal(panels: list[dict[str, Any]]) -> int:
                     target["rawSql"] = PG18_SAFE_PG_STAT_WAL_SQL
                     changes += 1
         changes += patch_pg18_stat_wal(panel.get("panels") or [])
+    return changes
+
+
+def patch_locks_wait_sampling(panels: list[dict[str, Any]]) -> int:
+    changes = 0
+    replacements = {
+        223: EMPTY_WAIT_HISTORY_SQL,
+        222: EMPTY_WAIT_PROFILE_SQL,
+        224: EMPTY_WAIT_COUNT_SQL,
+        228: EMPTY_WAIT_PIE_SQL,
+    }
+    for panel in panels:
+        for target in panel.get("targets") or []:
+            raw_sql = target.get("rawSql")
+            if not isinstance(raw_sql, str):
+                continue
+            safe_sql = replacements.get(panel.get("id"))
+            if safe_sql and raw_sql != safe_sql:
+                target["rawSql"] = safe_sql
+                changes += 1
+        changes += patch_locks_wait_sampling(panel.get("panels") or [])
+    return changes
+
+
+def patch_query_dashboard(panels: list[dict[str, Any]]) -> int:
+    changes = 0
+    query_summary_sql = (
+        "SELECT queryid::TEXT AS qid, d.datname, r.rolname, "
+        "s.calls, s.total_exec_time, s.mean_exec_time, s.rows, s.wal_bytes, "
+        "('[redacted queryid=' || s.queryid::text || ']')::text AS query "
+        "FROM pg_stat_statements s "
+        "LEFT JOIN pg_database d ON s.dbid = d.oid "
+        "LEFT JOIN pg_roles r ON s.userid = r.oid "
+        "WHERE d.datname = '${datname}' "
+        "AND s.queryid = nullif('$query','')::bigint "
+        "LIMIT 1;"
+    )
+    top_sql = (
+        "SELECT queryid::TEXT AS qid, d.datname, r.rolname, "
+        "s.userid, s.dbid, s.toplevel, s.queryid, "
+        "('[redacted queryid=' || s.queryid::text || ']')::text AS query, "
+        "s.plans, s.total_plan_time, s.min_plan_time, s.max_plan_time, s.mean_plan_time, s.stddev_plan_time, "
+        "s.calls, s.total_exec_time, s.min_exec_time, s.max_exec_time, s.mean_exec_time, s.stddev_exec_time, s.rows, "
+        "s.shared_blks_hit, s.shared_blks_read, s.shared_blks_dirtied, s.shared_blks_written, "
+        "s.local_blks_hit, s.local_blks_read, s.local_blks_dirtied, s.local_blks_written, "
+        "s.temp_blks_read, s.temp_blks_written, "
+        "s.shared_blk_read_time, s.shared_blk_write_time, s.local_blk_read_time, s.local_blk_write_time, "
+        "s.temp_blk_read_time, s.temp_blk_write_time, "
+        "s.wal_records, s.wal_fpi, s.wal_bytes, s.wal_buffers_full, "
+        "s.jit_functions, s.jit_generation_time, s.jit_inlining_count, s.jit_inlining_time, "
+        "s.jit_optimization_count, s.jit_optimization_time, s.jit_emission_count, s.jit_emission_time, "
+        "s.jit_deform_count, s.jit_deform_time, "
+        "s.parallel_workers_to_launch, s.parallel_workers_launched, "
+        "s.stats_since, s.minmax_stats_since "
+        "FROM pg_stat_statements s "
+        "LEFT JOIN pg_database d ON s.dbid = d.oid "
+        "LEFT JOIN pg_roles r ON s.userid = r.oid "
+        "WHERE d.datname='${datname}' ORDER BY mean_exec_time DESC LIMIT 100;"
+    )
+    for panel in panels:
+        for target in panel.get("targets") or []:
+            raw_sql = target.get("rawSql")
+            if not isinstance(raw_sql, str):
+                continue
+            replacement = None
+            if panel.get("id") == 89:
+                replacement = query_summary_sql
+            elif panel.get("id") == 90:
+                replacement = top_sql
+            if replacement and raw_sql != replacement:
+                target["rawSql"] = replacement
+                changes += 1
+        changes += patch_query_dashboard(panel.get("panels") or [])
     return changes
 
 
@@ -357,11 +502,15 @@ def repair_dashboard(
 ) -> tuple[dict[str, Any], int]:
     patched = strip_main_org_link(json.loads(json.dumps(dashboard)))
     changes = 0
-    changes += patch_treemap_panels(patched.get("panels") or [])
+    changes += patch_missing_plugin_panels(patched.get("panels") or [])
     changes += patch_variables(patched, default_dsn_text, default_dsn_uid, allowed_dsn_regex)
     changes += patch_pg18_stat_wal(patched.get("panels") or [])
     if patched.get("uid") == "tenant-qianwen-pgcat-instance":
         changes += patch_instance_tenant_scope(patched.get("panels") or [])
+    if patched.get("uid") == "tenant-qianwen-pgcat-locks":
+        changes += patch_locks_wait_sampling(patched.get("panels") or [])
+    if patched.get("uid") == "tenant-qianwen-pgcat-query":
+        changes += patch_query_dashboard(patched.get("panels") or [])
     return patched, changes
 
 
