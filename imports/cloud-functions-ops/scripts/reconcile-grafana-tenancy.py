@@ -518,6 +518,14 @@ def patch_panels(panels: list[dict[str, Any]]) -> int:
     for panel in panels:
         if "panels" in panel:
             changes += patch_panels(panel.get("panels") or [])
+        if panel.get("type") in {"marcusolsson-treemap-panel", "marcusolsson-dynamictext-panel"}:
+            panel["type"] = "table"
+            panel["options"] = {
+                "showHeader": True,
+                "cellHeight": "sm",
+                "footer": {"show": False},
+            }
+            changes += 1
         if panel_uses_static(panel):
             panel["type"] = "text"
             panel["datasource"] = {"type": "grafana", "uid": "-- Grafana --"}
