@@ -1154,11 +1154,14 @@ data:
     import json
     import os
     import re
+    import time
+    import urllib.error
     import urllib.parse
     import urllib.request
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    UPSTREAM = os.getenv("VLOGS_UPSTREAM", "http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428").rstrip("/")
+    VLOGS_SERVICE_HOST = os.getenv("PANEL_VICTORIA_LOGS_SERVICE_HOST", "panel-victoria-logs.qianwen-ops.svc.cluster.local")
+    UPSTREAM = os.getenv("VLOGS_UPSTREAM", "http://%s:9428" % VLOGS_SERVICE_HOST).rstrip("/")
     TENANTS = {
         "qianwen": {"tenant": "qianwen", "namespaces": ["qwen"], "dashboardUid": "tenant-qianwen-overview", "orgId": "2"},
         "ledger": {"tenant": "ledger", "namespaces": ["ledger"], "dashboardUid": "tenant-ledger-overview", "orgId": "3"},
@@ -1166,17 +1169,47 @@ data:
         "bench": {"tenant": "bench", "namespaces": ["bench"], "dashboardUid": "", "orgId": ""},
         "cardcat": {"tenant": "cardcat", "namespaces": ["cardcat"], "dashboardUid": "", "orgId": ""},
     }
+    SHARED_PIGSTY_IPS = {"192.0.2.172", "192.0.2.141", "192.0.2.33"}
+    SHARED_PIGSTY_LOG_JOBS = {"postgres", "pgbackrest", "syslog"}
+    SHARED_PIGSTY_SYSLOG_APPS = {
+        "postgres",
+        "patroni",
+        "pgbouncer",
+        "pg_exporter",
+        "pgbouncer_exporter",
+        "pgbackrest_exporter",
+        "vip-manager",
+    }
     ALLOWED_ENDPOINTS = {
         "select/logsql/query",
         "select/logsql/tail",
         "select/logsql/hits",
         "select/logsql/field_names",
         "select/logsql/field_values",
+        "select/logsql/stats_query",
         "select/logsql/stats_query_range",
     }
 
+    def shared_pigsty_log_query(query):
+        query = (query or "").strip()
+        ip_values = set()
+        for values in re.findall(r"\b(?:ip|host):in\(([^)]*)\)", query):
+            ip_values.update(value.strip().strip('"') for value in values.split(","))
+        ip_values.update(re.findall(r"\b(?:ip|host):\"?([0-9.]+)\"?", query))
+        if not ip_values or any(ip not in SHARED_PIGSTY_IPS for ip in ip_values):
+            return False
+        jobs = set(re.findall(r"\bjob:([A-Za-z0-9_-]+)", query))
+        if not jobs or any(job not in SHARED_PIGSTY_LOG_JOBS for job in jobs):
+            return False
+        app_values = set(re.findall(r"\bapp:([A-Za-z0-9_-]+)", query))
+        for values in re.findall(r"\bapp:in\(([^)]*)\)", query):
+            app_values.update(value.strip().strip('"') for value in values.split(","))
+        return not app_values or all(app in SHARED_PIGSTY_SYSLOG_APPS for app in app_values)
+
     def scoped_query(cfg, query):
         query = (query or "*").strip() or "*"
+        if shared_pigsty_log_query(query):
+            return query
         namespace = cfg["namespaces"][0]
         scope = "kubernetes.pod_namespace:%s" % namespace
         if query == "*":
@@ -1215,6 +1248,18 @@ data:
             raise PermissionError("query references another tenant or namespace")
         params["query"] = [scoped_query(cfg, query)]
         return urllib.parse.urlencode(params, doseq=True)
+
+    def open_upstream(req):
+        last_exc = None
+        for attempt in range(3):
+            try:
+                return urllib.request.urlopen(req, timeout=20)
+            except urllib.error.URLError as exc:
+                last_exc = exc
+                if attempt == 2:
+                    break
+                time.sleep(0.2 * (attempt + 1))
+        raise last_exc
 
     class Handler(BaseHTTPRequestHandler):
         def send_json(self, status, obj):
@@ -1262,7 +1307,7 @@ data:
                 target += "?" + query
             req = urllib.request.Request(target, data=body, headers=headers, method=method)
             try:
-                with urllib.request.urlopen(req, timeout=20) as resp:
+                with open_upstream(req) as resp:
                     data = resp.read()
                     self.send_response(resp.status)
                     self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
@@ -1319,7 +1364,7 @@ spec:
           command: ["python3", "/app/tenant-logs-proxy.py"]
           env:
             - name: VLOGS_UPSTREAM
-              value: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428
+              value: http://192.0.2.69:9428
           ports:
             - name: http
               containerPort: 39092
@@ -1453,6 +1498,7 @@ data:
         re.compile(r"\bhaproxy_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpgbackrest_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_lock_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_lsn(?:\{|,|\)|$)"),
         re.compile(r"\bpg_repl_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_recv_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_sync_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
@@ -1535,7 +1581,7 @@ data:
             return True
         if query_looks_cross_tenant(cfg, query):
             return False
-        if query.startswith(TENANT_DB_METRIC_PREFIXES) and re.search(r'\b(datname|database)\s*!~\s*"', query):
+        if query.startswith(TENANT_DB_METRIC_PREFIXES):
             return True
         if any(pattern.search(query) for pattern in SHARED_PIGSTY_CLUSTER_PATTERNS):
             return True
