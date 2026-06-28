@@ -1420,16 +1420,22 @@ data:
         "pg_namespace",
         "pg_stat",
         "pgbouncer:db:",
+        "pgbouncer_database",
     )
     SHARED_NODE_PATTERNS = [
         re.compile(r"\bnode_cpu_seconds_total\s*\{\s*node\s*="),
         re.compile(r"\brate\s*\(\s*node_cpu_seconds_total\s*\{\s*node\s*="),
         re.compile(r"\bup\s*\{\s*job\s*=~\s*\"\.\*node\.\*\""),
         re.compile(r"\bup\s*\{\s*ip\s*=~"),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*\"(?:nginx|grafana|vmetrics|vlogs|vtraces|vmalert|alertmanager)\"[^{}]*\bip\s*=~?"),
+        re.compile(r"\bup\s*\{[^{}]*\bjob\s*=~?\s*\"juice\"[^{}]*\bip\s*=~?"),
         re.compile(r"\bkube_node_status_condition\s*\{\s*condition\s*=\s*\"Ready\"\s*,\s*status\s*=\s*\"true\""),
         re.compile(r"\bpg_up\s*\{\s*source\s*=\s*\"pigsty\""),
         re.compile(r"\bup\s*\{\s*job\s*=\s*\"pgsql\""),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*\"pg-meta\"[^{}]*\bjob\s*=~?\s*\"pgsql\""),
+        re.compile(r"\b(?:docker|etcd|redis|minio|mongo|mysql|mysql_exporter|vector)_up(?:\{|,|\)|$)"),
         re.compile(r"\bnode_up(?:\{|,|\)|$)"),
+        re.compile(r"\bnode_load[0-9]+(?:\{|,|\)|$)"),
         re.compile(r"\bnode_uname_info(?:\{|,|\)|$)"),
         re.compile(r"\bnode_memory_[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bnode:fs:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
@@ -1529,6 +1535,8 @@ data:
             return True
         if query_looks_cross_tenant(cfg, query):
             return False
+        if query.startswith(TENANT_DB_METRIC_PREFIXES) and re.search(r'\b(datname|database)\s*!~\s*"', query):
+            return True
         if any(pattern.search(query) for pattern in SHARED_PIGSTY_CLUSTER_PATTERNS):
             return True
         tenant_label = 'tenant="%s"' % cfg["tenant"]
