@@ -577,9 +577,14 @@ def add_tenant_db_scope_to_pgbouncer_pool(expr: str, cfg: dict[str, Any]) -> str
 
 def patch_victoriametrics_promql(expr: str) -> str:
     expr = expr.replace("group_left()", "group_left")
-    return re.sub(
+    expr = re.sub(
         r'pgbouncer:ins:query_rate1m\{(?P<labels>[^{}]*)\}\s*/\s*on\(ins\)\s*group_left\s*pg:ins:xact_commit_rate1m\{(?P=labels)\}',
         r'sum by (ins) (pgbouncer:ins:query_rate1m{\g<labels>}) / sum by (ins) (pg:ins:xact_commit_rate1m{\g<labels>})',
+        expr,
+    )
+    return re.sub(
+        r'rate\((?P<metric>pg_db_(?:session|active|ixact)_time)\{(?P<left>[^{}]*)\}\[1m\]\)\s*/\s*on\(ins\)\s*group_left\s*pg:ins:num_backends\{(?P<right>[^{}]*)\}',
+        r'sum by (ins) (rate(\g<metric>{\g<left>}[1m])) / sum by (ins) (pg:ins:num_backends{\g<right>})',
         expr,
     )
 
@@ -726,6 +731,7 @@ def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any
     defaults = {
         "cls": "pg-meta",
         "job": "pgsql",
+        "shard": "pg-meta",
         "primary": "pg-meta-1",
         "ins": "pg-meta-1",
         "datname": (cfg.get("pgDatabases") or [""])[0],
