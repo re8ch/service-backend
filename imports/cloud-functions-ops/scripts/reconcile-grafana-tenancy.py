@@ -556,20 +556,39 @@ def tenantize_promql_expr(expr: str, tenant: str) -> str:
     return re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
 
 
-def patch_promql_targets(value: Any, tenant: str) -> int:
+def add_tenant_db_scope_to_pgbouncer_pool(expr: str, cfg: dict[str, Any]) -> str:
+    databases = cfg.get("pgDatabases") or []
+    if not databases:
+        return expr
+    datname_regex = "|".join(re.escape(database) for database in databases)
+
+    def replace_selector(match: Any) -> str:
+        labels = match.group("labels").strip()
+        if re.search(r'\b(datname|database)\s*=~?\s*"', labels):
+            return match.group(0)
+        scoped = 'datname=~"%s"' % datname_regex
+        if labels:
+            scoped = "%s,%s" % (scoped, labels)
+        return "%s{%s}" % (match.group("metric"), scoped)
+
+    return re.sub(r'(?P<metric>\bpgbouncer_pool_[a-zA-Z0-9_]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+
+
+def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
     changes = 0
     if isinstance(value, dict):
         expr = value.get("expr")
         if isinstance(expr, str):
             patched = tenantize_promql_expr(expr, tenant)
+            patched = add_tenant_db_scope_to_pgbouncer_pool(patched, cfg)
             if patched != expr:
                 value["expr"] = patched
                 changes += 1
         for child in value.values():
-            changes += patch_promql_targets(child, tenant)
+            changes += patch_promql_targets(child, tenant, cfg)
     elif isinstance(value, list):
         for child in value:
-            changes += patch_promql_targets(child, tenant)
+            changes += patch_promql_targets(child, tenant, cfg)
     return changes
 
 
@@ -723,7 +742,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     dashboard.pop("version", None)
     patch_datasource_ref(dashboard)
     patch_panels(dashboard.get("panels") or [])
-    patch_promql_targets(dashboard, tenant)
+    patch_promql_targets(dashboard, tenant, cfg)
     patch_tenant_template_defaults(dashboard, cfg)
     return dashboard
 
