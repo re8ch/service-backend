@@ -1383,11 +1383,14 @@ data:
     import json
     import os
     import re
+    import time
+    import urllib.error
     import urllib.parse
     import urllib.request
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    UPSTREAM = os.getenv("VM_UPSTREAM", "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428").rstrip("/")
+    VM_SERVICE_HOST = os.getenv("PANEL_VICTORIA_METRICS_SERVICE_HOST", "panel-victoria-metrics.qianwen-ops.svc.cluster.local")
+    UPSTREAM = os.getenv("VM_UPSTREAM", "http://%s:8428" % VM_SERVICE_HOST).rstrip("/")
     TENANTS = {
         "qianwen": {"tenant": "qianwen", "namespaces": ["qwen"], "databases": ["qianwen_prod", "qianwen_test", "cardcat"]},
         "ledger": {"tenant": "ledger", "namespaces": ["ledger"], "databases": ["ledger"]},
@@ -1625,6 +1628,18 @@ data:
             return body, urllib.parse.parse_qs(body.decode(), keep_blank_values=True), content_type
         return body, {}, content_type
 
+    def open_upstream(req):
+        last_exc = None
+        for attempt in range(3):
+            try:
+                return urllib.request.urlopen(req, timeout=20)
+            except urllib.error.URLError as exc:
+                last_exc = exc
+                if attempt == 2:
+                    break
+                time.sleep(0.2 * (attempt + 1))
+        raise last_exc
+
     class Handler(BaseHTTPRequestHandler):
         def send_json(self, status, obj):
             data = json.dumps(obj).encode()
@@ -1698,7 +1713,7 @@ data:
                 target += "?" + query
             req = urllib.request.Request(target, data=body, headers=headers, method=method)
             try:
-                with urllib.request.urlopen(req, timeout=20) as resp:
+                with open_upstream(req) as resp:
                     data = resp.read()
                     if rest in METADATA_ENDPOINTS or (rest.startswith("api/v1/label/") and rest.endswith("/values")):
                         try:
@@ -1761,7 +1776,7 @@ spec:
           command: ["python3", "/app/tenant-metrics-proxy.py"]
           env:
             - name: VM_UPSTREAM
-              value: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+              value: http://$(PANEL_VICTORIA_METRICS_SERVICE_HOST):8428
           ports:
             - name: http
               containerPort: 39091
@@ -2620,7 +2635,7 @@ data:
         orgId: 2
         type: prometheus
         access: proxy
-        url: http://panel-tenant-metrics-proxy.qianwen-ops.svc.cluster.local:39091/qianwen
+        url: http://${PANEL_TENANT_METRICS_PROXY_SERVICE_HOST}:39091/qianwen
         isDefault: true
         editable: true
         jsonData:
@@ -2631,7 +2646,7 @@ data:
         orgId: 2
         type: victoriametrics-logs-datasource
         access: proxy
-        url: http://panel-tenant-logs-proxy.qianwen-ops.svc.cluster.local:39092/qianwen
+        url: http://${PANEL_TENANT_LOGS_PROXY_SERVICE_HOST}:39092/qianwen
         isDefault: false
         editable: true
       - name: pg-meta-1.anycam_prod

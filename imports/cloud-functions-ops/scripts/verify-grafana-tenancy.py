@@ -26,8 +26,8 @@ TENANTS = {
         "serviceAccountSecret": {"namespace": "qwen", "name": "grafana-qianwen-viewer"},
         "humanEnvPrefix": "QIANWEN",
         "allowedDatasources": {"tenant-metrics", "tenant-vlogs", "observable-events", "observable-pgcat"},
-        "allowedDatasourcePrefixes": set(),
-        "requiredPgDatasourceCount": 0,
+        "allowedDatasourcePrefixes": {"qianwen-pg-meta-"},
+        "requiredPgDatasourceCount": 9,
         "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-1-ledger", "pg-meta-1-anycam-prod", "pg-meta-1-postgres"},
     },
     "ledger": {
@@ -36,8 +36,8 @@ TENANTS = {
         "serviceAccountSecret": {"namespace": "ledger", "name": "grafana-ledger-viewer"},
         "humanEnvPrefix": "LEDGER",
         "allowedDatasources": {"tenant-metrics", "tenant-vlogs", "observable-events", "observable-pgcat"},
-        "allowedDatasourcePrefixes": set(),
-        "requiredPgDatasourceCount": 0,
+        "allowedDatasourcePrefixes": {"ledger-pg-meta-"},
+        "requiredPgDatasourceCount": 3,
         "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-1-qianwen-prod", "pg-meta-1-anycam-prod", "pg-meta-1-postgres"},
     },
 }
@@ -194,7 +194,7 @@ def verify_admin_regression(base_url: str, auth: Auth) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Verify Grafana tenant org isolation.")
-    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/ui").rstrip("/"))
+    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/grafana").rstrip("/"))
     parser.add_argument("--namespace", default=os.environ.get("NAMESPACE", "qianwen-ops"))
     parser.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery"))
     parser.add_argument("--admin-user", default=os.environ.get("GRAFANA_ADMIN_USER", ""))

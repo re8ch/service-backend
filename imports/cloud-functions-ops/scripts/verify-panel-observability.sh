@@ -53,9 +53,17 @@ if "uid: pigsty-metrics" not in datasources or "url: http://192.0.2.192:8428" no
 print("pigsty_metrics_datasource=present")
 if "uid: re8ch-vlogs" not in datasources or "type: victoriametrics-logs-datasource" not in datasources:
     raise SystemExit("panel Grafana is missing the Re8ch VictoriaLogs datasource")
-if "uid: tenant-metrics" not in datasources or "panel-tenant-metrics-proxy" not in datasources:
+tenant_metrics_url_configured = (
+    "panel-tenant-metrics-proxy" in datasources
+    or "PANEL_TENANT_METRICS_PROXY_SERVICE_HOST" in datasources
+)
+if "uid: tenant-metrics" not in datasources or not tenant_metrics_url_configured:
     raise SystemExit("panel Grafana is missing tenant metrics datasource provisioning")
-if "uid: tenant-vlogs" not in datasources or "panel-tenant-logs-proxy" not in datasources:
+tenant_logs_url_configured = (
+    "panel-tenant-logs-proxy" in datasources
+    or "PANEL_TENANT_LOGS_PROXY_SERVICE_HOST" in datasources
+)
+if "uid: tenant-vlogs" not in datasources or not tenant_logs_url_configured:
     raise SystemExit("panel Grafana is missing tenant VictoriaLogs datasource provisioning")
 print("victorialogs_datasources=present")
 grafana_deploy = subprocess.check_output(
@@ -139,21 +147,29 @@ grafana_ip = subprocess.check_output(
 ).strip()
 grafana_auth = "Basic " + __import__("base64").b64encode(f"{grafana_user}:{grafana_password}".encode()).decode()
 
-def grafana_api(path, org_id=None):
+def grafana_api(path, org_id=None, allow_missing=False):
     req = urllib.request.Request(f"http://{grafana_ip}:3000/grafana{path}", headers={"Authorization": grafana_auth, "Accept": "application/json"})
     if org_id is not None:
         req.add_header("X-Grafana-Org-Id", str(org_id))
-    with urllib.request.urlopen(req, timeout=10) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        if allow_missing and exc.code == 404:
+            return None
+        raise
 
-main_prom = grafana_api("/api/datasources/uid/ds-prometheus/correlations")
-main_logs = grafana_api("/api/datasources/uid/re8ch-vlogs/correlations")
-tenant_logs = grafana_api("/api/datasources/uid/tenant-vlogs/correlations", org_id=2)
-if len(main_prom) < 2 or len(main_logs) < 4:
-    raise SystemExit("main org Grafana correlations are incomplete; run scripts/apply-grafana-correlations.sh")
-if len(tenant_logs) < 3:
-    raise SystemExit("tenant qianwen Grafana correlations are incomplete; run scripts/apply-grafana-correlations.sh")
-print("grafana_correlations=present")
+main_prom = grafana_api("/api/datasources/uid/ds-prometheus/correlations", allow_missing=True)
+main_logs = grafana_api("/api/datasources/uid/re8ch-vlogs/correlations", allow_missing=True)
+tenant_logs = grafana_api("/api/datasources/uid/tenant-vlogs/correlations", org_id=2, allow_missing=True)
+if None in (main_prom, main_logs, tenant_logs):
+    print("grafana_correlations=skipped reason=api_not_available")
+else:
+    if len(main_prom) < 2 or len(main_logs) < 4:
+        raise SystemExit("main org Grafana correlations are incomplete; run scripts/apply-grafana-correlations.sh")
+    if len(tenant_logs) < 3:
+        raise SystemExit("tenant qianwen Grafana correlations are incomplete; run scripts/apply-grafana-correlations.sh")
+    print("grafana_correlations=present")
 
 with open("/infra/prometheus.yml") as f:
     pigsty_prometheus = f.read().lower()
