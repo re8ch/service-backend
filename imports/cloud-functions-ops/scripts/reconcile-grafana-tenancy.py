@@ -67,6 +67,7 @@ TENANTS: dict[str, dict[str, Any]] = {
             {"ins": "pg-meta-3", "url": "192.0.2.33:5432"},
         ],
         "pgDatabases": ["qianwen_prod", "qianwen_test", "cardcat"],
+        "livePgcatDatasources": True,
         "pigstyDashboards": True,
     },
     "ledger": {
@@ -86,6 +87,7 @@ TENANTS: dict[str, dict[str, Any]] = {
             {"ins": "pg-meta-3", "url": "192.0.2.33:5432"},
         ],
         "pgDatabases": ["ledger"],
+        "livePgcatDatasources": True,
         "pigstyDashboards": True,
     },
 }
@@ -318,17 +320,34 @@ def admin_credentials(args: argparse.Namespace) -> tuple[str, str]:
     return user, password
 
 
-def tenant_datasources(tenant: str, cfg: dict[str, Any]) -> list[dict[str, Any]]:
+def cluster_service_url(namespace: str, service: str, port: int, env_name: str) -> str:
+    override = os.environ.get(env_name, "").rstrip("/")
+    if override:
+        return override
+    dns_url = "http://%s.%s.svc.cluster.local:%s" % (service, namespace, port)
+    try:
+        cluster_ip = kubectl(["-n", namespace, "get", "svc", service, "-o", "jsonpath={.spec.clusterIP}"])
+    except Exception as exc:
+        info("service_url=fallback_dns service=%s reason=%s" % (service, exc))
+        return dns_url
+    if not cluster_ip or cluster_ip == "None":
+        return dns_url
+    return "http://%s:%s" % (cluster_ip, port)
+
+
+def tenant_datasources(tenant: str, cfg: dict[str, Any], namespace: str) -> list[dict[str, Any]]:
     metrics_path = cfg["metricsPath"]
     logs_path = cfg["logsPath"]
     observable_tenant = cfg["observableTenant"]
+    metrics_base_url = cluster_service_url(namespace, "panel-tenant-metrics-proxy", 39091, "TENANT_METRICS_PROXY_BASE_URL")
+    logs_base_url = cluster_service_url(namespace, "panel-tenant-logs-proxy", 39092, "TENANT_LOGS_PROXY_BASE_URL")
     return [
         {
             "name": "Tenant Metrics",
             "uid": "tenant-metrics",
             "type": "prometheus",
             "access": "proxy",
-            "url": "http://panel-tenant-metrics-proxy.qianwen-ops.svc.cluster.local:39091/%s" % metrics_path,
+            "url": "%s/%s" % (metrics_base_url, metrics_path),
             "isDefault": True,
             "editable": True,
             "jsonData": {"timeInterval": "30s", "queryTimeout": "30s"},
@@ -338,7 +357,7 @@ def tenant_datasources(tenant: str, cfg: dict[str, Any]) -> list[dict[str, Any]]
             "uid": "tenant-vlogs",
             "type": "victoriametrics-logs-datasource",
             "access": "proxy",
-            "url": "http://panel-tenant-logs-proxy.qianwen-ops.svc.cluster.local:39092/%s" % logs_path,
+            "url": "%s/%s" % (logs_base_url, logs_path),
             "isDefault": False,
             "editable": True,
         },
@@ -751,11 +770,18 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
                 client.remove_user_from_org(1, user_id, login_or_email, args.apply)
 
     if not args.skip_datasource_reconcile:
-        for datasource in tenant_datasources(tenant, cfg):
+        for datasource in tenant_datasources(tenant, cfg, args.namespace):
             client.upsert_datasource(org_id, datasource, args.apply)
+        if cfg.get("livePgcatDatasources"):
+            pg_password = None
+            if args.apply:
+                pg_password = secret_key(args.namespace, cfg.get("pgMonitorSecret", "panel-grafana-pg-monitor"), "password")
+            for datasource in tenant_pg_datasources(tenant, cfg, pg_password):
+                client.upsert_datasource(org_id, datasource, args.apply)
 
-    pg_datasources: list[dict[str, Any]] = []
     allowed_uids = {"tenant-metrics", "tenant-vlogs", "observable-events", "observable-pgcat"}
+    if cfg.get("livePgcatDatasources"):
+        allowed_uids.update(datasource["uid"] for datasource in tenant_pg_datasources(tenant, cfg))
     if not args.skip_datasource_reconcile:
         for datasource in client.list_datasources(org_id):
             uid = datasource.get("uid", "")
@@ -793,7 +819,7 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Reconcile Grafana tenant org isolation.")
-    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/ui").rstrip("/"))
+    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/grafana").rstrip("/"))
     parser.add_argument("--namespace", default=os.environ.get("NAMESPACE", "qianwen-ops"))
     parser.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery"))
     parser.add_argument("--admin-user", default=os.environ.get("GRAFANA_ADMIN_USER", ""))
