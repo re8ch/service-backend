@@ -1523,6 +1523,12 @@ data:
         re.compile(r"\bins:pressure1(?:\{|,|\)|$)"),
         re.compile(r"\bpg_exporter_agent_up(?:\{|,|\)|$)"),
         re.compile(r"\bpgbouncer_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbackrest_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbackrest_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bup\s*\{[^{}]*\bins\s*=~?\s*\"pg-meta-[123]\"[^{}]*\bjob\s*=~?\s*\"pgsql\|pgrds\""),
+        re.compile(r"\bup\s*\{[^{}]*\bins\s*=~?\s*\"pg-meta-[123]\"[^{}]*\bjob\s*=~?\s*\"pgrds\|pgsql\""),
         re.compile(r"\bpg_downstream_count(?:\{|,|\)|$)"),
         re.compile(r"\bALERTS(?:\{|,|\)|$)"),
     ]
