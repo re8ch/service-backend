@@ -1530,6 +1530,7 @@ data:
         re.compile(r"\bpg_is_wal_replay_paused(?:\{|,|\)|$)"),
         re.compile(r"\bpgbouncer:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpgbouncer_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_stat_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bnode:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bhaproxy:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bhaproxy:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),

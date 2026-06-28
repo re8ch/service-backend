@@ -571,7 +571,17 @@ def add_tenant_db_scope_to_pgbouncer_pool(expr: str, cfg: dict[str, Any]) -> str
             scoped = "%s,%s" % (scoped, labels)
         return "%s{%s}" % (match.group("metric"), scoped)
 
-    return re.sub(r'(?P<metric>\bpgbouncer_pool_[a-zA-Z0-9_]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+    expr = re.sub(r'(?P<metric>\bpgbouncer_pool_[a-zA-Z0-9_]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+    return re.sub(r'(?P<metric>\bpgbouncer:pool:[a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+
+
+def patch_victoriametrics_promql(expr: str) -> str:
+    expr = expr.replace("group_left()", "group_left")
+    return re.sub(
+        r'pgbouncer:ins:query_rate1m\{(?P<labels>[^{}]*)\}\s*/\s*on\(ins\)\s*group_left\s*pg:ins:xact_commit_rate1m\{(?P=labels)\}',
+        r'sum by (ins) (pgbouncer:ins:query_rate1m{\g<labels>}) / sum by (ins) (pg:ins:xact_commit_rate1m{\g<labels>})',
+        expr,
+    )
 
 
 def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
@@ -581,6 +591,7 @@ def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
         if isinstance(expr, str):
             patched = tenantize_promql_expr(expr, tenant)
             patched = add_tenant_db_scope_to_pgbouncer_pool(patched, cfg)
+            patched = patch_victoriametrics_promql(patched)
             if patched != expr:
                 value["expr"] = patched
                 changes += 1
@@ -729,6 +740,16 @@ def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any
             var["multi"] = False
 
 
+def patch_annotations(dashboard: dict[str, Any]) -> int:
+    changes = 0
+    for annotation in ((dashboard.get("annotations") or {}).get("list") or []):
+        datasource = annotation.get("datasource")
+        if not datasource or datasource == "-- Grafana --":
+            annotation["datasource"] = {"type": "grafana", "uid": "grafana"}
+            changes += 1
+    return changes
+
+
 def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
     if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS:
         return tenant_pgcat_dashboard(dashboard, tenant, cfg)
@@ -745,6 +766,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     patch_panels(dashboard.get("panels") or [])
     patch_promql_targets(dashboard, tenant, cfg)
     patch_tenant_template_defaults(dashboard, cfg)
+    patch_annotations(dashboard)
     return dashboard
 
 
