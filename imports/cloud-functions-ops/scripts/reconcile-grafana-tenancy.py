@@ -714,6 +714,7 @@ def tenant_pgcat_dashboard(source: dict[str, Any], tenant: str, cfg: dict[str, A
 def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any]) -> None:
     defaults = {
         "cls": "pg-meta",
+        "job": "pgsql",
         "primary": "pg-meta-1",
         "ins": "pg-meta-1",
         "datname": (cfg.get("pgDatabases") or [""])[0],
