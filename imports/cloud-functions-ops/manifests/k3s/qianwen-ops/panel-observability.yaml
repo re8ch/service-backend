@@ -1484,6 +1484,8 @@ data:
         re.compile(r"\bnode_uname_info(?:\{|,|\)|$)"),
         re.compile(r"\bnode_memory_[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bnode:fs:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:cpu:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:dev:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bprobe_duration_seconds(?:\{|,|\)|$)"),
     ]
     SHARED_PIGSTY_CLUSTER_PATTERNS = [
@@ -1500,6 +1502,7 @@ data:
         re.compile(r"\bpg_lock_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_lsn(?:\{|,|\)|$)"),
         re.compile(r"\bpg_repl_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_lag(?:\{|,|\)|$)"),
         re.compile(r"\bpg_recv_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_sync_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpg_pub[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
