@@ -560,7 +560,7 @@ def tenantize_promql_expr(expr: str, tenant: str) -> str:
     return re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
 
 
-def add_tenant_db_scope_to_pgbouncer_pool(expr: str, cfg: dict[str, Any]) -> str:
+def add_tenant_db_scope_to_pgbouncer_metrics(expr: str, cfg: dict[str, Any]) -> str:
     databases = cfg.get("pgDatabases") or []
     if not databases:
         return expr
@@ -576,7 +576,9 @@ def add_tenant_db_scope_to_pgbouncer_pool(expr: str, cfg: dict[str, Any]) -> str
         return "%s{%s}" % (match.group("metric"), scoped)
 
     expr = re.sub(r'(?P<metric>\bpgbouncer_pool_[a-zA-Z0-9_]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
-    return re.sub(r'(?P<metric>\bpgbouncer:pool:[a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+    expr = re.sub(r'(?P<metric>\bpgbouncer_database_[a-zA-Z0-9_]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+    expr = re.sub(r'(?P<metric>\bpgbouncer:pool:[a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
+    return re.sub(r'(?P<metric>\bpgbouncer:db:[a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, expr)
 
 
 def patch_victoriametrics_promql(expr: str) -> str:
@@ -623,7 +625,7 @@ def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
         expr = value.get("expr")
         if isinstance(expr, str):
             patched = tenantize_promql_expr(expr, tenant)
-            patched = add_tenant_db_scope_to_pgbouncer_pool(patched, cfg)
+            patched = add_tenant_db_scope_to_pgbouncer_metrics(patched, cfg)
             patched = patch_victoriametrics_promql(patched)
             patched = patch_tenant_xact_promql(patched, tenant)
             patched = pin_tenant_shared_cluster_scope(patched)
@@ -773,6 +775,7 @@ def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any
         "pg_cls": "pg-meta",
         "node_cls": "pg-meta",
         "datname": (cfg.get("pgDatabases") or [""])[0],
+        "dsn": "%s-pg-meta-1-%s" % (dashboard.get("_tenant_id"), (cfg.get("pgDatabases") or [""])[0].replace("_", "-")),
     }
     for var in (dashboard.get("templating") or {}).get("list", []):
         name = var.get("name")
@@ -804,9 +807,12 @@ def patch_empty_state_promql(dashboard: dict[str, Any]) -> int:
         "tenant-%s-pgsql-activity" % dashboard.get("_tenant_id"),
         "tenant-%s-pgsql-cluster" % dashboard.get("_tenant_id"),
         "tenant-%s-pgsql-instance" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-databases" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-pgbouncer" % dashboard.get("_tenant_id"),
         "tenant-%s-pgsql-proxy" % dashboard.get("_tenant_id"),
         "tenant-%s-pgsql-service" % dashboard.get("_tenant_id"),
         "tenant-%s-pgsql-session" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-xacts" % dashboard.get("_tenant_id"),
     }:
         return 0
     changes = 0
