@@ -589,6 +589,10 @@ def patch_victoriametrics_promql(expr: str) -> str:
     )
 
 
+def pin_tenant_shared_cluster_scope(expr: str) -> str:
+    return re.sub(r'cls\s*=~\s*"\$(?:\{shard\}|shard)\.\*"', 'cls=~"pg-meta.*"', expr)
+
+
 def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
     changes = 0
     if isinstance(value, dict):
@@ -597,6 +601,7 @@ def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
             patched = tenantize_promql_expr(expr, tenant)
             patched = add_tenant_db_scope_to_pgbouncer_pool(patched, cfg)
             patched = patch_victoriametrics_promql(patched)
+            patched = pin_tenant_shared_cluster_scope(patched)
             if patched != expr:
                 value["expr"] = patched
                 changes += 1
