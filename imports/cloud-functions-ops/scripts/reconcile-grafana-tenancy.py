@@ -60,7 +60,9 @@ TENANTS: dict[str, dict[str, Any]] = {
         "logsPath": "qianwen",
         "observableTenant": "qianwen",
         "pgMonitorSecret": "panel-grafana-pg-monitor",
-        "pgcatSnapshots": True,
+        # Keep PGCAT on live tenant-scoped PostgreSQL datasources until the
+        # public PostgREST /observable gateway is wired to the observable DB.
+        "pgcatSnapshots": False,
         "pgInstances": [
             {"ins": "pg-meta-1", "url": "192.0.2.172:5432"},
             {"ins": "pg-meta-2", "url": "192.0.2.141:5432"},
@@ -80,7 +82,9 @@ TENANTS: dict[str, dict[str, Any]] = {
         "logsPath": "ledger",
         "observableTenant": "ledger",
         "pgMonitorSecret": "panel-grafana-pg-monitor",
-        "pgcatSnapshots": True,
+        # Keep PGCAT on live tenant-scoped PostgreSQL datasources until the
+        # public PostgREST /observable gateway is wired to the observable DB.
+        "pgcatSnapshots": False,
         "pgInstances": [
             {"ins": "pg-meta-1", "url": "192.0.2.172:5432"},
             {"ins": "pg-meta-2", "url": "192.0.2.141:5432"},
@@ -811,7 +815,7 @@ def patch_tenant_xacts_dashboard(dashboard: dict[str, Any]) -> int:
 
 
 def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
-    if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS:
+    if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS and cfg.get("pgcatSnapshots", True):
         return tenant_pgcat_dashboard(dashboard, tenant, cfg)
     dashboard = strip_main_org_link(json.loads(json.dumps(dashboard)))
     uid = dashboard.get("uid") or ""
