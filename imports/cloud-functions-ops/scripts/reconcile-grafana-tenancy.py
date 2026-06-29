@@ -589,6 +589,26 @@ def patch_victoriametrics_promql(expr: str) -> str:
     )
 
 
+def patch_tenant_xact_promql(expr: str, tenant: str) -> str:
+    replacements = {
+        'pgbouncer:ins:query_rate1m{ins="$ins"} / pgbouncer:ins:xact_rate1m{ins="$ins"}':
+            'sum(pg:query:call_rate1m{tenant="%s"}) / sum(pg:db:xact_total_rate1m{tenant="%s"})' % (tenant, tenant),
+        'pgbouncer:ins:xact_rt_1m{ins="$ins"}':
+            'sum by (ins) (pg:ins:active_time_rate1m{ins="$ins"}) / sum by (ins) (pg:ins:xact_total_rate1m{ins="$ins"})',
+        'pgbouncer:ins:xact_rt_5m{ins="$ins"}':
+            'sum by (ins) (pg:ins:active_time_rate1m{ins="$ins"}) / sum by (ins) (pg:ins:xact_total_rate1m{ins="$ins"})',
+        'pgbouncer:ins:xact_rt_15m{ins="$ins"}':
+            'sum by (ins) (pg:ins:active_time_rate1m{ins="$ins"}) / sum by (ins) (pg:ins:xact_total_rate1m{ins="$ins"})',
+        'pgbouncer:db:xact_rt_1m{ins="$ins"}':
+            'sum by (datname) (pg:db:active_time_rate1m{tenant="%s"}) / sum by (datname) (pg:db:xact_total_rate1m{tenant="%s"})' % (tenant, tenant),
+        'pgbouncer:cls:xact_rt_1m{cls="$cls"}':
+            'sum by (cls) (pg:ins:active_time_rate1m{cls="$cls"}) / sum by (cls) (pg:ins:xact_total_rate1m{cls="$cls"})',
+        'pgbouncer:ins:xact_rt_1m{cls="$cls"}':
+            'sum by (ins) (pg:ins:active_time_rate1m{cls="$cls"}) / sum by (ins) (pg:ins:xact_total_rate1m{cls="$cls"})',
+    }
+    return replacements.get(expr.strip(), expr)
+
+
 def pin_tenant_shared_cluster_scope(expr: str) -> str:
     return re.sub(r'cls\s*=~\s*"\$(?:\{shard\}|shard)\.\*"', 'cls=~"pg-meta.*"', expr)
 
@@ -601,6 +621,7 @@ def patch_promql_targets(value: Any, tenant: str, cfg: dict[str, Any]) -> int:
             patched = tenantize_promql_expr(expr, tenant)
             patched = add_tenant_db_scope_to_pgbouncer_pool(patched, cfg)
             patched = patch_victoriametrics_promql(patched)
+            patched = patch_tenant_xact_promql(patched, tenant)
             patched = pin_tenant_shared_cluster_scope(patched)
             if patched != expr:
                 value["expr"] = patched
@@ -761,6 +782,34 @@ def patch_annotations(dashboard: dict[str, Any]) -> int:
     return changes
 
 
+def patch_tenant_xacts_dashboard(dashboard: dict[str, Any]) -> int:
+    if dashboard.get("uid") != "tenant-%s-pgsql-xacts" % dashboard.get("_tenant_id"):
+        return 0
+    changes = 0
+
+    def walk(panels: list[dict[str, Any]]) -> None:
+        nonlocal changes
+        for panel in panels:
+            title = panel.get("title")
+            if title == "Average Queries per Xact":
+                panel["title"] = "Average Queries per Xact (DB)"
+                changes += 1
+            elif title == "Xact RT":
+                panel["title"] = "Active Time per Xact"
+                panel["targets"] = (panel.get("targets") or [])[:1]
+                changes += 1
+            elif title == "Xact RT by Database":
+                panel["title"] = "Active Time per Xact by Database"
+                changes += 1
+            elif title == "Xact RT by Instance":
+                panel["title"] = "Active Time per Xact by Instance"
+                changes += 1
+            walk(panel.get("panels") or [])
+
+    walk(dashboard.get("panels") or [])
+    return changes
+
+
 def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
     if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS:
         return tenant_pgcat_dashboard(dashboard, tenant, cfg)
@@ -768,6 +817,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     uid = dashboard.get("uid") or ""
     dashboard["id"] = None
     dashboard["uid"] = "tenant-%s-%s" % (tenant, uid)
+    dashboard["_tenant_id"] = tenant
     dashboard["title"] = "%s - %s" % (tenant, dashboard.get("title", uid))
     dashboard["folderUid"] = ""
     dashboard.pop("folderId", None)
@@ -778,6 +828,8 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     patch_promql_targets(dashboard, tenant, cfg)
     patch_tenant_template_defaults(dashboard, cfg)
     patch_annotations(dashboard)
+    patch_tenant_xacts_dashboard(dashboard)
+    dashboard.pop("_tenant_id", None)
     return dashboard
 
 
