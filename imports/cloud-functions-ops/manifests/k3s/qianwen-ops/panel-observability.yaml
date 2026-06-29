@@ -1545,6 +1545,7 @@ data:
         re.compile(r"\bpg_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpgbouncer_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bpgbackrest_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_backup_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
         re.compile(r"\bup\s*\{[^{}]*\bins\s*=~?\s*\"pg-meta-[123]\"[^{}]*\bjob\s*=~?\s*\"pgsql\|pgrds\""),
         re.compile(r"\bup\s*\{[^{}]*\bins\s*=~?\s*\"pg-meta-[123]\"[^{}]*\bjob\s*=~?\s*\"pgrds\|pgsql\""),
         re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*[\"']pg-meta\.\*[\"'][^{}]*\bjob\s*=~?\s*[\"']pgsql\|pgrds[\"']"),
