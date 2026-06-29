@@ -456,7 +456,7 @@ def patch_query_dashboard(panels: list[dict[str, Any]]) -> int:
             replacement = None
             if panel.get("id") == 89:
                 replacement = query_summary_sql
-            elif panel.get("id") == 90:
+            elif panel.get("id") in {90, 93}:
                 replacement = top_sql
             if replacement and raw_sql != replacement:
                 target["rawSql"] = replacement
