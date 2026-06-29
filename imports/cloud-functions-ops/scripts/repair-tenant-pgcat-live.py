@@ -46,29 +46,49 @@ PG18_SAFE_PG_STAT_WAL_SQL = """SELECT
 FROM pg_stat_wal;"""
 
 EMPTY_WAIT_HISTORY_SQL = """SELECT
-  NULL::timestamptz AS ts,
+  now() AS ts,
   NULL::integer AS pid,
-  NULL::text AS event_type,
-  NULL::text AS event
-WHERE false;"""
+  'N/A'::text AS event_type,
+  'pg_wait_sampling is not installed or has no recent samples'::text AS event;"""
 
 EMPTY_WAIT_PROFILE_SQL = """SELECT
-  NULL::text AS event_type,
-  NULL::text AS event,
-  NULL::bigint AS count
-WHERE false;"""
+  'N/A'::text AS event_type,
+  'pg_wait_sampling is not installed or has no recent samples'::text AS event,
+  0::bigint AS count;"""
 
 EMPTY_WAIT_COUNT_SQL = """SELECT
-  NULL::text AS event_type,
-  NULL::text AS event,
-  NULL::bigint AS count
-WHERE false;"""
+  'N/A'::text AS event_type,
+  'pg_wait_sampling is not installed or has no recent samples'::text AS event,
+  0::bigint AS count;"""
 
 EMPTY_WAIT_PIE_SQL = """SELECT
   now() AS time,
-  NULL::text AS metric,
-  NULL::bigint AS value
-WHERE false;"""
+  'no wait sampling'::text AS metric,
+  0::bigint AS value;"""
+
+SUBSCRIPTION_COUNT_SQL = """SELECT
+  count(*)::bigint AS subscriptions
+FROM pg_stat_subscription;"""
+
+WAL_RECEIVER_COUNT_SQL = """SELECT
+  count(*)::bigint AS wal_receivers
+FROM pg_stat_wal_receiver;"""
+
+LOGICAL_SLOT_COUNT_SQL = """SELECT
+  count(*)::bigint AS logical_replication_slots
+FROM pg_replication_slots
+WHERE slot_type = 'logical';"""
+
+REL_OPTIONS_SQL = """SELECT unnest(reloptions) AS opt
+FROM pg_class c
+WHERE oid = '${oid}'
+UNION ALL
+SELECT 'no reloptions configured'::text AS opt
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM pg_class c
+  WHERE oid = '${oid}' AND reloptions IS NOT NULL
+);"""
 
 TENANT_DATABASES = ("qianwen_prod", "qianwen_test", "cardcat")
 TENANT_DATABASE_SQL = ", ".join("'%s'" % database for database in TENANT_DATABASES)
@@ -81,6 +101,59 @@ TENANT_MEMBER_ROLE_SCOPE_SQL = (
     "(b.rolname ~ '^(qianwen_prod|qianwen_test|cardcat)($|_)' "
     "OR b.rolname IN ('dbuser_monitor', 'web_user', 'web_anon'))"
 )
+TENANT_LOCK_SQL = """WITH locked AS (
+  SELECT
+    pid,
+    datname,
+    usename,
+    state,
+    wait_event_type,
+    wait_event,
+    pg_blocking_pids(pid)::text AS blocked_by,
+    left(query, 240) AS query
+  FROM pg_stat_activity
+  WHERE datname IN (%s)
+    AND cardinality(pg_blocking_pids(pid)) > 0
+)
+SELECT * FROM locked
+UNION ALL
+SELECT
+  NULL::integer AS pid,
+  '${datname}'::name AS datname,
+  NULL::name AS usename,
+  'idle'::text AS state,
+  'N/A'::text AS wait_event_type,
+  'No active lock waits for tenant databases'::text AS wait_event,
+  '{}'::text AS blocked_by,
+  NULL::text AS query
+WHERE NOT EXISTS (SELECT 1 FROM locked);""" % TENANT_DATABASE_SQL
+
+DATABASE_LOCK_SQL = """WITH locked AS (
+  SELECT
+    pid,
+    datname,
+    usename,
+    state,
+    wait_event_type,
+    wait_event,
+    pg_blocking_pids(pid)::text AS blocked_by,
+    left(query, 240) AS query
+  FROM pg_stat_activity
+  WHERE datname = '${datname}'
+    AND cardinality(pg_blocking_pids(pid)) > 0
+)
+SELECT * FROM locked
+UNION ALL
+SELECT
+  NULL::integer AS pid,
+  '${datname}'::name AS datname,
+  NULL::name AS usename,
+  'idle'::text AS state,
+  'N/A'::text AS wait_event_type,
+  'No active lock waits for ${datname}'::text AS wait_event,
+  '{}'::text AS blocked_by,
+  NULL::text AS query
+WHERE NOT EXISTS (SELECT 1 FROM locked);"""
 
 
 def info(message: str) -> None:
@@ -221,7 +294,11 @@ def patch_variables(dashboard: dict[str, Any], default_dsn_text: str, default_ds
                 var["hide"] = 2
                 changes += 1
         if name == "query":
-            current = {"text": "0", "value": "0", "selected": True}
+            current = {
+                "text": os.environ.get("PGCAT_DEFAULT_QUERY_ID", "-3704990386267960320"),
+                "value": os.environ.get("PGCAT_DEFAULT_QUERY_ID", "-3704990386267960320"),
+                "selected": True,
+            }
             if var.get("current") != current:
                 var["current"] = current
                 changes += 1
@@ -303,6 +380,36 @@ def patch_locks_wait_sampling(panels: list[dict[str, Any]]) -> int:
                 target["rawSql"] = safe_sql
                 changes += 1
         changes += patch_locks_wait_sampling(panel.get("panels") or [])
+    return changes
+
+
+def patch_optional_pgcat_panels(panels: list[dict[str, Any]]) -> int:
+    changes = 0
+    sql_by_id = {
+        35: REL_OPTIONS_SQL,
+        144: LOGICAL_SLOT_COUNT_SQL,
+        146: WAL_RECEIVER_COUNT_SQL,
+        147: SUBSCRIPTION_COUNT_SQL,
+        179: TENANT_LOCK_SQL,
+        218: DATABASE_LOCK_SQL,
+        220: DATABASE_LOCK_SQL,
+    }
+    promql_by_id = {
+        225: 'sum by (event) (rate(pg_wait_event_count{ins="$ins"}[30s])) or on() vector(0)',
+    }
+    for panel in panels:
+        for target in panel.get("targets") or []:
+            raw_sql = target.get("rawSql")
+            expr = target.get("expr")
+            wanted_sql = sql_by_id.get(panel.get("id"))
+            if wanted_sql and isinstance(raw_sql, str) and raw_sql != wanted_sql:
+                target["rawSql"] = wanted_sql
+                changes += 1
+            wanted_expr = promql_by_id.get(panel.get("id"))
+            if wanted_expr and isinstance(expr, str) and expr != wanted_expr:
+                target["expr"] = wanted_expr
+                changes += 1
+        changes += patch_optional_pgcat_panels(panel.get("panels") or [])
     return changes
 
 
@@ -511,6 +618,7 @@ def repair_dashboard(
         changes += patch_locks_wait_sampling(patched.get("panels") or [])
     if patched.get("uid") == "tenant-qianwen-pgcat-query":
         changes += patch_query_dashboard(patched.get("panels") or [])
+    changes += patch_optional_pgcat_panels(patched.get("panels") or [])
     return patched, changes
 
 
