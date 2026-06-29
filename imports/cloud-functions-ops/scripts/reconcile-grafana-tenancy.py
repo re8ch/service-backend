@@ -849,6 +849,41 @@ def patch_tenant_pgsql_query_dashboard(dashboard: dict[str, Any]) -> int:
     return changes
 
 
+def patch_tenant_pgsql_table_dashboard(dashboard: dict[str, Any]) -> int:
+    if dashboard.get("uid") != "tenant-%s-pgsql-table" % dashboard.get("_tenant_id"):
+        return 0
+    changes = 0
+    for var in (dashboard.get("templating") or {}).get("list", []):
+        if var.get("name") != "relname":
+            continue
+        wanted_current = {"text": "All", "value": "$__all", "selected": True}
+        if var.get("includeAll") is not True:
+            var["includeAll"] = True
+            changes += 1
+        if var.get("allValue") != ".*":
+            var["allValue"] = ".*"
+            changes += 1
+        if var.get("current") != wanted_current:
+            var["current"] = wanted_current
+            changes += 1
+
+    def walk(value: Any) -> None:
+        nonlocal changes
+        if isinstance(value, dict):
+            expr = value.get("expr")
+            if isinstance(expr, str) and 'relname="$relname"' in expr:
+                value["expr"] = expr.replace('relname="$relname"', 'relname=~"$relname"')
+                changes += 1
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    walk(dashboard.get("panels") or [])
+    return changes
+
+
 def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
     if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS and cfg.get("pgcatSnapshots", True):
         return tenant_pgcat_dashboard(dashboard, tenant, cfg)
@@ -869,6 +904,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     patch_annotations(dashboard)
     patch_tenant_xacts_dashboard(dashboard)
     patch_tenant_pgsql_query_dashboard(dashboard)
+    patch_tenant_pgsql_table_dashboard(dashboard)
     dashboard.pop("_tenant_id", None)
     return dashboard
 
