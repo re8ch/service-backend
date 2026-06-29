@@ -764,6 +764,14 @@ def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any
         "shard": "pg-meta",
         "primary": "pg-meta-1",
         "ins": "pg-meta-1",
+        "ip": "192.0.2.172",
+        "node": "VM-0-5-ubuntu",
+        "members": "192.0.2.172|192.0.2.141|192.0.2.33",
+        "svc": "pg-meta-primary",
+        "proxies": ".*",
+        "servers": ".*",
+        "pg_cls": "pg-meta",
+        "node_cls": "pg-meta",
         "datname": (cfg.get("pgDatabases") or [""])[0],
     }
     for var in (dashboard.get("templating") or {}).get("list", []):
@@ -771,9 +779,55 @@ def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any
         if name not in defaults or not defaults[name]:
             continue
         var["current"] = {"text": defaults[name], "value": defaults[name], "selected": True}
+        if name in {"members"}:
+            var["includeAll"] = True
+            var["allValue"] = defaults[name]
+        elif name in {"proxies", "servers"}:
+            var["includeAll"] = True
+            var["allValue"] = ".*"
+            var["current"] = {"text": "All", "value": "$__all", "selected": True}
         if name == "datname":
             var["includeAll"] = False
             var["multi"] = False
+
+
+def add_zero_fallback_to_promql(expr: str) -> str:
+    if " or on() vector(0)" in expr or "\n" in expr or "#" in expr:
+        return expr
+    if not re.search(r"\b(haproxy_|haproxy:|pgbouncer_|pgbouncer:|node:|node_)", expr):
+        return expr
+    return "(%s) or on() vector(0)" % expr
+
+
+def patch_empty_state_promql(dashboard: dict[str, Any]) -> int:
+    if dashboard.get("uid") not in {
+        "tenant-%s-pgsql-activity" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-cluster" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-instance" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-proxy" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-service" % dashboard.get("_tenant_id"),
+        "tenant-%s-pgsql-session" % dashboard.get("_tenant_id"),
+    }:
+        return 0
+    changes = 0
+
+    def walk(value: Any) -> None:
+        nonlocal changes
+        if isinstance(value, dict):
+            expr = value.get("expr")
+            if isinstance(expr, str):
+                patched = add_zero_fallback_to_promql(expr)
+                if patched != expr:
+                    value["expr"] = patched
+                    changes += 1
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    walk(dashboard.get("panels") or [])
+    return changes
 
 
 def patch_annotations(dashboard: dict[str, Any]) -> int:
@@ -905,6 +959,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     patch_tenant_xacts_dashboard(dashboard)
     patch_tenant_pgsql_query_dashboard(dashboard)
     patch_tenant_pgsql_table_dashboard(dashboard)
+    patch_empty_state_promql(dashboard)
     dashboard.pop("_tenant_id", None)
     return dashboard
 
