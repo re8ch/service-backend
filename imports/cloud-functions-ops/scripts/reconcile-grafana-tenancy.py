@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as dt
+import importlib.util
 import json
 import os
 import re
@@ -26,6 +27,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DASHBOARD_DIR = ROOT / "manifests/k3s/qianwen-ops/grafana-dashboards/tenants"
 PIGSTY_DASHBOARD_FOLDER = "Pigsty PGSQL"
+PGCAT_LIVE_REPAIR_PATH = ROOT / "scripts/repair-tenant-pgcat-live.py"
 FORBIDDEN_TENANT_DATASOURCES = {
     "pigsty-metrics",
     "re8ch-vlogs",
@@ -33,6 +35,7 @@ FORBIDDEN_TENANT_DATASOURCES = {
     "ds-prometheus",
     "ds-static",
 }
+_PGCAT_LIVE_REPAIR: Any | None = None
 TENANT_DB_METRIC_PREFIXES = (
     "pg_db",
     "pg:db:",
@@ -944,6 +947,44 @@ def patch_tenant_pgsql_table_dashboard(dashboard: dict[str, Any]) -> int:
     return changes
 
 
+def pgcat_live_repair_module() -> Any | None:
+    global _PGCAT_LIVE_REPAIR
+    if _PGCAT_LIVE_REPAIR is not None:
+        return _PGCAT_LIVE_REPAIR
+    if not PGCAT_LIVE_REPAIR_PATH.exists():
+        return None
+    spec = importlib.util.spec_from_file_location("repair_tenant_pgcat_live", PGCAT_LIVE_REPAIR_PATH)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _PGCAT_LIVE_REPAIR = module
+    return module
+
+
+def patch_live_pgcat_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any]:
+    uid = str(dashboard.get("uid") or "")
+    if tenant != "qianwen" or (uid not in PGCAT_DASHBOARD_KINDS and not uid.startswith("tenant-%s-pgcat-" % tenant)):
+        return dashboard
+    if not cfg.get("livePgcatDatasources"):
+        return dashboard
+    module = pgcat_live_repair_module()
+    if module is None:
+        return dashboard
+    databases = cfg.get("pgDatabases") or []
+    if not databases:
+        return dashboard
+    default_database = databases[0]
+    default_instance = (cfg.get("pgInstances") or [{"ins": "pg-meta-1"}])[0].get("ins", "pg-meta-1")
+    default_dsn_text = "%s.%s" % (default_instance, default_database)
+    default_dsn_uid = "%s-%s-%s" % (tenant, default_instance, default_database.replace("_", "-"))
+    allowed_dsn_regex = r"^pg-meta-[123]\.(%s)$" % "|".join(re.escape(database) for database in databases)
+    patched, changes = module.repair_dashboard(dashboard, default_dsn_text, default_dsn_uid, allowed_dsn_regex)
+    if changes:
+        info("pgcat_live_repair=embedded dashboard=%s changes=%s" % (dashboard.get("uid"), changes))
+    return patched
+
+
 def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict[str, Any]) -> dict[str, Any] | None:
     if dashboard.get("uid") in PGCAT_DASHBOARD_KINDS and cfg.get("pgcatSnapshots", True):
         return tenant_pgcat_dashboard(dashboard, tenant, cfg)
@@ -966,6 +1007,7 @@ def tenantize_pigsty_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     patch_tenant_pgsql_query_dashboard(dashboard)
     patch_tenant_pgsql_table_dashboard(dashboard)
     patch_empty_state_promql(dashboard)
+    dashboard = patch_live_pgcat_dashboard(dashboard, tenant, cfg)
     dashboard.pop("_tenant_id", None)
     return dashboard
 
