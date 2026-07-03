@@ -33,12 +33,8 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: vm-20-12-ubuntu
       tolerations:
-        - key: dedicated
-          operator: Equal
-          value: panel
-          effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
@@ -46,7 +42,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:latest
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-return-2026062701
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -63,7 +59,7 @@ spec:
             - name: MGR_RPC_RW_BASE_URL
               value: https://db-rw.re8ch.com/auth
             - name: MGR_RPC_RO_BASE_URL
-              value: https://db-ro.re8ch.com/auth
+              value: https://db-rw.re8ch.com/auth
             - name: AUTH_SERVICE_ROLE
               value: auth_app_rw
             - name: AUTH_GATEWAY_COOKIE_NAME
