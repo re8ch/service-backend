@@ -15,6 +15,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: image.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nuclio-registry-image-control-api
+                port:
+                  number: 8080
     - host: api.re8ch.com
       http: &registry_image_paths
         paths:
