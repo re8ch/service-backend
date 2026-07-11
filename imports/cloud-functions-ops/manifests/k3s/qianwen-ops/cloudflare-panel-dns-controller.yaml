@@ -14,6 +14,7 @@ data:
     portainer.re8ch.com=192.0.2.192
     grafana.re8ch.com=192.0.2.192
     dbgui.re8ch.com=192.0.2.192
+    teable.re8ch.com=192.0.2.192
     feishu-agent.re8ch.com=192.0.2.122
     registry.re8ch.com=192.0.2.185
 ---
