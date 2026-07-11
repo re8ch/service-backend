@@ -1,0 +1,760 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: supabase-pg-re8ch
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: supabase-one-cpu
+  namespace: supabase-pg-re8ch
+spec:
+  hard:
+    requests.cpu: "500m"
+    limits.cpu: "1"
+    requests.memory: 1024Mi
+    limits.memory: 4096Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-pg-re8ch-env
+  namespace: supabase-pg-re8ch
+data:
+  POSTGRES_HOST: 192.0.2.183
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: postgres
+  PGRST_DB_SCHEMAS: public,storage,graphql_public
+  PGRST_DB_MAX_ROWS: "1000"
+  PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+  SITE_URL: http://supabase-pg-re8ch.supabase-pg-re8ch.svc.cluster.local:8000
+  API_EXTERNAL_URL: http://supabase-pg-re8ch.supabase-pg-re8ch.svc.cluster.local:8000
+  SUPABASE_PUBLIC_URL: http://supabase-pg-re8ch.supabase-pg-re8ch.svc.cluster.local:8000
+  STUDIO_DEFAULT_ORGANIZATION: RE8CH
+  STUDIO_DEFAULT_PROJECT: pg-re8ch
+  DISABLE_SIGNUP: "true"
+  JWT_EXPIRY: "3600"
+  ENABLE_EMAIL_SIGNUP: "false"
+  ENABLE_ANONYMOUS_USERS: "false"
+  ENABLE_EMAIL_AUTOCONFIRM: "true"
+  ENABLE_PHONE_SIGNUP: "false"
+  ENABLE_PHONE_AUTOCONFIRM: "false"
+  SMTP_ADMIN_EMAIL: ops@re8ch.com
+  SMTP_HOST: localhost
+  SMTP_PORT: "25"
+  SMTP_USER: ""
+  SMTP_PASS: ""
+  SMTP_SENDER_NAME: RE8CH Supabase
+  ADDITIONAL_REDIRECT_URLS: ""
+  MAILER_URLPATHS_INVITE: /auth/v1/verify
+  MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+  MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+  MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+  GLOBAL_S3_BUCKET: supabase-pg-re8ch
+  STORAGE_TENANT_ID: pg-re8ch
+  REGION: r640-lan
+  IMGPROXY_AUTO_WEBP: "true"
+  S3_PROTOCOL_ACCESS_KEY_ID: ""
+  S3_PROTOCOL_ACCESS_KEY_SECRET: ""
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-kong-config
+  namespace: supabase-pg-re8ch
+data:
+  kong-entrypoint.sh: |
+    #!/bin/sh
+    if [ -n "$SUPABASE_SECRET_KEY" ] && [ -n "$SUPABASE_PUBLISHABLE_KEY" ]; then
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or (headers.apikey == '$SUPABASE_SECRET_KEY' and 'Bearer $SERVICE_ROLE_KEY_ASYMMETRIC') or (headers.apikey == '$SUPABASE_PUBLISHABLE_KEY' and 'Bearer $ANON_KEY_ASYMMETRIC') or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$((query_params.apikey == '$SUPABASE_SECRET_KEY' and '$SERVICE_ROLE_KEY_ASYMMETRIC') or (query_params.apikey == '$SUPABASE_PUBLISHABLE_KEY' and '$ANON_KEY_ASYMMETRIC') or query_params.apikey)"
+    else
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$(query_params.apikey)"
+    fi
+    awk '{
+      result = ""
+      rest = $0
+      while (match(rest, /\$[A-Za-z_][A-Za-z_0-9]*/)) {
+        varname = substr(rest, RSTART + 1, RLENGTH - 1)
+        if (varname in ENVIRON) {
+          result = result substr(rest, 1, RSTART - 1) ENVIRON[varname]
+        } else {
+          result = result substr(rest, 1, RSTART + RLENGTH - 1)
+        }
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+      print result rest
+    }' /home/kong/temp.yml > "$KONG_DECLARATIVE_CONFIG"
+    sed -i '/^[[:space:]]*- key:[[:space:]]*$/d' "$KONG_DECLARATIVE_CONFIG"
+    exec /entrypoint.sh kong docker-start
+  kong.yml: |
+    _format_version: '2.1'
+    _transform: true
+    consumers:
+      - username: DASHBOARD
+      - username: anon
+        keyauth_credentials:
+          - key: $SUPABASE_ANON_KEY
+      - username: service_role
+        keyauth_credentials:
+          - key: $SUPABASE_SERVICE_KEY
+    acls:
+      - consumer: anon
+        group: anon
+      - consumer: service_role
+        group: admin
+    basicauth_credentials:
+      - consumer: DASHBOARD
+        username: '$DASHBOARD_USERNAME'
+        password: '$DASHBOARD_PASSWORD'
+    services:
+      - name: auth-v1-open
+        url: http://supabase-auth:9999/verify
+        routes:
+          - name: auth-v1-open
+            strip_path: true
+            paths: [/auth/v1/verify]
+        plugins:
+          - name: cors
+      - name: auth-v1-open-callback
+        url: http://supabase-auth:9999/callback
+        routes:
+          - name: auth-v1-open-callback
+            strip_path: true
+            paths: [/auth/v1/callback]
+        plugins:
+          - name: cors
+      - name: auth-v1-open-authorize
+        url: http://supabase-auth:9999/authorize
+        routes:
+          - name: auth-v1-open-authorize
+            strip_path: true
+            paths: [/auth/v1/authorize]
+        plugins:
+          - name: cors
+      - name: auth-v1
+        url: http://supabase-auth:9999/
+        routes:
+          - name: auth-v1-all
+            strip_path: true
+            paths: [/auth/v1/]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              replace:
+                headers:
+                  - "Authorization: $LUA_AUTH_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: rest-v1
+        url: http://supabase-rest:3000/
+        routes:
+          - name: rest-v1-all
+            strip_path: true
+            paths: [/rest/v1/]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              replace:
+                headers:
+                  - "Authorization: $LUA_AUTH_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: realtime-v1-ws
+        url: http://supabase-realtime:4000/socket
+        protocol: ws
+        routes:
+          - name: realtime-v1-ws
+            strip_path: true
+            paths: [/realtime/v1/]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "x-api-key:$LUA_RT_WS_EXPR"
+              replace:
+                querystring:
+                  - "apikey:$LUA_RT_WS_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: realtime-v1-rest
+        url: http://supabase-realtime:4000/api
+        routes:
+          - name: realtime-v1-rest
+            strip_path: true
+            paths: [/realtime/v1/api]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              replace:
+                headers:
+                  - "Authorization: $LUA_AUTH_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: storage-v1
+        url: http://supabase-storage:5000/
+        routes:
+          - name: storage-v1-all
+            strip_path: true
+            paths: [/storage/v1/]
+        plugins:
+          - name: cors
+          - name: request-transformer
+            config:
+              replace:
+                headers:
+                  - "Authorization: $LUA_AUTH_EXPR"
+      - name: meta
+        url: http://supabase-meta:8080/
+        routes:
+          - name: meta-all
+            strip_path: true
+            paths: [/pg/]
+        plugins:
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin]
+      - name: dashboard
+        url: http://192.0.2.97:3000/
+        routes:
+          - name: dashboard-all
+            strip_path: true
+            paths: [/]
+        plugins:
+          - name: cors
+          - name: basic-auth
+            config:
+              hide_credentials: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: supabase-storage
+  namespace: supabase-pg-re8ch
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+spec:
+  selector:
+    app.kubernetes.io/part-of: supabase-pg-re8ch
+    app.kubernetes.io/component: studio
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-api-kong
+  namespace: supabase-pg-re8ch
+spec:
+  selector:
+    app.kubernetes.io/part-of: supabase-pg-re8ch
+    app.kubernetes.io/component: kong
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-studio
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: studio }
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-meta
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: meta }
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-auth
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: auth }
+  ports:
+    - name: http
+      port: 9999
+      targetPort: 9999
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-rest
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: rest }
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-realtime
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: realtime }
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-storage
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: storage }
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-imgproxy
+  namespace: supabase-pg-re8ch
+spec:
+  selector: { app.kubernetes.io/component: imgproxy }
+  ports:
+    - name: http
+      port: 5001
+      targetPort: 5001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-studio
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: studio }
+  template: &supabase_pod_template_base
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: studio
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      containers:
+        - name: studio
+          image: mjhsdd6xkcym4k.xuanyuan.run/supabase/studio:2026.07.07-sha-a6a04f2
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: HOSTNAME, value: "0.0.0.0" }
+            - { name: STUDIO_PG_META_URL, value: "http://supabase-meta:8080" }
+            - { name: SUPABASE_URL, value: "http://supabase-api-kong:8000" }
+            - { name: SUPABASE_ANON_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: ANON_KEY } } }
+            - { name: SUPABASE_SERVICE_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: SERVICE_ROLE_KEY } } }
+            - { name: AUTH_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: DEFAULT_ORGANIZATION_NAME, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: STUDIO_DEFAULT_ORGANIZATION } } }
+            - { name: DEFAULT_PROJECT_NAME, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: STUDIO_DEFAULT_PROJECT } } }
+            - { name: ENABLED_FEATURES_LOGS_ALL, value: "false" }
+            - { name: SNIPPETS_MANAGEMENT_FOLDER, value: "/tmp/snippets" }
+            - { name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER, value: "/tmp/edge-functions" }
+          ports: [{ name: http, containerPort: 3000 }]
+          resources:
+            requests: { cpu: 80m, memory: 256Mi }
+            limits: { cpu: 200m, memory: 768Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-kong
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: kong }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: kong
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: kong
+          image: mjhsdd6xkcym4k.xuanyuan.run/kong/kong:3.9.1
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/home/kong/kong-entrypoint.sh"]
+          envFrom:
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: KONG_DATABASE, value: "off" }
+            - { name: KONG_DECLARATIVE_CONFIG, value: /usr/local/kong/kong.yml }
+            - { name: KONG_ROUTER_FLAVOR, value: expressions }
+            - { name: KONG_NGINX_WORKER_PROCESSES, value: "1" }
+            - { name: KONG_DNS_ORDER, value: LAST,A,CNAME }
+            - { name: KONG_DNS_NOT_FOUND_TTL, value: "1" }
+            - { name: KONG_PLUGINS, value: bundled }
+            - { name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE, value: 160k }
+            - { name: KONG_NGINX_PROXY_PROXY_BUFFERS, value: "64 160k" }
+            - { name: KONG_PROXY_ACCESS_LOG, value: /dev/stdout combined }
+            - { name: SUPABASE_ANON_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: ANON_KEY } } }
+            - { name: SUPABASE_SERVICE_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: SERVICE_ROLE_KEY } } }
+          ports: [{ name: http, containerPort: 8000 }]
+          volumeMounts:
+            - { name: kong-config, mountPath: /home/kong/temp.yml, subPath: kong.yml, readOnly: true }
+            - { name: kong-config, mountPath: /home/kong/kong-entrypoint.sh, subPath: kong-entrypoint.sh, readOnly: true }
+          resources:
+            requests: { cpu: 70m, memory: 128Mi }
+            limits: { cpu: 150m, memory: 512Mi }
+      volumes:
+        - name: kong-config
+          configMap:
+            name: supabase-kong-config
+            defaultMode: 0555
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-meta
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: meta }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: meta
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: meta
+          image: mjhsdd6xkcym4k.xuanyuan.run/supabase/postgres-meta:v0.96.6
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: PG_META_PORT, value: "8080" }
+            - { name: PG_META_DB_HOST, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: POSTGRES_HOST } } }
+            - { name: PG_META_DB_PORT, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: POSTGRES_PORT } } }
+            - { name: PG_META_DB_NAME, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: POSTGRES_DB } } }
+            - { name: PG_META_DB_USER, value: supabase_admin }
+            - { name: PG_META_DB_PASSWORD, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: POSTGRES_PASSWORD } } }
+            - { name: CRYPTO_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: PG_META_CRYPTO_KEY } } }
+          ports: [{ name: http, containerPort: 8080 }]
+          resources:
+            requests: { cpu: 40m, memory: 96Mi }
+            limits: { cpu: 100m, memory: 256Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-auth
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: auth }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: auth
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: auth
+          image: mjhsdd6xkcym4k.xuanyuan.run/supabase/gotrue:v2.189.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: GOTRUE_API_HOST, value: "0.0.0.0" }
+            - { name: GOTRUE_API_PORT, value: "9999" }
+            - { name: GOTRUE_DB_DRIVER, value: postgres }
+            - { name: GOTRUE_DB_DATABASE_URL, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: GOTRUE_DB_DATABASE_URL } } }
+            - { name: GOTRUE_SITE_URL, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: SITE_URL } } }
+            - { name: GOTRUE_URI_ALLOW_LIST, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: ADDITIONAL_REDIRECT_URLS } } }
+            - { name: GOTRUE_DISABLE_SIGNUP, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: DISABLE_SIGNUP } } }
+            - { name: GOTRUE_JWT_ADMIN_ROLES, value: service_role }
+            - { name: GOTRUE_JWT_AUD, value: authenticated }
+            - { name: GOTRUE_JWT_DEFAULT_GROUP_NAME, value: authenticated }
+            - { name: GOTRUE_JWT_EXP, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: JWT_EXPIRY } } }
+            - { name: GOTRUE_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: GOTRUE_JWT_ISSUER, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: API_EXTERNAL_URL } } }
+            - { name: GOTRUE_EXTERNAL_EMAIL_ENABLED, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: ENABLE_EMAIL_SIGNUP } } }
+            - { name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: ENABLE_ANONYMOUS_USERS } } }
+            - { name: GOTRUE_MAILER_AUTOCONFIRM, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: ENABLE_EMAIL_AUTOCONFIRM } } }
+            - { name: GOTRUE_EXTERNAL_PHONE_ENABLED, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: ENABLE_PHONE_SIGNUP } } }
+            - { name: GOTRUE_SMS_AUTOCONFIRM, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: ENABLE_PHONE_AUTOCONFIRM } } }
+          ports: [{ name: http, containerPort: 9999 }]
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 100m, memory: 384Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-rest
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: rest }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: rest
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: rest
+          image: mjhsdd6xkcym4k.xuanyuan.run/postgrest/postgrest:v14.12
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: PGRST_DB_URI, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: PGRST_DB_URI } } }
+            - { name: PGRST_DB_ANON_ROLE, value: anon }
+            - { name: PGRST_ADMIN_SERVER_PORT, value: "3001" }
+            - { name: PGRST_ADMIN_SERVER_HOST, value: 127.0.0.1 }
+            - { name: PGRST_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: PGRST_DB_USE_LEGACY_GUCS, value: "false" }
+            - { name: PGRST_APP_SETTINGS_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: PGRST_APP_SETTINGS_JWT_EXP, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: JWT_EXPIRY } } }
+          ports: [{ name: http, containerPort: 3000 }]
+          resources:
+            requests: { cpu: 40m, memory: 64Mi }
+            limits: { cpu: 100m, memory: 256Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-realtime
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: realtime }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: realtime
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: realtime
+          image: mjhsdd6xkcym4k.xuanyuan.run/supabase/realtime:v2.102.3
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: PORT, value: "4000" }
+            - { name: DB_HOST, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: POSTGRES_HOST } } }
+            - { name: DB_PORT, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: POSTGRES_PORT } } }
+            - { name: DB_USER, value: supabase_admin }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: POSTGRES_PASSWORD } } }
+            - { name: DB_NAME, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: POSTGRES_DB } } }
+            - { name: DB_AFTER_CONNECT_QUERY, value: "SET search_path TO _realtime" }
+            - { name: DB_ENC_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: REALTIME_DB_ENC_KEY } } }
+            - { name: API_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: SECRET_KEY_BASE, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: SECRET_KEY_BASE } } }
+            - { name: METRICS_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: ERL_AFLAGS, value: "-proto_dist inet_tcp" }
+            - { name: DNS_NODES, value: "''" }
+            - { name: RLIMIT_NOFILE, value: "10000" }
+            - { name: APP_NAME, value: realtime }
+            - { name: SEED_SELF_HOST, value: "true" }
+            - { name: RUN_JANITOR, value: "true" }
+            - { name: DISABLE_HEALTHCHECK_LOGGING, value: "true" }
+          ports: [{ name: http, containerPort: 4000 }]
+          resources:
+            requests: { cpu: 80m, memory: 128Mi }
+            limits: { cpu: 150m, memory: 512Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-storage
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: storage }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: storage
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: storage
+          image: mjhsdd6xkcym4k.xuanyuan.run/supabase/storage-api:v1.60.4
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+            - secretRef: { name: supabase-pg-re8ch-secrets }
+          env:
+            - { name: ANON_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: ANON_KEY } } }
+            - { name: SERVICE_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: SERVICE_ROLE_KEY } } }
+            - { name: POSTGREST_URL, value: "http://supabase-rest:3000" }
+            - { name: AUTH_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: DATABASE_URL, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: STORAGE_DATABASE_URL } } }
+            - { name: STORAGE_PUBLIC_URL, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: SUPABASE_PUBLIC_URL } } }
+            - { name: REQUEST_ALLOW_X_FORWARDED_PATH, value: "true" }
+            - { name: FILE_SIZE_LIMIT, value: "52428800" }
+            - { name: STORAGE_BACKEND, value: file }
+            - { name: FILE_STORAGE_BACKEND_PATH, value: /var/lib/storage }
+            - { name: ENABLE_IMAGE_TRANSFORMATION, value: "true" }
+            - { name: IMGPROXY_URL, value: "http://supabase-imgproxy:5001" }
+          ports: [{ name: http, containerPort: 5000 }]
+          volumeMounts:
+            - { name: storage-data, mountPath: /var/lib/storage }
+          resources:
+            requests: { cpu: 70m, memory: 128Mi }
+            limits: { cpu: 150m, memory: 512Mi }
+      volumes:
+        - name: storage-data
+          persistentVolumeClaim:
+            claimName: supabase-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-imgproxy
+  namespace: supabase-pg-re8ch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app.kubernetes.io/component: imgproxy }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: supabase-pg-re8ch
+        app.kubernetes.io/component: imgproxy
+    spec:
+      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      tolerations:
+        - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
+      containers:
+        - name: imgproxy
+          image: mjhsdd6xkcym4k.xuanyuan.run/darthsim/imgproxy:v3.30.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: supabase-pg-re8ch-env }
+          env:
+            - { name: IMGPROXY_BIND, value: ":5001" }
+            - { name: IMGPROXY_LOCAL_FILESYSTEM_ROOT, value: / }
+            - { name: IMGPROXY_USE_ETAG, value: "true" }
+            - { name: IMGPROXY_MAX_SRC_RESOLUTION, value: "16.8" }
+          ports: [{ name: http, containerPort: 5001 }]
+          volumeMounts:
+            - { name: storage-data, mountPath: /var/lib/storage, readOnly: true }
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { cpu: 50m, memory: 256Mi }
+      volumes:
+        - name: storage-data
+          persistentVolumeClaim:
+            claimName: supabase-storage
