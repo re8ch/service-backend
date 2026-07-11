@@ -5,6 +5,26 @@ This folder records the July 2, 2026 Teable cloud deployment attempt for the
 Kubernetes workload was rolled back, while the non-running tenant/database/OSS
 setup was left in place for future retry or cleanup.
 
+## Do Not Treat This As A Deployment Guide
+
+This document records a failed historical attempt. It is not the current
+placement guidance.
+
+Do not place Teable on `vm-20-12-ubuntu` / ICP control plane. On 2026-07-10 a
+Teable retry accidentally reused this old placement and overloaded the small
+control-plane node during image pull, migration, and startup. K3S apiserver and
+kine began returning TLS handshake timeouts and slow SQL warnings. Recovery
+required killing the Teable/Redis workload processes, restarting `k3s`, scaling
+the Teable Deployments to zero, and deleting the remaining Teable Pods.
+
+The corrected first deployment target is restricted-node-6dc3f140f9, and the current manifest is:
+
+```text
+manifests/k3s/agent-collab/teable-pg-re8ch.yaml
+```
+
+That manifest must keep Teable off `vm-20-12-ubuntu`.
+
 ## Current State
 
 - Namespace/RBAC: `agent-collab` was created through the RE8CH cluster MCP
@@ -68,4 +88,3 @@ Post-rollback checks showed all nodes Ready and no Teable PV output.
 - Keep public Ingress/DNS as a separate explicit step after service health is
   confirmed.
 - Re-check Qwen/API smoke endpoints before any public routing change.
-
