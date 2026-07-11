@@ -57,9 +57,9 @@ spec:
             - name: PUBLIC_API_BASE_URL
               value: https://api.re8ch.com/auth
             - name: MGR_RPC_RW_BASE_URL
-              value: https://db-rw.re8ch.com/auth
+              value: http://192.0.2.251:3017
             - name: MGR_RPC_RO_BASE_URL
-              value: https://db-rw.re8ch.com/auth
+              value: http://192.0.2.251:3017
             - name: AUTH_SERVICE_ROLE
               value: auth_app_rw
             - name: AUTH_GATEWAY_COOKIE_NAME
