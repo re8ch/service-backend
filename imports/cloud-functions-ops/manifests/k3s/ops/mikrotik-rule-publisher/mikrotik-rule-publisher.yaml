@@ -1,0 +1,207 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mikrotik-rule-publisher-data
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: mikrotik-rule-publisher
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mikrotik-rule-publisher
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: mikrotik-rule-publisher
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mikrotik-rule-publisher
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mikrotik-rule-publisher
+        app.kubernetes.io/part-of: re8ch-ops
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      initContainers:
+        - name: build-initial-rsc
+          image: registry.re8ch.com/ops/mikrotik-rule-publisher:20260713-007
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          command:
+            - sh
+            - -ec
+            - |
+              mkdir -p /data/public/rsc
+              cp -a /seed/. /data/public/rsc/
+              python /app/build_split_lists.py --config-dir /config --out-dir /data/public/rsc
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /data
+      containers:
+        - name: web
+          image: registry.re8ch.com/ops/mikrotik-rule-publisher:20260713-007
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          command:
+            - python
+            - /app/server.py
+            - --root
+            - /data/public/rsc
+            - --port
+            - "8080"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: mikrotik-rule-publisher-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: mikrotik-rule-publisher-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mikrotik-rule-publisher
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: mikrotik-rule-publisher
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: mikrotik-rule-publisher
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      nodePort: 30089
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mikrotik-rule-publisher-refresh
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: mikrotik-rule-publisher
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  suspend: true
+  schedule: "17 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: mikrotik-rule-publisher
+            app.kubernetes.io/component: refresh
+        spec:
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: restricted-node-6dc3f140f9
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+          containers:
+            - name: refresh
+              image: registry.re8ch.com/ops/mikrotik-rule-publisher:20260713-007
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+              command:
+                - python
+                - /app/build_split_lists.py
+                - --config-dir
+                - /config
+                - --out-dir
+                - /data/public/rsc
+                - --refresh
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: config
+              configMap:
+                name: mikrotik-rule-publisher-config
+            - name: data
+              persistentVolumeClaim:
+                claimName: mikrotik-rule-publisher-data
