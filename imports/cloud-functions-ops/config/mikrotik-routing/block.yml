@@ -1,0 +1,6 @@
+# RE8CH MikroTik block address lists.
+#
+# This is currently empty by design. Add explicit CIDRs only when the routing
+# policy should drop or reject traffic before direct/proxy decisions.
+
+re8ch-block-ip: []
