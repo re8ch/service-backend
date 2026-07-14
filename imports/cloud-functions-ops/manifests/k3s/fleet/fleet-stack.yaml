@@ -1,0 +1,545 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fleet
+  labels:
+    app.kubernetes.io/name: fleet
+    re8ch.com/workload: apple-mdm
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fleet-mysql-config
+  namespace: fleet
+data:
+  fleet.cnf: |
+    [mysqld]
+    innodb_buffer_pool_size=256M
+    max_connections=100
+    performance_schema=OFF
+    skip_name_resolve=ON
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet-egress-proxy
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-egress-proxy
+spec:
+  type: ClusterIP
+  clusterIP: 192.0.2.27
+  ports:
+    - name: proxy
+      port: 3128
+      targetPort: proxy
+  selector:
+    app.kubernetes.io/name: fleet-egress-proxy
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fleet-egress-proxy
+  namespace: fleet
+data:
+  proxy.py: |
+    import select
+    import socket
+    import socketserver
+
+    class Proxy(socketserver.StreamRequestHandler):
+        timeout = 20
+
+        def handle(self):
+            first = self.rfile.readline(65536).decode("iso-8859-1", "replace")
+            if not first:
+                return
+            parts = first.strip().split()
+            if len(parts) < 3 or parts[0].upper() != "CONNECT":
+                self.wfile.write(b"HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\n\r\n")
+                return
+            host, _, port_text = parts[1].partition(":")
+            port = int(port_text or "443")
+            while True:
+                line = self.rfile.readline(65536)
+                if not line or line in (b"\r\n", b"\n"):
+                    break
+            try:
+                upstream = socket.create_connection((host, port), timeout=self.timeout)
+            except Exception:
+                self.wfile.write(b"HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n")
+                return
+            self.wfile.write(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+            self.wfile.flush()
+            sockets = [self.connection, upstream]
+            try:
+                while True:
+                    readable, _, _ = select.select(sockets, [], [], self.timeout)
+                    if not readable:
+                        return
+                    for src in readable:
+                        data = src.recv(65536)
+                        if not data:
+                            return
+                        dst = upstream if src is self.connection else self.connection
+                        dst.sendall(data)
+            finally:
+                upstream.close()
+
+    class Server(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True
+        daemon_threads = True
+
+    if __name__ == "__main__":
+        with Server(("0.0.0.0", 3128), Proxy) as server:
+            server.serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fleet-egress-proxy
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-egress-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fleet-egress-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet-egress-proxy
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/panel: "true"
+      hostAliases:
+        - ip: 192.0.2.187
+          hostnames:
+            - api.push.apple.com
+        - ip: 192.0.2.222
+          hostnames:
+            - api.push.apple.com
+        - ip: 192.0.2.117
+          hostnames:
+            - api.development.push.apple.com
+        - ip: 192.0.2.122
+          hostnames:
+            - fleetdm.com
+        - ip: 192.0.2.35
+          hostnames:
+            - fleetdm.com
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: proxy
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python3
+            - /app/proxy.py
+          ports:
+            - name: proxy
+              containerPort: 3128
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: proxy-script
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: proxy-script
+          configMap:
+            name: fleet-egress-proxy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet-mysql
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-mysql
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+  clusterIP: 192.0.2.208
+  selector:
+    app.kubernetes.io/name: fleet-mysql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fleet-mysql
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-mysql
+spec:
+  serviceName: fleet-mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fleet-mysql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet-mysql
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/panel: "true"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: fleet
+            - name: MYSQL_USER
+              value: fleet
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-secrets
+                  key: mysql-password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-secrets
+                  key: mysql-root-password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 320Mi
+            limits:
+              cpu: 800m
+              memory: 768Mi
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+            - name: mysql-config
+              mountPath: /etc/mysql/conf.d/fleet.cnf
+              subPath: fleet.cnf
+      volumes:
+        - name: mysql-config
+          configMap:
+            name: fleet-mysql-config
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet-redis
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-redis
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+  clusterIP: 192.0.2.159
+  selector:
+    app.kubernetes.io/name: fleet-redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fleet-redis
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet-redis
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fleet-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet-redis
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/panel: "true"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: redis
+          image: redis:7.2.4
+          imagePullPolicy: IfNotPresent
+          args:
+            - redis-server
+            - --save
+            - ""
+            - --appendonly
+            - "no"
+          ports:
+            - name: redis
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fleet-db-prepare
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet
+    app.kubernetes.io/component: migration
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        node-role.kubernetes.io/panel: "true"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: fleet-db-prepare
+          image: fleetdm/fleet:v4.85.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - fleet
+            - prepare
+            - db
+            - --no-prompt
+          envFrom:
+            - secretRef:
+                name: fleet-secrets
+          env:
+            - name: FLEET_SERVER_TLS
+              value: "false"
+            - name: FLEET_SERVER_ADDRESS
+              value: 0.0.0.0:8080
+            - name: FLEET_MYSQL_ADDRESS
+              value: 192.0.2.208:3306
+            - name: FLEET_MYSQL_DATABASE
+              value: fleet
+            - name: FLEET_MYSQL_USERNAME
+              value: fleet
+            - name: FLEET_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-secrets
+                  key: mysql-password
+            - name: FLEET_MYSQL_MAX_OPEN_CONNS
+              value: "20"
+            - name: FLEET_MYSQL_MAX_IDLE_CONNS
+              value: "20"
+            - name: FLEET_REDIS_ADDRESS
+              value: 192.0.2.159:6379
+            - name: FLEET_SERVER_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-secrets
+                  key: server-private-key
+            - name: HTTPS_PROXY
+              value: http://192.0.2.27:3128
+            - name: HTTP_PROXY
+              value: http://192.0.2.27:3128
+            - name: NO_PROXY
+              value: 127.0.0.1,localhost,192.0.2.232/16,192.0.2.224/16,.svc,.cluster.local
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fleet
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: fleet
+    app.kubernetes.io/component: server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fleet
+  namespace: fleet
+  labels:
+    app.kubernetes.io/name: fleet
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fleet
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fleet
+        app.kubernetes.io/component: server
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/panel: "true"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      containers:
+        - name: fleet
+          image: fleetdm/fleet:v4.85.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - fleet
+            - serve
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: fleet-secrets
+          env:
+            - name: FLEET_SERVER_TLS
+              value: "false"
+            - name: FLEET_SERVER_ADDRESS
+              value: 0.0.0.0:8080
+            - name: FLEET_MYSQL_ADDRESS
+              value: 192.0.2.208:3306
+            - name: FLEET_MYSQL_DATABASE
+              value: fleet
+            - name: FLEET_MYSQL_USERNAME
+              value: fleet
+            - name: FLEET_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-secrets
+                  key: mysql-password
+            - name: FLEET_MYSQL_MAX_OPEN_CONNS
+              value: "20"
+            - name: FLEET_MYSQL_MAX_IDLE_CONNS
+              value: "20"
+            - name: FLEET_REDIS_ADDRESS
+              value: 192.0.2.159:6379
+            - name: FLEET_SERVER_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-secrets
+                  key: server-private-key
+            - name: HTTPS_PROXY
+              value: http://192.0.2.27:3128
+            - name: HTTP_PROXY
+              value: http://192.0.2.27:3128
+            - name: NO_PROXY
+              value: 127.0.0.1,localhost,192.0.2.232/16,192.0.2.224/16,.svc,.cluster.local
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 800m
+              memory: 768Mi
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fleet
+  namespace: fleet
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: fleet.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fleet
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - fleet.re8ch.com
+      secretName: re8ch-wildcard-tls
