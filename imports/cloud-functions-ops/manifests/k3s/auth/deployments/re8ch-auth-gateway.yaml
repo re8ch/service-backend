@@ -113,6 +113,38 @@ spec:
                   name: re8ch-auth-gateway-secrets
                   key: GOOGLE_OIDC_CLIENT_SECRET
                   optional: true
+            - name: AUTHENTIK_OIDC_ISSUER
+              value: https://auth.re8ch.com/application/o/re8ch-business/
+            - name: AUTHENTIK_OIDC_SCOPES
+              value: openid email profile groups
+            - name: AUTHENTIK_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTHENTIK_OIDC_CLIENT_ID
+                  optional: true
+            - name: AUTHENTIK_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTHENTIK_OIDC_CLIENT_SECRET
+                  optional: true
+            - name: DEX_OIDC_ISSUER
+              value: https://dex.re8ch.com
+            - name: DEX_OIDC_SCOPES
+              value: openid email profile groups
+            - name: DEX_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: DEX_OIDC_CLIENT_ID
+                  optional: true
+            - name: DEX_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: DEX_OIDC_CLIENT_SECRET
+                  optional: true
             - name: AUTH_GATEWAY_COOKIE_SECRET
               valueFrom:
                 secretKeyRef:
