@@ -1,5 +1,5 @@
-# Node-local aggregator services for api.re8ch.com weighted DNS.
-# Each Nuclio edge node only routes to the ledger pod scheduled on that node.
+# R640-owned Ledger services for api.re8ch.com.
+# Select the canonical functions only; regional partner replicas use suffixed names.
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,7 +15,7 @@ spec:
   type: ClusterIP
   internalTrafficPolicy: Local
   selector:
-    ledger.re8ch.com/component: api-gateway
+    nuclio.io/function-name: ledger-api-gateway
   ports:
     - name: http
       port: 8080
@@ -36,7 +36,7 @@ spec:
   type: ClusterIP
   internalTrafficPolicy: Local
   selector:
-    ledger.re8ch.com/component: wechat-auth
+    nuclio.io/function-name: ledger-wechat-auth
   ports:
     - name: http
       port: 8080
@@ -57,7 +57,7 @@ spec:
   type: ClusterIP
   internalTrafficPolicy: Local
   selector:
-    ledger.re8ch.com/component: report-runner
+    nuclio.io/function-name: ledger-gnucash-report-runner
   ports:
     - name: http
       port: 8080
