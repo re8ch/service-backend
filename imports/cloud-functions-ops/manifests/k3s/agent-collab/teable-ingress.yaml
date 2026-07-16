@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: teable
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable
+    app.kubernetes.io/part-of: agent-collab
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: teable.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: teable
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - teable.re8ch.com
