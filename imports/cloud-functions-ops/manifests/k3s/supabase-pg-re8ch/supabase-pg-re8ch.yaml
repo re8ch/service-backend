@@ -420,6 +420,7 @@ spec:
             - { name: SUPABASE_ANON_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: ANON_KEY } } }
             - { name: SUPABASE_SERVICE_KEY, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: SERVICE_ROLE_KEY } } }
             - { name: AUTH_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: JWT_SECRET } } }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: supabase-pg-re8ch-secrets, key: POSTGRES_PASSWORD_URLENCODED } } }
             - { name: DEFAULT_ORGANIZATION_NAME, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: STUDIO_DEFAULT_ORGANIZATION } } }
             - { name: DEFAULT_PROJECT_NAME, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: STUDIO_DEFAULT_PROJECT } } }
             - { name: ENABLED_FEATURES_LOGS_ALL, value: "false" }

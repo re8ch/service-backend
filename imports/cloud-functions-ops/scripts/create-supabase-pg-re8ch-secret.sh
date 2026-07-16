@@ -51,6 +51,7 @@ kubectl get namespace "$NAMESPACE" >/dev/null 2>&1 || kubectl create namespace "
 kubectl -n "$NAMESPACE" create secret generic "$SECRET_NAME" \
   --dry-run=client -o yaml \
   --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+  --from-literal=POSTGRES_PASSWORD_URLENCODED="$POSTGRES_PASSWORD_URLENCODED" \
   --from-literal=POSTGRES_USER_READ_WRITE="supabase_admin" \
   --from-literal=JWT_SECRET="$JWT_SECRET" \
   --from-literal=ANON_KEY="$ANON_KEY" \
