@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wechat-content-orchestrator-code
+  namespace: agent-collab
+data:
+  server.mjs: |
+    import http from 'node:http';
+    const tools = [
+      ['claim_content_task', '领取一条待处理的微信公众号内容任务'],
+      ['start_codex_stage', '把已领取任务提交给 Codex app server'],
+      ['get_codex_stage', '查询 Codex 生成阶段状态'],
+      ['complete_content_stage', '登记图文产物并转入人工审核'],
+      ['fail_content_stage', '记录阶段失败或阻塞原因'],
+    ].map(([name, description]) => ({name, description, inputSchema:{type:'object',properties:{taskId:{type:'string'},note:{type:'string'}},additionalProperties:false}}));
+    const blocked = () => ({content:[{type:'text',text:JSON.stringify({status:'blocked',reason:'Teable 数据库运行账户缺少建表权限；Kagent/Codex 模型凭据按要求留空。修复数据库授权并配置凭据后再启用自动调度。'})}],isError:true});
+    const reply = (res, body, status=200) => {res.writeHead(status, {'content-type':'application/json'});res.end(JSON.stringify(body));};
+    http.createServer(async (req,res) => {
+      if (req.method === 'GET' && req.url === '/healthz') return reply(res,{ok:true,mode:'credential-gated',teableSchema:false,kagentModel:false,codexModel:false});
+      if (req.method !== 'POST' || req.url !== '/mcp') return reply(res,{error:'not found'},404);
+      let raw=''; for await (const chunk of req) raw += chunk; let msg; try {msg=JSON.parse(raw)} catch {return reply(res,{error:'invalid json'},400)}
+      const result = msg.method === 'initialize' ? {protocolVersion:'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'wechat-content-orchestrator',version:'0.1.0'}}
+        : msg.method === 'tools/list' ? {tools}
+        : msg.method === 'tools/call' ? blocked()
+        : {};
+      reply(res,{jsonrpc:'2.0',id:msg.id ?? null,result});
+    }).listen(8080,'0.0.0.0');
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wechat-content-orchestrator
+  namespace: agent-collab
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: wechat-content-orchestrator}
+  template:
+    metadata:
+      labels: {app: wechat-content-orchestrator}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      containers:
+      - name: orchestrator
+        # Reuse the pre-pulled Teable Node runtime on restricted-node-6dc3f140f9; no in-cluster build or private pull is needed.
+        image: ghcr.io/teableio/teable:latest
+        imagePullPolicy: IfNotPresent
+        command: [node, /app/server.mjs]
+        ports: [{name: http, containerPort: 8080}]
+        readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 10}
+        livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 20}
+        resources:
+          requests: {cpu: 20m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 128Mi}
+        volumeMounts: [{name: code, mountPath: /app, readOnly: true}]
+      volumes:
+      - name: code
+        configMap: {name: wechat-content-orchestrator-code}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wechat-content-orchestrator
+  namespace: agent-collab
+spec:
+  selector: {app: wechat-content-orchestrator}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: wechat-content-orchestrator
+  namespace: kagent
+spec:
+  description: Teable、Kagent 与 Codex 的微信公众号内容调度接口
+  protocol: STREAMABLE_HTTP
+  timeout: 30s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true
+  url: http://wechat-content-orchestrator.agent-collab.svc.cluster.local:8080/mcp
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: wechat-content-operations-agent
+  namespace: kagent
+spec:
+  description: 领取 Teable 内容任务并调度 Codex 生成待审图文包
+  type: Declarative
+  declarative:
+    runtime: python
+    stream: true
+    modelConfig: default-model-config
+    deployment:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+    systemMessage: |
+      你是微信公众号内容运营调度 Agent。只处理 Teable 中明确标记为待处理的任务。
+      使用 MCP 工具按“领取任务、启动 Codex、查询状态、登记产物、转人工审核”的顺序工作。
+      不得自动发布文章；缺少凭据、表结构或人工审批时必须停止并记录阻塞原因。
+    tools:
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: wechat-content-orchestrator
+        namespace: kagent
+        toolNames: [claim_content_task, start_codex_stage, get_codex_stage, complete_content_stage, fail_content_stage]
