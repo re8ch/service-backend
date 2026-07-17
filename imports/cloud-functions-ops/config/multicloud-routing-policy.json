@@ -1,0 +1,29 @@
+{
+  "domainSuffix": "functions.re8ch.com",
+  "httpsReadyProviders": ["aliyun"],
+  "countryGroups": {
+    "cn": ["CN"],
+    "hk": ["HK", "MO", "TW"],
+    "sea": ["SG", "MY", "ID", "TH", "VN", "PH", "KH", "LA", "MM", "BN"],
+    "northeastAsia": ["JP", "KR"],
+    "europe": ["DE", "FR", "NL", "BE", "LU", "AT", "CH", "IT", "ES", "PT", "PL", "CZ", "GB", "IE", "SE", "NO", "FI", "DK"],
+    "northAmerica": ["US", "CA", "MX"]
+  },
+  "recommendations": {
+    "cn": ["aliyun:cn-hangzhou", "aliyun:cn-shanghai", "aliyun:cn-beijing", "aliyun:cn-shenzhen"],
+    "hk": ["aliyun:cn-hongkong", "aliyun:cn-shenzhen", "aliyun:ap-southeast-1"],
+    "sea": ["aliyun:ap-southeast-1", "aliyun:ap-southeast-3", "aliyun:ap-southeast-5"],
+    "northeastAsia": ["aliyun:ap-northeast-1", "aliyun:cn-hongkong"],
+    "europe": ["aliyun:eu-central-1", "aliyun:eu-west-1"],
+    "northAmerica": ["aliyun:us-west-1", "aliyun:us-east-1"],
+    "default": ["aliyun:cn-hongkong", "aliyun:ap-southeast-1", "aliyun:eu-central-1", "aliyun:us-west-1"]
+  },
+  "tenants": {
+    "ledger": {
+      "enabled": true
+    },
+    "anycam": {
+      "enabled": true
+    }
+  }
+}
