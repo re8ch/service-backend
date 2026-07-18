@@ -68,6 +68,21 @@ data:
             "closeIdleConnection": true
           }
         },
+        "compocv-labor-r640": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "CompoCV Labor - restricted-node-6dc3f140f9",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "192.0.2.67",
+            "port": "15432",
+            "database": "compocv_labor",
+            "url": "jdbc:postgresql://192.0.2.67:15432/compocv_labor",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
         "anycam-prod-write": {
           "provider": "postgresql",
           "driver": "postgres-jdbc",
@@ -192,7 +207,7 @@ spec:
         fsGroup: 8978
       initContainers:
         - name: seed-config
-          image: mjhsdd6xkcym4k.xuanyuan.run/library/busybox:1.36
+          image: mjhsdd6xkcym4k.xuanyuan.run/dbeaver/cloudbeaver:24.3.5
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
