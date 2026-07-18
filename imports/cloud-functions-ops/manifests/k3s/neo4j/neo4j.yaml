@@ -1,0 +1,326 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: neo4j
+  labels:
+    app.kubernetes.io/part-of: re8ch-knowledge-graph
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neo4j-config
+  namespace: neo4j
+data:
+  apoc.conf: |
+    apoc.export.file.enabled=true
+    apoc.import.file.enabled=true
+    apoc.import.file.use_neo4j_config=true
+    apoc.http.timeout.connect=10000
+    apoc.http.timeout.read=60000
+  postgrest-sources.json: |
+    [
+      {
+        "name": "compocv",
+        "readBaseUrl": "https://db-ro.re8ch.com/compocv",
+        "writeBaseUrl": "https://db-rw.re8ch.com/compocv",
+        "openApiUrl": "https://db-ro.re8ch.com/compocv/"
+      },
+      {
+        "name": "image",
+        "readBaseUrl": "https://db-ro.re8ch.com/image",
+        "writeBaseUrl": "https://db-rw.re8ch.com/image",
+        "openApiUrl": "https://db-ro.re8ch.com/image/"
+      },
+      {
+        "name": "ledger",
+        "readBaseUrl": "https://db-ro.re8ch.com/ledger",
+        "writeBaseUrl": "https://db-rw.re8ch.com/ledger",
+        "openApiUrl": "https://db-ro.re8ch.com/ledger/"
+      }
+    ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+  namespace: neo4j
+  labels:
+    app.kubernetes.io/name: neo4j
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: neo4j
+  ports:
+    - name: http
+      port: 7474
+      targetPort: http
+    - name: bolt
+      port: 7687
+      targetPort: bolt
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: neo4j
+  labels:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/part-of: re8ch-knowledge-graph
+spec:
+  serviceName: neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: neo4j
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: neo4j
+        app.kubernetes.io/part-of: re8ch-knowledge-graph
+    spec:
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      securityContext:
+        fsGroup: 7474
+        fsGroupChangePolicy: OnRootMismatch
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: neo4j
+          image: neo4j:2026.06.0-community
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7474
+              hostPort: 7474
+              protocol: TCP
+            - name: bolt
+              containerPort: 7687
+              hostPort: 7687
+              protocol: TCP
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-auth
+                  key: NEO4J_AUTH
+            - name: NEO4J_PLUGINS
+              value: '["apoc","apoc-extended","graph-data-science","genai"]'
+            - name: NEO4J_server_memory_heap_initial__size
+              value: 4G
+            - name: NEO4J_server_memory_heap_max__size
+              value: 4G
+            - name: NEO4J_server_memory_pagecache_size
+              value: 4G
+            - name: NEO4J_dbms_security_procedures_allowlist
+              value: apoc.*,gds.*,genai.*
+            - name: NEO4J_dbms_security_procedures_unrestricted
+              value: apoc.*,gds.*,genai.*
+            - name: NEO4J_server_default__listen__address
+              value: 0.0.0.0
+            - name: NEO4J_server_default__advertised__address
+              value: neo4j.re8ch.com
+            - name: NEO4J_server_bolt_advertised__address
+              value: neo4j.re8ch.com:7687
+            - name: NEO4J_server_http_advertised__address
+              value: neo4j.re8ch.com:7474
+          resources:
+            requests:
+              cpu: "1"
+              memory: 10Gi
+            limits:
+              cpu: "4"
+              memory: 16Gi
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: bolt
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: plugins
+              mountPath: /plugins
+            - name: logs
+              mountPath: /logs
+            - name: config
+              mountPath: /conf/apoc.conf
+              subPath: apoc.conf
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: neo4j-config
+        - name: logs
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 100Gi
+    - metadata:
+        name: plugins
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neo4j-browser
+  namespace: neo4j
+  labels:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/part-of: re8ch-knowledge-graph
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: neo4j.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: neo4j
+                port:
+                  number: 7474
+  tls:
+    - hosts:
+        - neo4j.re8ch.com
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: neo4j-postgrest-bootstrap
+  namespace: neo4j
+  labels:
+    app.kubernetes.io/name: neo4j-postgrest-bootstrap
+    app.kubernetes.io/part-of: re8ch-knowledge-graph
+spec:
+  backoffLimit: 8
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: neo4j-postgrest-bootstrap
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: neo4j:2026.06.0-community
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-auth
+                  key: NEO4J_AUTH
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              password="${NEO4J_AUTH#neo4j/}"
+              until cypher-shell -a neo4j://neo4j.neo4j.svc.cluster.local:7687 \
+                -u neo4j -p "${password}" 'RETURN 1' >/dev/null 2>&1; do
+                sleep 10
+              done
+              cypher-shell -a neo4j://neo4j.neo4j.svc.cluster.local:7687 \
+                -u neo4j -p "${password}" <<'CYPHER'
+              CREATE CONSTRAINT postgrest_source_name IF NOT EXISTS
+              FOR (s:PostgRESTSource) REQUIRE s.name IS UNIQUE;
+              CREATE CONSTRAINT postgrest_endpoint_key IF NOT EXISTS
+              FOR (e:PostgRESTEndpoint) REQUIRE (e.source, e.path) IS UNIQUE;
+              UNWIND [
+                {
+                  name: 'compocv',
+                  readBaseUrl: 'https://db-ro.re8ch.com/compocv',
+                  writeBaseUrl: 'https://db-rw.re8ch.com/compocv',
+                  openApiUrl: 'https://db-ro.re8ch.com/compocv/'
+                },
+                {
+                  name: 'image',
+                  readBaseUrl: 'https://db-ro.re8ch.com/image',
+                  writeBaseUrl: 'https://db-rw.re8ch.com/image',
+                  openApiUrl: 'https://db-ro.re8ch.com/image/'
+                },
+                {
+                  name: 'ledger',
+                  readBaseUrl: 'https://db-ro.re8ch.com/ledger',
+                  writeBaseUrl: 'https://db-rw.re8ch.com/ledger',
+                  openApiUrl: 'https://db-ro.re8ch.com/ledger/'
+                }
+              ] AS source
+              MERGE (s:PostgRESTSource {name: source.name})
+              SET s.readBaseUrl = source.readBaseUrl,
+                  s.writeBaseUrl = source.writeBaseUrl,
+                  s.openApiUrl = source.openApiUrl,
+                  s.transport = 'PostgREST HTTPS',
+                  s.directPostgreSQL = false,
+                  s.lastDiscoveredAt = datetime()
+              WITH s, source
+              CALL apoc.load.json(source.openApiUrl) YIELD value
+              SET s.apiTitle = value.info.title,
+                  s.apiVersion = value.info.version
+              WITH s, source, value
+              UNWIND keys(value.paths) AS path
+              MERGE (e:PostgRESTEndpoint {source: source.name, path: path})
+              SET e.definition = apoc.convert.toJson(value.paths[path]),
+                  e.discoveredAt = datetime()
+              MERGE (s)-[:EXPOSES]->(e);
+              CYPHER
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: neo4j-default
+  namespace: neo4j
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: neo4j
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: neo4j
+      ports:
+        - protocol: TCP
+          port: 7474
+        - protocol: TCP
+          port: 7687
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 7474
+        - protocol: TCP
+          port: 7687
