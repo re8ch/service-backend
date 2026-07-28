@@ -6,25 +6,152 @@ metadata:
 data:
   server.mjs: |
     import http from 'node:http';
+    const {
+      TEABLE_URL, TEABLE_API_TOKEN, TEABLE_CONTENT_TASK_TABLE_ID,
+      TEABLE_ARTIFACT_TABLE_ID, TEABLE_AGENT_RUN_TABLE_ID,
+      CODEX_MODEL_READY = 'false',
+    } = process.env;
+    const configured = Boolean(TEABLE_URL && TEABLE_API_TOKEN && TEABLE_CONTENT_TASK_TABLE_ID && TEABLE_ARTIFACT_TABLE_ID && TEABLE_AGENT_RUN_TABLE_ID);
+    const inputSchema = {
+      type:'object',
+      properties:{
+        taskId:{type:'string',description:'Teable record ID 或任务编号；领取任务时可省略'},
+        note:{type:'string'},
+        artifactPath:{type:'string'},
+      },
+      additionalProperties:false,
+    };
     const tools = [
-      ['claim_content_task', '领取一条待处理的微信公众号内容任务'],
-      ['start_codex_stage', '把已领取任务提交给 Codex app server'],
-      ['get_codex_stage', '查询 Codex 生成阶段状态'],
-      ['complete_content_stage', '登记图文产物并转入人工审核'],
+      ['claim_content_task', '领取一条状态为“待处理”或“待领取”的微信公众号内容任务'],
+      ['start_codex_stage', '检查 Codex 生成阶段是否具备启动条件'],
+      ['get_codex_stage', '查询 Codex 生成阶段和模型登录状态'],
+      ['complete_content_stage', '登记图文产物并将任务转入人工审核'],
       ['fail_content_stage', '记录阶段失败或阻塞原因'],
-    ].map(([name, description]) => ({name, description, inputSchema:{type:'object',properties:{taskId:{type:'string'},note:{type:'string'}},additionalProperties:false}}));
-    const blocked = () => ({content:[{type:'text',text:JSON.stringify({status:'blocked',reason:'Teable 数据库运行账户缺少建表权限；Kagent/Codex 模型凭据按要求留空。修复数据库授权并配置凭据后再启用自动调度。'})}],isError:true});
+    ].map(([name, description]) => ({name, description, inputSchema}));
     const reply = (res, body, status=200) => {res.writeHead(status, {'content-type':'application/json'});res.end(JSON.stringify(body));};
+    const toolResult = (value, isError=false) => ({content:[{type:'text',text:JSON.stringify(value)}],isError});
+    const teable = async (path, init={}) => {
+      if (!configured) throw new Error('Teable API configuration is incomplete');
+      const response = await fetch(`${TEABLE_URL}${path}`, {
+        ...init,
+        headers:{authorization:`Bearer ${TEABLE_API_TOKEN}`,'content-type':'application/json',...(init.headers||{})},
+      });
+      const text = await response.text();
+      const body = text ? JSON.parse(text) : {};
+      if (!response.ok) throw new Error(`Teable ${response.status}: ${text.slice(0,500)}`);
+      return body;
+    };
+    const listRecords = (tableId) => teable(`/api/table/${tableId}/record?take=1000&fieldKeyType=name`);
+    const findTask = async (taskId) => {
+      const {records=[]} = await listRecords(TEABLE_CONTENT_TASK_TABLE_ID);
+      return taskId
+        ? records.find((record) => record.id === taskId || record.fields?.['任务编号'] === taskId)
+        : records.find((record) => ['待处理','待领取'].includes(record.fields?.['状态']));
+    };
+    const updateRecord = (tableId, recordId, fields) => teable(`/api/table/${tableId}/record/${recordId}`, {
+      method:'PATCH',
+      body:JSON.stringify({fieldKeyType:'name',typecast:true,record:{fields}}),
+    });
+    const createRecord = (tableId, fields) => teable(`/api/table/${tableId}/record`, {
+      method:'POST',
+      body:JSON.stringify({fieldKeyType:'name',typecast:true,records:[{fields}]}),
+    });
+    const createRun = (task, stage, status, summary='', error='') => {
+      const now = new Date().toISOString();
+      const taskNo = task.fields?.['任务编号'] || task.id;
+      return createRecord(TEABLE_AGENT_RUN_TABLE_ID, {
+        '运行名称':`${taskNo} / ${stage}`,
+        '运行编号':`RUN-${taskNo}-${Date.now()}`,
+        '任务编号':taskNo,
+        'Agent':'Kagent/Codex',
+        '阶段':stage,
+        '状态':status,
+        '开始时间':now,
+        '结束时间':status === '运行中' ? null : now,
+        '结果摘要':summary,
+        '错误':error,
+      });
+    };
+    const handlers = {
+      claim_content_task: async ({taskId}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'idle',reason:taskId ? '未找到可领取任务' : '没有待处理任务'};
+        if (!['待处理','待领取'].includes(task.fields?.['状态'])) {
+          return {status:'blocked',reason:`任务当前状态为 ${task.fields?.['状态'] || '未知'}，不可领取`,task};
+        }
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'状态':'处理中','当前阶段':'Agent 已领取','阻塞原因':''});
+        await createRun(task,'任务领取','已完成','Kagent 已领取任务');
+        return {status:'claimed',taskId:task.id,taskNumber:task.fields?.['任务编号'],task:task.fields};
+      },
+      start_codex_stage: async ({taskId}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'blocked',reason:'任务不存在'};
+        if (CODEX_MODEL_READY !== 'true') {
+          await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'当前阶段':'等待 Codex 模型登录','阻塞原因':'Codex app server 已运行，但模型登录/凭据尚未配置'});
+          await createRun(task,'Codex 图文生成','阻塞','','Codex 模型登录/凭据未配置');
+          return {status:'blocked',reason:'Codex app server 已运行，但模型登录/凭据尚未配置'};
+        }
+        return {status:'ready',reason:'Codex 模型入口已标记就绪；具体会话提交器尚未启用'};
+      },
+      get_codex_stage: async ({taskId}={}) => ({
+        status:CODEX_MODEL_READY === 'true' ? 'ready' : 'blocked',
+        taskId,
+        appServer:'running',
+        modelReady:CODEX_MODEL_READY === 'true',
+      }),
+      complete_content_stage: async ({taskId,note='',artifactPath=''}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'blocked',reason:'任务不存在'};
+        const taskNo = task.fields?.['任务编号'] || task.id;
+        await createRecord(TEABLE_ARTIFACT_TABLE_ID, {
+          '产物名称':`${taskNo} 图文包`,
+          '任务编号':taskNo,
+          '产物类型':'微信公众号图文包',
+          '状态':'待人工审核',
+          '本地路径':artifactPath,
+          '版本':'v1',
+          '说明':note,
+        });
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'状态':'待人工审核','当前阶段':'人工审核','产物目录':artifactPath,'阻塞原因':''});
+        await createRun(task,'图文生成','已完成',note);
+        return {status:'completed',next:'人工审核',taskId:task.id};
+      },
+      fail_content_stage: async ({taskId,note='未提供错误信息'}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'blocked',reason:'任务不存在'};
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'状态':'阻塞','当前阶段':'异常处理','阻塞原因':note});
+        await createRun(task,'异常处理','失败','',note);
+        return {status:'failed',taskId:task.id,reason:note};
+      },
+    };
     http.createServer(async (req,res) => {
-      if (req.method === 'GET' && req.url === '/healthz') return reply(res,{ok:true,mode:'credential-gated',teableSchema:false,kagentModel:false,codexModel:false});
+      if (req.method === 'GET' && req.url === '/healthz') return reply(res,{ok:true,mode:'teable-active',teableSchema:configured,kagentModel:false,codexModel:CODEX_MODEL_READY === 'true'});
       if (req.method !== 'POST' || req.url !== '/mcp') return reply(res,{error:'not found'},404);
       let raw=''; for await (const chunk of req) raw += chunk; let msg; try {msg=JSON.parse(raw)} catch {return reply(res,{error:'invalid json'},400)}
-      const result = msg.method === 'initialize' ? {protocolVersion:'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'wechat-content-orchestrator',version:'0.1.0'}}
-        : msg.method === 'tools/list' ? {tools}
-        : msg.method === 'tools/call' ? blocked()
-        : {};
+      let result = {};
+      try {
+        result = msg.method === 'initialize' ? {protocolVersion:'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'wechat-content-orchestrator',version:'0.2.0'}}
+          : msg.method === 'tools/list' ? {tools}
+          : msg.method === 'tools/call' ? toolResult(await (handlers[msg.params?.name] ?? (() => ({status:'error',reason:'unknown tool'})))(msg.params?.arguments))
+          : {};
+      } catch (error) {
+        result = toolResult({status:'error',reason:error.message},true);
+      }
       reply(res,{jsonrpc:'2.0',id:msg.id ?? null,result});
     }).listen(8080,'0.0.0.0');
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: teable-content-schema
+  namespace: agent-collab
+data:
+  TEABLE_URL: http://teable.agent-collab.svc.cluster.local:3000
+  TEABLE_BASE_ID: bseJ5dSJjfl6aRavwRB
+  TEABLE_CONTENT_TASK_TABLE_ID: tblRKH7tBXHxjiSslIi
+  TEABLE_ARTIFACT_TABLE_ID: tblxTj99rbvmY5DRWin
+  TEABLE_AGENT_RUN_TABLE_ID: tblfgh5PqoTtTYcvvLt
+  CODEX_MODEL_READY: "false"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -53,6 +180,9 @@ spec:
         resources:
           requests: {cpu: 20m, memory: 32Mi}
           limits: {cpu: 200m, memory: 128Mi}
+        envFrom:
+        - configMapRef: {name: teable-content-schema}
+        - secretRef: {name: teable-content-api-token}
         volumeMounts: [{name: code, mountPath: /app, readOnly: true}]
       volumes:
       - name: code
