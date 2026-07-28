@@ -186,13 +186,17 @@ metadata:
     app.kubernetes.io/name: teable
     app.kubernetes.io/part-of: agent-collab
 spec:
-  type: ClusterIP
+  # The fixed NodePort is the restricted-node-6dc3f140f9 recovery path used by the ICP edge relay
+  # when cross-node Flannel VXLAN is unavailable.
+  type: NodePort
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: teable
   ports:
     - name: http
       port: 3000
       targetPort: http
+      nodePort: 32030
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -19,7 +19,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: teable
+                # The relay reaches restricted-node-6dc3f140f9 through the existing ICP WireGuard path.
+                # Direct panel-to-R640 Flannel traffic is not currently reliable.
+                name: teable-edge-relay
                 port:
                   name: http
   tls:
