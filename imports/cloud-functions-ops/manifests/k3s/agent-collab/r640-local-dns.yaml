@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns-r640
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: coredns-r640
+    app.kubernetes.io/part-of: r640-platform-recovery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: coredns-r640
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: coredns-r640
+        app.kubernetes.io/part-of: r640-platform-recovery
+    spec:
+      serviceAccountName: coredns
+      priorityClassName: system-cluster-critical
+      dnsPolicy: Default
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+        - key: CriticalAddonsOnly
+          operator: Exists
+      containers:
+        - name: coredns
+          image: rancher/mirrored-coredns-coredns:1.14.2
+          imagePullPolicy: IfNotPresent
+          args: ["-conf", "/etc/coredns/Corefile"]
+          ports:
+            - {name: dns, containerPort: 53, protocol: UDP}
+            - {name: dns-tcp, containerPort: 53, protocol: TCP}
+            - {name: metrics, containerPort: 9153, protocol: TCP}
+          readinessProbe:
+            httpGet: {path: /ready, port: 8181}
+            periodSeconds: 2
+          livenessProbe:
+            httpGet: {path: /health, port: 8080}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 50Mi}
+            limits: {memory: 170Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              add: [NET_BIND_SERVICE]
+              drop: [ALL]
+          volumeMounts:
+            - {name: config-volume, mountPath: /etc/coredns, readOnly: true}
+            - {name: custom-config-volume, mountPath: /etc/coredns/custom, readOnly: true}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: coredns
+            items:
+              - {key: Corefile, path: Corefile}
+              - {key: NodeHosts, path: NodeHosts}
+        - name: custom-config-volume
+          configMap:
+            name: coredns-custom
+            optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-dns-r640
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: coredns-r640
+    app.kubernetes.io/part-of: r640-platform-recovery
+spec:
+  clusterIP: 192.0.2.170
+  selector:
+    app.kubernetes.io/name: coredns-r640
+  ports:
+    - {name: dns, port: 53, targetPort: dns, protocol: UDP}
+    - {name: dns-tcp, port: 53, targetPort: dns-tcp, protocol: TCP}
+    - {name: metrics, port: 9153, targetPort: metrics, protocol: TCP}
