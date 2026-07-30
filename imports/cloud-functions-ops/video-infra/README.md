@@ -10,10 +10,14 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
 - A8-C 的 8 个模拟口是 FXS；GXW4108 的 8 个模拟口是 FXO，两者用短 RJ11
   直通电话线连接。
 - 实体话机接 A8-C 已验证可呼入、呼出，所以 IMS 注册和 A8-C FXS 基本正常。
-- restricted-node-6dc3f140f9 能向 GXW4108 建立 SIP 会话，GXW4108 也会返回 RTP；但 GXW4108
-  的一阶段模拟拨号未被 A8-C/电信侧成功接受。
+- restricted-node-6dc3f140f9 已通过 GXW4108 固定 FXO 1 完成 Stage-2 呼出、手机振铃、接听音频
+  和挂机释放验证。
+- 本地区手机使用 11 位直拨；外地手机按当前运营商提示使用
+  `0 + 11 位手机号`。
+- 固号入呼已通过 GXW Ch1 转发至 restricted-node-6dc3f140f9 UDP/5160，自动应答提示音和主动
+  挂断验证成功。
 - GXW4108 返回 `200 OK` 只表示 FXO/SIP 桥接会话建立，不表示被叫已振铃。
-  A8-C 的 POTS 统计记录了实际呼出失败。
+  业务成功仍应结合手机现场结果、RTP、GXW Syslog 和 A8-C 只读统计判断。
 
 ## 阅读顺序
 
@@ -22,7 +26,14 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
 3. [inventory/hardware.md](inventory/hardware.md) — 型号、版本与能力边界。
 4. [configs/](configs/) — 各设备当前配置基线和禁止触碰项。
 5. [evidence/experiment-log.md](evidence/experiment-log.md) — 已做实验及其证据。
-6. [scripts/gxw_sip_call_test.py](scripts/gxw_sip_call_test.py) — 需显式确认才会发起呼叫的测试脚本。
+6. [FREESWITCH-MULTI-AGENT-ARCHITECTURE.md](FREESWITCH-MULTI-AGENT-ARCHITECTURE.md)
+   — FreeSWITCH、单路 ASR/TTS 与多 Agent 共享会话的长期架构。
+7. [scripts/gxw_stage2_call_test.py](scripts/gxw_stage2_call_test.py) — 固定端口
+   Stage-2 DTMF 和 RTP 诊断脚本。
+8. [scripts/gxw_sip_autoanswer.py](scripts/gxw_sip_autoanswer.py) — 入呼自动应答
+   POC；生产环境应由 FreeSWITCH 替换。
+9. [scripts/gxw_sip_call_test.py](scripts/gxw_sip_call_test.py) — 需显式确认才会
+   发起呼叫的一阶段测试脚本。
 
 ## 安全边界
 
