@@ -2,10 +2,19 @@
 # kubectl -n kagent patch deployment kagent-ui --type=strategic \
 #   --patch-file manifests/k3s/agent-collab/kagent-ui-r640.patch.yaml
 spec:
+  # hostPort can only be held by one pod on restricted-node-6dc3f140f9, so avoid a rolling overlap.
+  strategy:
+    type: Recreate
+    rollingUpdate: null
   template:
     spec:
       containers:
       - name: ui
+        ports:
+        - name: http
+          containerPort: 8080
+          hostPort: 8082
+          protocol: TCP
         startupProbe:
           httpGet:
             path: /
