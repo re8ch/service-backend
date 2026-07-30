@@ -146,4 +146,3 @@ POC 成功后在 restricted-node-6dc3f140f9 部署 Asterisk 或 FreeSWITCH。GXW
 替换为国内可采购、明确标注 8×FXO 的 Dinstar DAG 系列或 Grandstream
 HT881，采购前让卖家提供准确后缀、端口照片和 FXO 规格页，避免误买
 8×FXS 版本。
-
