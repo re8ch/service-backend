@@ -1,0 +1,36 @@
+# Full cutover overlay. WSL remains excluded because it has no
+# re8ch.com/cilium-migrate=true label.
+
+cni:
+  install: true
+  customConf: false
+  exclusive: true
+  uninstall: false
+
+nodeSelector:
+  kubernetes.io/os: linux
+  re8ch.com/cilium-migrate: "true"
+
+envoy:
+  enabled: false
+
+operator:
+  replicas: 1
+  skipCRDCreation: true
+  affinity: null
+  nodeSelector:
+    kubernetes.io/hostname: restricted-node-6dc3f140f9
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+
+hubble:
+  enabled: false
+  relay:
+    enabled: false
+  ui:
+    enabled: false
