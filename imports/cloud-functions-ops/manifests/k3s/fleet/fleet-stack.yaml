@@ -494,6 +494,16 @@ spec:
                 secretKeyRef:
                   name: fleet-secrets
                   key: server-private-key
+            - name: FLEET_MDM_WINDOWS_WSTEP_IDENTITY_CERT_BYTES
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-windows-mdm-wstep
+                  key: identity.crt
+            - name: FLEET_MDM_WINDOWS_WSTEP_IDENTITY_KEY_BYTES
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-windows-mdm-wstep
+                  key: identity.key
             - name: HTTPS_PROXY
               value: http://192.0.2.145:3128
             - name: HTTP_PROXY

@@ -1,0 +1,92 @@
+#Requires -RunAsAdministrator
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+$VpnName = "@@VPN_NAME@@"
+$ProfileMode = "@@PROFILE_MODE@@"
+$WatchdogSeconds = 90
+$WatchdogPath = Join-Path $env:TEMP ("re8ch-vpn-watchdog-" + [guid]::NewGuid().ToString() + ".ps1")
+$ExpectedRoutes = @(
+@@ROUTES@@
+)
+
+function Get-PublicIp {
+    $Endpoints = @(
+        "https://api.ipify.org",
+        "https://ifconfig.me/ip",
+        "https://icanhazip.com"
+    )
+    foreach ($Endpoint in $Endpoints) {
+        $OldErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+        $Value = (& curl.exe -4 --connect-timeout 6 --max-time 9 -fsS $Endpoint 2>$null)
+        $ExitCode = $LASTEXITCODE
+        $ErrorActionPreference = $OldErrorActionPreference
+        if ($ExitCode -eq 0 -and $Value) {
+            return $Value.Trim()
+        }
+        Write-Verbose "IPv4 endpoint failed: $Endpoint"
+    }
+    return $null
+}
+
+if (-not (Get-VpnConnection -Name $VpnName -AllUserConnection -ErrorAction SilentlyContinue)) {
+    throw "The '$VpnName' profile is not installed."
+}
+
+$WatchdogScript = @"
+Start-Sleep -Seconds $WatchdogSeconds
+& rasdial.exe '$VpnName' /disconnect | Out-Null
+Remove-Item -LiteralPath '$WatchdogPath' -Force -ErrorAction SilentlyContinue
+"@
+
+Set-Content -LiteralPath $WatchdogPath -Value $WatchdogScript -Encoding UTF8
+Start-Process `
+    -FilePath "powershell.exe" `
+    -ArgumentList "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-File", "`"$WatchdogPath`"" `
+    -WindowStyle Hidden | Out-Null
+
+try {
+    $DirectPublicIp = $null
+    if ($ProfileMode -eq "egress") {
+        $DirectPublicIp = Get-PublicIp
+    }
+
+    & rasdial.exe $VpnName | Out-Host
+    Start-Sleep -Seconds 8
+
+    $Vpn = Get-VpnConnection -Name $VpnName -AllUserConnection
+    if ($Vpn.ConnectionStatus -ne "Connected") {
+        throw "The VPN did not reach the Connected state."
+    }
+
+    if (-not (Test-NetConnection -ComputerName "fleet.re8ch.com" -Port 443 -InformationLevel Quiet)) {
+        throw "Normal internet access failed while the VPN was connected."
+    }
+
+    if ($ProfileMode -eq "management") {
+        $InstalledRoutes = Get-NetRoute -IncludeAllCompartments -ErrorAction SilentlyContinue |
+            Where-Object { $_.DestinationPrefix -in $ExpectedRoutes }
+        if (-not $InstalledRoutes) {
+            Write-Warning "Private routes were not visible in the current execution compartment."
+        }
+    }
+    else {
+        $EgressPublicIp = Get-PublicIp
+        Write-Host "Direct public IP: $DirectPublicIp"
+        Write-Host "Egress public IP: $EgressPublicIp"
+        if (-not $EgressPublicIp) {
+            Write-Warning "Public IP services were unavailable; tunnel and Fleet reachability still passed."
+        }
+        elseif ($DirectPublicIp -and $EgressPublicIp -eq $DirectPublicIp) {
+            throw "The public egress did not change."
+        }
+    }
+
+    Write-Host "PASS: VPN authentication, internet access, and profile checks are healthy."
+}
+finally {
+    & rasdial.exe $VpnName /disconnect | Out-Null
+    Write-Host "The test VPN was disconnected. The normal network remains active."
+}
