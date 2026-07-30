@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+      Id="*"
+      Name="RE8CH Management VPN - @@DEVICE_DISPLAY_NAME_XML@@"
+      Language="1033"
+      Version="@@VERSION@@"
+      Manufacturer="RE8CH"
+      UpgradeCode="@@UPGRADE_CODE@@">
+    <Package
+        InstallerVersion="500"
+        Compressed="yes"
+        InstallScope="perMachine"
+        Description="RE8CH per-device certificate and safe split-tunnel VPN profile" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of this device VPN package is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="CommonAppDataFolder">
+        <Directory Id="CompanyFolder" Name="RE8CH">
+          <Directory Id="VpnFolder" Name="VPN">
+            <Directory Id="INSTALLDIR" Name="@@DEVICE_ID@@">
+              <Component Id="DevicePayload" Guid="@@COMPONENT_GUID@@">
+                <File Id="CaFile" Source="payload/re8ch-ikev2-ca.crt" KeyPath="yes" />
+                <File Id="PfxFile" Source="payload/device-identity.p12" />
+                <File Id="InstallScript" Source="payload/Install.ps1" />
+                <File Id="TestScript" Source="payload/Test.ps1" />
+                <File Id="WatchdogScript" Source="payload/Watchdog.ps1" />
+                <File Id="UninstallScript" Source="payload/Uninstall.ps1" />
+                <File Id="ManifestFile" Source="payload/manifest.json" />
+              </Component>
+            </Directory>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="MainFeature" Title="RE8CH Management VPN" Level="1">
+      <ComponentRef Id="DevicePayload" />
+    </Feature>
+
+    <CustomAction
+        Id="InstallVpnProfile"
+        Directory="INSTALLDIR"
+        ExeCommand="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]Install.ps1&quot;"
+        Execute="deferred"
+        Impersonate="no"
+        Return="check" />
+
+    <CustomAction
+        Id="RemoveVpnProfile"
+        Directory="INSTALLDIR"
+        ExeCommand="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[INSTALLDIR]Uninstall.ps1&quot;"
+        Execute="deferred"
+        Impersonate="no"
+        Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InstallVpnProfile" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="RemoveVpnProfile" Before="RemoveFiles">REMOVE="ALL" AND Installed</Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
