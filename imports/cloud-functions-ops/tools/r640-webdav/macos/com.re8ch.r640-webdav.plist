@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.re8ch.r640-webdav</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/harryneo/Library/Application Support/RE8CH/r640-webdav-mount.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartInterval</key>
+  <integer>60</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>/Users/harryneo/Library/Logs/r640-webdav-mount.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/harryneo/Library/Logs/r640-webdav-mount.log</string>
+</dict>
+</plist>
