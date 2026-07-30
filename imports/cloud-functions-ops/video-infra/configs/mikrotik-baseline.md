@@ -45,4 +45,3 @@ restricted-node-6dc3f140f9 和 GXW4108 同在 `192.0.2.16/24`，正常情况下�
 ```routeros
 /ip firewall service-port set sip disabled=yes
 ```
-

@@ -21,4 +21,3 @@ restricted-node-6dc3f140f9 最终承载 Asterisk 或 FreeSWITCH，并向上提�
 - 对 GXW4108 隐藏模拟线路和运营商 IMS 细节。
 
 MikroTik 只负责网络，不承载 PBX 或语音存储。
-
