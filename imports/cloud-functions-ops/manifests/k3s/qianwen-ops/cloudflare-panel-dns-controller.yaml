@@ -15,8 +15,9 @@ data:
     grafana.re8ch.com=192.0.2.67
     dbgui.re8ch.com=192.0.2.67
     teable.re8ch.com=192.0.2.67
+    files.re8ch.com=192.0.2.79
     feishu-agent.re8ch.com=192.0.2.99
-    registry.re8ch.com=192.0.2.210
+    registry.re8ch.com=192.0.2.79
 ---
 apiVersion: v1
 kind: ConfigMap

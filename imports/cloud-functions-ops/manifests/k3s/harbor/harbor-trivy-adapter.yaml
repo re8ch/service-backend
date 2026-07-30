@@ -21,7 +21,7 @@ spec:
         app.kubernetes.io/component: trivy-adapter
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -90,7 +90,7 @@ spec:
       volumes:
         - name: trivy-cache
           hostPath:
-            path: /data/harbor/trivy-adapter-cache
+            path: /var/lib/rancher/harbor/data/trivy-adapter-cache
             type: DirectoryOrCreate
 ---
 apiVersion: v1
