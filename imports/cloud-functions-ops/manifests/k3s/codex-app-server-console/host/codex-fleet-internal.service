@@ -1,0 +1,29 @@
+[Unit]
+Description=RE8CH Codex Fleet ZeroTier Console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/re8ch/codex-fleet
+Environment=BIND_ADDRESS=192.0.2.169
+Environment=PORT=18082
+Environment="KUBECTL=/usr/local/bin/k3s kubectl --kubeconfig /etc/re8ch/codex-fleet/kubeconfig"
+ExecStart=/usr/bin/python3 /opt/re8ch/codex-fleet/host_server.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
