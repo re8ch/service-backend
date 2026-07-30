@@ -1,0 +1,29 @@
+# Strategic-merge placement patches for the low-frequency human identity/UI
+# workloads hosted by the ICP K3s Agent. Apply each document to its namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: vm-20-12-ubuntu
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-da70faf0-4576-4706-8750-7c181ed8e541_dex_dex-data
+            type: Directory
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+  namespace: headlamp
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: vm-20-12-ubuntu
+      hostAliases: null
