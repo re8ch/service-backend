@@ -221,10 +221,13 @@ spec:
   declarative:
     runtime: python
     stream: true
-    modelConfig: default-model-config
+    modelConfig: kimi-k2-5
     deployment:
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
+      env:
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
     systemMessage: |
       你是微信公众号内容运营调度 Agent。只处理 Teable 中明确标记为待处理的任务。
       使用 MCP 工具按“领取任务、启动 Codex、查询状态、登记产物、转人工审核”的顺序工作。

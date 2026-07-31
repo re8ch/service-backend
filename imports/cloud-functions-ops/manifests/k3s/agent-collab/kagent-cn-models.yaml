@@ -1,0 +1,27 @@
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: deepseek-v4-flash
+  namespace: kagent
+spec:
+  provider: OpenAI
+  model: deepseek-v4-flash
+  apiKeySecret: kagent-deepseek
+  apiKeySecretKey: API_KEY
+  openAI:
+    baseUrl: https://api.deepseek.com
+    timeout: 120
+---
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: kimi-k2-5
+  namespace: kagent
+spec:
+  provider: OpenAI
+  model: kimi-k2.5
+  apiKeySecret: kagent-kimi
+  apiKeySecretKey: API_KEY
+  openAI:
+    baseUrl: https://api.moonshot.cn/v1
+    timeout: 120
