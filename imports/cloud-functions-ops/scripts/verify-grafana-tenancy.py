@@ -36,9 +36,19 @@ TENANTS = {
         "serviceAccountSecret": {"namespace": "ledger", "name": "grafana-ledger-viewer"},
         "humanEnvPrefix": "LEDGER",
         "allowedDatasources": {"tenant-metrics", "tenant-vlogs", "observable-events", "observable-pgcat"},
-        "allowedDatasourcePrefixes": {"ledger-pg-meta-"},
+        "allowedDatasourcePrefixes": {"ledger-pg-re8ch-"},
         "requiredPgDatasourceCount": 3,
-        "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-1-qianwen-prod", "pg-meta-1-anycam-prod", "pg-meta-1-postgres"},
+        "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-4-qianwen-prod", "pg-re8ch-1-anycam-prod", "pg-re8ch-1-postgres"},
+    },
+    "re8ch": {
+        "org": "re8ch",
+        "dashboardUid": "tenant-re8ch-overview",
+        "serviceAccountSecret": {"namespace": "qianwen-ops", "name": "grafana-re8ch-viewer"},
+        "humanEnvPrefix": "RE8CH",
+        "allowedDatasources": {"tenant-metrics", "tenant-vlogs", "observable-events", "observable-pgcat"},
+        "allowedDatasourcePrefixes": {"re8ch-pg-re8ch-"},
+        "requiredPgDatasourceCount": 42,
+        "forbiddenDatasources": {"pigsty-metrics", "re8ch-vlogs", "pg-meta-4-qianwen-prod", "pg-meta-5-cardcat", "pg-meta-3-qianwen-test"},
     },
 }
 
@@ -186,7 +196,15 @@ def verify_admin_regression(base_url: str, auth: Auth) -> None:
         raise RuntimeError("admin cannot see Pigsty PGSQL dashboards")
     _, datasources = request(base_url, auth, "/api/datasources", org_id=1)
     uids = {item.get("uid") for item in datasources}
-    for required in ("pigsty-metrics", "re8ch-vlogs"):
+    for required in (
+        "pigsty-metrics",
+        "re8ch-vlogs",
+        "pg-meta-4-qianwen-prod",
+        "pg-meta-5-cardcat",
+        "pg-re8ch-1-auth",
+        "pg-re8ch-2-ledger",
+        "pg-re8ch-3-observable",
+    ):
         if required not in uids:
             raise RuntimeError("admin missing datasource %s" % required)
     print("grafana_admin_regression=ok")
@@ -199,7 +217,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery"))
     parser.add_argument("--admin-user", default=os.environ.get("GRAFANA_ADMIN_USER", ""))
     parser.add_argument("--admin-password", default=os.environ.get("GRAFANA_ADMIN_PASSWORD", ""))
-    parser.add_argument("--tenant", action="append", choices=sorted(TENANTS), help="Tenant to verify. Repeatable. Default: qianwen and ledger.")
+    parser.add_argument("--tenant", action="append", choices=sorted(TENANTS), help="Tenant to verify. Repeatable. Default: all configured tenants.")
     return parser.parse_args()
 
 
