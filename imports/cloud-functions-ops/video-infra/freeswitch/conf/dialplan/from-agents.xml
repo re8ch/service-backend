@@ -1,0 +1,8 @@
+<include><context name="from-agents">
+  <extension name="join-call">
+    <condition field="destination_number" expression="^join-([0-9a-f-]{36})$">
+      <action application="set" data="absolute_codec_string=PCMA"/><action application="set" data="conference_member_flags=nomoh"/>
+      <action application="conference" data="$1@voice"/>
+    </condition>
+  </extension>
+</context></include>

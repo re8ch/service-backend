@@ -16,6 +16,9 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
   `0 + 11 位手机号`。
 - 固号入呼已通过 GXW Ch1 转发至 restricted-node-6dc3f140f9 UDP/5160，自动应答提示音和主动
   挂断验证成功。
+- restricted-node-6dc3f140f9 已安装并启用宿主机 FreeSWITCH 1.11.1：GXW profile 为 5160、Agent
+  profile 为 5080、ESL 仅监听回环地址；临时 Python 自动应答器已停用，
+  Kamailio 暂保留在 5060，等待八路真实话路验收后再决定归档。
 - GXW4108 返回 `200 OK` 只表示 FXO/SIP 桥接会话建立，不表示被叫已振铃。
   业务成功仍应结合手机现场结果、RTP、GXW Syslog 和 A8-C 只读统计判断。
 
@@ -27,12 +30,14 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
 4. [configs/](configs/) — 各设备当前配置基线和禁止触碰项。
 5. [evidence/experiment-log.md](evidence/experiment-log.md) — 已做实验及其证据。
 6. [FREESWITCH-MULTI-AGENT-ARCHITECTURE.md](FREESWITCH-MULTI-AGENT-ARCHITECTURE.md)
-   — FreeSWITCH、单路 ASR/TTS 与多 Agent 共享会话的长期架构。
-7. [scripts/gxw_stage2_call_test.py](scripts/gxw_stage2_call_test.py) — 固定端口
+   — 每通最多 4 个真实 SIP Agent、共享 ASR、48 会议成员的长期架构。
+7. [VOICE-GATEWAY-RUNBOOK.md](VOICE-GATEWAY-RUNBOOK.md) — restricted-node-6dc3f140f9 安装、分阶段
+   验收和回滚流程。
+8. [scripts/gxw_stage2_call_test.py](scripts/gxw_stage2_call_test.py) — 固定端口
    Stage-2 DTMF 和 RTP 诊断脚本。
-8. [scripts/gxw_sip_autoanswer.py](scripts/gxw_sip_autoanswer.py) — 入呼自动应答
+9. [scripts/gxw_sip_autoanswer.py](scripts/gxw_sip_autoanswer.py) — 入呼自动应答
    POC；生产环境应由 FreeSWITCH 替换。
-9. [scripts/gxw_sip_call_test.py](scripts/gxw_sip_call_test.py) — 需显式确认才会
+10. [scripts/gxw_sip_call_test.py](scripts/gxw_sip_call_test.py) — 需显式确认才会
    发起呼叫的一阶段测试脚本。
 
 ## 安全边界

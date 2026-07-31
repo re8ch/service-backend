@@ -1,0 +1,10 @@
+<include>
+  <X-PRE-PROCESS cmd="set" data="domain=voice.internal"/>
+  <X-PRE-PROCESS cmd="set" data="local_ip_v4=192.0.2.169"/>
+  <X-PRE-PROCESS cmd="set" data="external_sip_ip=192.0.2.169"/>
+  <X-PRE-PROCESS cmd="set" data="external_rtp_ip=192.0.2.169"/>
+  <X-PRE-PROCESS cmd="set" data="rtp_start_port=20000"/>
+  <X-PRE-PROCESS cmd="set" data="rtp_end_port=20255"/>
+  <X-PRE-PROCESS cmd="set" data="global_codec_prefs=PCMA"/>
+  <X-PRE-PROCESS cmd="set" data="outbound_codec_prefs=PCMA"/>
+</include>
