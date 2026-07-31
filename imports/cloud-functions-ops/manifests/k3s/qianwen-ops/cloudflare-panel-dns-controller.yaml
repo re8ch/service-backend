@@ -18,6 +18,14 @@ data:
     files.re8ch.com=192.0.2.138
     feishu-agent.re8ch.com=192.0.2.122
     registry.re8ch.com=192.0.2.138
+    # Nuclio runtime identities. nuc-1 remains a compatibility alias for nuc-2.
+    nuc-1.re8ch.com=192.0.2.197
+    nuc-2.re8ch.com=192.0.2.197
+    nuc-3.re8ch.com=192.0.2.185
+    # pg-meta physical node identities; role-aware clients still use db-rw/db-ro.
+    pg-1.re8ch.com=192.0.2.5
+    pg-2.re8ch.com=192.0.2.45
+    pg-3.re8ch.com=192.0.2.41
 ---
 apiVersion: v1
 kind: ConfigMap
