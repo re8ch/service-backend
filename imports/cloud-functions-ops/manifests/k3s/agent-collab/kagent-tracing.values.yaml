@@ -1,19 +1,8 @@
 otel:
   tracing:
-    enabled: true
-    exporter:
-      otlp:
-        endpoint: http://kagent-otel-collector.telemetry.svc.cluster.local:4317
-        insecure: true
-        protocol: grpc
-        timeout: 15000
+    enabled: false
 
 kagent-tools:
   otel:
     tracing:
-      enabled: true
-      exporter:
-        otlp:
-          endpoint: http://kagent-otel-collector.telemetry.svc.cluster.local:4317
-          insecure: true
-          timeout: 15
+      enabled: false
