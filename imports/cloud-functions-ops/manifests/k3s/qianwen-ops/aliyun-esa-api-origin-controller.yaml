@@ -11,7 +11,9 @@ data:
   API_READY_HOST: api.jz.ynzs.com
   API_ORIGINS: api-2,nuc-2.ynzs.com api-3,nuc-3.ynzs.com
   API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.110 api-3=192.0.2.210
-  API_ORIGIN_A_RECORDS: nuc-1.ynzs.com=192.0.2.110 nuc-2.ynzs.com=192.0.2.110 nuc-3.ynzs.com=192.0.2.210
+  # Keep nuc-2/3 as CNAMEs to nuc-1/2.re8ch.com. This controller manages the
+  # origin pool health only and must not replace those aliases with A records.
+  API_ORIGIN_A_RECORDS: ""
   API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 OPTIONS:/client-events:204 GET:/homepage:200
   API_READY_ATTEMPTS: "3"
   API_READY_MIN_SUCCESS_ATTEMPTS: "1"
@@ -512,9 +514,16 @@ spec:
       labels:
         app.kubernetes.io/name: aliyun-esa-api-origin-controller
     spec:
+      # Keep the standby definition identical to the active controller.
+      hostNetwork: true
+      dnsPolicy: Default
       nodeSelector:
-        qianwen.cc/dns-controller: "true"
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
+        - key: anchor
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
