@@ -33,7 +33,11 @@ for svc in "${services[@]}"; do
   printf '%s\n' "${endpoints}" >&2
   ready_nodes="$(printf '%s\n' "${endpoints}" | awk '$2 == "true" {print $1}' | sort -u | wc -l | tr -d ' ')"
   if [[ "${ready_nodes}" -lt "${QWEN_MIN_LOCAL_READY_NODES:-3}" ]]; then
-    echo "skip ${svc}: only ${ready_nodes} ready node-local endpoints" >&2
+    # A stale Local policy black-holes traffic on ingress nodes without a
+    # local function pod. Revert to cluster routing until placement recovers.
+    kubectl -n "${namespace}" patch svc "${svc}" --type merge \
+      -p '{"spec":{"internalTrafficPolicy":"Cluster"}}' >/dev/null
+    echo "patched ${svc} internalTrafficPolicy=Cluster: only ${ready_nodes} ready node-local endpoints" >&2
     continue
   fi
   kubectl -n "${namespace}" patch svc "${svc}" --type merge \
