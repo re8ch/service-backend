@@ -11,9 +11,9 @@ data:
   ESA_PROXIED: "false"
   ESA_RW_PROXIED: "false"
   ESA_RO_SLOT_PROXIED: "false"
-  ESA_RW_RECORD_NAMES: mgr-rw.jz.ynzs.com
+  ESA_RW_RECORD_NAMES: mgr-rw.jz.ynzs.com pg-1.ynzs.com
   ESA_RO_SLOT_RECORD_NAMES: pg-2.ynzs.com pg-3.ynzs.com
-  PG_EDGE_NODES: pg-meta-1,192.0.2.72,192.0.2.172 pg-meta-2,192.0.2.110,192.0.2.141 pg-meta-3,192.0.2.92,192.0.2.33
+  PG_EDGE_NODES: pg-meta-4,192.0.2.183,192.0.2.115 pg-meta-5,192.0.2.122,192.0.2.91 pg-meta-3,192.0.2.92,192.0.2.33
   PATRONI_PORT: "8008"
   READY_HOST: db.re8ch.com
   READY_PATH: /__lb/ready

@@ -623,12 +623,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: blackbox-exporter
@@ -827,12 +827,12 @@ spec:
     spec:
       serviceAccountName: panel-victoria-metrics
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: victoria-metrics
@@ -877,8 +877,9 @@ spec:
           configMap:
             name: panel-victoria-metrics-config
         - name: data
-          persistentVolumeClaim:
-            claimName: panel-victoria-metrics-data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-28ec4dcc-ec9d-4153-a3a0-abb861b27c40_qianwen-ops_panel-victoria-metrics-data
+            type: Directory
 ---
 apiVersion: v1
 kind: Service
@@ -937,12 +938,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: victoria-logs
@@ -980,8 +981,9 @@ spec:
               mountPath: /victoria-logs-data
       volumes:
         - name: data
-          persistentVolumeClaim:
-            claimName: panel-victoria-logs-data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-d2d50ebe-f8cf-43c9-b5f1-0389e7e9d2c8_qianwen-ops_panel-victoria-logs-data
+            type: Directory
 ---
 apiVersion: v1
 kind: Service
@@ -1350,12 +1352,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: proxy
@@ -1843,12 +1845,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: proxy
@@ -2505,12 +2507,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: vmalert
@@ -2593,12 +2595,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: vmalert
@@ -3103,12 +3105,12 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       securityContext:
         fsGroup: 472
@@ -3182,8 +3184,9 @@ spec:
               readOnly: true
       volumes:
         - name: data
-          persistentVolumeClaim:
-            claimName: panel-grafana-data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-64ae1b9e-53cb-49e6-9402-6b2d2dc7d5f6_qianwen-ops_panel-grafana-data
+            type: Directory
         - name: datasources
           configMap:
             name: panel-grafana-datasources
@@ -3229,16 +3232,18 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        kubernetes.io/hostname: artchais-nuclio-1
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
           operator: Equal
-          value: panel
+          value: observability
           effect: NoSchedule
       containers:
         - name: renderer
-          image: grafana/grafana-image-renderer:latest@sha256:a30a68c2de11a1aad5733452536ac50fbc2f3958e6d0aa046ef9eb56db7c6a6d
+          # Node-local immutable alias for the verified linux/amd64 manifest
+          # sha256:9af1f59e43fba59d15f3cefc6e32d5bef9ad25d0b8d74c38d7466e13e5d19931.
+          image: grafana/grafana-image-renderer:latest-amd64-9af1f59e
           imagePullPolicy: IfNotPresent
           env:
             - name: AUTH_TOKEN
