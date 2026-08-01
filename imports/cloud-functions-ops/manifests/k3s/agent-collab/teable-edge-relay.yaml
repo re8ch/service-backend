@@ -68,6 +68,14 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/hostname: vm-20-12-ubuntu
+      # ICP became an agent-only anchor during the restricted-node-6dc3f140f9/Cilium control-plane
+      # migration.  Keep the relay local to its NodePort while tolerating the
+      # durable scheduling boundary applied to that node.
+      tolerations:
+        - key: anchor
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       containers:
         - name: relay
           image: node:22-alpine
