@@ -47,7 +47,9 @@ cni:
   uninstall: false
 
 operator:
-  replicas: 3
+  # Keep the live-approved topology at one replica. A three-replica rollout,
+  # new placement, and leader-election validation require explicit approval.
+  replicas: 1
   image:
     repository: quay.io/cilium/operator
     tag: latest
