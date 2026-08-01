@@ -732,6 +732,7 @@ spec:
                       - harbor-registry
                       - amdwsl-zt
                       - restricted-node-296f36f2fb
+                      - restricted-node-1eb0570f74
       tolerations:
         - operator: Exists
       containers:

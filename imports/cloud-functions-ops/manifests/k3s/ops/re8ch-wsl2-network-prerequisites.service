@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/mount --make-rshared /
-ExecStart=/usr/sbin/ip link set dev zto5uhdriy mtu 1280
+ExecStart=/bin/sh -c 'i=0; while ! /usr/sbin/ip link show zto5uhdriy >/dev/null 2>&1; do i=$$((i+1)); test $$i -ge 30 && exit 1; sleep 1; done; /usr/sbin/ip link set dev zto5uhdriy mtu 1280'
 RemainAfterExit=yes
 
 [Install]
