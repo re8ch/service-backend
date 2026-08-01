@@ -730,6 +730,7 @@ spec:
                       - vm-20-12-ubuntu
                       - rancher-panel
                       - harbor-registry
+                      - amdwsl-zt
       tolerations:
         - operator: Exists
       containers:
