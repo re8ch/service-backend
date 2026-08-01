@@ -2,8 +2,7 @@
 Description=Lightweight Kubernetes Agent (B1 WSL2)
 Documentation=https://k3s.io
 Wants=network-online.target
-Requires=re8ch-b1-wireguard.service
-After=network-online.target zerotier-one.service re8ch-wsl2-network-prerequisites.service re8ch-b1-wireguard.service
+After=network-online.target zerotier-one.service re8ch-wsl2-network-prerequisites.service
 
 [Install]
 WantedBy=multi-user.target
@@ -34,7 +33,7 @@ ExecStart=/usr/local/bin/k3s agent \
   --node-label pigsty.cc/workload=general \
   --node-label pigsty.cc/zt-ip=192.0.2.208 \
   --node-label re8ch.com/cilium-migrate=true \
-  --node-label re8ch.com/control-route=zt-primary \
+  --node-label re8ch.com/control-route=zerotier-primary \
   --node-label re8ch.com/external-ip-mode=none \
   --node-label re8ch.com/network-level=4 \
   --node-label re8ch.com/public-control=none \
