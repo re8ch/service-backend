@@ -12,13 +12,19 @@
   Nginx；`teable-panel-nginx.conf` 是面板端配置的受控副本。
 - `wechat-content-orchestrator.yaml` 提供 Teable → Kagent → Codex MCP
   编排入口。
+- `../llm-gateway/litellm.yaml` 提供 DeepSeek/Kimi 的统一协议、虚拟密钥、
+  用量和费用记录；Kagent 与 Codex app-server 均通过该网关调用模型。
+- `codex-app-server-litellm.yaml` 固化 Codex app-server 的 LiteLLM
+  Responses API 配置和无密钥工作负载定义。
 - `kagent-ui-r640.patch.yaml` 修复 Kagent UI 启动窗口和只读 Nginx
   日志目录。
 - `scripts/bootstrap-teable-content-operations.sh` 幂等创建运营表和首期
   GnuCash 任务。
 
 完整故障追溯和恢复顺序见
-`docs/ai-table-agent-orchestration-recovery-2026-07-29.md`。
+`docs/ai-table-agent-orchestration-recovery-2026-07-29.md`。2026-08-02 的
+真实会话闭环、数据库与控制面迁移关系见
+`docs/teable-kagent-litellm-codex-closure-2026-08-02.md`。
 
 ## Historical Teable Cloud Attempt
 
