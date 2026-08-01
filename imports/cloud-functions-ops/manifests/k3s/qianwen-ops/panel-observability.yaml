@@ -731,6 +731,7 @@ spec:
                       - rancher-panel
                       - harbor-registry
                       - amdwsl-zt
+                      - restricted-node-296f36f2fb
       tolerations:
         - operator: Exists
       containers:
