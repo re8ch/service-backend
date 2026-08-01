@@ -1,0 +1,19 @@
+[Unit]
+Description=RE8CH B1 WSL2 control-plane WireGuard path
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/modprobe wireguard
+ExecStart=-/usr/sbin/ip link add wg-aesthete type wireguard
+ExecStart=/usr/sbin/ip address replace 192.0.2.237/29 dev wg-aesthete
+# The private key is generated on B1 and remains in this root-only file.
+ExecStart=/usr/local/bin/wg set wg-aesthete private-key /etc/wireguard/b1-aesthete-private.key peer kJUpAYZZ3VD5Gvmi0fYOee1ZhVRTCKDpd/veMc8n2B0= endpoint 192.0.2.79:51828 allowed-ips 192.0.2.117/32,192.0.2.183/32 persistent-keepalive 25
+ExecStart=/usr/sbin/ip link set dev wg-aesthete mtu 1280 up
+ExecStart=/usr/sbin/ip route replace 192.0.2.183/32 dev wg-aesthete src 192.0.2.237
+ExecStop=/usr/sbin/ip link delete wg-aesthete
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
