@@ -1,0 +1,134 @@
+{
+  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 42}]}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "sum(re8ch_frr_bgp_session_up)", "legendFormat": "BGP sessions", "range": true, "refId": "A"}],
+      "title": "BGP sessions up (expected 42)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 42}]}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 4, "x": 4, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "sum(re8ch_frr_bfd_session_up)", "legendFormat": "BFD sessions", "range": true, "refId": "A"}],
+      "title": "BFD sessions up (expected 42)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 4, "x": 8, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "sum(re8ch_routing_recommendation_change_needed)", "legendFormat": "pending recommendations", "range": true, "refId": "A"}],
+      "title": "Advisory changes pending",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "description": "Unknown prices are intentionally not treated as zero.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "orange", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 4, "x": 12, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "sum(re8ch_routing_path_eligible{price_known=\"false\"})", "legendFormat": "unknown-price paths", "range": true, "refId": "A"}],
+      "title": "Paths awaiting price facts",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 8, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 1, "pointSize": 3, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "unit": "ms"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 5,
+      "options": {"legend": {"calcs": ["lastNotNull", "mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}},
+      "targets": [{"editorMode": "code", "expr": "re8ch_path_probe_rtt_milliseconds{node=~\"$node\",peer=~\"$peer\"}", "legendFormat": "{{node}} → {{peer}} / {{path}}", "range": true, "refId": "A"}],
+      "title": "Dynamic path RTT",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 8, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 3, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "unit": "percentunit"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 6,
+      "options": {"legend": {"calcs": ["lastNotNull", "mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}},
+      "targets": [{"editorMode": "code", "expr": "re8ch_path_probe_packet_loss_ratio{node=~\"$node\",peer=~\"$peer\"}", "legendFormat": "{{node}} → {{peer}} / {{path}}", "range": true, "refId": "A"}],
+      "title": "Path packet loss",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 3, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "id": 7,
+      "options": {"legend": {"calcs": ["lastNotNull", "mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}},
+      "targets": [{"editorMode": "code", "expr": "rate(re8ch_wireguard_peer_transmit_bytes_total{node=~\"$node\",peer=~\"$peer\"}[5m])", "legendFormat": "TX {{node}} → {{peer}}", "range": true, "refId": "A"}, {"editorMode": "code", "expr": "rate(re8ch_wireguard_peer_receive_bytes_total{node=~\"$node\",peer=~\"$peer\"}[5m])", "legendFormat": "RX {{node}} ← {{peer}}", "range": true, "refId": "B"}],
+      "title": "WireGuard peer throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "stepAfter", "lineWidth": 1, "pointSize": 3, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "id": 8,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}},
+      "targets": [{"editorMode": "code", "expr": "re8ch_routing_path_score{node=~\"$node\",peer=~\"$peer\"}", "legendFormat": "{{node}} → {{peer}} / {{path}}", "range": true, "refId": "A"}],
+      "title": "Cost-aware advisory score (observe-only)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 21},
+      "id": 9,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "targets": [{"editorMode": "code", "expr": "re8ch_zerotier_peer_path_info{node=~\"$node\",peer=~\"$peer\"}", "format": "table", "instant": true, "legendFormat": "__auto", "range": false, "refId": "A"}],
+      "title": "ZeroTier peer physical underlay facts",
+      "transformations": [{"id": "organize", "options": {"excludeByName": {"Time": true, "Value": true, "__name__": true, "instance": true, "job": true}, "indexByName": {}, "renameByName": {}}}],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "description": "OpenCost is internal-only and reuses VictoriaMetrics.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 30},
+      "id": 10,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "up{job=\"opencost\"}", "legendFormat": "OpenCost", "range": true, "refId": "A"}],
+      "title": "OpenCost scrape health",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "ds-prometheus"},
+      "description": "CPU/RAM rate series appear after non-zero custom node prices are entered; missing values are not interpreted as free capacity.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "CNY/hour", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 8, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "stepAfter", "lineWidth": 1, "pointSize": 3, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "unit": "currencyCNY"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 18, "x": 6, "y": 30},
+      "id": 11,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}},
+      "targets": [{"editorMode": "code", "expr": "node_cpu_hourly_cost", "legendFormat": "{{node}} CPU", "range": true, "refId": "A"}, {"editorMode": "code", "expr": "node_ram_hourly_cost", "legendFormat": "{{node}} RAM", "range": true, "refId": "B"}],
+      "title": "OpenCost custom node rates",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": ["re8ch", "network", "frr", "cost"],
+  "templating": {"list": [{"current": {"text": "All", "value": "$__all"}, "datasource": {"type": "prometheus", "uid": "ds-prometheus"}, "definition": "label_values(re8ch_network_exporter_build_info,node)", "includeAll": true, "label": "Source node", "name": "node", "options": [], "query": {"query": "label_values(re8ch_network_exporter_build_info,node)", "refId": "PrometheusVariableQueryEditor-VariableQuery"}, "refresh": 1, "type": "query"}, {"current": {"text": "All", "value": "$__all"}, "datasource": {"type": "prometheus", "uid": "ds-prometheus"}, "definition": "label_values(re8ch_path_probe_success{node=~\"$node\"},peer)", "includeAll": true, "label": "Destination peer", "name": "peer", "options": [], "query": {"query": "label_values(re8ch_path_probe_success{node=~\"$node\"},peer)", "refId": "PrometheusVariableQueryEditor-VariableQuery"}, "refresh": 1, "type": "query"}]},
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Network / Routing & Cost",
+  "uid": "re8ch-network-routing-cost",
+  "version": 1
+}
