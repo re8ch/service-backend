@@ -330,6 +330,22 @@ spec:
     runtime: python
     stream: true
     modelConfig: deepseek-v4-flash
+    context:
+      compaction:
+        compactionInterval: 5
+        eventRetentionSize: 20
+        overlapSize: 2
+        tokenThreshold: 24000
+        summarizer:
+          modelConfig: deepseek-v4-flash
+    a2aConfig:
+      skills:
+      - id: teable-codex-content-closure
+        name: Teable 到 Codex 的待审内容闭环
+        description: 领取指定 Teable 内容任务，提交真实 Codex thread/turn，登记产物并停在人工审核；绝不自动发布。
+        tags: [teable, codex, content-operations, human-review]
+        examples:
+        - 处理任务 WX-CODEX-TEST-20260802-002，并在生成后转人工审核。
     deployment:
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9

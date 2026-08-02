@@ -37,6 +37,7 @@ data:
       master_key: os.environ/LITELLM_MASTER_KEY
       database_url: os.environ/DATABASE_URL
       store_model_in_db: true
+      ui_access_mode: admin_only
       store_prompts_in_spend_logs: false
       maximum_spend_logs_retention_period: 30d
       maximum_spend_logs_retention_interval: 1d
@@ -130,12 +131,15 @@ metadata:
   name: litellm
   namespace: llm-gateway
 spec:
+  type: NodePort
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: litellm
   ports:
     - name: http
       port: 4000
       targetPort: http
+      nodePort: 30400
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -187,6 +191,24 @@ spec:
                 secretKeyRef:
                   name: litellm-provider-credentials
                   key: KIMI_API_KEY
+            - name: UI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-ui-auth
+                  key: UI_USERNAME
+            - name: UI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-ui-auth
+                  key: UI_PASSWORD
+            - name: PROXY_BASE_URL
+              # Until the edge DNS record is published, OAuth/login redirects
+              # must target the address that operators can actually reach.
+              value: http://192.0.2.97:30400
+            - name: DOCS_URL
+              value: /docs
+            - name: ROOT_REDIRECT_URL
+              value: /ui
           readinessProbe:
             httpGet: {path: /health/readiness, port: http}
             initialDelaySeconds: 15
@@ -209,3 +231,36 @@ spec:
         - name: config
           configMap:
             name: litellm-config
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm-admin
+  namespace: llm-gateway
+  labels:
+    app.kubernetes.io/name: litellm
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: litellm.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - litellm.re8ch.com
+      secretName: re8ch-wildcard-tls
+
+# Provision llm-gateway/litellm-ui-auth out of band with UI_USERNAME and
+# UI_PASSWORD. The Admin UI is available inside the restricted-node-6dc3f140f9 LAN at
+# http://192.0.2.97:30400/ui/. The dedicated HTTPS ingress is ready for the
+# edge DNS/proxy controller to publish as https://litellm.re8ch.com/ui/.
