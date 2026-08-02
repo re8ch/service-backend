@@ -292,15 +292,136 @@ metadata:
   namespace: opensandbox-system
 data:
   server.py: |
+    import hashlib
     import http.client
     import json
     import os
+    import re
+    import ssl
+    import urllib.error
+    import urllib.parse
+    import urllib.request
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
     API_KEY = os.environ["TEABLE_INFRA_API_KEY"]
     UPSTREAM_KEY = os.environ["OPENSANDBOX_API_KEY"]
     UPSTREAM_HOST = os.environ.get("UPSTREAM_HOST", "opensandbox-server")
     UPSTREAM_PORT = int(os.environ.get("UPSTREAM_PORT", "80"))
+    KUBE_HOST = os.environ["KUBERNETES_SERVICE_HOST"]
+    KUBE_PORT = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    KUBE_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    KUBE_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    NAMESPACE = os.environ.get("POD_NAMESPACE", "opensandbox-system")
+
+    def kube_request(path, method="GET", payload=None, content_type="application/json"):
+        with open(KUBE_TOKEN_PATH) as handle:
+            token = handle.read().strip()
+        body = json.dumps(payload).encode() if payload is not None else None
+        request = urllib.request.Request(
+            f"https://{KUBE_HOST}:{KUBE_PORT}{path}",
+            data=body,
+            method=method,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": content_type},
+        )
+        context = ssl.create_default_context(cafile=KUBE_CA_PATH)
+        with urllib.request.urlopen(request, context=context, timeout=15) as response:
+            data = response.read()
+            return response.status, json.loads(data) if data else {}
+
+    def preheat_name(image):
+        digest = hashlib.sha256(image.encode()).hexdigest()[:16]
+        return f"teable-image-preheat-{digest}"
+
+    def create_preheat(image):
+        name = preheat_name(image)
+        manifest = {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": name,
+                "namespace": NAMESPACE,
+                "labels": {
+                    "app.kubernetes.io/name": "teable-image-preheat",
+                    "app.kubernetes.io/managed-by": "teable-infra-compat",
+                },
+                "annotations": {"teable.io/preheat-image": image},
+            },
+            "spec": {
+                "restartPolicy": "Never",
+                "priorityClassName": "opensandbox-workload-low",
+                "nodeSelector": {
+                    "kubernetes.io/hostname": "restricted-node-6dc3f140f9",
+                    "opensandbox.re8ch.com/workload": "true",
+                },
+                "tolerations": [{
+                    "key": "dedicated", "operator": "Equal",
+                    "value": "pg-re8ch", "effect": "NoSchedule",
+                }],
+                "containers": [{
+                    "name": "preheat",
+                    "image": image,
+                    "imagePullPolicy": "IfNotPresent",
+                    "command": ["/bin/sh", "-c", "exit 0"],
+                    "resources": {
+                        "requests": {"cpu": "5m", "memory": "8Mi"},
+                        "limits": {"cpu": "50m", "memory": "64Mi"},
+                    },
+                }],
+            },
+        }
+        path = f"/api/v1/namespaces/{NAMESPACE}/pods"
+        try:
+            return kube_request(path, "POST", manifest)
+        except urllib.error.HTTPError as error:
+            if error.code == 409:
+                return 200, {"name": name, "alreadyExists": True}
+            raise
+
+    def get_preheat():
+        label = urllib.parse.quote("app.kubernetes.io/name=teable-image-preheat")
+        _, result = kube_request(f"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector={label}")
+        items = sorted(
+            result.get("items", []),
+            key=lambda item: item.get("metadata", {}).get("creationTimestamp", ""),
+            reverse=True,
+        )
+        if not items:
+            return {"current": None}
+        pod = items[0]
+        metadata = pod.get("metadata", {})
+        status = pod.get("status", {})
+        image = metadata.get("annotations", {}).get("teable.io/preheat-image")
+        container_statuses = status.get("containerStatuses", [])
+        pulled = any(item.get("imageID") for item in container_statuses)
+        waiting_reasons = [
+            item.get("state", {}).get("waiting", {}).get("reason", "")
+            for item in container_statuses
+        ]
+        failed = any(reason in {"ErrImagePull", "ImagePullBackOff", "InvalidImageName"}
+                     for reason in waiting_reasons)
+        current = {
+            "image": image,
+            "images": [image] if image else [],
+            "desiredNodes": 1,
+            "readyNodes": 1 if pulled else 0,
+            "failedNodes": 1 if failed else 0,
+            "status": "ready" if pulled else ("failed" if failed else "pending"),
+        }
+        return {"current": current}
+
+    def update_sandbox_metadata(sandbox_id, metadata):
+        if not re.fullmatch(r"[a-zA-Z0-9-]+", sandbox_id):
+            raise ValueError("invalid sandbox id")
+        scalar = {
+            key: value for key, value in metadata.items()
+            if value is None or isinstance(value, (str, int, float, bool))
+        }
+        patch = {"metadata": {"annotations": {
+            "teable.io/sandbox-metadata": json.dumps(scalar, separators=(",", ":")),
+        }}}
+        path = (f"/apis/sandbox.opensandbox.io/v1alpha1/namespaces/{NAMESPACE}"
+                f"/batchsandboxes/{sandbox_id}")
+        return kube_request(path, "PATCH", patch, "application/merge-patch+json")
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -326,10 +447,35 @@ data:
             if self.path == "/api/meta":
                 return self.send_json(200, {
                     "name": "re8ch-teable-opensandbox-compat",
-                    "version": "0.1.0",
-                    "capabilities": ["opensandbox.v1"],
+                    "version": "0.2.0",
+                    "capabilities": [
+                        "opensandbox.v1",
+                        "image-preheat.v1",
+                        "sandbox-metadata.v1",
+                    ],
                     "components": {"opensandboxServer": {"version": "v0.2.2"}},
                 })
+            if self.path == "/api/image-preheats" and self.command == "POST":
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length) or b"{}")
+                image = payload.get("image")
+                if not isinstance(image, str) or not image.strip():
+                    return self.send_json(400, {"error": "image is required"})
+                status, result = create_preheat(image.strip())
+                return self.send_json(202 if status in {200, 201} else status, result)
+            if self.path == "/api/image-preheats" and self.command == "GET":
+                return self.send_json(200, get_preheat())
+            metadata_match = re.fullmatch(
+                r"/api/internal/sandboxes/([a-zA-Z0-9-]+)/metadata", self.path
+            )
+            if metadata_match and self.command == "PUT":
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length) or b"{}")
+                try:
+                    status, result = update_sandbox_metadata(metadata_match.group(1), payload)
+                    return self.send_json(status, result)
+                except urllib.error.HTTPError as error:
+                    return self.send_json(error.code, {"error": error.reason})
             if not self.path.startswith("/v1/") and self.path != "/v1":
                 return self.send_json(404, {"error": "not_found"})
             length = int(self.headers.get("Content-Length", "0"))
@@ -377,6 +523,7 @@ spec:
         app.kubernetes.io/name: teable-infra-compat
         app.kubernetes.io/part-of: opensandbox
     spec:
+      serviceAccountName: opensandbox-server
       priorityClassName: opensandbox-control
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
@@ -393,6 +540,10 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: TEABLE_INFRA_API_KEY
               valueFrom:
                 secretKeyRef:

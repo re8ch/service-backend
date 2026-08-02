@@ -53,9 +53,12 @@ image was found as of 2026-08-03. Do not set `SANDBOX_PROVIDER` before obtaining
 that image from Teable Enterprise, mirroring it into Harbor, scanning/signing it,
 and pinning it by digest.
 
-The compatibility service currently advertises only `opensandbox.v1`. It does
-not pretend to implement image preheat, metadata push, app runtime, Git hosting,
-or S3. Those require the complete Teable Infra distribution.
+The compatibility service advertises `opensandbox.v1`, `image-preheat.v1`, and
+`sandbox-metadata.v1`. Image preheat creates a constrained pull Pod on restricted-node-6dc3f140f9 and
+reports readiness from Kubernetes `imageID`; metadata updates are persisted as
+an annotation on the corresponding BatchSandbox. It does not pretend to
+implement app runtime, Git hosting, or S3. Those require the complete Teable
+Infra distribution.
 
 Stage 1 connects Teable using `TEABLE_INFRA_API_URL` and an
 `agent-collab/teable-infra-runtime` Secret. `SANDBOX_PROVIDER` remains unset, so
