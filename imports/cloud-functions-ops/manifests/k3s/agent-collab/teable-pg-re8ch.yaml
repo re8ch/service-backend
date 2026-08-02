@@ -40,6 +40,10 @@ data:
   BACKEND_CACHE_PROVIDER: "redis"
   BACKEND_SESSION_COOKIE_SECURE: "true"
   TELEMETRY_REPORT_DISABLED: "true"
+  # Stage 1 of the OpenSandbox rollout: connect Teable to the authenticated
+  # internal infrastructure endpoint. SANDBOX_PROVIDER and the agent image stay
+  # unset until a Teable-compatible sandbox image has been verified.
+  TEABLE_INFRA_API_URL: "http://teable-infra.opensandbox-system.svc.cluster.local:8080"
   TIMEZONE: "Asia/Shanghai"
   TZ: "Asia/Shanghai"
 ---
@@ -293,6 +297,11 @@ spec:
                 secretKeyRef:
                   name: teable-db-credentials
                   key: DATABASE_URL_MIGRATOR
+            - name: TEABLE_INFRA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: teable-infra-runtime
+                  key: TEABLE_INFRA_API_KEY
           volumeMounts:
             - name: assets
               mountPath: /app/.assets
