@@ -312,6 +312,10 @@ data:
     KUBE_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
     KUBE_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
     NAMESPACE = os.environ.get("POD_NAMESPACE", "opensandbox-system")
+    MINIO_HOST = os.environ.get("MINIO_HOST", "teable-infra-minio")
+    MINIO_PORT = int(os.environ.get("MINIO_PORT", "9000"))
+    GIT_HOST = os.environ.get("GIT_HOST", "teable-infra-git")
+    GIT_PORT = int(os.environ.get("GIT_PORT", "8080"))
 
     def kube_request(path, method="GET", payload=None, content_type="application/json"):
         with open(KUBE_TOKEN_PATH) as handle:
@@ -452,6 +456,8 @@ data:
                         "opensandbox.v1",
                         "image-preheat.v1",
                         "sandbox-metadata.v1",
+                        "git-registry.smart-http.v1",
+                        "s3-compat.v1",
                     ],
                     "components": {"opensandboxServer": {"version": "v0.2.2"}},
                 })
@@ -476,6 +482,12 @@ data:
                     return self.send_json(status, result)
                 except urllib.error.HTTPError as error:
                     return self.send_json(error.code, {"error": error.reason})
+            if self.path.startswith("/api/git/"):
+                return self.proxy(GIT_HOST, GIT_PORT, self.path, {"Authorization": f"Bearer {API_KEY}"})
+            if self.path.startswith("/s3/"):
+                # MinIO remains ClusterIP-only. Authentication terminates here;
+                # the bootstrap job grants access only to the dedicated bucket.
+                return self.proxy(MINIO_HOST, MINIO_PORT, self.path[3:], {})
             if not self.path.startswith("/v1/") and self.path != "/v1":
                 return self.send_json(404, {"error": "not_found"})
             length = int(self.headers.get("Content-Length", "0"))
@@ -485,6 +497,26 @@ data:
             if self.headers.get("Content-Type"):
                 headers["Content-Type"] = self.headers["Content-Type"]
             connection.request(self.command, self.path, body=body, headers=headers)
+            response = connection.getresponse()
+            data = response.read()
+            self.send_response(response.status)
+            for key, value in response.getheaders():
+                if key.lower() not in {"connection", "transfer-encoding", "content-length"}:
+                    self.send_header(key, value)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            connection.close()
+
+        def proxy(self, host, port, path, extra_headers):
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length else None
+            headers = dict(extra_headers)
+            for key in ("Content-Type", "Accept", "Range"):
+                if self.headers.get(key):
+                    headers[key] = self.headers[key]
+            connection = http.client.HTTPConnection(host, port, timeout=310)
+            connection.request(self.command, path, body=body, headers=headers)
             response = connection.getresponse()
             data = response.read()
             self.send_response(response.status)
