@@ -1,8 +1,7 @@
 # OpenSandbox on restricted-node-6dc3f140f9
 
 This deployment bootstraps the OpenSandbox Kubernetes controller and lifecycle
-server for Teable integration testing. It deliberately does not enable Teable's
-Agent Runtime until a matching official Teable Sandbox Agent image is available.
+server and the storage/source services required by Teable Agent Runtime.
 
 ## Versions and placement
 
@@ -45,22 +44,20 @@ helm upgrade --install opensandbox-controller \
   --values controller-values.yaml
 ```
 
-## Teable activation gate
+## Teable Agent Runtime
 
-The current Teable image requires a sandbox image containing
-`/usr/local/bin/teable-sandbox-agent-entrypoint`. No verifiable public Teable
-image was found as of 2026-08-03. Do not set `SANDBOX_PROVIDER` before obtaining
-that image from Teable Enterprise, mirroring it into Harbor, scanning/signing it,
-and pinning it by digest.
+The official image is pinned as
+`teableio/teable-sandbox-agent@sha256:724b1c8f341e144bc5502c10262baeb686f59d381949a69900930500306479f9`.
+Its `/usr/local/bin/teable-sandbox-agent-entrypoint` and OpenSandbox lifecycle
+were validated on restricted-node-6dc3f140f9 before enabling `SANDBOX_PROVIDER=opensandbox`.
 
-The compatibility service advertises `opensandbox.v1`, `image-preheat.v1`, and
-`sandbox-metadata.v1`. Image preheat creates a constrained pull Pod on restricted-node-6dc3f140f9 and
+The compatibility service also advertises `git-registry.smart-http.v1` and
+`s3-compat.v1`. Image preheat creates a constrained pull Pod on restricted-node-6dc3f140f9 and
 reports readiness from Kubernetes `imageID`; metadata updates are persisted as
-an annotation on the corresponding BatchSandbox. It does not pretend to
-implement app runtime, Git hosting, or S3. Those require the complete Teable
-Infra distribution.
+an annotation on the corresponding BatchSandbox. `teable-infra-storage.yaml`
+deploys MinIO and a Bearer-authenticated Git Smart HTTP service on independent
+restricted-node-6dc3f140f9 Retain PVs. Only `app-runtime.gateway.v1` remains intentionally absent.
 
-Stage 1 connects Teable using `TEABLE_INFRA_API_URL` and an
-`agent-collab/teable-infra-runtime` Secret. `SANDBOX_PROVIDER` remains unset, so
-the connection can be diagnosed without allowing Teable to launch an image that
-lacks its required Agent entrypoint.
+Apply `teable-infra-storage.yaml` after creating the uncommitted
+`teable-infra-storage` Secret. MinIO and Git stay ClusterIP-only and are reached
+through the authenticated `teable-infra` facade.

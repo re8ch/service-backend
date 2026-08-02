@@ -40,10 +40,14 @@ data:
   BACKEND_CACHE_PROVIDER: "redis"
   BACKEND_SESSION_COOKIE_SECURE: "true"
   TELEMETRY_REPORT_DISABLED: "true"
-  # Stage 1 of the OpenSandbox rollout: connect Teable to the authenticated
-  # internal infrastructure endpoint. SANDBOX_PROVIDER and the agent image stay
-  # unset until a Teable-compatible sandbox image has been verified.
+  # Teable AI Chat Runtime uses the authenticated in-cluster OpenSandbox facade.
+  # The agent image is pinned to the vendor-published multi-arch digest.
   TEABLE_INFRA_API_URL: "http://teable-infra.opensandbox-system.svc.cluster.local:8080"
+  TEABLE_INFRA_BUCKET: "teable-agent"
+  SANDBOX_PROVIDER: "opensandbox"
+  SANDBOX_AGENT_RUNTIME: "pi"
+  SANDBOX_OPENSANDBOX_IMAGE: "docker.io/teableio/teable-sandbox-agent@sha256:724b1c8f341e144bc5502c10262baeb686f59d381949a69900930500306479f9"
+  SANDBOX_OPENSANDBOX_USE_SERVER_PROXY: "true"
   TIMEZONE: "Asia/Shanghai"
   TZ: "Asia/Shanghai"
 ---
