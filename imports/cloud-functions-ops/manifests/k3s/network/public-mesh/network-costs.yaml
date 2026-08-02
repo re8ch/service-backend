@@ -1,0 +1,57 @@
+{
+  "apiVersion": "networking.re8ch.com/v1alpha1",
+  "kind": "NetworkCostCatalog",
+  "metadata": {
+    "name": "re8ch-network-costs",
+    "currency": "CNY",
+    "effectiveFrom": "2026-08-02T00:00:00+08:00",
+    "owner": "platform-networking"
+  },
+  "providers": {
+    "public-internet": {
+      "pricingSource": "manual",
+      "apiAdapter": null,
+      "notes": "Enter contracted bandwidth, included traffic and overage rates per node."
+    },
+    "zerotier": {
+      "pricingSource": "manual",
+      "apiAdapter": null,
+      "notes": "Record controller, relay and self-hosted planet costs when known."
+    },
+    "aliyun": {
+      "pricingSource": "provider-api-preferred",
+      "apiAdapter": "aliyun-bssopenapi",
+      "credentialSecretRef": "network-cost-provider-credentials",
+      "notes": "Provider API enrichment is disabled until a least-privilege RAM role is approved."
+    }
+  },
+  "paths": [
+    {
+      "id": "public-wg-default",
+      "match": {"pathType": "public_wg"},
+      "billingModel": "per_gib_egress",
+      "pricePerGiB": null,
+      "monthlyIncludedGiB": null,
+      "budgetMonthly": null,
+      "status": "price-required"
+    },
+    {
+      "id": "zerotier-default",
+      "match": {"pathType": "zerotier"},
+      "billingModel": "allocated-overhead",
+      "pricePerGiB": null,
+      "monthlyFixedCost": null,
+      "budgetMonthly": null,
+      "status": "price-required"
+    },
+    {
+      "id": "aliyun-vpc-placeholder",
+      "match": {"pathType": "aliyun_vpc"},
+      "billingModel": "per_gib_egress",
+      "pricePerGiB": null,
+      "monthlyIncludedGiB": null,
+      "budgetMonthly": null,
+      "status": "inactive"
+    }
+  ]
+}
