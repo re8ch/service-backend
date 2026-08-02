@@ -11,6 +11,9 @@ cd "$ROOT_DIR"
 $KUBECTL -n "$NAMESPACE" create configmap re8ch-network-costs \
   --from-file=network-costs.yaml=manifests/k3s/network/public-mesh/network-costs.yaml \
   --dry-run=client -o yaml | $KUBECTL apply -f -
+$KUBECTL -n "$NAMESPACE" create configmap re8ch-node-costs \
+  --from-file=node-costs.yaml=manifests/k3s/network/public-mesh/node-costs.yaml \
+  --dry-run=client -o yaml | $KUBECTL apply -f -
 $KUBECTL -n "$NAMESPACE" create configmap re8ch-routing-policy \
   --from-file=routing-policy.yaml=manifests/k3s/network/public-mesh/routing-policy.yaml \
   --dry-run=client -o yaml | $KUBECTL apply -f -
