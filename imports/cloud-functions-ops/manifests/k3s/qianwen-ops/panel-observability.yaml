@@ -2753,6 +2753,12 @@ data:
         access: proxy
         isDefault: false
         editable: true
+      - name: Network Topology JSON
+        uid: re8ch-network-topology
+        type: yesoreyeram-infinity-datasource
+        access: proxy
+        isDefault: false
+        editable: false
       - name: Tenant Metrics
         uid: tenant-metrics
         orgId: 2
