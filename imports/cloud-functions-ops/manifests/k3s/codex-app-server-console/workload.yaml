@@ -6,9 +6,7 @@ metadata:
     app.kubernetes.io/name: codex-app-server-console
     app.kubernetes.io/part-of: codex-session-platform
 spec:
-  # The live internal console runs as a host service on restricted-node-6dc3f140f9. Keep this
-  # deployment disabled until the public ingress/auth path is restored.
-  replicas: 0
+  replicas: 1
   strategy:
     type: Recreate
   selector:
@@ -39,6 +37,21 @@ spec:
               value: /codex-console
             - name: OPERATOR_GROUPS
               value: service:codex:operator,platform:admin,re8ch:admin
+            - name: INTERNAL_DIRECT_HOSTS
+              value: 192.0.2.169:32032,192.0.2.178:32032
+            - name: INTERNAL_SOURCE_PREFIXES
+              value: 192.168.88.,10.181.22.
+            - name: CODEX_APP_SERVER_HOST
+              value: codex-app-server.codex-app-server.svc.cluster.local
+            - name: CODEX_APP_SERVER_PORT
+              value: "4500"
+            - name: CODEX_DEFAULT_CWD
+              value: /workspace
+            - name: CODEX_APP_SERVER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: codex-app-server-client-token
+                  key: CODEX_APP_SERVER_TOKEN
           ports:
             - name: http
               containerPort: 8080
@@ -84,3 +97,20 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codex-app-server-console-internal
+  labels:
+    app.kubernetes.io/name: codex-app-server-console
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: codex-app-server-console
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      nodePort: 32032
