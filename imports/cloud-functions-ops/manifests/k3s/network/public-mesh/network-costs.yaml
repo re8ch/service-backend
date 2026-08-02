@@ -28,29 +28,52 @@
   "paths": [
     {
       "id": "public-wg-default",
-      "match": {"pathType": "public_wg"},
+      "source": "*",
+      "destination": "*",
+      "pathType": "public_wg",
+      "providerPath": "public-internet-wireguard",
+      "billingDirection": "source-egress",
       "billingModel": "per_gib_egress",
       "pricePerGiB": null,
       "monthlyIncludedGiB": null,
-      "budgetMonthly": null,
-      "status": "price-required"
+      "monthlyFixedCost": null,
+      "tiers": [],
+      "monthlyBudget": null,
+      "effectiveFrom": "2026-08-03",
+      "sourceOfTruth": "manual-contract",
+      "status": "pending"
     },
     {
       "id": "zerotier-default",
-      "match": {"pathType": "zerotier"},
+      "source": "*",
+      "destination": "*",
+      "pathType": "zerotier",
+      "providerPath": "zerotier-overlay",
+      "billingDirection": "none",
       "billingModel": "allocated-overhead",
       "pricePerGiB": null,
       "monthlyFixedCost": null,
-      "budgetMonthly": null,
-      "status": "price-required"
+      "monthlyBudget": null,
+      "tiers": [],
+      "effectiveFrom": "2026-08-03",
+      "sourceOfTruth": "manual-contract",
+      "status": "pending"
     },
     {
       "id": "aliyun-vpc-placeholder",
-      "match": {"pathType": "aliyun_vpc"},
+      "source": "qianwen-nuclio-79",
+      "destination": "harbor-registry",
+      "pathType": "aliyun_vpc",
+      "providerPath": "aliyun-vpc-peer-shanghai-hangzhou",
+      "billingDirection": "source-egress",
       "billingModel": "per_gib_egress",
       "pricePerGiB": null,
       "monthlyIncludedGiB": null,
-      "budgetMonthly": null,
+      "monthlyFixedCost": null,
+      "tiers": [],
+      "monthlyBudget": null,
+      "effectiveFrom": "2026-08-03",
+      "sourceOfTruth": "aliyun-console",
       "status": "inactive"
     }
   ]

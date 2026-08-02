@@ -33,6 +33,7 @@ spec:
             - --metrics-url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
             - --policy=/config/routing-policy.yaml
             - --costs=/config/network-costs.yaml
+            - --nodes=/config/node-costs.yaml
             - --listen=0.0.0.0:9790
           ports:
             - name: metrics
@@ -73,6 +74,8 @@ spec:
             sources:
               - configMap:
                   name: re8ch-network-costs
+              - configMap:
+                  name: re8ch-node-costs
               - configMap:
                   name: re8ch-routing-policy
 ---
