@@ -21,6 +21,43 @@ data:
               source: k3s
               cls: observability
 
+      - job_name: re8ch-network-exporters
+        scrape_interval: 30s
+        scrape_timeout: 15s
+        static_configs:
+          - targets:
+              - "192.0.2.67:9788"
+              - "192.0.2.183:9788"
+              - "192.0.2.141:9788"
+              - "192.0.2.143:9788"
+              - "192.0.2.203:9788"
+              - "192.0.2.79:9788"
+              - "192.0.2.172:9788"
+            labels:
+              tenant: re8ch
+              source: host-network
+              cls: network-economics
+
+      - job_name: re8ch-routing-advisor
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790"]
+            labels:
+              tenant: re8ch
+              source: k3s
+              cls: network-economics
+
+      - job_name: opencost
+        scrape_interval: 60s
+        scrape_timeout: 15s
+        static_configs:
+          - targets: ["opencost.opencost.svc.cluster.local:9003"]
+            labels:
+              tenant: re8ch
+              source: k3s
+              cls: cost-management
+
       - job_name: victoria-logs-self
         scrape_interval: 60s
         scrape_timeout: 10s
@@ -370,7 +407,7 @@ data:
               source: re8ch
               cls: http-probe
             targets:
-              - https://portainer.re8ch.com/grafana/
+              - https://grafana.re8ch.com/grafana/api/health
           - labels:
               tenant: platform
               layer: network
@@ -3123,9 +3160,9 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: GF_SERVER_DOMAIN
-              value: portainer.re8ch.com
+              value: grafana.re8ch.com
             - name: GF_SERVER_ROOT_URL
-              value: https://portainer.re8ch.com/grafana/
+              value: https://grafana.re8ch.com/grafana/
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
             - name: GF_SECURITY_COOKIE_SECURE
@@ -3206,13 +3243,14 @@ metadata:
     app.kubernetes.io/name: panel-grafana
     app.kubernetes.io/part-of: panel-observability
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app.kubernetes.io/name: panel-grafana
   ports:
     - name: http
       port: 3000
       targetPort: http
+      nodePort: 30080
 ---
 apiVersion: apps/v1
 kind: Deployment
