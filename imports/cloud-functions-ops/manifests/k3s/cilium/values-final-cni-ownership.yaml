@@ -1,0 +1,22 @@
+# Layer this after values-migration.yaml only after the public mesh has passed
+# its 24-hour stability gate and all rollback drills.
+cni:
+  install: true
+  customConf: false
+  exclusive: true
+  uninstall: false
+
+routingMode: tunnel
+tunnelProtocol: vxlan
+tunnelPort: 8473
+
+kubeProxyReplacement: "false"
+
+bgpControlPlane:
+  enabled: false
+
+gatewayAPI:
+  enabled: false
+
+operator:
+  replicas: 1
