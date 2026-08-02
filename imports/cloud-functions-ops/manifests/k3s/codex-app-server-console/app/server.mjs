@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
+import net from 'node:net';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { URL } from 'node:url';
 
@@ -8,6 +10,10 @@ const port = Number(process.env.PORT || 8080);
 const authBaseUrl = (process.env.AUTH_BASE_URL || 'https://api.re8ch.com/auth').replace(/\/+$/, '');
 const authService = process.env.AUTH_SERVICE || 'codex';
 const appBasePath = process.env.APP_BASE_PATH || '/codex-console';
+const codexHost = process.env.CODEX_APP_SERVER_HOST || 'codex-app-server.codex-app-server.svc.cluster.local';
+const codexPort = Number(process.env.CODEX_APP_SERVER_PORT || 4500);
+const codexToken = process.env.CODEX_APP_SERVER_TOKEN || '';
+const codexCwd = process.env.CODEX_DEFAULT_CWD || '/workspace';
 const operatorGroups = new Set((process.env.OPERATOR_GROUPS || 'service:codex:operator,platform:admin,re8ch:admin')
   .split(',').map((value) => value.trim()).filter(Boolean));
 const internalDirectHosts = new Set((process.env.INTERNAL_DIRECT_HOSTS || '')
@@ -24,6 +30,117 @@ const serviceToken = fs.readFileSync(serviceTokenPath, 'utf8').trim();
 const serviceCa = fs.readFileSync(serviceCaPath);
 const ownNamespace = fs.readFileSync(namespacePath, 'utf8').trim();
 const startedAt = Date.now();
+
+const controlMethods = new Set([
+  'config/read', 'config/value/write', 'config/batchWrite', 'configRequirements/read',
+  'config/mcpServer/reload', 'model/list', 'experimentalFeature/list',
+  'experimentalFeature/enablement/set', 'collaborationMode/list', 'skills/list',
+  'skills/config/write', 'hooks/list', 'mcpServerStatus/list', 'mcpServer/resource/read',
+  'thread/list', 'thread/loaded/list', 'thread/read', 'thread/turn/list', 'thread/start',
+  'thread/resume', 'thread/fork', 'thread/name/set', 'thread/metadata/update',
+  'thread/archive', 'thread/unarchive', 'thread/compact/start', 'thread/unsubscribe',
+  'turn/start', 'turn/steer', 'turn/interrupt', 'review/start', 'account/read',
+  'account/rateLimits/read', 'account/usage/read', 'app/list', 'plugin/list',
+]);
+
+const encodeWsFrame = (value, opcode = 1) => {
+  const payload = Buffer.from(value);
+  const mask = crypto.randomBytes(4);
+  let header;
+  if (payload.length < 126) header = Buffer.from([0x80 | opcode, 0x80 | payload.length]);
+  else if (payload.length < 65536) {
+    header = Buffer.alloc(4); header[0] = 0x80 | opcode; header[1] = 0xfe; header.writeUInt16BE(payload.length, 2);
+  } else {
+    header = Buffer.alloc(10); header[0] = 0x80 | opcode; header[1] = 0xff; header.writeBigUInt64BE(BigInt(payload.length), 2);
+  }
+  const masked = Buffer.alloc(payload.length);
+  for (let index = 0; index < payload.length; index += 1) masked[index] = payload[index] ^ mask[index % 4];
+  return Buffer.concat([header, mask, masked]);
+};
+
+class CodexRpcSocket {
+  constructor() { this.buffer = Buffer.alloc(0); this.messages = []; this.waiters = []; this.handshake = false; }
+  async connect() {
+    if (!codexToken) throw new Error('Codex capability token is not configured');
+    this.socket = net.createConnection({host: codexHost, port: codexPort});
+    this.socket.on('data', (chunk) => this.onData(chunk));
+    this.socket.on('error', (error) => this.rejectAll(error));
+    const key = crypto.randomBytes(16).toString('base64');
+    this.socket.write([
+      'GET / HTTP/1.1', `Host: ${codexHost}:${codexPort}`, 'Upgrade: websocket', 'Connection: Upgrade',
+      `Sec-WebSocket-Key: ${key}`, 'Sec-WebSocket-Version: 13', `Authorization: Bearer ${codexToken}`, '\r\n',
+    ].join('\r\n'));
+    await this.waitFor((message) => message?.handshake === true, 10000);
+  }
+  onData(chunk) {
+    this.buffer = Buffer.concat([this.buffer, chunk]);
+    if (!this.handshake) {
+      const end = this.buffer.indexOf('\r\n\r\n');
+      if (end < 0) return;
+      const head = this.buffer.subarray(0, end).toString(); this.buffer = this.buffer.subarray(end + 4);
+      if (!head.startsWith('HTTP/1.1 101')) return this.rejectAll(new Error(`WebSocket handshake failed: ${head.split('\r\n')[0]}`));
+      this.handshake = true; this.push({handshake: true});
+    }
+    while (this.buffer.length >= 2) {
+      const opcode = this.buffer[0] & 0x0f; let length = this.buffer[1] & 0x7f; let offset = 2;
+      if (length === 126) { if (this.buffer.length < 4) return; length = this.buffer.readUInt16BE(2); offset = 4; }
+      else if (length === 127) { if (this.buffer.length < 10) return; length = Number(this.buffer.readBigUInt64BE(2)); offset = 10; }
+      const masked = Boolean(this.buffer[1] & 0x80); const required = offset + (masked ? 4 : 0) + length;
+      if (this.buffer.length < required) return;
+      let mask; if (masked) { mask = this.buffer.subarray(offset, offset + 4); offset += 4; }
+      const payload = Buffer.from(this.buffer.subarray(offset, offset + length)); this.buffer = this.buffer.subarray(required);
+      if (masked) for (let index = 0; index < payload.length; index += 1) payload[index] ^= mask[index % 4];
+      if (opcode === 9) { this.socket.write(encodeWsFrame(payload.toString(), 10)); continue; }
+      if (opcode === 8) { this.rejectAll(new Error('Codex WebSocket closed')); return; }
+      if (opcode === 1) { try { this.push(JSON.parse(payload.toString())); } catch {} }
+    }
+  }
+  push(message) {
+    const index = this.waiters.findIndex((waiter) => waiter.predicate(message));
+    if (index >= 0) { const [waiter] = this.waiters.splice(index, 1); clearTimeout(waiter.timer); waiter.resolve(message); }
+    else this.messages.push(message);
+  }
+  waitFor(predicate, timeout = 30000) {
+    const index = this.messages.findIndex(predicate);
+    if (index >= 0) return Promise.resolve(this.messages.splice(index, 1)[0]);
+    return new Promise((resolve, reject) => {
+      const waiter = {predicate, resolve, reject};
+      waiter.timer = setTimeout(() => { this.waiters = this.waiters.filter((item) => item !== waiter); reject(new Error('Codex RPC timeout')); }, timeout);
+      this.waiters.push(waiter);
+    });
+  }
+  rejectAll(error) { for (const waiter of this.waiters) { clearTimeout(waiter.timer); waiter.reject(error); } this.waiters = []; }
+  send(method, id, params) { this.socket.write(encodeWsFrame(JSON.stringify({method, id, params}))); }
+  close() { this.socket?.end(encodeWsFrame('', 8)); }
+}
+
+const codexRpc = async (method, params = {}) => {
+  if (!controlMethods.has(method)) throw new Error(`RPC method is not enabled: ${method}`);
+  const client = new CodexRpcSocket();
+  try {
+    await client.connect();
+    client.send('initialize', 1, {
+      clientInfo: {name: 're8ch_codex_control_plane', title: 'RE8CH Codex Control Plane', version: '0.1.0'},
+      capabilities: {experimentalApi: true, mcpServerOpenaiFormElicitation: true},
+    });
+    const initialized = await client.waitFor((message) => message.id === 1, 15000);
+    if (initialized.error) throw new Error(initialized.error.message || 'Codex initialize failed');
+    client.socket.write(encodeWsFrame(JSON.stringify({method: 'initialized', params: {}})));
+    client.send(method, 2, params);
+    const response = await client.waitFor((message) => message.id === 2, 120000);
+    if (response.error) throw new Error(response.error.message || JSON.stringify(response.error));
+    return response.result;
+  } finally { client.close(); }
+};
+
+const readBody = async (req) => {
+  let raw = '';
+  for await (const chunk of req) {
+    raw += chunk;
+    if (raw.length > 1024 * 1024) throw new Error('request body too large');
+  }
+  return raw ? JSON.parse(raw) : {};
+};
 
 const json = (res, status, value) => {
   const body = JSON.stringify(value);
@@ -128,6 +245,7 @@ const labelsMatch = (selector = {}, labels = {}) =>
 
 const isAppServer = (deployment) => {
   const name = deployment.metadata?.name || '';
+  if (name.includes('codex-app-server-console')) return false;
   const labels = deployment.metadata?.labels || {};
   const annotations = deployment.metadata?.annotations || {};
   const containers = deployment.spec?.template?.spec?.containers || [];
@@ -288,6 +406,47 @@ const server = http.createServer(async (req, res) => {
     } catch (error) {
       console.error('fleet discovery failed', error);
       return json(res, 502, {error: 'fleet_discovery_failed', detail: error.message});
+    }
+  }
+  if (requestUrl.pathname === '/api/control/snapshot') {
+    const identity = await verifyIdentity(req);
+    if (!identity) return json(res, 401, {error: 'unauthorized'});
+    if (!identityAccess(identity).operator) return json(res, 403, {error: 'operator_required'});
+    const calls = {
+      config: ['config/read', {includeLayers: true}],
+      requirements: ['configRequirements/read', {}],
+      models: ['model/list', {limit: 100, includeHidden: true}],
+      features: ['experimentalFeature/list', {}],
+      collaborationModes: ['collaborationMode/list', {}],
+      skills: ['skills/list', {cwds: [codexCwd], forceReload: false}],
+      hooks: ['hooks/list', {cwds: [codexCwd]}],
+      mcp: ['mcpServerStatus/list', {limit: 100, detail: 'toolsAndAuthOnly'}],
+      threads: ['thread/list', {limit: 50, sortKey: 'updated_at', sourceKinds: []}],
+      loadedThreads: ['thread/loaded/list', {}],
+      account: ['account/read', {refreshToken: false}],
+      apps: ['app/list', {forceRefetch: false}],
+    };
+    const entries = await Promise.all(Object.entries(calls).map(async ([name, [method, params]]) => {
+      try { return [name, {ok: true, value: await codexRpc(method, params)}]; }
+      catch (error) { return [name, {ok: false, error: error.message}]; }
+    }));
+    return json(res, 200, {
+      target: {host: codexHost, port: codexPort, cwd: codexCwd},
+      capabilities: [...controlMethods].sort(),
+      data: Object.fromEntries(entries),
+      observedAt: new Date().toISOString(),
+    });
+  }
+  if (requestUrl.pathname === '/api/control/rpc' && req.method === 'POST') {
+    const identity = await verifyIdentity(req);
+    if (!identity) return json(res, 401, {error: 'unauthorized'});
+    if (!identityAccess(identity).operator) return json(res, 403, {error: 'operator_required'});
+    try {
+      const body = await readBody(req);
+      if (!controlMethods.has(body.method)) return json(res, 400, {error: 'method_not_enabled'});
+      return json(res, 200, {method: body.method, result: await codexRpc(body.method, body.params || {})});
+    } catch (error) {
+      return json(res, 502, {error: 'codex_rpc_failed', detail: error.message});
     }
   }
   if (requestUrl.pathname === '/' || requestUrl.pathname === '/index.html') {

@@ -63,6 +63,16 @@
     }
     .button:hover { border-color: #385064; background: #16202c; }
     .button.primary { background: var(--cyan); color: #07110f; border-color: var(--cyan); font-weight: 750; }
+    .button.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-soft); }
+    .control-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .control-card { border: 1px solid var(--line-soft); border-radius: 12px; background: var(--panel); padding: 15px; min-height: 190px; }
+    .control-card h2 { margin: 0 0 5px; font-size: 14px; }
+    .control-card p { margin: 0 0 12px; color: var(--muted); font-size: 11px; }
+    .control-data { margin: 0; max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: #b9c6d6; font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .rpc-panel { margin-top: 14px; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--panel); padding: 16px; }
+    .rpc-grid { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(360px, 1.3fr); gap: 12px; }
+    textarea.input { resize: vertical; min-height: 150px; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .rpc-result { margin-top: 12px; min-height: 80px; max-height: 440px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; background: #080c12; padding: 12px; white-space: pre-wrap; font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
     .metrics { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
     .metric {
       border: 1px solid var(--line-soft); background: linear-gradient(150deg, rgba(18,25,35,.94), rgba(12,17,24,.94));
@@ -139,6 +149,7 @@
     .login-card p { color: var(--muted); line-height: 1.6; font-size: 13px; }
     @media (max-width: 1050px) {
       .metrics { grid-template-columns: repeat(3, 1fr); }
+      .control-grid { grid-template-columns: repeat(2, 1fr); }
       .shell { padding: 22px 18px 38px; }
     }
     @media (max-width: 640px) {
@@ -146,6 +157,7 @@
       .header-actions { justify-content: space-between; }
       .metrics { grid-template-columns: repeat(2, 1fr); }
       .toolbar { grid-template-columns: 1fr; }
+      .control-grid, .rpc-grid { grid-template-columns: 1fr; }
       .drawer-body { grid-template-columns: 1fr; }
       .detail.wide { grid-column: auto; }
     }
@@ -173,12 +185,15 @@
         </div>
         <div class="header-actions">
           <span id="identity" class="identity"></span>
+          <button id="fleetTab" class="button active">Fleet</button>
+          <button id="controlTab" class="button">Control Plane</button>
           <button id="refresh" class="button">立即刷新</button>
         </div>
       </header>
 
       <div id="error" class="error-banner"></div>
 
+      <div id="fleetView">
       <section class="metrics" aria-label="实例摘要">
         <div class="metric"><div class="metric-label">App Servers</div><div class="metric-value" id="mTotal">—</div></div>
         <div class="metric"><div class="metric-label">Working</div><div class="metric-value" id="mBusy">—</div></div>
@@ -222,6 +237,31 @@
         <span id="observedAt">等待首次同步</span>
         <span>每 10 秒自动刷新 · Kubernetes 只读发现</span>
       </div>
+      </div>
+
+      <div id="controlView" hidden>
+        <div class="toolbar" style="border-radius:12px;margin-bottom:14px;grid-template-columns:1fr auto">
+          <div><div class="name">Codex App Server Control Plane</div><div id="controlTarget" class="secondary mono">等待连接</div></div>
+          <button id="loadControl" class="button primary">读取全部能力</button>
+        </div>
+        <section id="controlGrid" class="control-grid"></section>
+        <section class="rpc-panel">
+          <div class="name">受控 RPC Console</div>
+          <p class="subtitle">覆盖配置、线程、Turn、Review、Skills、Hooks、MCP、Apps、模型和实验特性。只允许服务端白名单中的 app-server 方法。</p>
+          <div class="rpc-grid">
+            <div>
+              <label class="secondary" for="rpcMethod">Method</label>
+              <select id="rpcMethod" class="select" style="width:100%;margin-top:6px"></select>
+            </div>
+            <div>
+              <label class="secondary" for="rpcParams">Params JSON</label>
+              <textarea id="rpcParams" class="input" spellcheck="false">{}</textarea>
+            </div>
+          </div>
+          <button id="runRpc" class="button primary" style="margin-top:12px">执行 RPC</button>
+          <pre id="rpcResult" class="rpc-result">尚未执行</pre>
+        </section>
+      </div>
     </main>
   </div>
 
@@ -235,7 +275,7 @@
 
   <script>
     const BASE = '__APP_BASE_PATH__';
-    const state = {instances: [], loginUrl: '', timer: null};
+    const state = {instances: [], loginUrl: '', timer: null, controlLoaded: false};
     const $ = (id) => document.getElementById(id);
     const labels = {
       busy:'处理中', queued:'排队中', blocked:'已阻塞', idle:'空闲',
@@ -251,8 +291,12 @@
       return Math.floor(seconds / 86400) + ' 天';
     };
     const badge = (value) => '<span class="badge ' + esc(value) + '"><span class="dot"></span>' + esc(labels[value] || value) + '</span>';
-    async function api(endpoint) {
-      const response = await fetch(BASE + endpoint, {credentials:'include', headers:{accept:'application/json'}});
+    async function api(endpoint, options = {}) {
+      const response = await fetch(BASE + endpoint, {
+        credentials:'include',
+        ...options,
+        headers:{accept:'application/json','content-type':'application/json',...(options.headers || {})},
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) { const error = new Error(data.error || '请求失败'); error.status = response.status; error.data = data; throw error; }
       return data;
@@ -350,8 +394,70 @@
       ).join('');
       $('detailDialog').showModal();
     }
+    const controlLabels = {
+      config:'Effective Config + Layers', requirements:'Managed Requirements', models:'Models',
+      features:'Experimental Features', collaborationModes:'Collaboration Modes', skills:'Skills',
+      hooks:'Lifecycle Hooks', mcp:'MCP Servers & Auth', threads:'Stored Threads',
+      loadedThreads:'Loaded Threads', account:'Account', apps:'Apps / Connectors'
+    };
+    const rpcDefaults = {
+      'config/read':{includeLayers:true}, 'config/value/write':{keyPath:'model',value:'deepseek-v4-flash'},
+      'config/batchWrite':{edits:[]}, 'configRequirements/read':{}, 'config/mcpServer/reload':{},
+      'model/list':{limit:100,includeHidden:true}, 'experimentalFeature/list':{},
+      'experimentalFeature/enablement/set':{feature:'apps',enabled:true}, 'collaborationMode/list':{},
+      'skills/list':{cwds:['/workspace'],forceReload:true}, 'skills/config/write':{path:'',enabled:true},
+      'hooks/list':{cwds:['/workspace']}, 'mcpServerStatus/list':{limit:100,detail:'full'},
+      'mcpServer/resource/read':{server:'',uri:''}, 'thread/list':{limit:50},
+      'thread/loaded/list':{}, 'thread/read':{threadId:'',includeTurns:true},
+      'thread/turn/list':{threadId:'',limit:50}, 'thread/start':{cwd:'/workspace',approvalPolicy:'never',sandbox:'read-only'},
+      'thread/resume':{threadId:''}, 'thread/fork':{threadId:''}, 'thread/name/set':{threadId:'',name:''},
+      'thread/metadata/update':{threadId:'',isPinned:true}, 'thread/archive':{threadId:''},
+      'thread/unarchive':{threadId:''}, 'thread/compact/start':{threadId:''}, 'thread/unsubscribe':{threadId:''},
+      'turn/start':{threadId:'',input:[{type:'text',text:''}]}, 'turn/steer':{threadId:'',turnId:'',input:[]},
+      'turn/interrupt':{threadId:'',turnId:''}, 'review/start':{threadId:'',target:{type:'uncommittedChanges'},delivery:'inline'},
+      'account/read':{refreshToken:false}, 'account/rateLimits/read':{}, 'account/usage/read':{},
+      'app/list':{forceRefetch:true}, 'plugin/list':{}
+    };
+    function showView(control) {
+      $('fleetView').hidden = control; $('controlView').hidden = !control;
+      $('fleetTab').classList.toggle('active', !control); $('controlTab').classList.toggle('active', control);
+      $('refresh').hidden = control;
+      if (control && !state.controlLoaded) loadControl();
+    }
+    async function loadControl() {
+      $('loadControl').disabled = true;
+      try {
+        const snapshot = await api('/api/control/snapshot');
+        state.controlLoaded = true;
+        $('controlTarget').textContent = snapshot.target.host + ':' + snapshot.target.port + ' · cwd ' + snapshot.target.cwd + ' · ' + new Date(snapshot.observedAt).toLocaleTimeString('zh-CN',{hour12:false});
+        $('rpcMethod').innerHTML = snapshot.capabilities.map((method) => '<option value="' + esc(method) + '">' + esc(method) + '</option>').join('');
+        $('controlGrid').innerHTML = Object.entries(snapshot.data).map(([name, item]) =>
+          '<article class="control-card"><h2>' + esc(controlLabels[name] || name) + '</h2><p>' + (item.ok ? 'Live app-server RPC' : 'Unavailable') + '</p><pre class="control-data">' + esc(JSON.stringify(item.ok ? item.value : {error:item.error}, null, 2)) + '</pre></article>'
+        ).join('');
+        updateRpcParams(); showError('');
+      } catch (error) { showError('Control Plane 读取失败：' + error.message); }
+      finally { $('loadControl').disabled = false; }
+    }
+    function updateRpcParams() {
+      $('rpcParams').value = JSON.stringify(rpcDefaults[$('rpcMethod').value] || {}, null, 2);
+    }
+    async function runRpc() {
+      $('runRpc').disabled = true; $('rpcResult').textContent = '执行中…';
+      try {
+        const params = JSON.parse($('rpcParams').value || '{}');
+        const result = await api('/api/control/rpc', {method:'POST', body:JSON.stringify({method:$('rpcMethod').value,params})});
+        $('rpcResult').textContent = JSON.stringify(result, null, 2);
+        state.controlLoaded = false;
+      } catch (error) { $('rpcResult').textContent = JSON.stringify(error.data || {error:error.message}, null, 2); }
+      finally { $('runRpc').disabled = false; }
+    }
     $('loginButton').addEventListener('click', () => { if (state.loginUrl) location.href = state.loginUrl; });
     $('refresh').addEventListener('click', refresh);
+    $('fleetTab').addEventListener('click', () => showView(false));
+    $('controlTab').addEventListener('click', () => showView(true));
+    $('loadControl').addEventListener('click', loadControl);
+    $('rpcMethod').addEventListener('change', updateRpcParams);
+    $('runRpc').addEventListener('click', runRpc);
     $('search').addEventListener('input', renderRows);
     $('activityFilter').addEventListener('change', renderRows);
     $('healthFilter').addEventListener('change', renderRows);
