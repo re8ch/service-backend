@@ -1,0 +1,47 @@
+{
+  "apiVersion": "networking.re8ch.com/v1alpha1",
+  "kind": "RoutingRecommendationPolicy",
+  "metadata": {
+    "name": "re8ch-public-mesh-advisory",
+    "version": "2026-08-02.1",
+    "owner": "platform-networking"
+  },
+  "mode": "observe-only",
+  "applyEnabled": false,
+  "evaluationIntervalSeconds": 30,
+  "minimumSamples": 5,
+  "consecutiveWinsRequired": 5,
+  "holdDownSeconds": 300,
+  "switchMargin": 25,
+  "hardGates": {
+    "maximumLossRatio": 0.05,
+    "maximumHandshakeAgeSeconds": 180,
+    "maximumProbeAgeSeconds": 90,
+    "requireBgpForPublicWireGuard": true,
+    "requireBfdForPublicWireGuard": true,
+    "rejectUnknownPriceWhenBudgetEnforced": true
+  },
+  "pathPreference": {
+    "aliyun_vpc": 300,
+    "public_wg": 200,
+    "zerotier": 100,
+    "rescue_wg": 50
+  },
+  "scoreWeights": {
+    "preference": 10,
+    "rttMilliseconds": -1,
+    "jitterMilliseconds": -2,
+    "lossRatio": -1000,
+    "pricePerGiB": -50
+  },
+  "budget": {
+    "enforced": false,
+    "warningRatio": 0.8,
+    "hardLimitRatio": 1.0
+  },
+  "audit": {
+    "logEveryRecommendationChange": true,
+    "logSuppressedSwitches": true,
+    "includeInputFacts": true
+  }
+}
