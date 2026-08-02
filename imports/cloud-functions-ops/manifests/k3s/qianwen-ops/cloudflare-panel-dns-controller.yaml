@@ -13,6 +13,9 @@ data:
   DNS_RECORDS: |
     portainer.re8ch.com=192.0.2.192
     grafana.re8ch.com=192.0.2.192
+    hubble.re8ch.com=192.0.2.192
+    cost.re8ch.com=192.0.2.192
+    bgp.re8ch.com=192.0.2.192
     dbgui.re8ch.com=192.0.2.192
     teable.re8ch.com=192.0.2.192
     files.re8ch.com=192.0.2.138
@@ -228,8 +231,12 @@ spec:
         app.kubernetes.io/name: cloudflare-panel-dns-controller
     spec:
       nodeSelector:
-        qianwen.cc/dns-controller: "true"
+        kubernetes.io/hostname: rancher-panel
       tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
