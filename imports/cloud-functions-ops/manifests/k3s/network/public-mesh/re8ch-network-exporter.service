@@ -1,0 +1,21 @@
+[Unit]
+Description=RE8CH read-only network path exporter
+After=network-online.target wg-quick@wg-public-mesh.service frr.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/re8ch-network-exporter.env
+ExecStart=/usr/local/sbin/re8ch-network-exporter --inventory /etc/re8ch-public-mesh-inventory.json --node-id ${NODE_ID} --listen ${LISTEN_ADDRESS}:9788
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target
