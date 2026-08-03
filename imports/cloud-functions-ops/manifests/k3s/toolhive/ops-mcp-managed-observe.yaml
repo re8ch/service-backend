@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ops-mcp-observe
+  namespace: toolhive-system
+  labels:
+    re8ch.com/access-level: observe
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:ops-mcp-observe
+rules:
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - nodes
+      - nodes/status
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - persistentvolumeclaims
+      - persistentvolumes
+      - events
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["nuclio.io"]
+    resources: ["nucliofunctions", "nucliofunctions/status", "nuclioapigateways", "nuclioprojects"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["toolhive.stacklok.dev"]
+    resources:
+      - mcpservers
+      - mcpremoteproxies
+      - mcpservers/status
+      - mcpremoteproxies/status
+      - mcpgroups
+      - mcptoolconfigs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["kagent.dev"]
+    resources: ["remotemcpservers", "remotemcpservers/status"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["sandbox.opensandbox.io"]
+    resources: ["batchsandboxes", "batchsandboxes/status", "pools", "pools/status", "sandboxsnapshots", "sandboxsnapshots/status"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:ops-mcp-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-observe
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-observe
+    namespace: toolhive-system
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: ops-observe-managed
+  namespace: toolhive-system
+  labels:
+    re8ch.com/risk: read-only
+    re8ch.com/publication-stage: canary
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-url: http://mcp-ops-observe-managed-proxy.toolhive-system.svc.cluster.local:8080
+    toolhive.stacklok.dev/registry-description: ToolHive-managed read-only platform inventory, health, metrics, and registry metadata.
+    toolhive.stacklok.dev/registry-title: RE8CH Platform Observe (Managed Canary)
+    toolhive.stacklok.dev/registry-category: operations,read-only,internal,canary
+    toolhive.stacklok.dev/authz-claims: '{"access_level":"observe","audience":"agent"}'
+spec:
+  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8088
+  serviceAccount: ops-mcp-observe
+  groupRef:
+    name: platform-observe
+  toolConfigRef:
+    name: ops-observe-tools
+  telemetryConfigRef:
+    name: platform-tools-telemetry
+    serviceName: re8ch-ops-observe
+  audit: {enabled: true}
+  oidcConfigRef:
+    name: observe-workload-identity
+    audience: re8ch-toolhive-ops-observe-managed
+  env:
+    - name: LISTEN_PORT
+      value: "8088"
+    - name: TRUST_LOOPBACK_PROXY
+      value: "true"
+    - name: TRUST_PROXY_CIDRS
+      value: 192.0.2.224/16
+    - name: OPS_TOOL_PROFILE
+      value: observe
+    - name: TENANT_NAMESPACE
+      value: qwen
+    - name: TENANT_NAMESPACES
+      value: qwen
+    - name: TENANT_DB_NAMES
+      value: qianwen_prod,qianwen_test,cardcat
+    - name: KUBE_SERVER_PUBLIC
+      value: https://192.0.2.18:6443
+    - name: REGISTRY_PUBLIC
+      value: https://registry.re8ch.com
+    - name: REGISTRY_ALT
+      value: https://registry.ynzs.com
+    - name: GRAFANA_PUBLIC
+      value: https://grafana.re8ch.com
+    - name: HEADLAMP_PUBLIC
+      value: https://headlamp.re8ch.com
+    - name: METRICS_URL
+      value: http://192.0.2.183:30428
+    - name: TENANT_METRICS_TENANT
+      value: qianwen
+  podTemplateSpec:
+    spec:
+      nodeSelector:
+        # Temporary until the signed Ops MCP image is pushed to Harbor.
+        # This node already has the approved base image cached.
+        kubernetes.io/hostname: rancher-panel
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          command: ["python", "/app/app.py"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app-code
+          configMap:
+            name: ops-mcp-server-code
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ops-observe-managed-backend
+  namespace: toolhive-system
+spec:
+  podSelector:
+    matchLabels:
+      app: ops-observe-managed
+      toolhive: "true"
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mcpserver
+              app.kubernetes.io/instance: ops-observe-managed
+              toolhive: "true"
+      ports:
+        - protocol: TCP
+          port: 8088
