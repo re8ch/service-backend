@@ -140,8 +140,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: oauth2-proxy-hyperglass, namespace: qianwen-ops}
 spec:
-  # Staged until the Harbor and Qwen pre-publication smoke gates recover.
-  replicas: 0
+  replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-hyperglass}}
   template:
     metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-hyperglass}}
