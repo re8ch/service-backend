@@ -61,3 +61,28 @@ restricted-node-6dc3f140f9 Retain PVs. Only `app-runtime.gateway.v1` remains int
 Apply `teable-infra-storage.yaml` after creating the uncommitted
 `teable-infra-storage` Secret. MinIO and Git stay ClusterIP-only and are reached
 through the authenticated `teable-infra` facade.
+
+## Free-tier stopping point
+
+The current self-hosted Teable instance reports product level `free`. Its
+effective feature limits disable AI Chat, AI fields, and generated apps:
+
+```text
+chatAIEnable=false
+fieldAIEnable=false
+appEnable=false
+```
+
+Consequently, the UI error `Need to upgrade the subscription to use this
+feature` is a Teable license decision, not an OpenSandbox failure. Backend logs
+show the request is rejected by `UsageGuard` before the Sandbox provider runs.
+The free-tier deployment is complete at the tested infrastructure boundary:
+OpenSandbox lifecycle, official Agent image, image preheat, metadata, MinIO/S3,
+and Git Smart HTTP.
+
+`app-runtime.gateway.v1` remains absent and InfraDoctor reports it accurately.
+That capability is for generated-app artifact upload and deployment, not AI Chat.
+Do not add the capability string until its create/upload/activate/status/URL/
+destroy API has a real implementation. Do not bypass Teable's license checks;
+configure a legitimate Business/Enterprise license before testing licensed UI
+features. See `docs/teable-free-tier-runtime-boundary-2026-08-03.md`.
