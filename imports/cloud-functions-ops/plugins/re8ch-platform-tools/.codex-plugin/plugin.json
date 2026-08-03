@@ -1,0 +1,23 @@
+{
+  "name": "re8ch-platform-tools",
+  "version": "0.1.0",
+  "description": "Governed read-only platform health and inventory tools published through ToolHive.",
+  "author": {
+    "name": "RE8CH"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Re8ch Platform Tools",
+    "shortDescription": "Inspect approved RE8CH platform health safely.",
+    "longDescription": "Read-only Kubernetes inventory, tenant metrics, and fixed health checks for Harbor, ToolHive Registry, Grafana, Headlamp, CloudBeaver, and Pigsty-backed database routes. Production access remains OAuth-gated.",
+    "developerName": "RE8CH",
+    "category": "Developer Tools",
+    "capabilities": ["Read-only", "Observability", "Infrastructure"],
+    "defaultPrompt": [
+      "Check RE8CH platform health and summarize current failures.",
+      "List my tenant workloads and highlight unavailable deployments.",
+      "Compare database routes and recommend a healthy read/write path."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}
