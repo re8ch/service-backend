@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: platform-observer
+  namespace: headlamp
+  labels: {re8ch.com/access-level: observe}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:headlamp-platform-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-observe
+subjects:
+  - {kind: ServiceAccount, name: platform-observer, namespace: headlamp}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: platform-operator
+  namespace: headlamp
+  labels: {re8ch.com/access-level: operate}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:headlamp-platform-operator-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-observe
+subjects:
+  - {kind: ServiceAccount, name: platform-operator, namespace: headlamp}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: re8ch:headlamp-platform-operator
+  namespace: qwen
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: re8ch:ops-mcp-operate
+subjects:
+  - {kind: ServiceAccount, name: platform-operator, namespace: headlamp}
