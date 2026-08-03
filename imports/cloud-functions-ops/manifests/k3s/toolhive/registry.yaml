@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgresql-toolhive-registry-ingress
+  namespace: mcp-registry
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcp-registry-postgresql
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: toolhive-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: toolhive-registry-server
+      ports:
+        - protocol: TCP
+          port: 5432
