@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: toolhive-ops-observe-token
+  namespace: kagent
+  labels: {re8ch.com/managed-by: toolhive-token-rotator}
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: toolhive-ops-operate-token
+  namespace: kagent
+  labels: {re8ch.com/managed-by: toolhive-token-rotator}
+type: Opaque
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: toolhive-token-rotator
+  namespace: kagent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: toolhive-token-rotator
+  namespace: kagent
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["readonly-k8s-diagnostic-agent", "my-first-k8s-agent"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["toolhive-ops-observe-token", "toolhive-ops-operate-token"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["kagent.dev"]
+    resources: ["remotemcpservers"]
+    resourceNames: ["toolhive-ops-observe", "toolhive-ops-operate"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: toolhive-token-rotator
+  namespace: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: toolhive-token-rotator
+subjects:
+  - kind: ServiceAccount
+    name: toolhive-token-rotator
+    namespace: kagent
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: toolhive-token-rotator
+  namespace: kagent
+data:
+  rotate.py: |
+    import json
+    import os
+    import ssl
+    import urllib.request
+
+    NAMESPACE = "kagent"
+    TARGETS = (
+        ("readonly-k8s-diagnostic-agent", "re8ch-toolhive-ops-observe-managed", "toolhive-ops-observe-token", "toolhive-ops-observe"),
+        ("my-first-k8s-agent", "re8ch-toolhive-ops-operate-managed", "toolhive-ops-operate-token", "toolhive-ops-operate"),
+    )
+    host = os.environ["KUBERNETES_SERVICE_HOST"]
+    port = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    base = "https://%s:%s" % (host, port)
+    with open("/var/run/secrets/kubernetes.io/serviceaccount/token", encoding="utf-8") as handle:
+        bearer = handle.read().strip()
+    context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+
+    def request(method, path, body, content_type="application/json"):
+        payload = json.dumps(body).encode("utf-8")
+        req = urllib.request.Request(
+            base + path,
+            data=payload,
+            method=method,
+            headers={"Authorization": "Bearer " + bearer, "Content-Type": content_type},
+        )
+        with urllib.request.urlopen(req, context=context, timeout=20) as response:
+            return json.load(response)
+
+    for service_account, audience, secret_name, remote_name in TARGETS:
+        issued = request(
+            "POST",
+            "/api/v1/namespaces/%s/serviceaccounts/%s/token" % (NAMESPACE, service_account),
+            {"apiVersion": "authentication.k8s.io/v1", "kind": "TokenRequest", "spec": {"audiences": [audience], "expirationSeconds": 3600}},
+        )
+        request(
+            "PATCH",
+            "/api/v1/namespaces/%s/secrets/%s" % (NAMESPACE, secret_name),
+            {"stringData": {"authorization": "Bearer " + issued["status"]["token"]}},
+            "application/merge-patch+json",
+        )
+        request(
+            "PATCH",
+            "/apis/kagent.dev/v1alpha2/namespaces/%s/remotemcpservers/%s" % (NAMESPACE, remote_name),
+            {"metadata": {"annotations": {"re8ch.com/token-expiration": issued["status"]["expirationTimestamp"]}}},
+            "application/merge-patch+json",
+        )
+        print("rotated %s for %s" % (secret_name, service_account), flush=True)
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: toolhive-token-rotator
+  namespace: kagent
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels: {app.kubernetes.io/name: toolhive-token-rotator}
+        spec:
+          serviceAccountName: toolhive-token-rotator
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: rancher-panel}
+          tolerations:
+            - {key: dedicated, operator: Equal, value: panel, effect: NoSchedule}
+          securityContext:
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: rotate
+              image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+              command: ["python", "/opt/rotate/rotate.py"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: ["ALL"]}
+              resources:
+                requests: {cpu: 10m, memory: 24Mi}
+                limits: {cpu: 100m, memory: 64Mi}
+              volumeMounts:
+                - {name: script, mountPath: /opt/rotate, readOnly: true}
+          volumes:
+            - name: script
+              configMap: {name: toolhive-token-rotator}
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: toolhive-ops-observe
+  namespace: kagent
+  labels: {re8ch.com/access-level: observe}
+spec:
+  description: ToolHive-governed read-only RE8CH platform operations tools.
+  protocol: STREAMABLE_HTTP
+  url: http://mcp-ops-observe-managed-proxy.toolhive-system.svc.cluster.local:8080/mcp
+  timeout: 30s
+  headersFrom:
+    - name: Authorization
+      valueFrom: {type: Secret, name: toolhive-ops-observe-token, key: authorization}
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: toolhive-ops-operate
+  namespace: kagent
+  labels: {re8ch.com/access-level: operate}
+spec:
+  description: ToolHive-governed bounded RE8CH platform operations tools.
+  protocol: STREAMABLE_HTTP
+  url: http://mcp-ops-operate-managed-proxy.toolhive-system.svc.cluster.local:8080/mcp
+  timeout: 30s
+  headersFrom:
+    - name: Authorization
+      valueFrom: {type: Secret, name: toolhive-ops-operate-token, key: authorization}
