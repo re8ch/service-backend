@@ -1,0 +1,49 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: toolhive-proxy-scheduling.re8ch.com
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+        resourceNames:
+          - ops-observe-managed
+          - ops-operate-managed
+          - ops-admin-managed
+  matchConditions:
+    - name: is-toolhive-proxy-runner
+      expression: >-
+        object.metadata.namespace == 'toolhive-system' &&
+        object.metadata.labels['toolhive'] == 'true' &&
+        object.metadata.labels['app'] == 'mcpserver'
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          has(object.spec.template.spec.nodeSelector)
+          ? [JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'),
+              value: 'restricted-node-296f36f2fb'
+            }]
+          : [JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector',
+              value: {'kubernetes.io/hostname': 'restricted-node-296f36f2fb'}
+            }]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: toolhive-proxy-scheduling.re8ch.com
+spec:
+  policyName: toolhive-proxy-scheduling.re8ch.com
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        re8ch.com/plane: tool-control
