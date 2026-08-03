@@ -21,6 +21,33 @@ data:
               source: k3s
               cls: observability
 
+      - job_name: toolhive-mcp-control-plane
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["mcp-ops-observe-managed-proxy.toolhive-system.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              source: toolhive
+              cls: mcp-control-plane
+              access_level: observe
+          - targets: ["mcp-ops-operate-managed-proxy.toolhive-system.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              source: toolhive
+              cls: mcp-control-plane
+              access_level: operate
+          - targets: ["mcp-ops-admin-managed-proxy.toolhive-system.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              source: toolhive
+              cls: mcp-control-plane
+              access_level: admin
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'toolhive_mcp_.*|mcp_server_operation_.*|process_(cpu|resident_memory|start_time)_.*'
+            action: keep
+
       - job_name: re8ch-network-exporters
         scrape_interval: 30s
         scrape_timeout: 15s
@@ -2512,6 +2539,27 @@ data:
               service: harbor
             annotations:
               summary: Harbor public or internal probe failed
+          - alert: Re8chToolHiveMCPProxyDown
+            expr: up{job="toolhive-mcp-control-plane"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              service: toolhive
+            annotations:
+              summary: ToolHive MCP proxy scrape is down
+              description: "{{ $labels.access_level }} ToolHive proxy {{ $labels.instance }} has been down for two minutes"
+          - alert: Re8chToolHiveToolCallErrors
+            expr: |
+              sum by (server) (
+                rate(toolhive_mcp_requests_total{mcp_method="tools/call",status_code!~"2.."}[5m])
+              ) > 0
+            for: 5m
+            labels:
+              severity: warning
+              service: toolhive
+            annotations:
+              summary: ToolHive MCP tool calls are returning errors
+              description: "ToolHive server {{ $labels.server }} has failed tool calls for five minutes"
           - alert: Re8chPanelVMDiskFreeLow
             expr: |
               100 * min by (node, mountpoint) (
