@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: authentik-database-preflight-
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: authentik-database-preflight
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: authentik-database-preflight
+    spec:
+      restartPolicy: Never
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: harbor-registry
+      containers:
+        - name: python
+          image: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/server:2026.5.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authentik-secrets
+                  key: AUTHENTIK_POSTGRESQL__PASSWORD
+          command: [python, -c]
+          args:
+            - |
+              import os
+              import sys
+              try:
+                  import psycopg
+                  connect = psycopg.connect
+              except ImportError:
+                  import psycopg2
+                  connect = psycopg2.connect
+              for port in (5433, 5432):
+                  try:
+                      with connect(host="pgwrite.zt.re8ch.com", port=port, dbname="auth", user="authentik", password=os.environ["PGPASSWORD"], connect_timeout=5) as connection:
+                          with connection.cursor() as cursor:
+                              cursor.execute("select 1")
+                              assert cursor.fetchone()[0] == 1
+                      print(f"PASS route=pgwrite.zt.re8ch.com:{port} database=auth role=authentik")
+                      sys.exit(0)
+                  except Exception as exc:
+                      print(f"FAIL route=pgwrite.zt.re8ch.com:{port} database=auth role=authentik error={type(exc).__name__}")
+              sys.exit(1)
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
