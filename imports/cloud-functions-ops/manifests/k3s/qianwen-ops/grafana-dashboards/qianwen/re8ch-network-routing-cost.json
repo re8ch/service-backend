@@ -13,8 +13,8 @@
       "id":1,"type":"nodeGraph","title":"Live network topology — selected and fallback paths","gridPos":{"h":15,"w":16,"x":0,"y":0},
       "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
       "targets":[
-        {"refId":"nodes","type":"json","source":"url","format":"node-graph-nodes","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/nodes","root_selector":"items"},
-        {"refId":"edges","type":"json","source":"url","format":"node-graph-edges","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/edges","root_selector":"items"}
+        {"refId":"nodes","type":"json","source":"url","format":"node-graph-nodes","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/nodes","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"},
+        {"refId":"edges","type":"json","source":"url","format":"node-graph-edges","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/edges","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}
       ],
       "options":{"nodes":{"mainStatUnit":"short","secondaryStatUnit":"short"},"edges":{"mainStatUnit":"ms","secondaryStatUnit":"short"},"zoomMode":"cooperative"},
       "fieldConfig":{"defaults":{"color":{"mode":"continuous-GrYlRd"}},"overrides":[]}
@@ -23,8 +23,8 @@
       "id":2,"type":"geomap","title":"Provider and regional path map","gridPos":{"h":15,"w":8,"x":16,"y":0},
       "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
       "targets":[
-        {"refId":"nodes","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/nodes","root_selector":"items"},
-        {"refId":"edges","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/edges","root_selector":"items"}
+        {"refId":"nodes","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/nodes","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"},
+        {"refId":"edges","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/edges","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}
       ],
       "options":{"view":{"id":"coords","lat":29.0,"lon":116.0,"zoom":4.5},"controls":{"showZoom":true,"showAttribution":true,"showScale":true},"layers":[
         {"type":"markers","name":"Nodes","config":{"showLegend":true,"style":{"size":{"fixed":9},"color":{"fixed":"dark-green"},"symbol":{"fixed":"img/icons/marker/circle.svg"}},"location":{"mode":"coords","latitude":"latitude","longitude":"longitude"}},"filterData":{"id":"byRefId","options":"nodes"}},
@@ -48,13 +48,13 @@
     {
       "id":5,"type":"table","title":"Node cost facts — pending values never count as free","gridPos":{"h":10,"w":12,"x":0,"y":23},
       "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
-      "targets":[{"refId":"A","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/costs/nodes","root_selector":"items"}],
+      "targets":[{"refId":"A","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/costs/nodes","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}],
       "options":{"showHeader":true,"cellHeight":"sm"},"fieldConfig":{"defaults":{"custom":{"align":"auto","inspect":false}},"overrides":[]}
     },
     {
       "id":6,"type":"table","title":"Directed path costs, quotas and budgets","gridPos":{"h":10,"w":12,"x":12,"y":23},
       "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
-      "targets":[{"refId":"A","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/costs/paths","root_selector":"items"}],
+      "targets":[{"refId":"A","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/costs/paths","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}],
       "options":{"showHeader":true,"cellHeight":"sm"},"fieldConfig":{"defaults":{"custom":{"align":"auto","inspect":false}},"overrides":[]}
     }
   ],
