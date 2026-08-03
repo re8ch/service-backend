@@ -1,0 +1,56 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: local-path-provisioner-availability.re8ch.com
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments]
+        resourceNames: [local-path-provisioner]
+  matchConditions:
+    - name: is-k3s-local-path-provisioner
+      expression: object.metadata.namespace == 'kube-system'
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          [
+            JSONPatch{
+              op: 'add',
+              path: '/spec/template/metadata/labels/' + jsonpatch.escapeKey('re8ch.com/availability-workaround'),
+              value: 'cached-system-image'
+            },
+            JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'),
+              value: 'vm-20-12-ubuntu'
+            },
+            JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/tolerations',
+              value:
+                object.spec.template.spec.tolerations.filter(t, t.key != 'anchor') +
+                [Object.spec.template.spec.tolerations{
+                  key: 'anchor',
+                  operator: 'Equal',
+                  value: 'true',
+                  effect: 'NoSchedule'
+                }]
+            }
+          ]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: local-path-provisioner-availability.re8ch.com
+spec:
+  policyName: local-path-provisioner-availability.re8ch.com
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
