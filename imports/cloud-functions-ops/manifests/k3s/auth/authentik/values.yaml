@@ -4,7 +4,7 @@ global:
     tag: "2026.5.3"
     pullPolicy: IfNotPresent
   nodeSelector:
-    kubernetes.io/hostname: rancher-panel
+    kubernetes.io/hostname: harbor-registry
   tolerations: []
   env:
     - name: AUTHENTIK_SECRET_KEY
@@ -17,6 +17,15 @@ global:
         secretKeyRef:
           name: authentik-secrets
           key: AUTHENTIK_POSTGRESQL__PASSWORD
+    - name: AUTHENTIK_REDIS__HOST
+      value: authentik-redis.auth.svc.cluster.local
+    - name: AUTHENTIK_REDIS__PORT
+      value: "6379"
+    - name: AUTHENTIK_REDIS__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-redis
+          key: password
     - name: AUTHENTIK_BOOTSTRAP_EMAIL
       valueFrom:
         secretKeyRef:
@@ -38,11 +47,11 @@ authentik:
   secret_key: env://AUTHENTIK_SECRET_KEY
   outposts:
     container_image_base: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/%(type)s:%(version)s
-  # Authentik is intentionally disabled until its storage path is adapted to the
-  # RE8CH db-rw/db-ro PostgREST gateway contract. Do not point this chart at
-  # Pigsty PostgreSQL wire-protocol hosts.
+  # Authentik requires PostgreSQL wire protocol. The dedicated auth/authentik
+  # role was preflighted against the direct 5432 route; the 5433 HA service
+  # remains a tracked routing failure and must not replace this route yet.
   postgresql:
-    host: disabled-no-direct-postgres-use-db-rw-pgrest
+    host: pgwrite.zt.re8ch.com
     port: 5432
     name: auth
     user: authentik
@@ -55,6 +64,7 @@ redis:
   enabled: false
 
 server:
+  # Keep the normal release fail-closed until the one-replica canary passes.
   replicas: 0
   resources:
     requests:
