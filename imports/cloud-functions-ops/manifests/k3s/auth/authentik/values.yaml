@@ -4,9 +4,10 @@ global:
     tag: "2026.5.3"
     pullPolicy: IfNotPresent
   nodeSelector:
-    # Keep identity on the healthy Shanghai public-edge node. The former
-    # harbor-registry placement has been NodeStatusUnknown since 2026-08-04.
-    kubernetes.io/hostname: qianwen-nuclio-79
+    # Identity secrets and verification workloads must remain on the
+    # organization-owned restricted-node-6dc3f140f9 trust boundary. MikroTik continues to manage
+    # the restricted-node-6dc3f140f9 network plane independently of this workload placement.
+    kubernetes.io/hostname: restricted-node-6dc3f140f9
   tolerations: []
   env:
     - name: AUTHENTIK_SECRET_KEY
