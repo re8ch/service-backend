@@ -21,6 +21,9 @@ python3 -m py_compile "$SCRIPT_DIR/../ops/ops-mcp-server-app.py"
 sh -n "$SCRIPT_DIR/apply-managed-ops.sh" "$SCRIPT_DIR/attach-toolhive-agents.sh"
 sh -n "$SCRIPT_DIR/verify-external-publication-readiness.sh"
 
+kubectl --server="$KUBE_SERVER" get --raw=/readyz >/dev/null 2>&1 || \
+  fail "Kubernetes API is unreachable at $KUBE_SERVER"
+
 if grep -Eq '^(apiVersion|kind):' "$SCRIPT_DIR/external-observe-publication.template.yaml"; then
   fail "external publication safety template contains applicable Kubernetes objects"
 fi
