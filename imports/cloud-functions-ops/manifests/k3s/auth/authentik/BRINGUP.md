@@ -25,12 +25,22 @@ Retry with `server-canary.patch.yaml` and `worker-canary.patch.yaml` only after
 the node runtime is healthy. Start the server first, verify both health paths,
 then start the worker; roll both back to zero on any deterministic failure.
 
+## Workload trust boundary
+
+- Authentik server and worker must run on the organization-owned `restricted-node-6dc3f140f9` node.
+- Do not place identity verification, bootstrap credentials, signing material,
+  or Authentik database credentials on partner-operated Nuclio nodes.
+- `restricted-node-6dc3f140f9` workload placement does not transfer network control to Kubernetes;
+  MikroTik remains authoritative for the restricted-node-6dc3f140f9 network and routing plane.
+- Before every bring-up, verify the rendered Pod `nodeSelector` is exactly
+  `kubernetes.io/hostname: restricted-node-6dc3f140f9` and confirm no Authentik Pod exists elsewhere.
+
 ## Required preconditions
 
 1. Provision a dedicated `auth` database and least-privilege Authentik owner
    role through the reviewed Pigsty database workflow. Do not reuse application
    read/write roles or PostgreSQL superuser credentials.
-2. Verify direct PostgreSQL connectivity from the intended `rancher-panel`
+2. Verify direct PostgreSQL connectivity from the intended `restricted-node-6dc3f140f9`
    workload path to the approved HA write service. Database migrations must not
    run through PostgREST or a read endpoint.
 3. Store the database password only in `auth/authentik-secrets`; never place it
