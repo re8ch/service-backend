@@ -1,10 +1,12 @@
 global:
   image:
-    repository: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/server
+    repository: ghcr.io/goauthentik/server
     tag: "2026.5.3"
     pullPolicy: IfNotPresent
   nodeSelector:
-    kubernetes.io/hostname: harbor-registry
+    # Keep identity on the healthy Shanghai public-edge node. The former
+    # harbor-registry placement has been NodeStatusUnknown since 2026-08-04.
+    kubernetes.io/hostname: qianwen-nuclio-79
   tolerations: []
   env:
     - name: AUTHENTIK_SECRET_KEY
@@ -46,7 +48,7 @@ authentik:
   log_level: info
   secret_key: env://AUTHENTIK_SECRET_KEY
   outposts:
-    container_image_base: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/%(type)s:%(version)s
+    container_image_base: ghcr.io/goauthentik/%(type)s:%(version)s
   # Authentik requires PostgreSQL wire protocol. The dedicated auth/authentik
   # role was preflighted against the direct 5432 route; the 5433 HA service
   # remains a tracked routing failure and must not replace this route yet.
