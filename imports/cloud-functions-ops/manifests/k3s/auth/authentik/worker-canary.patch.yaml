@@ -5,7 +5,7 @@ spec:
   template:
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: qianwen-nuclio-79
       containers:
         - name: worker
           env:
