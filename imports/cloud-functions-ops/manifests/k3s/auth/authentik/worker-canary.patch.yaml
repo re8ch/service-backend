@@ -1,0 +1,28 @@
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: harbor-registry
+      containers:
+        - name: worker
+          env:
+            - name: AUTHENTIK_POSTGRESQL__HOST
+              value: pgwrite.zt.re8ch.com
+            - name: AUTHENTIK_POSTGRESQL__PORT
+              value: "5432"
+            - name: AUTHENTIK_POSTGRESQL__NAME
+              value: auth
+            - name: AUTHENTIK_POSTGRESQL__USER
+              value: authentik
+            - name: AUTHENTIK_REDIS__HOST
+              value: authentik-redis.auth.svc.cluster.local
+            - name: AUTHENTIK_REDIS__PORT
+              value: "6379"
+            - name: AUTHENTIK_REDIS__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authentik-redis
+                  key: password
