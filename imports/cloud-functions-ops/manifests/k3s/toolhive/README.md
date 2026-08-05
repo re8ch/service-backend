@@ -141,8 +141,11 @@ Internal KSA-backed access remains live. The separate public-read canary is now
 available at `https://tools.re8ch.com/mcp`; it uses Authentik authorization code
 with PKCE S256, RFC 9728 discovery, exact audience/resource binding and a
 dedicated ToolHive allowlist. Operate/admin surfaces remain cluster-internal.
-Human visits to `https://tools.re8ch.com/` or `/portal/` reach a separate static
-tool portal; the Authentik application tile launches that portal. The `/mcp`
+Human visits to `https://tools.re8ch.com/` reach Stacklok's official Apache-2.0
+ToolHive Cloud UI. It authenticates through a dedicated confidential Authentik
+OIDC client and reads the in-cluster ToolHive Registry Server; it does not share
+the public MCP client's credentials or turn the catalog into an MCP session.
+The `/mcp`
 resource intentionally returns an RFC 9728 bearer
 challenge when no token is supplied; MCP clients use that challenge to start
 their OAuth flow and must not receive a browser-login redirect there.
