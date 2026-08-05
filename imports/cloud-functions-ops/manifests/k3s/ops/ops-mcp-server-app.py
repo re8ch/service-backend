@@ -3687,6 +3687,7 @@ def mcp_tools(include_admin=False):
     def schema(props=None, required=None):
         return {"type": "object", "properties": props or {}, "required": required or []}
     tools = [
+        {"name": "get_public_tool_service_info", "description": "Return the public RE8CH ToolHive service contract without internal topology, tenant data, or credentials.", "inputSchema": schema()},
         {"name": "get_usage_guide", "description": "Return the Ops usage guide.", "inputSchema": schema()},
         {"name": "get_tenant_context", "description": "Return the authenticated tenant endpoints and safety boundaries.", "inputSchema": schema()},
         {"name": "get_kubeconfig", "description": "Return the authenticated tenant operator kubeconfig for CLI automation.", "inputSchema": schema()},
@@ -3763,6 +3764,17 @@ def mcp_tools(include_admin=False):
 
 def call_tool(name, args, admin=False):
     args = args or {}
+    if name == "get_public_tool_service_info":
+        return {
+            "name": "RE8CH External Tools",
+            "mcpResource": "https://tools.re8ch.com/mcp",
+            "authorizationServer": "https://auth.re8ch.com/application/o/toolhive-external/",
+            "access": "OAuth 2.0 authorization code with PKCE S256",
+            "scope": "platform:read",
+            "publication": "ToolHive-managed read-only canary",
+            "clients": ["ChatGPT and Codex connectors", "Claude Code remote HTTP MCP", "standards-compliant MCP clients"],
+            "safety": "This public surface excludes write/admin tools, credentials, tenant data, cluster topology, and internal routes.",
+        }
     if name == "get_usage_guide":
         return GUIDE
     if name == "get_tenant_context":
@@ -3903,7 +3915,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def authorized(self):
         if self.trusted_loopback_proxy():
-            return OPS_TOOL_PROFILE in ("observe", "operate", "admin")
+            return OPS_TOOL_PROFILE in ("public", "observe", "operate", "admin")
         token = self.presented_token()
         return bool(token) and (token in [OPS_TOKEN, OPS_ADMIN_TOKEN] or self.token_tenant() is not None)
 
