@@ -50,11 +50,11 @@ authentik:
   secret_key: env://AUTHENTIK_SECRET_KEY
   outposts:
     container_image_base: ghcr.io/goauthentik/%(type)s:%(version)s
-  # Authentik requires PostgreSQL wire protocol. The dedicated auth/authentik
-  # role was preflighted against the direct 5432 route; the 5433 HA service
-  # remains a tracked routing failure and must not replace this route yet.
+  # Authentik is pinned to the organization-owned restricted-node-6dc3f140f9 trust boundary, so use
+  # the designated pg-re8ch primary directly. The private pgwrite hostname has
+  # previously drifted to a replica and must not be trusted for identity writes.
   postgresql:
-    host: pgwrite.zt.re8ch.com
+    host: 192.0.2.178
     port: 5432
     name: auth
     user: authentik
