@@ -84,77 +84,60 @@ spec:
         - name: app-code
           configMap: {name: ops-mcp-server-code}
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tools-portal-content
-  namespace: toolhive-system
-data:
-  index.html: |
-    <!doctype html>
-    <html lang="zh-CN">
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>RE8CH External Tools</title>
-        <style>
-          body{margin:0;background:#0b1020;color:#e8ecf4;font:16px/1.6 system-ui,sans-serif}
-          main{max-width:760px;margin:8vh auto;padding:32px}
-          section{background:#151c31;border:1px solid #2a3557;border-radius:16px;padding:28px}
-          h1{margin-top:0}code{background:#090d18;padding:3px 7px;border-radius:6px}
-          a{color:#8fc7ff}.ok{color:#75e6a4}.muted{color:#a8b2ca}
-        </style>
-      </head>
-      <body><main><section>
-        <h1>RE8CH External Tools</h1>
-        <p class="ok">ToolHive public-read canary is online.</p>
-        <p>身份登录与工具运行已解耦。Authentik 管理用户与 OAuth 授权；Agent 通过独立 MCP 资源访问工具。</p>
-        <p>MCP URL：<code>https://tools.re8ch.com/mcp</code></p>
-        <p>Scope：<code>platform:read</code></p>
-        <p><a href="https://auth.re8ch.com/if/user/">账号与授权管理</a> · <a href="/.well-known/oauth-protected-resource">OAuth resource metadata</a></p>
-        <p class="muted">请在 Codex、ChatGPT Connector、Claude Code 或其他 MCP 客户端中添加 MCP URL；不要用浏览器直接打开协议端点。</p>
-      </section></main></body>
-    </html>
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tools-portal
+  name: toolhive-cloud-ui
   namespace: toolhive-system
+  labels:
+    app.kubernetes.io/name: toolhive-cloud-ui
+    app.kubernetes.io/part-of: toolhive
 spec:
   replicas: 1
-  selector: {matchLabels: {app.kubernetes.io/name: tools-portal}}
+  selector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: tools-portal}}
+    metadata:
+      labels:
+        app.kubernetes.io/name: toolhive-cloud-ui
+        app.kubernetes.io/part-of: toolhive
     spec:
       automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       tolerations:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
-        - name: portal
-          image: python:3.12-alpine
-          command: [python, -m, http.server, "8080", --directory, /portal]
-          ports: [{name: http, containerPort: 8080}]
+        - name: cloud-ui
+          image: ghcr.io/stacklok/toolhive-cloud-ui:v0.6.2
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - {name: NODE_ENV, value: production}
+            - {name: OIDC_ISSUER_URL, value: "https://auth.re8ch.com/application/o/toolhive-cloud-ui"}
+            - {name: OIDC_CLIENT_ID, value: re8ch-toolhive-cloud-ui}
+            - {name: BETTER_AUTH_URL, value: "https://tools.re8ch.com"}
+            - {name: TRUSTED_ORIGINS, value: "https://tools.re8ch.com"}
+            - {name: API_BASE_URL, value: "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080"}
+            - {name: OIDC_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: oidc-client-secret}}}
+            - {name: BETTER_AUTH_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: better-auth-secret}}}
           resources:
-            requests: {cpu: 5m, memory: 16Mi}
-            limits: {cpu: 50m, memory: 64Mi}
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          startupProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 30}
+          readinessProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 3}
+          livenessProbe: {httpGet: {path: /, port: http}, periodSeconds: 10, failureThreshold: 3}
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
             capabilities: {drop: [ALL]}
-          volumeMounts:
-            - {name: content, mountPath: /portal/index.html, subPath: index.html, readOnly: true}
-      volumes:
-        - name: content
-          configMap: {name: tools-portal-content}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: tools-portal
+  name: toolhive-cloud-ui
   namespace: toolhive-system
 spec:
-  selector: {app.kubernetes.io/name: tools-portal}
+  selector: {app.kubernetes.io/name: toolhive-cloud-ui}
   ports: [{name: http, port: 80, targetPort: http}]
 ---
 apiVersion: networking.k8s.io/v1
@@ -183,23 +166,13 @@ spec:
                 name: mcp-ops-observe-external-proxy
                 port: {number: 8080}
 ---
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: tools-portal-strip-prefix
-  namespace: toolhive-system
-spec:
-  stripPrefix:
-    prefixes: [/portal]
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: tools-portal
+  name: toolhive-cloud-ui
   namespace: toolhive-system
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: toolhive-system-tools-portal-strip-prefix@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
@@ -207,14 +180,8 @@ spec:
       http:
         paths:
           - path: /
-            pathType: Exact
-            backend:
-              service:
-                name: tools-portal
-                port: {number: 80}
-          - path: /portal
             pathType: Prefix
             backend:
               service:
-                name: tools-portal
+                name: toolhive-cloud-ui
                 port: {number: 80}
