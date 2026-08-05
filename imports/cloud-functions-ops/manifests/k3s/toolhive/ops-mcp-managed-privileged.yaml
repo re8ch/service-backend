@@ -19,30 +19,6 @@ subjects:
     name: ops-mcp-operate
     namespace: toolhive-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: re8ch:ops-mcp-operate
-  namespace: qwen
-rules:
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: re8ch:ops-mcp-operate
-  namespace: qwen
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: re8ch:ops-mcp-operate
-subjects:
-  - kind: ServiceAccount
-    name: ops-mcp-operate
-    namespace: toolhive-system
----
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
@@ -260,6 +236,11 @@ spec:
         - name: mcp
           command: ["python", "/app/app.py"]
           env:
+            - name: AUTHENTIK_API_URL
+              value: http://authentik-server.auth.svc.cluster.local/api/v3
+            - name: AUTHENTIK_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: toolhive-authentik-admin-api, key: token}
             - name: HARBOR_USERNAME
               valueFrom:
                 secretKeyRef: {name: ops-mcp-harbor-auth, key: username}
