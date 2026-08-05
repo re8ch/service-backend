@@ -1,0 +1,19 @@
+{
+  "name": "re8ch-platform-operate",
+  "version": "0.1.0",
+  "description": "Approval-gated RE8CH platform restart and 0/1 scaling operations.",
+  "author": {
+    "name": "RE8CH"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Re8ch Platform Operate",
+    "shortDescription": "Run tightly bounded platform operations.",
+    "longDescription": "OAuth-protected operations for RE8CH Platform Operators. It reports operation state and can restart only approved Deployments or set them to 0/1 replicas. Kubernetes resourceNames RBAC and server-side allowlists are always enforced.",
+    "developerName": "RE8CH",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write", "OAuth", "MCP"],
+    "defaultPrompt": "Check the target operation state, explain the impact, then ask before making an approved restart or 0/1 scale change."
+  },
+  "mcpServers": "./.mcp.json"
+}
