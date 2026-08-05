@@ -4,6 +4,7 @@ set -u
 : "${MCP_ORIGIN:=https://tools.re8ch.com}"
 : "${MCP_RESOURCE:=$MCP_ORIGIN/mcp}"
 : "${AUTH_ORIGIN:=https://auth.re8ch.com}"
+: "${AUTH_ISSUER:=$AUTH_ORIGIN/application/o/toolhive-external/}"
 
 failures=0
 
@@ -13,7 +14,7 @@ block() { printf 'BLOCKED: %s\n' "$*" >&2; failures=$((failures + 1)); }
 check_https() {
   label=$1
   url=$2
-  if curl --silent --show-error --fail --location --max-time 10 --output /dev/null "$url"; then
+  if curl --silent --show-error --max-time 10 --output /dev/null "$url"; then
     pass "$label HTTPS"
   else
     block "$label HTTPS/TLS"
@@ -42,8 +43,9 @@ else
 fi
 
 auth_metadata_ok=false
-for path in /.well-known/oauth-authorization-server /.well-known/openid-configuration; do
-  if curl --silent --show-error --fail --max-time 10 "$AUTH_ORIGIN$path" >"$auth_tmp" && \
+for suffix in .well-known/oauth-authorization-server .well-known/openid-configuration; do
+  metadata_url="${AUTH_ISSUER}${suffix}"
+  if curl --silent --show-error --fail --max-time 10 "$metadata_url" >"$auth_tmp" && \
      jq -e '
        (.issuer | type == "string" and length > 0) and
        (.authorization_endpoint | type == "string" and startswith("https://")) and
@@ -51,7 +53,7 @@ for path in /.well-known/oauth-authorization-server /.well-known/openid-configur
        ((.code_challenge_methods_supported // []) | index("S256") != null)
      ' "$auth_tmp" >/dev/null 2>&1; then
     auth_metadata_ok=true
-    pass "OAuth/OIDC discovery with PKCE S256 ($path)"
+    pass "OAuth/OIDC discovery with PKCE S256 ($metadata_url)"
     break
   fi
 done
