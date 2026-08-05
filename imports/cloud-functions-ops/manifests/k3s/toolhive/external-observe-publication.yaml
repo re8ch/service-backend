@@ -14,8 +14,8 @@ metadata:
 spec:
   type: inline
   inline:
-    issuer: https://auth.re8ch.com/application/o/toolhive-external/
-    clientId: re8ch-toolhive-external
+    issuer: https://auth.re8ch.com/application/o/toolhive-platform-observe/
+    clientId: re8ch-platform-observe
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPToolConfig
@@ -24,7 +24,31 @@ metadata:
   namespace: toolhive-system
 spec:
   toolsFilter:
-    - get_public_tool_service_info
+    - get_usage_guide
+    - get_tenant_context
+    - list_k8s_resources
+    - get_registry_info
+    - get_tenant_resource_catalog
+    - get_grafana_links
+    - get_tenant_metrics_summary
+    - get_platform_service_health
+    - get_platform_service_catalog
+    - get_platform_permission_coverage
+    - get_platform_access_posture
+    - get_managed_platform_operation_status
+    - get_nuclio_function_status
+    - diagnose_nuclio_function
+    - get_nuclio_capacity_status
+    - get_litellm_gateway_status
+    - get_fleet_control_status
+    - get_supabase_platform_status
+    - get_neo4j_platform_status
+    - get_identity_platform_status
+    - get_agent_runtime_status
+    - get_observability_platform_status
+    - get_artifact_platform_status
+    - get_database_routing_status
+    - get_external_publication_readiness
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
@@ -51,7 +75,15 @@ spec:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: TRUST_LOOPBACK_PROXY, value: "true"}
     - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
-    - {name: OPS_TOOL_PROFILE, value: public}
+    - {name: OPS_TOOL_PROFILE, value: observe}
+    - {name: TENANT_NAMESPACE, value: qwen}
+    - {name: TENANT_NAMESPACES, value: qwen}
+    - {name: TENANT_DB_NAMES, value: qianwen_prod,qianwen_test,cardcat}
+    - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
+    - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
+    - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
+    - {name: METRICS_URL, value: "http://192.0.2.178:30428"}
+    - {name: TENANT_METRICS_TENANT, value: qianwen}
   toolConfigRef: {name: ops-public-read-tools}
   telemetryConfigRef:
     name: platform-tools-telemetry
@@ -61,7 +93,7 @@ spec:
     name: external-observe-oidc
     audience: https://tools.re8ch.com/mcp
     resourceUrl: https://tools.re8ch.com/mcp
-    scopes: [openid, profile, email, "platform:read"]
+    scopes: [openid, profile, email, "platform:observe"]
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}

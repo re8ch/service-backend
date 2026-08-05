@@ -14,6 +14,9 @@ kubectl --server="$KUBE_SERVER" -n toolhive-system create configmap ops-mcp-serv
 kubectl --server="$KUBE_SERVER" -n ops get secret ops-mcp-harbor-auth -o json | \
   jq '.metadata = {name: "ops-mcp-harbor-auth", namespace: "toolhive-system"}' | \
   kubectl --server="$KUBE_SERVER" apply -f -
+kubectl --server="$KUBE_SERVER" -n auth get secret toolhive-authentik-admin-api -o json | \
+  jq '.metadata = {name: "toolhive-authentik-admin-api", namespace: "toolhive-system"}' | \
+  kubectl --server="$KUBE_SERVER" apply -f -
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/proxy-scheduling-policy.yaml"
 # Admission policies are observed asynchronously by kube-apiserver. Give the
 # binding a short establishment window before the operator writes Deployments.
@@ -22,13 +25,15 @@ kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/ops-mcp-publication.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/ops-mcp-managed-observe.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/ops-mcp-managed-privileged.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/platform-restart-rbac.yaml"
+kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/external-observe-publication.yaml"
+kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/external-privileged-publication.yaml"
 
 # The reviewed Python source is projected from a ConfigMap. Restart the managed
 # backends so a publication never reports a new tool schema while executing an
 # older source projection.
-for server in ops-observe-managed ops-operate-managed ops-admin-managed; do
-  old_uid=$(kubectl --server="$KUBE_SERVER" -n toolhive-system get pod "$server-0" -o jsonpath='{.metadata.uid}')
-  kubectl --server="$KUBE_SERVER" -n toolhive-system delete pod "$server-0" --wait=false
+for server in ops-observe-managed ops-operate-managed ops-admin-managed ops-observe-external ops-operate-external ops-admin-external; do
+  old_uid=$(kubectl --server="$KUBE_SERVER" -n toolhive-system get pod "$server-0" -o jsonpath='{.metadata.uid}' 2>/dev/null || true)
+  kubectl --server="$KUBE_SERVER" -n toolhive-system delete pod "$server-0" --wait=false --ignore-not-found
   ready=false
   for _attempt in $(seq 1 180); do
     pod_state=$(kubectl --server="$KUBE_SERVER" -n toolhive-system get pod "$server-0" -o json 2>/dev/null | \
@@ -50,10 +55,10 @@ done
 
 # Proxy-runners cache the backend tool schema. Restart them only after the
 # backends are current so MCPToolConfig filtering and client discovery agree.
-for server in ops-observe-managed ops-operate-managed ops-admin-managed; do
+for server in ops-observe-managed ops-operate-managed ops-admin-managed ops-observe-external ops-operate-external ops-admin-external; do
   kubectl --server="$KUBE_SERVER" -n toolhive-system rollout restart deployment/"$server"
 done
 
-for server in ops-observe-managed ops-operate-managed ops-admin-managed; do
+for server in ops-observe-managed ops-operate-managed ops-admin-managed ops-observe-external ops-operate-external ops-admin-external; do
   kubectl --server="$KUBE_SERVER" -n toolhive-system rollout status deployment/"$server" --timeout=180s
 done
