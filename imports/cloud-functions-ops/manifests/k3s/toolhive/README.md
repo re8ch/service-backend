@@ -141,6 +141,10 @@ Internal KSA-backed access remains live. The separate public-read canary is now
 available at `https://tools.re8ch.com/mcp`; it uses Authentik authorization code
 with PKCE S256, RFC 9728 discovery, exact audience/resource binding and a
 dedicated ToolHive allowlist. Operate/admin surfaces remain cluster-internal.
+Human visits to `https://tools.re8ch.com/` redirect to the Authentik login and
+user portal. The `/mcp` resource intentionally returns an RFC 9728 bearer
+challenge when no token is supplied; MCP clients use that challenge to start
+their OAuth flow and must not receive a browser-login redirect there.
 
 `external-observe-publication.template.yaml` records the OIDC and RFC 9728
 fields for a future, separate read-only public surface. It is fully commented,
