@@ -20,7 +20,7 @@ spec:
         kubernetes.io/hostname: harbor-registry
       containers:
         - name: python
-          image: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/server:2026.5.3
+          image: ghcr.io/goauthentik/server:2026.5.3
           imagePullPolicy: IfNotPresent
           env:
             - name: PGPASSWORD
@@ -39,16 +39,19 @@ spec:
               except ImportError:
                   import psycopg2
                   connect = psycopg2.connect
-              for port in (5433, 5432):
+              for host, port in (("192.0.2.178", 5432),):
                   try:
-                      with connect(host="pgwrite.zt.re8ch.com", port=port, dbname="auth", user="authentik", password=os.environ["PGPASSWORD"], connect_timeout=5) as connection:
+                      with connect(host=host, port=port, dbname="auth", user="authentik", password=os.environ["PGPASSWORD"], connect_timeout=5) as connection:
                           with connection.cursor() as cursor:
-                              cursor.execute("select 1")
-                              assert cursor.fetchone()[0] == 1
-                      print(f"PASS route=pgwrite.zt.re8ch.com:{port} database=auth role=authentik")
+                              cursor.execute("select pg_is_in_recovery(), current_setting('transaction_read_only')")
+                              in_recovery, read_only = cursor.fetchone()
+                              assert in_recovery is False and read_only == "off"
+                              cursor.execute("create temporary table authentik_write_preflight (ok boolean)")
+                              cursor.execute("insert into authentik_write_preflight values (true)")
+                      print(f"PASS route={host}:{port} database=auth role=authentik writable=true")
                       sys.exit(0)
                   except Exception as exc:
-                      print(f"FAIL route=pgwrite.zt.re8ch.com:{port} database=auth role=authentik error={type(exc).__name__}")
+                      print(f"FAIL route={host}:{port} database=auth role=authentik error={type(exc).__name__}")
               sys.exit(1)
           resources:
             requests:
