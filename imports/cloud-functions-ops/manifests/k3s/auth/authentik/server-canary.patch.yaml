@@ -10,7 +10,7 @@ spec:
         - name: server
           env:
             - name: AUTHENTIK_POSTGRESQL__HOST
-              value: pgwrite.zt.re8ch.com
+              value: 192.0.2.183
             - name: AUTHENTIK_POSTGRESQL__PORT
               value: "5432"
             - name: AUTHENTIK_POSTGRESQL__NAME
