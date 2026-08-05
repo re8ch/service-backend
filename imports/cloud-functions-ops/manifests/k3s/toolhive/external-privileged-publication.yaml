@@ -1,0 +1,152 @@
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata: {name: external-operate-oidc, namespace: toolhive-system}
+spec:
+  type: inline
+  inline:
+    issuer: https://auth.re8ch.com/application/o/toolhive-platform-operate/
+    clientId: re8ch-platform-operate
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata: {name: external-admin-oidc, namespace: toolhive-system}
+spec:
+  type: inline
+  inline:
+    issuer: https://auth.re8ch.com/application/o/toolhive-platform-admin/
+    clientId: re8ch-platform-admin
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: ops-operate-external
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: canary}
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-title: RE8CH Platform Operate
+    toolhive.stacklok.dev/registry-description: OAuth-protected, allowlisted platform restart and 0/1 scaling operations.
+    toolhive.stacklok.dev/registry-category: operations,controlled-write,external,oauth
+    toolhive.stacklok.dev/registry-url: https://operate.tools.re8ch.com/mcp
+spec:
+  groupRef: {name: platform-operate}
+  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-operate
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: TRUST_LOOPBACK_PROXY, value: "true"}
+    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
+    - {name: OPS_TOOL_PROFILE, value: operate}
+  toolConfigRef: {name: ops-operate-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-platform-operate-external}
+  audit: {enabled: true}
+  oidcConfigRef:
+    name: external-operate-oidc
+    audience: https://operate.tools.re8ch.com/mcp
+    resourceUrl: https://operate.tools.re8ch.com/mcp
+    scopes: [openid, profile, email, "platform:operate"]
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 250m, memory: 256Mi}
+  podTemplateSpec:
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mcp
+          command: [python, /app/app.py]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]
+      volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: ops-admin-external
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: canary}
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-title: RE8CH Platform Admin
+    toolhive.stacklok.dev/registry-description: OAuth-protected Authentik, RBAC, tenant, database, Harbor and publication administration.
+    toolhive.stacklok.dev/registry-category: operations,privileged,external,oauth
+    toolhive.stacklok.dev/registry-url: https://admin.tools.re8ch.com/mcp
+spec:
+  groupRef: {name: platform-admin}
+  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-admin
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: TRUST_LOOPBACK_PROXY, value: "true"}
+    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
+    - {name: OPS_TOOL_PROFILE, value: admin}
+    - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
+    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com:28443"}
+    - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
+  toolConfigRef: {name: ops-admin-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-platform-admin-external}
+  audit: {enabled: true}
+  oidcConfigRef:
+    name: external-admin-oidc
+    audience: https://admin.tools.re8ch.com/mcp
+    resourceUrl: https://admin.tools.re8ch.com/mcp
+    scopes: [openid, profile, email, "platform:admin"]
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 250m, memory: 256Mi}
+  podTemplateSpec:
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mcp
+          command: [python, /app/app.py]
+          env:
+            - {name: AUTHENTIK_API_URL, value: "http://authentik-server.auth.svc.cluster.local/api/v3"}
+            - name: AUTHENTIK_API_TOKEN
+              valueFrom: {secretKeyRef: {name: toolhive-authentik-admin-api, key: token}}
+            - name: HARBOR_USERNAME
+              valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: username}}
+            - name: HARBOR_PASSWORD
+              valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: password}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]
+      volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: operate-tools-re8ch-com
+  namespace: toolhive-system
+  annotations: {traefik.ingress.kubernetes.io/router.entrypoints: "web,websecure"}
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: operate.tools.re8ch.com
+      http:
+        paths:
+          - {path: /mcp, pathType: Prefix, backend: {service: {name: mcp-ops-operate-external-proxy, port: {number: 8080}}}}
+          - {path: /.well-known, pathType: Prefix, backend: {service: {name: mcp-ops-operate-external-proxy, port: {number: 8080}}}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: admin-tools-re8ch-com
+  namespace: toolhive-system
+  annotations: {traefik.ingress.kubernetes.io/router.entrypoints: "web,websecure"}
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: admin.tools.re8ch.com
+      http:
+        paths:
+          - {path: /mcp, pathType: Prefix, backend: {service: {name: mcp-ops-admin-external-proxy, port: {number: 8080}}}}
+          - {path: /.well-known, pathType: Prefix, backend: {service: {name: mcp-ops-admin-external-proxy, port: {number: 8080}}}}
