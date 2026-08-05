@@ -75,7 +75,7 @@ if [[ -z "$application_pk" ]]; then
       slug: "toolhive-external",
       provider: $provider,
       meta_description: "Read-only RE8CH tools published through ToolHive",
-      meta_launch_url: "https://tools.re8ch.com/mcp",
+      meta_launch_url: "https://auth.re8ch.com/if/user/",
       open_in_new_tab: true
     }' | curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
       -d @- "$API/core/applications/" | jq -r .pk)
