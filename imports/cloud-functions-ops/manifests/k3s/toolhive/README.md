@@ -135,24 +135,21 @@ and human evidence GUI. `get_platform_service_catalog` supplies the live service
 inventory; `get_platform_access_posture` reports RBAC, ServiceAccount token,
 NetworkPolicy and external-exposure review signals without reading Secrets.
 
-## Remaining external-publication gate
+## External public-read canary
 
-Internal KSA-backed access is live. Do not create public Ingresses until an
-external OIDC issuer, user/group claims, TLS origin allowlist, rate limits and
-per-entry Registry authorization are configured. The Registry API remains
-anonymous on ClusterIP only.
+Internal KSA-backed access remains live. The separate public-read canary is now
+available at `https://tools.re8ch.com/mcp`; it uses Authentik authorization code
+with PKCE S256, RFC 9728 discovery, exact audience/resource binding and a
+dedicated ToolHive allowlist. Operate/admin surfaces remain cluster-internal.
 
 `external-observe-publication.template.yaml` records the OIDC and RFC 9728
 fields for a future, separate read-only public surface. It is fully commented,
 so accidental `kubectl apply` cannot alter the working internal identities.
-As of 2026-08-04, `auth.re8ch.com` reaches a Pigsty nginx endpoint externally,
-with a private Pigsty certificate and Pigsty 404, instead of the Authentik
-Ingress visible inside the cluster. Public DNS/TLS routing must be corrected
-before Authentik discovery, PKCE, audience, and Codex callback tests can pass.
-Authentik also remains deliberately scaled to zero until dedicated PostgreSQL
-wire-protocol and Redis prerequisites are provisioned; PostgREST cannot serve
-as Authentik's database transport. The bring-up contract is documented in
-`../auth/authentik/BRINGUP.md`.
+Authentik server and worker run on the organization-owned restricted-node-6dc3f140f9 and connect
+directly to the designated writable pg-re8ch primary. The private `pgwrite`
+hostname is not used for identity writes because it was observed resolving to
+a replica. The writable preflight asserts recovery=false, read_only=off and a
+temporary-table INSERT before identity publication proceeds.
 
 The current OpenAI publication model is a universal plugin shared by ChatGPT
 and Codex. The external endpoint must therefore be a separate, public-read
