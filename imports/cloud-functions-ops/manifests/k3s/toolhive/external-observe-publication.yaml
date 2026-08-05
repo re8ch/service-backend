@@ -87,12 +87,12 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: tools-root-to-mcp
+  name: tools-root-to-authentik
   namespace: toolhive-system
 spec:
   redirectRegex:
     regex: ^https://tools\.re8ch\.com/?$
-    replacement: https://tools.re8ch.com/mcp
+    replacement: https://auth.re8ch.com/if/flow/default-authentication-flow/?next=%2Fif%2Fuser%2F
     permanent: false
 ---
 apiVersion: networking.k8s.io/v1
@@ -102,7 +102,7 @@ metadata:
   namespace: toolhive-system
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: toolhive-system-tools-root-to-mcp@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: toolhive-system-tools-root-to-authentik@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
