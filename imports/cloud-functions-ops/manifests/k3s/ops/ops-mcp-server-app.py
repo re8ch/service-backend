@@ -51,6 +51,10 @@ HARBOR_API_URL = os.getenv("HARBOR_API_URL", HARBOR_URL).rstrip("/")
 HARBOR_SKIP_TLS_VERIFY = os.getenv("HARBOR_SKIP_TLS_VERIFY", "").lower() in ("1", "true", "yes")
 HARBOR_USERNAME = os.getenv("HARBOR_USERNAME", "")
 HARBOR_PASSWORD = os.getenv("HARBOR_PASSWORD", "")
+AUTHENTIK_API_URL = os.getenv(
+    "AUTHENTIK_API_URL", "http://authentik-server.auth.svc.cluster.local/api/v3"
+).rstrip("/")
+AUTHENTIK_API_TOKEN = os.getenv("AUTHENTIK_API_TOKEN", "")
 TENANT_HARBOR_PROJECT = os.getenv("TENANT_HARBOR_PROJECT", TENANT)
 TENANT_HARBOR_SECRET = os.getenv("TENANT_HARBOR_SECRET", "harbor-%s-admin" % TENANT_HARBOR_PROJECT)
 TENANT_HARBOR_ROBOT = os.getenv("TENANT_HARBOR_ROBOT", "robot$%s+%s-admin-20260606" % (TENANT_HARBOR_PROJECT, TENANT_HARBOR_PROJECT))
@@ -969,16 +973,12 @@ def restart_managed_platform_deployment(args):
     args = args or {}
     namespace = str(args.get("namespace") or "").strip()
     deployment = str(args.get("deployment") or "").strip()
-    approval_id = str(args.get("approvalId") or "").strip()
     if (namespace, deployment) not in MANAGED_PLATFORM_RESTARTS:
         raise ValueError("deployment is not in the reviewed platform restart allowlist")
-    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$", approval_id):
-        raise ValueError("approvalId is required and must be 3-128 audit-safe characters")
     restarted_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     patch = {"spec": {"template": {"metadata": {"annotations": {
         "ops.re8ch.com/restartedAt": restarted_at,
-        "ops.re8ch.com/restartApprovalId": approval_id,
-        "ops.re8ch.com/restartedBy": "toolhive-ops-admin",
+        "ops.re8ch.com/restartedBy": "toolhive-platform-operate",
     }}}}}
     doc = kube_request(
         "PATCH",
@@ -991,7 +991,6 @@ def restart_managed_platform_deployment(args):
     return {
         "namespace": namespace,
         "deployment": deployment,
-        "approvalId": approval_id,
         "restartedAt": restarted_at,
         "generation": doc.get("metadata", {}).get("generation"),
         "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
@@ -1001,14 +1000,11 @@ def scale_managed_platform_deployment(args):
     args = args or {}
     namespace = str(args.get("namespace") or "").strip()
     deployment = str(args.get("deployment") or "").strip()
-    approval_id = str(args.get("approvalId") or "").strip()
     replicas = args.get("replicas")
     if (namespace, deployment) not in MANAGED_PLATFORM_RESTARTS:
         raise ValueError("deployment is not in the reviewed platform scale allowlist")
     if replicas not in (0, 1):
         raise ValueError("replicas must be exactly 0 or 1")
-    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$", approval_id):
-        raise ValueError("approvalId is required and must be 3-128 audit-safe characters")
     changed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     path = "/apis/apps/v1/namespaces/%s/deployments/%s" % (
         urllib.parse.quote(namespace), urllib.parse.quote(deployment)
@@ -1017,9 +1013,8 @@ def scale_managed_platform_deployment(args):
     previous = before.get("spec", {}).get("replicas", 0)
     patch = {
         "metadata": {"annotations": {
-            "ops.re8ch.com/scaleApprovalId": approval_id,
             "ops.re8ch.com/scaledAt": changed_at,
-            "ops.re8ch.com/scaledBy": "toolhive-ops-admin",
+            "ops.re8ch.com/scaledBy": "toolhive-platform-operate",
         }},
         "spec": {"replicas": replicas},
     }
@@ -1029,7 +1024,6 @@ def scale_managed_platform_deployment(args):
         "deployment": deployment,
         "previousReplicas": previous,
         "requestedReplicas": replicas,
-        "approvalId": approval_id,
         "changedAt": changed_at,
         "generation": doc.get("metadata", {}).get("generation"),
         "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
@@ -1055,12 +1049,10 @@ def get_managed_platform_operation_status():
                 "generation": meta.get("generation"),
                 "observedGeneration": status.get("observedGeneration"),
                 "lastScale": {
-                    "approvalId": annotations.get("ops.re8ch.com/scaleApprovalId"),
                     "at": annotations.get("ops.re8ch.com/scaledAt"),
                     "by": annotations.get("ops.re8ch.com/scaledBy"),
                 },
                 "lastRestart": {
-                    "approvalId": template_annotations.get("ops.re8ch.com/restartApprovalId"),
                     "at": template_annotations.get("ops.re8ch.com/restartedAt"),
                     "by": template_annotations.get("ops.re8ch.com/restartedBy"),
                 },
@@ -1073,7 +1065,7 @@ def get_managed_platform_operation_status():
             "total": len(results),
             "available": sum(item.get("available", 0) > 0 for item in results),
             "scaledToZero": sum(item.get("desired") == 0 for item in results),
-            "withRecordedApproval": sum(bool(item.get("lastScale", {}).get("approvalId") or item.get("lastRestart", {}).get("approvalId")) for item in results),
+            "withRecordedOperation": sum(bool(item.get("lastScale", {}).get("at") or item.get("lastRestart", {}).get("at")) for item in results),
         },
         "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
@@ -2211,13 +2203,10 @@ def set_tool_publication_stage(args):
     args = args or {}
     server = str(args.get("server") or "").strip()
     stage = str(args.get("stage") or "").strip().lower()
-    approval_id = str(args.get("approvalId") or "").strip()
     if server not in MANAGED_TOOL_PUBLICATIONS:
         raise ValueError("server is not an approved managed publication: %s" % server)
     if stage not in PUBLICATION_STAGES:
         raise ValueError("stage must be one of: canary, internal, deprecated")
-    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$", approval_id):
-        raise ValueError("approvalId is required and must be 3-128 audit-safe characters")
     exported = "false" if stage == "deprecated" else "true"
     changed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     patch = {
@@ -2225,7 +2214,7 @@ def set_tool_publication_stage(args):
             "labels": {"re8ch.com/publication-stage": stage},
             "annotations": {
                 "toolhive.stacklok.dev/registry-export": exported,
-                "re8ch.com/publication-approval-id": approval_id,
+                "re8ch.com/publication-changed-by": "toolhive-platform-admin",
                 "re8ch.com/publication-changed-at": changed_at,
             },
         }
@@ -2241,7 +2230,7 @@ def set_tool_publication_stage(args):
         "server": server,
         "stage": metadata.get("labels", {}).get("re8ch.com/publication-stage"),
         "registryExport": metadata.get("annotations", {}).get("toolhive.stacklok.dev/registry-export"),
-        "approvalId": metadata.get("annotations", {}).get("re8ch.com/publication-approval-id"),
+        "changedBy": metadata.get("annotations", {}).get("re8ch.com/publication-changed-by"),
         "changedAt": metadata.get("annotations", {}).get("re8ch.com/publication-changed-at"),
         "rule": "deprecated removes the entry from Registry discovery; canary/internal remain exported",
     }
@@ -3197,6 +3186,115 @@ def yaml_value(line):
     return value
 
 
+def authentik_request(method, path, body=None):
+    if not AUTHENTIK_API_TOKEN:
+        raise RuntimeError("Authentik admin API token is not configured")
+    url = "%s/%s" % (AUTHENTIK_API_URL, path.lstrip("/"))
+    payload = json.dumps(body).encode("utf-8") if body is not None else None
+    request = urllib.request.Request(url, data=payload, method=method)
+    request.add_header("Authorization", "Bearer %s" % AUTHENTIK_API_TOKEN)
+    request.add_header("Accept", "application/json")
+    if payload is not None:
+        request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            data = response.read()
+            return json.loads(data.decode("utf-8")) if data else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:1000]
+        raise RuntimeError("Authentik API %s %s failed (%s): %s" % (method, path, exc.code, detail))
+
+
+def authentik_group(name):
+    query = urllib.parse.urlencode({"name": name, "page_size": 100})
+    results = authentik_request("GET", "/core/groups/?%s" % query).get("results", [])
+    return next((item for item in results if item.get("name") == name), None)
+
+
+def authentik_user(username=None, email=None):
+    query = urllib.parse.urlencode({"search": username or email or "", "page_size": 100})
+    results = authentik_request("GET", "/core/users/?%s" % query).get("results", [])
+    for item in results:
+        if username and item.get("username") == username:
+            return item
+        if email and str(item.get("email") or "").lower() == email.lower():
+            return item
+    return None
+
+
+def list_authentik_users():
+    results = authentik_request("GET", "/core/users/?page_size=100").get("results", [])
+    users = []
+    for item in results:
+        users.append({
+            "pk": item.get("pk"),
+            "username": item.get("username"),
+            "name": item.get("name"),
+            "email": item.get("email"),
+            "isActive": item.get("is_active"),
+            "groups": sorted(group.get("name") for group in item.get("groups_obj", []) if group.get("name")),
+            "path": item.get("path"),
+        })
+    return {"count": len(users), "users": users, "credentialsReturned": False}
+
+
+def ensure_authentik_user(args):
+    args = args or {}
+    username = str(args.get("username") or "").strip()
+    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9_.@+-]{1,149}$", username):
+        raise ValueError("username must be 2-150 audit-safe characters")
+    email = validate_email(args.get("email")) if args.get("email") else ""
+    group_names = sorted(set(str(value).strip() for value in (args.get("groups") or []) if str(value).strip()))
+    groups = []
+    for name in group_names:
+        group = authentik_group(name)
+        if not group:
+            raise ValueError("Authentik group does not exist: %s" % name)
+        groups.append(group.get("pk"))
+    payload = {
+        "username": username,
+        "name": str(args.get("name") or username).strip(),
+        "email": email,
+        "is_active": bool(args.get("isActive", True)),
+        "groups": groups,
+        "path": str(args.get("path") or "users"),
+        "type": "internal",
+    }
+    existing = authentik_user(username=username)
+    if existing:
+        result = authentik_request("PATCH", "/core/users/%s/" % existing.get("pk"), payload)
+        action = "updated"
+    else:
+        result = authentik_request("POST", "/core/users/", payload)
+        action = "created"
+    return {
+        "action": action,
+        "user": {key: result.get(key) for key in ("pk", "username", "name", "email", "is_active", "path")},
+        "groups": group_names,
+        "credentialsReturned": False,
+        "nextStep": "Use the Authentik recovery flow or administrator UI to establish credentials; this tool never accepts or returns passwords.",
+    }
+
+
+def grant_authentik_user_group(args):
+    args = args or {}
+    user = authentik_user(username=args.get("username"), email=args.get("email"))
+    if not user:
+        raise ValueError("Authentik user was not found")
+    group_name = str(args.get("group") or "").strip()
+    group = authentik_group(group_name)
+    if not group:
+        raise ValueError("Authentik group does not exist: %s" % group_name)
+    authentik_request("POST", "/core/groups/%s/add_user/" % group.get("pk"), {"pk": user.get("pk")})
+    return {
+        "action": "granted",
+        "username": user.get("username"),
+        "email": user.get("email"),
+        "group": group_name,
+        "credentialsReturned": False,
+    }
+
+
 def parse_static_password_users(block):
     users = []
     current = None
@@ -3420,6 +3518,27 @@ def get_tenancy_admin_workflow():
         ],
         "createdObjects": ["namespace/<namespace>", "role/<namespace>/tenant-operator", "role/<namespace>/tenant-viewer", "rolebinding/<namespace>/<namespace>-operators-tenant-operator-oidc", "serviceaccount/<namespace>/<namespace>-kubectl-operator", "secret/<namespace>/<namespace>-kubectl-operator-permanent-token", "rolebinding/<namespace>/<namespace>-kubectl-operator", "clusterrole/tenant-ui-cluster-viewer", "clusterrolebinding/<namespace>-headlamp-ui-cluster-viewer-oidc", "clusterrolebinding/<namespace>-kubectl-operator-ui-cluster-viewer", "harbor project/<namespace>", "harbor user/<namespace>", "secret/<namespace>/harbor-<namespace>-admin"],
         "safety": ["The workflow is idempotent and uses apply-like create/update behavior.", "It does not delete existing namespace workloads or business secrets.", "Dex user creation requires passwordHash, not plaintext password.", "Harbor robot tokens are stored in Kubernetes secrets and are not returned by the API.", "Pigsty database SQL must be executed by a DBA or by a separately authorized database automation; the public Ops MCP server does not hold PostgreSQL superuser credentials.", "Dex changes restart the Dex deployment; existing users may need to log in again to receive new groups."],
+    }
+
+
+def get_authentik_tenancy_admin_workflow():
+    return {
+        "purpose": "Provision Authentik human identity, Kubernetes namespace RBAC, Harbor access, and optional Pigsty database resources without exposing credentials.",
+        "identityAuthority": "Authentik",
+        "legacyIdentity": "Dex tools remain available only on the legacy Ops MCP during migration and are not published by re8ch-platform-admin.",
+        "steps": [
+            {"step": 1, "tool": "ensure_authentik_user", "result": "Create or update the user and reviewed group memberships without accepting a password."},
+            {"step": 2, "tool": "grant_authentik_user_group", "result": "Grant Platform Operators, Platform Admins, or a reviewed tenant group."},
+            {"step": 3, "tool": "ensure_tenant_access", "result": "Create or repair namespace, ServiceAccount, Role and RoleBinding resources."},
+            {"step": 4, "tool": "ensure_harbor_tenant", "result": "Create or repair Harbor project membership and store robot material only in Kubernetes Secrets."},
+            {"step": 5, "tool": "generate_pg_tenant_database_plan", "result": "Generate the reviewed database/role plan; SQL execution remains a separate DBA authority."},
+            {"step": 6, "tool": "ensure_tenant_database_secrets", "result": "Create the standard Kubernetes Secret and return only its reference."},
+        ],
+        "safety": [
+            "No tool returns Authentik passwords, sessions, OAuth tokens, Harbor robot tokens, or Kubernetes Secret values.",
+            "Codex must request confirmation for every admin tool call.",
+            "Authentik group policy and Kubernetes RBAC remain authoritative even if a client omits local approval UX.",
+        ],
     }
 
 
@@ -3683,6 +3802,28 @@ def generate_pg_tenant_database_plan(args):
         ],
     }
 
+OBSERVE_TOOL_NAMES = {
+    "get_usage_guide", "get_tenant_context", "list_k8s_resources", "get_registry_info",
+    "get_tenant_resource_catalog", "get_grafana_links", "get_tenant_metrics_summary",
+    "get_platform_service_health", "get_platform_service_catalog", "get_platform_permission_coverage",
+    "get_platform_access_posture", "get_nuclio_function_status", "diagnose_nuclio_function",
+    "get_nuclio_capacity_status", "get_litellm_gateway_status", "get_fleet_control_status",
+    "get_supabase_platform_status", "get_neo4j_platform_status", "get_identity_platform_status",
+    "get_agent_runtime_status", "get_observability_platform_status", "get_artifact_platform_status",
+    "get_database_routing_status", "get_external_publication_readiness",
+}
+OPERATE_TOOL_NAMES = {
+    "get_managed_platform_operation_status", "restart_managed_platform_deployment",
+    "scale_managed_platform_deployment",
+}
+ADMIN_TOOL_NAMES = {
+    "list_authentik_users", "ensure_authentik_user", "grant_authentik_user_group",
+    "get_tenancy_admin_workflow", "generate_pg_tenant_database_plan",
+    "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access",
+    "ensure_harbor_tenant", "get_tenant_secret_refs", "set_tool_publication_stage",
+}
+
+
 def mcp_tools(include_admin=False):
     def schema(props=None, required=None):
         return {"type": "object", "properties": props or {}, "required": required or []}
@@ -3724,6 +3865,9 @@ def mcp_tools(include_admin=False):
     ]
     if include_admin:
         tools.extend([
+            {"name": "list_authentik_users", "description": "Admin: list Authentik users and group names without sessions, tokens, password material, or other credentials.", "inputSchema": schema()},
+            {"name": "ensure_authentik_user", "description": "Admin: create or update an Authentik user and reviewed group memberships without accepting or returning a password.", "inputSchema": schema({"username": {"type": "string"}, "name": {"type": "string"}, "email": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "isActive": {"type": "boolean", "default": True}, "path": {"type": "string", "default": "users"}}, ["username"])},
+            {"name": "grant_authentik_user_group", "description": "Admin: grant an existing Authentik user membership in an existing reviewed group.", "inputSchema": schema({"username": {"type": "string"}, "email": {"type": "string"}, "group": {"type": "string"}}, ["group"])},
             {"name": "list_dex_users", "description": "Admin: list Dex static users without password hashes.", "inputSchema": schema()},
             {"name": "get_tenancy_admin_workflow", "description": "Admin: explain the standard tenant/user access workflow for Headlamp, Dex OIDC, RBAC, and robot kubeconfig.", "inputSchema": schema()},
             {"name": "get_dex_hash_instructions", "description": "Admin: return commands for generating Dex bcrypt passwordHash.", "inputSchema": schema()},
@@ -3734,12 +3878,14 @@ def mcp_tools(include_admin=False):
             {"name": "create_dex_user", "description": "Admin: create a Dex static user and optionally grant namespace operator access. Requires passwordHash, not plaintext password. Can also reconcile the matching Harbor tenant when ensureHarbor=true.", "inputSchema": schema({"email": {"type": "string"}, "username": {"type": "string"}, "userID": {"type": "string"}, "passwordHash": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "createNamespace": {"type": "boolean", "default": True}, "updateExisting": {"type": "boolean", "default": False}, "ensureHarbor": {"type": "boolean", "default": False}, "harborPassword": {"type": "string"}, "rotateHarborRobot": {"type": "boolean", "default": False}}, ["email", "passwordHash"])},
             {"name": "grant_user_namespace", "description": "Admin: grant an existing Dex static user operator access to a namespace and reconcile tenant RBAC.", "inputSchema": schema({"email": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["email", "namespace"])},
             {"name": "ensure_harbor_tenant", "description": "Admin: create or repair the matching Harbor project, Harbor web user, projectAdmin membership, project admin robot, and Kubernetes image secret. Defaults require namespace/project/username to be the same.", "inputSchema": schema({"namespace": {"type": "string"}, "tenant": {"type": "string"}, "project": {"type": "string"}, "email": {"type": "string"}, "username": {"type": "string"}, "harborPassword": {"type": "string"}, "createUser": {"type": "boolean", "default": True}, "roleID": {"type": "integer", "default": 1}, "rotateRobot": {"type": "boolean", "default": False}, "allowDifferentProject": {"type": "boolean", "default": False}, "allowDifferentUsername": {"type": "boolean", "default": False}}, [])},
-            {"name": "set_tool_publication_stage", "description": "Admin: set canary, internal, or deprecated stage for one of the three reviewed ToolHive MCPServer publications. Requires an approvalId; arbitrary resources cannot be patched.", "inputSchema": schema({"server": {"type": "string", "enum": sorted(MANAGED_TOOL_PUBLICATIONS)}, "stage": {"type": "string", "enum": sorted(PUBLICATION_STAGES)}, "approvalId": {"type": "string"}}, ["server", "stage", "approvalId"])},
-            {"name": "restart_managed_platform_deployment", "description": "Admin: restart one pre-reviewed platform Deployment using an approval ID. Both the tool allowlist and namespaced Kubernetes resourceNames RBAC enforce the target.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}, "approvalId": {"type": "string"}}, ["namespace", "deployment", "approvalId"])},
-            {"name": "scale_managed_platform_deployment", "description": "Admin: scale one pre-reviewed platform Deployment to exactly zero or one replica using an approval ID. This is intended for controlled stop/bring-up, not arbitrary autoscaling.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}, "replicas": {"type": "integer", "enum": [0, 1]}, "approvalId": {"type": "string"}}, ["namespace", "deployment", "replicas", "approvalId"])},
+            {"name": "set_tool_publication_stage", "description": "Admin: set canary, internal, or deprecated stage for one reviewed ToolHive publication; arbitrary resources cannot be patched.", "inputSchema": schema({"server": {"type": "string", "enum": sorted(MANAGED_TOOL_PUBLICATIONS)}, "stage": {"type": "string", "enum": sorted(PUBLICATION_STAGES)}}, ["server", "stage"])},
+            {"name": "restart_managed_platform_deployment", "description": "Operate: restart one pre-reviewed platform Deployment. The tool allowlist and namespaced resourceNames RBAC enforce the target.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}}, ["namespace", "deployment"])},
+            {"name": "scale_managed_platform_deployment", "description": "Operate: scale one pre-reviewed platform Deployment to exactly zero or one replica.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}, "replicas": {"type": "integer", "enum": [0, 1]}}, ["namespace", "deployment", "replicas"])},
         ])
     write_tools = {
         "restart_deployment",
+        "ensure_authentik_user",
+        "grant_authentik_user_group",
         "ensure_tenant_database_secrets",
         "ensure_tenant_database_bundle",
         "ensure_tenant_access",
@@ -3760,20 +3906,34 @@ def mcp_tools(include_admin=False):
             "openWorldHint": False,
             "destructiveHint": name in destructive_tools,
         }
-    return tools
+    profile_tools = {
+        "public": OBSERVE_TOOL_NAMES,
+        "observe": OBSERVE_TOOL_NAMES,
+        "operate": OPERATE_TOOL_NAMES,
+        "admin": ADMIN_TOOL_NAMES,
+    }.get(OPS_TOOL_PROFILE)
+    return [tool for tool in tools if profile_tools is None or tool["name"] in profile_tools]
 
 def call_tool(name, args, admin=False):
     args = args or {}
+    profile_tools = {
+        "public": OBSERVE_TOOL_NAMES,
+        "observe": OBSERVE_TOOL_NAMES,
+        "operate": OPERATE_TOOL_NAMES,
+        "admin": ADMIN_TOOL_NAMES,
+    }.get(OPS_TOOL_PROFILE)
+    if profile_tools is not None and name not in profile_tools:
+        raise PermissionError("tool is not available in the %s profile: %s" % (OPS_TOOL_PROFILE, name))
     if name == "get_public_tool_service_info":
         return {
-            "name": "RE8CH External Tools",
+            "name": "RE8CH Platform Observe",
             "mcpResource": "https://tools.re8ch.com/mcp",
-            "authorizationServer": "https://auth.re8ch.com/application/o/toolhive-external/",
+            "authorizationServer": "https://auth.re8ch.com/application/o/toolhive-platform-observe/",
             "access": "OAuth 2.0 authorization code with PKCE S256",
-            "scope": "platform:read",
+            "scope": "platform:observe",
             "publication": "ToolHive-managed read-only canary",
             "clients": ["ChatGPT and Codex connectors", "Claude Code remote HTTP MCP", "standards-compliant MCP clients"],
-            "safety": "This public surface excludes write/admin tools, credentials, tenant data, cluster topology, and internal routes.",
+            "safety": "This surface excludes write/admin tools, Secret values, kubeconfig, arbitrary SQL, and generic Kubernetes API access.",
         }
     if name == "get_usage_guide":
         return GUIDE
@@ -3841,13 +4001,19 @@ def call_tool(name, args, admin=False):
         return k8s_api_proxy(args)
     if name == "postgres_sql_proxy":
         return postgres_sql_proxy(args, admin=admin)
-    admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant", "set_tool_publication_stage", "restart_managed_platform_deployment", "scale_managed_platform_deployment"}
+    admin_tools = {"list_authentik_users", "ensure_authentik_user", "grant_authentik_user_group", "list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant", "set_tool_publication_stage"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)
     if name == "list_dex_users":
         return list_dex_users()
+    if name == "list_authentik_users":
+        return list_authentik_users()
+    if name == "ensure_authentik_user":
+        return ensure_authentik_user(args)
+    if name == "grant_authentik_user_group":
+        return grant_authentik_user_group(args)
     if name == "get_tenancy_admin_workflow":
-        return get_tenancy_admin_workflow()
+        return get_authentik_tenancy_admin_workflow() if OPS_TOOL_PROFILE == "admin" else get_tenancy_admin_workflow()
     if name == "get_dex_hash_instructions":
         return get_dex_hash_instructions()
     if name == "generate_pg_tenant_database_plan":
@@ -4105,7 +4271,7 @@ class Handler(BaseHTTPRequestHandler):
         if method == "initialize":
             result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "re8ch-ops-mcp", "version": "0.1.0"}}
         elif method == "tools/list":
-            result = {"tools": mcp_tools(include_admin=self.admin_authorized())}
+            result = {"tools": mcp_tools(include_admin=self.admin_authorized() or OPS_TOOL_PROFILE in ("operate", "admin"))}
         elif method == "tools/call":
             params = req.get("params", {})
             value = call_tool(params.get("name"), params.get("arguments", {}), admin=self.admin_authorized())
