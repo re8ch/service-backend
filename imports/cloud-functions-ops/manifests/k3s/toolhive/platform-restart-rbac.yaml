@@ -14,7 +14,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: auth}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -29,7 +29,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: llm-gateway}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -44,7 +44,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: kagent}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -59,7 +59,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: opensandbox-system}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -74,7 +74,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: fleet}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -89,7 +89,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: supabase-pg-re8ch}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -104,7 +104,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: nuclio}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -119,4 +119,4 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: codex-platform}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-admin, namespace: toolhive-system}]
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]

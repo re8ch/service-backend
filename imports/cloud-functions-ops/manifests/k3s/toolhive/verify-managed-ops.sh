@@ -310,8 +310,8 @@ printf '%s' "$posture" | jq -e '.namespaces | all(has("findings") and has("count
 [ "$(printf '%s' "$operation_status" | jq '.summary.total')" -eq 9 ] || fail "managed platform operation status does not cover nine targets"
 printf '%s' "$operation_status" | jq -e '
   [.targets[] | select(.namespace == "nuclio" and .deployment == "nuclio-dashboard")][0] |
-  .desired == 0 and (.lastScale.approvalId | length) > 0
-' >/dev/null || fail "managed platform operation approval tracking is missing"
+  .desired == 0 and (.lastScale.at | length) > 0 and (.lastScale.by | length) > 0
+' >/dev/null || fail "managed platform operation audit tracking is missing"
 [ "$(printf '%s' "$nuclio_status" | jq '.summary.total')" -ge 30 ] || fail "Nuclio status covers fewer than 30 functions"
 printf '%s' "$nuclio_status" | jq -e '
   .functions | all((has("namespace") and has("name") and has("state") and has("image")) and
