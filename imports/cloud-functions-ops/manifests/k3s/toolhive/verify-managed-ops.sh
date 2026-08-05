@@ -27,14 +27,15 @@ kubectl --server="$KUBE_SERVER" get --raw=/readyz >/dev/null 2>&1 || \
 if grep -Eq '^(apiVersion|kind):' "$SCRIPT_DIR/external-observe-publication.template.yaml"; then
   fail "external publication safety template contains applicable Kubernetes objects"
 fi
-if kubectl --server="$KUBE_SERVER" -n toolhive-system get \
-  mcpserver.toolhive.stacklok.dev/ops-observe-external >/dev/null 2>&1; then
-  fail "external MCPServer exists before publication readiness gates pass"
-fi
+kubectl --server="$KUBE_SERVER" -n toolhive-system wait --for=condition=Ready \
+  mcpserver.toolhive.stacklok.dev/ops-observe-external --timeout=60s >/dev/null
 external_ingresses=$(kubectl --server="$KUBE_SERVER" get ingress -A -o json | jq '
   [.items[] | select([.spec.rules[]?.host] | index("tools.re8ch.com"))] | length
 ')
-[ "$external_ingresses" -eq 0 ] || fail "tools.re8ch.com Ingress exists before publication readiness gates pass"
+[ "$external_ingresses" -eq 1 ] || fail "tools.re8ch.com must have exactly one reviewed Ingress"
+public_tools=$(kubectl --server="$KUBE_SERVER" -n toolhive-system get mcptoolconfig/ops-public-read-tools \
+  -o json | jq -c '.spec.toolsFilter')
+[ "$public_tools" = '["get_public_tool_service_info"]' ] || fail "external public-read allowlist drifted"
 
 # Keep the storage controller available on a node with its image cached. This
 # policy is part of the control-plane contract because ToolHive-managed tools
@@ -46,10 +47,10 @@ local_path_node=$(kubectl --server="$KUBE_SERVER" -n kube-system get deployment 
 [ "$local_path_node" = "vm-20-12-ubuntu" ] || fail "local-path-provisioner is not pinned to the cached system-image node"
 kubectl --server="$KUBE_SERVER" -n kube-system wait --for=condition=Available deployment/local-path-provisioner --timeout=60s >/dev/null
 
-# Authentik remains fail-closed after its canary rollback, while its reviewed
-# Redis dependency stays healthy for the next controlled retry.
-[ "$(kubectl --server="$KUBE_SERVER" -n auth get deployment authentik-server -o jsonpath='{.spec.replicas}')" -eq 0 ] || fail "authentik-server enabled before canary passed"
-[ "$(kubectl --server="$KUBE_SERVER" -n auth get deployment authentik-worker -o jsonpath='{.spec.replicas}')" -eq 0 ] || fail "authentik-worker enabled before canary passed"
+# Authentik's writable-primary canary has passed; both identity components and
+# the isolated Redis dependency must now remain available.
+kubectl --server="$KUBE_SERVER" -n auth wait --for=condition=Available deployment/authentik-server --timeout=60s >/dev/null
+kubectl --server="$KUBE_SERVER" -n auth wait --for=condition=Available deployment/authentik-worker --timeout=60s >/dev/null
 kubectl --server="$KUBE_SERVER" -n auth wait --for=condition=Available deployment/authentik-redis --timeout=60s >/dev/null
 kubectl --server="$KUBE_SERVER" -n auth get networkpolicy authentik-redis >/dev/null
 
@@ -101,11 +102,12 @@ kubectl --server="$KUBE_SERVER" -n toolhive-system port-forward svc/toolhive-reg
 REGISTRY_PF_PID=$!
 sleep 1
 registry_names=$(curl -fsS http://127.0.0.1:28082/registry/approved/v0.1/servers | jq -r '[.servers[].server.name]')
-[ "$(printf '%s' "$registry_names" | jq 'length')" -eq 3 ] || fail "Registry does not contain exactly three entries"
+[ "$(printf '%s' "$registry_names" | jq 'length')" -eq 4 ] || fail "Registry does not contain exactly four entries"
 printf '%s' "$registry_names" | jq -e '
   index("com.toolhive.k8s.toolhive-system/ops-observe-managed") != null and
   index("com.toolhive.k8s.toolhive-system/ops-operate-managed") != null and
-  index("com.toolhive.k8s.toolhive-system/ops-admin-managed") != null
+  index("com.toolhive.k8s.toolhive-system/ops-admin-managed") != null and
+  index("com.toolhive.k8s.toolhive-system/ops-observe-external") != null
 ' >/dev/null || fail "Registry entry names mismatch"
 
 kubectl --server="$KUBE_SERVER" -n toolhive-system port-forward svc/mcp-ops-observe-managed-proxy 28088:8080 >/tmp/re8ch-toolhive-observe-verify.log 2>&1 &
@@ -222,11 +224,11 @@ printf '%s' "$neo4j_status" | jq -e '
   (has("nodes") | not) and (has("relationships") | not) and (has("cypher") | not) and (has("credentials") | not)
 ' >/dev/null || fail "Neo4j platform status or native authorization boundary is invalid"
 printf '%s' "$identity_status" | jq -e '
-  .summary.workloads == 5 and .summary.scaledToZeroWorkloads == 3 and
+  .summary.workloads == 5 and
   ([.workloads[] | select(.name == "authentik-redis")][0] | .desired == 1 and .ready == 1) and
-  ([.workloads[] | select(.name == "authentik-server")][0].scaledToZero == true) and
-  ([.workloads[] | select(.name == "authentik-worker")][0].scaledToZero == true) and
-  ([.probes[] | select(.name == "authentik")][0].status == "unreachable") and
+  ([.workloads[] | select(.name == "authentik-server")][0] | .desired == 1 and .ready == 1) and
+  ([.workloads[] | select(.name == "authentik-worker")][0] | .desired == 1 and .ready == 1) and
+  ([.probes[] | select(.name == "authentik")][0].status == "healthy") and
   ([.workloads[] | select(.name == "re8ch-auth-gateway")][0] | .desired == 1 and .ready == 1) and
   ([.probes[] | select(.name == "re8ch-auth-gateway")][0].status == "healthy") and
   (.protectedNativeAPIs | index("users/groups") != null) and
@@ -263,8 +265,7 @@ printf '%s' "$database_routing_status" | jq -e '
   (has("passwords") | not) and (has("sql") | not) and (has("schemas") | not) and (has("rows") | not)
 ' >/dev/null || fail "database routing status or native authorization boundary is invalid"
 printf '%s' "$external_publication_status" | jq -e '
-  .publicationReady == false and .gates.externalMCPServer == false and .gates.publicIngress == false and
-  (.blockers | length) >= 1 and
+  .gates.externalMCPServer == true and .gates.publicIngress == true and
   (has("clientSecret") | not) and (has("accessToken") | not) and (has("refreshToken") | not) and
   (has("dnsCredentials") | not) and (has("userClaims") | not)
 ' >/dev/null || fail "external publication readiness or credential redaction is invalid"
