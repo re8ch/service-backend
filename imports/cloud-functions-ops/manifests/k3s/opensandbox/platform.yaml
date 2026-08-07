@@ -277,13 +277,15 @@ metadata:
   name: opensandbox-server
   namespace: opensandbox-system
 spec:
-  type: ClusterIP
+  type: NodePort
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: opensandbox-server
   ports:
     - name: http
       port: 80
       targetPort: http
+      nodePort: 30401
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -635,6 +637,10 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: teable-infra-compat
+        # Hubble observes ICP NodePort traffic after underlay routing as this
+        # exact source. Do not broaden this to the surrounding cloud CIDR.
+        - ipBlock:
+            cidr: 192.0.2.248/32
       ports:
         - protocol: TCP
           port: 8080
