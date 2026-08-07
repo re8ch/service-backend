@@ -1,0 +1,18 @@
+inventoryConfig:
+  cluster_storage: [default, ram]
+  exclude:
+    nodes:
+      - restricted-node-1eb0570f74
+      - amdwsl-zt
+      - artchais-nuclio-1
+      - restricted-node-296f36f2fb
+      - harbor-registry
+      - qianwen-nuclio-79
+      - qianwen-prod-nuclio-3
+      - qianwen-test-nuclio-2
+      - rancher-panel
+      - vm-20-12-ubuntu
+    node_storage: []
+nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+tolerations:
+  - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
