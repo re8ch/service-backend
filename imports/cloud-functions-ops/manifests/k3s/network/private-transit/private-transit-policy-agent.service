@@ -1,0 +1,20 @@
+[Unit]
+Description=RE8CH private-transit path policy agent
+After=network-online.target frr.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/private-transit-policy-agent --config /etc/re8ch/private-transit-policy-agent.json --state /run/re8ch-private-transit/state.json
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RuntimeDirectory=re8ch-private-transit
+
+[Install]
+WantedBy=multi-user.target
