@@ -35,3 +35,26 @@ ASR/TTS 已验收。
 2. `sudo systemctl disable --now re8ch-voice-gateway freeswitch`
 3. `sudo systemctl enable --now gxw-sip-autoanswer`（或按原记录恢复 Kamailio）。
 4. 检查 5160/40002 监听和原线路入呼；保留失败日志与 UTC 备份，不改 A8-C。
+## HOMER public observability entrypoint
+
+HOMER is the SIP signalling evidence layer for the voice gateway. Its public
+operator entrypoint is:
+
+```text
+https://phonycenter.re8ch.com:8443/
+```
+
+The explicit port is required because the upstream restricted-node-6dc3f140f9 edge currently carries
+public HTTPS to Traefik on TCP 8443. Cloudflare DNS is controller-managed and
+resolves the host to the MikroTik public address. MikroTik forwards only TCP
+8443 to restricted-node-6dc3f140f9 TCP 443; Traefik then proxies the `phonycenter.re8ch.com` host to
+the HOMER UI at `192.0.2.169:19080`.
+
+Only HOMER HTTP UI/API traffic is published. Do not publish HEP `19060`, SIP
+`5060/5080/5160`, ESL `8021`, RTP, DuckDB, Jitsi, or LiveKit ports through this
+entrypoint. HOMER internal authentication remains mandatory.
+
+HOMER provides SIP call identity, endpoints, responses and call-flow evidence.
+ASR/TTS content, recordings, Agent authorization and join/leave control belong
+to the Voice Operation Console and must be correlated back to HOMER using
+`call_id`/SIP `Call-ID`.
