@@ -13,10 +13,12 @@ tunnelPort: 8473
 kubeProxyReplacement: "false"
 
 bgpControlPlane:
-  enabled: false
+  # Enables the control-plane machinery only. Peer, advertisement, and LB IPAM
+  # resources remain separately managed and must never reuse the DN42 VRF.
+  enabled: true
 
 gatewayAPI:
   enabled: false
 
 operator:
-  replicas: 1
+  replicas: 2

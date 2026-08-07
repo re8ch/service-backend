@@ -47,9 +47,10 @@ cni:
   uninstall: false
 
 operator:
-  # Keep the live-approved topology at one replica. A three-replica rollout,
-  # new placement, and leader-election validation require explicit approval.
-  replicas: 1
+  # Keep the operator control plane on the two stable K3s/etcd WSL nodes.
+  # The live Deployment also overrides KUBERNETES_SERVICE_HOST to 127.0.0.1
+  # so each host-networked operator uses its node-local K3s API server.
+  replicas: 2
   image:
     repository: quay.io/cilium/operator
     tag: latest
@@ -67,9 +68,8 @@ operator:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                  - harbor-registry
-                  - rancher-panel
-                  - restricted-node-6dc3f140f9
+                  - restricted-node-1eb0570f74
+                  - restricted-node-296f36f2fb
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - topologyKey: kubernetes.io/hostname
