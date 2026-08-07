@@ -202,9 +202,7 @@ spec:
                   name: litellm-ui-auth
                   key: UI_PASSWORD
             - name: PROXY_BASE_URL
-              # Until the edge DNS record is published, OAuth/login redirects
-              # must target the address that operators can actually reach.
-              value: http://192.0.2.169:30400
+              value: https://litellm.re8ch.com
             - name: DOCS_URL
               value: /docs
             - name: ROOT_REDIRECT_URL
@@ -239,7 +237,11 @@ metadata:
   namespace: llm-gateway
   labels:
     app.kubernetes.io/name: litellm
+    public.re8ch.com/external-dns: enabled
   annotations:
+    external-dns.alpha.kubernetes.io/target: 192.0.2.122
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
