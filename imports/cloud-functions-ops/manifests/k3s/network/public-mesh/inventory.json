@@ -10,6 +10,7 @@
     {"id":"77","name":"artchais-nuclio-1","ztIp":"192.0.2.143","transportIp":"192.0.2.13","publicIp":"192.0.2.231","asn":4200000077,"rollout":2,"publicMode":"static"},
     {"id":"95","name":"harbor-registry","ztIp":"192.0.2.203","transportIp":"192.0.2.12","publicIp":"192.0.2.210","asn":4200000095,"rollout":3,"publicMode":"static"},
     {"id":"16","name":"rancher-panel","ztIp":"192.0.2.79","transportIp":"192.0.2.117","publicIp":"192.0.2.67","asn":4200000016,"rollout":4,"publicMode":"static"},
-    {"id":"186","name":"pg-re8ch-replica-186","ztIp":"192.0.2.172","transportIp":"192.0.2.120","publicIp":"192.0.2.72","asn":4200000186,"rollout":5,"publicMode":"static"}
+    {"id":"186","name":"pg-re8ch-replica-186","ztIp":"192.0.2.172","transportIp":"192.0.2.120","publicIp":"192.0.2.72","asn":4200000186,"rollout":5,"publicMode":"static"},
+    {"id":"50","name":"overseas-edge-50","ztIp":"192.0.2.122","transportIp":"192.0.2.208","publicIp":"192.0.2.3","asn":4200000050,"rollout":6,"publicMode":"static","region":"overseas","includedEgressGiB":1024}
   ]
 }

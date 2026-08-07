@@ -41,8 +41,8 @@ def validate(inv):
                 errors.append(f'{node["name"]}: rescue next hop must be private')
             if not 200 <= int(route["distance"]) <= 254:
                 errors.append(f'{node["name"]}: rescue distance must be 200..254')
-    if len(inv["nodes"]) != 7:
-        errors.append("inventory must contain exactly seven experiment nodes")
+    if len(inv["nodes"]) != 8:
+        errors.append("inventory must contain exactly eight public-authority nodes")
     if errors:
         raise ValueError("\n".join(errors))
 
@@ -124,15 +124,15 @@ def main():
     wg = sub.add_parser("wireguard")
     wg.add_argument("--node", required=True)
     wg.add_argument("--public-keys", required=True)
-    wg.add_argument("--stage", type=int, choices=range(0, 6), required=True)
+    wg.add_argument("--stage", type=int, choices=range(0, 7), required=True)
     frr = sub.add_parser("frr")
     frr.add_argument("--node", required=True)
-    frr.add_argument("--stage", type=int, choices=range(0, 6), required=True)
+    frr.add_argument("--stage", type=int, choices=range(0, 7), required=True)
     args = parser.parse_args()
     inv = load_json(args.inventory)
     validate(inv)
     if args.command == "validate":
-        print("inventory valid: seven nodes, unique addresses and private ASNs")
+        print("inventory valid: eight public-authority nodes, unique addresses and private ASNs")
         return
     node = select(inv, args.node)
     if node["rollout"] > args.stage:
