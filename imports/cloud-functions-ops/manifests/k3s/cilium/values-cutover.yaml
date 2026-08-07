@@ -15,11 +15,26 @@ envoy:
   enabled: false
 
 operator:
-  replicas: 1
+  replicas: 2
   skipCRDCreation: true
-  affinity: null
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - restricted-node-1eb0570f74
+                  - restricted-node-296f36f2fb
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              io.cilium/app: operator
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/os: linux
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
