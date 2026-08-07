@@ -1,0 +1,25 @@
+version: "2.0"
+services:
+  web:
+    image: nginx@sha256:d67ea0d64d518b1bb04acde3b00f722ac3e9764b3209a9b0a98924ba35e4b779
+    expose:
+      - port: 80
+        as: 80
+        to:
+          - global: true
+profiles:
+  compute:
+    web:
+      resources:
+        cpu: {units: 1}
+        memory: {size: 1Gi}
+        storage: [{size: 2Gi}]
+  placement:
+    sandbox:
+      pricing:
+        web: {denom: uact, amount: 100000}
+deployment:
+  web:
+    sandbox:
+      profile: web
+      count: 1
