@@ -41,7 +41,7 @@ spec:
                             Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions{
                               key: 'kubernetes.io/hostname',
                               operator: 'In',
-                              values: ['harbor-registry', 'qianwen-nuclio-79', 'vm-20-12-ubuntu']
+                              values: ['restricted-node-1eb0570f74', 'restricted-node-296f36f2fb']
                             }
                           ]
                         }
@@ -74,3 +74,14 @@ spec:
     namespaceSelector:
       matchLabels:
         kubernetes.io/metadata.name: kube-system
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
