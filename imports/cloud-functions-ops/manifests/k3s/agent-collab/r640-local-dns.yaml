@@ -7,7 +7,8 @@ metadata:
     app.kubernetes.io/name: coredns-r640
     app.kubernetes.io/part-of: r640-platform-recovery
 spec:
-  replicas: 1
+  # Retired after the main CoreDNS Deployment moved to A1/B1 HA placement.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: coredns-r640
