@@ -1,0 +1,31 @@
+# Replace __NGF_SERVICE_NAME__ with the Service owned by Gateway/akash-gateway.
+# These routes let the existing Traefik keep node ports 80/443 while forwarding
+# only the Akash provider and wildcard hostnames to NGF.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: akash-sandbox-http
+  namespace: akash-gateway
+spec:
+  entryPoints: [web]
+  routes:
+    - kind: Rule
+      match: Host(`provider-sandbox.akash.re8ch.com`) || HostRegexp(`[a-z0-9-]+.ingress.provider-sandbox.akash.re8ch.com`)
+      services:
+        - name: __NGF_SERVICE_NAME__
+          port: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: akash-sandbox-https-passthrough
+  namespace: akash-gateway
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: HostSNI(`provider-sandbox.akash.re8ch.com`) || HostSNIRegexp(`^.+\.ingress\.provider-sandbox\.akash\.re8ch\.com$`)
+      services:
+        - name: __NGF_SERVICE_NAME__
+          port: 443
+  tls:
+    passthrough: true
