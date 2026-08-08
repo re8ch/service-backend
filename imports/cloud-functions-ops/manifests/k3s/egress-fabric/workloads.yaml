@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mihomo-egress-la
+  namespace: egress-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: mihomo-egress, app.kubernetes.io/instance: la}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mihomo-egress, app.kubernetes.io/instance: la}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: overseas-edge-50}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+      automountServiceAccountToken: false
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: [1.1.1.1, 8.8.8.8]
+        options:
+          - {name: ndots, value: "1"}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: mihomo
+          image: metacubex/mihomo:v1.19.29
+          args: [-d, /etc/mihomo]
+          ports:
+            - {name: socks, containerPort: 1080, protocol: TCP}
+          readinessProbe: {tcpSocket: {port: socks}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: socks}, periodSeconds: 15}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 800m, memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: work, mountPath: /etc/mihomo}
+            - {name: config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+      volumes:
+        - name: config
+          configMap: {name: mihomo-la-config}
+        - name: work
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-egress-la
+  namespace: egress-fabric
+spec:
+  selector: {app.kubernetes.io/name: mihomo-egress, app.kubernetes.io/instance: la}
+  ports:
+    - {name: socks, port: 1080, targetPort: socks, protocol: TCP}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mihomo-node
+  namespace: egress-fabric
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: mihomo-node}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mihomo-node}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # Stage only on nodes where the pinned image is already
+                  # available. Expand after the image is mirrored, signed and
+                  # scanned in Harbor; never schedule this on Nuclio/database.
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - restricted-node-6dc3f140f9
+                      - amdwsl-zt
+      containers:
+        - name: mihomo
+          image: metacubex/mihomo:v1.19.29
+          args: [-d, /etc/mihomo]
+          ports:
+            - {name: mixed, containerPort: 7890, protocol: TCP}
+            - {name: controller, containerPort: 9090, protocol: TCP}
+          startupProbe:
+            httpGet: {path: /version, port: controller}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 15}
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: work, mountPath: /etc/mihomo}
+            - {name: config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: paths, mountPath: /etc/mihomo/paths.yaml, subPath: paths.yaml, readOnly: true}
+      volumes:
+        - name: config
+          configMap: {name: mihomo-node-config}
+        - name: paths
+          secret: {secretName: egress-fabric-paths}
+        - name: work
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-node
+  namespace: egress-fabric
+spec:
+  internalTrafficPolicy: Local
+  selector: {app.kubernetes.io/name: mihomo-node}
+  ports:
+    - {name: mixed, port: 7890, targetPort: mixed, protocol: TCP}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: path-controller
+  namespace: egress-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: path-controller}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: path-controller}
+    spec:
+      serviceAccountName: path-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: controller
+          image: python:3.13-alpine
+          command: [python, /opt/re8ch/path-controller.py]
+          env:
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 96Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: code, mountPath: /opt/re8ch, readOnly: true}
+      volumes:
+        - name: code
+          configMap: {name: path-controller-code, defaultMode: 0555}
