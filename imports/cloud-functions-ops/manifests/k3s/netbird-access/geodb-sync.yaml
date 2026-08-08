@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: netbird-geodb-sync
+  namespace: netbird-access
+spec:
+  schedule: "17 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: restricted-node-6dc3f140f9
+          containers:
+            - name: sync
+              image: python:3.13-alpine
+              imagePullPolicy: IfNotPresent
+              command: [python, /opt/re8ch/geodb-sync.py]
+              env:
+                - {name: NETBIRD_API_URL, value: "https://access.re8ch.com:8443"}
+                - {name: NETBIRD_NETWORK_NAME, value: "GeoDB Overseas via LA"}
+                - {name: NETBIRD_RESOURCE_GROUP, value: geodb-overseas-resources}
+                - {name: GEOSITE_CATEGORIES, value: "google,youtube,openai,github,telegram,twitter,netflix"}
+                - {name: GEODB_MAX_RESOURCES, value: "1200"}
+                - {name: GEODB_ROOT_DOMAINS, value: "google.com,youtube.com,openai.com,github.com,telegram.org,twitter.com,x.com,netflix.com"}
+                - {name: GEODB_PRUNE, value: "false"}
+                - name: NETBIRD_API_TOKEN
+                  valueFrom:
+                    secretKeyRef: {name: netbird-geodb-sync, key: NETBIRD_API_TOKEN}
+              resources:
+                requests: {cpu: 20m, memory: 32Mi}
+                limits: {cpu: 250m, memory: 128Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: [ALL]}
+              volumeMounts:
+                - {name: script, mountPath: /opt/re8ch, readOnly: true}
+          volumes:
+            - name: script
+              configMap:
+                name: netbird-geodb-sync
+                defaultMode: 0555

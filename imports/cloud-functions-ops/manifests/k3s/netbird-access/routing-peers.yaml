@@ -1,0 +1,205 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-router-cn
+  namespace: netbird-access
+  labels: &cnLabels
+    app.kubernetes.io/name: netbird-router
+    app.kubernetes.io/instance: cn
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  # The CN routing peer is staged separately. Keep it dormant until a CN
+  # geographic route needs a managed egress rather than device-local breakout.
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: *cnLabels
+  template:
+    metadata:
+      labels: *cnLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      automountServiceAccountToken: false
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:0.74.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: wireguard, containerPort: 51820, hostPort: 51820, protocol: UDP}
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom:
+                secretKeyRef: {name: netbird-routing-peer-cn, key: NB_SETUP_KEY}
+            - {name: NB_MANAGEMENT_URL, value: "https://access.re8ch.com:8443"}
+            - {name: NB_HOSTNAME, value: re8ch-router-cn-r640}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          startupProbe: &startupProbe
+            exec: {command: [netbird, status, --check, startup]}
+            periodSeconds: 3
+            timeoutSeconds: 10
+            failureThreshold: 40
+          readinessProbe: &readinessProbe
+            exec: {command: [netbird, status, --check, ready]}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe: &livenessProbe
+            exec: {command: [netbird, status, --check, live]}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts: &peerMounts
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: state, mountPath: /var/lib/netbird}
+        - name: egress-shaper
+          image: nicolaka/netshoot:v0.13
+          command: [sh, -ec]
+          args:
+            - tc qdisc replace dev eth0 root tbf rate 200mbit burst 4mb latency 100ms; trap 'exit 0' TERM INT; while true; do sleep 3600; done
+          securityContext:
+            capabilities: {add: [NET_ADMIN]}
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 64Mi}
+        - name: usage-meter
+          image: prom/node-exporter:v1.9.1
+          args: ["--collector.disable-defaults", "--collector.netdev", "--web.listen-address=:9100"]
+          ports: [{name: metrics, containerPort: 9100, protocol: TCP}]
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes: &peerVolumes
+        - name: tun
+          hostPath: {path: /dev/net/tun, type: CharDevice}
+        - name: state
+          hostPath: {path: /var/lib/rancher/netbird/cn, type: DirectoryOrCreate}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-router-la
+  namespace: netbird-access
+  labels: &laLabels
+    app.kubernetes.io/name: netbird-router
+    app.kubernetes.io/instance: la
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: *laLabels
+  template:
+    metadata:
+      labels: *laLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: overseas-edge-50
+      # Domain resources must be resolved at the overseas routing peer. Using
+      # cluster DNS here can return domestically poisoned answers for Google
+      # and YouTube before NetBird installs its local forwarding resolver.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: [1.1.1.1, 8.8.8.8]
+        options:
+          - {name: ndots, value: "1"}
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: overseas-edge
+          effect: NoSchedule
+      automountServiceAccountToken: false
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:0.74.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: wireguard, containerPort: 51820, hostPort: 51820, protocol: UDP}
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom:
+                secretKeyRef: {name: netbird-routing-peer-la, key: NB_SETUP_KEY}
+            - {name: NB_MANAGEMENT_URL, value: "https://access.re8ch.com:8443"}
+            - {name: NB_HOSTNAME, value: re8ch-router-la-edge-50}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+          resources:
+            # overseas-edge-50 is intentionally a small 1C/2G edge node. The
+            # WireGuard dataplane is kernel backed, so reserve modest control
+            # plane resources and let measurements determine its safe ceiling.
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 800m, memory: 768Mi}
+          startupProbe:
+            exec: {command: [netbird, status, --check, startup]}
+            periodSeconds: 3
+            timeoutSeconds: 10
+            failureThreshold: 40
+          readinessProbe:
+            exec: {command: [netbird, status, --check, ready]}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec: {command: [netbird, status, --check, live]}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: state, mountPath: /var/lib/netbird}
+        - name: egress-shaper
+          image: nicolaka/netshoot:v0.13
+          command: [sh, -ec]
+          args:
+            - tc qdisc replace dev eth0 root tbf rate 150mbit burst 2mb latency 100ms; trap 'exit 0' TERM INT; while true; do sleep 3600; done
+          securityContext:
+            capabilities: {add: [NET_ADMIN]}
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 64Mi}
+        - name: usage-meter
+          image: prom/node-exporter:v1.9.1
+          args: ["--collector.disable-defaults", "--collector.netdev", "--web.listen-address=:9100"]
+          ports: [{name: metrics, containerPort: 9100, protocol: TCP}]
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: tun
+          hostPath: {path: /dev/net/tun, type: CharDevice}
+        - name: state
+          hostPath: {path: /var/lib/rancher/netbird/la, type: DirectoryOrCreate}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-routing-peer-metrics
+  namespace: netbird-access
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+spec:
+  selector:
+    app.kubernetes.io/name: netbird-router
+  ports:
+    - {name: metrics, port: 9100, targetPort: metrics, protocol: TCP}
