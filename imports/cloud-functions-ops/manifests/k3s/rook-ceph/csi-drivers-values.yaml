@@ -1,0 +1,51 @@
+# Rook v1.20.3 requires the separate ceph-csi-drivers chart. These values are
+# based on Rook's v1.20.3 recommended values and intentionally enable only the
+# CephFS driver used by this pilot.
+operatorConfig:
+  namespace: rook-ceph
+  driverSpecDefaults:
+    imageSet:
+      name: rook-csi-operator-image-set-configmap
+    nodePlugin:
+      priorityClassName: system-node-critical
+    controllerPlugin:
+      priorityClassName: system-cluster-critical
+      replicas: 1
+
+drivers:
+  rbd:
+    enabled: false
+    name: rook-ceph.rbd.csi.ceph.com
+  cephfs:
+    enabled: true
+    name: rook-ceph.cephfs.csi.ceph.com
+    # The Ceph cluster requires msgr2 while wire encryption is disabled.
+    # Without this explicit mode, the kernel client attempts a V1 banner on
+    # port 3300 and every monitor closes the connection.
+    kernelMountOptions:
+      ms_mode: crc
+    nodePlugin:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: storage.re8ch.com/ceph-pilot
+                    operator: In
+                    values: ["true"]
+    controllerPlugin:
+      replicas: 1
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["restricted-node-6dc3f140f9"]
+  nfs:
+    enabled: false
+    name: rook-ceph.nfs.csi.ceph.com
+  nvmeof:
+    enabled: false
+    name: rook-ceph.nvmeof.csi.ceph.com
