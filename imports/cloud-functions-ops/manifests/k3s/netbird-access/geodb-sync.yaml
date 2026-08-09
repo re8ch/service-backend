@@ -30,6 +30,8 @@ spec:
                 - {name: GEODB_MAX_RESOURCES, value: "1200"}
                 - {name: GEODB_ROOT_DOMAINS, value: "google.com,youtube.com,openai.com,github.com,telegram.org,twitter.com,x.com,netflix.com"}
                 - {name: GEODB_PRUNE, value: "false"}
+                - {name: GEODB_SNAPSHOT_PATH, value: /etc/re8ch-geodb/geodb.json.gz}
+                - {name: GEODB_SNAPSHOT_SHA256, value: 2187d580ae7ece4c1c399e0723ed2adbf29f666a5d1a013d6746fb8cf9943ff5}
                 - name: NETBIRD_API_TOKEN
                   valueFrom:
                     secretKeyRef: {name: netbird-geodb-sync, key: NETBIRD_API_TOKEN}
@@ -41,8 +43,12 @@ spec:
                 capabilities: {drop: [ALL]}
               volumeMounts:
                 - {name: script, mountPath: /opt/re8ch, readOnly: true}
+                - {name: geodb, mountPath: /etc/re8ch-geodb, readOnly: true}
           volumes:
             - name: script
               configMap:
                 name: netbird-geodb-sync
                 defaultMode: 0555
+            - name: geodb
+              configMap:
+                name: re8ch-geodb-snapshot

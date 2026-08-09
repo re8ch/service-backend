@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sys
+import gzip
 import urllib.request
 
 API = os.environ.get("NETBIRD_API_URL", "https://access.re8ch.com:8443").rstrip("/")
@@ -19,6 +20,8 @@ SOURCE = os.environ.get(
     "GEOSITE_URL_TEMPLATE",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/{category}.yaml",
 )
+SNAPSHOT_PATH = os.environ.get("GEODB_SNAPSHOT_PATH", "")
+SNAPSHOT_SHA256 = os.environ.get("GEODB_SNAPSHOT_SHA256", "")
 PRUNE = os.environ.get("GEODB_PRUNE", "false").lower() == "true"
 MAX_RESOURCES = int(os.environ.get("GEODB_MAX_RESOURCES", "1200"))
 ROOT_DOMAINS = {x.strip().lower() for x in os.environ.get(
@@ -74,12 +77,20 @@ def main():
     desired = set()
     counts = {}
     hashes = {}
-    for category in CATEGORIES:
-        bases, digest = fetch_category(category)
-        counts[category] = len(bases)
-        hashes[category] = digest
+    if SNAPSHOT_PATH:
+        with open(SNAPSHOT_PATH, "rb") as source:
+            raw = source.read()
+        digest = hashlib.sha256(raw).hexdigest()
+        if SNAPSHOT_SHA256 and digest != SNAPSHOT_SHA256:
+            raise RuntimeError("GeoDB snapshot SHA-256 mismatch")
+        snapshot = json.loads(gzip.decompress(raw))
+        bases = snapshot["profiles"]["overseas_canary_domains"]
+        counts["snapshot"] = len(bases)
+        hashes.update(snapshot.get("source_sha256", {}))
         for base in bases:
             desired.add(f"*.{base}")
+    else:
+        raise RuntimeError("GEODB_SNAPSHOT_PATH is required; runtime GitHub fetch is disabled")
     desired.update(ROOT_DOMAINS)
     if not desired or len(desired) > MAX_RESOURCES:
         raise RuntimeError(f"compiled resource count {len(desired)} outside safe range 1..{MAX_RESOURCES}")
@@ -103,7 +114,7 @@ def main():
         digest = hashlib.sha256(address.encode()).hexdigest()[:12]
         api("POST", path, {
             "name": f"geodb:{digest}",
-            "description": "GeoSite compiled: " + ",".join(CATEGORIES),
+            "description": "GeoSite compiled snapshot",
             "address": address,
             "enabled": True,
             "groups": [group["id"]],
