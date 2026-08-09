@@ -23,6 +23,18 @@ class ControllerTests(unittest.TestCase):
         peer, _ = state.choose_peer("canary", "CN", 1000)
         self.assertEqual("large", peer)
 
+    def test_bandwidth_and_quota_penalize_small_relay(self):
+        state = State()
+        fast = {"rtt_ewma_ms": 180, "loss_ewma": 0, "utilization": 0,
+                "mode": "DIRECT", "region": "CN", "health": True,
+                "configured_bandwidth_mbps": 200, "measured_throughput_mbps": 80,
+                "quota_remaining_ratio": 1}
+        small = {"rtt_ewma_ms": 120, "loss_ewma": 0, "utilization": 0,
+                 "mode": "RELAY", "region": "CN", "health": True,
+                 "configured_bandwidth_mbps": 3, "measured_throughput_mbps": 3,
+                 "quota_remaining_ratio": .2}
+        self.assertLess(state.peer_score(fast, "CN"), state.peer_score(small, "CN"))
+
     def test_geodb_hash(self):
         import hashlib, json
         payload = json.dumps({"version": "v1", "cn_cidrs": ["192.0.2.205/24"], "cn_domains": ["example.cn"]}).encode()

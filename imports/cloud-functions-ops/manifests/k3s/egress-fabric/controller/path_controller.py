@@ -32,6 +32,9 @@ LOSS_PENALTY = float(os.getenv("LOSS_PENALTY_MS", "1500"))
 SATURATION_PENALTY = float(os.getenv("SATURATION_PENALTY_MS", "750"))
 RELAY_PENALTY = float(os.getenv("RELAY_PENALTY_MS", "200"))
 REGION_PENALTY = float(os.getenv("REGION_PENALTY_MS", "500"))
+THROUGHPUT_PENALTY = float(os.getenv("THROUGHPUT_PENALTY_MS", "1000"))
+QUOTA_PENALTY = float(os.getenv("QUOTA_PENALTY_MS", "1000"))
+TARGET_THROUGHPUT_MBPS = float(os.getenv("TARGET_THROUGHPUT_MBPS", "25"))
 ALPHA = float(os.getenv("EWMA_ALPHA", "0.35"))
 MARGIN = float(os.getenv("SWITCH_MARGIN", "0.15"))
 HOLD = int(os.getenv("MIN_HOLD_SECONDS", "60"))
@@ -117,8 +120,14 @@ class State:
         relay = RELAY_PENALTY if peer.get("mode") == "RELAY" else 0
         region = 0 if peer.get("region") == client_region else REGION_PENALTY
         cost = float(peer.get("optional_cost", 0))
+        configured = max(0.01, float(peer.get("configured_bandwidth_mbps", TARGET_THROUGHPUT_MBPS)))
+        measured = max(0.0, float(peer.get("measured_throughput_mbps", configured)))
+        effective = min(configured, measured)
+        throughput = THROUGHPUT_PENALTY * max(0.0, 1.0 - min(1.0, effective / TARGET_THROUGHPUT_MBPS))
+        quota_remaining = max(0.0, min(1.0, float(peer.get("quota_remaining_ratio", 1.0))))
+        quota = QUOTA_PENALTY * (1.0 - quota_remaining)
         unhealthy = 0 if peer.get("health", False) else TIMEOUT_MS
-        return latency + LOSS_PENALTY * loss + SATURATION_PENALTY * util + relay + region + cost + unhealthy
+        return latency + LOSS_PENALTY * loss + SATURATION_PENALTY * util + throughput + quota + relay + region + cost + unhealthy
 
     def choose_peer(self, client_id, client_region, now):
         scores = {name: self.peer_score(p, client_region) for name, p in self.peers.items() if p.get("health")}
@@ -195,6 +204,9 @@ class State:
             lines.append(f're8ch_netbird_peer_rtt_ms{{{labels}}} {p.get("rtt_ewma_ms", 0)}')
             lines.append(f're8ch_netbird_peer_loss_ratio{{{labels}}} {p.get("loss_ewma", 0)}')
             lines.append(f're8ch_netbird_peer_utilization_ratio{{{labels}}} {p.get("utilization", 0)}')
+            lines.append(f're8ch_netbird_peer_configured_bandwidth_mbps{{{labels}}} {p.get("configured_bandwidth_mbps", 0)}')
+            lines.append(f're8ch_netbird_peer_measured_throughput_mbps{{{labels}}} {p.get("measured_throughput_mbps", 0)}')
+            lines.append(f're8ch_netbird_peer_quota_remaining_ratio{{{labels}}} {p.get("quota_remaining_ratio", 1)}')
         for dataplane, path in self.paths.items():
             for candidate, score in path.get("scores", {}).items():
                 healthy = 1 if float(score) < TIMEOUT_MS else 0
