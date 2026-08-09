@@ -144,3 +144,20 @@ cluster-local mixed proxy and controller API must never be published.
 Rollback removes proxy environment variables first. Scaling `mihomo-node` and
 the controller to zero then returns traffic to its original direct behavior.
 Because no host route is touched, rollback does not require Cilium/BGP repair.
+
+## restricted-node-6dc3f140f9 edge authority
+
+restricted-node-6dc3f140f9 does not directly own the physical ZeroTier ingress. MikroTik owns
+`192.0.2.178` and proxies traffic to the restricted-node-6dc3f140f9 LAN address
+`192.0.2.169`. Services intended to use that ingress must listen on
+`192.0.2.169` or `0.0.0.0`; binding only the restricted-node-6dc3f140f9 dummy
+`192.0.2.178/32` bypasses the MikroTik DNAT destination.
+
+As of 2026-08-09, existing specific DNAT rules win first. MikroTik preserves
+its active WAN UDP control ports (IKE/IPsec, ZeroTier and deployed WireGuard
+listeners) plus ESP. All remaining public TCP, UDP and other IP protocols for
+`192.0.2.138` default-DNAT to `192.0.2.169` without port translation.
+The final WAN masquerade provides symmetric restricted-node-6dc3f140f9 egress. restricted-node-6dc3f140f9 UFW permits
+traffic arriving on `eno2np1` for `192.0.2.169`; service authentication and
+host hardening are therefore mandatory. Add a per-port MikroTik rule only for
+translation, source restriction, or traffic retained by RouterOS.
