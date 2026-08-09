@@ -17,6 +17,7 @@
     "maximumLossRatio": 0.05,
     "maximumHandshakeAgeSeconds": 180,
     "maximumProbeAgeSeconds": 90,
+    "maximumThroughputAgeSeconds": 1800,
     "requireBgpForPublicWireGuard": true,
     "requireBfdForPublicWireGuard": true,
     "rejectUnknownPriceWhenBudgetEnforced": true
@@ -32,6 +33,7 @@
     "rttMilliseconds": -1,
     "jitterMilliseconds": -2,
     "lossRatio": -1000,
+    "throughputMbps": 20,
     "pricePerGiB": -50
   },
   "budget": {
