@@ -21,6 +21,8 @@ METRICS = (
     "re8ch_frr_bfd_session_up",
     "re8ch_wireguard_peer_handshake_age_seconds",
     "re8ch_wireguard_peer_transmit_bytes_total",
+    "re8ch_throughput_probe_mbps",
+    "re8ch_throughput_probe_last_run_unixtime",
 )
 
 GIB = 1024 ** 3
@@ -131,6 +133,9 @@ def evaluate_path(policy, catalog, path, facts, budget_spent=0.0, source="*", de
         reasons.append("probe-failed")
     if facts.get("loss", 1) > gates["maximumLossRatio"]:
         reasons.append("loss-gate")
+    observed_at = facts.get("throughput_observed_at", 0)
+    if observed_at and time.time() - observed_at > gates.get("maximumThroughputAgeSeconds", 3600):
+        reasons.append("stale-throughput")
     if path == "public_wg":
         if gates.get("requireBgpForPublicWireGuard") and facts.get("bgp", 0) < 1:
             reasons.append("bgp-down")
@@ -150,6 +155,7 @@ def evaluate_path(policy, catalog, path, facts, budget_spent=0.0, source="*", de
     score += facts.get("rtt", 10000) * weights["rttMilliseconds"]
     score += facts.get("jitter", 0) * weights["jitterMilliseconds"]
     score += facts.get("loss", 1) * weights["lossRatio"]
+    score += min(facts.get("throughput_mbps", 0), 200) * weights.get("throughputMbps", 0)
     if price is not None:
         score += price * weights["pricePerGiB"]
     return {"eligible": not reasons, "reasons": reasons, "score": score, "price": price, "cost_id": cost_id}
@@ -200,6 +206,8 @@ class Advisor:
         self.policy = policy
         self.catalog = catalog
         self.node_catalog = node_catalog
+        self.routing_eligible = {node["name"]: node.get("routingEligible", False)
+                                 for node in node_catalog.get("nodes", [])}
         validate_catalogs(node_catalog, catalog)
         self.lock = threading.Lock()
         self.output = ""
@@ -242,6 +250,10 @@ class Advisor:
                     pair["current"] = labels.get("path")
                 elif name.endswith("transmit_bytes_total"):
                     facts["transmit_bytes"] = value
+                elif name.endswith("throughput_probe_mbps"):
+                    facts["throughput_mbps"] = value
+                elif name.endswith("throughput_probe_last_run_unixtime"):
+                    facts["throughput_observed_at"] = value
         return pairs
 
     def evaluate(self):
@@ -250,6 +262,8 @@ class Advisor:
         now = time.time()
         recommendations = []
         for (node, peer), pair in sorted(pairs.items()):
+            if not self.routing_eligible.get(node, False) or not self.routing_eligible.get(peer, False):
+                continue
             results = {path: evaluate_path(self.policy, self.catalog, path, facts, source=node, destination=peer) for path, facts in pair["paths"].items()}
             eligible = [(path, result) for path, result in results.items() if result["eligible"]]
             candidate = max(eligible, key=lambda item: item[1]["score"])[0] if eligible else "none"

@@ -8,7 +8,9 @@ import ipaddress
 import json
 import re
 import subprocess
+import threading
 import time
+import urllib.request
 from urllib.parse import urlparse
 
 
@@ -44,11 +46,18 @@ def parse_ping(output):
 
 
 class Collector:
-    def __init__(self, inventory, node_id, zt_interface):
+    def __init__(self, inventory, node_id, zt_interface, throughput_targets=None,
+                 throughput_interval=900, throughput_max_bytes=524288):
         self.inventory = inventory
         self.node = next(node for node in inventory["nodes"] if str(node["id"]) == str(node_id))
         self.peers = [node for node in inventory["nodes"] if node["id"] != self.node["id"]]
         self.zt_interface = zt_interface
+        self.throughput_targets = throughput_targets or []
+        self.throughput_interval = max(60, throughput_interval)
+        self.throughput_max_bytes = max(65536, throughput_max_bytes)
+        self.throughput_lines = []
+        self.output = ""
+        self.lock = threading.Lock()
 
     def peer_from_allowed_ips(self, allowed):
         for item in allowed.split(","):
@@ -185,16 +194,73 @@ class Collector:
                 if rtt is not None:
                     lines.append(metric("re8ch_path_probe_rtt_milliseconds", rtt, labels))
 
+    def throughput_probe(self):
+        lines = []
+        targets = list(self.throughput_targets)
+        targets.extend({"name": f'peer-{peer["name"]}',
+                        "url": f'http://{peer["ztIp"]}:9788/probe/bytes?bytes={self.throughput_max_bytes}',
+                        "path": self.path_for_ip(peer["ztIp"]), "peer": peer["name"], "peer_id": peer["id"]}
+                       for peer in self.peers if peer.get("throughputProbeEnabled", True))
+        for target in targets:
+            name, url, path = target["name"], target["url"], target.get("path", "direct")
+            labels = {"node": self.node["name"], "target": name, "path": path}
+            if target.get("peer"):
+                labels.update(peer=target["peer"], peer_id=target["peer_id"])
+            started = time.monotonic()
+            received = 0
+            ok = 0
+            try:
+                request = urllib.request.Request(url, headers={"Range": f"bytes=0-{self.throughput_max_bytes - 1}",
+                                                               "User-Agent": "re8ch-network-exporter/0.2"})
+                with urllib.request.urlopen(request, timeout=12) as response:
+                    while received < self.throughput_max_bytes:
+                        chunk = response.read(min(65536, self.throughput_max_bytes - received))
+                        if not chunk:
+                            break
+                        received += len(chunk)
+                ok = 1 if received >= 65536 else 0
+            except Exception:
+                pass
+            elapsed = max(0.001, time.monotonic() - started)
+            lines.append(metric("re8ch_throughput_probe_success", ok, labels))
+            lines.append(metric("re8ch_throughput_probe_bytes", received, labels))
+            lines.append(metric("re8ch_throughput_probe_duration_seconds", elapsed, labels))
+            lines.append(metric("re8ch_throughput_probe_mbps", received * 8 / elapsed / 1_000_000, labels))
+            lines.append(metric("re8ch_throughput_probe_last_run_unixtime", int(time.time()), labels))
+        with self.lock:
+            self.throughput_lines = lines
+
+    def path_for_ip(self, address):
+        route = run(["ip", "route", "get", address])
+        text = route.stdout.splitlines()[0] if route and route.returncode == 0 and route.stdout else ""
+        match = re.search(r"\bdev\s+(\S+)", text)
+        dev = match.group(1) if match else "unknown"
+        return "public_wg" if dev == "wg-public-mesh" else "zerotier" if dev == self.zt_interface else "rescue_wg" if dev == "wg-r640" else "other"
+
+    def background_loop(self):
+        next_throughput = 0
+        while True:
+            now = time.time()
+            if self.throughput_targets and now >= next_throughput:
+                self.throughput_probe()
+                next_throughput = now + self.throughput_interval
+            output = self.collect()
+            with self.lock:
+                self.output = output
+            time.sleep(30)
+
     def collect(self):
         lines = [
             "# HELP re8ch_network_exporter_build_info Static exporter identity.",
             "# TYPE re8ch_network_exporter_build_info gauge",
-            metric("re8ch_network_exporter_build_info", 1, {"version": "0.1.0", "node": self.node["name"], "node_id": self.node["id"]}),
+            metric("re8ch_network_exporter_build_info", 1, {"version": "0.2.0", "node": self.node["name"], "node_id": self.node["id"]}),
         ]
         self.wireguard(lines)
         self.frr(lines)
         self.zerotier(lines)
         self.route_and_probe(lines)
+        with self.lock:
+            lines.extend(self.throughput_lines)
         lines.append(metric("re8ch_network_exporter_last_collection_unixtime", int(time.time()), {"node": self.node["name"]}))
         return "\n".join(lines) + "\n"
 
@@ -205,18 +271,41 @@ def main():
     parser.add_argument("--node-id", required=True)
     parser.add_argument("--listen", default="192.0.2.53:9788")
     parser.add_argument("--zerotier-interface", default="zto5uhdriy")
+    parser.add_argument("--throughput-targets", default="")
+    parser.add_argument("--throughput-interval-seconds", type=int, default=900)
+    parser.add_argument("--throughput-max-bytes", type=int, default=524288)
     args = parser.parse_args()
     with open(args.inventory, encoding="utf-8") as handle:
         inventory = json.load(handle)
-    collector = Collector(inventory, args.node_id, args.zerotier_interface)
+    targets = []
+    if args.throughput_targets:
+        with open(args.throughput_targets, encoding="utf-8") as handle:
+            targets = json.load(handle).get("targets", [])
+    collector = Collector(inventory, args.node_id, args.zerotier_interface, targets,
+                          args.throughput_interval_seconds, args.throughput_max_bytes)
+    threading.Thread(target=collector.background_loop, daemon=True).start()
     host, port = args.listen.rsplit(":", 1)
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
-            if urlparse(self.path).path not in ("/", "/metrics"):
+            parsed = urlparse(self.path)
+            if parsed.path == "/probe/bytes":
+                query = dict(item.split("=", 1) for item in parsed.query.split("&") if "=" in item)
+                requested = min(collector.throughput_max_bytes, int(query.get("bytes", collector.throughput_max_bytes)))
+                body = b"0" * max(0, requested)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if parsed.path not in ("/", "/metrics"):
                 self.send_error(404)
                 return
-            body = collector.collect().encode()
+            with collector.lock:
+                body = collector.output.encode()
+            if not body:
+                body = "re8ch_network_exporter_ready 0\n".encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; version=0.0.4")
             self.send_header("Content-Length", str(len(body)))

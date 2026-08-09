@@ -6,7 +6,7 @@
   "nodes": [
     {"id":"73","name":"vm-20-12-ubuntu","ztIp":"192.0.2.67","transportIp":"192.0.2.248","publicIp":"192.0.2.99","asn":4200000073,"rollout":0,"publicMode":"static","rescueRoutes":[{"prefix":"192.0.2.183/32","via":"192.0.2.109","distance":250}]},
     {"id":"128","name":"restricted-node-6dc3f140f9","ztIp":"192.0.2.183","transportIp":"192.0.2.145","publicIp":"192.0.2.79","asn":4200000128,"rollout":0,"publicMode":"mikrotik-dnat"},
-    {"id":"79","name":"qianwen-nuclio-79","ztIp":"192.0.2.141","transportIp":"192.0.2.215","publicIp":"192.0.2.110","asn":4200000079,"rollout":1,"publicMode":"static"},
+    {"id":"79","name":"qianwen-nuclio-79","ztIp":"192.0.2.141","transportIp":"192.0.2.215","publicIp":"192.0.2.110","asn":4200000079,"rollout":1,"publicMode":"static","throughputProbeEnabled":false},
     {"id":"77","name":"artchais-nuclio-1","ztIp":"192.0.2.143","transportIp":"192.0.2.13","publicIp":"192.0.2.231","asn":4200000077,"rollout":2,"publicMode":"static"},
     {"id":"95","name":"harbor-registry","ztIp":"192.0.2.203","transportIp":"192.0.2.12","publicIp":"192.0.2.210","asn":4200000095,"rollout":3,"publicMode":"static"},
     {"id":"16","name":"rancher-panel","ztIp":"192.0.2.79","transportIp":"192.0.2.117","publicIp":"192.0.2.67","asn":4200000016,"rollout":4,"publicMode":"static"},
