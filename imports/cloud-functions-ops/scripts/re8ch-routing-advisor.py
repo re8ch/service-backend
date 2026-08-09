@@ -318,6 +318,17 @@ class Advisor:
             if monthly is not None:
                 lines.append(prom("re8ch_node_fixed_monthly_cost", float(monthly), labels))
                 lines.append(prom("re8ch_node_hourly_cost", float(monthly) / 730.0, labels))
+            for field, metric in (("configuredBandwidthMbps", "re8ch_node_configured_bandwidth_mbps"),
+                                  ("monthlyTrafficLimitGiB", "re8ch_node_monthly_traffic_limit_gib"),
+                                  ("annualCost", "re8ch_node_annual_cost"),
+                                  ("observedCiliumThroughputMbps", "re8ch_node_observed_cilium_throughput_mbps"),
+                                  ("observedSpeedtestDownloadMbps", "re8ch_node_observed_speedtest_download_mbps"),
+                                  ("observedSpeedtestUploadMbps", "re8ch_node_observed_speedtest_upload_mbps"),
+                                  ("observedSpeedtestRttMs", "re8ch_node_observed_speedtest_rtt_ms")):
+                if node.get(field) is not None:
+                    lines.append(prom(metric, float(node[field]), labels))
+            lines.append(prom("re8ch_node_routing_eligible", 1 if node.get("routingEligible", False) else 0, labels))
+            lines.append(prom("re8ch_node_public_direct_eligible", 1 if node.get("publicDirectEligible", False) else 0, labels))
             renewal = node.get("renewalDate")
             if renewal:
                 days = (datetime.date.fromisoformat(renewal) - today).days

@@ -41,13 +41,21 @@ local safety net. The lightweight controller additionally polls each DaemonSet
 instance through its private controller API, calculates:
 
 ```text
-score = EWMA(latency_ms) + 1500 * observed_loss_ratio
+score = EWMA(latency_ms)
+      + 1500 * observed_loss_ratio
+      + utilization_penalty
+      + configured/measured_throughput_penalty
+      + monthly_quota_penalty
+      + relay_hop_penalty
 ```
 
 and updates the `stable-egress` selector only after a 15% improvement and a
-60-second minimum hold. A failure scores as the probe timeout. These defaults
-avoid oscillation; change them through controller environment variables only
-after observing real links.
+60-second minimum hold. A failure scores as the probe timeout. `DIRECT`, `P2P`
+and `RELAY` are candidates in the same model; direct avoids the relay-hop
+penalty but is not forced. Configured bandwidth is capped by measured
+throughput. Low-bandwidth CN nodes remain bounded fallback candidates, and an
+unhealthy or missing node removes only itself rather than gating unrelated
+route updates.
 
 The same Controller also exposes a namespace-local route decision/telemetry API
 on `path-controller:8080`. NetBird peer observations include RTT/loss EWMA,
