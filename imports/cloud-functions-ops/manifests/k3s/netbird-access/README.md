@@ -8,8 +8,9 @@ identity addresses.
 
 ## Hard gates
 
-Do not apply this stack while K3s `/readyz` reports an etcd failure or any node
-is not Ready. Run `preflight.sh` through restricted-node-6dc3f140f9 first. The stack also requires the
+Do not apply the shared control-plane stack while K3s `/readyz` reports an etcd
+failure. Run `preflight.sh` through restricted-node-6dc3f140f9 first; its whole-cluster readiness gate
+applies to shared control-plane changes, not to an isolated regional relay. The stack also requires the
 default `local-path` StorageClass and the existing wildcard TLS Secret in the
 `llm-gateway` namespace. The single-replica server and its local volume are
 pinned to restricted-node-6dc3f140f9; back up the PVC before moving the control plane.
@@ -19,6 +20,25 @@ record. MikroTik must forward public UDP 3478 to restricted-node-6dc3f140f9 UDP 
 is an edge-router change, not a Kubernetes node route change. Do not proxy this
 hostname through Cloudflare because NetBird needs gRPC, WebSocket, relay, and
 STUN behavior end to end.
+
+### Regional relay firewall and DNS baseline
+
+The four user-controlled Tencent Cloud small servers and two user-controlled
+Alibaba Cloud small servers already allow:
+
+- UDP `3478` for STUN;
+- TCP `30000-32767` for relay/NodePort listeners;
+- UDP `30000-32767` for UDP relay/NodePort listeners.
+
+Treat this as a standing firewall authorization; do not ask the user to reopen
+the same ranges for each relay. It does not replace live validation: check the
+selected server identity, port ownership, listener readiness, provider NAT and
+external TCP/UDP reachability before adding the endpoint to NetBird management.
+
+All public relay hostnames are published by the K3s ExternalDNS/edge DNS
+controllers. Declare the desired hostname and origin on the appropriate
+Service/Ingress/Gateway object and let the controller converge it. Do not make
+manual `re8ch.com` DNS changes.
 
 ## Deployment
 
@@ -39,6 +59,71 @@ unset NETBIRD_LA_SETUP_KEY
 KUBECTL='sudo k3s kubectl' ./deploy-routing-peers.sh
 ```
 
+Regional external relay canaries use a scoped gate: K3s API/etcd, the exact
+target nodes, NetBird public root and a Qwen regional smoke must be healthy.
+An unrelated NotReady node that is neither selected nor changed is reported but
+does not block adding a relay in another failure domain. Install the shared
+relay auth Secret without printing it, then deploy:
+
+```bash
+KUBECTL='sudo k3s kubectl' ./install-external-relay-auth.sh
+KUBECTL='sudo k3s kubectl' ./deploy-external-relays-canary.sh
+```
+
+Relay acceptance is intentionally N-of-M rather than All-of-M. Guangzhou is a
+hard rollout target; low-bandwidth or intermittently connected CN candidates
+such as Hangzhou are opportunistic. `activate-external-relays.sh` defaults to a
+minimum of one available Deployment, while NetBird clients probe all advertised
+endpoints and skip unavailable ones. `verify-relay-pool.py` independently checks
+public TLS and STUN and succeeds when `MIN_HEALTHY_RELAYS` candidates pass.
+Individual CN candidates are therefore allowed to flap without blocking the
+control plane, GeoDB publication, or a healthy relay in another failure domain.
+
+The live Cilium installation has kube-proxy replacement, NodePort and HostPort
+disabled. These two external-relay Pods therefore use a narrow `hostNetwork`
+exception and bind only `31080/TCP+UDP` plus their declared STUN UDP port; they remain non-root,
+drop all capabilities, do not receive `NET_ADMIN`, and do not alter host routes.
+This exception does not apply to NetBird routing peers or Mihomo.
+
+Canary state on 2026-08-09:
+
+- `relay-gz-1.re8ch.com` -> `rancher-panel` / `192.0.2.67`: DNS, public TLS
+  relay on TCP 31080, QUIC relay on UDP 31080 and STUN on UDP 31081 passed.
+- `relay-hz-1.re8ch.com` -> `harbor-registry` / `192.0.2.210`: public TLS
+  relay on TCP 31080 and STUN on UDP 3478 passed. The target node briefly
+  became NotReady during rollout, then recovered and the Deployment converged
+  to 1/1 Ready with zero restarts.
+- `qianwen-nuclio-79` is explicitly excluded from this rollout.
+
+The management server now advertises both regional relays and both working
+STUN endpoints. The former embedded restricted-node-6dc3f140f9 relay is disabled; its exact server
+Secret is retained as `netbird-server-config-pre-external-relay-20260809` for
+rollback. `activate-external-relays.sh` is idempotent and never overwrites that
+first rollback copy.
+
+### Device performance acceptance (2026-08-09)
+
+The real Android peer `yuechu` was tested from the LA routing peer before and
+after cutover using the same 20-packet probe:
+
+- embedded restricted-node-6dc3f140f9 relay: 193.2/1236.0/5922.0 ms min/avg/max, 0% loss;
+- Guangzhou QUIC relay: 192.2/203.2/218.8 ms, 0% loss;
+- Hangzhou relay after forced Guangzhou failure: 184.9/221.8/789.4 ms, 0%
+  loss, including the first post-switch packet;
+- Hangzhou 60-packet steady sample: 195.2 ms average, 193.2 ms P50,
+  215.6 ms P95, 272.7 ms maximum, 14.9 ms standard deviation and 0% loss.
+
+Removing Guangzhou caused the peer to reconnect through Hangzhou in roughly
+5-10 seconds; Guangzhou was then restored to 1/1 Ready. The LA `wt0` MTU is
+enforced at 1200 after probes found a mobile-relay black hole above an inner
+packet size of about 1248 bytes. A 20-packet 1200-byte inner-packet acceptance
+test passed with 0% loss and 190.0 ms average RTT.
+
+External relay Pods tolerate `node.kubernetes.io/not-ready` and
+`node.kubernetes.io/unreachable` without eviction. This preserves a functioning
+public relay when only its K3s/ZeroTier control link is unstable; public TLS,
+STUN and real Device traffic remain the authoritative health signals.
+
 ## NetBird policy configuration
 
 Use the current **Networks** model for `re8ch-private`, internal domains, and
@@ -56,14 +141,16 @@ currently uses 0.74.6. The `usage-meter` sidecars export aggregate `wt0` and
 
 ## GeoDB synchronization
 
-`netbird-geodb-sync` runs daily at 03:17 and reads maintained Clash/Mihomo
-GeoSite category YAML from `MetaCubeX/meta-rules-dat`. It reduces category
-members to registrable-domain wildcards plus a small root-domain allowlist,
-then upserts only `geodb:*` resources into `GeoDB Overseas via LA`. The job
-prints a SHA-256 for every fetched category. Pruning is disabled by default, so
-a failed or truncated upstream update cannot remove the last working rules.
-The API token belongs to the `geodb-sync` Network Admin service user and exists
-only in the `netbird-geodb-sync` Secret.
+`build-geodb-snapshot.sh` checks out an explicitly pinned
+`MetaCubeX/meta-rules-dat` revision outside Kubernetes and produces one
+deterministic gzip snapshot with source and artifact hashes. The daily
+`netbird-geodb-sync` Job reads only that mounted snapshot; cluster nodes no
+longer fetch GitHub at startup. It reduces the overseas canary profile to
+registrable-domain wildcards plus a small root-domain allowlist, then upserts
+only `geodb:*` resources into `GeoDB Overseas via LA`. Pruning is disabled by
+default, so a failed publication cannot erase the last working rules. The API
+token belongs to the `geodb-sync` Network Admin service user and exists only in
+the `netbird-geodb-sync` Secret.
 
 ## Capacity and rollback
 
@@ -74,8 +161,16 @@ Pod-local TBF qdisc. Its identity is persisted at
 direct WireGuard whenever the cloud firewall permits it. The LA Pod deliberately
 uses `1.1.1.1` and `8.8.8.8` as its original DNS upstream: cluster DNS has been
 observed returning poisoned answers for Google/YouTube, while domain resources
-must resolve at the overseas routing peer. The CN peer is scaled to zero.
-NetBird HA selects primary/standby or nearest latency; it is not ECMP.
+must resolve at the overseas routing peer. The restricted-node-6dc3f140f9 CN peer is now the canary
+transparent Mihomo gateway. A separate `netbird-egress-probe` Linux client is
+assigned to a probe-only Network whose sole router is that gateway; it prevents
+LA-direct from making an acceptance test look successful. Its
+`quality-benchmark` sidecar emits one JSON line every 15 minutes with gateway
+loss/RTT, overseas DNS correctness, Google 204 and a 5 MB Cloudflare download
+rate. This follows the latency/jitter/loss/bandwidth model used by community
+tools such as `mihomo-speedtest-rs`, without running an unbuilt third-party
+binary in production. NetBird route selection is primary/standby or nearest
+latency, not bandwidth aggregation or ECMP.
 
 Rollback by removing customer policies/setup keys, then scaling the three
 Deployments to zero. Retain the PVC and Secrets. Remove the DNS publication
