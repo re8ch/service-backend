@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbird-mihomo-gateway-config
+  namespace: netbird-access
+data:
+  config.yaml: |
+    mixed-port: 7890
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:9091
+    secret: ""
+    unified-delay: true
+    tcp-concurrent: true
+    find-process-mode: "off"
+    dns:
+      enable: true
+      listen: 0.0.0.0:1053
+      ipv6: false
+      enhanced-mode: redir-host
+      use-system-hosts: true
+      default-nameserver: [1.1.1.1, 8.8.8.8]
+      nameserver:
+        - "https://1.1.1.1/dns-query#stable-egress"
+        - "https://8.8.8.8/dns-query#stable-egress"
+      proxy-server-nameserver: [192.0.2.131]
+    tun:
+      enable: true
+      device: mihomo-nb
+      stack: system
+      auto-route: true
+      auto-redirect: true
+      auto-detect-interface: true
+      strict-route: true
+      include-interface: [wt0]
+      dns-hijack: ["any:53", "tcp://any:53"]
+      mtu: 1200
+      gso: true
+      gso-max-size: 65536
+      endpoint-independent-nat: false
+      route-exclude-address:
+        - 192.0.2.203/8
+        - 192.0.2.225/10
+        - 192.0.2.179/12
+        - 192.0.2.148/16
+    proxies:
+      - name: LA-FABRIC
+        type: socks5
+        server: mihomo-egress-la.egress-fabric.svc.cluster.local
+        port: 1080
+        udp: true
+    proxy-providers:
+      external-paths:
+        type: file
+        path: /etc/mihomo/paths.yaml
+        health-check:
+          enable: true
+          url: https://www.gstatic.com/generate_204
+          interval: 15
+          timeout: 5000
+          lazy: false
+    proxy-groups:
+      - name: stable-egress
+        type: fallback
+        proxies: [LA-FABRIC]
+        use: [external-paths]
+        url: https://www.gstatic.com/generate_204
+        interval: 15
+        timeout: 5000
+        lazy: false
+    rules:
+      - IP-CIDR,192.0.2.203/8,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.225/10,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.179/12,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.148/16,DIRECT,no-resolve
+      - MATCH,stable-egress
