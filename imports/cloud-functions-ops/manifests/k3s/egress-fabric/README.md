@@ -1,15 +1,19 @@
 # RE8CH distributed egress fabric
 
-This stack replaces NetBird **route peering** as the cross-region data plane.
-NetBird may remain an enrollment/control service, but no customer or workload
-route should depend on its routing peer after migration.
+This stack augments NetBird rather than replacing it. NetBird remains the
+enterprise terminal VPN/access plane and may use routing peers for controlled
+CN/overseas fabric entry. Mihomo replaces relay-bound proxy-aware workload paths
+only; it does not carry arbitrary terminal IP traffic.
 
 ## Boundary
 
 - Cilium, BGP and the existing underlays retain node and Service L3
   reachability. This stack does not advertise routes or change them.
-- Mihomo runs without TUN, `hostNetwork`, `NET_ADMIN`, privileged containers,
-  host mounts or host ports. It is an explicit HTTP/SOCKS proxy only.
+- The former blanket prohibition on TUN, `hostNetwork` and `NET_ADMIN` is
+  retired. Dedicated gateway Pods may use TUN and narrowly scoped `NET_ADMIN`
+  for high-performance transparent forwarding. Node-local proxy workers remain
+  unprivileged where possible; host networking and host-route ownership are
+  used only when a measured node-local design requires them.
 - Each eligible node gets one `mihomo-node` Pod. The `mihomo-node` Service uses
   `internalTrafficPolicy: Local`, so a workload using
   `http://mihomo-node.egress-fabric.svc:7890` reaches the node-local proxy.
@@ -44,6 +48,13 @@ and updates the `stable-egress` selector only after a 15% improvement and a
 60-second minimum hold. A failure scores as the probe timeout. These defaults
 avoid oscillation; change them through controller environment variables only
 after observing real links.
+
+The same Controller also exposes a namespace-local route decision/telemetry API
+on `path-controller:8080`. NetBird peer observations include RTT/loss EWMA,
+P2P/relay mode, utilization, region, health and optional cost. Route decisions
+are shadow-only by default; setting two exact `CANARY_CLIENT_IDS` does not itself
+mutate NetBird. A version-specific write adapter must only be enabled after the
+live Networks/exit-route inventory and service-user permissions are verified.
 
 ## External path Secret
 
@@ -81,14 +92,22 @@ sudo k3s kubectl -n egress-fabric rollout restart ds/mihomo-node
 
 ## Staged deployment
 
-Run from restricted-node-6dc3f140f9 only while all nodes are Ready and `/readyz` is `ok`:
+Run from restricted-node-6dc3f140f9 while `/readyz` is `ok` and the exact target nodes are healthy.
+An unrelated worker being `NotReady` is an alert, not an apply gate. Mihomo may
+be installed on every eligible non-Nuclio/non-Qianwen node as a routing
+capability, while the controller admits only healthy candidates and requires an
+N-of-M path quorum; no individual low-bandwidth CN candidate is mandatory.
 
 ```bash
 cd /path/to/cloud-functions/manifests/k3s/egress-fabric
 KUBECTL='sudo k3s kubectl' ./bootstrap-secrets.sh
-sudo k3s kubectl apply -k .
+sudo k3s kubectl apply --server-side --field-manager=re8ch-egress-fabric -k .
 KUBECTL='sudo k3s kubectl' ./verify.sh
 ```
+
+Server-side apply is required because the compressed full GeoDB is about
+500 KiB; client-side apply would duplicate it into the last-applied annotation
+and exceed Kubernetes' 256 KiB annotation limit.
 
 Canary one workload by adding these environment variables; no namespace-wide
 transparent interception is authorized:
@@ -109,9 +128,10 @@ cluster-local mixed proxy and controller API must never be published.
 1. Deploy with only `LA-FABRIC`, then canary explicit proxy traffic.
 2. Add authenticated LA public and KL paths one at a time.
 3. Run failure tests and confirm controller hold/hysteresis behavior.
-4. Move selected workloads and external client profiles from NetBird routes.
-5. Remove GeoDB Networks and scale `netbird-router-la` to zero only after all
-   consumers have migrated. Keep NetBird identity/control services if desired.
+4. Validate one CN and one overseas NetBird client against all four quadrants.
+5. Expand terminal membership gradually while retaining the production routes.
+6. Remove only proven-redundant legacy route objects; retain NetBird as the
+   terminal access plane.
 
 Rollback removes proxy environment variables first. Scaling `mihomo-node` and
 the controller to zero then returns traffic to its original direct behavior.
