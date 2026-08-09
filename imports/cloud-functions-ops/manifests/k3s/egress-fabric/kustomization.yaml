@@ -6,3 +6,14 @@ resources:
   - config.yaml
   - workloads.yaml
   - network-policy.yaml
+configMapGenerator:
+  - name: route-path-controller-code
+    namespace: egress-fabric
+    files:
+      - path-controller.py=controller/path_controller.py
+  - name: re8ch-geodb-snapshot
+    namespace: egress-fabric
+    files:
+      - geodb.json.gz=geodb/geodb.json.gz
+generatorOptions:
+  disableNameSuffixHash: true
