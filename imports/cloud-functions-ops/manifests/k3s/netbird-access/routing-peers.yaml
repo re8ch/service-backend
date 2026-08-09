@@ -8,9 +8,8 @@ metadata:
     app.kubernetes.io/instance: cn
     app.kubernetes.io/part-of: re8ch-access
 spec:
-  # The CN routing peer is staged separately. Keep it dormant until a CN
-  # geographic route needs a managed egress rather than device-local breakout.
-  replicas: 0
+  # restricted-node-6dc3f140f9 canary for the NetBird -> Mihomo transparent gateway.
+  replicas: 1
   strategy: {type: Recreate}
   selector:
     matchLabels: *cnLabels
@@ -65,12 +64,52 @@ spec:
           image: nicolaka/netshoot:v0.13
           command: [sh, -ec]
           args:
-            - tc qdisc replace dev eth0 root tbf rate 200mbit burst 4mb latency 100ms; trap 'exit 0' TERM INT; while true; do sleep 3600; done
+            - |
+              tc qdisc replace dev eth0 root tbf rate 200mbit burst 4mb latency 100ms
+              trap 'exit 0' TERM INT
+              while true; do
+                if ip link show wt0 >/dev/null 2>&1; then
+                  ip link set dev wt0 mtu 1200
+                  while iptables -t mangle -D NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1240 \
+                    2>/dev/null; do :; done
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -o wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -i wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -i wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                fi
+                sleep 10
+              done
           securityContext:
             capabilities: {add: [NET_ADMIN]}
           resources:
             requests: {cpu: 5m, memory: 16Mi}
             limits: {cpu: 50m, memory: 64Mi}
+        - name: mihomo-gateway
+          image: metacubex/mihomo:v1.19.29
+          args: [-d, /etc/mihomo]
+          ports:
+            - {name: mihomo-api, containerPort: 9091, protocol: TCP}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities: {add: [NET_ADMIN, NET_RAW]}
+          resources:
+            requests: {cpu: 100m, memory: 96Mi}
+            limits: {cpu: "2", memory: 768Mi}
+          startupProbe:
+            httpGet: {path: /version, port: mihomo-api}
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe: {httpGet: {path: /version, port: mihomo-api}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /version, port: mihomo-api}, periodSeconds: 15}
+          volumeMounts:
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: mihomo-config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: mihomo-paths, mountPath: /etc/mihomo/paths.yaml, subPath: paths.yaml, readOnly: true}
         - name: usage-meter
           image: prom/node-exporter:v1.9.1
           args: ["--collector.disable-defaults", "--collector.netdev", "--web.listen-address=:9100"]
@@ -86,6 +125,10 @@ spec:
           hostPath: {path: /dev/net/tun, type: CharDevice}
         - name: state
           hostPath: {path: /var/lib/rancher/netbird/cn, type: DirectoryOrCreate}
+        - name: mihomo-config
+          configMap: {name: netbird-mihomo-gateway-config}
+        - name: mihomo-paths
+          secret: {secretName: netbird-mihomo-paths}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -168,7 +211,30 @@ spec:
           image: nicolaka/netshoot:v0.13
           command: [sh, -ec]
           args:
-            - tc qdisc replace dev eth0 root tbf rate 150mbit burst 2mb latency 100ms; trap 'exit 0' TERM INT; while true; do sleep 3600; done
+            - |
+              tc qdisc replace dev eth0 root tbf rate 150mbit burst 2mb latency 100ms
+              trap 'exit 0' TERM INT
+              while true; do
+                if ip link show wt0 >/dev/null 2>&1; then
+                  ip link set dev wt0 mtu 1200
+                  # NetBird creates a fixed 1240 MSS rule for its default 1280
+                  # MTU. Keep both directions below the measured mobile-relay
+                  # safe size after lowering wt0, otherwise forwarded HTTPS can
+                  # connect and then black-hole on full-sized TCP segments.
+                  while iptables -t mangle -D NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1240 \
+                    2>/dev/null; do :; done
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -o wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -i wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -i wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                fi
+                sleep 10
+              done
           securityContext:
             capabilities: {add: [NET_ADMIN]}
           resources:
