@@ -6,6 +6,7 @@ resources:
   - config.yaml
   - workloads.yaml
   - network-policy.yaml
+  - mobile-policy-api.yaml
 configMapGenerator:
   - name: route-path-controller-code
     namespace: egress-fabric
