@@ -59,7 +59,7 @@ metadata:
     re8ch.com/risk: public-read
     re8ch.com/publication-stage: canary
   annotations:
-    re8ch.com/architecture-revision: scalable-vmcp-v1
+    re8ch.com/architecture-revision: scalable-vmcp-v2
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: RE8CH External Tools
     toolhive.stacklok.dev/registry-description: OAuth-protected public read-only RE8CH tools.
@@ -86,14 +86,14 @@ spec:
     - {name: TRUST_LOOPBACK_PROXY, value: "true"}
     - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
     - {name: OPS_TOOL_PROFILE, value: observe}
-    - {name: TENANT_NAMESPACE, value: qwen}
-    - {name: TENANT_NAMESPACES, value: qwen}
-    - {name: TENANT_DB_NAMES, value: qianwen_prod,qianwen_test,cardcat}
+    - {name: TENANT_NAMESPACE, value: platform}
+    - {name: TENANT_NAMESPACES, value: ""}
+    - {name: TENANT_DB_NAMES, value: ""}
     - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
     - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
     - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
     - {name: METRICS_URL, value: "http://192.0.2.183:30428"}
-    - {name: TENANT_METRICS_TENANT, value: qianwen}
+    - {name: TENANT_METRICS_TENANT, value: platform}
   toolConfigRef: {name: ops-public-read-tools}
   telemetryConfigRef:
     name: platform-tools-telemetry
@@ -108,6 +108,8 @@ spec:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
+    metadata:
+      annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext:

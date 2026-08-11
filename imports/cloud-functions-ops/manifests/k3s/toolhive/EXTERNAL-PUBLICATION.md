@@ -7,14 +7,13 @@ tool filter.
 
 ## Required trust chain
 
-1. `https://tools.re8ch.com/mcp` is a stable, publicly reachable Universal MCP
+1. `https://tools.re8ch.com:8443/mcp` is a stable, publicly reachable Universal MCP
    URL with a publicly trusted certificate.
-2. `/.well-known/oauth-protected-resource` names that exact MCP URL as its
+2. `/.well-known/oauth-protected-resource/mcp` names that exact MCP URL as its
    resource and points to the approved authorization server.
-3. The authorization server publishes OAuth/OIDC metadata, supports
-   authorization code + PKCE S256, and preserves the `resource` parameter in
-   the token audience. CIMD is preferred; DCR or a predefined client is an
-   explicit alternative.
+3. Dex is the only OAuth/OIDC authorization server. Codex uses predefined Dex
+   public clients with authorization code + PKCE S256 and `offline_access`;
+   ToolHive validates the Dex token directly and never issues a second token.
 4. The MCP resource server validates signature, issuer, audience, expiry and
    scopes on every call. A missing/invalid token receives `401` with a
    `WWW-Authenticate` resource-metadata challenge.
@@ -23,7 +22,7 @@ tool filter.
    cluster-wide topology, internal route, credential or cross-tenant data.
 6. Verified token claims map to exactly one tenant policy before a tenant tool
    runs. A caller cannot select a tenant namespace in tool arguments.
-7. The plugin portal domain challenge, public privacy/terms/support pages,
+7. When a public plugin portal requires it, the domain challenge, public privacy/terms/support pages,
    reviewer account, tool scan, five positive cases and three negative cases
    all pass before submission.
 
@@ -58,5 +57,15 @@ approval; changing the internal observe list must not change the public list.
 - Rate limits, revocation, audit, OTLP metrics and operator dashboards work.
 - Domain verification and reviewer credentials are ready.
 
-Until every gate passes, the external manifest stays a non-applicable commented
-template and no public Ingress is created.
+The deployed private Codex publication uses the R640-hosted `:8443` edge. Its
+fixed readiness probe verifies these network and OAuth gates without depending
+on unrelated worker nodes or a Qwen tenant.
+
+## Single-layer identity contract
+
+The production chain is `Codex -> Dex -> ToolHive vMCP -> Ops MCP backend`.
+`re8ch-platform-tools` and `re8ch-platform-admin` are distinct Dex public
+clients, so their token audiences cannot be replayed across endpoints. Dex
+emits the canonical `groups` claim; ToolHive Cedar policies map
+`re8ch:k8s-admins` to admin and `re8ch:qwen-operators`/`re8ch:k8s-admins` to the
+bounded restart and scale tools. Authentik is not on the request path.

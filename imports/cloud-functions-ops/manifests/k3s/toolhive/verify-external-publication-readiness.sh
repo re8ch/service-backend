@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 set -u
 
-: "${MCP_ORIGIN:=https://tools.re8ch.com}"
+: "${MCP_ORIGIN:=https://tools.re8ch.com:8443}"
 : "${MCP_RESOURCE:=$MCP_ORIGIN/mcp}"
-: "${AUTH_ORIGIN:=https://auth.re8ch.com}"
-: "${AUTH_ISSUER:=$AUTH_ORIGIN/application/o/toolhive-external/}"
+: "${AUTH_ORIGIN:=https://dex.re8ch.com}"
+: "${AUTH_ISSUER:=$AUTH_ORIGIN/}"
 
 failures=0
 
@@ -30,7 +30,7 @@ headers_tmp=$(mktemp)
 trap 'rm -f "$resource_tmp" "$auth_tmp" "$headers_tmp"' EXIT INT TERM
 
 if curl --silent --show-error --fail --max-time 10 \
-  "$MCP_ORIGIN/.well-known/oauth-protected-resource" >"$resource_tmp"; then
+  "$MCP_ORIGIN/.well-known/oauth-protected-resource/mcp" >"$resource_tmp"; then
   if jq -e --arg resource "$MCP_RESOURCE" '
     .resource == $resource and (.authorization_servers | type == "array" and length > 0)
   ' "$resource_tmp" >/dev/null 2>&1; then
@@ -60,6 +60,9 @@ done
 [ "$auth_metadata_ok" = true ] || block "OAuth/OIDC discovery with authorization/token endpoints and PKCE S256"
 
 http_code=$(curl --silent --show-error --max-time 10 --dump-header "$headers_tmp" \
+  --header 'Accept: application/json, text/event-stream' \
+  --header 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"readiness","version":"1"}}}' \
   --output /dev/null --write-out '%{http_code}' "$MCP_RESOURCE" || true)
 [ -n "$http_code" ] || http_code=000
 if [ "$http_code" = 401 ] && \
@@ -75,7 +78,7 @@ if [ -n "${OPENAI_APPS_CHALLENGE_TOKEN:-}" ]; then
   [ "$challenge" = "$OPENAI_APPS_CHALLENGE_TOKEN" ] && \
     pass "OpenAI domain challenge" || block "OpenAI domain challenge token"
 else
-  block "OPENAI_APPS_CHALLENGE_TOKEN not supplied; portal domain verification is unproven"
+  pass "OpenAI domain challenge not requested for this private Codex plugin"
 fi
 
 if [ "$failures" -eq 0 ]; then

@@ -127,9 +127,10 @@ metadata:
   namespace: toolhive-system
 spec:
   toolsFilter:
-    - list_authentik_users
-    - ensure_authentik_user
-    - grant_authentik_user_group
+    - list_dex_users
+    - get_dex_hash_instructions
+    - create_dex_user
+    - grant_user_namespace
     - get_tenancy_admin_workflow
     - generate_pg_tenant_database_plan
     - ensure_tenant_database_secrets
