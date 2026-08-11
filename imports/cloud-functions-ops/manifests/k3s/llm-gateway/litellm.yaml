@@ -202,11 +202,11 @@ spec:
                   name: litellm-ui-auth
                   key: UI_PASSWORD
             - name: PROXY_BASE_URL
-              value: https://litellm.re8ch.com
+              value: https://litellm.re8ch.com:8443
             - name: DOCS_URL
               value: /docs
             - name: ROOT_REDIRECT_URL
-              value: /ui
+              value: /ui/
           readinessProbe:
             httpGet: {path: /health/readiness, port: http}
             initialDelaySeconds: 15
@@ -239,7 +239,7 @@ metadata:
     app.kubernetes.io/name: litellm
     public.re8ch.com/external-dns: enabled
   annotations:
-    external-dns.alpha.kubernetes.io/target: 192.0.2.122
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure

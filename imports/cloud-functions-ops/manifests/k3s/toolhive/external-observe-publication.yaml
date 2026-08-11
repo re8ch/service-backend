@@ -59,6 +59,7 @@ metadata:
     re8ch.com/risk: public-read
     re8ch.com/publication-stage: canary
   annotations:
+    re8ch.com/architecture-revision: scalable-vmcp-v1
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: RE8CH External Tools
     toolhive.stacklok.dev/registry-description: OAuth-protected public read-only RE8CH tools.
@@ -66,7 +67,16 @@ metadata:
     toolhive.stacklok.dev/registry-url: https://tools.re8ch.com/mcp
 spec:
   groupRef: {name: platform-observe}
-  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  image: docker.io/library/python:3.12-alpine
+  backendReplicas: 2
+  replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 6
+    keyPrefix: "thv:mcp:observe-external:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
@@ -99,9 +109,7 @@ spec:
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: rancher-panel}
-      tolerations:
-        - {key: dedicated, operator: Equal, value: panel, effect: NoSchedule}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       containers:
@@ -177,10 +185,19 @@ kind: Ingress
 metadata:
   name: tools-re8ch-com
   namespace: toolhive-system
+  labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts: [tools.re8ch.com]
+      secretName: re8ch-wildcard-tls
   rules:
     - host: tools.re8ch.com
       http:
@@ -189,14 +206,20 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: mcp-ops-observe-external-proxy
-                port: {number: 8080}
+                name: vmcp-re8ch-tools-vmcp
+                port: {number: 4483}
           - path: /.well-known
             pathType: Prefix
             backend:
               service:
-                name: mcp-ops-observe-external-proxy
-                port: {number: 8080}
+                name: vmcp-re8ch-tools-vmcp
+                port: {number: 4483}
+          - path: /oauth
+            pathType: Prefix
+            backend:
+              service:
+                name: vmcp-re8ch-tools-vmcp
+                port: {number: 4483}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

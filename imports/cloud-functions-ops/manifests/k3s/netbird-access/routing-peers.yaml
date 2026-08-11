@@ -23,6 +23,20 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       automountServiceAccountToken: false
+      initContainers:
+        - name: compile-geodb-rules
+          image: python:3.13-alpine
+          command: [python, /opt/re8ch/geodb-to-mihomo.py]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: mihomo-config, mountPath: /opt/re8ch, readOnly: true}
+            - {name: geodb, mountPath: /etc/re8ch-geodb, readOnly: true}
+            - {name: compiled-rules, mountPath: /etc/mihomo/rules}
       containers:
         - name: netbird
           image: netbirdio/netbird:0.74.6
@@ -110,6 +124,8 @@ spec:
             - {name: tun, mountPath: /dev/net/tun}
             - {name: mihomo-config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
             - {name: mihomo-paths, mountPath: /etc/mihomo/paths.yaml, subPath: paths.yaml, readOnly: true}
+            - {name: loudi-direct, mountPath: /etc/mihomo/loudi-direct.yaml, subPath: loudi-direct.yaml, readOnly: true}
+            - {name: compiled-rules, mountPath: /etc/mihomo/rules, readOnly: true}
         - name: usage-meter
           image: prom/node-exporter:v1.9.1
           args: ["--collector.disable-defaults", "--collector.netdev", "--web.listen-address=:9100"]
@@ -129,6 +145,12 @@ spec:
           configMap: {name: netbird-mihomo-gateway-config}
         - name: mihomo-paths
           secret: {secretName: netbird-mihomo-paths}
+        - name: loudi-direct
+          secret: {secretName: netbird-mihomo-loudi-path}
+        - name: geodb
+          configMap: {name: re8ch-geodb-snapshot}
+        - name: compiled-rules
+          emptyDir: {}
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -23,6 +23,7 @@ metadata:
   namespace: toolhive-system
   labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: canary}
   annotations:
+    re8ch.com/architecture-revision: scalable-vmcp-v1
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: RE8CH Platform Operate
     toolhive.stacklok.dev/registry-description: OAuth-protected, allowlisted platform restart and 0/1 scaling operations.
@@ -30,7 +31,16 @@ metadata:
     toolhive.stacklok.dev/registry-url: https://operate.tools.re8ch.com/mcp
 spec:
   groupRef: {name: platform-operate}
-  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  image: docker.io/library/python:3.12-alpine
+  backendReplicas: 2
+  replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 7
+    keyPrefix: "thv:mcp:operate-external:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
@@ -53,8 +63,7 @@ spec:
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: rancher-panel}
-      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
@@ -70,14 +79,24 @@ metadata:
   namespace: toolhive-system
   labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: canary}
   annotations:
+    re8ch.com/architecture-revision: scalable-vmcp-v1
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: RE8CH Platform Admin
     toolhive.stacklok.dev/registry-description: OAuth-protected Authentik, RBAC, tenant, database, Harbor and publication administration.
     toolhive.stacklok.dev/registry-category: operations,privileged,external,oauth
-    toolhive.stacklok.dev/registry-url: https://admin.tools.re8ch.com/mcp
+    toolhive.stacklok.dev/registry-url: https://admin.re8ch.com:8443/mcp
 spec:
   groupRef: {name: platform-admin}
-  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  image: docker.io/library/python:3.12-alpine
+  backendReplicas: 2
+  replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 8
+    keyPrefix: "thv:mcp:admin-external:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
@@ -95,16 +114,15 @@ spec:
   audit: {enabled: true}
   oidcConfigRef:
     name: external-admin-oidc
-    audience: https://admin.tools.re8ch.com/mcp
-    resourceUrl: https://admin.tools.re8ch.com/mcp
+    audience: https://admin.re8ch.com:8443/mcp
+    resourceUrl: https://admin.re8ch.com:8443/mcp
     scopes: [openid, profile, email, "platform:admin"]
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: rancher-panel}
-      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
@@ -141,12 +159,23 @@ kind: Ingress
 metadata:
   name: admin-tools-re8ch-com
   namespace: toolhive-system
-  annotations: {traefik.ingress.kubernetes.io/router.entrypoints: "web,websecure"}
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: admin.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts: [admin.re8ch.com]
+      secretName: re8ch-wildcard-tls
   rules:
-    - host: admin.tools.re8ch.com
+    - host: admin.re8ch.com
       http:
         paths:
-          - {path: /mcp, pathType: Prefix, backend: {service: {name: mcp-ops-admin-external-proxy, port: {number: 8080}}}}
-          - {path: /.well-known, pathType: Prefix, backend: {service: {name: mcp-ops-admin-external-proxy, port: {number: 8080}}}}
+          - {path: /mcp, pathType: Prefix, backend: {service: {name: vmcp-re8ch-admin-vmcp, port: {number: 4483}}}}
+          - {path: /.well-known, pathType: Prefix, backend: {service: {name: vmcp-re8ch-admin-vmcp, port: {number: 4483}}}}
+          - {path: /oauth, pathType: Prefix, backend: {service: {name: vmcp-re8ch-admin-vmcp, port: {number: 4483}}}}

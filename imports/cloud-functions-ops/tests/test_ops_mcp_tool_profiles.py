@@ -39,6 +39,19 @@ class ToolProfileTests(unittest.TestCase):
             self.assertNotIn("sql_proxy", tool["name"])
             self.assertNotIn("kubeconfig", tool["name"])
 
+    def test_each_profile_advertises_minimum_oauth_scope(self):
+        for profile, scope in (
+            ("observe", "platform:observe"),
+            ("operate", "platform:operate"),
+            ("admin", "platform:admin"),
+        ):
+            for tool in self.tools(profile).values():
+                self.assertEqual(
+                    tool["securitySchemes"],
+                    [{"type": "oauth2", "scopes": [scope]}],
+                    tool["name"],
+                )
+
     def test_operate_write_schema_has_no_approval_id(self):
         tools = self.tools("operate")
         for name in ("restart_managed_platform_deployment", "scale_managed_platform_deployment"):

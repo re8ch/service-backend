@@ -3906,6 +3906,16 @@ def mcp_tools(include_admin=False):
             "openWorldHint": False,
             "destructiveHint": name in destructive_tools,
         }
+        # Authentication is enforced by the ToolHive/vMCP edge.  Keep the
+        # policy on every tool so Codex/ChatGPT can request the smallest scope
+        # and can evolve read and write tools independently.
+        scope = {
+            "public": "platform:observe",
+            "observe": "platform:observe",
+            "operate": "platform:operate",
+            "admin": "platform:admin",
+        }.get(OPS_TOOL_PROFILE, "platform:observe")
+        tool["securitySchemes"] = [{"type": "oauth2", "scopes": [scope]}]
     profile_tools = {
         "public": OBSERVE_TOOL_NAMES,
         "observe": OBSERVE_TOOL_NAMES,

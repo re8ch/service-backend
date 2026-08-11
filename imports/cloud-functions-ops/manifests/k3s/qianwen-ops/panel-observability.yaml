@@ -3221,7 +3221,7 @@ spec:
             - name: GF_SERVER_DOMAIN
               value: grafana.re8ch.com
             - name: GF_SERVER_ROOT_URL
-              value: https://grafana.re8ch.com/grafana/
+              value: https://grafana.re8ch.com:8443/grafana/
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
             - name: GF_SECURITY_COOKIE_SECURE
@@ -3310,6 +3310,39 @@ spec:
       port: 3000
       targetPort: http
       nodePort: 30080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: panel-grafana
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: grafana.re8ch.com
+      http:
+        paths:
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: panel-grafana
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - grafana.re8ch.com
+      secretName: re8ch-wildcard-tls
 ---
 apiVersion: apps/v1
 kind: Deployment
