@@ -36,6 +36,34 @@ only; it does not carry arbitrary terminal IP traffic.
 
 ## Path policy
 
+### NetBird user-facing exit profiles
+
+Keep infrastructure peer names stable for automation and health checks. End
+users select a Chinese Network/group profile instead of selecting a routing
+peer directly. The public profile matrix is two modes per region:
+
+- `全局<地区>出口`: advertise `0.0.0.0/0` (and later `::/0` after an IPv6
+  acceptance test) through a healthy routing peer for that region.
+- `<地区>出口+大陆分流`: keep CN destinations direct and route the centrally
+  compiled non-CN domain/IP resources through a healthy routing peer for that
+  region.
+
+The intended region labels are `洛杉矶出口`, `娄底出口`, `长沙出口`,
+`广州出口`, `杭州出口`, and `上海出口`. A label is published only after the
+region has a real NetBird routing peer, a working Mihomo/forwarding dataplane,
+and external reachability plus throughput evidence. Relay-only K3s nodes are
+not advertised as exits. As of 2026-08-10 only Los Angeles
+(`re8ch-router-la-edge-50`) and Loudi/restricted-node-6dc3f140f9 (`re8ch-router-cn-r640`) satisfy the
+routing-peer prerequisite; the other four names remain planned rather than
+fake selectable profiles.
+
+Device assignment is group-driven. A newly enrolled peer with no profile group
+uses only the ordinary NetBird peer mesh and does not automatically consume an
+exit. Assign exactly one full-exit or split-exit profile per device to avoid
+overlapping default routes. The `harry@re8ch.com` Android canary
+`192.0.2.208` was assigned to the existing `geo-split-clients` profile on
+2026-08-10 while the Chinese display-name migration is staged.
+
 Mihomo's native provider health check and `automatic-fallback` group provide a
 local safety net. The lightweight controller additionally polls each DaemonSet
 instance through its private controller API, calculates:

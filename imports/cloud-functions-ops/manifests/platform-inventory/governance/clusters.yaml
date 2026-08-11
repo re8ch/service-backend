@@ -1,0 +1,13 @@
+schemaVersion: re8ch.com/v1alpha1
+clusters:
+  - id: re8ch-k3s
+    distribution: k3s
+    datastore: embedded-etcd
+    transportNetwork: zerotier
+    controlPlaneNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    backupPolicy: twice-daily-etcd-snapshot
+    publicRoutingAuthority: external-dns
+    networkGateway:
+      asset: mikrotik-rb4011
+      managedThrough: restricted-node-6dc3f140f9
+      directAiLogin: false

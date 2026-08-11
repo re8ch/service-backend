@@ -152,6 +152,57 @@ default, so a failed publication cannot erase the last working rules. The API
 token belongs to the `geodb-sync` Network Admin service user and exists only in
 the `netbird-geodb-sync` Secret.
 
+The same immutable snapshot is rendered locally for the restricted-node-6dc3f140f9 transparent
+gateway. `geosite-cn` contains suffix rules and `geoip-cn` contains collapsed
+IPv4/IPv6 CIDRs. The gateway never downloads GeoSite/GeoIP at startup. NetBird
+management, overlay and RFC1918 destinations are evaluated before customer
+egress rules, so changing an internet exit cannot remove access to development
+peers.
+
+## Stable regional peer onboarding
+
+Use one Deployment, setup key, state directory and routing-peer group per
+region. `onboard-regional-peer.sh` is create-only: it refuses to mutate an
+existing Deployment and refuses a NotReady target node. A failed new peer is
+therefore isolated and cannot roll or reconfigure LA, restricted-node-6dc3f140f9, the NetBird server,
+or another region. Setup keys auto-assign only that region's router group;
+client profile groups are attached later, after reachability and throughput
+acceptance.
+
+Keep `NB_HOSTNAME` as a stable ASCII automation identifier. NetBird 0.74.6
+supports a separate Unicode peer name in the Dashboard and encodes its DNS
+label as Punycode. The current display names are `娄底出口` and `洛杉矶出口`;
+renaming them does not rebuild their Kubernetes Pods or change their overlay
+IPs.
+
+## Loudi CN / LA overseas split
+
+Mihomo consumes the full pinned CN snapshot. CN suffix/CIDR matches select
+`LOUDI-DIRECT`; everything else selects `stable-egress`. `LOUDI-DIRECT` is a
+Mihomo-native WireGuard outbound to MikroTik over the LAN only:
+
+- endpoint `192.0.2.131:51891`, transit `192.0.2.230/30`, MTU 1380;
+- the private key is stored only in `netbird-mihomo-loudi-wireguard` and the
+  rendered provider only in `netbird-mihomo-loudi-path`;
+- MikroTik accepts the endpoint only from restricted-node-6dc3f140f9 `192.0.2.97`, forwards the
+  tunnel only to `WAN`, NATs it through the main Loudi WAN, and clamps TCP MSS
+  to 1200 in both directions;
+- no public DNAT, Cilium/BGP mutation, host route, or NetBird control-plane
+  change is involved.
+
+This source identity prevents MikroTik's legacy restricted-node-6dc3f140f9 destination-IP PBR from
+classifying a second time after Mihomo has already classified a domain. The
+NetBird user profile is `loudi-split-clients`, exposed by Network
+`娄底出口+海外请求分流`: all IPv4 enters the restricted-node-6dc3f140f9 classifier, CN exits as
+`192.0.2.79`, and non-CN exits through LA as `192.0.2.3`. New members
+are never auto-added; assign the group only after client-specific acceptance.
+
+RouterOS rollback is based on backup/export
+`pre-mihomo-loudi-wg-20260810`. Remove only objects whose comments start with
+`RE8CH Mihomo WG`, the `wg-mihomo-loudi` interface/address/peer, then change the
+two CN `RULE-SET` targets back to `DIRECT`. Remove the NetBird policy/Network
+only after `loudi-split-clients` has zero members.
+
 ## Capacity and rollback
 
 The LA peer is deliberately sized for `overseas-edge-50` (1 CPU/2 GiB): NetBird

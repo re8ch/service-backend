@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily RE8CH platform inventory reconciliation
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

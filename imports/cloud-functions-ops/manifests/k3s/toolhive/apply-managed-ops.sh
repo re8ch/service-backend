@@ -22,6 +22,7 @@ kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/proxy-scheduling-policy.ya
 # binding a short establishment window before the operator writes Deployments.
 sleep 5
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/ops-mcp-publication.yaml"
+kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/external-observe-rbac.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/ops-mcp-managed-observe.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/ops-mcp-managed-privileged.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/platform-restart-rbac.yaml"

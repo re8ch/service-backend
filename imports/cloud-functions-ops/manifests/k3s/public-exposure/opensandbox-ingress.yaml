@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: opensandbox-server
     public.re8ch.com/external-dns: enabled
   annotations:
-    external-dns.alpha.kubernetes.io/target: 192.0.2.99
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure

@@ -47,3 +47,45 @@ spec:
     namespaceSelector:
       matchLabels:
         re8ch.com/plane: tool-control
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata: {name: toolhive-external-admin-proxy-scheduling.re8ch.com}
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+        # External Ops publications are an restricted-node-6dc3f140f9 service. Keep the proxy
+        # runners with their backends instead of letting readiness of unrelated
+        # worker/control-plane nodes influence this control surface.
+        resourceNames:
+          - ops-observe-external
+          - ops-operate-external
+          - ops-admin-external
+  matchConditions:
+    - name: is-toolhive-proxy-runner
+      expression: >-
+        object.metadata.namespace == 'toolhive-system' &&
+        object.metadata.labels['toolhive'] == 'true' &&
+        object.metadata.labels['app'] == 'mcpserver'
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          has(object.spec.template.spec.nodeSelector)
+          ? [JSONPatch{op: 'add', path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'), value: 'restricted-node-6dc3f140f9'}]
+          : [JSONPatch{op: 'add', path: '/spec/template/spec/nodeSelector', value: {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'}}]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata: {name: toolhive-external-admin-proxy-scheduling.re8ch.com}
+spec:
+  policyName: toolhive-external-admin-proxy-scheduling.re8ch.com
+  matchResources:
+    namespaceSelector:
+      matchLabels: {re8ch.com/plane: tool-control}

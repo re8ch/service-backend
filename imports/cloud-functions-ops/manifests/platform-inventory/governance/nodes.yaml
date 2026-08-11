@@ -1,0 +1,19 @@
+schemaVersion: re8ch.com/v1alpha1
+defaults:
+  operatingSystem: linux
+  sshUser: re8ch-ai
+  authentication: openssh-user-certificate
+  certificateTtlMinutes: 10
+nodes:
+  - {id: restricted-node-6dc3f140f9, roles: [control-plane, etcd, pg-re8ch], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person}
+  - {id: restricted-node-1eb0570f74, roles: [control-plane, etcd], sshTarget: null, operationPolicy: control-plane-two-person, managementState: unverified}
+  - {id: restricted-node-296f36f2fb, roles: [control-plane, etcd], sshTarget: null, operationPolicy: control-plane-two-person, managementState: unverified}
+  - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: artchais-nuclio-1, roles: [nuclio], sshTarget: artchais, operationPolicy: worker-one-person}
+  - {id: harbor-registry, roles: [platform], sshTarget: harbor, operationPolicy: worker-one-person}
+  - {id: overseas-edge-50, roles: [edge], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: qianwen-nuclio-79, roles: [nuclio], sshTarget: ali, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: qianwen-prod-nuclio-3, roles: [database], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: qianwen-test-nuclio-2, roles: [worker], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: rancher-panel, roles: [panel], sshTarget: rancher, operationPolicy: worker-one-person}
+  - {id: vm-20-12-ubuntu, roles: [worker], sshTarget: ICP, operationPolicy: worker-one-person}

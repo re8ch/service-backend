@@ -54,7 +54,7 @@ authentik:
   # the designated pg-re8ch primary directly. The private pgwrite hostname has
   # previously drifted to a replica and must not be trusted for identity writes.
   postgresql:
-    host: 192.0.2.183
+    host: authentik-postgres-primary.auth.svc.cluster.local
     port: 5432
     name: auth
     user: authentik
