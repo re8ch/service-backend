@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-decomplexer-policy-api
+  namespace: egress-fabric
+  labels: {app.kubernetes.io/name: network-decomplexer-policy-api}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: network-decomplexer-policy-api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: network-decomplexer-policy-api}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: api
+          image: registry.re8ch.com:28443/egress/network-decomplexer-policy-api:20260811-001
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: AUTH_ME_URL, value: "https://api.re8ch.com/auth/me"}
+            - {name: MANAGEMENT_URL, value: "https://access.re8ch.com:8443"}
+            - {name: PUBLIC_BASE_URL, value: "https://agent.re8ch.com:8443"}
+            - {name: GEODB_PATH, value: /data/geodb.json.gz}
+            - {name: PATHS_PATH, value: /secrets/paths.json}
+            - {name: SIGNING_KEY_PATH, value: /secrets/ed25519-private-key}
+            - {name: SIGNING_KEY_ID, value: network-decomplexer-2026-01}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: geodb, mountPath: /data, readOnly: true}
+            - {name: secrets, mountPath: /secrets, readOnly: true}
+      volumes:
+        - name: geodb
+          configMap: {name: re8ch-geodb-snapshot}
+        - name: secrets
+          secret: {secretName: network-decomplexer-policy-secrets}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-decomplexer-policy-api
+  namespace: egress-fabric
+spec:
+  selector: {app.kubernetes.io/name: network-decomplexer-policy-api}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: network-decomplexer-policy-api
+  namespace: egress-fabric
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`agent.re8ch.com`) && PathPrefix(`/v1/mobile/`)
+      kind: Rule
+      services: [{name: network-decomplexer-policy-api, port: 80}]
+  tls: {secretName: re8ch-wildcard-tls}
+---
+# ExternalDNS watches standard Ingress resources; Traefik routing remains owned
+# exclusively by the IngressRoute above.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: network-decomplexer-policy-api-dns
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: agent.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: agent.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: network-decomplexer-policy-api, port: {name: http}}
