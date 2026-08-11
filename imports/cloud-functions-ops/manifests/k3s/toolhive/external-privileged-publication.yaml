@@ -23,7 +23,7 @@ metadata:
   namespace: toolhive-system
   labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: canary}
   annotations:
-    re8ch.com/architecture-revision: scalable-vmcp-v1
+    re8ch.com/architecture-revision: scalable-vmcp-v2
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: RE8CH Platform Operate
     toolhive.stacklok.dev/registry-description: OAuth-protected, allowlisted platform restart and 0/1 scaling operations.
@@ -62,6 +62,8 @@ spec:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
+    metadata:
+      annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {seccompProfile: {type: RuntimeDefault}}
@@ -79,10 +81,10 @@ metadata:
   namespace: toolhive-system
   labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: canary}
   annotations:
-    re8ch.com/architecture-revision: scalable-vmcp-v1
+    re8ch.com/architecture-revision: scalable-vmcp-v2
     toolhive.stacklok.dev/registry-export: "true"
     toolhive.stacklok.dev/registry-title: RE8CH Platform Admin
-    toolhive.stacklok.dev/registry-description: OAuth-protected Authentik, RBAC, tenant, database, Harbor and publication administration.
+    toolhive.stacklok.dev/registry-description: Dex-authenticated identity, RBAC, tenant, database, Harbor and publication administration.
     toolhive.stacklok.dev/registry-category: operations,privileged,external,oauth
     toolhive.stacklok.dev/registry-url: https://admin.re8ch.com:8443/mcp
 spec:
@@ -121,6 +123,8 @@ spec:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
+    metadata:
+      annotations: {re8ch.com/code-revision: scalable-vmcp-v3-admin-workflow}
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {seccompProfile: {type: RuntimeDefault}}

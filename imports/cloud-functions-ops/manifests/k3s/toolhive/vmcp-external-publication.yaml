@@ -155,8 +155,8 @@ metadata: {name: re8ch-admin-vmcp-issuer, namespace: toolhive-system}
 spec:
   type: inline
   inline:
-    issuer: https://admin.re8ch.com:8443
-    clientId: re8ch-admin-vmcp
+    issuer: https://dex.re8ch.com
+    clientId: re8ch-platform-admin
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPOIDCConfig
@@ -164,8 +164,8 @@ metadata: {name: re8ch-tools-vmcp-issuer, namespace: toolhive-system}
 spec:
   type: inline
   inline:
-    issuer: https://tools.re8ch.com:8443
-    clientId: re8ch-tools-vmcp
+    issuer: https://dex.re8ch.com
+    clientId: re8ch-platform-tools
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: VirtualMCPServer
@@ -183,44 +183,19 @@ spec:
     db: 1
     keyPrefix: "thv:vmcp:admin:"
     passwordRef: {name: toolhive-auth-redis, key: password}
-  authServerConfig:
-    issuer: https://admin.re8ch.com:8443
-    primaryUpstreamProvider: authentik
-    signingKeySecretRefs: [{name: re8ch-admin-vmcp-crypto, key: private.pem}]
-    hmacSecretRefs: [{name: re8ch-admin-vmcp-crypto, key: hmac}]
-    baselineClientScopes: [openid, offline_access]
-    tokenLifespans:
-      accessTokenLifespan: 1h
-      refreshTokenLifespan: 168h
-      authCodeLifespan: 10m
-    storage:
-      type: redis
-      redis:
-        addr: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
-        aclUserConfig:
-          passwordSecretRef: {name: toolhive-auth-redis, key: password}
-    upstreamProviders:
-      - name: authentik
-        type: oidc
-        oidcConfig:
-          issuerUrl: https://auth.re8ch.com/application/o/toolhive-vmcp-admin/
-          clientId: re8ch-toolhive-vmcp-admin
-          clientSecretRef: {name: re8ch-vmcp-authentik-clients, key: admin-client-secret}
-          redirectUri: https://admin.re8ch.com:8443/oauth/callback
-          scopes: [openid, profile, email, offline_access, groups, "platform:admin"]
   incomingAuth:
     type: oidc
     oidcConfigRef:
       name: re8ch-admin-vmcp-issuer
-      audience: https://admin.re8ch.com:8443/mcp
+      audience: re8ch-platform-admin
       resourceUrl: https://admin.re8ch.com:8443/mcp
-      scopes: [openid, profile, email, offline_access, "platform:admin"]
+      scopes: [openid, profile, email, groups, offline_access]
     authzConfig:
       type: inline
       groupClaimName: groups
       inline:
         policies:
-          - 'permit(principal in THVGroup::"RE8CH Platform Admins", action, resource);'
+          - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
   outgoingAuth:
     default: {type: discovered}
   config:
@@ -257,48 +232,23 @@ spec:
     db: 2
     keyPrefix: "thv:vmcp:tools:"
     passwordRef: {name: toolhive-auth-redis, key: password}
-  authServerConfig:
-    issuer: https://tools.re8ch.com:8443
-    primaryUpstreamProvider: authentik
-    signingKeySecretRefs: [{name: re8ch-tools-vmcp-crypto, key: private.pem}]
-    hmacSecretRefs: [{name: re8ch-tools-vmcp-crypto, key: hmac}]
-    baselineClientScopes: [openid, offline_access]
-    tokenLifespans:
-      accessTokenLifespan: 1h
-      refreshTokenLifespan: 168h
-      authCodeLifespan: 10m
-    storage:
-      type: redis
-      redis:
-        addr: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
-        aclUserConfig:
-          passwordSecretRef: {name: toolhive-auth-redis, key: password}
-    upstreamProviders:
-      - name: authentik
-        type: oidc
-        oidcConfig:
-          issuerUrl: https://auth.re8ch.com/application/o/toolhive-vmcp-tools/
-          clientId: re8ch-toolhive-vmcp-tools
-          clientSecretRef: {name: re8ch-vmcp-authentik-clients, key: tools-client-secret}
-          redirectUri: https://tools.re8ch.com:8443/oauth/callback
-          scopes: [openid, profile, email, offline_access, groups, "platform:observe", "platform:operate"]
   incomingAuth:
     type: oidc
     oidcConfigRef:
       name: re8ch-tools-vmcp-issuer
-      audience: https://tools.re8ch.com:8443/mcp
+      audience: re8ch-platform-tools
       resourceUrl: https://tools.re8ch.com:8443/mcp
-      scopes: [openid, profile, email, offline_access, "platform:observe", "platform:operate"]
+      scopes: [openid, profile, email, groups, offline_access]
     authzConfig:
       type: inline
       groupClaimName: groups
       inline:
         policies:
           - 'permit(principal, action, resource);'
-          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"RE8CH Platform Operators" || principal in THVGroup::"RE8CH Platform Admins" };'
-          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"scale_managed_platform_deployment") unless { principal in THVGroup::"RE8CH Platform Operators" || principal in THVGroup::"RE8CH Platform Admins" };'
-          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_restart_managed_platform_deployment") unless { principal in THVGroup::"RE8CH Platform Operators" || principal in THVGroup::"RE8CH Platform Admins" };'
-          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_scale_managed_platform_deployment") unless { principal in THVGroup::"RE8CH Platform Operators" || principal in THVGroup::"RE8CH Platform Admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
   outgoingAuth:
     default: {type: discovered}
   config:

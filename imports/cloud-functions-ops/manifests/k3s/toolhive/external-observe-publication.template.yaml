@@ -6,10 +6,11 @@
 # PUBLICATION GATES
 # - tools.re8ch.com and auth.re8ch.com route to the intended public gateway.
 # - Both names present a publicly trusted, complete TLS certificate chain.
-# - GET https://tools.re8ch.com/.well-known/oauth-protected-resource returns
-#   RFC 9728 metadata whose resource is exactly https://tools.re8ch.com/mcp.
-# - Authentik exposes OAuth/OIDC metadata, authorization code + PKCE S256, and
-#   echoes resource=https://tools.re8ch.com/mcp into the issued token audience.
+# - GET https://tools.re8ch.com:8443/.well-known/oauth-protected-resource/mcp
+#   returns RFC 9728 metadata whose resource is exactly
+#   https://tools.re8ch.com:8443/mcp.
+# - ToolHive exposes OAuth metadata and PKCE S256 on the same :8443 origin and
+#   delegates upstream identity to Authentik.
 # - The production callback shown by the plugin portal is registered. The
 #   current ChatGPT/Codex production form is
 #   https://chatgpt.com/connector/oauth/{callback_id}; do not guess callback_id.
@@ -20,7 +21,7 @@
 #   namespace, workload, route, and control-plane topology.
 # - Every public tool advertises oauth2 securitySchemes/scopes plus accurate
 #   readOnlyHint, openWorldHint and destructiveHint annotations.
-# - GET https://tools.re8ch.com/mcp without a token returns 401 plus a
+# - POST https://tools.re8ch.com:8443/mcp initialize without a token returns 401 plus a
 #   WWW-Authenticate challenge referencing the protected-resource metadata.
 # - Domain control is proven at /.well-known/openai-apps-challenge when the
 #   plugin portal issues a verification token.

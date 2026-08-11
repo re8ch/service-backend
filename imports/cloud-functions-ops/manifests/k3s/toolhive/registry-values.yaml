@@ -15,7 +15,7 @@ resources:
   limits: {cpu: 500m, memory: 512Mi}
 
 nodeSelector:
-  kubernetes.io/hostname: restricted-node-296f36f2fb
+  kubernetes.io/hostname: restricted-node-6dc3f140f9
 
 rbac:
   scope: namespace

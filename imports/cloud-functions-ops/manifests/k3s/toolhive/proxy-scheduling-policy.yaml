@@ -46,7 +46,7 @@ spec:
   matchResources:
     namespaceSelector:
       matchLabels:
-        re8ch.com/plane: tool-control
+        re8ch.com/plane: control
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingAdmissionPolicy
@@ -88,4 +88,4 @@ spec:
   policyName: toolhive-external-admin-proxy-scheduling.re8ch.com
   matchResources:
     namespaceSelector:
-      matchLabels: {re8ch.com/plane: tool-control}
+      matchLabels: {re8ch.com/plane: control}

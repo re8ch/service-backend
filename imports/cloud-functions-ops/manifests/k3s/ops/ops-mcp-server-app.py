@@ -17,7 +17,9 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-TENANT = os.getenv("TENANT_NAMESPACE", "qwen")
+OPS_TOOL_PROFILE = os.getenv("OPS_TOOL_PROFILE", "legacy").lower()
+DEFAULT_TENANT = "qwen" if OPS_TOOL_PROFILE == "legacy" else "platform"
+TENANT = os.getenv("TENANT_NAMESPACE", DEFAULT_TENANT)
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.getenv("LISTEN_PORT", "8088"))
 OPS_TOKEN = os.getenv("OPS_TOKEN", "")
@@ -30,7 +32,6 @@ TRUST_PROXY_CIDRS = tuple(
     for value in os.getenv("TRUST_PROXY_CIDRS", "").split(",")
     if value.strip()
 )
-OPS_TOOL_PROFILE = os.getenv("OPS_TOOL_PROFILE", "legacy").lower()
 KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.176:6443")
 REGISTRY_PUBLIC = os.getenv("REGISTRY_PUBLIC", "https://registry.re8ch.com")
 REGISTRY_ALT = os.getenv("REGISTRY_ALT", "https://registry.ynzs.com")
@@ -60,7 +61,7 @@ TENANT_HARBOR_SECRET = os.getenv("TENANT_HARBOR_SECRET", "harbor-%s-admin" % TEN
 TENANT_HARBOR_ROBOT = os.getenv("TENANT_HARBOR_ROBOT", "robot$%s+%s-admin-20260606" % (TENANT_HARBOR_PROJECT, TENANT_HARBOR_PROJECT))
 METRICS_URL = os.getenv("METRICS_URL", "http://127.0.0.1:30428").rstrip("/")
 TENANT_METRICS_TENANT = os.getenv("TENANT_METRICS_TENANT", TENANT_HARBOR_PROJECT)
-TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT).split(",") if x.strip()]
+TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT if OPS_TOOL_PROFILE == "legacy" else "").split(",") if x.strip()]
 TENANT_DB_NAMES = [x.strip() for x in os.getenv("TENANT_DB_NAMES", "").split(",") if x.strip()]
 TENANT_GRAFANA_DASHBOARD = os.getenv("TENANT_GRAFANA_DASHBOARD", "")
 TENANT_GRAFANA_TOKEN_SECRET = os.getenv("TENANT_GRAFANA_TOKEN_SECRET", "grafana-%s-viewer" % TENANT_METRICS_TENANT)
@@ -290,6 +291,21 @@ Safety boundary:
 - k8s_api_proxy only forwards Kubernetes API paths. The caller-provided kubeToken controls Kubernetes RBAC; Ops MCP only solves public-to-ZT/K3s API reachability.
 - postgres_sql_proxy executes lightweight SQL from the Ops MCP network position. PostgreSQL username/password or tenant DB Secret role still controls database permissions; normal Ops tokens are limited to cataloged tenant databases.
 """
+
+if OPS_TOOL_PROFILE != "legacy":
+    GUIDE = GUIDE.replace("Ops MCP for re8ch/qwen", "Ops MCP for the RE8CH platform")
+    GUIDE = GUIDE.replace(
+        "- HTTP API and MCP both require Authorization: Bearer <ops-token>\n- You can also send X-Ops-Token: <ops-token>",
+        "- Codex authenticates once with Dex OAuth at the ToolHive vMCP edge.\n- The internal Ops MCP backend accepts only its Kubernetes workload identity.",
+    )
+    GUIDE = GUIDE.replace(
+        "- Tenant namespace: qwen\n- Normal token writes are limited to restarting deployments in qwen.",
+        "- This platform profile is independent of every tenant, including qwen.\n- Write tools are restricted by the published allowlist and Dex groups.",
+    )
+    GUIDE = GUIDE.replace(
+        "- Admin token can reconcile Dex static users and tenant RBAC.",
+        "- The admin profile can reconcile Dex static users and tenant RBAC.",
+    )
 
 def read_file(path):
     with open(path, "r", encoding="utf-8") as handle:
@@ -1412,33 +1428,36 @@ def get_neo4j_platform_status():
     }
 
 def get_identity_platform_status():
-    namespace = "auth"
-    authentik = probe_http("authentik", "identity-control", "http://authentik-server.auth.svc.cluster.local/-/health/live/", "Authentik liveness without identity credentials")
+    started = time.monotonic()
+    dex = probe_http("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery without identity credentials")
     gateway = probe_http("re8ch-auth-gateway", "identity-data", "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/healthz", "Application authentication gateway liveness")
-    deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
-    endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
     workloads = []
-    for item in deployments:
-        meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
-        desired = spec.get("replicas", 0)
-        ready = status.get("readyReplicas", 0)
-        workloads.append({
-            "name": meta.get("name"),
-            "desired": desired,
-            "ready": ready,
-            "available": status.get("availableReplicas", 0),
-            "scaledToZero": desired == 0,
-            "unready": desired > ready,
-        })
-    workloads.sort(key=lambda item: item["name"] or "")
     endpoint_rows = []
-    for item in endpoints:
-        ready = sum(len(subset.get("addresses", [])) for subset in item.get("subsets", []))
-        not_ready = sum(len(subset.get("notReadyAddresses", [])) for subset in item.get("subsets", []))
-        endpoint_rows.append({"service": item.get("metadata", {}).get("name"), "readyAddresses": ready, "notReadyAddresses": not_ready})
-    endpoint_rows.sort(key=lambda item: item["service"] or "")
+    for namespace in ("dex", "auth"):
+        deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
+        endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
+        for item in deployments:
+            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+            desired = spec.get("replicas", 0)
+            ready = status.get("readyReplicas", 0)
+            workloads.append({
+                "namespace": namespace,
+                "name": meta.get("name"),
+                "desired": desired,
+                "ready": ready,
+                "available": status.get("availableReplicas", 0),
+                "scaledToZero": desired == 0,
+                "unready": desired > ready,
+            })
+        for item in endpoints:
+            ready = sum(len(subset.get("addresses", [])) for subset in item.get("subsets", []))
+            not_ready = sum(len(subset.get("notReadyAddresses", [])) for subset in item.get("subsets", []))
+            endpoint_rows.append({"namespace": namespace, "service": item.get("metadata", {}).get("name"), "readyAddresses": ready, "notReadyAddresses": not_ready})
+    workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
+    endpoint_rows.sort(key=lambda item: (item["namespace"], item["service"] or ""))
     return {
-        "probes": [authentik, gateway],
+        "identityAuthority": "Dex",
+        "probes": [dex, gateway],
         "summary": {
             "workloads": len(workloads),
             "readyWorkloads": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workloads),
@@ -1448,10 +1467,10 @@ def get_identity_platform_status():
         },
         "workloads": workloads,
         "endpoints": endpoint_rows,
-        "protectedNativeAPIs": ["users/groups", "applications/providers", "flows/policies", "tokens/sessions", "OAuth/OIDC/SAML configuration"],
-        "authorization": "Authentik roles/policies and application gateway identity checks remain authoritative; Kubernetes readiness is observation only.",
+        "protectedNativeAPIs": ["Dex users/groups", "static clients/connectors", "tokens/sessions", "OAuth/OIDC configuration"],
+        "authorization": "Dex groups and application gateway identity checks remain authoritative; Kubernetes readiness is observation only.",
         "redaction": "Users, groups, sessions, tokens, client secrets, signing keys, credentials, policy contents and identity claims are not read.",
-        "humanTracking": {"authentik": "https://auth.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"dex": "https://dex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_agent_runtime_status():
@@ -1684,9 +1703,10 @@ def get_database_routing_status():
     }
 
 def get_external_publication_readiness():
-    mcp_origin = "https://tools.re8ch.com"
+    mcp_origin = os.getenv("EXTERNAL_TOOLS_ORIGIN", "https://tools.re8ch.com:8443").rstrip("/")
     mcp_resource = mcp_origin + "/mcp"
-    auth_origin = "https://auth.re8ch.com"
+    auth_origin = os.getenv("EXTERNAL_AUTH_ORIGIN", mcp_origin).rstrip("/")
+    upstream_auth_origin = os.getenv("UPSTREAM_AUTH_ORIGIN", "https://auth.re8ch.com").rstrip("/")
 
     def dns_status(host):
         try:
@@ -1695,10 +1715,10 @@ def get_external_publication_readiness():
         except Exception as exc:
             return {"resolved": False, "addressCount": 0, "error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
 
-    def tls_status(host):
+    def tls_status(host, port=443):
         try:
             context = ssl.create_default_context()
-            with socket.create_connection((host, 443), timeout=5) as raw:
+            with socket.create_connection((host, port), timeout=5) as raw:
                 with context.wrap_socket(raw, server_hostname=host) as secured:
                     certificate = secured.getpeercert()
             return {"trusted": True, "expires": certificate.get("notAfter"), "error": None}
@@ -1714,10 +1734,13 @@ def get_external_publication_readiness():
         except Exception as exc:
             return {"valid": False, "httpStatus": getattr(exc, "code", None), "error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
 
-    tools_dns, auth_dns = dns_status("tools.re8ch.com"), dns_status("auth.re8ch.com")
-    tools_tls, auth_tls = tls_status("tools.re8ch.com"), tls_status("auth.re8ch.com")
+    tools_url, upstream_auth_url = urllib.parse.urlparse(mcp_origin), urllib.parse.urlparse(upstream_auth_origin)
+    tools_host, upstream_auth_host = tools_url.hostname or "tools.re8ch.com", upstream_auth_url.hostname or "auth.re8ch.com"
+    tools_dns, auth_dns = dns_status(tools_host), dns_status(upstream_auth_host)
+    tools_tls = tls_status(tools_host, tools_url.port or 443)
+    auth_tls = tls_status(upstream_auth_host, upstream_auth_url.port or 443)
     resource_metadata = json_metadata(
-        mcp_origin + "/.well-known/oauth-protected-resource",
+        mcp_origin + "/.well-known/oauth-protected-resource/mcp",
         lambda value: value.get("resource") == mcp_resource and bool(value.get("authorization_servers")),
     )
     oauth_metadata = {"valid": False, "httpStatus": None, "error": "no valid OAuth/OIDC discovery document"}
@@ -1733,7 +1756,15 @@ def get_external_publication_readiness():
         oauth_metadata = candidate
     challenge = {"valid": False, "httpStatus": None, "resourceMetadataAdvertised": False, "error": None}
     try:
-        request = urllib.request.Request(mcp_resource, headers={"User-Agent": "re8ch-ops-mcp-publication-readiness/1.0"})
+        payload = json.dumps({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "readiness", "version": "1"}},
+        }).encode("utf-8")
+        request = urllib.request.Request(mcp_resource, data=payload, method="POST", headers={
+            "User-Agent": "re8ch-ops-mcp-publication-readiness/2.0",
+            "Accept": "application/json, text/event-stream",
+            "Content-Type": "application/json",
+        })
         urllib.request.urlopen(request, timeout=6)
         challenge["error"] = "unauthenticated request unexpectedly succeeded"
     except urllib.error.HTTPError as exc:
@@ -1758,7 +1789,7 @@ def get_external_publication_readiness():
         "toolsTLS": tools_tls["trusted"], "authTLS": auth_tls["trusted"],
         "protectedResourceMetadata": resource_metadata["valid"], "oauthDiscoveryPKCE": oauth_metadata["valid"],
         "unauthenticatedChallenge": challenge["valid"], "externalMCPServer": external_server,
-        "publicIngress": public_ingress, "portalDomainChallenge": False,
+        "publicIngress": public_ingress,
     }
     return {
         "publicationReady": all(gates.values()),
@@ -1769,7 +1800,8 @@ def get_external_publication_readiness():
         "protectedResourceMetadata": resource_metadata,
         "oauthDiscovery": oauth_metadata,
         "mcpChallenge": challenge,
-        "policy": "The external server and Ingress remain absent until DNS/TLS/OAuth, claim-to-tenant mapping, public tool filtering and portal verification are proven.",
+        "origins": {"mcp": mcp_origin, "authorizationServer": auth_origin, "upstreamIdentity": upstream_auth_origin},
+        "policy": "The published restricted-node-6dc3f140f9 endpoint is ready only when DNS/TLS, embedded OAuth metadata, the MCP authentication challenge and cluster publication objects all pass.",
         "redaction": "OAuth client secrets, access/refresh tokens, certificate bodies, DNS API credentials and user claims are not read.",
         "humanTracking": {"toolhiveRegistry": "internal ToolHive Registry", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
@@ -1871,7 +1903,7 @@ def get_platform_service_health():
         (probe_http, ("headlamp", "kubernetes", HEADLAMP_PUBLIC, "human Kubernetes control GUI")),
         (probe_http, ("cloudbeaver", "database", cloudbeaver, "human tenant SQL GUI")),
         (probe_http, ("toolhive-registry", "tool-control", TOOLHIVE_REGISTRY_URL, "approved MCP catalog")),
-        (probe_http, ("authentik", "identity-control", "http://authentik-server.auth.svc.cluster.local:80/-/health/live/", "Authentik identity control-plane liveness")),
+        (probe_http, ("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery")),
         (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
         (probe_http, ("kagent-controller", "agent-control", "http://kagent-controller.kagent.svc.cluster.local:8083/healthz", "KAgent controller HTTP reachability")),
         (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability")),
@@ -3536,7 +3568,7 @@ def get_authentik_tenancy_admin_workflow():
         ],
         "safety": [
             "No tool returns Authentik passwords, sessions, OAuth tokens, Harbor robot tokens, or Kubernetes Secret values.",
-            "Codex must request confirmation for every admin tool call.",
+            "Explicitly requested admin work may proceed without repeating confirmation; each call remains allowlisted, audited and subject to native Authentik/Kubernetes authorization.",
             "Authentik group policy and Kubernetes RBAC remain authoritative even if a client omits local approval UX.",
         ],
     }
@@ -3817,7 +3849,7 @@ OPERATE_TOOL_NAMES = {
     "scale_managed_platform_deployment",
 }
 ADMIN_TOOL_NAMES = {
-    "list_authentik_users", "ensure_authentik_user", "grant_authentik_user_group",
+    "list_dex_users", "get_dex_hash_instructions", "create_dex_user", "grant_user_namespace",
     "get_tenancy_admin_workflow", "generate_pg_tenant_database_plan",
     "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access",
     "ensure_harbor_tenant", "get_tenant_secret_refs", "set_tool_publication_stage",
@@ -3906,16 +3938,9 @@ def mcp_tools(include_admin=False):
             "openWorldHint": False,
             "destructiveHint": name in destructive_tools,
         }
-        # Authentication is enforced by the ToolHive/vMCP edge.  Keep the
-        # policy on every tool so Codex/ChatGPT can request the smallest scope
-        # and can evolve read and write tools independently.
-        scope = {
-            "public": "platform:observe",
-            "observe": "platform:observe",
-            "operate": "platform:operate",
-            "admin": "platform:admin",
-        }.get(OPS_TOOL_PROFILE, "platform:observe")
-        tool["securitySchemes"] = [{"type": "oauth2", "scopes": [scope]}]
+        # Dex is the only issuer. Fine-grained authorization is derived from
+        # its groups claim at the vMCP edge, not from synthetic OAuth scopes.
+        tool["securitySchemes"] = [{"type": "oauth2", "scopes": ["openid"]}]
     profile_tools = {
         "public": OBSERVE_TOOL_NAMES,
         "observe": OBSERVE_TOOL_NAMES,
@@ -4023,7 +4048,7 @@ def call_tool(name, args, admin=False):
     if name == "grant_authentik_user_group":
         return grant_authentik_user_group(args)
     if name == "get_tenancy_admin_workflow":
-        return get_authentik_tenancy_admin_workflow() if OPS_TOOL_PROFILE == "admin" else get_tenancy_admin_workflow()
+        return get_tenancy_admin_workflow()
     if name == "get_dex_hash_instructions":
         return get_dex_hash_instructions()
     if name == "generate_pg_tenant_database_plan":
