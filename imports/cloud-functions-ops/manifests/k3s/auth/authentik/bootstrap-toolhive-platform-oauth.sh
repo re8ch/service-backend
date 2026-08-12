@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# RETIRED ROLLBACK UTILITY ONLY.
+#
+# Production ToolHive/Codex authentication is direct Dex OAuth. This script is
+# kept solely to make the pre-cutover Authentik state reproducible during a
+# deliberate rollback; normal deployment and reconciliation must not call it.
+if [[ "${ALLOW_RETIRED_AUTHENTIK_ROLLBACK:-}" != "true" ]]; then
+  echo 'refusing to bootstrap retired Authentik OAuth; set ALLOW_RETIRED_AUTHENTIK_ROLLBACK=true only for an approved rollback' >&2
+  exit 2
+fi
+
 : "${KUBE_SERVER:=https://192.0.2.18:6443}"
 K=(kubectl --server="$KUBE_SERVER" --insecure-skip-tls-verify=true)
 PORT="${AUTHENTIK_API_PORT:-29000}"
@@ -18,7 +28,9 @@ fi
 "${K[@]}" -n auth port-forward "pod/${server_pod}" "${PORT}:9000" \
   >/tmp/re8ch-authentik-platform-oauth.log 2>&1 &
 port_forward_pid=$!
-trap 'kill "$port_forward_pid" 2>/dev/null || true' EXIT INT TERM
+failed_line=0
+trap 'failed_line=$LINENO' ERR
+trap 'status=$?; kill "$port_forward_pid" 2>/dev/null || true; if [[ $status -ne 0 ]]; then echo "bootstrap failed near line ${failed_line:-unknown}" >&2; fi' EXIT INT TERM
 
 forward_ready=false
 for _ in {1..30}; do
@@ -58,6 +70,31 @@ ensure_group() {
     pk=$(jq -n --arg name "$name" '{name:$name,is_superuser:false}' | api_post /core/groups/ | jq -er .pk)
   fi
   printf '%s' "$pk"
+}
+
+ensure_group_user() {
+  local group_pk=$1 user_pk=$2
+  if api_get "/core/users/${user_pk}/" | jq -e --arg group "$group_pk" 'any(.groups_obj[]?; .pk == $group)' >/dev/null; then
+    return
+  fi
+  jq -n --argjson pk "$user_pk" '{pk:$pk}' | api_post "/core/groups/${group_pk}/add_user/" >/dev/null
+}
+
+ensure_role() {
+  local name=$1 pk
+  pk=$(api_get "/rbac/roles/?name=$(jq -rn --arg v "$name" '$v|@uri')&page_size=100" | jq -r --arg name "$name" '.results[] | select(.name == $name) | .pk' | head -1)
+  if [[ -z "$pk" ]]; then
+    pk=$(jq -n --arg name "$name" '{name:$name}' | api_post /rbac/roles/ | jq -er .pk)
+  fi
+  printf '%s' "$pk"
+}
+
+ensure_role_user() {
+  local role_pk=$1 user_pk=$2
+  if api_get "/rbac/roles/?users=${user_pk}&page_size=100" | jq -e --arg role "$role_pk" 'any(.results[]?; .pk == $role)' >/dev/null; then
+    return
+  fi
+  jq -n --argjson pk "$user_pk" '{pk:$pk}' | api_post "/rbac/roles/${role_pk}/add_user/" >/dev/null
 }
 
 ensure_tier() {
@@ -178,19 +215,49 @@ admin_vmcp_result=$(ensure_vmcp_upstream admin 'RE8CH ToolHive Admin vMCP' re8ch
 tools_vmcp_result=$(ensure_vmcp_upstream tools 'RE8CH ToolHive Tools vMCP' re8ch-toolhive-vmcp-tools "$tools_upstream_secret" 'https://tools.re8ch.com:8443/oauth/callback' "$tools_vmcp_mappings")
 bind_group "$(cut -f2 <<<"$admin_vmcp_result")" "$admins_group"
 
-# Create a non-interactive Authentik service identity once. Authentik returns the
-# token only at creation time, so the Kubernetes Secret is the idempotency key.
-if ! "${K[@]}" -n auth get secret toolhive-authentik-admin-api >/dev/null 2>&1; then
-  service_user_pk=$(api_get '/core/users/?search=toolhive-platform-admin&page_size=100' | jq -r '.results[] | select(.name == "toolhive-platform-admin") | .pk' | head -1)
-  if [[ -n "$service_user_pk" ]]; then
-    service_token_id=$(api_get "/core/tokens/?user=$service_user_pk&page_size=100" | jq -r '.results[0].identifier // empty')
-    service_token=$(api_get "/core/tokens/${service_token_id}/view_key/" | jq -er .key)
-  else
-    service_response=$(jq -n '{name:"toolhive-platform-admin",create_group:false}' | api_post /core/users/service_account/)
-    service_token=$(jq -er '.token // .key' <<<"$service_response")
+# Application policy and Cedar consume this exact group name. Keep the human
+# OAuth identity separate from Authentik's built-in superuser group.
+platform_admin_usernames=${PLATFORM_ADMIN_USERNAMES:-re8ch-platform-admin}
+IFS=',' read -r -a platform_admin_users <<<"$platform_admin_usernames"
+for username in "${platform_admin_users[@]}"; do
+  username=${username//[[:space:]]/}
+  [[ -n "$username" ]] || continue
+  user_pk=$(api_get "/core/users/?search=$(jq -rn --arg v "$username" '$v|@uri')&page_size=100" | jq -r --arg username "$username" '.results[] | select(.username == $username) | .pk' | head -1)
+  if [[ -z "$user_pk" ]]; then
+    echo "warning: Authentik platform admin user not found: $username" >&2
+    continue
   fi
-  "${K[@]}" -n auth create secret generic toolhive-authentik-admin-api \
-    --from-literal=token="$service_token" --dry-run=client -o yaml | "${K[@]}" apply -f - >/dev/null
+  ensure_group_user "$admins_group" "$user_pk"
+done
+
+# Create or locate the non-interactive Authentik service identity, then always
+# reconcile the Kubernetes Secret to that identity. This also repairs legacy
+# Secrets that accidentally referenced an outpost or another service account.
+service_user_pk=$(api_get '/core/users/?search=toolhive-platform-admin&page_size=100' | jq -r '.results[] | select(.username == "toolhive-platform-admin") | .pk' | head -1)
+if [[ -z "$service_user_pk" ]]; then
+  service_response=$(jq -n '{name:"toolhive-platform-admin",create_group:false}' | api_post /core/users/service_account/)
+  service_user_pk=$(jq -er '.user.pk // .pk' <<<"$service_response")
 fi
+service_token_id=$(api_get '/core/tokens/?user__username=toolhive-platform-admin&page_size=100' | jq -r --argjson user "$service_user_pk" '.results[] | select(.user == $user and .intent == "api") | .identifier' | head -1)
+if [[ -z "$service_token_id" ]]; then
+  service_token_id=$(jq -n --argjson user "$service_user_pk" '{identifier:"toolhive-platform-admin-api",intent:"api",user:$user,description:"Least-privilege API token for the RE8CH ToolHive admin backend",expiring:false}' | api_post /core/tokens/ | jq -er .identifier)
+fi
+service_token=$(api_get "/core/tokens/${service_token_id}/view_key/" | jq -er .key)
+for namespace in auth toolhive-system; do
+  "${K[@]}" -n "$namespace" create secret generic toolhive-authentik-admin-api \
+    --from-literal=token="$service_token" --dry-run=client -o yaml | "${K[@]}" apply -f - >/dev/null
+done
+
+# The MCP service identity receives only the global permissions required by
+# list_authentik_users, ensure_authentik_user and grant_authentik_user_group.
+# It is deliberately neither superuser nor a member of `authentik Admins`.
+if [[ -z "$service_user_pk" ]]; then
+  echo 'toolhive-platform-admin service identity was not found' >&2
+  exit 1
+fi
+admin_api_role=$(ensure_role 'RE8CH ToolHive Authentik User Manager')
+jq -n '{permissions:["authentik_core.view_user","authentik_core.add_user","authentik_core.change_user","authentik_core.view_group","authentik_core.add_user_to_group"]}' \
+  | api_post "/rbac/permissions/assigned_by_roles/${admin_api_role}/assign/" >/dev/null
+ensure_role_user "$admin_api_role" "$service_user_pk"
 
 jq -n --arg observe "$observe_result" --arg operate "$operate_result" --arg admin "$admin_result" --arg adminVmcp "$admin_vmcp_result" --arg toolsVmcp "$tools_vmcp_result" --arg operators "$operators_group" --arg admins "$admins_group" '{observe:$observe,operate:$operate,admin:$admin,adminVmcp:$adminVmcp,toolsVmcp:$toolsVmcp,groups:{operators:$operators,admins:$admins},adminServiceIdentity:"toolhive-platform-admin"}'
