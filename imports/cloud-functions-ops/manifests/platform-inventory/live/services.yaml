@@ -220,8 +220,8 @@
         "app.kubernetes.io/name": "authentik-redis",
         "app.kubernetes.io/part-of": "authentik"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -231,8 +231,8 @@
         "app.kubernetes.io/name": "authentik",
         "app.kubernetes.io/part-of": "authentik"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -242,8 +242,8 @@
         "app.kubernetes.io/name": "authentik",
         "app.kubernetes.io/part-of": "authentik"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -354,8 +354,8 @@
       "namespace": "cephfs-smoke",
       "name": "cephfs-cross-node-smoke",
       "labels": {},
-      "desired": 2,
-      "ready": 2
+      "desired": 1,
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -1106,7 +1106,7 @@
         "app.kubernetes.io/part-of": "kagent"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -1118,7 +1118,7 @@
         "app.kubernetes.io/part-of": "kagent"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4168,8 +4168,8 @@
       "namespace": "rook-ceph",
       "name": "rook-ceph.cephfs.csi.ceph.com-nodeplugin",
       "labels": {},
-      "desired": 2,
-      "ready": 2
+      "desired": 1,
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4189,7 +4189,7 @@
         "app": "rook-ceph-crashcollector"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4209,7 +4209,7 @@
         "app": "rook-ceph-exporter"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4291,18 +4291,6 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 1
-    },
-    {
-      "kind": "Deployment",
-      "namespace": "rook-ceph",
-      "name": "rook-ceph-mon-d-canary",
-      "labels": {
-        "app": "rook-ceph-mon",
-        "app.kubernetes.io/name": "ceph-mon",
-        "app.kubernetes.io/part-of": "rook-ceph"
-      },
-      "desired": 1,
       "ready": 0
     },
     {
@@ -4338,7 +4326,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4565,8 +4553,8 @@
         "app": "mcpserver",
         "app.kubernetes.io/name": "mcpserver"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4587,8 +4575,8 @@
         "app": "mcpserver",
         "app.kubernetes.io/name": "mcpserver"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4609,8 +4597,8 @@
         "app": "mcpserver",
         "app.kubernetes.io/name": "mcpserver"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4631,8 +4619,8 @@
         "app": "virtualmcpserver",
         "app.kubernetes.io/name": "virtualmcpserver"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4642,8 +4630,8 @@
         "app": "virtualmcpserver",
         "app.kubernetes.io/name": "virtualmcpserver"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -5009,8 +4997,8 @@
       "labels": {
         "app": "ops-admin-external"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "StatefulSet",
@@ -5029,8 +5017,8 @@
       "labels": {
         "app": "ops-observe-external"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "StatefulSet",
@@ -5049,8 +5037,8 @@
       "labels": {
         "app": "ops-operate-external"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "StatefulSet",
