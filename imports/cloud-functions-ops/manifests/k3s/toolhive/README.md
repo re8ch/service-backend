@@ -135,16 +135,16 @@ and human evidence GUI. `get_platform_service_catalog` supplies the live service
 inventory; `get_platform_access_posture` reports RBAC, ServiceAccount token,
 NetworkPolicy and external-exposure review signals without reading Secrets.
 
-## External public-read canary
+## External Dex-authenticated publication
 
 Internal KSA-backed access remains live. The separate public-read canary is now
-available at `https://tools.re8ch.com/mcp`; it uses Authentik authorization code
+available at `https://tools.re8ch.com:8443/mcp`; it uses Dex authorization code
 with PKCE S256, RFC 9728 discovery, exact audience/resource binding and a
-dedicated ToolHive allowlist. Operate/admin surfaces remain cluster-internal.
+dedicated ToolHive allowlist. The separately scoped admin MCP endpoint uses its
+own Dex public client and audience.
 Human visits to `https://tools.re8ch.com/` reach Stacklok's official Apache-2.0
-ToolHive Cloud UI. It authenticates through a dedicated confidential Authentik
-OIDC client and reads the in-cluster ToolHive Registry Server; it does not share
-the public MCP client's credentials or turn the catalog into an MCP session.
+ToolHive Cloud UI. The catalog UI is not an additional identity authority and
+does not turn the registry catalog into an MCP session.
 The `/mcp`
 resource intentionally returns an RFC 9728 bearer
 challenge when no token is supplied; MCP clients use that challenge to start
@@ -153,11 +153,10 @@ their OAuth flow and must not receive a browser-login redirect there.
 `external-observe-publication.template.yaml` records the OIDC and RFC 9728
 fields for a future, separate read-only public surface. It is fully commented,
 so accidental `kubectl apply` cannot alter the working internal identities.
-Authentik server and worker run on the organization-owned restricted-node-6dc3f140f9 and connect
-directly to the designated writable pg-re8ch primary. The private `pgwrite`
-hostname is not used for identity writes because it was observed resolving to
-a replica. The writable preflight asserts recovery=false, read_only=off and a
-temporary-table INSERT before identity publication proceeds.
+Authentik is retired at zero replicas and is not on the production request
+path. Its Secrets and PVCs are retained only as rollback data. The legacy
+bootstrap requires an explicit `ALLOW_RETIRED_AUTHENTIK_ROLLBACK=true` opt-in;
+ordinary apply and verification flows must use Dex only.
 
 The current OpenAI publication model is a universal plugin shared by ChatGPT
 and Codex. The external endpoint must therefore be a separate, public-read
