@@ -6,10 +6,10 @@ Generated; do not edit.
 
 | Node | Ready | Internal IP | External IP | OS |
 |---|---:|---|---|---|
-| restricted-node-1eb0570f74 | Unknown | 192.0.2.176 |  | Ubuntu 24.04 LTS |
+| restricted-node-1eb0570f74 | True | 192.0.2.176 |  | Ubuntu 24.04 LTS |
 | amdwsl-zt | Unknown | fc64:f13e:b4c:5bfb:7a0f::1 |  | Ubuntu 24.04.1 LTS |
 | artchais-nuclio-1 | True | 192.0.2.182 | 192.0.2.86 | Ubuntu 22.04 LTS |
-| restricted-node-296f36f2fb | True | 192.0.2.4 |  | Ubuntu 24.04 LTS |
+| restricted-node-296f36f2fb | Unknown | 192.0.2.4 |  | Ubuntu 24.04 LTS |
 | harbor-registry | True | 192.0.2.74 | 192.0.2.185 | Ubuntu 26.04 LTS |
 | overseas-edge-50 | True | 192.0.2.79 | 192.0.2.189 | Ubuntu 24.04.3 LTS |
 | qianwen-nuclio-79 | Unknown | 192.0.2.112 | 192.0.2.197 | Ubuntu 24.04.2 LTS |
@@ -43,9 +43,9 @@ Generated; do not edit.
 | anysite | Ingress | scale-api | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api.re8ch.com |
 | anysite | Service | anysite-postgrest | NodePort ports=3000 |
 | anysite | Service | scale-api | ClusterIP ports=80 |
-| auth | Deployment | authentik-redis | 1/1 ready |
-| auth | Deployment | authentik-server | 1/1 ready |
-| auth | Deployment | authentik-worker | 1/1 ready |
+| auth | Deployment | authentik-redis | 0/0 ready |
+| auth | Deployment | authentik-server | 0/0 ready |
+| auth | Deployment | authentik-worker | 0/0 ready |
 | auth | Deployment | nuclio-re8ch-auth-gateway | 0/0 ready |
 | auth | Deployment | re8ch-auth-gateway | 1/1 ready |
 | auth | Ingress | authentik-server | auth.re8ch.com |
@@ -55,7 +55,7 @@ Generated; do not edit.
 | auth | Service | authentik-server | ClusterIP ports=80,443 |
 | auth | Service | nuclio-re8ch-auth-gateway | ClusterIP ports=8080,8090 |
 | auth | Service | re8ch-auth-gateway | ClusterIP ports=8080 |
-| cephfs-smoke | DaemonSet | cephfs-cross-node-smoke | 2/2 ready |
+| cephfs-smoke | DaemonSet | cephfs-cross-node-smoke | 1/1 ready |
 | codex-app-server | Deployment | codex-app-server | 1/1 ready |
 | codex-app-server | Service | codex-app-server | ClusterIP ports=4500 |
 | codex-platform | Deployment | codex-app-server-console | 1/1 ready |
@@ -131,8 +131,8 @@ Generated; do not edit.
 | kagent | Deployment | kagent-postgresql | 1/1 ready |
 | kagent | Deployment | kagent-tools | 1/1 ready |
 | kagent | Deployment | kagent-ui | 1/1 ready |
-| kagent | Deployment | my-first-k8s-agent | 1/1 ready |
-| kagent | Deployment | readonly-k8s-diagnostic-agent | 1/1 ready |
+| kagent | Deployment | my-first-k8s-agent | 0/1 ready |
+| kagent | Deployment | readonly-k8s-diagnostic-agent | 0/1 ready |
 | kagent | Deployment | wechat-content-operations-agent | 1/1 ready |
 | kagent | Ingress | kagent-ui-shanghai217 | api-shanghai217.re8ch.com |
 | kagent | Ingress | kagent-ui-static-shanghai217 | api-shanghai217.re8ch.com |
@@ -426,22 +426,21 @@ Generated; do not edit.
 | qwen | Service | qianwen-region-metadata | ClusterIP ports=8080 |
 | qwen | Service | qwen-edge-redirects | ClusterIP ports=8080 |
 | qwen | Service | test-mgr-postgrest-upstream | ClusterIP ports=3080 |
-| rook-ceph | DaemonSet | rook-ceph.cephfs.csi.ceph.com-nodeplugin | 2/2 ready |
+| rook-ceph | DaemonSet | rook-ceph.cephfs.csi.ceph.com-nodeplugin | 1/1 ready |
 | rook-ceph | Deployment | ceph-csi-controller-manager | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-crashcollector-b1-wsl-zt | 1/1 ready |
+| rook-ceph | Deployment | rook-ceph-crashcollector-b1-wsl-zt | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-r640 | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-exporter-b1-wsl-zt | 1/1 ready |
+| rook-ceph | Deployment | rook-ceph-exporter-b1-wsl-zt | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-r640 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-a | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-b | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mgr-a | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mon-a | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mon-b | 0/1 ready |
-| rook-ceph | Deployment | rook-ceph-mon-c | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-mon-d-canary | 0/1 ready |
+| rook-ceph | Deployment | rook-ceph-mon-c | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-operator | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-osd-0 | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-osd-1 | 1/1 ready |
+| rook-ceph | Deployment | rook-ceph-osd-1 | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-osd-2 | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-tools | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph.cephfs.csi.ceph.com-ctrlplugin | 1/1 ready |
@@ -465,14 +464,14 @@ Generated; do not edit.
 | supabase-pg-re8ch | Service | supabase-rest | ClusterIP ports=3000 |
 | supabase-pg-re8ch | Service | supabase-storage | ClusterIP ports=5000 |
 | supabase-pg-re8ch | Service | supabase-studio | ClusterIP ports=3000 |
-| toolhive-system | Deployment | ops-admin-external | 1/1 ready |
+| toolhive-system | Deployment | ops-admin-external | 2/2 ready |
 | toolhive-system | Deployment | ops-admin-managed | 1/1 ready |
-| toolhive-system | Deployment | ops-observe-external | 1/1 ready |
+| toolhive-system | Deployment | ops-observe-external | 2/2 ready |
 | toolhive-system | Deployment | ops-observe-managed | 1/1 ready |
-| toolhive-system | Deployment | ops-operate-external | 1/1 ready |
+| toolhive-system | Deployment | ops-operate-external | 2/2 ready |
 | toolhive-system | Deployment | ops-operate-managed | 1/1 ready |
-| toolhive-system | Deployment | re8ch-admin-vmcp | 1/1 ready |
-| toolhive-system | Deployment | re8ch-tools-vmcp | 1/1 ready |
+| toolhive-system | Deployment | re8ch-admin-vmcp | 2/2 ready |
+| toolhive-system | Deployment | re8ch-tools-vmcp | 2/2 ready |
 | toolhive-system | Deployment | toolhive-cloud-ui | 1/1 ready |
 | toolhive-system | Deployment | toolhive-operator | 1/1 ready |
 | toolhive-system | Deployment | toolhive-registry-server | 1/1 ready |
@@ -504,11 +503,11 @@ Generated; do not edit.
 | toolhive-system | Service | toolhive-registry-server | ClusterIP ports=8080 |
 | toolhive-system | Service | vmcp-re8ch-admin-vmcp | ClusterIP ports=4483 |
 | toolhive-system | Service | vmcp-re8ch-tools-vmcp | ClusterIP ports=4483 |
-| toolhive-system | StatefulSet | ops-admin-external | 1/1 ready |
+| toolhive-system | StatefulSet | ops-admin-external | 2/2 ready |
 | toolhive-system | StatefulSet | ops-admin-managed | 1/1 ready |
-| toolhive-system | StatefulSet | ops-observe-external | 1/1 ready |
+| toolhive-system | StatefulSet | ops-observe-external | 2/2 ready |
 | toolhive-system | StatefulSet | ops-observe-managed | 1/1 ready |
-| toolhive-system | StatefulSet | ops-operate-external | 1/1 ready |
+| toolhive-system | StatefulSet | ops-operate-external | 2/2 ready |
 | toolhive-system | StatefulSet | ops-operate-managed | 1/1 ready |
 | toolhive-system | StatefulSet | toolhive-auth-redis | 1/1 ready |
 | voice-observability | Ingress | homer-ui | phonycenter.re8ch.com |
