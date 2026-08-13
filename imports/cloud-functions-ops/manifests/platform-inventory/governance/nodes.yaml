@@ -10,7 +10,7 @@ nodes:
   - {id: restricted-node-296f36f2fb, roles: [control-plane, etcd], sshTarget: null, operationPolicy: control-plane-two-person, managementState: unverified, firewall: cn, egressPolicy: auto, cephStorage: true, cephClient: true}
   - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
   - {id: artchais-nuclio-1, roles: [nuclio], sshTarget: artchais, operationPolicy: worker-one-person}
-  - {id: harbor-registry, roles: [platform], sshTarget: harbor, operationPolicy: worker-one-person, cephClient: true}
+  - {id: harbor-registry, roles: [platform], sshTarget: harbor, operationPolicy: worker-one-person}
   - {id: overseas-edge-50, roles: [edge], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified, firewall: none, egressPolicy: direct}
   - {id: qianwen-nuclio-79, roles: [nuclio], sshTarget: ali, operationPolicy: worker-one-person, managementState: unverified}
   - {id: qianwen-prod-nuclio-3, roles: [database], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified}
