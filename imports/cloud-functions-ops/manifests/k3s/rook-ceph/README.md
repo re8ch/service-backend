@@ -13,6 +13,9 @@ existing `local-path` volumes.
   initially contributes a 20 GiB LV; it can be extended later because its
   storage inventory is locally verified.
 - `cephfs-pilot` is not the default StorageClass and uses `Retain`.
+- `storage.re8ch.com/ceph-pilot=true` identifies the three storage failure
+  domains. `storage.re8ch.com/ceph-client=true` independently enables the CSI
+  node client; a client label never authorizes disk discovery or OSD creation.
 - Pools use `size: 3`, `min_size: 2` (Ceph safe default), with `host` failure
   domains.
 - A1/B1 use dedicated, dynamic 200 GiB VHDX files on their Windows `D:` volumes,
@@ -120,9 +123,9 @@ helm upgrade --install rook-ceph-cluster rook-release/rook-ceph-cluster \
 Do not install the cluster chart until the operator deployment and discovery
 pods are healthy.
 
-`cluster-values-production-encrypted.yaml` is the production encryption
-overlay. Do not apply it while Ceph is `HEALTH_WARN`; it is a reviewed rolling
-change after all MONs, the manager and PGs are healthy. It enables native Ceph
+`cluster-values-production-encrypted.yaml` is the applied production encryption
+overlay. It was rolled out only after all MONs, the manager and PGs were
+healthy. It enables native Ceph
 Messenger v2 encryption. The optional Mihomo component of
 `re8ch-network-fabric` is used only for public registry bootstrap and must
 remain excluded from Ceph daemon and CSI traffic. See

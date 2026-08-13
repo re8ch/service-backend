@@ -31,7 +31,7 @@ spec:
         app: cephfs-cross-node-smoke
     spec:
       nodeSelector:
-        storage.re8ch.com/ceph-pilot: "true"
+        storage.re8ch.com/ceph-client: "true"
       containers:
         - name: smoke
           # Reuse the Ceph image already pinned and cached on all three pilot

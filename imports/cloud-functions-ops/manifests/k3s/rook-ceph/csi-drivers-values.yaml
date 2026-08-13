@@ -30,7 +30,7 @@ drivers:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: storage.re8ch.com/ceph-pilot
+                  - key: storage.re8ch.com/ceph-client
                     operator: In
                     values: ["true"]
     controllerPlugin:
