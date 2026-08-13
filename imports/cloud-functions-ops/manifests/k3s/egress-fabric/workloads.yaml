@@ -65,6 +65,11 @@ metadata:
   name: mihomo-node
   namespace: egress-fabric
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels: {app.kubernetes.io/name: mihomo-node}
   template:
@@ -83,14 +88,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  # Stage only on nodes where the pinned image is already
-                  # available. Expand after the image is mirrored, signed and
-                  # scanned in Harbor; never schedule this on Nuclio/database.
-                  - key: kubernetes.io/hostname
+                  # Enable only after the pinned image is present on the node.
+                  - key: networking.re8ch.com/mihomo-node
                     operator: In
-                    values:
-                      - restricted-node-6dc3f140f9
-                      - amdwsl-zt
+                    values: [enabled]
       containers:
         - name: mihomo
           image: metacubex/mihomo:v1.19.29
@@ -127,6 +128,17 @@ metadata:
   namespace: egress-fabric
 spec:
   internalTrafficPolicy: Local
+  selector: {app.kubernetes.io/name: mihomo-node}
+  ports:
+    - {name: mixed, port: 7890, targetPort: mixed, protocol: TCP}
+---
+# Bootstrap path for nodes that do not yet have a local Mihomo image.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-gateway
+  namespace: egress-fabric
+spec:
   selector: {app.kubernetes.io/name: mihomo-node}
   ports:
     - {name: mixed, port: 7890, targetPort: mixed, protocol: TCP}
