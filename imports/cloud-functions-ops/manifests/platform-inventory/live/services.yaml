@@ -1275,7 +1275,7 @@
         "app.kubernetes.io/name": "cilium-agent",
         "app.kubernetes.io/part-of": "cilium"
       },
-      "desired": 12,
+      "desired": 13,
       "ready": 9
     },
     {
@@ -1293,7 +1293,7 @@
       "labels": {
         "app.kubernetes.io/name": "traefik"
       },
-      "desired": 1,
+      "desired": 2,
       "ready": 1
     },
     {
@@ -1323,7 +1323,7 @@
       "name": "coredns",
       "labels": {},
       "desired": 2,
-      "ready": 1
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -2049,7 +2049,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -2082,7 +2082,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -2857,7 +2857,7 @@
         "app.kubernetes.io/name": "external-dns"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4184,32 +4184,12 @@
     {
       "kind": "Deployment",
       "namespace": "rook-ceph",
-      "name": "rook-ceph-crashcollector-b1-wsl-zt",
-      "labels": {
-        "app": "rook-ceph-crashcollector"
-      },
-      "desired": 1,
-      "ready": 0
-    },
-    {
-      "kind": "Deployment",
-      "namespace": "rook-ceph",
       "name": "rook-ceph-crashcollector-r640",
       "labels": {
         "app": "rook-ceph-crashcollector"
       },
       "desired": 1,
       "ready": 1
-    },
-    {
-      "kind": "Deployment",
-      "namespace": "rook-ceph",
-      "name": "rook-ceph-exporter-b1-wsl-zt",
-      "labels": {
-        "app": "rook-ceph-exporter"
-      },
-      "desired": 1,
-      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4267,7 +4247,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4428,7 +4408,7 @@
       "name": "supabase-rest",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4554,7 +4534,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4565,7 +4545,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4576,7 +4556,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4587,7 +4567,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4598,7 +4578,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4609,7 +4589,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
