@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["pool", "advertisement", "nodes", "mihomoGateway"],
+  "properties": {
+    "stage": {"type": "integer", "minimum": 0},
+    "pool": {
+      "type": "object",
+      "required": ["cidr", "enabled"],
+      "properties": {
+        "cidr": {"type": "string", "pattern": "^[0-9.]+/[0-9]+$"},
+        "enabled": {"type": "boolean"}
+      }
+    },
+    "mihomoGateway": {
+      "type": "object",
+      "required": ["enabled", "existingPathsSecret", "service"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "existingPathsSecret": {"type": "string"},
+        "service": {
+          "type": "object",
+          "required": ["type", "advertise"],
+          "properties": {
+            "type": {"enum": ["ClusterIP", "LoadBalancer"]},
+            "advertise": {"type": "boolean"},
+            "requestedLoadBalancerIP": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

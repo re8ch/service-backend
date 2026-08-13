@@ -37,3 +37,34 @@ nodes:
     peers:
       - {name: frr-a1, asn: 4200010147, address: 192.0.2.242}
       - {name: frr-b1, asn: 4200010125, address: 192.0.2.1}
+
+# Optional regional egress. This does not proxy cluster, Ceph, etcd or private
+# traffic. Supply an existing Secret containing paths.yaml with encrypted
+# proxy-provider transports; the chart never packages provider credentials.
+mihomoGateway:
+  enabled: false
+  image:
+    repository: metacubex/mihomo
+    tag: v1.19.29
+    pullPolicy: IfNotPresent
+  capabilityLabel: networking.re8ch.com/mihomo-node
+  capabilityValue: enabled
+  existingPathsSecret: egress-fabric-paths
+  service:
+    type: ClusterIP
+    requestedLoadBalancerIP: ""
+    externalTrafficPolicy: Local
+    advertise: false
+  controller:
+    enabled: true
+  rules:
+    overseasDomains:
+      - github.com
+      - githubusercontent.com
+      - ghcr.io
+      - quay.io
+      - registry.k8s.io
+      - pkg.dev
+      - docker.io
+      - docker.com
+      - amazonaws.com

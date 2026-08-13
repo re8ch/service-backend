@@ -4,6 +4,19 @@ This directory defines the safe boundary between Cilium LB IPAM and the
 existing FRR transit fabrics. Stage 1 is live with an opt-in canary; production
 Services remain excluded unless they carry both advertisement labels.
 
+It is also the source of the independently maintained
+`re8ch-network-fabric` Helm application. Releases are published as OCI charts:
+
+```sh
+helm upgrade --install re8ch-network-fabric \
+  oci://ghcr.io/re8ch/charts/re8ch-network-fabric \
+  --version 0.2.0 --namespace egress-fabric --create-namespace
+```
+
+The default install does not enable Mihomo. Set `mihomoGateway.enabled=true`
+only after creating `mihomoGateway.existingPathsSecret`; provider credentials
+and encrypted transport definitions are never included in the chart.
+
 ## Address and routing authority
 
 | Domain | Prefix | Authority | May be optimized by FRR |
@@ -77,6 +90,26 @@ cross-node hop is possible.
 
 Do not aggregate the VIPs. Exact `/32` advertisements make withdrawal and
 black-hole analysis deterministic.
+
+## Mihomo gateway Service VIP
+
+When enabled, the optional Mihomo DaemonSet runs only on nodes carrying its
+capability label. Its Service defaults to `ClusterIP`. A reviewed deployment
+may set `service.type=LoadBalancer`, `service.advertise=true`, and request an
+address such as `192.0.2.181`. Cilium then owns that Service address and BGP
+announces the exact `/32` from nodes with eligible endpoints.
+
+The VIP solves stable discovery and next-hop failover for proxy clients; it
+does not accelerate traffic by itself. The `192.0.2.181` experiment was removed
+because BGP selected restricted-node-6dc3f140f9 correctly while remote host-to-Cilium-Service ingress
+failed. Keeping the advertisement would have created a deterministic black
+hole. Re-enable it only after an external host can complete TCP and HTTP CONNECT
+tests through the VIP and withdrawal is verified when the endpoint disappears.
+
+Ceph replication must not use this HTTP/SOCKS gateway. Ceph consumes the
+private-transit reachability supplied by the network fabric and uses Ceph
+Messenger v2 encryption for storage traffic; Mihomo is for selected public
+destinations such as OCI registries.
 
 ## Rollback
 
