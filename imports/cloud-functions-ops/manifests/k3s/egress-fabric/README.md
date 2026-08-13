@@ -17,6 +17,19 @@ only; it does not carry arbitrary terminal IP traffic.
 - Each eligible node gets one `mihomo-node` Pod. The `mihomo-node` Service uses
   `internalTrafficPolicy: Local`, so a workload using
   `http://mihomo-node.egress-fabric.svc:7890` reaches the node-local proxy.
+- Node geography is declared with `networking.re8ch.com/firewall=cn|none`.
+  This is an observed reachability fact, not a security posture. Desired
+  behavior is separate: `networking.re8ch.com/egress-policy=auto|direct|overseas`.
+- Mihomo placement requires `networking.re8ch.com/mihomo-node=enabled` only
+  after the pinned image is available. `mihomo-gateway` is a non-local
+  ClusterIP bootstrap path for explicit registry access before that point.
+- While restricted-node-6dc3f140f9 host-to-Cilium ingress is under repair,
+  `re8ch-mihomo-transit-relay.service` may expose that gateway only on
+  `192.0.2.179:7890`. It must never bind a public, LAN, or Node InternalIP.
+- Host image pulls opt in through `k3s-egress-proxy.conf` and the accompanying
+  environment file. `NO_PROXY` keeps all cluster, private, RE8CH, etcd and
+  storage traffic direct. Enabling or disabling it requires a one-node-at-a-time
+  K3S restart and control-plane readiness verification.
 - The initial eligible set is `restricted-node-6dc3f140f9` and `amdwsl-zt`. A1/B1 are held back
   because their Docker Hub pulls time out. Expand the hostname allowlist only
   after the pinned image is mirrored, signed and scanned in Harbor. Nuclio and

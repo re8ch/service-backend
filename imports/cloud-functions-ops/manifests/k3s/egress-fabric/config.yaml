@@ -56,6 +56,14 @@ data:
       - DOMAIN-SUFFIX,youtube.com,stable-egress
       - DOMAIN-SUFFIX,openai.com,stable-egress
       - DOMAIN-SUFFIX,github.com,stable-egress
+      - DOMAIN-SUFFIX,githubusercontent.com,stable-egress
+      - DOMAIN-SUFFIX,ghcr.io,stable-egress
+      - DOMAIN-SUFFIX,quay.io,stable-egress
+      - DOMAIN-SUFFIX,registry.k8s.io,stable-egress
+      - DOMAIN-SUFFIX,pkg.dev,stable-egress
+      - DOMAIN-SUFFIX,docker.io,stable-egress
+      - DOMAIN-SUFFIX,docker.com,stable-egress
+      - DOMAIN-SUFFIX,amazonaws.com,stable-egress
       - DOMAIN-SUFFIX,telegram.org,stable-egress
       - DOMAIN-SUFFIX,twitter.com,stable-egress
       - DOMAIN-SUFFIX,x.com,stable-egress
