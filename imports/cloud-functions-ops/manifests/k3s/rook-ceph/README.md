@@ -120,6 +120,15 @@ helm upgrade --install rook-ceph-cluster rook-release/rook-ceph-cluster \
 Do not install the cluster chart until the operator deployment and discovery
 pods are healthy.
 
+`cluster-values-production-encrypted.yaml` is the production encryption
+overlay. Do not apply it while Ceph is `HEALTH_WARN`; it is a reviewed rolling
+change after all MONs, the manager and PGs are healthy. It enables native Ceph
+Messenger v2 encryption. The optional Mihomo component of
+`re8ch-network-fabric` is used only for public registry bootstrap and must
+remain excluded from Ceph daemon and CSI traffic. See
+`docs/cephfs-network-fabric-contract-2026-08-13.md` for the application
+boundary and promotion gates.
+
 ## Acceptance
 
 1. Three MONs are in quorum and exactly three OSDs are `up` and `in`.
