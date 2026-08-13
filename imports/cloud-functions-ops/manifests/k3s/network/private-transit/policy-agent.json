@@ -11,8 +11,8 @@
   "telemetryTimeoutSeconds": 0.5,
   "telemetryMaxAgeSeconds": 10,
   "gateways": [
-    {"name": "a1", "address": "192.0.2.18", "interface": "wg-pt-a1", "probeTable": 15101, "mark": "0x1", "staticWeight": 100, "capacityMbps": 1000},
-    {"name": "b1", "address": "192.0.2.208", "interface": "wg-pt-b1", "probeTable": 15102, "mark": "0x2", "staticWeight": 100, "capacityMbps": 1000}
+    {"name": "a1", "address": "192.0.2.18", "interface": "wg-pt-a1", "probeTable": 15101, "mark": "0x1", "staticWeight": 100, "capacityMbps": 200},
+    {"name": "b1", "address": "192.0.2.208", "interface": "wg-pt-b1", "probeTable": 15102, "mark": "0x2", "staticWeight": 100, "capacityMbps": 200}
   ],
   "targets": [
     {"name": "rancher-panel", "address": "192.0.2.63", "region": "guangzhou", "staticPreference": {"a1": 100, "b1": 100}},
