@@ -4,13 +4,17 @@
   "client": {
     "repository": "https://github.com/Woomou/network-decomplexer-ios",
     "branch": "codex/network-decomplexer-v0",
-    "head": "3570fd2",
-    "commits_ahead_of_upstream": 10,
+    "validated_through": "030f109",
+    "commits_ahead_of_upstream_at_validation": 13,
     "swift_tests": 5,
     "swift_tests_passed": 5,
     "go_test": "pass",
     "go_vet": "pass",
-    "xcode_full_build": "blocked_missing_ios_26_5_platform"
+    "xcode_full_build": "blocked_missing_ios_26_5_platform",
+    "ios_minimum": "18.0",
+    "macos_minimum": "15.0",
+    "macos_delivery": "mac_catalyst_configured_not_yet_archived",
+    "platform_contract": "pass"
   },
   "netbird_core": {
     "repository": "https://github.com/Woomou/network-decomplexer-netbird-core",
@@ -33,5 +37,12 @@
     "sha256": "2187d580ae7ece4c1c399e0723ed2adbf29f666a5d1a013d6746fb8cf9943ff5",
     "cn_domain_suffixes": 111293,
     "collapsed_cidrs": 5814
+  },
+  "infrastructure_reference": {
+    "mode": "development_only_git_submodule",
+    "path": "Infrastructure/cloud-functions",
+    "runtime_dependency": false,
+    "scheduled_update": "weekly_pull_request",
+    "private_repository_token_required": true
   }
 }
