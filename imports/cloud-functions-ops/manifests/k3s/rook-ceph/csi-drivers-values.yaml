@@ -19,12 +19,20 @@ drivers:
   cephfs:
     enabled: true
     name: rook-ceph.cephfs.csi.ceph.com
-    # The Ceph cluster requires msgr2 while wire encryption is disabled.
-    # Without this explicit mode, the kernel client attempts a V1 banner on
-    # port 3300 and every monitor closes the connection.
+    # Production uses native Ceph Messenger v2 secure mode. Without an
+    # explicit v2 mode, the kernel client may attempt a V1 banner on port 3300.
     kernelMountOptions:
-      ms_mode: crc
+      ms_mode: secure
     nodePlugin:
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

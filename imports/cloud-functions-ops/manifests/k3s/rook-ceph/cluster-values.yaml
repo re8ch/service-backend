@@ -27,6 +27,13 @@ cephClusterSpec:
     enabled: false
   network:
     provider: host
+    addressRanges:
+      # Stable daemon/client identity. Node InternalIP authority remains here.
+      public:
+        - 192.0.2.20/24
+      # OSD replication, recovery, backfill, and heartbeat data plane.
+      cluster:
+        - 192.0.2.65/24
     connections:
       encryption:
         enabled: false

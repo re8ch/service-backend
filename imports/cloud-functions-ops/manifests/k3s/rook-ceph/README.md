@@ -1,6 +1,6 @@
 # RE8CH CephFS pilot
 
-This directory introduces a deliberately small Rook/CephFS cluster on `restricted-node-6dc3f140f9`,
+This directory defines the production Rook/CephFS cluster on `restricted-node-6dc3f140f9`,
 `restricted-node-1eb0570f74`, and `restricted-node-296f36f2fb`. It is for cluster coordination files and
 cross-node shared state. It does not replace Pigsty, Harbor storage, etcd, or
 existing `local-path` volumes.
@@ -9,10 +9,10 @@ existing `local-path` volumes.
 
 - Rook and Ceph are pinned to v1.20.3 and v20.2.2 respectively.
 - Only explicitly listed devices are eligible. Never enable `useAllDevices`.
-- A1 and B1 each contribute one explicitly capped 200 GiB pilot OSD. restricted-node-6dc3f140f9
-  initially contributes a 20 GiB LV; it can be extended later because its
-  storage inventory is locally verified.
-- `cephfs-pilot` is not the default StorageClass and uses `Retain`.
+- A1, B1 and restricted-node-6dc3f140f9 each contribute one explicit 200 GiB OSD. restricted-node-6dc3f140f9's dedicated
+  LV was expanded from 20 GiB to 200 GiB after its free extents were verified.
+- `cephfs-pilot` and the production `cephfs-re8ch` class are non-default and
+  use `Retain`.
 - `storage.re8ch.com/ceph-pilot=true` identifies the three storage failure
   domains. `storage.re8ch.com/ceph-client=true` independently enables the CSI
   node client; a client label never authorizes disk discovery or OSD creation.
@@ -97,10 +97,10 @@ and tag it locally with the official registry name. Do not change the Helm
 values to use an unverified mirror globally; the multi-architecture index
 digest is expected to differ from the linux/amd64 manifest digest.
 
-The Ceph cluster requires messenger v2 but does not enable Ceph wire
-encryption. Therefore `csi-drivers-values.yaml` sets the kernel CephFS option
-`ms_mode=crc`. Without it, the kernel client can send a v1 banner to port 3300,
-which produces a misleading `no mds` mount error even when the MDS is healthy.
+The production Ceph cluster requires Messenger v2 secure mode. Therefore
+`csi-drivers-values.yaml` sets the kernel CephFS option `ms_mode=secure`.
+Without an explicit v2 mode, the kernel client can send a v1 banner to port
+3300, producing a misleading `no mds` mount error even when MDS is healthy.
 
 ## Install
 
@@ -136,7 +136,8 @@ boundary and promotion gates.
 
 1. Three MONs are in quorum and exactly three OSDs are `up` and `in`.
 2. `ceph status` is `HEALTH_OK` before the smoke workload starts.
-3. `cephfs-pilot` exists and `local-path` remains the only default class.
+3. `cephfs-pilot` and `cephfs-re8ch` exist and `local-path` remains the only
+   default class.
 4. The smoke DaemonSet has one pod on each pilot node and all three files are
    visible from every pod.
 5. Existing Qwen pods and public smoke endpoints remain healthy.
