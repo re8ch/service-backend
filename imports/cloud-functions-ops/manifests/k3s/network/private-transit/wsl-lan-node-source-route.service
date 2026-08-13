@@ -9,6 +9,8 @@ Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=/etc/re8ch/wsl-lan-node-source-route.env
 ExecStart=/usr/sbin/ip route replace ${PEER_NODE_IP}/32 dev wg-wsl-lan src ${LOCAL_NODE_IP}
+ExecStart=/usr/sbin/ip link set dev wg-wsl-lan mtu ${WSL_LAN_MTU}
+ExecStart=/usr/bin/wg set wg-wsl-lan peer ${PEER_WG_PUBLIC_KEY} allowed-ips ${PEER_ALLOWED_IPS}
 ExecStart=/usr/sbin/ip route flush cache
 ExecStop=-/usr/sbin/ip route del ${PEER_NODE_IP}/32 dev wg-wsl-lan src ${LOCAL_NODE_IP}
 
