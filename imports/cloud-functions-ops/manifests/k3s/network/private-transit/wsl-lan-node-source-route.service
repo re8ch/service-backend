@@ -1,0 +1,16 @@
+[Unit]
+Description=Preserve K3S Node InternalIP source over the A1/B1 fast path
+After=wg-quick@wg-wsl-lan.service zerotier-one.service
+Wants=wg-quick@wg-wsl-lan.service
+Before=k3s.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/re8ch/wsl-lan-node-source-route.env
+ExecStart=/usr/sbin/ip route replace ${PEER_NODE_IP}/32 dev wg-wsl-lan src ${LOCAL_NODE_IP}
+ExecStart=/usr/sbin/ip route flush cache
+ExecStop=-/usr/sbin/ip route del ${PEER_NODE_IP}/32 dev wg-wsl-lan src ${LOCAL_NODE_IP}
+
+[Install]
+WantedBy=multi-user.target
