@@ -9,7 +9,8 @@ Generated; do not edit.
 | restricted-node-1eb0570f74 | True | 192.0.2.18 |  | Ubuntu 24.04 LTS |
 | amdwsl-zt | Unknown | fc64:f13e:b4c:5bfb:7a0f::1 |  | Ubuntu 24.04.1 LTS |
 | artchais-nuclio-1 | True | 192.0.2.143 | 192.0.2.231 | Ubuntu 22.04 LTS |
-| restricted-node-296f36f2fb | Unknown | 192.0.2.208 |  | Ubuntu 24.04 LTS |
+| restricted-node-296f36f2fb | True | 192.0.2.208 |  | Ubuntu 24.04 LTS |
+| b1-wsl-zt-tmpfs-r640 | Unknown | 192.0.2.208 |  | Ubuntu 24.04 LTS |
 | harbor-registry | True | 192.0.2.203 | 192.0.2.210 | Ubuntu 26.04 LTS |
 | overseas-edge-50 | True | 192.0.2.122 | 192.0.2.3 | Ubuntu 24.04.3 LTS |
 | qianwen-nuclio-79 | Unknown | 192.0.2.141 | 192.0.2.110 | Ubuntu 24.04.2 LTS |
@@ -145,12 +146,12 @@ Generated; do not edit.
 | kagent | Service | my-first-k8s-agent | ClusterIP ports=8080 |
 | kagent | Service | readonly-k8s-diagnostic-agent | ClusterIP ports=8080 |
 | kagent | Service | wechat-content-operations-agent | ClusterIP ports=8080 |
-| kube-system | DaemonSet | cilium | 9/12 ready |
+| kube-system | DaemonSet | cilium | 9/13 ready |
 | kube-system | DaemonSet | re8ch-node-external-ip-agent | 7/9 ready |
-| kube-system | DaemonSet | traefik | 1/1 ready |
+| kube-system | DaemonSet | traefik | 1/2 ready |
 | kube-system | DaemonSet | traefik-r640 | 1/1 ready |
 | kube-system | Deployment | cilium-operator | 1/2 ready |
-| kube-system | Deployment | coredns | 1/2 ready |
+| kube-system | Deployment | coredns | 2/2 ready |
 | kube-system | Deployment | coredns-r640 | 0/0 ready |
 | kube-system | Deployment | hubble-relay | 1/1 ready |
 | kube-system | Deployment | hubble-ui | 1/1 ready |
@@ -220,10 +221,10 @@ Generated; do not edit.
 | netbird-access | Service | netbird-server | ClusterIP ports=80,9000,9090 |
 | netbird-access | Service | netbird-stun | NodePort ports=3478 |
 | nuclio | DaemonSet | ledger-accounting-agent-edge-proxy | 1/1 ready |
-| nuclio | DaemonSet | ledger-decision-r640-proxy | 1/1 ready |
+| nuclio | DaemonSet | ledger-decision-r640-proxy | 0/1 ready |
 | nuclio | Deployment | ledger-accounting-agent | 1/1 ready |
 | nuclio | Deployment | ledger-accounting-agent-reverse-tunnel | 1/1 ready |
-| nuclio | Deployment | ledger-decision-analysis | 1/1 ready |
+| nuclio | Deployment | ledger-decision-analysis | 0/1 ready |
 | nuclio | Deployment | ledger-decisions-static | 0/2 ready |
 | nuclio | Deployment | nuclio-anycam-model-gateway | 0/0 ready |
 | nuclio | Deployment | nuclio-bench-hello | 0/0 ready |
@@ -293,7 +294,7 @@ Generated; do not edit.
 | qianwen-ops | Deployment | cloudflare-api-edge-dns-controller | 1/1 ready |
 | qianwen-ops | Deployment | cloudflare-panel-dns-controller | 0/0 ready |
 | qianwen-ops | Deployment | cloudflare-pg-dns-controller | 1/1 ready |
-| qianwen-ops | Deployment | external-dns-cloudflare | 1/1 ready |
+| qianwen-ops | Deployment | external-dns-cloudflare | 0/1 ready |
 | qianwen-ops | Deployment | hyperglass | 1/1 ready |
 | qianwen-ops | Deployment | hyperglass-redis | 1/1 ready |
 | qianwen-ops | Deployment | loki-lite | 0/1 ready |
@@ -428,14 +429,12 @@ Generated; do not edit.
 | qwen | Service | test-mgr-postgrest-upstream | ClusterIP ports=3080 |
 | rook-ceph | DaemonSet | rook-ceph.cephfs.csi.ceph.com-nodeplugin | 1/1 ready |
 | rook-ceph | Deployment | ceph-csi-controller-manager | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-crashcollector-b1-wsl-zt | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-r640 | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-exporter-b1-wsl-zt | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-r640 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-a | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-b | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mgr-a | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-mon-a | 1/1 ready |
+| rook-ceph | Deployment | rook-ceph-mon-a | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-mon-b | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-mon-c | 0/1 ready |
 | rook-ceph | Deployment | rook-ceph-operator | 1/1 ready |
@@ -451,7 +450,7 @@ Generated; do not edit.
 | supabase-pg-re8ch | Deployment | supabase-kong | 1/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-meta | 1/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-realtime | 0/1 ready |
-| supabase-pg-re8ch | Deployment | supabase-rest | 1/1 ready |
+| supabase-pg-re8ch | Deployment | supabase-rest | 0/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-storage | 0/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-studio | 1/1 ready |
 | supabase-pg-re8ch | Ingress | supabase-pg-re8ch-studio | supabase.re8ch.com |
@@ -464,12 +463,12 @@ Generated; do not edit.
 | supabase-pg-re8ch | Service | supabase-rest | ClusterIP ports=3000 |
 | supabase-pg-re8ch | Service | supabase-storage | ClusterIP ports=5000 |
 | supabase-pg-re8ch | Service | supabase-studio | ClusterIP ports=3000 |
-| toolhive-system | Deployment | ops-admin-external | 2/2 ready |
-| toolhive-system | Deployment | ops-admin-managed | 1/1 ready |
-| toolhive-system | Deployment | ops-observe-external | 2/2 ready |
-| toolhive-system | Deployment | ops-observe-managed | 1/1 ready |
-| toolhive-system | Deployment | ops-operate-external | 2/2 ready |
-| toolhive-system | Deployment | ops-operate-managed | 1/1 ready |
+| toolhive-system | Deployment | ops-admin-external | 0/2 ready |
+| toolhive-system | Deployment | ops-admin-managed | 0/1 ready |
+| toolhive-system | Deployment | ops-observe-external | 0/2 ready |
+| toolhive-system | Deployment | ops-observe-managed | 0/1 ready |
+| toolhive-system | Deployment | ops-operate-external | 0/2 ready |
+| toolhive-system | Deployment | ops-operate-managed | 0/1 ready |
 | toolhive-system | Deployment | re8ch-admin-vmcp | 2/2 ready |
 | toolhive-system | Deployment | re8ch-tools-vmcp | 2/2 ready |
 | toolhive-system | Deployment | toolhive-cloud-ui | 1/1 ready |
