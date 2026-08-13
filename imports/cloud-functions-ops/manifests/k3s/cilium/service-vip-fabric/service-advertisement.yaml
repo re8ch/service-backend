@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2
+kind: CiliumBGPAdvertisement
+metadata:
+  name: re8ch-service-vip
+  labels:
+    networking.re8ch.com/advertisement: service-vip
+    networking.re8ch.com/stage: "0"
+spec:
+  advertisements:
+    - advertisementType: Service
+      service:
+        addresses:
+          - LoadBalancerIP
+      selector:
+        matchLabels:
+          networking.re8ch.com/lb-pool: service-vip
+          networking.re8ch.com/bgp-advertise: enabled
