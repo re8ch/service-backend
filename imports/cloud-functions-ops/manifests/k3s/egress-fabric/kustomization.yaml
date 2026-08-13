@@ -5,6 +5,7 @@ resources:
   - rbac.yaml
   - config.yaml
   - workloads.yaml
+  - node-egress-labels.yaml
   - network-policy.yaml
   - mobile-policy-api.yaml
 configMapGenerator:

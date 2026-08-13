@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-6dc3f140f9
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-1eb0570f74
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-296f36f2fb
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: amdwsl-zt
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-edge-50
+  labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct}
