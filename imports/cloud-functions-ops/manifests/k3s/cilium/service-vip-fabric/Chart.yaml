@@ -1,0 +1,9 @@
+apiVersion: v2
+name: re8ch-network-fabric
+description: Opt-in Cilium LB IPAM and BGP service-VIP fabric for RE8CH K3S
+type: application
+version: 0.1.0
+appVersion: "1"
+kubeVersion: ">=1.30.0-0"
+annotations:
+  networking.re8ch.com/scope: service-vip-only
