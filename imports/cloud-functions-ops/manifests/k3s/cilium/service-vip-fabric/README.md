@@ -1,0 +1,86 @@
+# RE8CH Cilium service-VIP fabric
+
+This directory defines the safe boundary between Cilium LB IPAM and the
+existing FRR transit fabrics. Stage 1 is live with an opt-in canary; production
+Services remain excluded unless they carry both advertisement labels.
+
+## Address and routing authority
+
+| Domain | Prefix | Authority | May be optimized by FRR |
+| --- | --- | --- | --- |
+| Kubernetes node identity | `192.0.2.20/24` | K3S Node InternalIP / ZeroTier | No |
+| A1/B1 and private-transit identity | `192.0.2.65/24` | Host loopback + FRR | Yes, service/transit use only |
+| Kubernetes Service VIP | `192.0.2.121/24` | Cilium LB IPAM | Yes |
+| Pod CIDR | `192.0.2.57/16` | Cilium/Kubernetes IPAM | No |
+
+The former incident happened when routing policy changed the next hop for the
+Node InternalIP domain. The service-VIP design avoids that failure mode by
+advertising only exact `/32` LoadBalancer VIPs from `192.0.2.121/24`.
+
+## Intended data path
+
+```text
+selected LoadBalancer Service
+  -> Cilium allocates one 10.251.0.x VIP
+  -> A1/B1 advertise that /32 to the ICP FRR handoff
+  -> restricted-node-6dc3f140f9 advertises it to both A1 and B1 over private-transit
+  -> FRR exports only 192.0.2.121/24 more-specifics into the service fabric
+  -> A1/B1 use the high-speed WSL LAN fabric; restricted-node-6dc3f140f9 uses the MikroTik edge
+```
+
+Cilium BGP is an advertisement control plane; it does not create the data path.
+The receiving FRR next hop must already reach the announcing node through a
+validated service/transit address. Never use a learned Node InternalIP route as
+that next hop.
+
+## Stage 0 (repository-only, no traffic change)
+
+- `address-domains.json` records the disjoint routing authorities.
+- `lb-ipam-disabled.yaml` creates no allocation because `disabled: true`.
+- `service-advertisement.yaml` selects only Services carrying both
+  `networking.re8ch.com/lb-pool=service-vip` and
+  `networking.re8ch.com/bgp-advertise=enabled`.
+- `frr-service-vip-policy.conf` is a neighbor-free policy fragment which
+  permits only exact Service VIP `/32` routes and rejects protected domains.
+- `validate.py` rejects an enabled pool, overlapping authority prefixes,
+  ClusterIP/ExternalIP/PodCIDR advertisements, or an overly broad selector.
+
+Creating these resources is not acceptance to apply them. Stage 0 must first
+pass the live read-only checks listed below.
+
+## Required live gates before a change
+
+1. All three embedded-etcd endpoints are healthy and their commit/index lag is
+   bounded.
+2. A1/B1 sustained bidirectional transfer still uses `wg-wsl-lan`; small ping
+   success alone is insufficient.
+3. `ip route get` for every other control-plane InternalIP has the documented
+   stable path. No FRR RIB/FIB entry may cover `192.0.2.20/24` or
+   `192.0.2.57/16`.
+4. The three embedded-etcd control-plane nodes and their Cilium agents are
+   Ready. Unrelated worker readiness is not a routing-change gate.
+5. FRR import/export policies on A1, B1 and restricted-node-6dc3f140f9/MikroTik accept only exact
+   `192.0.2.121/24` service `/32` routes from the Cilium handoff.
+6. The selected canary Service has at least two topology-spread Ready endpoints
+   and a PodDisruptionBudget.
+7. Existing product endpoints remain unchanged; this fabric does not modify
+   Qwen workloads or public DNS.
+
+## Stage 1 canary
+
+After the gates pass, enable the pool in a reviewed copy and label exactly one
+non-critical LoadBalancer Service. Use `externalTrafficPolicy: Local` only when
+the Service's real EndpointSlices correctly identify local Ready endpoints.
+With `Local`, Cilium withdraws the VIP from a node that has no local endpoint;
+with `Cluster`, every selected BGP node may advertise and an additional
+cross-node hop is possible.
+
+Do not aggregate the VIPs. Exact `/32` advertisements make withdrawal and
+black-hole analysis deterministic.
+
+## Rollback
+
+Remove the two opt-in Service labels first. Confirm the VIP `/32` is withdrawn
+from every FRR peer, then disable the pool. Do not delete or change ZeroTier,
+`wg-wsl-lan`, K3S Node addresses, Cilium PodCIDRs, public DNS, or the existing
+public-mesh/private-transit fallback while rolling back a canary.
