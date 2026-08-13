@@ -1,3 +1,4 @@
+{{- if .Values.fabric.enabled }}
 {{- $labels := .Values.advertisement.labels }}
 apiVersion: cilium.io/v2
 kind: CiliumLoadBalancerIPPool
@@ -97,4 +98,5 @@ spec:
   selector: {k8s-app: cilium}
   ports:
     - {name: cilium-health, port: 4240, targetPort: 4240, protocol: TCP}
+{{- end }}
 {{- end }}
