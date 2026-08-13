@@ -3283,6 +3283,8 @@ spec:
               readOnly: true
       volumes:
         - name: data
+          # Keep the SQLite database local until Grafana is moved to PostgreSQL.
+          # CephFS is retained for exports/backups, not the live SQLite file.
           hostPath:
             path: /var/lib/rancher/k3s/storage/pvc-64ae1b9e-53cb-49e6-9402-6b2d2dc7d5f6_qianwen-ops_panel-grafana-data
             type: Directory
@@ -3336,7 +3338,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: panel-grafana
+                name: panel-grafana-vip-origin
                 port:
                   name: http
   tls:
