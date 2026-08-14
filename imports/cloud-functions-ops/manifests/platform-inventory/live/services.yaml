@@ -354,8 +354,8 @@
       "namespace": "cephfs-smoke",
       "name": "cephfs-cross-node-smoke",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 3,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -653,10 +653,29 @@
     {
       "kind": "Deployment",
       "namespace": "egress-fabric",
+      "name": "network-decomplexer-policy-api",
+      "labels": {
+        "app.kubernetes.io/name": "network-decomplexer-policy-api"
+      },
+      "desired": 1,
+      "ready": 0
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "egress-fabric",
       "name": "path-controller",
       "labels": {},
       "desired": 1,
       "ready": 1
+    },
+    {
+      "kind": "Ingress",
+      "namespace": "egress-fabric",
+      "name": "network-decomplexer-policy-api-dns",
+      "labels": {},
+      "hosts": [
+        "agent.re8ch.com"
+      ]
     },
     {
       "kind": "Service",
@@ -671,11 +690,31 @@
     {
       "kind": "Service",
       "namespace": "egress-fabric",
+      "name": "mihomo-gateway",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        7890
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "egress-fabric",
       "name": "mihomo-node",
       "labels": {},
       "type": "ClusterIP",
       "ports": [
         7890
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "egress-fabric",
+      "name": "network-decomplexer-policy-api",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        80
       ]
     },
     {
@@ -987,7 +1026,7 @@
       "labels": {
         "app.kubernetes.io/name": "headlamp"
       },
-      "type": "NodePort",
+      "type": "LoadBalancer",
       "ports": [
         80
       ]
@@ -1106,7 +1145,7 @@
         "app.kubernetes.io/part-of": "kagent"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -1118,7 +1157,7 @@
         "app.kubernetes.io/part-of": "kagent"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -1275,8 +1314,8 @@
         "app.kubernetes.io/name": "cilium-agent",
         "app.kubernetes.io/part-of": "cilium"
       },
-      "desired": 13,
-      "ready": 9
+      "desired": 12,
+      "ready": 10
     },
     {
       "kind": "DaemonSet",
@@ -1293,7 +1332,7 @@
       "labels": {
         "app.kubernetes.io/name": "traefik"
       },
-      "desired": 2,
+      "desired": 1,
       "ready": 1
     },
     {
@@ -1315,7 +1354,7 @@
         "app.kubernetes.io/part-of": "cilium"
       },
       "desired": 2,
-      "ready": 1
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -1470,6 +1509,16 @@
       "type": "ClusterIP",
       "ports": [
         443
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "kube-system",
+      "name": "re8ch-cilium-lb-canary",
+      "labels": {},
+      "type": "LoadBalancer",
+      "ports": [
+        4240
       ]
     },
     {
@@ -2049,7 +2098,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2082,7 +2131,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2777,7 +2826,7 @@
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 9,
-      "ready": 7
+      "ready": 8
     },
     {
       "kind": "DaemonSet",
@@ -2857,7 +2906,7 @@
         "app.kubernetes.io/name": "external-dns"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -3198,7 +3247,7 @@
         "app.kubernetes.io/name": "panel-grafana",
         "app.kubernetes.io/part-of": "panel-observability"
       },
-      "type": "NodePort",
+      "type": "LoadBalancer",
       "ports": [
         3000
       ]
@@ -3214,6 +3263,18 @@
       "type": "ClusterIP",
       "ports": [
         8081
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "qianwen-ops",
+      "name": "panel-grafana-vip-origin",
+      "labels": {
+        "app.kubernetes.io/name": "panel-grafana"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        3000
       ]
     },
     {
@@ -4168,8 +4229,8 @@
       "namespace": "rook-ceph",
       "name": "rook-ceph.cephfs.csi.ceph.com-nodeplugin",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 5,
+      "ready": 4
     },
     {
       "kind": "Deployment",
@@ -4184,9 +4245,49 @@
     {
       "kind": "Deployment",
       "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-a1-wsl-zt",
+      "labels": {
+        "app": "rook-ceph-crashcollector"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-b1-wsl-zt",
+      "labels": {
+        "app": "rook-ceph-crashcollector"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
       "name": "rook-ceph-crashcollector-r640",
       "labels": {
         "app": "rook-ceph-crashcollector"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-a1-wsl-zt",
+      "labels": {
+        "app": "rook-ceph-exporter"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-b1-wsl-zt",
+      "labels": {
+        "app": "rook-ceph-exporter"
       },
       "desired": 1,
       "ready": 1
@@ -4247,7 +4348,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4259,7 +4360,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4271,7 +4372,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4306,7 +4407,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4318,7 +4419,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4534,7 +4635,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 0
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4556,7 +4657,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 0
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4567,7 +4668,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4578,7 +4679,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 0
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4589,7 +4690,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
