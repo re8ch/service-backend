@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: https-8443-compat
+  namespace: kube-system
+data:
+  haproxy.cfg: |
+    global
+      log stdout format raw local0
+      nbthread 1
+
+    defaults
+      mode tcp
+      log global
+      timeout connect 5s
+      timeout client 5m
+      timeout server 5m
+
+    frontend https_8443
+      bind :8443
+      default_backend local_https_443
+
+    backend local_https_443
+      option tcp-check
+      server local_https 127.0.0.1:443 check inter 2s fall 2 rise 2
+      server r640_ingress 192.0.2.183:443 check backup inter 2s fall 2 rise 2
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: https-8443-compat
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: https-8443-compat
+    app.kubernetes.io/part-of: public-edge
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: https-8443-compat
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 100%
+  template:
+    metadata:
+      annotations:
+        re8ch.com/config-revision: "2"
+      labels:
+        app.kubernetes.io/name: https-8443-compat
+        app.kubernetes.io/part-of: public-edge
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-cluster-critical
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - zan
+                      - vm-20-12-ubuntu
+                      - suxunji
+                      - muaya-ecs
+                      - muaya-lightweight
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: proxy
+          image: haproxy:3.2-alpine
+          imagePullPolicy: IfNotPresent
+          args:
+            - -W
+            - -db
+            - -f
+            - /usr/local/etc/haproxy/haproxy.cfg
+          ports:
+            - name: https-compat
+              containerPort: 8443
+              hostPort: 8443
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: https-compat
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            tcpSocket:
+              port: https-compat
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 99
+          volumeMounts:
+            - name: config
+              mountPath: /usr/local/etc/haproxy/haproxy.cfg
+              subPath: haproxy.cfg
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: https-8443-compat
