@@ -1,6 +1,6 @@
 # Rook v1.20.3 requires the separate ceph-csi-drivers chart. These values are
-# based on Rook's v1.20.3 recommended values and intentionally enable only the
-# CephFS driver used by this pilot.
+# based on Rook's v1.20.3 recommended values and enable the CephFS and RBD
+# drivers used by the storage fabric.
 operatorConfig:
   namespace: rook-ceph
   driverSpecDefaults:
@@ -10,12 +10,39 @@ operatorConfig:
       priorityClassName: system-node-critical
     controllerPlugin:
       priorityClassName: system-cluster-critical
-      replicas: 1
+      replicas: 2
 
 drivers:
   rbd:
-    enabled: false
+    enabled: true
     name: rook-ceph.rbd.csi.ceph.com
+    nodePlugin:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: storage.re8ch.com/ceph-client
+                    operator: In
+                    values: ["true"]
+    controllerPlugin:
+      replicas: 2
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [rook-ceph.rbd.csi.ceph.com-ctrlplugin]
+              topologyKey: kubernetes.io/hostname
   cephfs:
     enabled: true
     name: rook-ceph.cephfs.csi.ceph.com
@@ -42,7 +69,8 @@ drivers:
                     operator: In
                     values: ["true"]
     controllerPlugin:
-      replicas: 1
+      # Provisioning must survive one scheduled control-plane restart.
+      replicas: 2
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -50,7 +78,15 @@ drivers:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: ["restricted-node-6dc3f140f9"]
+                    values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [rook-ceph.cephfs.csi.ceph.com-ctrlplugin]
+              topologyKey: kubernetes.io/hostname
   nfs:
     enabled: false
     name: rook-ceph.nfs.csi.ceph.com
