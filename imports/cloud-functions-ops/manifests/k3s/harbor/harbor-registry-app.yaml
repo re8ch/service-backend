@@ -152,7 +152,7 @@ spec:
         app.kubernetes.io/component: log
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -184,11 +184,11 @@ spec:
       volumes:
         - name: harbor-log-dir
           hostPath:
-            path: /var/log/harbor
+            path: /var/lib/rancher/harbor/log
             type: DirectoryOrCreate
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory
 ---
 apiVersion: apps/v1
@@ -211,7 +211,7 @@ spec:
         app.kubernetes.io/component: postgresql
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -241,7 +241,7 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
         - name: db-shm
           emptyDir:
@@ -268,7 +268,7 @@ spec:
         app.kubernetes.io/component: redis
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -293,7 +293,7 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
 ---
 apiVersion: apps/v1
@@ -316,7 +316,7 @@ spec:
         app.kubernetes.io/component: registry
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -352,11 +352,11 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory
 ---
 apiVersion: apps/v1
@@ -379,7 +379,7 @@ spec:
         app.kubernetes.io/component: registryctl
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -418,11 +418,11 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory
 ---
 apiVersion: apps/v1
@@ -445,7 +445,7 @@ spec:
         app.kubernetes.io/component: core
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -495,11 +495,11 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory
 ---
 apiVersion: apps/v1
@@ -522,7 +522,7 @@ spec:
         app.kubernetes.io/component: portal
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -548,7 +548,7 @@ spec:
       volumes:
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory
 ---
 apiVersion: apps/v1
@@ -571,7 +571,7 @@ spec:
         app.kubernetes.io/component: jobservice
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -607,11 +607,11 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory
 ---
 apiVersion: apps/v1
@@ -634,7 +634,7 @@ spec:
         app.kubernetes.io/component: proxy
     spec:
       nodeSelector:
-        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -652,10 +652,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-              hostPort: 80
             - name: https
               containerPort: 8443
-              hostPort: 443
+              hostPort: 28443
           readinessProbe:
             tcpSocket:
               port: https
@@ -677,9 +676,9 @@ spec:
       volumes:
         - name: harbor-data
           hostPath:
-            path: /data/harbor
+            path: /var/lib/rancher/harbor/data
             type: Directory
         - name: harbor-config-root
           hostPath:
-            path: /root/harbor-install/harbor/common/config
+            path: /var/lib/rancher/harbor/config
             type: Directory

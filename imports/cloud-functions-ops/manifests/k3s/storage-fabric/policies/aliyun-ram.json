@@ -1,0 +1,49 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "oss:ListBuckets"
+      ],
+      "Resource": [
+        "acs:oss:*:*:*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "oss:GetBucketInfo",
+        "oss:GetBucketLocation",
+        "oss:ListObjects",
+        "oss:ListObjectVersions",
+        "oss:ListMultipartUploads"
+      ],
+      "Resource": [
+        "acs:oss:*:*:*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "oss:GetObject",
+        "oss:GetObjectMeta"
+      ],
+      "Resource": [
+        "acs:oss:*:*:*/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "oss:PutObject",
+        "oss:DeleteObject",
+        "oss:AbortMultipartUpload",
+        "oss:ListParts"
+      ],
+      "Resource": [
+        "acs:oss:*:*:filesof/_re8ch-csi-probe/*"
+      ]
+    }
+  ]
+}

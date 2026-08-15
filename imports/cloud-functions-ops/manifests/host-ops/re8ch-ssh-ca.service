@@ -1,0 +1,15 @@
+[Unit]
+Description=RE8CH SSH user CA initialization
+ConditionPathExists=!/var/lib/re8ch-ssh-ca/ssh_user_ca
+
+[Service]
+Type=oneshot
+ExecStart=/opt/re8ch/cloud-functions/manifests/host-ops/install-ssh-user-ca.sh ca-init
+User=root
+Group=root
+UMask=0077
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

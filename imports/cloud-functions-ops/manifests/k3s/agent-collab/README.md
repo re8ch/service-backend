@@ -1,4 +1,32 @@
-# Agent Collab Teable Cloud Attempt
+# Agent Collab / restricted-node-6dc3f140f9 AI Platform
+
+本目录同时保存当前 restricted-node-6dc3f140f9 AI 智能表格平台和 2026-07-02 的历史失败记录。
+当前运行路径以 `teable-pg-re8ch.yaml` 及下列恢复清单为准。
+
+## Current restricted-node-6dc3f140f9 Runtime
+
+- Teable 和 Redis 固定在 `restricted-node-6dc3f140f9`。
+- `r640-local-dns.yaml` 提供 restricted-node-6dc3f140f9 本地 CoreDNS；节点 kubelet 通过
+  `r640-k3s-local-dns.config.yaml` 使用该 DNS。
+- `teable-edge-relay.yaml` 在 ICP 节点把 Teable restricted-node-6dc3f140f9 NodePort 转给面板
+  Nginx；`teable-panel-nginx.conf` 是面板端配置的受控副本。
+- `wechat-content-orchestrator.yaml` 提供 Teable → Kagent → Codex MCP
+  编排入口。
+- `../llm-gateway/litellm.yaml` 提供 DeepSeek/Kimi 的统一协议、虚拟密钥、
+  用量和费用记录；Kagent 与 Codex app-server 均通过该网关调用模型。
+- `codex-app-server-litellm.yaml` 固化 Codex app-server 的 LiteLLM
+  Responses API 配置和无密钥工作负载定义。
+- `kagent-ui-r640.patch.yaml` 修复 Kagent UI 启动窗口和只读 Nginx
+  日志目录。
+- `scripts/bootstrap-teable-content-operations.sh` 幂等创建运营表和首期
+  GnuCash 任务。
+
+完整故障追溯和恢复顺序见
+`docs/ai-table-agent-orchestration-recovery-2026-07-29.md`。2026-08-02 的
+真实会话闭环、数据库与控制面迁移关系见
+`docs/teable-kagent-litellm-codex-closure-2026-08-02.md`。
+
+## Historical Teable Cloud Attempt
 
 This folder records the July 2, 2026 Teable cloud deployment attempt for the
 `agent-collab` tenant. It is intentionally documentation-first: the live Teable

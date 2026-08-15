@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: authentik-postgres-primary-controller, namespace: auth}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: authentik-postgres-primary-controller, namespace: auth}
+rules:
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    resourceNames: [authentik-postgres-primary]
+    verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: authentik-postgres-primary-controller, namespace: auth}
+subjects: [{kind: ServiceAccount, name: authentik-postgres-primary-controller, namespace: auth}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: authentik-postgres-primary-controller}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: authentik-postgres-primary, namespace: auth}
+spec:
+  ports: [{name: postgres, port: 5432, targetPort: 5432}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: authentik-postgres-primary
+  namespace: auth
+  labels: {kubernetes.io/service-name: authentik-postgres-primary}
+addressType: IPv4
+ports: [{name: postgres, protocol: TCP, port: 5432}]
+endpoints:
+  - addresses: [192.0.2.79]
+    conditions: {ready: true, serving: true, terminating: false}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: authentik-postgres-primary-controller, namespace: auth}
+data:
+  reconcile.py: |
+    import json
+    import os
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    candidates = os.environ.get("PATRONI_CANDIDATES", "192.0.2.183,192.0.2.172,192.0.2.79").split(",")
+    leader = None
+    for address in candidates:
+        try:
+            with urllib.request.urlopen(f"http://{address}:8008/primary", timeout=2) as response:
+                payload = json.load(response)
+                if response.status == 200 and payload.get("role") in ("primary", "master"):
+                    leader = address
+                    break
+        except (OSError, urllib.error.URLError, ValueError):
+            continue
+    if not leader:
+        raise SystemExit("no writable Patroni primary discovered; preserving the current EndpointSlice")
+
+    namespace = open("/var/run/secrets/kubernetes.io/serviceaccount/namespace", encoding="utf-8").read().strip()
+    token = open("/var/run/secrets/kubernetes.io/serviceaccount/token", encoding="utf-8").read().strip()
+    ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    url = f"https://kubernetes.default.svc/apis/discovery.k8s.io/v1/namespaces/{namespace}/endpointslices/authentik-postgres-primary"
+    body = json.dumps({"endpoints": [{"addresses": [leader], "conditions": {"ready": True, "serving": True, "terminating": False}}]}).encode()
+    request = urllib.request.Request(url, data=body, method="PATCH", headers={
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/merge-patch+json",
+    })
+    with urllib.request.urlopen(request, context=ssl.create_default_context(cafile=ca), timeout=5) as response:
+        if response.status not in (200, 201):
+            raise SystemExit(f"EndpointSlice patch failed: HTTP {response.status}")
+    print(f"authentik-postgres-primary -> {leader}")
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: authentik-postgres-primary-controller, namespace: auth}
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 300
+      template:
+        metadata: {labels: {app.kubernetes.io/name: authentik-postgres-primary-controller}}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: authentik-postgres-primary-controller
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          containers:
+            - name: reconcile
+              image: docker.io/library/python:3.12-alpine
+              command: [python, /app/reconcile.py]
+              env:
+                - {name: PATRONI_CANDIDATES, value: "192.0.2.183,192.0.2.172,192.0.2.79"}
+              volumeMounts: [{name: script, mountPath: /app, readOnly: true}]
+              resources:
+                requests: {cpu: 5m, memory: 16Mi}
+                limits: {cpu: 50m, memory: 64Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 65534
+                capabilities: {drop: [ALL]}
+          volumes: [{name: script, configMap: {name: authentik-postgres-primary-controller}}]

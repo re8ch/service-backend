@@ -1,10 +1,13 @@
 global:
   image:
-    repository: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/server
+    repository: ghcr.io/goauthentik/server
     tag: "2026.5.3"
     pullPolicy: IfNotPresent
   nodeSelector:
-    kubernetes.io/hostname: rancher-panel
+    # Identity secrets and verification workloads must remain on the
+    # organization-owned restricted-node-6dc3f140f9 trust boundary. MikroTik continues to manage
+    # the restricted-node-6dc3f140f9 network plane independently of this workload placement.
+    kubernetes.io/hostname: restricted-node-6dc3f140f9
   tolerations: []
   env:
     - name: AUTHENTIK_SECRET_KEY
@@ -17,6 +20,15 @@ global:
         secretKeyRef:
           name: authentik-secrets
           key: AUTHENTIK_POSTGRESQL__PASSWORD
+    - name: AUTHENTIK_REDIS__HOST
+      value: authentik-redis.auth.svc.cluster.local
+    - name: AUTHENTIK_REDIS__PORT
+      value: "6379"
+    - name: AUTHENTIK_REDIS__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-redis
+          key: password
     - name: AUTHENTIK_BOOTSTRAP_EMAIL
       valueFrom:
         secretKeyRef:
@@ -37,12 +49,12 @@ authentik:
   log_level: info
   secret_key: env://AUTHENTIK_SECRET_KEY
   outposts:
-    container_image_base: mjhsdd6xkcym4k-ghcr.xuanyuan.run/goauthentik/%(type)s:%(version)s
-  # Authentik is intentionally disabled until its storage path is adapted to the
-  # RE8CH db-rw/db-ro PostgREST gateway contract. Do not point this chart at
-  # Pigsty PostgreSQL wire-protocol hosts.
+    container_image_base: ghcr.io/goauthentik/%(type)s:%(version)s
+  # Authentik is pinned to the organization-owned restricted-node-6dc3f140f9 trust boundary, so use
+  # the designated pg-re8ch primary directly. The private pgwrite hostname has
+  # previously drifted to a replica and must not be trusted for identity writes.
   postgresql:
-    host: disabled-no-direct-postgres-use-db-rw-pgrest
+    host: authentik-postgres-primary.auth.svc.cluster.local
     port: 5432
     name: auth
     user: authentik
@@ -55,6 +67,7 @@ redis:
   enabled: false
 
 server:
+  # Keep the normal release fail-closed until the one-replica canary passes.
   replicas: 0
   resources:
     requests:

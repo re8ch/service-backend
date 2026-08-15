@@ -1,0 +1,12 @@
+[Unit]
+Description=Attach the dedicated RE8CH Ceph pilot VHDX to WSL
+After=local-fs.target
+Before=k3s.service
+
+[Service]
+Type=oneshot
+ExecStart=/mnt/c/Windows/System32/wsl.exe --mount "D:\\RE8CH-Ceph\\ceph-pilot-osd.vhdx" --vhd --bare
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -6,7 +6,11 @@ metadata:
   labels:
     app.kubernetes.io/name: teable
     app.kubernetes.io/part-of: agent-collab
+    public.re8ch.com/external-dns: enabled
   annotations:
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
@@ -19,6 +23,8 @@ spec:
             pathType: Prefix
             backend:
               service:
+                # Public clients use https://teable.re8ch.com:8443 while the
+                # carrier blocks the dedicated line's standard HTTPS port.
                 name: teable
                 port:
                   name: http

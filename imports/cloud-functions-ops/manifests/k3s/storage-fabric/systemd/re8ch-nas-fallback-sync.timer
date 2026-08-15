@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodic CephFS to local NAS fallback synchronization
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=30min
+RandomizedDelaySec=3min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

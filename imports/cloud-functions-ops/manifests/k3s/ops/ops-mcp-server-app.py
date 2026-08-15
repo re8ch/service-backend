@@ -1,9 +1,11 @@
 import base64
+import concurrent.futures
 import contextvars
 import hashlib
 import hmac
 import json
 import os
+import ipaddress
 import re
 import secrets
 import socket
@@ -15,30 +17,51 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-TENANT = os.getenv("TENANT_NAMESPACE", "qwen")
+OPS_TOOL_PROFILE = os.getenv("OPS_TOOL_PROFILE", "legacy").lower()
+DEFAULT_TENANT = "qwen" if OPS_TOOL_PROFILE == "legacy" else "platform"
+TENANT = os.getenv("TENANT_NAMESPACE", DEFAULT_TENANT)
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.getenv("LISTEN_PORT", "8088"))
 OPS_TOKEN = os.getenv("OPS_TOKEN", "")
 OPS_ADMIN_TOKEN = os.getenv("OPS_ADMIN_TOKEN", "")
 OPS_AUTH_SECRET_NAMESPACE = os.getenv("OPS_AUTH_SECRET_NAMESPACE", "ops")
 OPS_AUTH_SECRET_NAME = os.getenv("OPS_AUTH_SECRET_NAME", "ops-mcp-auth")
-KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.67:6443")
+TRUST_LOOPBACK_PROXY = os.getenv("TRUST_LOOPBACK_PROXY", "false").lower() == "true"
+TRUST_PROXY_CIDRS = tuple(
+    ipaddress.ip_network(value.strip())
+    for value in os.getenv("TRUST_PROXY_CIDRS", "").split(",")
+    if value.strip()
+)
+KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.18:6443")
 REGISTRY_PUBLIC = os.getenv("REGISTRY_PUBLIC", "https://registry.re8ch.com")
 REGISTRY_ALT = os.getenv("REGISTRY_ALT", "https://registry.ynzs.com")
 GRAFANA_PUBLIC = os.getenv("GRAFANA_PUBLIC", "https://grafana.re8ch.com")
-GRAFANA_INTERNAL = os.getenv("GRAFANA_INTERNAL", "http://192.0.2.67:3001/ui")
 HEADLAMP_PUBLIC = os.getenv("HEADLAMP_PUBLIC", "https://headlamp.re8ch.com")
+TOOLHIVE_REGISTRY_URL = os.getenv(
+    "TOOLHIVE_REGISTRY_URL",
+    "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080/v1/registries",
+)
+CLOUDBEAVER_PUBLIC = os.getenv("CLOUDBEAVER_PUBLIC", "https://dbgui.re8ch.com")
+HARBOR_HEALTH_URL = os.getenv(
+    "HARBOR_HEALTH_URL",
+    "http://core.harbor.svc.cluster.local:8080/api/v2.0/health",
+)
+GRAFANA_INTERNAL = os.getenv("GRAFANA_INTERNAL", "http://192.0.2.67:3001/ui")
 HARBOR_URL = os.getenv("HARBOR_URL", REGISTRY_PUBLIC).rstrip("/")
 HARBOR_API_URL = os.getenv("HARBOR_API_URL", HARBOR_URL).rstrip("/")
 HARBOR_SKIP_TLS_VERIFY = os.getenv("HARBOR_SKIP_TLS_VERIFY", "").lower() in ("1", "true", "yes")
 HARBOR_USERNAME = os.getenv("HARBOR_USERNAME", "")
 HARBOR_PASSWORD = os.getenv("HARBOR_PASSWORD", "")
+AUTHENTIK_API_URL = os.getenv(
+    "AUTHENTIK_API_URL", "http://authentik-server.auth.svc.cluster.local/api/v3"
+).rstrip("/")
+AUTHENTIK_API_TOKEN = os.getenv("AUTHENTIK_API_TOKEN", "")
 TENANT_HARBOR_PROJECT = os.getenv("TENANT_HARBOR_PROJECT", TENANT)
 TENANT_HARBOR_SECRET = os.getenv("TENANT_HARBOR_SECRET", "harbor-%s-admin" % TENANT_HARBOR_PROJECT)
 TENANT_HARBOR_ROBOT = os.getenv("TENANT_HARBOR_ROBOT", "robot$%s+%s-admin-20260606" % (TENANT_HARBOR_PROJECT, TENANT_HARBOR_PROJECT))
 METRICS_URL = os.getenv("METRICS_URL", "http://127.0.0.1:30428").rstrip("/")
 TENANT_METRICS_TENANT = os.getenv("TENANT_METRICS_TENANT", TENANT_HARBOR_PROJECT)
-TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT).split(",") if x.strip()]
+TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT if OPS_TOOL_PROFILE == "legacy" else "").split(",") if x.strip()]
 TENANT_DB_NAMES = [x.strip() for x in os.getenv("TENANT_DB_NAMES", "").split(",") if x.strip()]
 TENANT_GRAFANA_DASHBOARD = os.getenv("TENANT_GRAFANA_DASHBOARD", "")
 TENANT_GRAFANA_TOKEN_SECRET = os.getenv("TENANT_GRAFANA_TOKEN_SECRET", "grafana-%s-viewer" % TENANT_METRICS_TENANT)
@@ -70,6 +93,81 @@ KUBE_API = "https://%s:%s" % (
     os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"),
     os.getenv("KUBERNETES_SERVICE_PORT", "443"),
 )
+
+PLATFORM_NAMESPACE_DOMAINS = {
+    "kube-system": ("cluster-control", "Headlamp, Hubble, Grafana"),
+    "cilium-secrets": ("cluster-control", "Headlamp"),
+    "opentelemetry-operator": ("observability-control", "Grafana"),
+    "qianwen-ops": ("observability-control", "Grafana, Hyperglass"),
+    "observability-ai": ("observability-control", "Grafana, Robusta"),
+    "opencost": ("observability-data", "OpenCost, Grafana"),
+    "ops": ("platform-control", "Headlamp, CloudBeaver"),
+    "toolhive-system": ("tool-control", "ToolHive Registry, Grafana"),
+    "mcp-registry": ("tool-control", "MCP Registry"),
+    "kagent": ("agent-control", "KAgent UI, Grafana"),
+    "opensandbox-system": ("agent-runtime", "Headlamp, Grafana"),
+    "codex-app-server": ("agent-runtime", "Codex console, Grafana"),
+    "codex-platform": ("agent-runtime", "Codex console, Grafana"),
+    "llm-gateway": ("model-control", "LiteLLM Admin, Grafana"),
+    "ai-gateway": ("model-data", "Grafana"),
+    "auth": ("identity-control", "Authentik, Headlamp"),
+    "dex": ("identity-control", "Dex, Headlamp"),
+    "harbor": ("artifact-control", "Harbor, Grafana"),
+    "image": ("artifact-data", "Registry Image UI, Grafana"),
+    "registry-image": ("artifact-data", "Harbor, Headlamp"),
+    "pigsty-external": ("database-routing", "CloudBeaver, Pigsty, Grafana"),
+    "supabase-pg-re8ch": ("database-platform", "Supabase Studio, CloudBeaver, Grafana"),
+    "neo4j": ("database-platform", "Neo4j Browser, Grafana"),
+    "fleet": ("device-control", "Fleet UI, Grafana"),
+    "nuclio": ("application-control", "Nuclio Dashboard, Grafana"),
+    "headlamp": ("human-control", "Headlamp"),
+    "agent-collab": ("agent-data", "Headlamp, Grafana"),
+    "anycam": ("application-data", "Headlamp, Grafana"),
+    "anysite": ("application-data", "Headlamp, Grafana"),
+    "bench": ("application-data", "Headlamp, Grafana"),
+    "cardcat": ("application-data", "Headlamp, Grafana"),
+    "comfy-agent": ("agent-data", "Headlamp, Grafana"),
+    "compocv": ("application-data", "Headlamp, Grafana"),
+    "coroot": ("observability-control", "Coroot, Grafana"),
+    "ledger": ("application-data", "Headlamp, CloudBeaver, Neo4j Browser, Grafana"),
+    "phonaid": ("application-data", "Headlamp, Grafana"),
+    "qwen": ("application-data", "Nuclio Dashboard, Headlamp, Grafana"),
+}
+
+DOMAIN_NATIVE_AUTHORITY = {
+    "cluster-control": "Kubernetes RBAC, admission policy and controller-specific authorization",
+    "observability-control": "Grafana organizations/service accounts, product RBAC and Kubernetes RBAC",
+    "observability-data": "tenant metrics/log proxies, OpenCost OAuth and product-native authorization",
+    "platform-control": "Kubernetes RBAC and the managed service native administrator role",
+    "tool-control": "ToolHive CR RBAC, tool allowlists, workload identity and Registry publication policy",
+    "agent-control": "KAgent native APIs, workload identity and Kubernetes RBAC",
+    "agent-runtime": "OpenSandbox/Codex runtime authorization and Kubernetes RBAC",
+    "agent-data": "application identity, namespace RBAC and per-session/per-tenant data authorization",
+    "model-control": "LiteLLM teams, virtual keys, budgets and administrator roles",
+    "model-data": "gateway identity, model route policy and provider authorization",
+    "identity-control": "Authentik/Dex roles, groups, policies and Kubernetes OIDC RBAC",
+    "artifact-control": "Harbor project roles, robot scopes and Kubernetes image-pull authorization",
+    "artifact-data": "Harbor project/repository roles and signed image publication policy",
+    "database-routing": "PostgreSQL roles/database grants, PgBouncer policy and Kubernetes Secret RBAC",
+    "database-platform": "database-native roles/RLS plus product-native authorization and Kubernetes RBAC",
+    "device-control": "Fleet teams/roles, enrollment policy and Kubernetes RBAC",
+    "application-control": "controller CR RBAC and application-native project/gateway authorization",
+    "application-data": "namespace RBAC, application identity and backing-store native roles/RLS",
+    "human-control": "human OIDC groups, Kubernetes RBAC and GUI-native roles",
+}
+
+SYSTEM_NAMESPACES = {"default", "kube-node-lease", "kube-public"}
+MANAGED_PLATFORM_RESTARTS = {
+    ("auth", "authentik-server"),
+    ("auth", "authentik-worker"),
+    ("llm-gateway", "litellm"),
+    ("kagent", "kagent-controller"),
+    ("opensandbox-system", "opensandbox-server"),
+    ("fleet", "fleet"),
+    ("supabase-pg-re8ch", "supabase-studio"),
+    ("nuclio", "nuclio-dashboard"),
+    ("codex-platform", "codex-session-web"),
+}
 
 class KubeError(RuntimeError):
     def __init__(self, status, message):
@@ -193,6 +291,21 @@ Safety boundary:
 - k8s_api_proxy only forwards Kubernetes API paths. The caller-provided kubeToken controls Kubernetes RBAC; Ops MCP only solves public-to-ZT/K3s API reachability.
 - postgres_sql_proxy executes lightweight SQL from the Ops MCP network position. PostgreSQL username/password or tenant DB Secret role still controls database permissions; normal Ops tokens are limited to cataloged tenant databases.
 """
+
+if OPS_TOOL_PROFILE != "legacy":
+    GUIDE = GUIDE.replace("Ops MCP for re8ch/qwen", "Ops MCP for the RE8CH platform")
+    GUIDE = GUIDE.replace(
+        "- HTTP API and MCP both require Authorization: Bearer <ops-token>\n- You can also send X-Ops-Token: <ops-token>",
+        "- Codex authenticates once with Dex OAuth at the ToolHive vMCP edge.\n- The internal Ops MCP backend accepts only its Kubernetes workload identity.",
+    )
+    GUIDE = GUIDE.replace(
+        "- Tenant namespace: qwen\n- Normal token writes are limited to restarting deployments in qwen.",
+        "- This platform profile is independent of every tenant, including qwen.\n- Write tools are restricted by the published allowlist and Dex groups.",
+    )
+    GUIDE = GUIDE.replace(
+        "- Admin token can reconcile Dex static users and tenant RBAC.",
+        "- The admin profile can reconcile Dex static users and tenant RBAC.",
+    )
 
 def read_file(path):
     with open(path, "r", encoding="utf-8") as handle:
@@ -872,6 +985,827 @@ def restart_deployment(name):
     )
     return {"tenant": current_tenant(), "namespace": current_namespace(), "deployment": name, "generation": doc.get("metadata", {}).get("generation")}
 
+def restart_managed_platform_deployment(args):
+    args = args or {}
+    namespace = str(args.get("namespace") or "").strip()
+    deployment = str(args.get("deployment") or "").strip()
+    if (namespace, deployment) not in MANAGED_PLATFORM_RESTARTS:
+        raise ValueError("deployment is not in the reviewed platform restart allowlist")
+    restarted_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    patch = {"spec": {"template": {"metadata": {"annotations": {
+        "ops.re8ch.com/restartedAt": restarted_at,
+        "ops.re8ch.com/restartedBy": "toolhive-platform-operate",
+    }}}}}
+    doc = kube_request(
+        "PATCH",
+        "/apis/apps/v1/namespaces/%s/deployments/%s" % (
+            urllib.parse.quote(namespace), urllib.parse.quote(deployment)
+        ),
+        patch,
+        "application/strategic-merge-patch+json",
+    )
+    return {
+        "namespace": namespace,
+        "deployment": deployment,
+        "restartedAt": restarted_at,
+        "generation": doc.get("metadata", {}).get("generation"),
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def scale_managed_platform_deployment(args):
+    args = args or {}
+    namespace = str(args.get("namespace") or "").strip()
+    deployment = str(args.get("deployment") or "").strip()
+    replicas = args.get("replicas")
+    if (namespace, deployment) not in MANAGED_PLATFORM_RESTARTS:
+        raise ValueError("deployment is not in the reviewed platform scale allowlist")
+    if replicas not in (0, 1):
+        raise ValueError("replicas must be exactly 0 or 1")
+    changed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    path = "/apis/apps/v1/namespaces/%s/deployments/%s" % (
+        urllib.parse.quote(namespace), urllib.parse.quote(deployment)
+    )
+    before = kube_request("GET", path)
+    previous = before.get("spec", {}).get("replicas", 0)
+    patch = {
+        "metadata": {"annotations": {
+            "ops.re8ch.com/scaledAt": changed_at,
+            "ops.re8ch.com/scaledBy": "toolhive-platform-operate",
+        }},
+        "spec": {"replicas": replicas},
+    }
+    doc = kube_request("PATCH", path, patch, "application/strategic-merge-patch+json")
+    return {
+        "namespace": namespace,
+        "deployment": deployment,
+        "previousReplicas": previous,
+        "requestedReplicas": replicas,
+        "changedAt": changed_at,
+        "generation": doc.get("metadata", {}).get("generation"),
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_managed_platform_operation_status():
+    results = []
+    for namespace, deployment in sorted(MANAGED_PLATFORM_RESTARTS):
+        path = "/apis/apps/v1/namespaces/%s/deployments/%s" % (
+            urllib.parse.quote(namespace), urllib.parse.quote(deployment)
+        )
+        try:
+            doc = kube_request("GET", path)
+            meta, spec, status = doc.get("metadata", {}), doc.get("spec", {}), doc.get("status", {})
+            annotations = meta.get("annotations", {})
+            template_annotations = spec.get("template", {}).get("metadata", {}).get("annotations", {})
+            results.append({
+                "namespace": namespace,
+                "deployment": deployment,
+                "desired": spec.get("replicas", 0),
+                "ready": status.get("readyReplicas", 0),
+                "available": status.get("availableReplicas", 0),
+                "generation": meta.get("generation"),
+                "observedGeneration": status.get("observedGeneration"),
+                "lastScale": {
+                    "at": annotations.get("ops.re8ch.com/scaledAt"),
+                    "by": annotations.get("ops.re8ch.com/scaledBy"),
+                },
+                "lastRestart": {
+                    "at": template_annotations.get("ops.re8ch.com/restartedAt"),
+                    "by": template_annotations.get("ops.re8ch.com/restartedBy"),
+                },
+            })
+        except KubeError as exc:
+            results.append({"namespace": namespace, "deployment": deployment, "error": str(exc), "httpStatus": exc.status})
+    return {
+        "targets": results,
+        "summary": {
+            "total": len(results),
+            "available": sum(item.get("available", 0) > 0 for item in results),
+            "scaledToZero": sum(item.get("desired") == 0 for item in results),
+            "withRecordedOperation": sum(bool(item.get("lastScale", {}).get("at") or item.get("lastRestart", {}).get("at")) for item in results),
+        },
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_nuclio_function_status():
+    docs = kube_request("GET", "/apis/nuclio.io/v1beta1/nucliofunctions").get("items", [])
+    functions = []
+    for doc in docs:
+        meta, spec, status = doc.get("metadata", {}), doc.get("spec", {}), doc.get("status", {})
+        functions.append({
+            "namespace": meta.get("namespace"),
+            "name": meta.get("name"),
+            "generation": meta.get("generation"),
+            "state": status.get("state") or "unknown",
+            "message": str(status.get("message") or "")[:240],
+            "image": spec.get("image"),
+            "minReplicas": spec.get("minReplicas"),
+            "maxReplicas": spec.get("maxReplicas"),
+            "nodeSelector": spec.get("nodeSelector", {}),
+            "internalInvocationUrls": status.get("internalInvocationUrls", []),
+            "containerImage": status.get("containerImage"),
+        })
+    functions.sort(key=lambda item: (item["namespace"] or "", item["name"] or ""))
+    states = {}
+    for item in functions:
+        states[item["state"]] = states.get(item["state"], 0) + 1
+    return {
+        "summary": {"total": len(functions), "states": states},
+        "functions": functions,
+        "redaction": "Environment variables, Secret references, annotations and last-applied configuration are intentionally omitted.",
+        "humanTracking": {
+            "nuclioDashboard": "http://nuclio-dashboard.nuclio.svc.cluster.local:8070",
+            "headlamp": HEADLAMP_PUBLIC,
+            "grafana": GRAFANA_PUBLIC,
+        },
+    }
+
+def diagnose_nuclio_function(args):
+    args = args or {}
+    namespace = validate_k8s_name(str(args.get("namespace") or ""), "namespace")
+    name = validate_k8s_name(str(args.get("name") or ""), "name")
+    function_path = "/apis/nuclio.io/v1beta1/namespaces/%s/nucliofunctions/%s" % (
+        urllib.parse.quote(namespace), urllib.parse.quote(name)
+    )
+    function = kube_request("GET", function_path)
+    spec, function_status = function.get("spec", {}), function.get("status", {})
+    pods = kube_request("GET", "/api/v1/namespaces/%s/pods" % urllib.parse.quote(namespace)).get("items", [])
+    deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % urllib.parse.quote(namespace)).get("items", [])
+    events = kube_request("GET", "/api/v1/namespaces/%s/events" % urllib.parse.quote(namespace)).get("items", [])
+
+    def belongs(meta):
+        labels = meta.get("labels", {})
+        owner_names = {owner.get("name", "") for owner in meta.get("ownerReferences", [])}
+        return (
+            labels.get("nuclio.io/name") == name or
+            labels.get("nuclio.io/function-name") == name or
+            labels.get("nuclio.io/function-name") == "nuclio-%s" % name or
+            name in owner_names or "nuclio-%s" % name in owner_names or
+            meta.get("name", "").startswith("nuclio-%s-" % name)
+        )
+
+    matching_pods = [pod for pod in pods if belongs(pod.get("metadata", {}))]
+    matching_deployments = [deployment for deployment in deployments if belongs(deployment.get("metadata", {}))]
+    involved_names = {name, "nuclio-%s" % name}
+    involved_names.update(item.get("metadata", {}).get("name") for item in matching_pods + matching_deployments)
+    event_rows = []
+    for event in events:
+        involved = event.get("involvedObject", {})
+        if involved.get("name") not in involved_names:
+            continue
+        event_rows.append({
+            "type": event.get("type"),
+            "reason": event.get("reason"),
+            "message": str(event.get("message") or "")[:400],
+            "count": event.get("count", 1),
+            "lastTimestamp": event.get("lastTimestamp") or event.get("eventTime"),
+            "object": "%s/%s" % (involved.get("kind", ""), involved.get("name", "")),
+        })
+    event_rows = event_rows[-20:]
+    pod_rows = []
+    for pod in matching_pods:
+        meta, status = pod.get("metadata", {}), pod.get("status", {})
+        waiting = []
+        for container in status.get("containerStatuses", []):
+            state = container.get("state", {}).get("waiting")
+            if state:
+                waiting.append({"container": container.get("name"), "reason": state.get("reason"), "message": str(state.get("message") or "")[:300]})
+        scheduled = next((condition for condition in status.get("conditions", []) if condition.get("type") == "PodScheduled"), {})
+        pod_rows.append({
+            "name": meta.get("name"),
+            "phase": status.get("phase"),
+            "node": spec_node if (spec_node := pod.get("spec", {}).get("nodeName")) else None,
+            "scheduled": scheduled.get("status"),
+            "scheduleReason": scheduled.get("reason"),
+            "scheduleMessage": str(scheduled.get("message") or "")[:400],
+            "waiting": waiting,
+        })
+    deployment_rows = []
+    for deployment in matching_deployments:
+        meta, deployment_spec, status = deployment.get("metadata", {}), deployment.get("spec", {}), deployment.get("status", {})
+        deployment_rows.append({
+            "name": meta.get("name"),
+            "desired": deployment_spec.get("replicas", 0),
+            "ready": status.get("readyReplicas", 0),
+            "available": status.get("availableReplicas", 0),
+            "conditions": [{"type": item.get("type"), "status": item.get("status"), "reason": item.get("reason"), "message": str(item.get("message") or "")[:300]} for item in status.get("conditions", [])],
+        })
+    return {
+        "namespace": namespace,
+        "name": name,
+        "function": {
+            "state": function_status.get("state") or "unknown",
+            "message": str(function_status.get("message") or "")[:500],
+            "image": spec.get("image"),
+            "minReplicas": spec.get("minReplicas"),
+            "maxReplicas": spec.get("maxReplicas"),
+            "nodeSelector": spec.get("nodeSelector", {}),
+        },
+        "deployments": deployment_rows,
+        "pods": pod_rows,
+        "recentEvents": event_rows,
+        "redaction": "Environment, Secret and annotation data are omitted.",
+        "humanTracking": {"nuclioDashboard": "http://nuclio-dashboard.nuclio.svc.cluster.local:8070", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_nuclio_capacity_status():
+    nodes = kube_request("GET", "/api/v1/nodes").get("items", [])
+    pods = kube_request("GET", "/api/v1/pods").get("items", [])
+
+    def is_nuclio_pod(pod):
+        meta = pod.get("metadata", {})
+        labels = meta.get("labels", {})
+        return (
+            meta.get("name", "").startswith("nuclio-") or
+            labels.get("nuclio.io/class") == "function" or
+            "nuclio.io/function-name" in labels
+        )
+
+    nuclio_pods = [pod for pod in pods if is_nuclio_pod(pod)]
+    rows = []
+    for node in nodes:
+        meta, spec, status = node.get("metadata", {}), node.get("spec", {}), node.get("status", {})
+        if meta.get("labels", {}).get("pigsty.cc/workload") != "nuclio":
+            continue
+        name = meta.get("name")
+        ready_condition = next((item for item in status.get("conditions", []) if item.get("type") == "Ready"), {})
+        node_pods = [pod for pod in nuclio_pods if pod.get("spec", {}).get("nodeName") == name]
+        rows.append({
+            "node": name,
+            "ready": ready_condition.get("status", "Unknown"),
+            "readyReason": ready_condition.get("reason"),
+            "readyMessage": str(ready_condition.get("message") or "")[:300],
+            "unschedulable": bool(spec.get("unschedulable", False)),
+            "taints": [{"key": item.get("key"), "value": item.get("value"), "effect": item.get("effect")} for item in spec.get("taints", [])],
+            "allocatable": {key: status.get("allocatable", {}).get(key) for key in ("cpu", "memory", "pods")},
+            "nuclioPods": {
+                "total": len(node_pods),
+                "running": sum(pod.get("status", {}).get("phase") == "Running" for pod in node_pods),
+                "ready": sum(any(condition.get("type") == "Ready" and condition.get("status") == "True" for condition in pod.get("status", {}).get("conditions", [])) for pod in node_pods),
+                "terminating": sum(bool(pod.get("metadata", {}).get("deletionTimestamp")) for pod in node_pods),
+            },
+        })
+    rows.sort(key=lambda item: item["node"] or "")
+    pending = []
+    for pod in nuclio_pods:
+        if pod.get("spec", {}).get("nodeName"):
+            continue
+        meta, status = pod.get("metadata", {}), pod.get("status", {})
+        scheduled = next((item for item in status.get("conditions", []) if item.get("type") == "PodScheduled"), {})
+        pending.append({
+            "namespace": meta.get("namespace"),
+            "pod": meta.get("name"),
+            "reason": scheduled.get("reason"),
+            "message": str(scheduled.get("message") or "")[:400],
+        })
+    return {
+        "summary": {
+            "nodes": len(rows),
+            "readySchedulableNodes": sum(item["ready"] == "True" and not item["unschedulable"] for item in rows),
+            "nuclioPods": len(nuclio_pods),
+            "pendingPods": len(pending),
+        },
+        "nodes": rows,
+        "pendingPods": pending[:50],
+        "rolloutGate": "Do not start a rollout unless at least one matching node is Ready, schedulable, tolerates the workload, and has sufficient allocatable capacity.",
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_litellm_gateway_status():
+    base = "http://litellm.llm-gateway.svc.cluster.local:4000"
+    checks = []
+    readiness = None
+    for name, path in (("liveness", "/health/liveliness"), ("readiness", "/health/readiness")):
+        started = time.monotonic()
+        try:
+            request = urllib.request.Request(base + path, headers={"User-Agent": "re8ch-ops-mcp-health/1.0"})
+            with urllib.request.urlopen(request, timeout=5) as response:
+                raw = response.read(4096).decode("utf-8", "replace")
+                status_code = response.status
+            parsed = parse_maybe_json(raw)
+            if name == "readiness" and isinstance(parsed, dict):
+                readiness = {"status": parsed.get("status"), "db": parsed.get("db")}
+            checks.append({"name": name, "status": "healthy" if status_code == 200 else "degraded", "httpStatus": status_code, "latencyMs": int((time.monotonic() - started) * 1000)})
+        except Exception as exc:
+            checks.append({"name": name, "status": "unreachable", "httpStatus": None, "latencyMs": int((time.monotonic() - started) * 1000), "error": "%s: %s" % (type(exc).__name__, str(exc)[:200])})
+    deployment = kube_request("GET", "/apis/apps/v1/namespaces/llm-gateway/deployments/litellm")
+    meta, spec, status = deployment.get("metadata", {}), deployment.get("spec", {}), deployment.get("status", {})
+    return {
+        "checks": checks,
+        "readiness": readiness,
+        "deployment": {
+            "generation": meta.get("generation"),
+            "observedGeneration": status.get("observedGeneration"),
+            "desired": spec.get("replicas", 0),
+            "ready": status.get("readyReplicas", 0),
+            "available": status.get("availableReplicas", 0),
+        },
+        "protectedNativeAPIs": ["/health", "/health/services", "/model/info", "/v1/models", "/key/info", "/team/list"],
+        "authorization": "Protected model, provider, key, team and budget APIs require LiteLLM native credentials and are not proxied by this tool.",
+        "redaction": "Master key, provider keys, database URL, UI credentials and ConfigMap contents are not read.",
+        "humanTracking": {"litellmAdmin": "https://litellm.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_fleet_control_status():
+    base = "http://fleet.fleet.svc.cluster.local:8080"
+    health = probe_http("fleet-health", "device-control", base + "/healthz", "Fleet public liveness")
+    version = None
+    version_error = None
+    try:
+        request = urllib.request.Request(base + "/version", headers={"User-Agent": "re8ch-ops-mcp-health/1.0"})
+        with urllib.request.urlopen(request, timeout=5) as response:
+            parsed = parse_maybe_json(response.read(4096).decode("utf-8", "replace"))
+        if isinstance(parsed, dict):
+            version = {key: parsed.get(key) for key in ("version", "branch", "revision", "go_version", "build_date")}
+    except Exception as exc:
+        version_error = "%s: %s" % (type(exc).__name__, str(exc)[:200])
+    deployments = kube_request("GET", "/apis/apps/v1/namespaces/fleet/deployments").get("items", [])
+    statefulsets = kube_request("GET", "/apis/apps/v1/namespaces/fleet/statefulsets").get("items", [])
+    workloads = []
+    for items, kind in ((deployments, "Deployment"), (statefulsets, "StatefulSet")):
+        for item in items:
+            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+            workloads.append({
+                "kind": kind,
+                "name": meta.get("name"),
+                "desired": spec.get("replicas", 0),
+                "ready": status.get("readyReplicas", 0),
+                "available": status.get("availableReplicas", status.get("currentReplicas", 0)),
+            })
+    workloads.sort(key=lambda item: (item["kind"] or "", item["name"] or ""))
+    return {
+        "health": health,
+        "version": version,
+        "versionError": version_error,
+        "workloads": workloads,
+        "protectedNativeAPIs": ["/api/v1/fleet/config", "/api/v1/fleet/hosts", "/api/v1/fleet/queries", "/api/v1/fleet/activities"],
+        "authorization": "Host inventory, queries, policies, activities and campaigns require Fleet native authorization and are not proxied.",
+        "redaction": "Fleet API tokens, device data, policies, query results and MySQL/Redis credentials are not read.",
+        "humanTracking": {"fleet": "https://fleet.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_supabase_platform_status():
+    namespace = "supabase-pg-re8ch"
+    studio = probe_http("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human administration UI")
+    deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
+    endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
+    workload_rows = []
+    for item in deployments:
+        meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+        workload_rows.append({
+            "name": meta.get("name"),
+            "desired": spec.get("replicas", 0),
+            "ready": status.get("readyReplicas", 0),
+            "available": status.get("availableReplicas", 0),
+            "generation": meta.get("generation"),
+            "observedGeneration": status.get("observedGeneration"),
+        })
+    workload_rows.sort(key=lambda item: item["name"] or "")
+    endpoint_rows = []
+    for item in endpoints:
+        meta = item.get("metadata", {})
+        ready = sum(len(subset.get("addresses", [])) for subset in item.get("subsets", []))
+        not_ready = sum(len(subset.get("notReadyAddresses", [])) for subset in item.get("subsets", []))
+        ports = sorted({port.get("port") for subset in item.get("subsets", []) for port in subset.get("ports", []) if port.get("port") is not None})
+        endpoint_rows.append({"service": meta.get("name"), "readyAddresses": ready, "notReadyAddresses": not_ready, "ports": ports})
+    endpoint_rows.sort(key=lambda item: item["service"] or "")
+    return {
+        "studio": studio,
+        "summary": {
+            "workloads": len(workload_rows),
+            "readyWorkloads": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workload_rows),
+            "unreadyWorkloads": sum(item["ready"] < item["desired"] for item in workload_rows),
+            "servicesWithReadyEndpoints": sum(item["readyAddresses"] > 0 for item in endpoint_rows),
+        },
+        "workloads": workload_rows,
+        "endpoints": endpoint_rows,
+        "protectedNativeAPIs": ["Auth users/sessions", "PostgREST data/schema", "Storage objects/buckets", "Realtime channels", "Meta schema administration", "Kong routes/keys"],
+        "authorization": "Supabase JWT/anon/service-role policies, PostgreSQL roles/RLS and component-native authorization remain authoritative; this tool does not proxy them.",
+        "redaction": "JWT secrets, anon/service-role keys, database URLs, credentials, users, rows, buckets, objects and schema contents are not read.",
+        "humanTracking": {"supabaseStudio": "https://supabase.re8ch.com", "cloudbeaver": CLOUDBEAVER_PUBLIC, "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_neo4j_platform_status():
+    namespace = "neo4j"
+    browser = probe_http("neo4j-browser", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j Browser/API reachability without graph credentials")
+    statefulsets = kube_request("GET", "/apis/apps/v1/namespaces/%s/statefulsets" % namespace).get("items", [])
+    endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
+    workloads = []
+    for item in statefulsets:
+        meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+        desired = spec.get("replicas", 0)
+        ready = status.get("readyReplicas", 0)
+        workloads.append({
+            "name": meta.get("name"),
+            "desired": desired,
+            "ready": ready,
+            "current": status.get("currentReplicas", 0),
+            "updated": status.get("updatedReplicas", 0),
+            "scaledToZero": desired == 0,
+            "unready": desired > ready,
+        })
+    workloads.sort(key=lambda item: item["name"] or "")
+    endpoint_rows = []
+    for item in endpoints:
+        ready = sum(len(subset.get("addresses", [])) for subset in item.get("subsets", []))
+        not_ready = sum(len(subset.get("notReadyAddresses", [])) for subset in item.get("subsets", []))
+        endpoint_rows.append({"service": item.get("metadata", {}).get("name"), "readyAddresses": ready, "notReadyAddresses": not_ready})
+    endpoint_rows.sort(key=lambda item: item["service"] or "")
+    return {
+        "browser": browser,
+        "summary": {
+            "instances": len(workloads),
+            "readyInstances": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workloads),
+            "unreadyInstances": sum(item["unready"] for item in workloads),
+            "scaledToZeroInstances": sum(item["scaledToZero"] for item in workloads),
+            "servicesWithReadyEndpoints": sum(item["readyAddresses"] > 0 for item in endpoint_rows),
+        },
+        "workloads": workloads,
+        "endpoints": endpoint_rows,
+        "protectedNativeAPIs": ["Bolt/Cypher queries", "transaction endpoints", "database/user/role administration", "graph data and schema"],
+        "authorization": "Neo4j users, roles and database privileges remain authoritative; Kubernetes readiness does not grant graph access.",
+        "redaction": "Neo4j credentials, Cypher text/results, nodes, relationships, properties, indexes, constraints and configuration are not read.",
+        "humanTracking": {"neo4jBrowser": "https://neo4j.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_identity_platform_status():
+    started = time.monotonic()
+    dex = probe_http("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery without identity credentials")
+    gateway = probe_http("re8ch-auth-gateway", "identity-data", "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/healthz", "Application authentication gateway liveness")
+    workloads = []
+    endpoint_rows = []
+    for namespace in ("dex", "auth"):
+        deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
+        endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
+        for item in deployments:
+            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+            desired = spec.get("replicas", 0)
+            ready = status.get("readyReplicas", 0)
+            workloads.append({
+                "namespace": namespace,
+                "name": meta.get("name"),
+                "desired": desired,
+                "ready": ready,
+                "available": status.get("availableReplicas", 0),
+                "scaledToZero": desired == 0,
+                "unready": desired > ready,
+            })
+        for item in endpoints:
+            ready = sum(len(subset.get("addresses", [])) for subset in item.get("subsets", []))
+            not_ready = sum(len(subset.get("notReadyAddresses", [])) for subset in item.get("subsets", []))
+            endpoint_rows.append({"namespace": namespace, "service": item.get("metadata", {}).get("name"), "readyAddresses": ready, "notReadyAddresses": not_ready})
+    workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
+    endpoint_rows.sort(key=lambda item: (item["namespace"], item["service"] or ""))
+    return {
+        "identityAuthority": "Dex",
+        "probes": [dex, gateway],
+        "summary": {
+            "workloads": len(workloads),
+            "readyWorkloads": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workloads),
+            "unreadyWorkloads": sum(item["unready"] for item in workloads),
+            "scaledToZeroWorkloads": sum(item["scaledToZero"] for item in workloads),
+            "servicesWithReadyEndpoints": sum(item["readyAddresses"] > 0 for item in endpoint_rows),
+        },
+        "workloads": workloads,
+        "endpoints": endpoint_rows,
+        "protectedNativeAPIs": ["Dex users/groups", "static clients/connectors", "tokens/sessions", "OAuth/OIDC configuration"],
+        "authorization": "Dex groups and application gateway identity checks remain authoritative; Kubernetes readiness is observation only.",
+        "redaction": "Users, groups, sessions, tokens, client secrets, signing keys, credentials, policy contents and identity claims are not read.",
+        "humanTracking": {"dex": "https://dex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_agent_runtime_status():
+    namespaces = ("kagent", "opensandbox-system", "codex-platform")
+    workloads = []
+    for namespace in namespaces:
+        deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
+        for item in deployments:
+            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+            desired = spec.get("replicas", 0)
+            ready = status.get("readyReplicas", 0)
+            workloads.append({
+                "namespace": namespace,
+                "name": meta.get("name"),
+                "desired": desired,
+                "ready": ready,
+                "available": status.get("availableReplicas", 0),
+                "scaledToZero": desired == 0,
+                "unready": desired > ready,
+            })
+    workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
+    remotes = kube_request("GET", "/apis/kagent.dev/v1alpha2/namespaces/kagent/remotemcpservers").get("items", [])
+    remote_rows = []
+    for item in remotes:
+        conditions = item.get("status", {}).get("conditions", [])
+        remote_rows.append({
+            "name": item.get("metadata", {}).get("name"),
+            "accepted": any(condition.get("type") == "Accepted" and condition.get("status") == "True" for condition in conditions),
+            "discoveredTools": len(item.get("status", {}).get("discoveredTools", [])),
+            "conditions": [{key: condition.get(key) for key in ("type", "status", "reason")} for condition in conditions],
+        })
+    remote_rows.sort(key=lambda item: item["name"] or "")
+    sandbox_kinds = {}
+    for plural in ("batchsandboxes", "pools", "sandboxsnapshots"):
+        items = kube_request("GET", "/apis/sandbox.opensandbox.io/v1alpha1/%s" % plural).get("items", [])
+        phases = {}
+        for item in items:
+            phase = item.get("status", {}).get("phase") or item.get("status", {}).get("state") or "unknown"
+            phases[phase] = phases.get(phase, 0) + 1
+        sandbox_kinds[plural] = {"total": len(items), "phases": phases}
+    probe_specs = [
+        ("kagent-controller", "agent-control", "http://kagent-controller.kagent.svc.cluster.local:8083/healthz", "KAgent controller reachability"),
+        ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability"),
+        ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session UI/API reachability"),
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(probe_specs)) as pool:
+        probes = [future.result() for future in [pool.submit(probe_http, *spec) for spec in probe_specs]]
+    return {
+        "probes": probes,
+        "summary": {
+            "workloads": len(workloads),
+            "readyWorkloads": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workloads),
+            "unreadyWorkloads": sum(item["unready"] for item in workloads),
+            "scaledToZeroWorkloads": sum(item["scaledToZero"] for item in workloads),
+            "remoteMCPServers": len(remote_rows),
+            "acceptedRemoteMCPServers": sum(item["accepted"] for item in remote_rows),
+        },
+        "workloads": workloads,
+        "remoteMCPServers": remote_rows,
+        "sandboxResources": sandbox_kinds,
+        "protectedNativeAPIs": ["Agent prompts/memory/conversations", "model/provider credentials", "sandbox files/processes/commands/output", "Codex session contents and credentials"],
+        "authorization": "KAgent, OpenSandbox and Codex native APIs plus Kubernetes RBAC remain authoritative; RemoteMCP acceptance and readiness do not grant session or execution access.",
+        "redaction": "Prompts, messages, memory, model configuration, tokens, credentials, sandbox names/specifications/files/processes/output and Codex session contents are not read.",
+        "humanTracking": {"kagent": "https://api-shanghai217.re8ch.com/kagent/", "codex": "https://codex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_observability_platform_status():
+    fixed_deployments = {
+        "qianwen-ops": {
+            "loki-lite", "panel-blackbox-exporter", "panel-grafana", "panel-grafana-renderer",
+            "panel-pigsty-vmalert", "panel-re8ch-vmalert", "panel-tenant-logs-proxy",
+            "panel-tenant-metrics-proxy", "panel-victoria-logs", "panel-victoria-metrics",
+        },
+        "observability-ai": {"robusta-forwarder", "robusta-runner", "trial-gateway-collector"},
+        "opencost": {"opencost"},
+    }
+    workloads = []
+    for namespace, names in fixed_deployments.items():
+        items = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
+        for item in items:
+            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+            if meta.get("name") not in names:
+                continue
+            desired, ready = spec.get("replicas", 0), status.get("readyReplicas", 0)
+            workloads.append({"kind": "Deployment", "namespace": namespace, "name": meta.get("name"), "desired": desired, "ready": ready, "available": status.get("availableReplicas", 0), "unready": desired > ready})
+    daemonsets = kube_request("GET", "/apis/apps/v1/namespaces/qianwen-ops/daemonsets").get("items", [])
+    for item in daemonsets:
+        meta, status = item.get("metadata", {}), item.get("status", {})
+        if meta.get("name") not in {"alloy-nuclio-logs", "panel-harbor-node-vmagent", "panel-node-exporter", "panel-qwen-functions-vmagent", "panel-vlagent"}:
+            continue
+        desired, ready = status.get("desiredNumberScheduled", 0), status.get("numberReady", 0)
+        workloads.append({"kind": "DaemonSet", "namespace": "qianwen-ops", "name": meta.get("name"), "desired": desired, "ready": ready, "available": status.get("numberAvailable", 0), "unready": desired > ready})
+    workloads.sort(key=lambda item: (item["namespace"], item["kind"], item["name"] or ""))
+    probe_specs = [
+        ("grafana", "observability-control", "http://panel-grafana.qianwen-ops.svc.cluster.local:3000/api/health", "Grafana API/database health"),
+        ("victoria-metrics", "observability-data", "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/health", "VictoriaMetrics health"),
+        ("vmalert-re8ch", "observability-control", "http://panel-re8ch-vmalert.qianwen-ops.svc.cluster.local:8880/health", "platform VMAlert health"),
+        ("vmalert-pigsty", "observability-control", "http://panel-pigsty-vmalert.qianwen-ops.svc.cluster.local:8880/health", "Pigsty VMAlert health"),
+        ("victoria-logs", "observability-data", "http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/health", "VictoriaLogs health"),
+        ("opencost", "cost-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost API health"),
+        ("otel-collector", "telemetry-control", "http://trial-gateway-collector-monitoring.observability-ai.svc.cluster.local:8888/metrics", "OTLP Collector self-metrics reachability"),
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(probe_specs)) as pool:
+        probes = [future.result() for future in [pool.submit(probe_http, *spec) for spec in probe_specs]]
+    metrics = {"totalTargets": None, "downTargets": None, "error": None}
+    try:
+        for field, expression in (("totalTargets", "count(up)"), ("downTargets", "count(up == 0)")):
+            url = "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/api/v1/query?" + urllib.parse.urlencode({"query": expression})
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "re8ch-ops-mcp-observe/1.0"}), timeout=6) as response:
+                parsed = json.loads(response.read(65536).decode("utf-8", "replace"))
+            result = parsed.get("data", {}).get("result", [])
+            metrics[field] = int(float(result[0]["value"][1])) if result else 0
+    except Exception as exc:
+        metrics["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+    cluster_cost = {"window": "1h", "available": False, "error": None}
+    try:
+        url = "http://opencost.opencost.svc.cluster.local:9003/allocation/compute?window=1h&aggregate=cluster"
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "re8ch-ops-mcp-observe/1.0"}), timeout=10) as response:
+            parsed = json.loads(response.read(1048576).decode("utf-8", "replace"))
+        data = parsed.get("data", [])
+        allocation = next(iter(data[0].values())) if data and isinstance(data[0], dict) and data[0] else None
+        if allocation:
+            cluster_cost.update({
+                "available": True, "start": allocation.get("start"), "end": allocation.get("end"),
+                "cpuCoreUsageAverage": allocation.get("cpuCoreUsageAverage"), "cpuCoreRequestAverage": allocation.get("cpuCoreRequestAverage"),
+                "cpuEfficiency": allocation.get("cpuEfficiency"), "ramByteUsageAverage": allocation.get("ramByteUsageAverage"),
+                "ramByteRequestAverage": allocation.get("ramByteRequestAverage"), "ramEfficiency": allocation.get("ramEfficiency"),
+                "totalEfficiency": allocation.get("totalEfficiency"), "totalCost": allocation.get("totalCost"),
+            })
+    except Exception as exc:
+        cluster_cost["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+    return {
+        "probes": probes,
+        "summary": {"workloads": len(workloads), "readyWorkloads": sum(not item["unready"] for item in workloads), "unreadyWorkloads": sum(item["unready"] for item in workloads)},
+        "workloads": workloads,
+        "metricsTargets": metrics,
+        "clusterCostOneHour": cluster_cost,
+        "protectedNativeAPIs": ["arbitrary PromQL/LogsQL", "raw logs/traces/profiles", "alert labels/annotations/history", "Grafana dashboards/datasources/users/service accounts", "namespace/workload cost detail", "Robusta findings and destinations"],
+        "authorization": "Grafana organizations/service accounts, tenant metrics/log proxies, OpenCost OAuth, Robusta destinations and Kubernetes RBAC remain authoritative.",
+        "redaction": "Datasource credentials, arbitrary queries, raw series labels, logs, traces, alert contents, tenant/workload costs, Robusta findings and notification destinations are not read.",
+        "humanTracking": {"grafana": GRAFANA_PUBLIC, "openCost": "https://api-shanghai217.re8ch.com/opencost/", "headlamp": HEADLAMP_PUBLIC},
+    }
+
+def get_artifact_platform_status():
+    workloads = []
+    for namespace in ("harbor", "image"):
+        deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
+        for item in deployments:
+            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+            desired, ready = spec.get("replicas", 0), status.get("readyReplicas", 0)
+            workloads.append({"namespace": namespace, "name": meta.get("name"), "desired": desired, "ready": ready, "available": status.get("availableReplicas", 0), "scaledToZero": desired == 0, "unready": desired > ready})
+    workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
+    health_probe = probe_http("harbor-core", "artifact-control", HARBOR_HEALTH_URL, "Harbor core component health")
+    harbor_health = {"status": None, "components": [], "error": None}
+    try:
+        request = urllib.request.Request(HARBOR_HEALTH_URL, headers={"User-Agent": "re8ch-ops-mcp-observe/1.0"})
+        with urllib.request.urlopen(request, timeout=5) as response:
+            parsed = json.loads(response.read(65536).decode("utf-8", "replace"))
+        harbor_health["status"] = parsed.get("status")
+        harbor_health["components"] = sorted(
+            [{"name": item.get("name"), "status": item.get("status")} for item in parsed.get("components", [])],
+            key=lambda item: item["name"] or "",
+        )
+    except Exception as exc:
+        harbor_health["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+    return {
+        "probe": health_probe,
+        "harborHealth": harbor_health,
+        "summary": {
+            "workloads": len(workloads),
+            "readyWorkloads": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workloads),
+            "unreadyWorkloads": sum(item["unready"] for item in workloads),
+            "scaledToZeroWorkloads": sum(item["scaledToZero"] for item in workloads),
+            "healthyHarborComponents": sum(item["status"] == "healthy" for item in harbor_health["components"]),
+        },
+        "workloads": workloads,
+        "publicationFlow": ["build/sign", "push to tenant project", "scan", "approve/promote", "deploy by digest", "observe rollout"],
+        "protectedNativeAPIs": ["project/repository contents", "artifact manifests/layers", "vulnerability findings", "replication jobs", "users/members/robots", "retention/scanner configuration"],
+        "authorization": "Harbor project roles, repository permissions, robot scopes, scanner policy and Kubernetes image-pull authorization remain authoritative.",
+        "redaction": "Robot secrets, registry credentials, image-pull Secrets, artifact manifests/layers, SBOMs, vulnerability details and user/member data are not read.",
+        "humanTracking": {"harbor": REGISTRY_PUBLIC, "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def get_database_routing_status():
+    endpoint_slices = kube_request("GET", "/apis/discovery.k8s.io/v1/namespaces/pigsty-external/endpointslices").get("items", [])
+    slice_rows = []
+    for item in endpoint_slices:
+        meta = item.get("metadata", {})
+        endpoints = item.get("endpoints", [])
+        ready = sum(endpoint.get("conditions", {}).get("ready") is not False for endpoint in endpoints)
+        not_ready = len(endpoints) - ready
+        slice_rows.append({
+            "service": meta.get("labels", {}).get("kubernetes.io/service-name") or meta.get("name"),
+            "dataRole": meta.get("labels", {}).get("re8ch.com/data-role"),
+            "readyEndpoints": ready,
+            "notReadyEndpoints": not_ready,
+            "ports": sorted({port.get("name") for port in item.get("ports", []) if port.get("name")}),
+        })
+    slice_rows.sort(key=lambda item: item["service"] or "")
+    probe_specs = []
+    for route, details in PG_SERVICE_ROUTES.items():
+        if details.get("host"):
+            probe_specs.append((probe_tcp, ("pigsty-%s" % route, "database-routing", details["host"], details["port"], details["purpose"])))
+        else:
+            probe_specs.append((probe_http, ("pigsty-%s" % route, "database-routing", details["url"], details["purpose"])))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(probe_specs)) as pool:
+        route_probes = [future.result() for future in [pool.submit(fn, *args) for fn, args in probe_specs]]
+    cloudbeaver = probe_http("cloudbeaver", "database-control", CLOUDBEAVER_PUBLIC, "human SQL administration UI reachability")
+    return {
+        "routes": sorted(route_probes, key=lambda item: item["name"]),
+        "endpointSlices": slice_rows,
+        "cloudbeaver": cloudbeaver,
+        "summary": {
+            "routes": len(route_probes),
+            "reachableRoutes": sum(item["status"] in {"healthy", "reachable"} for item in route_probes),
+            "unreachableRoutes": sum(item["status"] not in {"healthy", "reachable"} for item in route_probes),
+            "serviceRoutes": len(slice_rows),
+            "serviceRoutesWithReadyEndpoint": sum(item["readyEndpoints"] > 0 for item in slice_rows),
+        },
+        "routePolicy": {
+            "write": "pgwrite HA service for migrations/admin/runtime writes; direct instance only by explicit DBA choice",
+            "read": "regional pgread service after readiness verification",
+            "pool": "PgBouncer for high-churn clients after role compatibility verification",
+            "http": "PostgREST gateway with database roles/RLS; HTTP reachability does not grant row access",
+        },
+        "protectedNativeAPIs": ["arbitrary SQL", "database/schema/table/row contents", "PostgREST OpenAPI schema", "roles/grants", "CloudBeaver connections/users", "Patroni/PgBouncer administration"],
+        "authorization": "PostgreSQL roles/database grants/RLS, PgBouncer authentication, PostgREST JWT/database roles, CloudBeaver roles and Kubernetes Secret RBAC remain authoritative.",
+        "redaction": "Database URLs with credentials, passwords, Secret values, SQL, schemas, tables, rows, JWTs and CloudBeaver connection definitions are not read.",
+        "humanTracking": {"cloudbeaver": CLOUDBEAVER_PUBLIC, "grafana": GRAFANA_PUBLIC, "headlamp": HEADLAMP_PUBLIC},
+    }
+
+def get_external_publication_readiness():
+    mcp_origin = os.getenv("EXTERNAL_TOOLS_ORIGIN", "https://tools.re8ch.com:8443").rstrip("/")
+    mcp_resource = mcp_origin + "/mcp"
+    auth_origin = os.getenv("EXTERNAL_AUTH_ORIGIN", mcp_origin).rstrip("/")
+    upstream_auth_origin = os.getenv("UPSTREAM_AUTH_ORIGIN", "https://auth.re8ch.com").rstrip("/")
+
+    def dns_status(host):
+        try:
+            addresses = sorted({row[4][0] for row in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)})
+            return {"resolved": bool(addresses), "addressCount": len(addresses), "error": None}
+        except Exception as exc:
+            return {"resolved": False, "addressCount": 0, "error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
+
+    def tls_status(host, port=443):
+        try:
+            context = ssl.create_default_context()
+            with socket.create_connection((host, port), timeout=5) as raw:
+                with context.wrap_socket(raw, server_hostname=host) as secured:
+                    certificate = secured.getpeercert()
+            return {"trusted": True, "expires": certificate.get("notAfter"), "error": None}
+        except Exception as exc:
+            return {"trusted": False, "expires": None, "error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
+
+    def json_metadata(url, validator):
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": "re8ch-ops-mcp-publication-readiness/1.0"})
+            with urllib.request.urlopen(request, timeout=6) as response:
+                parsed = json.loads(response.read(65536).decode("utf-8", "replace"))
+            return {"valid": bool(validator(parsed)), "httpStatus": response.status, "error": None}
+        except Exception as exc:
+            return {"valid": False, "httpStatus": getattr(exc, "code", None), "error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
+
+    tools_url, upstream_auth_url = urllib.parse.urlparse(mcp_origin), urllib.parse.urlparse(upstream_auth_origin)
+    tools_host, upstream_auth_host = tools_url.hostname or "tools.re8ch.com", upstream_auth_url.hostname or "auth.re8ch.com"
+    tools_dns, auth_dns = dns_status(tools_host), dns_status(upstream_auth_host)
+    tools_tls = tls_status(tools_host, tools_url.port or 443)
+    auth_tls = tls_status(upstream_auth_host, upstream_auth_url.port or 443)
+    resource_metadata = json_metadata(
+        mcp_origin + "/.well-known/oauth-protected-resource/mcp",
+        lambda value: value.get("resource") == mcp_resource and bool(value.get("authorization_servers")),
+    )
+    oauth_metadata = {"valid": False, "httpStatus": None, "error": "no valid OAuth/OIDC discovery document"}
+    for path in ("/.well-known/oauth-authorization-server", "/.well-known/openid-configuration"):
+        candidate = json_metadata(
+            auth_origin + path,
+            lambda value: bool(value.get("issuer")) and str(value.get("authorization_endpoint", "")).startswith("https://") and str(value.get("token_endpoint", "")).startswith("https://") and "S256" in value.get("code_challenge_methods_supported", []),
+        )
+        if candidate["valid"]:
+            candidate["path"] = path
+            oauth_metadata = candidate
+            break
+        oauth_metadata = candidate
+    challenge = {"valid": False, "httpStatus": None, "resourceMetadataAdvertised": False, "error": None}
+    try:
+        payload = json.dumps({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "readiness", "version": "1"}},
+        }).encode("utf-8")
+        request = urllib.request.Request(mcp_resource, data=payload, method="POST", headers={
+            "User-Agent": "re8ch-ops-mcp-publication-readiness/2.0",
+            "Accept": "application/json, text/event-stream",
+            "Content-Type": "application/json",
+        })
+        urllib.request.urlopen(request, timeout=6)
+        challenge["error"] = "unauthenticated request unexpectedly succeeded"
+    except urllib.error.HTTPError as exc:
+        header = exc.headers.get("WWW-Authenticate", "")
+        challenge.update({"httpStatus": exc.code, "resourceMetadataAdvertised": "resource_metadata=" in header, "valid": exc.code == 401 and "resource_metadata=" in header})
+    except Exception as exc:
+        challenge["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+    external_server = False
+    try:
+        kube_request("GET", "/apis/toolhive.stacklok.dev/v1beta1/namespaces/toolhive-system/mcpservers/ops-observe-external")
+        external_server = True
+    except KubeError as exc:
+        if exc.status != 404:
+            raise
+    ingresses = kube_request("GET", "/apis/networking.k8s.io/v1/ingresses").get("items", [])
+    public_ingress = any(
+        rule.get("host") == "tools.re8ch.com"
+        for item in ingresses for rule in item.get("spec", {}).get("rules", [])
+    )
+    gates = {
+        "toolsDNS": tools_dns["resolved"], "authDNS": auth_dns["resolved"],
+        "toolsTLS": tools_tls["trusted"], "authTLS": auth_tls["trusted"],
+        "protectedResourceMetadata": resource_metadata["valid"], "oauthDiscoveryPKCE": oauth_metadata["valid"],
+        "unauthenticatedChallenge": challenge["valid"], "externalMCPServer": external_server,
+        "publicIngress": public_ingress,
+    }
+    return {
+        "publicationReady": all(gates.values()),
+        "gates": gates,
+        "blockers": sorted(name for name, passed in gates.items() if not passed),
+        "dns": {"tools": tools_dns, "auth": auth_dns},
+        "tls": {"tools": tools_tls, "auth": auth_tls},
+        "protectedResourceMetadata": resource_metadata,
+        "oauthDiscovery": oauth_metadata,
+        "mcpChallenge": challenge,
+        "origins": {"mcp": mcp_origin, "authorizationServer": auth_origin, "upstreamIdentity": upstream_auth_origin},
+        "policy": "The published restricted-node-6dc3f140f9 endpoint is ready only when DNS/TLS, embedded OAuth metadata, the MCP authentication challenge and cluster publication objects all pass.",
+        "redaction": "OAuth client secrets, access/refresh tokens, certificate bodies, DNS API credentials and user claims are not read.",
+        "humanTracking": {"toolhiveRegistry": "internal ToolHive Registry", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
 def tenant_context():
     return {
         "tenant": current_tenant(),
@@ -908,6 +1842,429 @@ def grafana_links():
         "purpose": "metrics and observability dashboards",
         "tenantDashboard": current_grafana_dashboard(),
         "suggestedUse": ["inspect service health", "check node and pod trends", "compare deployment impact"],
+    }
+
+
+def probe_tcp(name, domain, host, port, purpose):
+    started = time.monotonic()
+    try:
+        with socket.create_connection((host, int(port)), timeout=3):
+            status = "reachable"
+            error = ""
+    except Exception as exc:
+        status = "unreachable"
+        error = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+    return {
+        "name": name,
+        "domain": domain,
+        "purpose": purpose,
+        "endpoint": "%s:%s" % (host, port),
+        "status": status,
+        "latencyMs": int((time.monotonic() - started) * 1000),
+        "error": error,
+    }
+
+
+def probe_http(name, domain, url, purpose):
+    started = time.monotonic()
+    status_code = None
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "re8ch-ops-mcp-health/1.0"})
+        with urllib.request.urlopen(request, timeout=4) as response:
+            status_code = response.status
+        status = "healthy" if status_code < 500 else "degraded"
+        error = ""
+    except urllib.error.HTTPError as exc:
+        status_code = exc.code
+        status = "reachable" if exc.code < 500 else "degraded"
+        error = "HTTP %s" % exc.code
+    except Exception as exc:
+        status = "unreachable"
+        error = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+    return {
+        "name": name,
+        "domain": domain,
+        "purpose": purpose,
+        "endpoint": url,
+        "status": status,
+        "httpStatus": status_code,
+        "latencyMs": int((time.monotonic() - started) * 1000),
+        "error": error,
+    }
+
+
+def get_platform_service_health():
+    """Probe fixed platform endpoints without accepting arbitrary hosts or URLs."""
+    catalog = current_catalog()
+    cloudbeaver = catalog.get("cloudbeaver", {}).get("url") or CLOUDBEAVER_PUBLIC
+    probes = [
+        (probe_http, ("harbor-registry", "artifact", HARBOR_HEALTH_URL, "Harbor internal API health; human URL is reported separately")),
+        (probe_http, ("grafana", "observability", GRAFANA_PUBLIC, "human dashboards and tool telemetry")),
+        (probe_http, ("headlamp", "kubernetes", HEADLAMP_PUBLIC, "human Kubernetes control GUI")),
+        (probe_http, ("cloudbeaver", "database", cloudbeaver, "human tenant SQL GUI")),
+        (probe_http, ("toolhive-registry", "tool-control", TOOLHIVE_REGISTRY_URL, "approved MCP catalog")),
+        (probe_http, ("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery")),
+        (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
+        (probe_http, ("kagent-controller", "agent-control", "http://kagent-controller.kagent.svc.cluster.local:8083/healthz", "KAgent controller HTTP reachability")),
+        (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability")),
+        (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
+        (probe_http, ("neo4j", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
+        (probe_http, ("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human control GUI reachability")),
+        (probe_http, ("nuclio-dashboard", "application-control", "http://nuclio-dashboard.nuclio.svc.cluster.local:8070/api/healthz", "Nuclio application-control endpoint reachability")),
+        (probe_http, ("opencost", "observability-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost allocation service liveness")),
+        (probe_http, ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session runtime liveness")),
+    ]
+    for route, details in PG_SERVICE_ROUTES.items():
+        if details.get("host"):
+            parsed = urllib.parse.urlparse("tcp://%s:%s" % (details["host"], details["port"]))
+        else:
+            parsed = urllib.parse.urlparse("tcp://" + details["url"].split("://", 1)[-1])
+        probes.append((probe_tcp, ("pigsty-%s" % route, "database", parsed.hostname, parsed.port, details["purpose"])))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(probes))) as pool:
+        futures = [pool.submit(fn, *args) for fn, args in probes]
+        results = [future.result() for future in futures]
+    healthy_states = {"reachable", "healthy"}
+    healthy = sum(1 for item in results if item["status"] in healthy_states)
+    return {
+        "tenant": current_tenant(),
+        "summary": {"reachable": healthy, "total": len(results), "unreachable": len(results) - healthy},
+        "services": sorted(results, key=lambda item: (item["domain"], item["name"])),
+        "meaning": "Reachability is a control-path signal, not proof of application correctness or authorization.",
+        "humanTracking": {
+            "grafana": GRAFANA_PUBLIC,
+            "headlamp": HEADLAMP_PUBLIC,
+            "harbor": REGISTRY_PUBLIC,
+            "cloudbeaver": cloudbeaver,
+        },
+    }
+
+def get_platform_service_catalog():
+    """Return a credential-free, live inventory with a default permission model."""
+    resources = {
+        "namespaces": kube_request("GET", "/api/v1/namespaces").get("items", []),
+        "services": kube_request("GET", "/api/v1/services").get("items", []),
+        "deployments": kube_request("GET", "/apis/apps/v1/deployments").get("items", []),
+        "statefulsets": kube_request("GET", "/apis/apps/v1/statefulsets").get("items", []),
+        "daemonsets": kube_request("GET", "/apis/apps/v1/daemonsets").get("items", []),
+        "ingresses": kube_request("GET", "/apis/networking.k8s.io/v1/ingresses").get("items", []),
+    }
+    by_namespace = {}
+    for item in resources["namespaces"]:
+        metadata = item.get("metadata", {})
+        name = metadata.get("name")
+        if name and name not in SYSTEM_NAMESPACES:
+            domain, gui = PLATFORM_NAMESPACE_DOMAINS.get(name, ("application-data", "Headlamp, Grafana"))
+            control_plane = domain.endswith("control") or domain in {"cluster-control", "human-control"}
+            plane = "control" if control_plane else "data"
+            explicitly_classified = name in PLATFORM_NAMESPACE_DOMAINS
+            labels = metadata.get("labels", {})
+            by_namespace[name] = {
+                "namespace": name,
+                "domain": domain,
+                "plane": plane,
+                "explicitPolicy": explicitly_classified,
+                "materializedPolicy": {
+                    "domain": labels.get("re8ch.com/domain", ""),
+                    "plane": labels.get("re8ch.com/plane", ""),
+                    "version": labels.get("re8ch.com/access-policy", ""),
+                    "matches": labels.get("re8ch.com/domain") == domain and labels.get("re8ch.com/plane") == plane and labels.get("re8ch.com/access-policy") == "toolhive-v1",
+                },
+                "workloads": [],
+                "services": [],
+                "ingressHosts": [],
+                "agentPermissions": {
+                    "observe": "metadata/status/log-derived metrics; no Secrets",
+                    "operate": "named workload actions only, namespace-scoped and audited",
+                    "admin": "native controller/API role plus approval ID; never generic proxy by default",
+                },
+                "nativeAuthority": DOMAIN_NATIVE_AUTHORITY.get(domain, "namespace RBAC and application-native authorization"),
+                "humanTracking": [value.strip() for value in gui.split(",")],
+            }
+    for kind in ("deployments", "statefulsets", "daemonsets"):
+        label = kind[:-1].capitalize() if kind != "statefulsets" else "StatefulSet"
+        if kind == "daemonsets":
+            label = "DaemonSet"
+        for item in resources[kind]:
+            meta = item.get("metadata", {})
+            spec, status = item.get("spec", {}), item.get("status", {})
+            entry = by_namespace.get(meta.get("namespace"))
+            if entry is not None:
+                desired = spec.get("replicas")
+                if kind == "daemonsets":
+                    desired = status.get("desiredNumberScheduled")
+                    ready = status.get("numberReady", 0)
+                    available = status.get("numberAvailable", 0)
+                else:
+                    ready = status.get("readyReplicas", 0)
+                    available = status.get("availableReplicas", 0)
+                entry["workloads"].append({
+                    "kind": label,
+                    "name": meta.get("name"),
+                    "desired": desired if desired is not None else 0,
+                    "ready": ready,
+                    "available": available,
+                    "scaledToZero": desired == 0,
+                })
+    for item in resources["services"]:
+        meta, spec = item.get("metadata", {}), item.get("spec", {})
+        entry = by_namespace.get(meta.get("namespace"))
+        if entry is not None:
+            entry["services"].append({
+                "name": meta.get("name"),
+                "type": spec.get("type", "ClusterIP"),
+                "ports": sorted({port.get("port") for port in spec.get("ports", []) if port.get("port") is not None}),
+            })
+    for item in resources["ingresses"]:
+        meta, spec = item.get("metadata", {}), item.get("spec", {})
+        entry = by_namespace.get(meta.get("namespace"))
+        if entry is not None:
+            entry["ingressHosts"].extend(rule.get("host") for rule in spec.get("rules", []) if rule.get("host"))
+    entries = []
+    for entry in by_namespace.values():
+        entry["workloads"].sort(key=lambda value: (value["kind"], value["name"] or ""))
+        entry["services"].sort(key=lambda value: value["name"] or "")
+        entry["ingressHosts"] = sorted(set(entry["ingressHosts"]))
+        entries.append(entry)
+    entries.sort(key=lambda value: value["namespace"])
+    classified = sum(1 for entry in entries if entry["namespace"] in PLATFORM_NAMESPACE_DOMAINS)
+    return {
+        "generatedAt": int(time.time()),
+        "source": "live Kubernetes API; no Secret values",
+        "summary": {
+            "namespaces": len(entries),
+            "explicitlyClassified": classified,
+            "defaultApplicationData": len(entries) - classified,
+            "nativeAuthorityMapped": sum(bool(entry.get("nativeAuthority")) for entry in entries),
+            "materializedPolicyMatched": sum(entry["materializedPolicy"]["matches"] for entry in entries),
+            "workloads": sum(len(entry["workloads"]) for entry in entries),
+            "services": sum(len(entry["services"]) for entry in entries),
+            "ingressHosts": len({host for entry in entries for host in entry["ingressHosts"]}),
+        },
+        "defaultPolicy": {
+            "observe": "read-only inventory/status and fixed metrics; no credentials",
+            "operate": "allowlisted namespace-scoped action with downstream RBAC",
+            "admin": "separate identity, approval, native authorization, audit and human GUI evidence",
+        },
+        "namespaces": entries,
+    }
+
+def get_platform_permission_coverage():
+    """Return the effective AI/native/GUI decision for every live workload and Service."""
+    catalog = get_platform_service_catalog()
+    resources = []
+    for namespace_entry in catalog["namespaces"]:
+        namespace = namespace_entry["namespace"]
+        domain = namespace_entry["domain"]
+        native_authority = namespace_entry["nativeAuthority"]
+        human_tracking = namespace_entry["humanTracking"]
+        for workload in namespace_entry["workloads"]:
+            target = (namespace, workload["name"])
+            tenant_restart = workload["kind"] == "Deployment" and namespace in TENANT_NAMESPACES
+            managed_admin = workload["kind"] == "Deployment" and target in MANAGED_PLATFORM_RESTARTS
+            if managed_admin:
+                admin_policy = "approval-gated restart/scale through named ToolHive admin tools"
+            else:
+                admin_policy = "native control plane only; no default ToolHive mutation published"
+            resources.append({
+                "resourceType": "workload",
+                "namespace": namespace,
+                "kind": workload["kind"],
+                "name": workload["name"],
+                "domain": domain,
+                "plane": namespace_entry["plane"],
+                "runtime": {
+                    "desired": workload["desired"],
+                    "ready": workload["ready"],
+                    "available": workload["available"],
+                    "scaledToZero": workload["scaledToZero"],
+                },
+                "aiAccess": {
+                    "observe": "published: sanitized metadata/readiness; Secrets and workload configuration omitted",
+                    "operate": "tenant-scoped restart through operate surface" if tenant_restart else "not published on operate surface",
+                    "admin": admin_policy,
+                },
+                "nativeAuthority": native_authority,
+                "humanTracking": human_tracking,
+                "decisionSource": "live Kubernetes inventory + checked-in namespace classification + exact ToolHive operation allowlists",
+            })
+        for service in namespace_entry["services"]:
+            resources.append({
+                "resourceType": "service",
+                "namespace": namespace,
+                "kind": "Service",
+                "name": service["name"],
+                "domain": domain,
+                "plane": namespace_entry["plane"],
+                "exposure": {"type": service["type"], "ports": service["ports"]},
+                "aiAccess": {
+                    "observe": "published: name/type/ports and fixed reviewed health probes where defined",
+                    "operate": "not published; traffic and endpoint mutation require native review",
+                    "admin": "native control plane only; no generic Service mutation tool",
+                },
+                "nativeAuthority": native_authority,
+                "humanTracking": human_tracking,
+                "decisionSource": "live Kubernetes inventory + checked-in namespace classification",
+            })
+    resources.sort(key=lambda value: (value["namespace"], value["resourceType"], value["kind"], value["name"] or ""))
+    unclassified = sorted(entry["namespace"] for entry in catalog["namespaces"] if not entry["explicitPolicy"])
+    policy_label_mismatches = sorted(entry["namespace"] for entry in catalog["namespaces"] if not entry["materializedPolicy"]["matches"])
+    missing_gui = sorted({item["namespace"] for item in resources if not item["humanTracking"]})
+    missing_authority = sorted({item["namespace"] for item in resources if not item["nativeAuthority"]})
+    workload_count = sum(item["resourceType"] == "workload" for item in resources)
+    service_count = sum(item["resourceType"] == "service" for item in resources)
+    managed_admin_count = sum(
+        item["resourceType"] == "workload" and item["aiAccess"]["admin"].startswith("approval-gated")
+        for item in resources
+    )
+    tenant_operate_count = sum(
+        item["resourceType"] == "workload" and item["aiAccess"]["operate"].startswith("tenant-scoped")
+        for item in resources
+    )
+    return {
+        "generatedAt": int(time.time()),
+        "source": "live Kubernetes API plus checked-in ToolHive policy; no Secret values, Pod specs, environment or application data",
+        "coverageComplete": not unclassified and not policy_label_mismatches and not missing_gui and not missing_authority,
+        "summary": {
+            "namespaces": catalog["summary"]["namespaces"],
+            "workloads": workload_count,
+            "services": service_count,
+            "resourceDecisions": len(resources),
+            "managedAdminWorkloads": managed_admin_count,
+            "tenantOperateWorkloads": tenant_operate_count,
+            "unclassifiedNamespaces": len(unclassified),
+            "policyLabelMismatches": len(policy_label_mismatches),
+            "namespacesMissingHumanTracking": len(missing_gui),
+            "namespacesMissingNativeAuthority": len(missing_authority),
+        },
+        "gaps": {
+            "unclassifiedNamespaces": unclassified,
+            "policyLabelMismatches": policy_label_mismatches,
+            "namespacesMissingHumanTracking": missing_gui,
+            "namespacesMissingNativeAuthority": missing_authority,
+        },
+        "enforcement": {
+            "publication": "ToolHive profile allowlists and Registry stage",
+            "workloadMutation": "Kubernetes resourceNames RBAC plus tool target allowlist and approval ID",
+            "domainData": "application/database/registry/identity native authorization remains final",
+            "humanEvidence": "Headlamp/Grafana plus the listed domain GUI; human and Agent identities stay separate",
+        },
+        "resources": resources,
+    }
+
+def get_platform_access_posture():
+    """Summarize namespace authorization and exposure controls without credentials."""
+    namespace_items = kube_request("GET", "/api/v1/namespaces").get("items", [])
+    roles = kube_request("GET", "/apis/rbac.authorization.k8s.io/v1/roles").get("items", [])
+    bindings = kube_request("GET", "/apis/rbac.authorization.k8s.io/v1/rolebindings").get("items", [])
+    accounts = kube_request("GET", "/api/v1/serviceaccounts").get("items", [])
+    policies = kube_request("GET", "/apis/networking.k8s.io/v1/networkpolicies").get("items", [])
+    services = kube_request("GET", "/api/v1/services").get("items", [])
+    ingresses = kube_request("GET", "/apis/networking.k8s.io/v1/ingresses").get("items", [])
+    namespaces = sorted(
+        item.get("metadata", {}).get("name") for item in namespace_items
+        if item.get("metadata", {}).get("name") not in SYSTEM_NAMESPACES
+    )
+    entries = []
+    for namespace in namespaces:
+        ns_roles = [item for item in roles if item.get("metadata", {}).get("namespace") == namespace]
+        ns_bindings = [item for item in bindings if item.get("metadata", {}).get("namespace") == namespace]
+        ns_accounts = [item for item in accounts if item.get("metadata", {}).get("namespace") == namespace]
+        ns_policies = [item for item in policies if item.get("metadata", {}).get("namespace") == namespace]
+        ns_services = [item for item in services if item.get("metadata", {}).get("namespace") == namespace]
+        ns_ingresses = [item for item in ingresses if item.get("metadata", {}).get("namespace") == namespace]
+        default_account = next((item for item in ns_accounts if item.get("metadata", {}).get("name") == "default"), {})
+        default_automount = default_account.get("automountServiceAccountToken")
+        nodeports = sorted(
+            item.get("metadata", {}).get("name") for item in ns_services
+            if item.get("spec", {}).get("type") in {"NodePort", "LoadBalancer"}
+        )
+        findings = []
+        if not ns_roles:
+            findings.append("no-namespaced-roles")
+        if not ns_bindings:
+            findings.append("no-namespaced-rolebindings")
+        if not ns_policies:
+            findings.append("no-networkpolicy")
+        if default_automount is not False:
+            findings.append("default-serviceaccount-token-not-disabled")
+        if nodeports:
+            findings.append("nodeport-or-loadbalancer-exposure")
+        if ns_ingresses:
+            findings.append("ingress-exposure")
+        domain = PLATFORM_NAMESPACE_DOMAINS.get(namespace, ("application-data", "Headlamp, Grafana"))[0]
+        entries.append({
+            "namespace": namespace,
+            "domain": domain,
+            "counts": {
+                "roles": len(ns_roles),
+                "roleBindings": len(ns_bindings),
+                "serviceAccounts": len(ns_accounts),
+                "networkPolicies": len(ns_policies),
+                "ingresses": len(ns_ingresses),
+            },
+            "defaultServiceAccountAutomount": default_automount if default_automount is not None else "inherited-true",
+            "externallyExposedServices": nodeports,
+            "findings": findings,
+            "humanReview": "Headlamp for RBAC/network objects; Grafana for traffic; domain GUI for application authorization",
+        })
+    return {
+        "generatedAt": int(time.time()),
+        "source": "live Kubernetes RBAC, ServiceAccount, NetworkPolicy, Service and Ingress metadata; no Secrets",
+        "summary": {
+            "namespaces": len(entries),
+            "withoutRoleBindings": sum("no-namespaced-rolebindings" in item["findings"] for item in entries),
+            "withoutNetworkPolicy": sum("no-networkpolicy" in item["findings"] for item in entries),
+            "defaultTokenNotDisabled": sum("default-serviceaccount-token-not-disabled" in item["findings"] for item in entries),
+            "withNodePortOrLoadBalancer": sum("nodeport-or-loadbalancer-exposure" in item["findings"] for item in entries),
+            "withIngress": sum("ingress-exposure" in item["findings"] for item in entries),
+        },
+        "interpretation": "Findings are review signals, not automatic vulnerabilities. Native application roles remain authoritative behind Kubernetes exposure controls.",
+        "namespaces": entries,
+    }
+
+
+MANAGED_TOOL_PUBLICATIONS = {
+    "ops-observe-managed",
+    "ops-operate-managed",
+    "ops-admin-managed",
+}
+PUBLICATION_STAGES = {"canary", "internal", "deprecated"}
+
+
+def set_tool_publication_stage(args):
+    args = args or {}
+    server = str(args.get("server") or "").strip()
+    stage = str(args.get("stage") or "").strip().lower()
+    if server not in MANAGED_TOOL_PUBLICATIONS:
+        raise ValueError("server is not an approved managed publication: %s" % server)
+    if stage not in PUBLICATION_STAGES:
+        raise ValueError("stage must be one of: canary, internal, deprecated")
+    exported = "false" if stage == "deprecated" else "true"
+    changed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    patch = {
+        "metadata": {
+            "labels": {"re8ch.com/publication-stage": stage},
+            "annotations": {
+                "toolhive.stacklok.dev/registry-export": exported,
+                "re8ch.com/publication-changed-by": "toolhive-platform-admin",
+                "re8ch.com/publication-changed-at": changed_at,
+            },
+        }
+    }
+    doc = kube_request(
+        "PATCH",
+        "/apis/toolhive.stacklok.dev/v1beta1/namespaces/toolhive-system/mcpservers/%s" % server,
+        patch,
+        "application/merge-patch+json",
+    )
+    metadata = doc.get("metadata", {})
+    return {
+        "server": server,
+        "stage": metadata.get("labels", {}).get("re8ch.com/publication-stage"),
+        "registryExport": metadata.get("annotations", {}).get("toolhive.stacklok.dev/registry-export"),
+        "changedBy": metadata.get("annotations", {}).get("re8ch.com/publication-changed-by"),
+        "changedAt": metadata.get("annotations", {}).get("re8ch.com/publication-changed-at"),
+        "rule": "deprecated removes the entry from Registry discovery; canary/internal remain exported",
     }
 
 TENANT_RESOURCE_CATALOG = {
@@ -1861,6 +3218,115 @@ def yaml_value(line):
     return value
 
 
+def authentik_request(method, path, body=None):
+    if not AUTHENTIK_API_TOKEN:
+        raise RuntimeError("Authentik admin API token is not configured")
+    url = "%s/%s" % (AUTHENTIK_API_URL, path.lstrip("/"))
+    payload = json.dumps(body).encode("utf-8") if body is not None else None
+    request = urllib.request.Request(url, data=payload, method=method)
+    request.add_header("Authorization", "Bearer %s" % AUTHENTIK_API_TOKEN)
+    request.add_header("Accept", "application/json")
+    if payload is not None:
+        request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            data = response.read()
+            return json.loads(data.decode("utf-8")) if data else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:1000]
+        raise RuntimeError("Authentik API %s %s failed (%s): %s" % (method, path, exc.code, detail))
+
+
+def authentik_group(name):
+    query = urllib.parse.urlencode({"name": name, "page_size": 100})
+    results = authentik_request("GET", "/core/groups/?%s" % query).get("results", [])
+    return next((item for item in results if item.get("name") == name), None)
+
+
+def authentik_user(username=None, email=None):
+    query = urllib.parse.urlencode({"search": username or email or "", "page_size": 100})
+    results = authentik_request("GET", "/core/users/?%s" % query).get("results", [])
+    for item in results:
+        if username and item.get("username") == username:
+            return item
+        if email and str(item.get("email") or "").lower() == email.lower():
+            return item
+    return None
+
+
+def list_authentik_users():
+    results = authentik_request("GET", "/core/users/?page_size=100").get("results", [])
+    users = []
+    for item in results:
+        users.append({
+            "pk": item.get("pk"),
+            "username": item.get("username"),
+            "name": item.get("name"),
+            "email": item.get("email"),
+            "isActive": item.get("is_active"),
+            "groups": sorted(group.get("name") for group in item.get("groups_obj", []) if group.get("name")),
+            "path": item.get("path"),
+        })
+    return {"count": len(users), "users": users, "credentialsReturned": False}
+
+
+def ensure_authentik_user(args):
+    args = args or {}
+    username = str(args.get("username") or "").strip()
+    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9_.@+-]{1,149}$", username):
+        raise ValueError("username must be 2-150 audit-safe characters")
+    email = validate_email(args.get("email")) if args.get("email") else ""
+    group_names = sorted(set(str(value).strip() for value in (args.get("groups") or []) if str(value).strip()))
+    groups = []
+    for name in group_names:
+        group = authentik_group(name)
+        if not group:
+            raise ValueError("Authentik group does not exist: %s" % name)
+        groups.append(group.get("pk"))
+    payload = {
+        "username": username,
+        "name": str(args.get("name") or username).strip(),
+        "email": email,
+        "is_active": bool(args.get("isActive", True)),
+        "groups": groups,
+        "path": str(args.get("path") or "users"),
+        "type": "internal",
+    }
+    existing = authentik_user(username=username)
+    if existing:
+        result = authentik_request("PATCH", "/core/users/%s/" % existing.get("pk"), payload)
+        action = "updated"
+    else:
+        result = authentik_request("POST", "/core/users/", payload)
+        action = "created"
+    return {
+        "action": action,
+        "user": {key: result.get(key) for key in ("pk", "username", "name", "email", "is_active", "path")},
+        "groups": group_names,
+        "credentialsReturned": False,
+        "nextStep": "Use the Authentik recovery flow or administrator UI to establish credentials; this tool never accepts or returns passwords.",
+    }
+
+
+def grant_authentik_user_group(args):
+    args = args or {}
+    user = authentik_user(username=args.get("username"), email=args.get("email"))
+    if not user:
+        raise ValueError("Authentik user was not found")
+    group_name = str(args.get("group") or "").strip()
+    group = authentik_group(group_name)
+    if not group:
+        raise ValueError("Authentik group does not exist: %s" % group_name)
+    authentik_request("POST", "/core/groups/%s/add_user/" % group.get("pk"), {"pk": user.get("pk")})
+    return {
+        "action": "granted",
+        "username": user.get("username"),
+        "email": user.get("email"),
+        "group": group_name,
+        "credentialsReturned": False,
+    }
+
+
 def parse_static_password_users(block):
     users = []
     current = None
@@ -2084,6 +3550,27 @@ def get_tenancy_admin_workflow():
         ],
         "createdObjects": ["namespace/<namespace>", "role/<namespace>/tenant-operator", "role/<namespace>/tenant-viewer", "rolebinding/<namespace>/<namespace>-operators-tenant-operator-oidc", "serviceaccount/<namespace>/<namespace>-kubectl-operator", "secret/<namespace>/<namespace>-kubectl-operator-permanent-token", "rolebinding/<namespace>/<namespace>-kubectl-operator", "clusterrole/tenant-ui-cluster-viewer", "clusterrolebinding/<namespace>-headlamp-ui-cluster-viewer-oidc", "clusterrolebinding/<namespace>-kubectl-operator-ui-cluster-viewer", "harbor project/<namespace>", "harbor user/<namespace>", "secret/<namespace>/harbor-<namespace>-admin"],
         "safety": ["The workflow is idempotent and uses apply-like create/update behavior.", "It does not delete existing namespace workloads or business secrets.", "Dex user creation requires passwordHash, not plaintext password.", "Harbor robot tokens are stored in Kubernetes secrets and are not returned by the API.", "Pigsty database SQL must be executed by a DBA or by a separately authorized database automation; the public Ops MCP server does not hold PostgreSQL superuser credentials.", "Dex changes restart the Dex deployment; existing users may need to log in again to receive new groups."],
+    }
+
+
+def get_authentik_tenancy_admin_workflow():
+    return {
+        "purpose": "Provision Authentik human identity, Kubernetes namespace RBAC, Harbor access, and optional Pigsty database resources without exposing credentials.",
+        "identityAuthority": "Authentik",
+        "legacyIdentity": "Dex tools remain available only on the legacy Ops MCP during migration and are not published by re8ch-platform-admin.",
+        "steps": [
+            {"step": 1, "tool": "ensure_authentik_user", "result": "Create or update the user and reviewed group memberships without accepting a password."},
+            {"step": 2, "tool": "grant_authentik_user_group", "result": "Grant Platform Operators, Platform Admins, or a reviewed tenant group."},
+            {"step": 3, "tool": "ensure_tenant_access", "result": "Create or repair namespace, ServiceAccount, Role and RoleBinding resources."},
+            {"step": 4, "tool": "ensure_harbor_tenant", "result": "Create or repair Harbor project membership and store robot material only in Kubernetes Secrets."},
+            {"step": 5, "tool": "generate_pg_tenant_database_plan", "result": "Generate the reviewed database/role plan; SQL execution remains a separate DBA authority."},
+            {"step": 6, "tool": "ensure_tenant_database_secrets", "result": "Create the standard Kubernetes Secret and return only its reference."},
+        ],
+        "safety": [
+            "No tool returns Authentik passwords, sessions, OAuth tokens, Harbor robot tokens, or Kubernetes Secret values.",
+            "Explicitly requested admin work may proceed without repeating confirmation; each call remains allowlisted, audited and subject to native Authentik/Kubernetes authorization.",
+            "Authentik group policy and Kubernetes RBAC remain authoritative even if a client omits local approval UX.",
+        ],
     }
 
 
@@ -2347,10 +3834,33 @@ def generate_pg_tenant_database_plan(args):
         ],
     }
 
+OBSERVE_TOOL_NAMES = {
+    "get_usage_guide", "get_tenant_context", "list_k8s_resources", "get_registry_info",
+    "get_tenant_resource_catalog", "get_grafana_links", "get_tenant_metrics_summary",
+    "get_platform_service_health", "get_platform_service_catalog", "get_platform_permission_coverage",
+    "get_platform_access_posture", "get_nuclio_function_status", "diagnose_nuclio_function",
+    "get_nuclio_capacity_status", "get_litellm_gateway_status", "get_fleet_control_status",
+    "get_supabase_platform_status", "get_neo4j_platform_status", "get_identity_platform_status",
+    "get_agent_runtime_status", "get_observability_platform_status", "get_artifact_platform_status",
+    "get_database_routing_status", "get_external_publication_readiness",
+}
+OPERATE_TOOL_NAMES = {
+    "get_managed_platform_operation_status", "restart_managed_platform_deployment",
+    "scale_managed_platform_deployment",
+}
+ADMIN_TOOL_NAMES = {
+    "list_dex_users", "get_dex_hash_instructions", "create_dex_user", "grant_user_namespace",
+    "get_tenancy_admin_workflow", "generate_pg_tenant_database_plan",
+    "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access",
+    "ensure_harbor_tenant", "get_tenant_secret_refs", "set_tool_publication_stage",
+}
+
+
 def mcp_tools(include_admin=False):
     def schema(props=None, required=None):
         return {"type": "object", "properties": props or {}, "required": required or []}
     tools = [
+        {"name": "get_public_tool_service_info", "description": "Return the public RE8CH ToolHive service contract without internal topology, tenant data, or credentials.", "inputSchema": schema()},
         {"name": "get_usage_guide", "description": "Return the Ops usage guide.", "inputSchema": schema()},
         {"name": "get_tenant_context", "description": "Return the authenticated tenant endpoints and safety boundaries.", "inputSchema": schema()},
         {"name": "get_kubeconfig", "description": "Return the authenticated tenant operator kubeconfig for CLI automation.", "inputSchema": schema()},
@@ -2361,6 +3871,24 @@ def mcp_tools(include_admin=False):
         {"name": "get_grafana_links", "description": "Return Grafana links and intended usage.", "inputSchema": schema()},
         {"name": "get_grafana_access", "description": "Return the tenant Grafana service account token and API usage hints for AI agents. The token is Viewer-scoped to the tenant Grafana org.", "inputSchema": schema()},
         {"name": "get_tenant_metrics_summary", "description": "Return tenant-scoped function, namespace, and database metrics. The tenant filters are enforced by Ops MCP configuration; arbitrary PromQL is not accepted.", "inputSchema": schema()},
+        {"name": "get_platform_service_health", "description": "Probe fixed, reviewed platform endpoints across identity, model, Agent, artifact, database, application, device, observability and ToolHive domains. Arbitrary targets and credentials are not accepted.", "inputSchema": schema()},
+        {"name": "get_platform_service_catalog", "description": "Return a live, credential-free inventory of platform namespaces, workloads, Services, Ingress hosts, control/data-plane classification, default Agent permissions, and human tracking GUIs.", "inputSchema": schema()},
+        {"name": "get_platform_permission_coverage", "description": "Return the effective observe/operate/admin, native-authority and human-GUI decision for every live workload and Service, generated from live inventory and exact ToolHive operation allowlists.", "inputSchema": schema()},
+        {"name": "get_platform_access_posture", "description": "Return credential-free namespace RBAC, ServiceAccount token, NetworkPolicy, NodePort/LoadBalancer, and Ingress review signals for AI and human security review.", "inputSchema": schema()},
+        {"name": "get_managed_platform_operation_status", "description": "Return desired/ready/available state and recorded restart/scale approvals for every pre-reviewed platform operation target.", "inputSchema": schema()},
+        {"name": "get_nuclio_function_status", "description": "Return a sanitized cross-namespace Nuclio function inventory and native states without environment variables, Secret references, annotations or last-applied configuration.", "inputSchema": schema()},
+        {"name": "diagnose_nuclio_function", "description": "Diagnose one existing Nuclio function from sanitized native state, Deployment readiness, Pod scheduling/container waits and recent Events. Secret, environment and annotation data are omitted.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}}, ["namespace", "name"])},
+        {"name": "get_nuclio_capacity_status", "description": "Return Nuclio-labelled node readiness, schedulability, taints, allocatable capacity, placed function Pod counts and unscheduled function Pods as a rollout gate.", "inputSchema": schema()},
+        {"name": "get_litellm_gateway_status", "description": "Return LiteLLM public liveness/readiness and Deployment availability without reading or proxying master keys, provider keys, model configuration, teams or budgets.", "inputSchema": schema()},
+        {"name": "get_fleet_control_status", "description": "Return Fleet public health/version and Fleet/egress/Redis/MySQL workload readiness without reading device inventory, policies, queries, activities, campaigns or credentials.", "inputSchema": schema()},
+        {"name": "get_supabase_platform_status", "description": "Return Supabase Studio reachability plus component Deployment and endpoint readiness without reading JWT keys, credentials, users, rows, buckets, objects or schema contents.", "inputSchema": schema()},
+        {"name": "get_neo4j_platform_status", "description": "Return Neo4j Browser reachability plus StatefulSet and endpoint readiness without reading graph credentials, Cypher, graph data, schema or configuration.", "inputSchema": schema()},
+        {"name": "get_identity_platform_status", "description": "Return Authentik and application auth-gateway reachability plus Deployment and endpoint readiness without reading identities, sessions, tokens, secrets, claims or policy contents.", "inputSchema": schema()},
+        {"name": "get_agent_runtime_status", "description": "Return sanitized KAgent, OpenSandbox and Codex workload readiness, RemoteMCP acceptance/tool counts and aggregate sandbox resource phases without reading prompts, sessions, credentials, files, commands or output.", "inputSchema": schema()},
+        {"name": "get_observability_platform_status", "description": "Return fixed Grafana/VictoriaMetrics/VMAlert/VictoriaLogs/OpenCost/Robusta/OTLP health, workload readiness, aggregate target counts and one-hour cluster cost/efficiency without arbitrary queries or tenant detail.", "inputSchema": schema()},
+        {"name": "get_artifact_platform_status", "description": "Return Harbor core component and workload readiness plus the reviewed publication flow without reading credentials, artifacts, vulnerability details, users or robot data.", "inputSchema": schema()},
+        {"name": "get_database_routing_status", "description": "Return Pigsty PostgreSQL/PgBouncer/PostgREST route reachability, sanitized EndpointSlice readiness and CloudBeaver reachability without SQL, schema, row, credential or connection data.", "inputSchema": schema()},
+        {"name": "get_external_publication_readiness", "description": "Return fixed tools/auth DNS, trusted TLS, OAuth metadata, MCP challenge and cluster publication-object gates without reading OAuth secrets, tokens, certificate bodies, DNS credentials or user claims.", "inputSchema": schema()},
         {"name": "get_tenant_secret_refs", "description": "Return tenant-readable Kubernetes Secret references. Normal token is limited to this tenant namespace; admin can pass allTenants=true.", "inputSchema": schema({"namespace": {"type": "string"}, "allTenants": {"type": "boolean", "default": False}})},
         {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
         {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
@@ -2369,6 +3897,9 @@ def mcp_tools(include_admin=False):
     ]
     if include_admin:
         tools.extend([
+            {"name": "list_authentik_users", "description": "Admin: list Authentik users and group names without sessions, tokens, password material, or other credentials.", "inputSchema": schema()},
+            {"name": "ensure_authentik_user", "description": "Admin: create or update an Authentik user and reviewed group memberships without accepting or returning a password.", "inputSchema": schema({"username": {"type": "string"}, "name": {"type": "string"}, "email": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "isActive": {"type": "boolean", "default": True}, "path": {"type": "string", "default": "users"}}, ["username"])},
+            {"name": "grant_authentik_user_group", "description": "Admin: grant an existing Authentik user membership in an existing reviewed group.", "inputSchema": schema({"username": {"type": "string"}, "email": {"type": "string"}, "group": {"type": "string"}}, ["group"])},
             {"name": "list_dex_users", "description": "Admin: list Dex static users without password hashes.", "inputSchema": schema()},
             {"name": "get_tenancy_admin_workflow", "description": "Admin: explain the standard tenant/user access workflow for Headlamp, Dex OIDC, RBAC, and robot kubeconfig.", "inputSchema": schema()},
             {"name": "get_dex_hash_instructions", "description": "Admin: return commands for generating Dex bcrypt passwordHash.", "inputSchema": schema()},
@@ -2379,11 +3910,66 @@ def mcp_tools(include_admin=False):
             {"name": "create_dex_user", "description": "Admin: create a Dex static user and optionally grant namespace operator access. Requires passwordHash, not plaintext password. Can also reconcile the matching Harbor tenant when ensureHarbor=true.", "inputSchema": schema({"email": {"type": "string"}, "username": {"type": "string"}, "userID": {"type": "string"}, "passwordHash": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "createNamespace": {"type": "boolean", "default": True}, "updateExisting": {"type": "boolean", "default": False}, "ensureHarbor": {"type": "boolean", "default": False}, "harborPassword": {"type": "string"}, "rotateHarborRobot": {"type": "boolean", "default": False}}, ["email", "passwordHash"])},
             {"name": "grant_user_namespace", "description": "Admin: grant an existing Dex static user operator access to a namespace and reconcile tenant RBAC.", "inputSchema": schema({"email": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["email", "namespace"])},
             {"name": "ensure_harbor_tenant", "description": "Admin: create or repair the matching Harbor project, Harbor web user, projectAdmin membership, project admin robot, and Kubernetes image secret. Defaults require namespace/project/username to be the same.", "inputSchema": schema({"namespace": {"type": "string"}, "tenant": {"type": "string"}, "project": {"type": "string"}, "email": {"type": "string"}, "username": {"type": "string"}, "harborPassword": {"type": "string"}, "createUser": {"type": "boolean", "default": True}, "roleID": {"type": "integer", "default": 1}, "rotateRobot": {"type": "boolean", "default": False}, "allowDifferentProject": {"type": "boolean", "default": False}, "allowDifferentUsername": {"type": "boolean", "default": False}}, [])},
+            {"name": "set_tool_publication_stage", "description": "Admin: set canary, internal, or deprecated stage for one reviewed ToolHive publication; arbitrary resources cannot be patched.", "inputSchema": schema({"server": {"type": "string", "enum": sorted(MANAGED_TOOL_PUBLICATIONS)}, "stage": {"type": "string", "enum": sorted(PUBLICATION_STAGES)}}, ["server", "stage"])},
+            {"name": "restart_managed_platform_deployment", "description": "Operate: restart one pre-reviewed platform Deployment. The tool allowlist and namespaced resourceNames RBAC enforce the target.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}}, ["namespace", "deployment"])},
+            {"name": "scale_managed_platform_deployment", "description": "Operate: scale one pre-reviewed platform Deployment to exactly zero or one replica.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}, "replicas": {"type": "integer", "enum": [0, 1]}}, ["namespace", "deployment", "replicas"])},
         ])
-    return tools
+    write_tools = {
+        "restart_deployment",
+        "ensure_authentik_user",
+        "grant_authentik_user_group",
+        "ensure_tenant_database_secrets",
+        "ensure_tenant_database_bundle",
+        "ensure_tenant_access",
+        "create_dex_user",
+        "grant_user_namespace",
+        "ensure_harbor_tenant",
+        "set_tool_publication_stage",
+        "restart_managed_platform_deployment",
+        "scale_managed_platform_deployment",
+        "k8s_api_proxy",
+        "postgres_sql_proxy",
+    }
+    destructive_tools = {"set_tool_publication_stage", "scale_managed_platform_deployment", "k8s_api_proxy", "postgres_sql_proxy"}
+    for tool in tools:
+        name = tool["name"]
+        tool["annotations"] = {
+            "readOnlyHint": name not in write_tools,
+            "openWorldHint": False,
+            "destructiveHint": name in destructive_tools,
+        }
+        # Dex is the only issuer. Fine-grained authorization is derived from
+        # its groups claim at the vMCP edge, not from synthetic OAuth scopes.
+        tool["securitySchemes"] = [{"type": "oauth2", "scopes": ["openid"]}]
+    profile_tools = {
+        "public": OBSERVE_TOOL_NAMES,
+        "observe": OBSERVE_TOOL_NAMES,
+        "operate": OPERATE_TOOL_NAMES,
+        "admin": ADMIN_TOOL_NAMES,
+    }.get(OPS_TOOL_PROFILE)
+    return [tool for tool in tools if profile_tools is None or tool["name"] in profile_tools]
 
 def call_tool(name, args, admin=False):
     args = args or {}
+    profile_tools = {
+        "public": OBSERVE_TOOL_NAMES,
+        "observe": OBSERVE_TOOL_NAMES,
+        "operate": OPERATE_TOOL_NAMES,
+        "admin": ADMIN_TOOL_NAMES,
+    }.get(OPS_TOOL_PROFILE)
+    if profile_tools is not None and name not in profile_tools:
+        raise PermissionError("tool is not available in the %s profile: %s" % (OPS_TOOL_PROFILE, name))
+    if name == "get_public_tool_service_info":
+        return {
+            "name": "RE8CH Platform Observe",
+            "mcpResource": "https://tools.re8ch.com/mcp",
+            "authorizationServer": "https://auth.re8ch.com/application/o/toolhive-platform-observe/",
+            "access": "OAuth 2.0 authorization code with PKCE S256",
+            "scope": "platform:observe",
+            "publication": "ToolHive-managed read-only canary",
+            "clients": ["ChatGPT and Codex connectors", "Claude Code remote HTTP MCP", "standards-compliant MCP clients"],
+            "safety": "This surface excludes write/admin tools, Secret values, kubeconfig, arbitrary SQL, and generic Kubernetes API access.",
+        }
     if name == "get_usage_guide":
         return GUIDE
     if name == "get_tenant_context":
@@ -2404,6 +3990,42 @@ def call_tool(name, args, admin=False):
         return grafana_access()
     if name == "get_tenant_metrics_summary":
         return get_tenant_metrics_summary()
+    if name == "get_platform_service_health":
+        return get_platform_service_health()
+    if name == "get_platform_service_catalog":
+        return get_platform_service_catalog()
+    if name == "get_platform_permission_coverage":
+        return get_platform_permission_coverage()
+    if name == "get_platform_access_posture":
+        return get_platform_access_posture()
+    if name == "get_managed_platform_operation_status":
+        return get_managed_platform_operation_status()
+    if name == "get_nuclio_function_status":
+        return get_nuclio_function_status()
+    if name == "diagnose_nuclio_function":
+        return diagnose_nuclio_function(args)
+    if name == "get_nuclio_capacity_status":
+        return get_nuclio_capacity_status()
+    if name == "get_litellm_gateway_status":
+        return get_litellm_gateway_status()
+    if name == "get_fleet_control_status":
+        return get_fleet_control_status()
+    if name == "get_supabase_platform_status":
+        return get_supabase_platform_status()
+    if name == "get_neo4j_platform_status":
+        return get_neo4j_platform_status()
+    if name == "get_identity_platform_status":
+        return get_identity_platform_status()
+    if name == "get_agent_runtime_status":
+        return get_agent_runtime_status()
+    if name == "get_observability_platform_status":
+        return get_observability_platform_status()
+    if name == "get_artifact_platform_status":
+        return get_artifact_platform_status()
+    if name == "get_database_routing_status":
+        return get_database_routing_status()
+    if name == "get_external_publication_readiness":
+        return get_external_publication_readiness()
     if name == "get_tenant_secret_refs":
         return get_tenant_secret_refs(args, admin=admin)
     if name == "get_tenant_database_credentials":
@@ -2414,11 +4036,17 @@ def call_tool(name, args, admin=False):
         return k8s_api_proxy(args)
     if name == "postgres_sql_proxy":
         return postgres_sql_proxy(args, admin=admin)
-    admin_tools = {"list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant"}
+    admin_tools = {"list_authentik_users", "ensure_authentik_user", "grant_authentik_user_group", "list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant", "set_tool_publication_stage"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)
     if name == "list_dex_users":
         return list_dex_users()
+    if name == "list_authentik_users":
+        return list_authentik_users()
+    if name == "ensure_authentik_user":
+        return ensure_authentik_user(args)
+    if name == "grant_authentik_user_group":
+        return grant_authentik_user_group(args)
     if name == "get_tenancy_admin_workflow":
         return get_tenancy_admin_workflow()
     if name == "get_dex_hash_instructions":
@@ -2437,6 +4065,12 @@ def call_tool(name, args, admin=False):
         return grant_user_namespace(args)
     if name == "ensure_harbor_tenant":
         return ensure_harbor_tenant_identity(args)
+    if name == "set_tool_publication_stage":
+        return set_tool_publication_stage(args)
+    if name == "restart_managed_platform_deployment":
+        return restart_managed_platform_deployment(args)
+    if name == "scale_managed_platform_deployment":
+        return scale_managed_platform_deployment(args)
     raise ValueError("unknown tool: %s" % name)
 
 class Handler(BaseHTTPRequestHandler):
@@ -2450,6 +4084,12 @@ class Handler(BaseHTTPRequestHandler):
         if auth.startswith("Bearer "):
             return auth[7:]
         return self.headers.get("X-Ops-Admin-Token") or self.headers.get("X-Ops-Token", "")
+
+    def trusted_loopback_proxy(self):
+        source = ipaddress.ip_address(self.client_address[0])
+        if TRUST_LOOPBACK_PROXY and source.is_loopback:
+            return True
+        return any(source in network for network in TRUST_PROXY_CIDRS)
 
     def tenant_token_map(self):
         mapping = {}
@@ -2475,10 +4115,14 @@ class Handler(BaseHTTPRequestHandler):
         return self.tenant_token_map().get(token)
 
     def authorized(self):
+        if self.trusted_loopback_proxy():
+            return OPS_TOOL_PROFILE in ("public", "observe", "operate", "admin")
         token = self.presented_token()
         return bool(token) and (token in [OPS_TOKEN, OPS_ADMIN_TOKEN] or self.token_tenant() is not None)
 
     def admin_authorized(self):
+        if self.trusted_loopback_proxy():
+            return OPS_TOOL_PROFILE == "admin"
         token = self.presented_token()
         return bool(OPS_ADMIN_TOKEN) and token == OPS_ADMIN_TOKEN
 
@@ -2510,7 +4154,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def require_auth(self):
         if self.authorized():
-            ACTIVE_TENANT.set(self.token_tenant() or TENANT)
+            # ToolHive already authenticated and authorized the caller. Do not
+            # interpret its short-lived KSA token as a legacy tenant token or
+            # read the legacy auth Secret from a least-privilege workload.
+            if self.trusted_loopback_proxy():
+                ACTIVE_TENANT.set(TENANT)
+            else:
+                ACTIVE_TENANT.set(self.token_tenant() or TENANT)
             return True
         self.send_json({"error": "unauthorized", "hint": "send Authorization: Bearer <ops-token>"}, 401)
         return False
@@ -2656,7 +4306,7 @@ class Handler(BaseHTTPRequestHandler):
         if method == "initialize":
             result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {}}, "serverInfo": {"name": "re8ch-ops-mcp", "version": "0.1.0"}}
         elif method == "tools/list":
-            result = {"tools": mcp_tools(include_admin=self.admin_authorized())}
+            result = {"tools": mcp_tools(include_admin=self.admin_authorized() or OPS_TOOL_PROFILE in ("operate", "admin"))}
         elif method == "tools/call":
             params = req.get("params", {})
             value = call_tool(params.get("name"), params.get("arguments", {}), admin=self.admin_authorized())

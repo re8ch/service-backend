@@ -10,7 +10,10 @@ data:
   API_ORIGIN_POOL_NAME: api
   API_READY_HOST: api.jz.ynzs.com
   API_ORIGINS: api-2,nuc-2.ynzs.com api-3,nuc-3.ynzs.com
-  API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.122 api-3=192.0.2.183
+  API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.110 api-3=192.0.2.210
+  # Keep nuc-2/3 as CNAMEs to nuc-1/2.re8ch.com. This controller manages the
+  # origin pool health only and must not replace those aliases with A records.
+  API_ORIGIN_A_RECORDS: ""
   API_READY_CHECKS: GET:/_region:200 OPTIONS:/other/ossSts:204 OPTIONS:/client-events:204 GET:/homepage:200
   API_READY_ATTEMPTS: "3"
   API_READY_MIN_SUCCESS_ATTEMPTS: "1"
@@ -212,6 +215,63 @@ data:
         return mapping
 
 
+    def parse_a_records(raw):
+        records = {}
+        for item in raw.split():
+            if "=" not in item:
+                raise ValueError(f"invalid API_ORIGIN_A_RECORDS item: {item}")
+            name, address = item.split("=", 1)
+            if name and address:
+                records[name] = address
+        return records
+
+
+    def list_records(site_id_value, name):
+        payload = esa_call("ListRecords", {
+            "SiteId": site_id_value,
+            "RecordName": name,
+            "RecordMatchType": "exact",
+            "PageSize": 100,
+        })
+        return payload.get("Records", [])
+
+
+    def sync_a_record(site_id_value, name, desired_ip, apply):
+        records = list_records(site_id_value, name)
+        kept = False
+        for record in records:
+            record_type = record.get("RecordType")
+            source_type = record.get("RecordSourceType") or ""
+            current_ip = (record.get("Data") or {}).get("Value")
+            if record_type == "A/AAAA" and source_type == "":
+                kept = True
+                if current_ip != desired_ip or bool(record.get("Proxied")):
+                    log(f"patch origin A {name} {current_ip} -> {desired_ip}")
+                    if apply:
+                        esa_call("UpdateRecord", {
+                            "RecordId": record["RecordId"],
+                            "Type": "A/AAAA",
+                            "Data": json.dumps({"Value": desired_ip}, separators=(",", ":")),
+                            "Ttl": 1,
+                            "Proxied": "false",
+                            "Comment": "managed-by=aliyun-esa-api-origin-controller",
+                        }, method="POST")
+                continue
+            log(f"leave non-address origin record {record_type} {name} untouched")
+        if not kept:
+            log(f"create origin A {name} -> {desired_ip}")
+            if apply:
+                esa_call("CreateRecord", {
+                    "SiteId": site_id_value,
+                    "RecordName": name,
+                    "Type": "A/AAAA",
+                    "Data": json.dumps({"Value": desired_ip}, separators=(",", ":")),
+                    "Ttl": 1,
+                    "Proxied": "false",
+                    "Comment": "managed-by=aliyun-esa-api-origin-controller",
+                }, method="POST")
+
+
     def list_origin_pools(site_id_value):
         return esa_call("ListOriginPools", {"SiteId": site_id_value, "PageSize": 100}).get("OriginPools", [])
 
@@ -395,6 +455,8 @@ data:
         min_successes = max(1, min(min_successes, attempts))
         timeout = int(env("API_READY_TIMEOUT_SECONDS", "6"))
         current_site_id = site_id()
+        for name, address in parse_a_records(env("API_ORIGIN_A_RECORDS", "")).items():
+            sync_a_record(current_site_id, name, address, apply)
         pool = find_pool(current_site_id, required("API_ORIGIN_POOL_NAME"))
         healthy = set()
         log(f"probe api origins; apply={int(apply)}; site_id={current_site_id}; pool={pool['Name']}")
@@ -452,9 +514,16 @@ spec:
       labels:
         app.kubernetes.io/name: aliyun-esa-api-origin-controller
     spec:
+      # Keep the standby definition identical to the active controller.
+      hostNetwork: true
+      dnsPolicy: Default
       nodeSelector:
-        qianwen.cc/dns-controller: "true"
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
+        - key: anchor
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule

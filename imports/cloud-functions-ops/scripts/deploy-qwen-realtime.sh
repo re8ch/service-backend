@@ -153,7 +153,7 @@ if ! IN_RECOVERY="\$(sudo -iu postgres psql -X -qAt -d qianwen_prod -c 'select p
 fi
 if [[ "\$IN_RECOVERY" == "f" ]]; then
   if ! docker inspect qwen-realtime >/dev/null 2>&1; then
-    docker pull "\$IMAGE" >/dev/null
+    docker image inspect "\$IMAGE" >/dev/null 2>&1 || docker pull "\$IMAGE" >/dev/null
     docker run -d \\
       --name qwen-realtime \\
       --restart unless-stopped \\

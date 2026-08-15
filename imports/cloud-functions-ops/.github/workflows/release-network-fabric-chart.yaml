@@ -1,0 +1,25 @@
+name: Release network fabric Helm chart
+
+on:
+  push:
+    tags: ["re8ch-network-fabric-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint and package
+        run: |
+          helm lint manifests/k3s/cilium/service-vip-fabric
+          helm package manifests/k3s/cilium/service-vip-fabric --destination dist
+      - name: Authenticate to GHCR
+        run: echo "${{ github.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Publish OCI chart
+        run: helm push dist/re8ch-network-fabric-*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

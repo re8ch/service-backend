@@ -67,10 +67,11 @@ TENANTS: dict[str, dict[str, Any]] = {
         # public PostgREST /observable gateway is wired to the observable DB.
         "pgcatSnapshots": False,
         "pgInstances": [
-            {"ins": "pg-meta-1", "url": "192.0.2.172:5432"},
-            {"ins": "pg-meta-2", "url": "192.0.2.141:5432"},
+            {"ins": "pg-meta-4", "url": "192.0.2.115:5432"},
+            {"ins": "pg-meta-5", "url": "192.0.2.91:5432"},
             {"ins": "pg-meta-3", "url": "192.0.2.33:5432"},
         ],
+        "pgCluster": "pg-meta",
         "pgDatabases": ["qianwen_prod", "qianwen_test", "cardcat"],
         "livePgcatDatasources": True,
         "pigstyDashboards": True,
@@ -89,11 +90,37 @@ TENANTS: dict[str, dict[str, Any]] = {
         # public PostgREST /observable gateway is wired to the observable DB.
         "pgcatSnapshots": False,
         "pgInstances": [
-            {"ins": "pg-meta-1", "url": "192.0.2.172:5432"},
-            {"ins": "pg-meta-2", "url": "192.0.2.141:5432"},
-            {"ins": "pg-meta-3", "url": "192.0.2.33:5432"},
+            {"ins": "pg-re8ch-1", "url": "192.0.2.183:5432"},
+            {"ins": "pg-re8ch-2", "url": "192.0.2.172:5432"},
+            {"ins": "pg-re8ch-3", "url": "192.0.2.79:5432"},
         ],
+        "pgCluster": "pg-re8ch",
         "pgDatabases": ["ledger"],
+        "livePgcatDatasources": True,
+        "pigstyDashboards": True,
+    },
+    "re8ch": {
+        "org": "re8ch",
+        "users": [],
+        "serviceAccount": "re8ch-ai-agent-viewer",
+        "serviceAccountSecret": {"namespace": "qianwen-ops", "name": "grafana-re8ch-viewer"},
+        "dashboard": "tenant-re8ch-overview.json",
+        "metricsPath": "re8ch",
+        "logsPath": "re8ch",
+        "observableTenant": "re8ch",
+        "pgMonitorSecret": "panel-grafana-pg-monitor",
+        "pgcatSnapshots": False,
+        "pgInstances": [
+            {"ins": "pg-re8ch-1", "url": "192.0.2.183:5432"},
+            {"ins": "pg-re8ch-2", "url": "192.0.2.172:5432"},
+            {"ins": "pg-re8ch-3", "url": "192.0.2.79:5432"},
+        ],
+        "pgCluster": "pg-re8ch",
+        "pgDatabases": [
+            "ai_gateway", "anycam_prod", "anycam_test", "anysite", "auth",
+            "compocv", "compocv_labor", "image", "ledger", "ledger_corpus",
+            "meta", "observable", "teable", "postgres",
+        ],
         "livePgcatDatasources": True,
         "pigstyDashboards": True,
     },
@@ -465,6 +492,17 @@ def platform_pg_datasources(cfg: dict[str, Any], password: str | None = None) ->
     return datasources
 
 
+def allowed_main_pg_datasource_uids() -> set[str]:
+    """Return the exact physical-cluster/database boundary exposed in Main."""
+    allowed: set[str] = set()
+    # qianwen owns pg-meta; re8ch owns pg-re8ch. Tenant-specific views such as
+    # ledger are subsets and must not redefine physical cluster ownership.
+    for tenant in ("qianwen", "re8ch"):
+        cfg = TENANTS[tenant]
+        allowed.update(item["uid"] for item in platform_pg_datasources(cfg))
+    return allowed
+
+
 def datasource_uid(value: Any) -> str:
     if isinstance(value, dict):
         return str(value.get("uid") or "")
@@ -763,22 +801,27 @@ def tenant_pgcat_dashboard(source: dict[str, Any], tenant: str, cfg: dict[str, A
 
 
 def patch_tenant_template_defaults(dashboard: dict[str, Any], cfg: dict[str, Any]) -> None:
+    instances = cfg.get("pgInstances") or [{"ins": "", "url": ":"}]
+    cluster = cfg.get("pgCluster", "pg-meta")
+    primary = instances[0]
+    primary_ip = primary.get("url", "").split(":", 1)[0]
+    member_ips = "|".join(item.get("url", "").split(":", 1)[0] for item in instances)
     defaults = {
-        "cls": "pg-meta",
+        "cls": cluster,
         "job": "pgsql",
-        "shard": "pg-meta",
-        "primary": "pg-meta-1",
-        "ins": "pg-meta-1",
-        "ip": "192.0.2.172",
-        "node": "VM-0-5-ubuntu",
-        "members": "192.0.2.172|192.0.2.141|192.0.2.33",
-        "svc": "pg-meta-primary",
+        "shard": cluster,
+        "primary": primary.get("ins", ""),
+        "ins": primary.get("ins", ""),
+        "ip": primary_ip,
+        "node": primary_ip,
+        "members": member_ips,
+        "svc": "%s-primary" % cluster,
         "proxies": ".*",
         "servers": ".*",
-        "pg_cls": "pg-meta",
-        "node_cls": "pg-meta",
+        "pg_cls": cluster,
+        "node_cls": cluster,
         "datname": (cfg.get("pgDatabases") or [""])[0],
-        "dsn": "%s-pg-meta-1-%s" % (dashboard.get("_tenant_id"), (cfg.get("pgDatabases") or [""])[0].replace("_", "-")),
+        "dsn": "%s-%s-%s" % (dashboard.get("_tenant_id"), primary.get("ins", ""), (cfg.get("pgDatabases") or [""])[0].replace("_", "-")),
     }
     for var in (dashboard.get("templating") or {}).get("list", []):
         name = var.get("name")
@@ -978,7 +1021,8 @@ def patch_live_pgcat_dashboard(dashboard: dict[str, Any], tenant: str, cfg: dict
     default_instance = (cfg.get("pgInstances") or [{"ins": "pg-meta-1"}])[0].get("ins", "pg-meta-1")
     default_dsn_text = "%s.%s" % (default_instance, default_database)
     default_dsn_uid = "%s-%s-%s" % (tenant, default_instance, default_database.replace("_", "-"))
-    allowed_dsn_regex = r"^pg-meta-[123]\.(%s)$" % "|".join(re.escape(database) for database in databases)
+    allowed_instances = "|".join(re.escape(item["ins"]) for item in cfg.get("pgInstances", []))
+    allowed_dsn_regex = r"^(%s)\.(%s)$" % (allowed_instances, "|".join(re.escape(database) for database in databases))
     patched, changes = module.repair_dashboard(dashboard, default_dsn_text, default_dsn_uid, allowed_dsn_regex)
     if changes:
         info("pgcat_live_repair=embedded dashboard=%s changes=%s" % (dashboard.get("uid"), changes))
@@ -1050,6 +1094,13 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
             pg_password = secret_key(args.namespace, cfg.get("pgMonitorSecret", "panel-grafana-pg-monitor"), "password")
         for datasource in platform_pg_datasources(cfg, pg_password):
             client.upsert_datasource(args.main_org_id, datasource, args.apply)
+        allowed_main = allowed_main_pg_datasource_uids()
+        for datasource in client.list_datasources(args.main_org_id):
+            uid = str(datasource.get("uid") or "")
+            if not (uid.startswith("pg-meta-") or uid.startswith("pg-re8ch-")):
+                continue
+            if uid not in allowed_main:
+                client.delete_datasource(args.main_org_id, uid, args.apply)
 
     user_ids: list[tuple[int, str]] = []
     if not args.skip_membership_reconcile:
@@ -1079,7 +1130,8 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
             uid = datasource.get("uid", "")
             if uid in allowed_uids:
                 continue
-            if uid.startswith("pg-meta-") or uid.startswith("%s-pg-" % tenant) or uid in FORBIDDEN_TENANT_DATASOURCES:
+            cluster_prefix = "%s-" % cfg.get("pgCluster", "pg-meta")
+            if uid.startswith(cluster_prefix) or uid.startswith("%s-pg-" % tenant) or uid in FORBIDDEN_TENANT_DATASOURCES:
                 client.delete_datasource(org_id, uid, args.apply)
 
     dashboard_path = args.dashboard_dir / cfg["dashboard"]

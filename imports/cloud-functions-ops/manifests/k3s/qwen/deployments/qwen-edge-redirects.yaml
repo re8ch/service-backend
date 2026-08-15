@@ -13,7 +13,7 @@ data:
       server_name _;
 
       location = /callback {
-        return 302 https://api.jz.ynzs.com/callback-code/$arg_code/$arg_state;
+        return 302 https://api.re8ch.com/callback-code/$arg_code/$arg_state;
       }
 
       location = /other/wechatWeb/callback {

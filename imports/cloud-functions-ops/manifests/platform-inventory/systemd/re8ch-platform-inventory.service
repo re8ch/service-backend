@@ -1,0 +1,20 @@
+[Unit]
+Description=RE8CH credential-free Kubernetes inventory collector
+After=network-online.target k3s.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=re8ch-inventory
+Group=re8ch-inventory
+WorkingDirectory=/opt/re8ch/cloud-functions-repo
+Environment="GIT_SSH_COMMAND=ssh -F /etc/re8ch-inventory/ssh_config"
+ExecStart=/opt/re8ch/cloud-functions-repo/manifests/platform-inventory/systemd/run-inventory-pr.sh
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/re8ch/cloud-functions-repo
+
+[Install]
+WantedBy=multi-user.target

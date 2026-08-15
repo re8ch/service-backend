@@ -1,0 +1,150 @@
+# Materialized namespace classification for Headlamp, policy selection and
+# ToolHive coverage verification. Applying Namespace metadata is additive and
+# does not replace existing labels or annotations.
+apiVersion: v1
+kind: Namespace
+metadata: {name: kube-system, labels: {re8ch.com/domain: cluster-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: cilium-secrets, labels: {re8ch.com/domain: cluster-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: opentelemetry-operator, labels: {re8ch.com/domain: observability-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: qianwen-ops, labels: {re8ch.com/domain: observability-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: observability-ai, labels: {re8ch.com/domain: observability-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: opencost, labels: {re8ch.com/domain: observability-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: ops, labels: {re8ch.com/domain: platform-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: toolhive-system, labels: {re8ch.com/domain: tool-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: mcp-registry, labels: {re8ch.com/domain: tool-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: kagent, labels: {re8ch.com/domain: agent-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: opensandbox-system, labels: {re8ch.com/domain: agent-runtime, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: codex-app-server, labels: {re8ch.com/domain: agent-runtime, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: codex-platform, labels: {re8ch.com/domain: agent-runtime, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: llm-gateway, labels: {re8ch.com/domain: model-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: ai-gateway, labels: {re8ch.com/domain: model-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: auth, labels: {re8ch.com/domain: identity-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: dex, labels: {re8ch.com/domain: identity-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: harbor, labels: {re8ch.com/domain: artifact-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: image, labels: {re8ch.com/domain: artifact-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: registry-image, labels: {re8ch.com/domain: artifact-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: pigsty-external, labels: {re8ch.com/domain: database-routing, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: supabase-pg-re8ch, labels: {re8ch.com/domain: database-platform, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: neo4j, labels: {re8ch.com/domain: database-platform, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: fleet, labels: {re8ch.com/domain: device-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: nuclio, labels: {re8ch.com/domain: application-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: headlamp, labels: {re8ch.com/domain: human-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: agent-collab, labels: {re8ch.com/domain: agent-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: anycam, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: anysite, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: bench, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: cardcat, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: comfy-agent, labels: {re8ch.com/domain: agent-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: compocv, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: coroot, labels: {re8ch.com/domain: observability-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: ledger, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: phonaid, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: qwen, labels: {re8ch.com/domain: application-data, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}

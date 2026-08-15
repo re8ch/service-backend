@@ -13,10 +13,48 @@ data:
   DNS_RECORDS: |
     portainer.re8ch.com=192.0.2.67
     grafana.re8ch.com=192.0.2.67
+    hubble.re8ch.com=192.0.2.67
+    cost.re8ch.com=192.0.2.67
+    bgp.re8ch.com=192.0.2.67
     dbgui.re8ch.com=192.0.2.67
-    teable.re8ch.com=192.0.2.67
+    teable.re8ch.com=192.0.2.79
+    files.re8ch.com=192.0.2.79
+    phonycenter.re8ch.com=192.0.2.79
     feishu-agent.re8ch.com=192.0.2.99
-    registry.re8ch.com=192.0.2.210
+    registry.re8ch.com=192.0.2.79
+    # Nuclio runtime identities. nuc-1 remains a compatibility alias for nuc-2.
+    nuc-1.re8ch.com=192.0.2.110
+    nuc-2.re8ch.com=192.0.2.110
+    nuc-3.re8ch.com=192.0.2.210
+    # pg-meta physical node identities; role-aware clients still use db-rw/db-ro.
+    pg-1.re8ch.com=192.0.2.183
+    pg-2.re8ch.com=192.0.2.122
+    pg-3.re8ch.com=192.0.2.92
+    # Temporary TXT ownership handoff to ExternalDNS. Values are base64 because
+    # ExternalDNS ownership payloads contain commas used by this parser.
+    _re8ch-externaldns.a-portainer.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-grafana.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-hubble.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-cost.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-bgp.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-dbgui.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-fleet.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-files.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-phonycenter.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-registry.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-neo4j.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-tools.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-feishu-agent.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaWNwLXNlcnZpY2VzLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-auth.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaGFuZ3pob3Utc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-operate.tools.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaGFuZ3pob3Utc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-nuc-3.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaGFuZ3pob3Utc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-nuc-1.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtbnVjbGlvLXNoYW5naGFpLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-nuc-2.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtbnVjbGlvLXNoYW5naGFpLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-pg-1.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGcxLWlkZW50aXR5LWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-pg-2.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGcyLXNlcnZpY2VzLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-ledger-decisions.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGcyLXNlcnZpY2VzLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-pg-3.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGczLWlkZW50aXR5LWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-teable.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9hZ2VudC1jb2xsYWIvdGVhYmxl,type=TXT,content-base64=true,ttl=1,proxied=false
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -26,6 +64,7 @@ metadata:
 data:
   controller.py: |
     #!/usr/bin/env python3
+    import base64
     import json
     import os
     import sys
@@ -115,6 +154,9 @@ data:
                     record["proxied"] = parse_bool(value, DEFAULT_PROXIED)
                 elif key == "type":
                     record["type"] = value.upper()
+                elif key == "content-base64":
+                    if parse_bool(value, False):
+                        record["content"] = base64.b64decode(record["content"]).decode("utf-8")
                 else:
                     raise ValueError(f"unknown DNS_RECORDS option {key!r} in {line!r}")
             records.append(record)
@@ -209,7 +251,9 @@ metadata:
   name: cloudflare-panel-dns-controller
   namespace: qianwen-ops
 spec:
-  replicas: 1
+  # Deprecated after the TXT ownership handoff to cluster ExternalDNS.
+  # Keep the deployment and handoff data for rollback only.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: cloudflare-panel-dns-controller
@@ -219,8 +263,12 @@ spec:
         app.kubernetes.io/name: cloudflare-panel-dns-controller
     spec:
       nodeSelector:
-        qianwen.cc/dns-controller: "true"
+        kubernetes.io/hostname: rancher-panel
       tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
