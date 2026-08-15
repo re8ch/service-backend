@@ -1,0 +1,6 @@
+dependencies:
+- name: csi-driver-rclone
+  repository: file://vendor/csi-driver-rclone
+  version: 0.5.0
+digest: sha256:4bc2f5f941d2a78736cbb41f00376d1a0329485fc0ecb0bf44e42d92bebaa816
+generated: "2026-08-15T16:43:52.533898+08:00"
