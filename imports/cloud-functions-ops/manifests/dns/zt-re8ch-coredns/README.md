@@ -6,7 +6,7 @@ Authoritative DNS servers:
 
 | Name | ZT IP | Host |
 | --- | --- | --- |
-| `ns1.zt.re8ch.com` | `192.0.2.192` | ICP / K3s control-plane |
+| `ns1.zt.re8ch.com` | `192.0.2.192` | ICP / legacy DNS and infra worker; not a K3s control-plane endpoint |
 | `ns2.zt.re8ch.com` | `192.0.2.138` | Headlamp / metrics panel |
 | `ns3.zt.re8ch.com` | `192.0.2.74` | Harbor registry |
 
