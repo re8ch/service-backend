@@ -12,10 +12,18 @@ ToolHive is the final publication and policy layer. Its manifests are in
 `../toolhive/`. The raw endpoint remains an upstream compatibility endpoint and
 must not be added directly to new Agents.
 
-The active K3s control planes are currently `192.0.2.18` (A1) and
-`192.0.2.208` (B1). The former `192.0.2.183` VIP and the
-`k3s-api.internal.re8ch.com -> 192.0.2.67` record are stale as of 2026-08-04;
-`KUBE_SERVER_PUBLIC` temporarily uses A1 until the HA VIP/DNS is repaired.
+The embedded-etcd control plane has three voters: `192.0.2.183` (restricted-node-6dc3f140f9),
+`192.0.2.18` (A1), and `192.0.2.208` (B1). These are member addresses,
+not a shared API VIP. As of 2026-08-15, A1 and B1 pass the Kubernetes
+`/readyz` check from the operator network; validate restricted-node-6dc3f140f9 routing independently
+before selecting it as a client endpoint. `KUBE_SERVER_PUBLIC` uses A1.
+
+`192.0.2.67` belongs to the `vm-20-12-ubuntu` worker and is a retired K3s API
+endpoint. The historical `k3s-api.internal.re8ch.com -> 192.0.2.67` record and
+locally generated `icp-k3s-direct` kubeconfigs must not be used for cluster
+management. A kubeconfig error returning HTTP 404 during API discovery usually
+means the client reached a non-apiserver listener on this old node, not that the
+current three-member control plane is empty.
 
 The server code is stored in Kubernetes as ConfigMap `ops/ops-mcp-server-code` and mounted at `/app/app.py`.
 
