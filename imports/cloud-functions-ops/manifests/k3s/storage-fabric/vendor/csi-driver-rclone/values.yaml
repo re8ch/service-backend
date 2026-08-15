@@ -1,0 +1,342 @@
+# Override the chart name
+nameOverride: ""
+# Override the full release name
+fullnameOverride: ""
+
+customLabels: {}
+image:
+  rclone:
+    repository: ghcr.io/veloxpack/csi-driver-rclone
+    # To use a specific Rclone version, use the corresponding image tag
+    # Tag defaults to v{{ .Chart.AppVersion }} if not specified
+    # Override with: --set image.rclone.tag=v0.1.0
+    # tag: ""  # Uncomment and set to override Chart.AppVersion
+    pullPolicy: IfNotPresent
+  csiProvisioner:
+    repository: registry.k8s.io/sig-storage/csi-provisioner
+    tag: v6.2.0
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    repository: registry.k8s.io/sig-storage/livenessprobe
+    tag: v2.18.0
+    pullPolicy: IfNotPresent
+  nodeDriverRegistrar:
+    repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
+    tag: v2.16.0
+    pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true # When true, service accounts will be created for you. Set to false if you want to use your own.
+  controller: csi-rclone-controller-sa # Name of Service Account to be created or used
+  node: csi-rclone-node-sa # Name of Service Account to be created or used
+
+rbac:
+  create: true
+  name: rclone
+
+driver:
+  name: rclone.csi.veloxpack.io
+  mountPermissions: 0
+
+feature:
+  # Enable inline/ephemeral volumes (allows volumes defined directly in Pod specs)
+  # See: https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/
+  enableInlineVolume: false
+  # Propagate mount options from the host
+  propagateHostMountOptions: false
+  # Enable FSGroupPolicy to allow mounting volumes with specific FSGroup
+  enableFSGroupPolicy: true
+
+kubeletDir: /var/lib/kubelet
+
+controller:
+  name: csi-rclone-controller
+  replicas: 1
+  strategyType: Recreate
+  runOnMaster: false
+  runOnControlPlane: false
+  livenessProbe:
+    healthPort: 29652
+  logLevel: 5
+  workingMountDir: /tmp
+  dnsPolicy: ClusterFirstWithHostNet  # available values: Default, ClusterFirstWithHostNet, ClusterFirst
+  defaultOnDeletePolicy: delete  # available values: delete, retain
+  affinity: {}
+  nodeSelector: {}
+  priorityClassName: system-cluster-critical
+  # Additional command-line arguments for the driver binary.
+  # NOTE: only the driver's own flags are valid here. rclone options such as
+  # ca_cert / no_check_certificate are set as StorageClass/Secret parameters,
+  # not here (see the Custom Certificate Authority section in
+  # docs/install-rclone-csi-driver.md).
+  extraArgs: {}
+  # Additional environment variables for the rclone container.
+  # Trust a custom CA via the standard OpenSSL/Go env var (the file must be
+  # placed in the pod via extraVolumes/extraVolumeMounts below):
+  #   extraEnv:
+  #     - name: SSL_CERT_FILE
+  #       value: /etc/rclone/ca/ca.crt
+  extraEnv: []
+  # Additional volumes for the controller pod (e.g. mount a CA from a ConfigMap/Secret).
+  # extraVolumes:
+  #   - name: custom-ca
+  #     configMap:
+  #       name: my-custom-ca
+  extraVolumes: []
+  # Additional volume mounts for the rclone container.
+  # extraVolumeMounts:
+  #   - name: custom-ca
+  #     mountPath: /etc/rclone/ca
+  #     readOnly: true
+  extraVolumeMounts: []
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/controlplane"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "CriticalAddonsOnly"
+      operator: "Exists"
+      effect: "NoSchedule"
+  resources:
+    csiProvisioner:
+      limits:
+        memory: 400Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+    livenessProbe:
+      limits:
+        memory: 100Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+    rclone:
+      limits:
+        memory: 200Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+
+node:
+  name: csi-rclone-node
+  dnsPolicy: ClusterFirstWithHostNet  # available values: Default, ClusterFirstWithHostNet, ClusterFirst
+  maxUnavailable: 1
+  logLevel: 5
+  # mountTimeout bounds how long NodePublishVolume waits for a mount to complete
+  # before returning and reaping it in the background, so a stuck mount can never
+  # permanently hold a volume lock. Empty uses the driver default (90s). Keep this
+  # below the kubelet NodePublishVolume timeout (~120s). Accepts a Go duration (e.g. 90s, 2m).
+  mountTimeout: ""
+  livenessProbe:
+    healthPort: 29653
+  affinity: {}
+  nodeSelector: {}
+  priorityClassName: system-cluster-critical
+  tolerations:
+    - operator: "Exists"
+  resources:
+    livenessProbe:
+      limits:
+        memory: 100Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+    nodeDriverRegistrar:
+      limits:
+        memory: 100Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+    rclone:
+      limits:
+        memory: 300Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+  # Metrics Server configuration
+  metrics:
+    enabled: false
+    addr: ":5572"  # Maps to --metrics-addr
+    path: "/metrics"  # Maps to --metrics-path
+    readTimeout: "10s"  # Maps to --metrics-server-read-timeout
+    writeTimeout: "10s"  # Maps to --metrics-server-write-timeout
+    idleTimeout: "60s"  # Maps to --metrics-server-idle-timeout
+
+    # Service configuration
+    service:
+      enabled: false
+      type: ClusterIP
+      headless: true  # Use headless service for DaemonSet (clusterIP: None)
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5572"
+        prometheus.io/path: "/metrics"
+
+    # ServiceMonitor configuration (requires Prometheus Operator)
+    serviceMonitor:
+      enabled: false
+      interval: 15s
+      scrapeTimeout: 10s
+      scheme: http
+
+      # Additional labels for ServiceMonitor (used by Prometheus selector)
+      labels:
+        release: kube-prometheus-stack
+        # prometheus: kube-prometheus
+        # release: prometheus
+
+      # Namespace selector (if Prometheus is in different namespace)
+      namespaceSelector: {}
+        # matchNames:
+        #   - system
+
+      # Relabeling configs
+      relabelings: []
+        # - sourceLabels: [__meta_kubernetes_pod_node_name]
+        #   targetLabel: node
+        #   action: replace
+        # - sourceLabels: [__meta_kubernetes_namespace]
+        #   targetLabel: namespace
+        #   action: replace
+        # - sourceLabels: [__meta_kubernetes_pod_name]
+        #   targetLabel: pod
+        #   action: replace
+
+      # Metric relabeling configs
+      metricRelabelings: []
+        # - sourceLabels: [__name__]
+        #   regex: 'go_.*|csi_.*|process_.*'
+        #   action: keep
+
+    # Grafana Dashboard configuration
+    dashboard:
+      enabled: false
+      # Namespace where Grafana is installed (dashboard ConfigMap will be created here)
+      namespace: monitoring
+      # Labels for Grafana sidecar to discover the dashboard
+      labels:
+        grafana_dashboard: "1"
+      # Additional annotations for the ConfigMap
+      annotations: {}
+
+  # Remote Control (RC) API configuration
+  rc:
+    enabled: false
+    addr: ":5573"            # Maps to --rc-addr
+    noAuth: false            # When true, disables RC auth (not recommended)
+    basicAuth:
+      username: ""           # Optional username (use secrets for production)
+      password: ""
+      existingSecret: ""     # Reference an existing secret for credentials
+      usernameKey: username
+      passwordKey: password
+    service:
+      enabled: false
+      type: ClusterIP
+      headless: true
+      annotations: {}
+
+  # Additional command-line arguments for the driver binary.
+  # Example: helm template ./charts --set node.extraArgs.metrics-addr=":5572"
+  # NOTE: only the driver's own flags are valid here (metrics-*, rc-*, etc.).
+  # rclone options such as ca_cert / no_check_certificate are NOT flags here —
+  # set them as StorageClass/Secret parameters instead (see the Custom
+  # Certificate Authority section in docs/install-rclone-csi-driver.md).
+  extraArgs: {}
+
+  # Additional environment variables for the rclone container.
+  # Trust a custom CA via the standard OpenSSL/Go env var (the file must be
+  # placed in the pod via extraVolumes/extraVolumeMounts below):
+  #   extraEnv:
+  #     - name: SSL_CERT_FILE
+  #       value: /etc/rclone/ca/ca.crt
+  extraEnv: []
+
+  # Additional volumes for the node pod (e.g. mount a CA from a ConfigMap/Secret).
+  # extraVolumes:
+  #   - name: custom-ca
+  #     configMap:
+  #       name: my-custom-ca
+  extraVolumes: []
+
+  # Additional volume mounts for the rclone container.
+  # extraVolumeMounts:
+  #   - name: custom-ca
+  #     mountPath: /etc/rclone/ca
+  #     readOnly: true
+  extraVolumeMounts: []
+
+  # Cache directory mount configuration
+  # This allows mounting a host path for the rclone cache directory, useful for:
+  # - Using faster local storage for cache (e.g., SSD, NVMe)
+  # - Mounting dedicated disks
+  cache:
+    enabled: false
+    hostPath: ""  # Required when enabled (e.g., "/mnt/rclone-cache")
+    mountPath: /var/lib/rclone-cache  # Path where cache volume will be mounted in container
+
+## Reference to one or more secrets to be used when pulling images
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+##
+imagePullSecrets: []
+# - name: "image-pull-secret"
+
+## StorageClass resource example:
+storageClass:
+  create: false
+#   name: rclone-csi
+#   annotations:
+#     storageclass.kubernetes.io/is-default-class: "true"
+#   parameters:
+#     remote: "s3"
+#     remotePath: "my-bucket"
+#     configData: |
+#       [s3]
+#       type = s3
+#       provider = AWS
+#       access_key_id = YOUR_ACCESS_KEY_ID
+#       secret_access_key = YOUR_SECRET_ACCESS_KEY
+#   reclaimPolicy: Delete
+#   volumeBindingMode: Immediate
+#   mountOptions:
+#     - vfs-cache-mode=writes
+#     - vfs-cache-max-size=10G
+
+## StorageClass resources for creating multiple storage classes:
+## If you want multiple storage classes with different configurations, use this instead of storageClass above
+# storageClasses:
+#   - name: rclone-s3
+#     annotations:
+#       storageclass.kubernetes.io/is-default-class: "true"
+#     parameters:
+#       remote: "s3"
+#       remotePath: "my-bucket"
+#       configData: |
+#         [s3]
+#         type = s3
+#         provider = AWS
+#         access_key_id = YOUR_ACCESS_KEY_ID
+#         secret_access_key = YOUR_SECRET_ACCESS_KEY
+#     reclaimPolicy: Delete
+#     volumeBindingMode: Immediate
+#     mountOptions:
+#       - vfs-cache-mode=writes
+#       - vfs-cache-max-size=10G
+#   - name: rclone-gcs
+#     parameters:
+#       remote: "gcs"
+#       remotePath: "my-bucket"
+#       configData: |
+#         [gcs]
+#         type = gcs
+#         project_number = 123456789
+#         service_account_file = /path/to/service-account.json
+#     reclaimPolicy: Delete
+#     volumeBindingMode: Immediate
+#     mountOptions:
+#       - vfs-cache-mode=writes
