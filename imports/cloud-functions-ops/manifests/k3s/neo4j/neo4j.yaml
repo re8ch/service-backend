@@ -110,7 +110,9 @@ spec:
                   name: neo4j-auth
                   key: NEO4J_AUTH
             - name: NEO4J_PLUGINS
-              value: '["apoc","apoc-extended","graph-data-science","genai"]'
+              # apoc-extended.jar is pinned in the plugins PVC. The upstream
+              # entrypoint downloader is intentionally disabled for this item.
+              value: '["apoc","graph-data-science","genai"]'
             - name: NEO4J_server_memory_heap_initial__size
               value: 4G
             - name: NEO4J_server_memory_heap_max__size
@@ -174,7 +176,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: local-path
+        storageClassName: rbd-r640
         resources:
           requests:
             storage: 100Gi
