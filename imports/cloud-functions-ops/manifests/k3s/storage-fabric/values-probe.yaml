@@ -1,0 +1,52 @@
+rcloneCsi:
+  enabled: true
+
+mounts:
+  - name: aliyun-probe-a
+    namespace: storage-fabric
+    provider: aliyun
+    bucket: filesof
+    prefix: _re8ch-csi-probe/a
+    capacity: 10Gi
+    accessModes: [ReadWriteMany]
+    mountOptions:
+      - vfs-cache-mode=full
+      - vfs-cache-max-size=2Gi
+      - dir-cache-time=30s
+      - poll-interval=15s
+  - name: aliyun-probe-b
+    namespace: storage-fabric
+    provider: aliyun
+    bucket: filesof
+    prefix: _re8ch-csi-probe/b
+    capacity: 10Gi
+    accessModes: [ReadWriteMany]
+    mountOptions:
+      - vfs-cache-mode=full
+      - vfs-cache-max-size=2Gi
+      - dir-cache-time=30s
+      - poll-interval=15s
+  - name: tencent-probe-a
+    namespace: storage-fabric
+    provider: tencent
+    bucket: general-1301339749
+    prefix: _re8ch-csi-probe/a
+    capacity: 10Gi
+    accessModes: [ReadWriteMany]
+    mountOptions:
+      - vfs-cache-mode=full
+      - vfs-cache-max-size=2Gi
+      - dir-cache-time=30s
+      - poll-interval=15s
+  - name: tencent-probe-b
+    namespace: storage-fabric
+    provider: tencent
+    bucket: general-1301339749
+    prefix: _re8ch-csi-probe/b
+    capacity: 10Gi
+    accessModes: [ReadWriteMany]
+    mountOptions:
+      - vfs-cache-mode=full
+      - vfs-cache-max-size=2Gi
+      - dir-cache-time=30s
+      - poll-interval=15s
