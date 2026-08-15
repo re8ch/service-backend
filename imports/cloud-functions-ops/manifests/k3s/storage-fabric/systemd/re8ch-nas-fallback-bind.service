@@ -1,0 +1,14 @@
+[Unit]
+Description=Expose the restricted-node-6dc3f140f9 local NAS copy before mounting CephFS primary
+RequiresMountsFor=/srv/nas
+Before=srv-nas-shared.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/mount --bind /srv/nas/shared /srv/nas-local-fallback
+ExecStart=/usr/bin/mount --make-private /srv/nas-local-fallback
+ExecStop=/usr/bin/umount /srv/nas-local-fallback
+
+[Install]
+WantedBy=multi-user.target
