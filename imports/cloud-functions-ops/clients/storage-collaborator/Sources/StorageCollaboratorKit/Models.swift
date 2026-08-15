@@ -30,4 +30,3 @@ public struct WorkspacePage: Codable, Sendable { public let workspaces: [Workspa
 public enum StorageCollaboratorError: Error, Sendable {
   case invalidResponse, unauthorized, notFound, conflict(RemoteItem?), server(Int, String)
 }
-

@@ -9,4 +9,3 @@ let package = Package(
     .testTarget(name: "StorageCollaboratorKitTests", dependencies: ["StorageCollaboratorKit"])
   ]
 )
-

@@ -12,4 +12,3 @@ access group before distribution. Background content transfers use system File
 Provider callbacks; long app-owned management transfers should use a background
 `URLSession` and `BGProcessingTask`. Search begins with filename/metadata API
 results; Spotlight indexing is supplied by File Provider item metadata.
-
