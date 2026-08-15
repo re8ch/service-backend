@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: authentik-database-preflight-
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: authentik-database-preflight
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: authentik-database-preflight
+    spec:
+      restartPolicy: Never
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: harbor-registry
+      containers:
+        - name: python
+          image: ghcr.io/goauthentik/server:2026.5.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authentik-secrets
+                  key: AUTHENTIK_POSTGRESQL__PASSWORD
+          command: [python, -c]
+          args:
+            - |
+              import os
+              import sys
+              try:
+                  import psycopg
+                  connect = psycopg.connect
+              except ImportError:
+                  import psycopg2
+                  connect = psycopg2.connect
+              for host, port in (("192.0.2.178", 5432),):
+                  try:
+                      with connect(host=host, port=port, dbname="auth", user="authentik", password=os.environ["PGPASSWORD"], connect_timeout=5) as connection:
+                          with connection.cursor() as cursor:
+                              cursor.execute("select pg_is_in_recovery(), current_setting('transaction_read_only')")
+                              in_recovery, read_only = cursor.fetchone()
+                              assert in_recovery is False and read_only == "off"
+                              cursor.execute("create temporary table authentik_write_preflight (ok boolean)")
+                              cursor.execute("insert into authentik_write_preflight values (true)")
+                      print(f"PASS route={host}:{port} database=auth role=authentik writable=true")
+                      sys.exit(0)
+                  except Exception as exc:
+                      print(f"FAIL route={host}:{port} database=auth role=authentik error={type(exc).__name__}")
+              sys.exit(1)
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

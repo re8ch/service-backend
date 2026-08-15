@@ -1,0 +1,226 @@
+---
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: {{ .Values.node.name }}
+  namespace: {{ .Release.Namespace }}
+  {{- include "rclone.labels" . | nindent 2 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.node.name }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.node.maxUnavailable }}
+  template:
+    metadata:
+      annotations:
+        # Compatibility path for runtimes that still enforce the legacy
+        # AppArmor annotation instead of securityContext.appArmorProfile.
+        container.apparmor.security.beta.kubernetes.io/rclone: unconfined
+      labels:
+        app: {{ .Values.node.name }}
+        {{- include "rclone.commonLabels" . | nindent 8 }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: {{ .Values.node.dnsPolicy }}
+      serviceAccountName: {{ include "rclone.serviceAccountName.node" . }}
+      nodeSelector:
+        kubernetes.io/os: linux
+        {{- if .Values.node.nodeSelector }}
+        {{- toYaml .Values.node.nodeSelector | nindent 8 }}
+        {{- end }}
+      priorityClassName: {{ .Values.node.priorityClassName }}
+      tolerations:
+        {{- toYaml .Values.node.tolerations | nindent 8 }}
+      {{- if .Values.node.affinity }}
+      affinity:
+        {{- toYaml .Values.node.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: liveness-probe
+          image: {{ .Values.image.livenessProbe.repository }}:{{ .Values.image.livenessProbe.tag }}
+          imagePullPolicy: {{ .Values.image.livenessProbe.pullPolicy }}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --probe-timeout=3s
+            - --http-endpoint=localhost:{{ .Values.node.livenessProbe.healthPort }}
+            - --v={{ .Values.node.logLevel }}
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+          resources:
+            {{- toYaml .Values.node.resources.livenessProbe | nindent 12 }}
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+        - name: node-driver-registrar
+          image: {{ .Values.image.nodeDriverRegistrar.repository }}:{{ .Values.image.nodeDriverRegistrar.tag }}
+          imagePullPolicy: {{ .Values.image.nodeDriverRegistrar.pullPolicy }}
+          args:
+            - "--v={{ .Values.node.logLevel }}"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/rclone.csi.veloxpack.io /registration/rclone.csi.veloxpack.io-reg.sock"]
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: {{ .Values.kubeletDir }}/plugins/rclone.csi.veloxpack.io/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          resources:
+            {{- toYaml .Values.node.resources.nodeDriverRegistrar | nindent 12 }}
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+        - name: rclone
+          image: {{ .Values.image.rclone.repository }}:{{ include "rclone.rcloneImageTag" . }}
+          imagePullPolicy: {{ .Values.image.rclone.pullPolicy }}
+          securityContext:
+            privileged: true
+            # Ubuntu 26 AppArmor denies fusermount3 even in a privileged
+            # container unless this one FUSE client is explicitly unconfined.
+            # Do not disable the host fusermount3 profile globally.
+            appArmorProfile:
+              type: Unconfined
+            capabilities:
+              add: ["SYS_ADMIN"]
+              drop:
+                - ALL
+            allowPrivilegeEscalation: true
+          args:
+            - "-v={{ .Values.node.logLevel }}"
+            - "--nodeid=$(NODE_ID)"
+            - "--endpoint=$(CSI_ENDPOINT)"
+            {{- if .Values.node.mountTimeout }}
+            - "--mount-timeout={{ .Values.node.mountTimeout }}"
+            {{- end }}
+            {{- if .Values.node.metrics.enabled }}
+            - "--metrics-addr={{ .Values.node.metrics.addr }}"
+            - "--metrics-path={{ .Values.node.metrics.path }}"
+            - "--metrics-server-read-timeout={{ .Values.node.metrics.readTimeout }}"
+            - "--metrics-server-write-timeout={{ .Values.node.metrics.writeTimeout }}"
+            - "--metrics-server-idle-timeout={{ .Values.node.metrics.idleTimeout }}"
+            {{- end }}
+            {{- if .Values.node.rc.enabled }}
+            - "--rc"
+            - "--rc-addr={{ .Values.node.rc.addr }}"
+            {{- if .Values.node.rc.noAuth }}
+            - "--rc-no-auth"
+            {{- else }}
+            - "--rc-user=$(RC_USERNAME)"
+            - "--rc-pass=$(RC_PASSWORD)"
+            {{- end }}
+            {{- end }}
+            {{- range $key, $value := .Values.node.extraArgs }}
+            - "--{{ $key }}={{ $value }}"
+            {{- end }}
+          {{- if or .Values.node.metrics.enabled .Values.node.rc.enabled }}
+          ports:
+            {{- if .Values.node.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ regexFind "[0-9]+$" .Values.node.metrics.addr | int }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.node.rc.enabled }}
+            - name: rc
+              containerPort: {{ regexFind "[0-9]+$" .Values.node.rc.addr | int }}
+              protocol: TCP
+            {{- end }}
+          {{- end }}
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            {{- if and .Values.node.rc.enabled (not .Values.node.rc.noAuth) }}
+            - name: RC_USERNAME
+              {{- if .Values.node.rc.basicAuth.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.node.rc.basicAuth.existingSecret }}
+                  key: {{ .Values.node.rc.basicAuth.usernameKey }}
+              {{- else }}
+              value: {{ .Values.node.rc.basicAuth.username | quote }}
+              {{- end }}
+            - name: RC_PASSWORD
+              {{- if .Values.node.rc.basicAuth.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.node.rc.basicAuth.existingSecret }}
+                  key: {{ .Values.node.rc.basicAuth.passwordKey }}
+              {{- else }}
+              value: {{ .Values.node.rc.basicAuth.password | quote }}
+              {{- end }}
+            {{- end }}
+            {{- with .Values.node.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              host: localhost
+              path: /healthz
+              port: {{ .Values.node.livenessProbe.healthPort }}
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 30
+          volumeMounts:
+            - name: pods-mount-dir
+              mountPath: {{ .Values.kubeletDir }}/pods
+              mountPropagation: "Bidirectional"
+            - mountPath: /csi
+              name: plugin-dir
+            {{- if .Values.node.cache.enabled }}
+            - name: rclone-cache
+              mountPath: {{ .Values.node.cache.mountPath }}
+            {{- end }}
+            {{- with .Values.node.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.node.resources.rclone | nindent 12 }}
+      volumes:
+        - name: pods-mount-dir
+          hostPath:
+            path: {{ .Values.kubeletDir }}/pods
+            type: Directory
+        - name: socket-dir
+          emptyDir: {}
+        - name: plugin-dir
+          hostPath:
+            path: {{ .Values.kubeletDir }}/plugins/rclone.csi.veloxpack.io
+            type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: {{ .Values.kubeletDir }}/plugins_registry
+            type: DirectoryOrCreate
+        {{- if .Values.node.cache.enabled }}
+        - name: rclone-cache
+          hostPath:
+            path: {{ .Values.node.cache.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- with .Values.node.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}

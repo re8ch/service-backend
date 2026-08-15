@@ -1,0 +1,29 @@
+#!/bin/sh
+# Restricted interactive shell for the Hyperglass FRR account.
+# vtysh -u removes configuration commands even if this allowlist regresses.
+PATH=/usr/bin:/bin
+export PATH
+prompt='hyperglass-ro$ '
+printf '%s' "$prompt"
+while IFS= read -r command; do
+  case "$command" in
+    ""|"terminal length 0"|"terminal width 511"|"terminal width 0") ;;
+    exit|quit) exit 0 ;;
+    "vtysh -c \"show "*"\"")
+      query=${command#vtysh -c \"}
+      query=${query%\"}
+      if printf '%s' "$query" | grep -Eq '[;&|`$()]'; then
+        printf '%s\n' '% command rejected'
+      else
+        case "$query" in
+          "show bgp "*|"show bfd peers"|"show bfd peers brief"|"show bfd peer "*|"show ip route "*|"show ipv6 route "*)
+            /usr/bin/vtysh -u -c "$query"
+            ;;
+          *) printf '%s\n' '% command rejected' ;;
+        esac
+      fi
+      ;;
+    *) printf '%s\n' '% read-only account: command rejected' ;;
+  esac
+  printf '%s' "$prompt"
+done

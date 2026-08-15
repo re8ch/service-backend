@@ -40,6 +40,14 @@ data:
   BACKEND_CACHE_PROVIDER: "redis"
   BACKEND_SESSION_COOKIE_SECURE: "true"
   TELEMETRY_REPORT_DISABLED: "true"
+  # Teable AI Chat Runtime uses the authenticated in-cluster OpenSandbox facade.
+  # The agent image is pinned to the vendor-published multi-arch digest.
+  TEABLE_INFRA_API_URL: "http://teable-infra.opensandbox-system.svc.cluster.local:8080"
+  TEABLE_INFRA_BUCKET: "teable-agent"
+  SANDBOX_PROVIDER: "opensandbox"
+  SANDBOX_AGENT_RUNTIME: "pi"
+  SANDBOX_OPENSANDBOX_IMAGE: "docker.io/teableio/teable-sandbox-agent@sha256:724b1c8f341e144bc5502c10262baeb686f59d381949a69900930500306479f9"
+  SANDBOX_OPENSANDBOX_USE_SERVER_PROXY: "true"
   TIMEZONE: "Asia/Shanghai"
   TZ: "Asia/Shanghai"
 ---
@@ -186,13 +194,17 @@ metadata:
     app.kubernetes.io/name: teable
     app.kubernetes.io/part-of: agent-collab
 spec:
-  type: ClusterIP
+  # The fixed NodePort is the restricted-node-6dc3f140f9 recovery path used by the ICP edge relay
+  # when cross-node Flannel VXLAN is unavailable.
+  type: NodePort
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: teable
   ports:
     - name: http
       port: 3000
       targetPort: http
+      nodePort: 32030
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -289,6 +301,11 @@ spec:
                 secretKeyRef:
                   name: teable-db-credentials
                   key: DATABASE_URL_MIGRATOR
+            - name: TEABLE_INFRA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: teable-infra-runtime
+                  key: TEABLE_INFRA_API_KEY
           volumeMounts:
             - name: assets
               mountPath: /app/.assets

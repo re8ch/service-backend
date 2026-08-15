@@ -1,0 +1,32 @@
+{
+  "name": "re8ch-cloud-functions",
+  "interface": {
+    "displayName": "RE8CH Private Plugins"
+  },
+  "plugins": [
+    {
+      "name": "re8ch-platform-observe",
+      "source": {
+        "source": "local",
+        "path": "./plugins/re8ch-platform-observe"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "re8ch-platform-operate",
+      "source": {
+        "source": "local",
+        "path": "./plugins/re8ch-platform-operate"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

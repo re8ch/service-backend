@@ -1,0 +1,19 @@
+[Unit]
+Description=GXW SIP inbound auto-answer POC
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=restricted-node-6dc3f140f9
+Group=restricted-node-6dc3f140f9
+ExecStart=/usr/bin/python3 /opt/video-infra/gxw_sip_autoanswer.py --audio /opt/video-infra/autoanswer.pcmu
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

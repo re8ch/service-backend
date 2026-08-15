@@ -1,0 +1,274 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: toolhive-auth-redis
+  namespace: toolhive-system
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: toolhive-auth-redis}
+  ports: [{name: redis, port: 6379, targetPort: redis}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: toolhive-auth-redis
+  namespace: toolhive-system
+spec:
+  serviceName: toolhive-auth-redis
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: toolhive-auth-redis, app.kubernetes.io/part-of: toolhive}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: redis
+          image: docker.io/valkey/valkey:8-alpine
+          args: [valkey-server, --appendonly, "yes", --requirepass, $(REDIS_PASSWORD)]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom: {secretKeyRef: {name: toolhive-auth-redis, key: password}}
+          ports: [{name: redis, containerPort: 6379}]
+          volumeMounts: [{name: data, mountPath: /data}]
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          readinessProbe: {tcpSocket: {port: redis}, periodSeconds: 5, failureThreshold: 6}
+          livenessProbe: {tcpSocket: {port: redis}, periodSeconds: 10, failureThreshold: 6}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: {drop: [ALL]}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 2Gi}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: toolhive-auth-redis, namespace: toolhive-system}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: virtualmcpserver}}
+        - podSelector: {matchLabels: {app.kubernetes.io/name: mcpserver}}
+      ports: [{protocol: TCP, port: 6379}]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata: {name: vmcp-backend-strip-prefix, namespace: toolhive-system}
+spec:
+  stripPrefixRegex:
+    regex: ['^/backend/(admin|observe|operate)']
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vmcp-r640-backends
+  namespace: toolhive-system
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: toolhive-system-vmcp-backend-strip-prefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [admin.re8ch.com]
+      secretName: re8ch-wildcard-tls
+  rules:
+    - host: admin.re8ch.com
+      http:
+        paths:
+          - {path: /backend/admin, pathType: Prefix, backend: {service: {name: mcp-ops-admin-external, port: {number: 8088}}}}
+          - {path: /backend/observe, pathType: Prefix, backend: {service: {name: mcp-ops-observe-external, port: {number: 8088}}}}
+          - {path: /backend/operate, pathType: Prefix, backend: {service: {name: mcp-ops-operate-external, port: {number: 8088}}}}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata: {name: platform-admin-public, namespace: toolhive-system}
+spec: {description: "External admin tools published only through the admin vMCP."}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata: {name: platform-tools-public, namespace: toolhive-system}
+spec: {description: "External observe and operate tools aggregated through the tools vMCP."}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-admin-r640-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-admin-public}
+  # ToolHive intentionally rejects cluster.local MCPServerEntry URLs as an
+  # SSRF boundary. This R640-local 8443 route terminates TLS in Traefik and
+  # forwards directly to the raw backend Service (not through another OAuth
+  # proxy), so authentication still happens exactly once at the vMCP edge.
+  remoteUrl: https://admin.re8ch.com:8443/backend/admin/mcp
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-observe-r640-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-tools-public}
+  remoteUrl: https://admin.re8ch.com:8443/backend/observe/mcp
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-operate-r640-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-tools-public}
+  remoteUrl: https://admin.re8ch.com:8443/backend/operate/mcp
+  transport: streamable-http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: ops-external-backends-from-vmcp, namespace: toolhive-system}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: app, operator: In, values: [ops-admin-external, ops-observe-external, ops-operate-external]}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: traefik}}
+      ports: [{protocol: TCP, port: 8088}]
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: toolhive-name, operator: In, values: [re8ch-admin-vmcp, re8ch-tools-vmcp]}
+      ports: [{protocol: TCP, port: 8088}]
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: mcpserver}}
+      ports: [{protocol: TCP, port: 8088}]
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata: {name: re8ch-admin-vmcp-issuer, namespace: toolhive-system}
+spec:
+  type: inline
+  inline:
+    issuer: https://dex.re8ch.com
+    clientId: re8ch-platform-admin
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata: {name: re8ch-tools-vmcp-issuer, namespace: toolhive-system}
+spec:
+  type: inline
+  inline:
+    issuer: https://dex.re8ch.com
+    clientId: re8ch-platform-tools
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: VirtualMCPServer
+metadata:
+  name: re8ch-admin-vmcp
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: canary}
+spec:
+  groupRef: {name: platform-admin-public}
+  replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 1
+    keyPrefix: "thv:vmcp:admin:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
+  incomingAuth:
+    type: oidc
+    oidcConfigRef:
+      name: re8ch-admin-vmcp-issuer
+      audience: re8ch-platform-admin
+      resourceUrl: https://admin.re8ch.com:8443/mcp
+      scopes: [openid, profile, email, groups, offline_access]
+    authzConfig:
+      type: inline
+      groupClaimName: groups
+      inline:
+        policies:
+          - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+  outgoingAuth:
+    default: {type: discovered}
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig: {prefixFormat: "{workload}_"}
+      tools:
+        - workload: ops-admin-r640-backend
+          toolConfigRef: {name: ops-admin-tools}
+    audit:
+      enabled: true
+      component: re8ch-admin-vmcp
+      includeRequestData: false
+      includeResponseData: false
+  telemetryConfigRef: {name: platform-tools-telemetry}
+  podTemplateSpec:
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: VirtualMCPServer
+metadata:
+  name: re8ch-tools-vmcp
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: canary}
+spec:
+  groupRef: {name: platform-tools-public}
+  replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 2
+    keyPrefix: "thv:vmcp:tools:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
+  incomingAuth:
+    type: oidc
+    oidcConfigRef:
+      name: re8ch-tools-vmcp-issuer
+      audience: re8ch-platform-tools
+      resourceUrl: https://tools.re8ch.com:8443/mcp
+      scopes: [openid, profile, email, groups, offline_access]
+    authzConfig:
+      type: inline
+      groupClaimName: groups
+      inline:
+        policies:
+          - 'permit(principal, action, resource);'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+  outgoingAuth:
+    default: {type: discovered}
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig: {prefixFormat: "{workload}_"}
+      tools:
+        - workload: ops-observe-r640-backend
+          toolConfigRef: {name: ops-public-read-tools}
+        - workload: ops-operate-r640-backend
+          toolConfigRef: {name: ops-operate-tools}
+    operational:
+      failureHandling: {partialFailureMode: best_effort}
+    audit:
+      enabled: true
+      component: re8ch-tools-vmcp
+      includeRequestData: false
+      includeResponseData: false
+  telemetryConfigRef: {name: platform-tools-telemetry}
+  podTemplateSpec:
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {seccompProfile: {type: RuntimeDefault}}

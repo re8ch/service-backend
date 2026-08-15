@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: re8ch-cilium-lb-canary
+  namespace: kube-system
+  labels:
+    networking.re8ch.com/lb-pool: service-vip
+    networking.re8ch.com/bgp-advertise: enabled
+spec:
+  type: LoadBalancer
+  loadBalancerClass: io.cilium/bgp-control-plane
+  externalTrafficPolicy: Local
+  selector:
+    k8s-app: cilium
+  ports:
+    - name: cilium-health
+      port: 4240
+      targetPort: 4240
+      protocol: TCP

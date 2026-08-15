@@ -1,0 +1,24 @@
+# Layer this after values-migration.yaml only after the public mesh has passed
+# its 24-hour stability gate and all rollback drills.
+cni:
+  install: true
+  customConf: false
+  exclusive: true
+  uninstall: false
+
+routingMode: tunnel
+tunnelProtocol: vxlan
+tunnelPort: 8473
+
+kubeProxyReplacement: "false"
+
+bgpControlPlane:
+  # Enables the control-plane machinery only. Peer, advertisement, and LB IPAM
+  # resources remain separately managed and must never reuse the DN42 VRF.
+  enabled: true
+
+gatewayAPI:
+  enabled: false
+
+operator:
+  replicas: 2

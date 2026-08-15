@@ -15,7 +15,7 @@ data:
         add_header Access-Control-Allow-Headers "Accept, Authorization, Content-Length, Content-Type, X-Requested-With, X-Trace-Id, X-Client-Trace-Id, X-Request-Id, X-Error-Id, X-Client-Region, X-Preferred-Api, X-Region-Cache-Version, X-Client-Event-Id, X-Client-Interaction-Id, X-Client-Interaction-Name, X-Client-Visitor-Id, X-Client-Visitor-Token, X-Visitor-Id, X-Visitor-Token, X-PostHog-Distinct-Id, X-PostHog-Session-Id, X-PostHog-Window-Id, X-PostHog-Replay-Id, X-PostHog-Person-Properties, X-PostHog-Groups, X-PostHog-Group-Properties, X-Qianwen-Visitor-Id, X-Qianwen-Visitor-Token, X-Qianwen-Trace-Id" always;
         add_header Access-Control-Max-Age "86400" always;
         add_header Cache-Control "public, max-age=60, stale-while-revalidate=300" always;
-        add_header X-Region-Cache-Version "20260610-esa-origin-v6" always;
+        add_header X-Region-Cache-Version "20260731-re8ch-api-v7" always;
 
         if ($request_method = OPTIONS) {
           return 204;
@@ -24,10 +24,10 @@ data:
         default_type application/json;
 
         if ($host ~* (^|\.)ynzs\.com$) {
-          return 200 '{"clientRegion":"global","regionFamily":"ynzs","preferredApi":"https://api.jz.ynzs.com","preferredApiName":"ynzs-esa-api","readApi":"https://api.jz.ynzs.com","writeApi":"https://api.jz.ynzs.com","fallbackApis":[],"reason":"static_ynzs_esa_origin_pool","routeSource":"qwen_ynzs_region_metadata","selectedRegion":"shanghai","ttlSeconds":60,"version":6}';
+          return 200 '{"clientRegion":"global","regionFamily":"re8ch","preferredApi":"https://api.re8ch.com","preferredApiName":"re8ch-api","readApi":"https://api.re8ch.com","writeApi":"https://api.re8ch.com","fallbackApis":[],"reason":"tencent_requires_re8ch_api_domain","routeSource":"qwen_re8ch_region_metadata","selectedRegion":"shanghai","ttlSeconds":60,"version":7}';
         }
 
-        return 200 '{"clientRegion":"global","regionFamily":"re8ch","preferredApi":"https://api-shanghai217.re8ch.com","preferredApiName":"api-shanghai217","readApi":"https://api-shanghai217.re8ch.com","writeApi":"https://api-shanghai217.re8ch.com","fallbackApis":["https://api-guangzhou24.re8ch.com"],"reason":"static_native_gateway_primary","routeSource":"qwen_region_metadata","selectedRegion":"global","ttlSeconds":60,"version":3}';
+        return 200 '{"clientRegion":"global","regionFamily":"re8ch","preferredApi":"https://api.re8ch.com","preferredApiName":"re8ch-api","readApi":"https://api.re8ch.com","writeApi":"https://api.re8ch.com","fallbackApis":[],"reason":"controller_managed_re8ch_api","routeSource":"qwen_re8ch_region_metadata","selectedRegion":"global","ttlSeconds":60,"version":7}';
       }
     }
 ---

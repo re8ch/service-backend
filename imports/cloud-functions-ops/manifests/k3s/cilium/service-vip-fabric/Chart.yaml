@@ -1,0 +1,17 @@
+apiVersion: v2
+name: re8ch-network-fabric
+description: Opt-in Cilium LB IPAM, BGP service VIPs, and Mihomo regional egress
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+kubeVersion: ">=1.30.0-0"
+home: https://github.com/re8ch/cloud-functions/tree/master/manifests/k3s/cilium/service-vip-fabric
+sources:
+  - https://github.com/re8ch/cloud-functions
+maintainers:
+  - name: RE8CH
+    url: https://github.com/re8ch
+keywords: [cilium, bgp, frr, mihomo, k3s, multi-region]
+annotations:
+  networking.re8ch.com/scope: service-vip-only
+  artifacthub.io/license: MIT

@@ -18,6 +18,8 @@ data:
     max_connections=100
     performance_schema=OFF
     skip_name_resolve=ON
+    binlog_expire_logs_seconds=86400
+    max_binlog_size=64M
 ---
 apiVersion: v1
 kind: Service
@@ -112,7 +114,7 @@ spec:
         app.kubernetes.io/name: fleet-egress-proxy
     spec:
       nodeSelector:
-        node-role.kubernetes.io/panel: "true"
+        kubernetes.io/hostname: vm-20-12-ubuntu
       hostAliases:
         - ip: 192.0.2.73
           hostnames:
@@ -130,9 +132,9 @@ spec:
           hostnames:
             - fleetdm.com
       tolerations:
-        - key: dedicated
+        - key: anchor
           operator: Equal
-          value: panel
+          value: "true"
           effect: NoSchedule
       containers:
         - name: proxy
@@ -196,11 +198,11 @@ spec:
         app.kubernetes.io/name: fleet-mysql
     spec:
       nodeSelector:
-        node-role.kubernetes.io/panel: "true"
+        kubernetes.io/hostname: vm-20-12-ubuntu
       tolerations:
-        - key: dedicated
+        - key: anchor
           operator: Equal
-          value: panel
+          value: "true"
           effect: NoSchedule
       containers:
         - name: mysql
@@ -247,19 +249,13 @@ spec:
               mountPath: /etc/mysql/conf.d/fleet.cnf
               subPath: fleet.cnf
       volumes:
+        - name: mysql-data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-7c083e26-ea6e-4c3b-ba15-eafe84f8d2d1_fleet_mysql-data-fleet-mysql-0
+            type: Directory
         - name: mysql-config
           configMap:
             name: fleet-mysql-config
-  volumeClaimTemplates:
-    - metadata:
-        name: mysql-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        storageClassName: local-path
-        resources:
-          requests:
-            storage: 10Gi
 ---
 apiVersion: v1
 kind: Service
@@ -298,11 +294,11 @@ spec:
         app.kubernetes.io/name: fleet-redis
     spec:
       nodeSelector:
-        node-role.kubernetes.io/panel: "true"
+        kubernetes.io/hostname: vm-20-12-ubuntu
       tolerations:
-        - key: dedicated
+        - key: anchor
           operator: Equal
-          value: panel
+          value: "true"
           effect: NoSchedule
       containers:
         - name: redis
@@ -351,11 +347,11 @@ spec:
     spec:
       restartPolicy: OnFailure
       nodeSelector:
-        node-role.kubernetes.io/panel: "true"
+        kubernetes.io/hostname: vm-20-12-ubuntu
       tolerations:
-        - key: dedicated
+        - key: anchor
           operator: Equal
-          value: panel
+          value: "true"
           effect: NoSchedule
       containers:
         - name: fleet-db-prepare
@@ -448,11 +444,11 @@ spec:
         app.kubernetes.io/component: server
     spec:
       nodeSelector:
-        node-role.kubernetes.io/panel: "true"
+        kubernetes.io/hostname: vm-20-12-ubuntu
       tolerations:
-        - key: dedicated
+        - key: anchor
           operator: Equal
-          value: panel
+          value: "true"
           effect: NoSchedule
       containers:
         - name: fleet
@@ -494,6 +490,16 @@ spec:
                 secretKeyRef:
                   name: fleet-secrets
                   key: server-private-key
+            - name: FLEET_MDM_WINDOWS_WSTEP_IDENTITY_CERT_BYTES
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-windows-mdm-wstep
+                  key: identity.crt
+            - name: FLEET_MDM_WINDOWS_WSTEP_IDENTITY_KEY_BYTES
+              valueFrom:
+                secretKeyRef:
+                  name: fleet-windows-mdm-wstep
+                  key: identity.key
             - name: HTTPS_PROXY
               value: http://192.0.2.145:3128
             - name: HTTP_PROXY

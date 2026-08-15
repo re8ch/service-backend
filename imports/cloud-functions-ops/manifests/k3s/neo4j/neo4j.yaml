@@ -47,16 +47,19 @@ metadata:
   labels:
     app.kubernetes.io/name: neo4j
 spec:
-  type: ClusterIP
+  type: NodePort
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: neo4j
   ports:
     - name: http
       port: 7474
       targetPort: http
+      nodePort: 30474
     - name: bolt
       port: 7687
       targetPort: bolt
+      nodePort: 30687
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -79,6 +82,8 @@ spec:
         app.kubernetes.io/part-of: re8ch-knowledge-graph
     spec:
       enableServiceLinks: false
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       securityContext:
@@ -105,7 +110,9 @@ spec:
                   name: neo4j-auth
                   key: NEO4J_AUTH
             - name: NEO4J_PLUGINS
-              value: '["apoc","apoc-extended","graph-data-science","genai"]'
+              # apoc-extended.jar is pinned in the plugins PVC. The upstream
+              # entrypoint downloader is intentionally disabled for this item.
+              value: '["apoc","graph-data-science","genai"]'
             - name: NEO4J_server_memory_heap_initial__size
               value: 4G
             - name: NEO4J_server_memory_heap_max__size
@@ -132,20 +139,18 @@ spec:
               cpu: "4"
               memory: 16Gi
           startupProbe:
-            httpGet:
-              path: /
-              port: http
+            exec:
+              command: ["grep", "1D32", "/proc/net/tcp6"]
             failureThreshold: 60
             periodSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /
-              port: http
+            exec:
+              command: ["grep", "1D32", "/proc/net/tcp6"]
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            tcpSocket:
-              port: bolt
+            exec:
+              command: ["grep", "1D32", "/proc/net/tcp6"]
             initialDelaySeconds: 120
             periodSeconds: 30
             timeoutSeconds: 5
@@ -171,7 +176,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: local-path
+        storageClassName: rbd-r640
         resources:
           requests:
             storage: 100Gi

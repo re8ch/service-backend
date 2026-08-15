@@ -23,7 +23,9 @@ fi
 
 if [[ "$IN_RECOVERY" == "f" ]]; then
   if ! docker inspect "$CONTAINER" >/dev/null 2>&1; then
-    docker pull "$IMAGE" >/dev/null
+    # Prefer a preloaded/Harbor-cached image. Some DB nodes intentionally
+    # cannot authenticate to the public Docker Hub mirror.
+    docker image inspect "$IMAGE" >/dev/null 2>&1 || docker pull "$IMAGE" >/dev/null
     docker run -d \
       --name "$CONTAINER" \
       --restart unless-stopped \

@@ -1,0 +1,16 @@
+schemaVersion: re8ch.com/v1alpha1
+authentikGroups:
+  observers: RE8CH Platform Observers
+  operators: RE8CH Platform Operators
+  nodeOperators: RE8CH Platform Node Operators
+  administrators: RE8CH Platform Admins
+principles:
+  - Kubernetes RBAC and backend allowlists remain authoritative after OIDC authorization.
+  - Secret values and unrestricted Kubernetes objects are never exposed to agents.
+  - No RE8CH role implies membership in authentik Admins.
+ssh:
+  caHost: restricted-node-6dc3f140f9
+  caPrivateKeyRef: host://restricted-node-6dc3f140f9/var/lib/re8ch-ssh-ca/ssh_user_ca
+  trustedCaPublicKeyPath: /etc/ssh/re8ch_user_ca.pub
+  account: re8ch-ai
+  privateKeysPersisted: false
