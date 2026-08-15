@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-ledger-economicsgraph-0
+  namespace: neo4j
+  labels:
+    storage.re8ch.com/tier: r640-rbd
+    storage.re8ch.com/migrated-from: local-path
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: rbd-r640
+  volumeName: pvc-e4ebae3b-37f1-4b93-9dfe-f0d553eee338
+  resources:
+    requests:
+      storage: 50Gi

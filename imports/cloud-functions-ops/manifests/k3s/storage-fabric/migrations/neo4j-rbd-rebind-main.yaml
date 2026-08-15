@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-neo4j-0
+  namespace: neo4j
+  labels:
+    storage.re8ch.com/tier: r640-rbd
+    storage.re8ch.com/migrated-from: local-path
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  volumeName: pvc-c88db206-b93f-429f-a721-c388b9c57a9d
+  resources:
+    requests:
+      storage: 100Gi
