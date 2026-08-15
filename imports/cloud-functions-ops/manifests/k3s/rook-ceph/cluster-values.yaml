@@ -21,7 +21,9 @@ cephClusterSpec:
     count: 3
     allowMultiplePerNode: false
   mgr:
-    count: 1
+    # Keep a standby manager on a different storage host so a scheduled
+    # control-plane restart does not remove the only manager daemon.
+    count: 2
     allowMultiplePerNode: false
   dashboard:
     enabled: false
@@ -62,6 +64,15 @@ cephClusterSpec:
                 - key: storage.re8ch.com/ceph-pilot
                   operator: In
                   values: ["true"]
+    mgr:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values: [rook-ceph-mgr]
+            topologyKey: kubernetes.io/hostname
   resources:
     mon:
       limits:
@@ -144,7 +155,31 @@ cephClusterSpec:
         disabled: false
         interval: 60s
 
-cephBlockPools: []
+cephBlockPools:
+  - name: r640-rbd
+    spec:
+      failureDomain: host
+      deviceClass: r640-hdd
+      replicated:
+        size: 1
+        requireSafeReplicaSize: false
+    storageClass:
+      enabled: true
+      name: rbd-r640
+      isDefault: false
+      reclaimPolicy: Retain
+      allowVolumeExpansion: true
+      volumeBindingMode: WaitForFirstConsumer
+      parameters:
+        imageFormat: "2"
+        imageFeatures: layering
+        csi.storage.k8s.io/fstype: xfs
+        csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+        csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+        csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
+        csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+        csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+        csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
 
 cephFileSystems:
   - name: re8ch-files
@@ -160,9 +195,24 @@ cephFileSystems:
           replicated:
             size: 3
             requireSafeReplicaSize: true
+        - name: restricted-node-6dc3f140f9
+          failureDomain: host
+          deviceClass: r640-hdd
+          replicated:
+            size: 1
+            requireSafeReplicaSize: false
       metadataServer:
         activeCount: 1
         activeStandby: true
+        placement:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [rook-ceph-mds]
+                topologyKey: kubernetes.io/hostname
         resources:
           limits:
             memory: 1Gi
