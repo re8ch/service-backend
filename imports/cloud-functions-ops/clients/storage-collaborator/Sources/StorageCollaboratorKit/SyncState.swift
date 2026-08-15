@@ -10,4 +10,3 @@ public actor SyncState {
   public func setNetwork(_ value:Network){network=value}
   public func snapshot()->Snapshot{Snapshot(network:network,pendingTransfers:pending,lastSync:lastSync,lastError:lastError)}
 }
-

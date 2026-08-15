@@ -27,4 +27,3 @@ public actor APIClient {
   private func request(_ path:String,method:String="GET") -> URLRequest { var r=URLRequest(url:URL(string:path,relativeTo:configuration.baseURL)!);r.httpMethod=method;r.setValue("Bearer \(configuration.token)",forHTTPHeaderField:"Authorization");r.timeoutInterval=60;return r }
   private func check(_ response:URLResponse,data:Data?) throws { guard let h=response as? HTTPURLResponse else{throw StorageCollaboratorError.invalidResponse};switch h.statusCode{case 200..<300:return;case 401:throw StorageCollaboratorError.unauthorized;case 404:throw StorageCollaboratorError.notFound;case 409:throw StorageCollaboratorError.conflict(data.flatMap{try? decoder.decode(RemoteItem.self,from:$0)});default:throw StorageCollaboratorError.server(h.statusCode,data.flatMap{String(data:$0,encoding:.utf8)} ?? "")}}
 }
-

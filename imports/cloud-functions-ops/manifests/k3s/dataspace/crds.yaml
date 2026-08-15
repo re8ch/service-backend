@@ -74,4 +74,3 @@ spec:
                 workspaceSelector: {type: object, x-kubernetes-preserve-unknown-fields: true}
                 maxOfflineBytes: {type: integer, format: int64, minimum: 0}
                 conflictPolicy: {type: string, enum: [conflict-copy, server-wins]}
-

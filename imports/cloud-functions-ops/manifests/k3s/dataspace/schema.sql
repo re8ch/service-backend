@@ -21,4 +21,3 @@ create index if not exists items_search_idx on dataspace.items using gin(to_tsve
 create index if not exists changes_workspace_idx on dataspace.changes(workspace_id,cursor);
 create table if not exists dataspace.shares (id uuid primary key, workspace_id uuid not null, subject text not null, role text not null, expires_at timestamptz);
 create table if not exists dataspace.devices (id uuid primary key, subject text not null, token_hash text not null, last_seen_at timestamptz);
-
