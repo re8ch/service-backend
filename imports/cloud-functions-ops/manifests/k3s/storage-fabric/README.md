@@ -1,5 +1,15 @@
 # RE8CH storage fabric
 
+## Cluster authority
+
+The storage control plane is the three-voter K3s cluster on restricted-node-6dc3f140f9
+(`192.0.2.178`), A1 (`192.0.2.176`), and B1 (`192.0.2.4`). These are
+member addresses rather than an HA VIP. Never run this chart through the old
+`192.0.2.192:6443` endpoint: that address now belongs to the
+`vm-20-12-ubuntu` worker and no longer serves the Kubernetes API. Before any
+storage mutation, verify the selected member with `/readyz`, node readiness,
+Rook/Ceph health, and the Qwen smoke endpoint.
+
 This chart inventories visible Alibaba OSS and Tencent COS buckets and can
 install the rclone CSI driver. It keeps object stores parallel to CephFS:
 CephFS provides shared POSIX storage, while object mounts provide assets,

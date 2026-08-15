@@ -1,0 +1,521 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		07EB724B514696BBEADB8CD7 /* FileProviderExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E62CE1DBE9E386DBB2A28C2 /* FileProviderExtension.swift */; };
+		33BE8D88DF5780EA88F639D3 /* StorageCollaboratorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7FE6EAB9DEB316E8F78C1D /* StorageCollaboratorApp.swift */; };
+		3C8E7B93176262B5D0C0F25D /* StorageCollaboratorItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BD0F38BBE3BD29C5193C760 /* StorageCollaboratorItem.swift */; };
+		61AD3D3B997F616705817E76 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6C11F6A0C036E1E72200D7E3 /* GoogleService-Info.plist */; };
+		91407BAFF92DDB14B59572F1 /* OIDCLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 507F5BCB3CC5A0944EDDE25F /* OIDCLogin.swift */; };
+		BA99B6454AD58A8F0E7BEAAA /* StorageCollaboratorFileProvider.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 630FF7186D89CFA0729B2152 /* StorageCollaboratorFileProvider.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CBE8DDAFC4D8B3D12F7F05AF /* StorageCollaboratorKit in Frameworks */ = {isa = PBXBuildFile; productRef = 18EB5D32F3711FCCF2E47B99 /* StorageCollaboratorKit */; };
+		CEC9CF9E6E678D8B9C0C5B55 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C4B086F43D91D464D9806255 /* Assets.xcassets */; };
+		E15200488E6D3C34A4175506 /* StorageCollaboratorEnumerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA146D47205A97D846BC9F6C /* StorageCollaboratorEnumerator.swift */; };
+		FF69ED0A679DD87884698A3E /* StorageCollaboratorKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5DEE26DB4DDE67FC414E0608 /* StorageCollaboratorKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6CAEF8164591FBB81C198B55 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C1799A9D47B6124F8D4FB1D6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2553D634C18E773715E53C41;
+			remoteInfo = StorageCollaboratorFileProvider;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7AC6663DC71619A9D6B5862E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BA99B6454AD58A8F0E7BEAAA /* StorageCollaboratorFileProvider.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		344AC7055AA169F96AA72680 /* StorageCollaboratorFileProvider.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StorageCollaboratorFileProvider.entitlements; sourceTree = "<group>"; };
+		42D26E562A27A71DB087D8C3 /* storage-collaborator */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "storage-collaborator"; path = .; sourceTree = SOURCE_ROOT; };
+		507F5BCB3CC5A0944EDDE25F /* OIDCLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OIDCLogin.swift; sourceTree = "<group>"; };
+		630FF7186D89CFA0729B2152 /* StorageCollaboratorFileProvider.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = StorageCollaboratorFileProvider.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C11F6A0C036E1E72200D7E3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		7A7FE6EAB9DEB316E8F78C1D /* StorageCollaboratorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCollaboratorApp.swift; sourceTree = "<group>"; };
+		7C824CBA187B82A66B913B91 /* StorageCollaborator.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StorageCollaborator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8BD0F38BBE3BD29C5193C760 /* StorageCollaboratorItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCollaboratorItem.swift; sourceTree = "<group>"; };
+		9075A678CF8C0A2956C9412B /* StorageCollaborator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StorageCollaborator.entitlements; sourceTree = "<group>"; };
+		952F53EF2DEE47B8630409F6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9E62CE1DBE9E386DBB2A28C2 /* FileProviderExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileProviderExtension.swift; sourceTree = "<group>"; };
+		BA146D47205A97D846BC9F6C /* StorageCollaboratorEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCollaboratorEnumerator.swift; sourceTree = "<group>"; };
+		C4B086F43D91D464D9806255 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F0F56AA648A2AD1335F0ACA9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		07DB9D02269A5D3F23F8C9CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CBE8DDAFC4D8B3D12F7F05AF /* StorageCollaboratorKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B7D26DFBEF4FEFC8F70D1721 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF69ED0A679DD87884698A3E /* StorageCollaboratorKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2E13085ACFED5B10D62218BB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7C824CBA187B82A66B913B91 /* StorageCollaborator.app */,
+				630FF7186D89CFA0729B2152 /* StorageCollaboratorFileProvider.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		489FA8C6DAAE03F376958D7A /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C4B086F43D91D464D9806255 /* Assets.xcassets */,
+				6C11F6A0C036E1E72200D7E3 /* GoogleService-Info.plist */,
+				F0F56AA648A2AD1335F0ACA9 /* Info.plist */,
+				507F5BCB3CC5A0944EDDE25F /* OIDCLogin.swift */,
+				9075A678CF8C0A2956C9412B /* StorageCollaborator.entitlements */,
+				7A7FE6EAB9DEB316E8F78C1D /* StorageCollaboratorApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		88F8AB938B51DCBD03D2C349 /* FileProviderExtension */ = {
+			isa = PBXGroup;
+			children = (
+				9E62CE1DBE9E386DBB2A28C2 /* FileProviderExtension.swift */,
+				952F53EF2DEE47B8630409F6 /* Info.plist */,
+				BA146D47205A97D846BC9F6C /* StorageCollaboratorEnumerator.swift */,
+				344AC7055AA169F96AA72680 /* StorageCollaboratorFileProvider.entitlements */,
+				8BD0F38BBE3BD29C5193C760 /* StorageCollaboratorItem.swift */,
+			);
+			path = FileProviderExtension;
+			sourceTree = "<group>";
+		};
+		A7D554AEB4409CE3099A17AD = {
+			isa = PBXGroup;
+			children = (
+				489FA8C6DAAE03F376958D7A /* App */,
+				88F8AB938B51DCBD03D2C349 /* FileProviderExtension */,
+				B62214601CE390E4DCC1132A /* Packages */,
+				2E13085ACFED5B10D62218BB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B62214601CE390E4DCC1132A /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				42D26E562A27A71DB087D8C3 /* storage-collaborator */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1FAE45519A7F8CBE97385352 /* StorageCollaborator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AEC000EFD9248D5B93B64404 /* Build configuration list for PBXNativeTarget "StorageCollaborator" */;
+			buildPhases = (
+				986C1748B16F0D45E028934A /* Sources */,
+				6B59133A35FDA300B98E5CA3 /* Resources */,
+				B7D26DFBEF4FEFC8F70D1721 /* Frameworks */,
+				7AC6663DC71619A9D6B5862E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				56A93DEDDB8BE388169EB377 /* PBXTargetDependency */,
+			);
+			name = StorageCollaborator;
+			packageProductDependencies = (
+				5DEE26DB4DDE67FC414E0608 /* StorageCollaboratorKit */,
+			);
+			productName = StorageCollaborator;
+			productReference = 7C824CBA187B82A66B913B91 /* StorageCollaborator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2553D634C18E773715E53C41 /* StorageCollaboratorFileProvider */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 76BAFFE8D3C9C14A680E893C /* Build configuration list for PBXNativeTarget "StorageCollaboratorFileProvider" */;
+			buildPhases = (
+				1252FDCAF9AB79644912C044 /* Sources */,
+				07DB9D02269A5D3F23F8C9CE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StorageCollaboratorFileProvider;
+			packageProductDependencies = (
+				18EB5D32F3711FCCF2E47B99 /* StorageCollaboratorKit */,
+			);
+			productName = StorageCollaboratorFileProvider;
+			productReference = 630FF7186D89CFA0729B2152 /* StorageCollaboratorFileProvider.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C1799A9D47B6124F8D4FB1D6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1FAE45519A7F8CBE97385352 = {
+						DevelopmentTeam = 4CAQWRA29P;
+					};
+					2553D634C18E773715E53C41 = {
+						DevelopmentTeam = 4CAQWRA29P;
+					};
+				};
+			};
+			buildConfigurationList = 992D40445CD62E6CAA904AC4 /* Build configuration list for PBXProject "StorageCollaborator" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = A7D554AEB4409CE3099A17AD;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9574ADC607CBA188283EE5FA /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2E13085ACFED5B10D62218BB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1FAE45519A7F8CBE97385352 /* StorageCollaborator */,
+				2553D634C18E773715E53C41 /* StorageCollaboratorFileProvider */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6B59133A35FDA300B98E5CA3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CEC9CF9E6E678D8B9C0C5B55 /* Assets.xcassets in Resources */,
+				61AD3D3B997F616705817E76 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1252FDCAF9AB79644912C044 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				07EB724B514696BBEADB8CD7 /* FileProviderExtension.swift in Sources */,
+				E15200488E6D3C34A4175506 /* StorageCollaboratorEnumerator.swift in Sources */,
+				3C8E7B93176262B5D0C0F25D /* StorageCollaboratorItem.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		986C1748B16F0D45E028934A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91407BAFF92DDB14B59572F1 /* OIDCLogin.swift in Sources */,
+				33BE8D88DF5780EA88F639D3 /* StorageCollaboratorApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		56A93DEDDB8BE388169EB377 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2553D634C18E773715E53C41 /* StorageCollaboratorFileProvider */;
+			targetProxy = 6CAEF8164591FBB81C198B55 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		155C99ED0D98D7F3045350CB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = FileProviderExtension/StorageCollaboratorFileProvider.entitlements;
+				CODE_SIGN_IDENTITY = 984CBDEF1E655F997BC2805D34ED7CC1B2B0B2D5;
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = FileProviderExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.re8ch.storagecollaborator.fileprovider;
+				PRODUCT_NAME = "Storage Collaborator File Provider";
+				PROVISIONING_PROFILE_SPECIFIER = "Storage Collaborator File Provider App Store v2";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		18A37B14D5D54C0A3B695E32 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = FileProviderExtension/StorageCollaboratorFileProvider.entitlements;
+				INFOPLIST_FILE = FileProviderExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.re8ch.storagecollaborator.fileprovider;
+				PRODUCT_NAME = "Storage Collaborator File Provider";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3EB604A0BCD93C4F3BF88977 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4CAQWRA29P;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		841204E453AB4E1F200BCE47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/StorageCollaborator.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.re8ch.storagecollaborator;
+				PRODUCT_NAME = "Storage Collaborator";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A0E299D60BD30103B1C07493 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/StorageCollaborator.entitlements;
+				CODE_SIGN_IDENTITY = 984CBDEF1E655F997BC2805D34ED7CC1B2B0B2D5;
+				CODE_SIGN_STYLE = Manual;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.re8ch.storagecollaborator;
+				PRODUCT_NAME = "Storage Collaborator";
+				PROVISIONING_PROFILE_SPECIFIER = "Storage Collaborator App Store v2";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		E9A59D18661C7C0E87ACEEC1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 5;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4CAQWRA29P;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		76BAFFE8D3C9C14A680E893C /* Build configuration list for PBXNativeTarget "StorageCollaboratorFileProvider" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18A37B14D5D54C0A3B695E32 /* Debug */,
+				155C99ED0D98D7F3045350CB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		992D40445CD62E6CAA904AC4 /* Build configuration list for PBXProject "StorageCollaborator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3EB604A0BCD93C4F3BF88977 /* Debug */,
+				E9A59D18661C7C0E87ACEEC1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AEC000EFD9248D5B93B64404 /* Build configuration list for PBXNativeTarget "StorageCollaborator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				841204E453AB4E1F200BCE47 /* Debug */,
+				A0E299D60BD30103B1C07493 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		9574ADC607CBA188283EE5FA /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		18EB5D32F3711FCCF2E47B99 /* StorageCollaboratorKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = StorageCollaboratorKit;
+		};
+		5DEE26DB4DDE67FC414E0608 /* StorageCollaboratorKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = StorageCollaboratorKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C1799A9D47B6124F8D4FB1D6 /* Project object */;
+}

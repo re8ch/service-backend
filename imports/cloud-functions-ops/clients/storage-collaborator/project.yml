@@ -1,0 +1,91 @@
+name: StorageCollaborator
+options:
+  bundleIdPrefix: com.re8ch
+  deploymentTarget: {iOS: "18.0"}
+settings:
+  base:
+    DEVELOPMENT_TEAM: 4CAQWRA29P
+    SWIFT_VERSION: 5.0
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 5
+    CODE_SIGN_STYLE: Automatic
+packages:
+  StorageCollaboratorKit: {path: .}
+targets:
+  StorageCollaborator:
+    type: application
+    platform: iOS
+    sources: [App]
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.re8ch.storagecollaborator.oauth
+            CFBundleURLSchemes:
+              - com.re8ch.storagecollaborator
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    entitlements:
+      path: App/StorageCollaborator.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.re8ch.storagecollaborator
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.re8ch.storagecollaborator
+        PRODUCT_NAME: Storage Collaborator
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SUPPORTS_MACCATALYST: YES
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: 984CBDEF1E655F997BC2805D34ED7CC1B2B0B2D5
+          PROVISIONING_PROFILE_SPECIFIER: Storage Collaborator App Store v2
+    dependencies:
+      - package: StorageCollaboratorKit
+      - target: StorageCollaboratorFileProvider
+        embed: true
+  StorageCollaboratorFileProvider:
+    type: app-extension
+    platform: iOS
+    sources: [FileProviderExtension]
+    info:
+      path: FileProviderExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Storage Collaborator
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionFileProviderDocumentGroup: group.com.re8ch.storagecollaborator
+          NSExtensionPointIdentifier: com.apple.fileprovider-nonui
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).FileProviderExtension"
+    entitlements:
+      path: FileProviderExtension/StorageCollaboratorFileProvider.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.re8ch.storagecollaborator
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.re8ch.storagecollaborator.fileprovider
+        PRODUCT_NAME: Storage Collaborator File Provider
+        SKIP_INSTALL: YES
+        SUPPORTS_MACCATALYST: YES
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: 984CBDEF1E655F997BC2805D34ED7CC1B2B0B2D5
+          PROVISIONING_PROFILE_SPECIFIER: Storage Collaborator File Provider App Store v2
+    dependencies:
+      - package: StorageCollaboratorKit
+schemes:
+  StorageCollaborator:
+    build: {targets: {StorageCollaborator: all, StorageCollaboratorFileProvider: all}}
+    run: {config: Debug}
+    archive: {config: Release}
