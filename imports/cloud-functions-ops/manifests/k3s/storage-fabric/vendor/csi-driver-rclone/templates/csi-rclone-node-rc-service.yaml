@@ -27,4 +27,3 @@ spec:
   selector:
     app: {{ .Values.node.name }}
 {{- end }}
-
