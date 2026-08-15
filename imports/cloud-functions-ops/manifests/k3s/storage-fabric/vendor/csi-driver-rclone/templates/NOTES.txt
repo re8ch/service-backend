@@ -1,0 +1,88 @@
+1. CSI Rclone Driver has been installed successfully!
+
+2. The driver is now ready to provision persistent volumes from cloud storage backends.
+
+3. To create a StorageClass, you can use the following example:
+
+   ```yaml
+   apiVersion: storage.k8s.io/v1
+   kind: StorageClass
+   metadata:
+     name: rclone-s3
+   provisioner: rclone.csi.veloxpack.io
+   parameters:
+     remote: "s3"
+     remotePath: "my-bucket"
+     configData: |
+       [s3]
+       type = s3
+       provider = AWS
+       access_key_id = YOUR_ACCESS_KEY_ID
+       secret_access_key = YOUR_SECRET_ACCESS_KEY
+   reclaimPolicy: Delete
+   volumeBindingMode: Immediate
+   mountOptions:
+     - vfs-cache-mode=writes
+     - vfs-cache-max-size=10G
+   ```
+
+4. To create a PersistentVolumeClaim:
+
+   ```yaml
+   apiVersion: v1
+   kind: PersistentVolumeClaim
+   metadata:
+     name: rclone-pvc
+   spec:
+     accessModes:
+       - ReadWriteMany
+     resources:
+       requests:
+         storage: 10Gi
+     storageClassName: rclone-s3
+   ```
+
+5. For more examples and configuration options, see:
+   - https://github.com/veloxpack/csi-driver-rclone
+   - https://rclone.org/commands/rclone_mount/
+
+6. To check the driver status:
+   ```bash
+   kubectl get pods -n {{ .Release.Namespace }} -l app=csi-rclone-controller
+   kubectl get pods -n {{ .Release.Namespace }} -l app=csi-rclone-node
+   ```
+
+7. To view driver logs:
+   ```bash
+   kubectl logs -n {{ .Release.Namespace }} -l app=csi-rclone-controller
+   kubectl logs -n {{ .Release.Namespace }} -l app=csi-rclone-node
+   ```
+{{- if .Values.node.metrics.enabled }}
+
+8. Metrics are enabled!
+   {{- if .Values.node.metrics.service.enabled }}
+   Metrics service: {{ include "rclone.fullname" . }}-node-metrics
+   {{- end }}
+   {{- if .Values.node.metrics.serviceMonitor.enabled }}
+   ServiceMonitor: {{ include "rclone.fullname" . }}-node-metrics
+
+   Access Prometheus metrics:
+   ```bash
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "rclone.fullname" . }}-node-metrics 5572:5572
+   curl http://localhost:5572/metrics
+   ```
+   {{- end }}
+   {{- if .Values.node.metrics.dashboard.enabled }}
+
+   Grafana dashboard ConfigMap created in '{{ .Values.node.metrics.dashboard.namespace }}' namespace!
+   The dashboard will be automatically discovered by Grafana sidecar.
+
+   Access the dashboard:
+   ```bash
+   kubectl port-forward -n {{ .Values.node.metrics.dashboard.namespace }} svc/kube-prometheus-stack-grafana 3000:80
+   # Open: http://localhost:3000/dashboards?query=CSI%20Driver%20Rclone
+   ```
+   {{- end }}
+{{- end }}
+
+Happy cloud storage mounting!
