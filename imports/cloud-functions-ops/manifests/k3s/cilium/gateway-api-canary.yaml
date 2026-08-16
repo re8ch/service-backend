@@ -28,6 +28,10 @@ kind: Gateway
 metadata:
   name: re8ch-gateway-canary
   namespace: kube-system
+  annotations:
+    # DNS names belong to the public 443 edge, while the Gateway and backend
+    # Pods may live anywhere in the Cilium routing domain.
+    external-dns.alpha.kubernetes.io/target: 192.0.2.67
 spec:
   gatewayClassName: cilium-re8ch
   infrastructure:
@@ -58,6 +62,10 @@ kind: HTTPRoute
 metadata:
   name: headlamp-public
   namespace: headlamp
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   parentRefs:
     - name: re8ch-gateway-canary
@@ -74,6 +82,10 @@ kind: HTTPRoute
 metadata:
   name: grafana-public
   namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   parentRefs:
     - name: re8ch-gateway-canary
@@ -94,6 +106,10 @@ kind: HTTPRoute
 metadata:
   name: phonycenter-public
   namespace: voice-observability
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   parentRefs:
     - name: re8ch-gateway-canary
@@ -104,3 +120,43 @@ spec:
     - backendRefs:
         - name: homer-ui
           port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: litellm-public
+  namespace: llm-gateway
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [litellm.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: litellm
+          port: 4000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: supabase-public
+  namespace: supabase-pg-re8ch
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [supabase.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: supabase-api-kong
+          port: 8000
