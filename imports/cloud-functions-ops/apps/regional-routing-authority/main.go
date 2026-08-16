@@ -22,6 +22,7 @@ type candidate struct {
 	ID       string            `json:"id"`
 	Region   string            `json:"region"`
 	IP       string            `json:"ip"`
+	LocalIP  string            `json:"localIp,omitempty"`
 	Priority int               `json:"priority"`
 	Probes   map[string]string `json:"probes"`
 }
@@ -125,10 +126,14 @@ func (a *authority) probe(c candidate, service, rawURL string) {
 	started := time.Now()
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, rawURL, nil)
 	dialer := &net.Dialer{Timeout: 3 * time.Second}
+	probeIP := c.IP
+	if c.ID == a.node && c.LocalIP != "" {
+		probeIP = c.LocalIP
+	}
 	client := &http.Client{Timeout: 4 * time.Second, Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, ServerName: req.URL.Hostname()},
 		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			return dialer.DialContext(ctx, network, net.JoinHostPort(c.IP, "443"))
+			return dialer.DialContext(ctx, network, net.JoinHostPort(probeIP, "443"))
 		},
 	}}
 	response, err := client.Do(req)
@@ -142,7 +147,8 @@ func (a *authority) probe(c candidate, service, rawURL string) {
 	}
 	a.mu.Lock()
 	previous := a.health[service][c.ID]
-	if err == nil && response.StatusCode < 500 {
+	eligibleStatus := response != nil && (response.StatusCode >= 200 && response.StatusCode < 400 || response.StatusCode == 401 || response.StatusCode == 403)
+	if err == nil && eligibleStatus {
 		o.Successes = previous.Successes + 1
 		o.Ready = previous.Ready || o.Successes >= 2
 	} else {

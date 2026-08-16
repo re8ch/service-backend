@@ -40,7 +40,8 @@ def probe(candidate, service, url):
     failure = ""
     try:
         context = ssl.create_default_context()
-        sock = socket.create_connection((candidate["ip"], 443), timeout=3)
+        probe_ip = candidate.get("localIp", candidate["ip"]) if candidate["id"] == NODE else candidate["ip"]
+        sock = socket.create_connection((probe_ip, 443), timeout=3)
         tls = context.wrap_socket(sock, server_hostname=parsed.hostname)
         connection = http.client.HTTPConnection(parsed.hostname, timeout=4)
         connection.sock = tls
@@ -57,7 +58,7 @@ def probe(candidate, service, url):
     latency = int((time.monotonic() - started) * 1000)
     with LOCK:
         previous = HEALTH[service].get(candidate["id"], {})
-        if status and status < 500:
+        if 200 <= status < 400 or status in (401, 403):
             successes = previous.get("successes", 0) + 1
             failures = 0
             ready = previous.get("ready", False) or successes >= 2
