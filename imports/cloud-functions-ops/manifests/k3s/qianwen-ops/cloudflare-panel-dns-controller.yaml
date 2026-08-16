@@ -19,9 +19,9 @@ data:
     dbgui.re8ch.com=192.0.2.192
     teable.re8ch.com=192.0.2.138
     files.re8ch.com=192.0.2.138
-    phonycenter.re8ch.com=192.0.2.138
+    phonycenter.re8ch.com=192.0.2.192
     feishu-agent.re8ch.com=192.0.2.122
-    registry.re8ch.com=192.0.2.138
+    registry.re8ch.com=192.0.2.192
     # Nuclio runtime identities. nuc-1 remains a compatibility alias for nuc-2.
     nuc-1.re8ch.com=192.0.2.197
     nuc-2.re8ch.com=192.0.2.197

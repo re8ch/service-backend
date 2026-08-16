@@ -68,9 +68,10 @@ spec:
             - --domain-filter=re8ch.com
             - --label-filter=public.re8ch.com/external-dns=enabled
             - --policy=upsert-only
-            - --registry=txt
-            - --txt-owner-id=re8ch-k3s-cloudflare
-            - --txt-prefix=_re8ch-externaldns.
+            # This is the only label-scoped writer for these records. Avoid the
+            # TXT registry because it doubles record usage and makes Cloudflare
+            # replacements fail at the zone quota boundary.
+            - --registry=noop
             - --interval=5m
             - --events
             - --log-format=json

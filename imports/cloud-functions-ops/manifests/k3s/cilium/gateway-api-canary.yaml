@@ -1,0 +1,106 @@
+apiVersion: cilium.io/v2alpha1
+kind: CiliumGatewayClassConfig
+metadata:
+  name: re8ch-service-vip
+  namespace: kube-system
+spec:
+  description: RE8CH Cilium-FRR service VIP gateway
+  service:
+    type: LoadBalancer
+    loadBalancerClass: io.cilium/bgp-control-plane
+    externalTrafficPolicy: Cluster
+    allocateLoadBalancerNodePorts: true
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: cilium-re8ch
+spec:
+  controllerName: io.cilium/gateway-controller
+  parametersRef:
+    group: cilium.io
+    kind: CiliumGatewayClassConfig
+    name: re8ch-service-vip
+    namespace: kube-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: re8ch-gateway-canary
+  namespace: kube-system
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels:
+      networking.re8ch.com/lb-pool: service-vip
+      networking.re8ch.com/bgp-advertise: enabled
+    annotations:
+      lbipam.cilium.io/ips: 192.0.2.213
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls:
+        mode: Passthrough
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: headlamp-public
+  namespace: headlamp
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [headlamp.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: headlamp
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-public
+  namespace: qianwen-ops
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [grafana.re8ch.com]
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /grafana
+      backendRefs:
+        - name: panel-grafana
+          port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: phonycenter-public
+  namespace: voice-observability
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [phonycenter.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: homer-ui
+          port: 80

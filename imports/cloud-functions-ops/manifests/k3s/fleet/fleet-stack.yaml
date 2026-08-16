@@ -198,7 +198,7 @@ spec:
         app.kubernetes.io/name: fleet-mysql
     spec:
       nodeSelector:
-        kubernetes.io/hostname: vm-20-12-ubuntu
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: anchor
           operator: Equal
