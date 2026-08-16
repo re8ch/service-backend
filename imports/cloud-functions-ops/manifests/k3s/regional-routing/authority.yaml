@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: regional-routing
+  labels: {re8ch.com/plane: networking}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regional-routing-authority
+  namespace: regional-routing
+data:
+  NAMESERVERS: ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.
+  CANDIDATES_JSON: |-
+    [
+      {
+        "id": "domain-ex",
+        "region": "shanghai",
+        "ip": "192.0.2.62",
+        "priority": 0,
+        "probes": {
+          "api": "https://api.re8ch.com/",
+          "db-ro": "https://db-ro.re8ch.com/auth/",
+          "db-rw": "https://db-rw.re8ch.com/auth/"
+        }
+      },
+      {
+        "id": "vm-20-12-ubuntu",
+        "region": "guangzhou",
+        "ip": "192.0.2.122",
+        "priority": 5,
+        "probes": {
+          "api": "https://api.re8ch.com/",
+          "db-ro": "https://db-ro.re8ch.com/auth/",
+          "db-rw": "https://db-rw.re8ch.com/auth/"
+        }
+      },
+      {
+        "id": "overseas-edge-50",
+        "region": "los-angeles",
+        "ip": "192.0.2.189",
+        "priority": 10,
+        "probes": {
+          "api": "https://api.re8ch.com/",
+          "db-ro": "https://db-ro.re8ch.com/auth/",
+          "db-rw": "https://db-rw.re8ch.com/auth/"
+        }
+      }
+    ]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: regional-routing-authority
+  namespace: regional-routing
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: regional-routing-authority}
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1}}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: regional-routing-authority
+        app.kubernetes.io/part-of: regional-routing
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector: {kubernetes.io/os: linux}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [domain-ex, vm-20-12-ubuntu, overseas-edge-50]
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: authority
+          image: docker.1ms.run/library/python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: [python3, /app/authority.py]
+          envFrom: [{configMapRef: {name: regional-routing-authority}}]
+          env:
+            - {name: PYTHONDONTWRITEBYTECODE, value: "1"}
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          ports:
+            - {name: dns-udp, containerPort: 53, protocol: UDP}
+            - {name: dns-tcp, containerPort: 53, protocol: TCP}
+            - {name: http, containerPort: 8080, protocol: TCP}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {add: [NET_BIND_SERVICE], drop: [ALL]}
+            readOnlyRootFilesystem: true
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - {name: script, mountPath: /app, readOnly: true}
+      volumes:
+        - name: script
+          configMap: {name: regional-routing-authority-script, defaultMode: 0555}
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: regional-routing-authority
+  namespace: regional-routing
+spec:
+  selector: {app.kubernetes.io/name: regional-routing-authority}
+  ports:
+    - {name: http, port: 8080, targetPort: http}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: regional-routing-authority
+  namespace: regional-routing
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: {app.kubernetes.io/name: regional-routing-authority}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: regional-routing-discovery
+  namespace: regional-routing
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+  hostnames: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com]
+  rules:
+    - matches:
+        - path: {type: Exact, value: /.well-known/re8ch-routing/v1}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: {type: ReplaceFullPath, replaceFullPath: /v1/discovery}
+      backendRefs:
+        - {name: regional-routing-authority, port: 8080}

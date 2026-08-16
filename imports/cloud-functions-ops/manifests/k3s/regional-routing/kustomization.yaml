@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [authority.yaml]
+configMapGenerator:
+  - name: regional-routing-authority-script
+    namespace: regional-routing
+    files:
+      - authority.py=../../../apps/regional-routing-authority/authority.py
+generatorOptions:
+  disableNameSuffixHash: true
