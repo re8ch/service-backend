@@ -1,0 +1,23 @@
+# Apply with: kubectl patch deployment/headlamp -n headlamp --type=merge
+#   --patch-file manifests/k3s/headlamp/headlamp-ha-deployment-patch.yaml
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1, maxSurge: 1}
+  template:
+    spec:
+      nodeSelector: null
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-296f36f2fb, suxunji]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: {app.kubernetes.io/name: headlamp}
