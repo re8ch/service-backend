@@ -57,4 +57,3 @@ $KUBECTL -n "$LITELLM_NAMESPACE" create secret generic "$LITELLM_SECRET" \
 $KUBECTL -n "$DEX_NAMESPACE" rollout restart deployment/dex >/dev/null
 $KUBECTL -n "$DEX_NAMESPACE" rollout status deployment/dex --timeout=180s
 echo "Dex LiteLLM client registered; rollback Secret: $DEX_NAMESPACE/$backup"
-
