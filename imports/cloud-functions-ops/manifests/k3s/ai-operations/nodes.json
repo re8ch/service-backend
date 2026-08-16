@@ -1,0 +1,14 @@
+[
+  {"id":"restricted-node-6dc3f140f9","target":"restricted-node-6dc3f140f9","address":"192.0.2.178","roles":["control-plane","etcd","pg-re8ch"],"enabled":true},
+  {"id":"restricted-node-1eb0570f74","target":"restricted-node-1eb0570f74","address":"192.0.2.176","roles":["control-plane","etcd"],"enabled":true},
+  {"id":"restricted-node-296f36f2fb","target":"restricted-node-296f36f2fb","address":"192.0.2.4","roles":["control-plane","etcd"],"enabled":true},
+  {"id":"amdwsl-zt","target":"amdwsl-zt","address":"192.0.2.10","roles":["gpu"],"enabled":true},
+  {"id":"domain-ex","target":"domain-ex","address":"192.0.2.89","roles":["pg-re8ch"],"enabled":true},
+  {"id":"muaya-ecs","target":"harbor","address":"192.0.2.74","roles":["nuclio"],"enabled":true},
+  {"id":"muaya-lightweight","target":"ali","address":"192.0.2.112","roles":["nuclio"],"enabled":true},
+  {"id":"overseas-edge-50","target":"overseas-edge-50","address":"192.0.2.79","roles":["edge"],"enabled":true},
+  {"id":"qwen-1","target":"qwen-1","address":"192.0.2.154","roles":["nuclio","pg-meta"],"enabled":true},
+  {"id":"qwen-2","target":"qwen-2","address":"192.0.2.111","roles":["nuclio","pg-meta"],"enabled":true},
+  {"id":"qwen-3","target":"qwen-3","address":"192.0.2.251","roles":["nuclio","pg-meta"],"enabled":true},
+  {"id":"zan","target":"rancher","address":"192.0.2.138","roles":["panel","edge"],"enabled":true}
+]
