@@ -1,0 +1,17 @@
+# Layer after the currently installed Cilium values. This enables the Gateway
+# API controller while keeping listeners behind LoadBalancer Services so that
+# LB IPAM, Cilium BGP and the FRR service-VIP fabric remain in the data path.
+gatewayAPI:
+  enabled: true
+  enableAppProtocol: true
+  enableAlpn: true
+  externalTrafficPolicy: Cluster
+  gatewayClass:
+    create: true
+  hostNetwork:
+    enabled: false
+  secretsNamespace:
+    create: true
+    name: cilium-secrets
+    sync: true
+

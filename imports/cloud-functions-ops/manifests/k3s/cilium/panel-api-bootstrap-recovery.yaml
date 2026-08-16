@@ -1,0 +1,11 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: panel-api-bootstrap-recovery
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: vm-20-12-ubuntu
+  defaults:
+    k8s-api-server: https://192.0.2.176:6443
