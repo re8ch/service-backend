@@ -20,7 +20,7 @@ data:
         "localIp": "192.0.2.241",
         "priority": 0,
         "probes": {
-          "api": "https://api.re8ch.com/.well-known/re8ch-routing/v1?service=api",
+          "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"
         }
@@ -32,7 +32,7 @@ data:
         "localIp": "192.0.2.158",
         "priority": 5,
         "probes": {
-          "api": "https://api.re8ch.com/.well-known/re8ch-routing/v1?service=api",
+          "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"
         }
@@ -44,7 +44,7 @@ data:
         "localIp": "192.0.2.3",
         "priority": 10,
         "probes": {
-          "api": "https://api.re8ch.com/.well-known/re8ch-routing/v1?service=api",
+          "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"
         }
@@ -138,12 +138,26 @@ data:
         ssl_certificate /tls/tls.crt;
         ssl_certificate_key /tls/tls.key;
         ssl_protocols TLSv1.2 TLSv1.3;
-        location / {
+        location = /.well-known/re8ch-routing/v1 {
           proxy_set_header Host $host;
           proxy_set_header X-Forwarded-Host $host;
           proxy_set_header X-Forwarded-Proto https;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_pass http://192.0.2.209:80;
+        }
+        location / {
+          resolver 192.0.2.131 valid=30s ipv6=off;
+          set $legacy_api api.re8ch.com.eo.dnse1.com;
+          proxy_set_header Host api.re8ch.com;
+          proxy_set_header X-Forwarded-Host api.re8ch.com;
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_ssl_server_name on;
+          proxy_ssl_name api.re8ch.com;
+          proxy_ssl_verify on;
+          proxy_ssl_verify_depth 3;
+          proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+          proxy_pass https://$legacy_api;
         }
       }
       server {
