@@ -522,7 +522,7 @@
         "app.kubernetes.io/part-of": "compocv"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -600,6 +600,33 @@
       "type": "ClusterIP",
       "ports": [
         50000
+      ]
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "dataspace",
+      "name": "dataspace-gateway",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Ingress",
+      "namespace": "dataspace",
+      "name": "storage-collaborator",
+      "labels": {},
+      "hosts": [
+        "storage.re8ch.com"
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "dataspace",
+      "name": "dataspace-gateway",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        8080
       ]
     },
     {
@@ -886,7 +913,7 @@
       "name": "harbor-registry",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -894,7 +921,7 @@
       "name": "harbor-registryctl",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -1315,7 +1342,18 @@
         "app.kubernetes.io/part-of": "cilium"
       },
       "desired": 14,
-      "ready": 14
+      "ready": 13
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "kube-system",
+      "name": "https-8443-compat",
+      "labels": {
+        "app.kubernetes.io/name": "https-8443-compat",
+        "app.kubernetes.io/part-of": "public-edge"
+      },
+      "desired": 5,
+      "ready": 5
     },
     {
       "kind": "DaemonSet",
@@ -1334,6 +1372,17 @@
       },
       "desired": 2,
       "ready": 2
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "kube-system",
+      "name": "traefik-public-edge",
+      "labels": {
+        "app.kubernetes.io/name": "traefik",
+        "app.kubernetes.io/part-of": "re8ch-public-ingress"
+      },
+      "desired": 2,
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
@@ -2087,7 +2136,7 @@
       "name": "ledger-accounting-agent-edge-proxy",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
@@ -2098,7 +2147,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2120,7 +2169,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2131,7 +2180,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2185,7 +2234,7 @@
         "app.kubernetes.io/part-of": "nuclio"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -3467,7 +3516,7 @@
       "name": "nuclio-qianwen-prod-analytics",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -3499,7 +3548,7 @@
       "name": "nuclio-qianwen-prod-image-api",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -3523,7 +3572,7 @@
       "name": "nuclio-qianwen-prod-oss-sts",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -3607,7 +3656,7 @@
         "app.kubernetes.io/name": "qwen-edge-redirects"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -4230,7 +4279,15 @@
       "name": "rook-ceph.cephfs.csi.ceph.com-nodeplugin",
       "labels": {},
       "desired": 4,
-      "ready": 3
+      "ready": 4
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph.rbd.csi.ceph.com-nodeplugin",
+      "labels": {},
+      "desired": 4,
+      "ready": 4
     },
     {
       "kind": "Deployment",
@@ -4265,6 +4322,16 @@
     {
       "kind": "Deployment",
       "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-qwen-1",
+      "labels": {
+        "app": "rook-ceph-crashcollector"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
       "name": "rook-ceph-crashcollector-r640",
       "labels": {
         "app": "rook-ceph-crashcollector"
@@ -4286,6 +4353,16 @@
       "kind": "Deployment",
       "namespace": "rook-ceph",
       "name": "rook-ceph-exporter-b1-wsl-zt",
+      "labels": {
+        "app": "rook-ceph-exporter"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-qwen-1",
       "labels": {
         "app": "rook-ceph-exporter"
       },
@@ -4330,6 +4407,18 @@
       "kind": "Deployment",
       "namespace": "rook-ceph",
       "name": "rook-ceph-mgr-a",
+      "labels": {
+        "app": "rook-ceph-mgr",
+        "app.kubernetes.io/name": "ceph-mgr",
+        "app.kubernetes.io/part-of": "rook-ceph"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mgr-b",
       "labels": {
         "app": "rook-ceph-mgr",
         "app.kubernetes.io/name": "ceph-mgr",
@@ -4436,8 +4525,16 @@
       "namespace": "rook-ceph",
       "name": "rook-ceph.cephfs.csi.ceph.com-ctrlplugin",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph.rbd.csi.ceph.com-ctrlplugin",
+      "labels": {},
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Service",
@@ -4462,6 +4559,38 @@
       "ports": [
         9283
       ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mgr-dashboard",
+      "labels": {
+        "app": "rook-ceph-mgr"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        8443
+      ]
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "storage-fabric",
+      "name": "csi-rclone-node",
+      "labels": {
+        "app.kubernetes.io/name": "rcloneCsi"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "storage-fabric",
+      "name": "csi-rclone-controller",
+      "labels": {
+        "app.kubernetes.io/name": "rcloneCsi"
+      },
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4657,7 +4786,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 1
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4679,7 +4808,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 1
+      "ready": 2
     },
     {
       "kind": "Deployment",

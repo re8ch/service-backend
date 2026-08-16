@@ -46,7 +46,7 @@
       "internalIp": "192.0.2.74",
       "externalIp": "192.0.2.185",
       "ready": "True",
-      "unschedulable": false,
+      "unschedulable": true,
       "osImage": "Ubuntu 26.04 LTS",
       "kubeletVersion": "v1.36.0-rc3+k3s1",
       "containerRuntime": "containerd://2.2.3-k3s1"
