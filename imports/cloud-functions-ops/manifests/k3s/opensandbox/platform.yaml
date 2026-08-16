@@ -641,6 +641,15 @@ spec:
         # exact source. Do not broaden this to the surrounding cloud CIDR.
         - ipBlock:
             cidr: 192.0.2.248/32
+        # Public edge Traefik instances reach this Service through Cilium using
+        # their truthful node transport identities. Keep the list explicit: the
+        # OpenSandbox lifecycle API must never become generally public.
+        - ipBlock:
+            cidr: 192.0.2.143/32
+        - ipBlock:
+            cidr: 192.0.2.172/32
+        - ipBlock:
+            cidr: 192.0.2.79/32
       ports:
         - protocol: TCP
           port: 8080
