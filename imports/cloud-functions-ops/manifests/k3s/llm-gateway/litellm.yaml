@@ -132,7 +132,7 @@ metadata:
   namespace: llm-gateway
 spec:
   type: NodePort
-  externalTrafficPolicy: Local
+  externalTrafficPolicy: Cluster
   selector:
     app.kubernetes.io/name: litellm
   ports:
@@ -202,7 +202,21 @@ spec:
                   name: litellm-ui-auth
                   key: UI_PASSWORD
             - name: PROXY_BASE_URL
-              value: https://litellm.re8ch.com:8443
+              value: https://litellm.re8ch.com
+            - name: GENERIC_CLIENT_ID
+              valueFrom:
+                secretKeyRef: {name: litellm-dex-sso, key: client-id}
+            - name: GENERIC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: litellm-dex-sso, key: client-secret}
+            - name: GENERIC_AUTHORIZATION_ENDPOINT
+              value: https://dex.re8ch.com/auth
+            - name: GENERIC_TOKEN_ENDPOINT
+              value: https://dex.re8ch.com/token
+            - name: GENERIC_USERINFO_ENDPOINT
+              value: https://dex.re8ch.com/userinfo
+            - name: GENERIC_SCOPE
+              value: openid email profile groups
             - name: DOCS_URL
               value: /docs
             - name: ROOT_REDIRECT_URL
@@ -237,9 +251,8 @@ metadata:
   namespace: llm-gateway
   labels:
     app.kubernetes.io/name: litellm
-    public.re8ch.com/external-dns: enabled
   annotations:
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
