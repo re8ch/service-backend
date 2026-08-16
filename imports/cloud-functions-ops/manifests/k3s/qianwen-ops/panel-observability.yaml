@@ -3221,7 +3221,7 @@ spec:
             - name: GF_SERVER_DOMAIN
               value: grafana.re8ch.com
             - name: GF_SERVER_ROOT_URL
-              value: https://grafana.re8ch.com:8443/grafana/
+              value: https://grafana.re8ch.com/grafana/
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
             - name: GF_SECURITY_COOKIE_SECURE
@@ -3321,7 +3321,6 @@ metadata:
   labels:
     app.kubernetes.io/name: panel-grafana
     app.kubernetes.io/part-of: panel-observability
-    public.re8ch.com/external-dns: enabled
   annotations:
     external-dns.alpha.kubernetes.io/target: 192.0.2.192
     external-dns.alpha.kubernetes.io/ttl: "60"
