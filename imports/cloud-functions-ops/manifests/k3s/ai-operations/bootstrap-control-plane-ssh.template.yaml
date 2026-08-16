@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: cloud-platform-ssh-bootstrap, namespace: ai-operations}
+spec:
+  selector: {matchLabels: {app: cloud-platform-ssh-bootstrap}}
+  template:
+    metadata: {labels: {app: cloud-platform-ssh-bootstrap}}
+    spec:
+      imagePullSecrets: [{name: ghcr-re8ch}]
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      containers:
+        - name: installer
+          image: ghcr.io/re8ch/re8ch-ai-operations:0.1.0@sha256:0c547c6fac9f04583e53f4b1ce1c628b98791f6314c28b5d22b27afcaf755fef
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              chroot /host /bin/sh -ec '
+                id re8ch-ai >/dev/null 2>&1 || useradd --create-home --shell /bin/bash re8ch-ai
+                install -d -m 0700 -o re8ch-ai -g re8ch-ai /home/re8ch-ai/.ssh
+                install -m 0600 -o re8ch-ai -g re8ch-ai /dev/stdin /home/re8ch-ai/.ssh/authorized_keys
+                printf "%s\n" "re8ch-ai ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/re8ch-ai-cloud-platform
+                chmod 0440 /etc/sudoers.d/re8ch-ai-cloud-platform
+              ' < /public/id_ed25519.pub
+              touch /ready/installed
+              sleep 3600
+          readinessProbe: {exec: {command: [/bin/sh, -c, test -f /ready/installed]}, periodSeconds: 2}
+          securityContext: {privileged: true, runAsUser: 0, runAsGroup: 0}
+          volumeMounts:
+            - {name: host, mountPath: /host}
+            - {name: public-key, mountPath: /public, readOnly: true}
+            - {name: ready, mountPath: /ready}
+      volumes:
+        - {name: host, hostPath: {path: /}}
+        - {name: public-key, configMap: {name: cloud-platform-ssh-public-key, defaultMode: 292}}
+        - {name: ready, emptyDir: {}}
