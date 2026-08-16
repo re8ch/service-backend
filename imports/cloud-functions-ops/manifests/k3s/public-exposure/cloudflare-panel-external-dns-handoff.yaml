@@ -18,13 +18,12 @@ data:
     bgp.re8ch.com=192.0.2.67
     dbgui.re8ch.com=192.0.2.67
     files.re8ch.com=192.0.2.79
-    phonycenter.re8ch.com=192.0.2.79
+    phonycenter.re8ch.com=192.0.2.67
     feishu-agent.re8ch.com=192.0.2.99
-    registry.re8ch.com=192.0.2.79
+    registry.re8ch.com=192.0.2.67
     nuc-1.re8ch.com=192.0.2.110
     nuc-2.re8ch.com=192.0.2.110
     nuc-3.re8ch.com=192.0.2.210
     pg-1.re8ch.com=192.0.2.183
     pg-2.re8ch.com=192.0.2.122
     pg-3.re8ch.com=192.0.2.92
-
