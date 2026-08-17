@@ -95,6 +95,17 @@ spec:
   rules:
     - matches:
         - path:
+            type: Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /grafana/
+            statusCode: 302
+    - matches:
+        - path:
             type: PathPrefix
             value: /grafana
       backendRefs:
