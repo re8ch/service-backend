@@ -1,0 +1,38 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: r640-xdp-native
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
+  defaults:
+    # restricted-node-6dc3f140f9's public traffic enters the Mellanox mlx5 interface behind RouterOS.
+    # Restrict device selection so native XDP is not attached to ZeroTier or WG.
+    devices: eno2np1
+    direct-routing-device: eno2np1
+    bpf-lb-acceleration: native
+---
+apiVersion: cilium.io/v2
+kind: CiliumLocalRedirectPolicy
+metadata:
+  name: harbor-proxy-local
+  namespace: harbor
+spec:
+  redirectFrontend:
+    serviceMatcher:
+      serviceName: harbor-registry
+      namespace: harbor
+      toPorts:
+        - {name: http, port: "80", protocol: TCP}
+        - {name: https, port: "443", protocol: TCP}
+  redirectBackend:
+    localEndpointSelector:
+      matchLabels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/name: harbor-registry
+    toPorts:
+      - {name: http, port: "8080", protocol: TCP}
+      - {name: https, port: "8443", protocol: TCP}
+  skipRedirectFromBackend: true
