@@ -19,6 +19,7 @@ data:
         "ip": "192.0.2.72",
         "localIp": "192.0.2.241",
         "priority": 0,
+        "priorityByRegion": {"shanghai": 20, "guangzhou": 20, "los-angeles": 30},
         "probes": {
           "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
@@ -31,6 +32,7 @@ data:
         "ip": "192.0.2.99",
         "localIp": "192.0.2.158",
         "priority": 5,
+        "priorityByRegion": {"shanghai": 25, "guangzhou": 20, "los-angeles": 30},
         "probes": {
           "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
@@ -43,6 +45,20 @@ data:
         "ip": "192.0.2.3",
         "localIp": "192.0.2.3",
         "priority": 10,
+        "priorityByRegion": {"shanghai": 40, "guangzhou": 40, "los-angeles": -30},
+        "probes": {
+          "api": "https://api.re8ch.com/ledger/_region",
+          "db-ro": "https://db-ro.re8ch.com/auth/",
+          "db-rw": "https://db-rw.re8ch.com/auth/"
+        }
+      },
+      {
+        "id": "restricted-node-6dc3f140f9",
+        "region": "china-central",
+        "ip": "192.0.2.79",
+        "localIp": "192.0.2.97",
+        "priority": -30,
+        "priorityByRegion": {"shanghai": -40, "guangzhou": -40, "los-angeles": 25},
         "probes": {
           "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
