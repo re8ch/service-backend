@@ -31,7 +31,7 @@ metadata:
   annotations:
     # DNS names belong to the public 443 edge, while the Gateway and backend
     # Pods may live anywhere in the Cilium routing domain.
-    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
 spec:
   gatewayClassName: cilium-re8ch
   infrastructure:

@@ -19,12 +19,13 @@ import (
 )
 
 type candidate struct {
-	ID       string            `json:"id"`
-	Region   string            `json:"region"`
-	IP       string            `json:"ip"`
-	LocalIP  string            `json:"localIp,omitempty"`
-	Priority int               `json:"priority"`
-	Probes   map[string]string `json:"probes"`
+	ID               string            `json:"id"`
+	Region           string            `json:"region"`
+	IP               string            `json:"ip"`
+	LocalIP          string            `json:"localIp,omitempty"`
+	Priority         int               `json:"priority"`
+	PriorityByRegion map[string]int    `json:"priorityByRegion"`
+	Probes           map[string]string `json:"probes"`
 }
 
 type observed struct {
@@ -169,7 +170,11 @@ func (a *authority) ranked(service string) []rankedCandidate {
 		state := "unavailable"
 		if o.Ready {
 			state = "ready"
-			score = 70 - c.Priority - int(min(o.LatencyMS/20, 20))
+			priority := c.Priority
+			if regionalPriority, ok := c.PriorityByRegion[a.region]; ok {
+				priority = regionalPriority
+			}
+			score = 70 - priority - int(min(o.LatencyMS/20, 20))
 			if c.ID == a.node {
 				score += 20
 			}

@@ -103,7 +103,8 @@ def ranked(service):
         ready = bool(observed.get("ready"))
         score = 0
         if ready:
-            score = 70 - int(candidate.get("priority", 0)) - min(int(observed.get("latencyMs", 0)) // 20, 20)
+            regional_priority = candidate.get("priorityByRegion", {}).get(REGION, candidate.get("priority", 0))
+            score = 70 - int(regional_priority) - min(int(observed.get("latencyMs", 0)) // 20, 20)
             if candidate["id"] == NODE:
                 score += 20
             if candidate["region"] == REGION:
