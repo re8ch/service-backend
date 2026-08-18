@@ -7,11 +7,11 @@ Generated; do not edit.
 | Node | Ready | Internal IP | External IP | OS |
 |---|---:|---|---|---|
 | restricted-node-1eb0570f74 | True | 192.0.2.176 |  | Ubuntu 24.04 LTS |
-| amdwsl-zt | Unknown | fc64:f13e:b4c:5bfb:7a0f::1 |  | Ubuntu 24.04.1 LTS |
+| amdwsl-zt | True | fc64:f13e:b4c:5bfb:7a0f::1 |  | Ubuntu 24.04.1 LTS |
 | restricted-node-296f36f2fb | True | 192.0.2.4 |  | Ubuntu 24.04 LTS |
 | domain-ex | True | 192.0.2.89 | 192.0.2.62 | Ubuntu 22.04 LTS |
 | muaya-ecs | True | 192.0.2.74 | 192.0.2.185 | Ubuntu 26.04 LTS |
-| muaya-lightweight | Unknown | 192.0.2.112 | 192.0.2.197 | Ubuntu 24.04.2 LTS |
+| muaya-lightweight | True | 192.0.2.112 | 192.0.2.197 | Ubuntu 24.04.2 LTS |
 | overseas-edge-50 | True | 192.0.2.79 | 192.0.2.189 | Ubuntu 24.04.3 LTS |
 | qwen-1 | True | 192.0.2.154 |  | Ubuntu 24.04.4 LTS |
 | qwen-2 | True | 192.0.2.111 |  | Ubuntu 24.04.4 LTS |
@@ -37,11 +37,22 @@ Generated; do not edit.
 | ai-gateway | Deployment | re8ch-ai-gateway | 0/0 ready |
 | ai-gateway | Service | re8ch-ai-gateway | ClusterIP ports=4000 |
 | ai-operations | Deployment | agent-orchestra-collab | 1/1 ready |
+| ai-operations | Deployment | browser-runtime-pool-poc | 0/0 ready |
 | ai-operations | Deployment | cloud-platform-tool | 1/1 ready |
 | ai-operations | Deployment | cluster-infra-tool | 1/1 ready |
+| ai-operations | Deployment | oauth2-proxy-steel | 1/1 ready |
+| ai-operations | Deployment | steel-browser | 1/1 ready |
+| ai-operations | Deployment | steel-browser-gateway | 1/1 ready |
+| ai-operations | Deployment | steel-browser-ui | 1/1 ready |
+| ai-operations | Ingress | steel-browser | browser.re8ch.com |
 | ai-operations | Service | agent-orchestra-collab | ClusterIP ports=80 |
+| ai-operations | Service | browser-runtime-pool-poc | ClusterIP ports=3000 |
 | ai-operations | Service | cloud-platform-tool | ClusterIP ports=80 |
 | ai-operations | Service | cluster-infra-tool | ClusterIP ports=80 |
+| ai-operations | Service | oauth2-proxy-steel | ClusterIP ports=4180 |
+| ai-operations | Service | steel-browser | ClusterIP ports=3000,9223 |
+| ai-operations | Service | steel-browser-gateway | ClusterIP ports=8080 |
+| ai-operations | Service | steel-browser-ui | ClusterIP ports=80 |
 | anycam | Deployment | multicloud-functions-dns-controller | 1/1 ready |
 | anycam | Deployment | nuclio-anycam-model-gateway | 0/1 ready |
 | anycam | Service | nuclio-anycam-model-gateway | ClusterIP ports=8080 |
@@ -75,8 +86,8 @@ Generated; do not edit.
 | codex-platform | Service | codex-app-server-console | ClusterIP ports=8080 |
 | codex-platform | Service | codex-app-server-console-internal | NodePort ports=8080 |
 | codex-platform | Service | codex-session-web | ClusterIP ports=8080 |
-| comfy-agent | Deployment | comfyui-agent-r640 | 0/1 ready |
-| comfy-agent | Deployment | comfyui-amd | 0/1 ready |
+| comfy-agent | Deployment | comfyui-agent-r640 | 1/1 ready |
+| comfy-agent | Deployment | comfyui-amd | 1/1 ready |
 | comfy-agent | Service | comfyui-agent | ClusterIP ports=8080 |
 | comfy-agent | Service | comfyui-amd | ClusterIP ports=8188 |
 | compocv | Deployment | compocv | 0/0 ready |
@@ -87,15 +98,41 @@ Generated; do not edit.
 | compocv | Service | compocv-api-r640-nodeport | NodePort ports=8080 |
 | compocv | Service | compocv-api-relay | ClusterIP ports=18080 |
 | compocv | Service | nuclio-compocv-api | ClusterIP ports=8080 |
-| cosyvoice | Deployment | cosyvoice | 0/1 ready |
+| cosyvoice | Deployment | cosyvoice | 1/1 ready |
 | cosyvoice | Service | cosyvoice | ClusterIP ports=50000 |
+| cube-trial | DaemonSet | cube-trial-node | 1/1 ready |
+| cube-trial | DaemonSet | cube-trial-node-bootstrap | 1/1 ready |
+| cube-trial | DaemonSet | cube-trial-node-installer | 1/1 ready |
+| cube-trial | Deployment | cube-trial-api | 1/1 ready |
+| cube-trial | Deployment | cube-trial-cubemastercli | 1/1 ready |
+| cube-trial | Deployment | cube-trial-lifecycle-manager | 1/1 ready |
+| cube-trial | Deployment | cube-trial-master | 1/1 ready |
+| cube-trial | Deployment | cube-trial-ops | 1/1 ready |
+| cube-trial | Deployment | cube-trial-proxy | 1/1 ready |
+| cube-trial | Deployment | cube-trial-webui | 1/1 ready |
+| cube-trial | Deployment | oauth2-proxy-cube | 1/1 ready |
+| cube-trial | Service | cube-trial-api | ClusterIP ports=3000 |
+| cube-trial | Service | cube-trial-lifecycle-manager | ClusterIP ports=8083 |
+| cube-trial | Service | cube-trial-master | ClusterIP ports=8089 |
+| cube-trial | Service | cube-trial-mysql | ClusterIP ports=3306 |
+| cube-trial | Service | cube-trial-ops | ClusterIP ports=3010 |
+| cube-trial | Service | cube-trial-proxy | ClusterIP ports=80,443,8082 |
+| cube-trial | Service | cube-trial-redis | ClusterIP ports=6379 |
+| cube-trial | Service | cube-trial-webui | ClusterIP ports=12088 |
+| cube-trial | Service | oauth2-proxy-cube | ClusterIP ports=4180 |
+| cube-trial | StatefulSet | cube-trial-mysql | 1/1 ready |
+| cube-trial | StatefulSet | cube-trial-redis | 1/1 ready |
 | dataspace | Deployment | dataspace-gateway | 1/1 ready |
 | dataspace | Ingress | storage-collaborator | storage.re8ch.com |
 | dataspace | Service | dataspace-gateway | ClusterIP ports=8080 |
 | default | Service | kubernetes | ClusterIP ports=443 |
 | dex | Deployment | dex | 2/2 ready |
 | dex | Service | dex | NodePort ports=80 |
-| egress-fabric | DaemonSet | mihomo-node | 1/1 ready |
+| edge-devices | DaemonSet | r640-usb-dra | 1/1 ready |
+| edge-devices | Deployment | device-fabric-controller | 1/1 ready |
+| edge-devices | Service | grandstream-gui-canary | ClusterIP ports=80 |
+| edge-devices | Service | r640-voice-control-canary | ClusterIP ports=18092 |
+| egress-fabric | DaemonSet | mihomo-node | 2/2 ready |
 | egress-fabric | Deployment | mihomo-egress-la | 1/1 ready |
 | egress-fabric | Deployment | network-decomplexer-policy-api | 0/1 ready |
 | egress-fabric | Deployment | path-controller | 1/1 ready |
@@ -160,10 +197,10 @@ Generated; do not edit.
 | kagent | Service | my-first-k8s-agent | ClusterIP ports=8080 |
 | kagent | Service | readonly-k8s-diagnostic-agent | ClusterIP ports=8080 |
 | kagent | Service | wechat-content-operations-agent | ClusterIP ports=8080 |
-| kube-system | DaemonSet | cilium | 12/14 ready |
-| kube-system | DaemonSet | https-8443-compat | 4/5 ready |
-| kube-system | DaemonSet | re8ch-node-external-ip-agent | 8/11 ready |
-| kube-system | DaemonSet | traefik | 1/1 ready |
+| kube-system | DaemonSet | cilium | 14/14 ready |
+| kube-system | DaemonSet | https-8443-compat | 5/5 ready |
+| kube-system | DaemonSet | re8ch-node-external-ip-agent | 10/11 ready |
+| kube-system | DaemonSet | traefik | 2/2 ready |
 | kube-system | DaemonSet | traefik-public-edge | 1/2 ready |
 | kube-system | DaemonSet | traefik-r640 | 1/1 ready |
 | kube-system | Deployment | cilium-operator | 2/2 ready |
@@ -174,6 +211,7 @@ Generated; do not edit.
 | kube-system | Deployment | kube-state-metrics | 1/1 ready |
 | kube-system | Deployment | local-path-provisioner | 1/1 ready |
 | kube-system | Deployment | metrics-server | 2/2 ready |
+| kube-system | Deployment | routeros-node-controller | 1/1 ready |
 | kube-system | Service | cilium-gateway-re8ch-gateway-canary | LoadBalancer ports=80,443 |
 | kube-system | Service | hubble-peer | ClusterIP ports=443 |
 | kube-system | Service | hubble-relay | ClusterIP ports=80 |
@@ -215,6 +253,10 @@ Generated; do not edit.
 | mcp-registry | Deployment | mcp-registry-postgresql | 1/1 ready |
 | mcp-registry | Service | mcp-registry | ClusterIP ports=8080 |
 | mcp-registry | Service | postgresql | ClusterIP ports=5432 |
+| mitos-trial | DaemonSet | mitos-forkd | 1/1 ready |
+| mitos-trial | DaemonSet | mitos-kernel-stage | 1/1 ready |
+| mitos-trial | DaemonSet | mitos-kvm-device-plugin | 1/1 ready |
+| mitos-trial | Deployment | mitos-controller | 1/1 ready |
 | neo4j | Ingress | neo4j-browser | neo4j.re8ch.com |
 | neo4j | Service | ledger-casegraph | ClusterIP ports=7474,7687 |
 | neo4j | Service | ledger-economicsgraph | ClusterIP ports=7474,7687 |
@@ -308,11 +350,11 @@ Generated; do not edit.
 | pigsty-external | Service | pgread-gz | ClusterIP ports=3000,3080,5432,6432 |
 | pigsty-external | Service | pgread-sh | ClusterIP ports=3000,3080,5432,6432 |
 | pigsty-external | Service | pgwrite | ClusterIP ports=3000,3080,5432,6432 |
-| qianwen-ops | DaemonSet | alloy-nuclio-logs | 0/0 ready |
+| qianwen-ops | DaemonSet | alloy-nuclio-logs | 1/1 ready |
 | qianwen-ops | DaemonSet | panel-harbor-node-vmagent | 0/1 ready |
-| qianwen-ops | DaemonSet | panel-node-exporter | 8/9 ready |
-| qianwen-ops | DaemonSet | panel-qwen-functions-vmagent | 1/2 ready |
-| qianwen-ops | DaemonSet | panel-vlagent | 1/2 ready |
+| qianwen-ops | DaemonSet | panel-node-exporter | 9/9 ready |
+| qianwen-ops | DaemonSet | panel-qwen-functions-vmagent | 2/2 ready |
+| qianwen-ops | DaemonSet | panel-vlagent | 2/2 ready |
 | qianwen-ops | Deployment | aliyun-esa-api-origin-controller | 0/0 ready |
 | qianwen-ops | Deployment | aliyun-esa-pg-dns-controller | 0/0 ready |
 | qianwen-ops | Deployment | cloudflare-api-edge-dns-controller | 1/1 ready |
@@ -462,10 +504,12 @@ Generated; do not edit.
 | rook-ceph | Deployment | rook-ceph-crashcollector-a1-wsl-zt | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-b1-wsl-zt | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-qwen-1 | 1/1 ready |
+| rook-ceph | Deployment | rook-ceph-crashcollector-qwen-2 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-r640 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-a1-wsl-zt | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-b1-wsl-zt | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-qwen-1 | 1/1 ready |
+| rook-ceph | Deployment | rook-ceph-exporter-qwen-2 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-r640 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-a | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-b | 1/1 ready |
