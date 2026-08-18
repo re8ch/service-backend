@@ -1,0 +1,13 @@
+[Unit]
+Description=RE8CH restricted-node-6dc3f140f9 aggregate PodCIDR fallback through RouterOS
+Wants=network-online.target
+After=network-online.target frr.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ip route replace 192.0.2.57/16 via 192.0.2.240 dev eno2np1 metric 250 proto static
+ExecStop=/usr/sbin/ip route del 192.0.2.57/16 via 192.0.2.240 dev eno2np1 metric 250 proto static
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
