@@ -3333,6 +3333,15 @@ spec:
     - host: grafana.re8ch.com
       http:
         paths:
+          # restricted-node-6dc3f140f9 public 443 terminates at the host-network Traefik. Keep the
+          # canonical root redirect on this data plane as well as HTTPRoute.
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: panel-grafana-vip-origin
+                port:
+                  name: http
           - path: /grafana
             pathType: Prefix
             backend:
