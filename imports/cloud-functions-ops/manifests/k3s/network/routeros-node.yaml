@@ -1,0 +1,269 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: routerosnodes.networking.re8ch.com
+spec:
+  group: networking.re8ch.com
+  scope: Cluster
+  names:
+    plural: routerosnodes
+    singular: routerosnode
+    kind: RouterOSNode
+    shortNames: [rosnode]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [nodeRef, routerAddress, localPodCIDR, remotePodCIDRs, mode]
+              properties:
+                nodeRef: {type: string}
+                routerAddress: {type: string}
+                mode: {type: string, enum: [Observe, Apply]}
+                localPodCIDR: {type: string}
+                remotePodCIDRs:
+                  type: array
+                  items:
+                    type: object
+                    required: [cidr, nextHop]
+                    properties:
+                      cidr: {type: string}
+                      nextHop: {type: string}
+                bgp:
+                  type: object
+                  properties:
+                    routerASN: {type: integer, format: int64}
+                    peerASN: {type: integer, format: int64}
+                    peerAddress: {type: string}
+                credentialsSecretRef:
+                  type: object
+                  required: [name, namespace]
+                  properties:
+                    name: {type: string}
+                    namespace: {type: string}
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      additionalPrinterColumns:
+        - name: Mode
+          type: string
+          jsonPath: .spec.mode
+        - name: Ready
+          type: string
+          jsonPath: .status.ready
+        - name: Safety
+          type: string
+          jsonPath: .status.safety
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: routeros-node-controller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: routeros-node-controller
+rules:
+  - apiGroups: [networking.re8ch.com]
+    resources: [routerosnodes]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.re8ch.com]
+    resources: [routerosnodes/status]
+    verbs: [get, patch, update]
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: routeros-node-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: routeros-node-controller
+subjects:
+  - kind: ServiceAccount
+    name: routeros-node-controller
+    namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: routeros-node-controller-credentials
+  namespace: ops
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [mikrotik-routeros-admin]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: routeros-node-controller-credentials
+  namespace: ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: routeros-node-controller-credentials
+subjects:
+  - kind: ServiceAccount
+    name: routeros-node-controller
+    namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routeros-node-controller
+  namespace: kube-system
+data:
+  controller.py: |
+    import ipaddress, json, os, ssl, time, urllib.request, urllib.error
+
+    API = "https://kubernetes.default.svc"
+    TOKEN = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read().strip()
+    CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    KCTX = ssl.create_default_context(cafile=CA)
+    ROSCTX = ssl.create_default_context()
+    ROSCTX.check_hostname = False
+    ROSCTX.verify_mode = ssl.CERT_NONE
+
+    def kreq(path, method="GET", body=None):
+      data = None if body is None else json.dumps(body).encode()
+      req = urllib.request.Request(API + path, data=data, method=method,
+        headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/merge-patch+json"})
+      return json.load(urllib.request.urlopen(req, context=KCTX, timeout=15))
+
+    def secret(ns, name):
+      import base64
+      obj = kreq(f"/api/v1/namespaces/{ns}/secrets/{name}")
+      return {k: base64.b64decode(v).decode() for k, v in obj.get("data", {}).items()}
+
+    def ros_get(base, path, auth):
+      req = urllib.request.Request(base + "/rest" + path,
+        headers={"Authorization": "Basic " + auth})
+      return json.load(urllib.request.urlopen(req, context=ROSCTX, timeout=10))
+
+    def reconcile(obj):
+      import base64
+      name, spec = obj["metadata"]["name"], obj["spec"]
+      safety, errors = "Accepted", []
+      local = ipaddress.ip_network(spec["localPodCIDR"], strict=True)
+      if str(local) != "192.0.2.140/24": errors.append("localPodCIDR must be 192.0.2.140/24")
+      seen = set()
+      for route in spec["remotePodCIDRs"]:
+        net = ipaddress.ip_network(route["cidr"], strict=True)
+        hop = ipaddress.ip_address(route["nextHop"])
+        if net.prefixlen != 24 or not net.subnet_of(ipaddress.ip_network("192.0.2.57/16")):
+          errors.append(f"forbidden remote prefix {net}")
+        if net == local: errors.append("local prefix present in remote set")
+        if hop not in ipaddress.ip_network("192.0.2.20/24"):
+          errors.append(f"next hop outside node underlay: {hop}")
+        seen.add(str(net))
+      # Hard invariant: the controller has no code path that writes Node InternalIP routes.
+      if any(p.startswith("10.181.22.") for p in seen): errors.append("Node InternalIP publication forbidden")
+      ready, observed = False, {}
+      if not errors:
+        ref = spec.get("credentialsSecretRef", {})
+        creds = secret(ref["namespace"], ref["name"])
+        auth = base64.b64encode((creds["username"] + ":" + creds["password"]).encode()).decode()
+        # LAN-scoped RouterOS REST. Production promotion must install a RouterOS
+        # certificate and switch this endpoint to www-ssl before Apply is unlocked.
+        base = "http://" + spec["routerAddress"]
+        observed["routes"] = len(ros_get(base, "/ip/route?.proplist=dst-address,gateway,active,comment", auth))
+        observed["bgpConnections"] = len(ros_get(base, "/routing/bgp/connection?.proplist=name,remote.address,remote.as,disabled", auth))
+        ready = True
+        if spec["mode"] == "Apply":
+          errors.append("Apply is safety-locked until the dedicated BGP canary is approved")
+          ready = False
+      if errors: safety = "Rejected"
+      status = {"ready": str(ready).lower(), "safety": safety, "observed": observed,
+                "errors": errors, "observedGeneration": obj["metadata"].get("generation", 0),
+                "lastObservedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+      kreq(f"/apis/networking.re8ch.com/v1alpha1/routerosnodes/{name}/status", "PATCH", {"status": status})
+
+    while True:
+      try:
+        for item in kreq("/apis/networking.re8ch.com/v1alpha1/routerosnodes").get("items", []):
+          try: reconcile(item)
+          except Exception as exc:
+            print(item["metadata"]["name"], repr(exc), flush=True)
+      except Exception as exc: print("list", repr(exc), flush=True)
+      time.sleep(30)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routeros-node-controller
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: routeros-node-controller}
+  template:
+    metadata:
+      labels: {app: routeros-node-controller}
+    spec:
+      serviceAccountName: routeros-node-controller
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      containers:
+        - name: controller
+          # Pin this to the mirrored digest after the observe canary is accepted.
+          image: python:3.13-alpine
+          command: [python, /app/controller.py]
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: code, mountPath: /app, readOnly: true}
+      volumes:
+        - name: code
+          configMap: {name: routeros-node-controller}
+---
+apiVersion: networking.re8ch.com/v1alpha1
+kind: RouterOSNode
+metadata:
+  name: r640-boundary
+spec:
+  nodeRef: restricted-node-6dc3f140f9
+  routerAddress: 192.0.2.240
+  mode: Observe
+  localPodCIDR: 192.0.2.140/24
+  credentialsSecretRef:
+    namespace: ops
+    name: mikrotik-routeros-admin
+  bgp:
+    routerASN: 4200064001
+    peerASN: 4200000128
+    peerAddress: 192.0.2.169
+  remotePodCIDRs:
+    - {cidr: 192.0.2.57/24, nextHop: 192.0.2.192}
+    - {cidr: 192.0.2.134/24, nextHop: 192.0.2.10}
+    - {cidr: 192.0.2.6/24, nextHop: 192.0.2.251}
+    - {cidr: 192.0.2.48/24, nextHop: 192.0.2.176}
+    - {cidr: 192.0.2.4/24, nextHop: 192.0.2.79}
+    - {cidr: 192.0.2.96/24, nextHop: 192.0.2.154}
+    - {cidr: 192.0.2.234/24, nextHop: 192.0.2.4}
+    - {cidr: 192.0.2.207/24, nextHop: 192.0.2.111}
+    - {cidr: 192.0.2.79/24, nextHop: 192.0.2.182}
+    - {cidr: 192.0.2.237/24, nextHop: 192.0.2.74}
+    - {cidr: 192.0.2.89/24, nextHop: 192.0.2.112}
+    - {cidr: 192.0.2.128/24, nextHop: 192.0.2.138}
+    - {cidr: 192.0.2.94/24, nextHop: 192.0.2.89}
