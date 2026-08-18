@@ -15,9 +15,26 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
+                    # B1 intermittently lost the Kubernetes Service VIP during
+                    # its WSL recovery, causing 30s Headlamp proxy stalls and
+                    # retry-driven 429/watch failures. Keep the two replicas on
+                    # independent, currently healthy API paths.
                     values: [restricted-node-296f36f2fb, suxunji]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels: {app.kubernetes.io/name: headlamp}
+      # Keep the cluster-management UI independent from the Ceph cluster it
+      # manages. The previous shared plugin PVC blocked every replacement pod
+      # when CephFS CSI attach stalled and the Rook plugin also burst-listed
+      # CRDs on login, producing client-visible 429 responses.
+      volumes:
+        - name: plugins
+          persistentVolumeClaim: null
+          emptyDir: {}
+      # Use the node underlay for the Kubernetes API proxy. This avoids B1's
+      # intermittent Pod-network path to the API Service VIP while preserving
+      # two independent replicas and routable Service endpoints.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
