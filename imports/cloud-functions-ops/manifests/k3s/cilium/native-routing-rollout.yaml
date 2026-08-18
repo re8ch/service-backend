@@ -1,0 +1,26 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: native-routing-worker-canary
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      networking.re8ch.com/native-routing: canary
+  defaults:
+    routing-mode: native
+    ipv4-native-routing-cidr: 192.0.2.57/16
+    auto-direct-node-routes: "true"
+    direct-routing-skip-unreachable: "true"
+---
+# Promotion is label-driven. Do not label restricted-node-6dc3f140f9 or either control-plane voter
+# until the worker wave has passed direct-Pod, Service and API regressions.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: native-routing-rollout-order
+  namespace: kube-system
+data:
+  order: workers -> restricted-node-6dc3f140f9 -> restricted-node-1eb0570f74,restricted-node-296f36f2fb
+  forbidden-advertisement: 192.0.2.20/24
+  pod-cidr: 192.0.2.57/16
