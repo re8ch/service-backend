@@ -29,6 +29,11 @@ spec:
       labels:
         k8s-app: metrics-server
     spec:
+      # Scrape kubelets from the node underlay. Pod-network sourced traffic
+      # between the two WSL control planes can be asymmetric during native
+      # routing convergence and made the HA replicas alternately omit A1/B1.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical
       serviceAccountName: metrics-server
       tolerations:
@@ -62,7 +67,8 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --cert-dir=/tmp
-            - --secure-port=10250
+            # Avoid the host kubelet listener while running on hostNetwork.
+            - --secure-port=10251
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
             - --kubelet-use-node-status-port
             - --metric-resolution=15s
@@ -73,7 +79,7 @@ spec:
               memory: 70Mi
           ports:
             - name: https
-              containerPort: 10250
+              containerPort: 10251
               protocol: TCP
           readinessProbe:
             httpGet:
