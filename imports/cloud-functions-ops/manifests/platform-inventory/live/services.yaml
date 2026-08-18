@@ -136,6 +136,14 @@
     {
       "kind": "Deployment",
       "namespace": "ai-operations",
+      "name": "browser-runtime-pool-poc",
+      "labels": {},
+      "desired": 0,
+      "ready": 0
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
       "name": "cloud-platform-tool",
       "labels": {},
       "desired": 1,
@@ -150,6 +158,50 @@
       "ready": 1
     },
     {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
+      "name": "oauth2-proxy-steel",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
+      "name": "steel-browser",
+      "labels": {
+        "app.kubernetes.io/name": "steel-browser",
+        "app.kubernetes.io/part-of": "agent-workspace"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
+      "name": "steel-browser-gateway",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
+      "name": "steel-browser-ui",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Ingress",
+      "namespace": "ai-operations",
+      "name": "steel-browser",
+      "labels": {},
+      "hosts": [
+        "browser.re8ch.com"
+      ]
+    },
+    {
       "kind": "Service",
       "namespace": "ai-operations",
       "name": "agent-orchestra-collab",
@@ -157,6 +209,16 @@
       "type": "ClusterIP",
       "ports": [
         80
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "browser-runtime-pool-poc",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        3000
       ]
     },
     {
@@ -173,6 +235,50 @@
       "kind": "Service",
       "namespace": "ai-operations",
       "name": "cluster-infra-tool",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        80
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "oauth2-proxy-steel",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        4180
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "steel-browser",
+      "labels": {
+        "app.kubernetes.io/name": "steel-browser",
+        "app.kubernetes.io/part-of": "agent-workspace"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        3000,
+        9223
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "steel-browser-gateway",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        8080
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "steel-browser-ui",
       "labels": {},
       "type": "ClusterIP",
       "ports": [
@@ -527,7 +633,7 @@
       "name": "comfyui-agent-r640",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -535,7 +641,7 @@
       "name": "comfyui-amd",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Service",
@@ -644,7 +750,7 @@
       "name": "cosyvoice",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Service",
@@ -655,6 +761,245 @@
       "ports": [
         50000
       ]
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "cube-trial",
+      "name": "cube-trial-node",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "cube-trial",
+      "name": "cube-trial-node-bootstrap",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "cube-trial",
+      "name": "cube-trial-node-installer",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-api",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-cubemastercli",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-lifecycle-manager",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-master",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-ops",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-proxy",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "cube-trial-webui",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "cube-trial",
+      "name": "oauth2-proxy-cube",
+      "labels": {
+        "app.kubernetes.io/name": "oauth2-proxy-cube",
+        "app.kubernetes.io/part-of": "cube-sandbox"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-api",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        3000
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-lifecycle-manager",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        8083
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-master",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        8089
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-mysql",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        3306
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-ops",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        3010
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-proxy",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        80,
+        443,
+        8082
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-redis",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        6379
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "cube-trial-webui",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        12088
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "cube-trial",
+      "name": "oauth2-proxy-cube",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        4180
+      ]
+    },
+    {
+      "kind": "StatefulSet",
+      "namespace": "cube-trial",
+      "name": "cube-trial-mysql",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "StatefulSet",
+      "namespace": "cube-trial",
+      "name": "cube-trial-redis",
+      "labels": {
+        "app.kubernetes.io/name": "cube"
+      },
+      "desired": 1,
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -717,11 +1062,47 @@
     },
     {
       "kind": "DaemonSet",
-      "namespace": "egress-fabric",
-      "name": "mihomo-node",
+      "namespace": "edge-devices",
+      "name": "r640-usb-dra",
       "labels": {},
       "desired": 1,
       "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "edge-devices",
+      "name": "device-fabric-controller",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Service",
+      "namespace": "edge-devices",
+      "name": "grandstream-gui-canary",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        80
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "edge-devices",
+      "name": "r640-voice-control-canary",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        18092
+      ]
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "egress-fabric",
+      "name": "mihomo-node",
+      "labels": {},
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -1396,7 +1777,7 @@
         "app.kubernetes.io/part-of": "cilium"
       },
       "desired": 14,
-      "ready": 12
+      "ready": 14
     },
     {
       "kind": "DaemonSet",
@@ -1407,7 +1788,7 @@
         "app.kubernetes.io/part-of": "public-edge"
       },
       "desired": 5,
-      "ready": 4
+      "ready": 5
     },
     {
       "kind": "DaemonSet",
@@ -1415,7 +1796,7 @@
       "name": "re8ch-node-external-ip-agent",
       "labels": {},
       "desired": 11,
-      "ready": 8
+      "ready": 10
     },
     {
       "kind": "DaemonSet",
@@ -1424,8 +1805,8 @@
       "labels": {
         "app.kubernetes.io/name": "traefik"
       },
-      "desired": 1,
-      "ready": 1
+      "desired": 2,
+      "ready": 2
     },
     {
       "kind": "DaemonSet",
@@ -1526,6 +1907,14 @@
       "labels": {},
       "desired": 2,
       "ready": 2
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "kube-system",
+      "name": "routeros-node-controller",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
     },
     {
       "kind": "Service",
@@ -1939,6 +2328,46 @@
       "ports": [
         5432
       ]
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "mitos-trial",
+      "name": "mitos-forkd",
+      "labels": {
+        "app.kubernetes.io/name": "mitos"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "mitos-trial",
+      "name": "mitos-kernel-stage",
+      "labels": {
+        "app.kubernetes.io/name": "mitos"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "mitos-trial",
+      "name": "mitos-kvm-device-plugin",
+      "labels": {
+        "app.kubernetes.io/name": "mitos"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "mitos-trial",
+      "name": "mitos-controller",
+      "labels": {
+        "app.kubernetes.io/name": "mitos"
+      },
+      "desired": 1,
+      "ready": 1
     },
     {
       "kind": "Ingress",
@@ -2982,8 +3411,8 @@
         "app.kubernetes.io/name": "alloy-nuclio-logs",
         "app.kubernetes.io/part-of": "qianwen-observability"
       },
-      "desired": 0,
-      "ready": 0
+      "desired": 1,
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
@@ -3005,7 +3434,7 @@
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 9,
-      "ready": 8
+      "ready": 9
     },
     {
       "kind": "DaemonSet",
@@ -3016,7 +3445,7 @@
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 2,
-      "ready": 1
+      "ready": 2
     },
     {
       "kind": "DaemonSet",
@@ -3027,7 +3456,7 @@
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 2,
-      "ready": 1
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -4497,6 +4926,16 @@
     {
       "kind": "Deployment",
       "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-qwen-2",
+      "labels": {
+        "app": "rook-ceph-crashcollector"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
       "name": "rook-ceph-crashcollector-r640",
       "labels": {
         "app": "rook-ceph-crashcollector"
@@ -4528,6 +4967,16 @@
       "kind": "Deployment",
       "namespace": "rook-ceph",
       "name": "rook-ceph-exporter-qwen-1",
+      "labels": {
+        "app": "rook-ceph-exporter"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-qwen-2",
       "labels": {
         "app": "rook-ceph-exporter"
       },
