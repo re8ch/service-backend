@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cube-trial-webui
+  namespace: cube-trial
+spec:
+  template:
+    metadata:
+      annotations:
+        cube.re8ch.com/terminal-dist-sha256: "e5ba0ce99ede7c17f0799f7a5f094ede29eb71b5b4cd726aa972d458e208b3a7"
+    spec:
+      initContainers:
+        - name: install-terminal-ui
+          image: cube-sandbox-int.tencentcloudcr.com/cube-sandbox/cube-webui:v0.6.0@sha256:9b79ff75dd2a763bb7b01ee4c6c05f785e8bad02989115001df3c7ffeb762747
+          command: ["/bin/sh", "-c"]
+          args: ["tar -xzf /artifact/dist.tar.gz -C /workdir"]
+          volumeMounts:
+            - {name: terminal-artifact, mountPath: /artifact, readOnly: true}
+            - {name: terminal-web-root, mountPath: /workdir}
+      containers:
+        - name: webui
+          volumeMounts:
+            - {name: terminal-web-root, mountPath: /usr/share/nginx/html}
+            - {name: cube-api-admin-token, mountPath: /var/run/secrets/cube-api, readOnly: true}
+      volumes:
+        - name: terminal-artifact
+          configMap:
+            name: cube-webui-terminal-dist
+        - name: terminal-web-root
+          emptyDir: {}
+        - name: cube-api-admin-token
+          secret:
+            secretName: cube-trial-secret
+            items:
+              - {key: cube-admin-token, path: admin-token}
