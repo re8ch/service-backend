@@ -1,0 +1,3 @@
+Mihomos-Cluster is installed. Label every node with networking.re8ch.com/geo=cn|global,
+and label healthy exit candidates with networking.re8ch.com/mihomo-exit-cn=enabled or
+networking.re8ch.com/mihomo-exit=enabled. Status ConfigMaps are consumed by the Headlamp plugin.
