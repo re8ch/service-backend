@@ -9,7 +9,8 @@ kind: EndpointSlice
 metadata: {name: pg-re8ch-primary, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-re8ch-primary, re8ch.com/cluster: pg-re8ch, re8ch.com/data-role: primary}}
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
-endpoints: [{addresses: [192.0.2.178], conditions: {ready: true}}]
+# Patroni primary after the restricted-node-6dc3f140f9 outage (timeline 27).
+endpoints: [{addresses: [192.0.2.89], conditions: {ready: true}}]
 ---
 apiVersion: v1
 kind: Service
@@ -23,7 +24,6 @@ metadata: {name: pg-re8ch-replicas, namespace: pigsty-external, labels: {kuberne
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
 endpoints:
-  - {addresses: [192.0.2.89], conditions: {ready: true}}
   - {addresses: [192.0.2.138], conditions: {ready: true}}
 ---
 apiVersion: v1
