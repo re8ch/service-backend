@@ -1,0 +1,11 @@
+apiVersion: mitos.run/v1
+kind: Sandbox
+metadata:
+  name: terminal-session-2
+  namespace: mitos-trial
+spec:
+  source:
+    poolRef:
+      name: terminal-trial
+  lifetime:
+    ttl: 2h
