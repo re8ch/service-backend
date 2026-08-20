@@ -10,7 +10,7 @@ metadata:
   name: external-dns-cloudflare
 rules:
   - apiGroups: [""]
-    resources: ["services", "endpoints", "pods", "nodes"]
+    resources: ["services", "endpoints", "pods", "nodes", "namespaces"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
@@ -46,7 +46,13 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    # The controller is singleton by replica count; RollingUpdate lets a
+    # replacement start when the previous node is unreachable and its Pod is
+    # stuck Terminating.
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: external-dns
@@ -58,13 +64,20 @@ spec:
         app.kubernetes.io/instance: cloudflare-re8ch
     spec:
       serviceAccountName: external-dns-cloudflare
-      nodeSelector:
-        kubernetes.io/hostname: overseas-edge-50
-      tolerations:
-        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      imagePullSecrets: [{name: ghcr-re8ch}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
       containers:
         - name: external-dns
-          image: registry.k8s.io/external-dns/external-dns:v0.21.0
+          image: ghcr.io/re8ch/external-dns:v0.21.0@sha256:99160687de6c703460ed1b792ccb985012a96cfb787109427b87b70faa69b33e
           args:
             - --source=ingress
             - --source=gateway-httproute
@@ -72,12 +85,19 @@ spec:
             - --provider=cloudflare
             - --domain-filter=re8ch.com
             - --label-filter=public.re8ch.com/external-dns=enabled
+            # Never derive a public DNS answer from an RFC1918 Gateway VIP.
+            # Public origins must be explicit routable targets on the labeled
+            # Service/Ingress/Route resource.
+            - --exclude-target-net=192.0.2.203/8
+            - --exclude-target-net=192.0.2.179/12
+            - --exclude-target-net=192.0.2.148/16
             - --policy=upsert-only
             # This is the only label-scoped writer for these records. Avoid the
             # TXT registry because it doubles record usage and makes Cloudflare
             # replacements fail at the zone quota boundary.
             - --registry=noop
-            - --interval=5m
+            # Public failover must converge without waiting five minutes.
+            - --interval=1m
             - --events
             - --log-format=json
             - --log-level=info
@@ -87,6 +107,8 @@ spec:
                 secretKeyRef:
                   name: cloudflare-pg-dns-controller-secret
                   key: CF_API_TOKEN
+            - {name: KUBERNETES_SERVICE_HOST, value: "127.0.0.1"}
+            - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
           resources:
             requests: {cpu: 20m, memory: 64Mi}
             limits: {cpu: 200m, memory: 256Mi}

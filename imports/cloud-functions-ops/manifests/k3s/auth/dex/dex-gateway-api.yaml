@@ -1,0 +1,64 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dex-public
+  namespace: dex
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: dex-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: dex-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: dex-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: dex-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: dex-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: dex-https}
+  hostnames: [dex.re8ch.com]
+  rules:
+    - backendRefs: [{name: dex, port: 80}]
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set: [{name: X-Re8ch-Gateway, value: cilium}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: dex-http-redirect, namespace: dex}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: http}
+  hostnames: [dex.re8ch.com]
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect: {scheme: https, statusCode: 308}
+---
+# DNS authority is intentionally separate from the multi-parent HTTPRoute.
+# ExternalDNS otherwise inherits the canary Gateway's obsolete restricted-node-6dc3f140f9 target.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dex-dns-authority
+  namespace: dex
+  labels:
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: dex.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.67
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: dex.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dex
+                port: {number: 80}
