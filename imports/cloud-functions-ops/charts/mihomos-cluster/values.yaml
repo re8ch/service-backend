@@ -4,6 +4,9 @@ image:
   digest: sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
   pullPolicy: IfNotPresent
 
+dataplane:
+  enabled: true
+
 nodeProxy:
   port: 17891
   controllerPort: 19090
@@ -23,11 +26,15 @@ telemetry:
     cn:
       - {name: baidu, url: "https://www.baidu.com/"}
       - {name: aliyun, url: "https://www.aliyun.com/"}
+      - {name: tencent-cloud, url: "https://cloud.tencent.com/"}
+      - {name: douyin, url: "https://www.douyin.com/"}
     global:
       - {name: github, url: "https://github.com/"}
       - {name: ghcr, url: "https://ghcr.io/v2/", expectedStatus: 401}
       - {name: google, url: "https://www.google.com/generate_204", expectedStatus: 204}
+      - {name: openai, url: "https://api.openai.com/v1/models", expectedStatus: 401}
+      - {name: apple, url: "https://www.apple.com/library/test/success.html"}
+      - {name: microsoft, url: "https://www.microsoft.com/favicon.ico"}
 
-headlampPlugin:
-  enabled: true
-  statusLabel: app.kubernetes.io/component=mihomos-node-status
+statusReaders:
+  - {namespace: headlamp, serviceAccount: headlamp}
