@@ -1,0 +1,42 @@
+name: Release Mihomos Cluster
+
+on:
+  push:
+    tags: ["mihomos-cluster-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint and package
+        run: |
+          helm lint charts/mihomos-cluster
+          helm package charts/mihomos-cluster --destination dist
+      - name: Authenticate to GHCR
+        run: echo "${{ github.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Publish OCI chart
+        run: helm push dist/mihomos-cluster-*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+
+  publish-headlamp-plugin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/headlamp-mihomos-cluster
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: npm, cache-dependency-path: plugins/headlamp-mihomos-cluster/package-lock.json}
+      - run: npm ci
+      - run: npm run tsc
+      - run: npm run build
+      - run: npm run package
+      - name: Upload release archive
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: gh release upload "${GITHUB_REF_NAME}" ./*.tar.gz --clobber
