@@ -5,28 +5,35 @@ metadata:
   namespace: toolhive-system
 spec:
   clusterIP: None
-  selector: {app.kubernetes.io/name: toolhive-auth-redis}
+  selector: {app.kubernetes.io/name: toolhive-auth-redis-ab}
   ports: [{name: redis, port: 6379, targetPort: redis}]
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: toolhive-auth-redis
+  name: toolhive-auth-redis-ab
   namespace: toolhive-system
 spec:
   serviceName: toolhive-auth-redis
   replicas: 1
-  selector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis}}
+  selector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis-ab}}
   template:
     metadata:
-      labels: {app.kubernetes.io/name: toolhive-auth-redis, app.kubernetes.io/part-of: toolhive}
+      labels: {app.kubernetes.io/name: toolhive-auth-redis-ab, app.kubernetes.io/part-of: toolhive}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
       securityContext: {fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: redis
-          image: docker.io/valkey/valkey:8-alpine
-          args: [valkey-server, --appendonly, "yes", --requirepass, $(REDIS_PASSWORD)]
+          image: docker.io/library/redis:7-alpine
+          args: [redis-server, --appendonly, "yes", --requirepass, $(REDIS_PASSWORD)]
           env:
             - name: REDIS_PASSWORD
               valueFrom: {secretKeyRef: {name: toolhive-auth-redis, key: password}}
@@ -45,14 +52,17 @@ spec:
   volumeClaimTemplates:
     - metadata: {name: data}
       spec:
-        accessModes: [ReadWriteOnce]
+        accessModes: [ReadWriteMany]
+        # ToolHive session state is a stable control-plane dependency and must
+        # remain on the distributed CephFS data path, independent of A1/B1.
+        storageClassName: cephfs-re8ch
         resources: {requests: {storage: 2Gi}}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: toolhive-auth-redis, namespace: toolhive-system}
 spec:
-  podSelector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis}}
+  podSelector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis-ab}}
   policyTypes: [Ingress]
   ingress:
     - from:
@@ -98,34 +108,6 @@ apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPGroup
 metadata: {name: platform-tools-public, namespace: toolhive-system}
 spec: {description: "External observe and operate tools aggregated through the tools vMCP."}
----
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPServerEntry
-metadata: {name: ops-admin-r640-backend, namespace: toolhive-system}
-spec:
-  groupRef: {name: platform-admin-public}
-  # ToolHive intentionally rejects cluster.local MCPServerEntry URLs as an
-  # SSRF boundary. This R640-local 8443 route terminates TLS in Traefik and
-  # forwards directly to the raw backend Service (not through another OAuth
-  # proxy), so authentication still happens exactly once at the vMCP edge.
-  remoteUrl: https://admin.re8ch.com:8443/backend/admin/mcp
-  transport: streamable-http
----
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPServerEntry
-metadata: {name: ops-observe-r640-backend, namespace: toolhive-system}
-spec:
-  groupRef: {name: platform-tools-public}
-  remoteUrl: https://admin.re8ch.com:8443/backend/observe/mcp
-  transport: streamable-http
----
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPServerEntry
-metadata: {name: ops-operate-r640-backend, namespace: toolhive-system}
-spec:
-  groupRef: {name: platform-tools-public}
-  remoteUrl: https://admin.re8ch.com:8443/backend/operate/mcp
-  transport: streamable-http
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -203,7 +185,7 @@ spec:
       conflictResolution: prefix
       conflictResolutionConfig: {prefixFormat: "{workload}_"}
       tools:
-        - workload: ops-admin-r640-backend
+        - workload: ops-admin-external
           toolConfigRef: {name: ops-admin-tools}
     audit:
       enabled: true
@@ -213,7 +195,16 @@ spec:
   telemetryConfigRef: {name: platform-tools-telemetry}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/instance: re8ch-admin-vmcp}}
+              topologyKey: kubernetes.io/hostname
       securityContext: {seccompProfile: {type: RuntimeDefault}}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
@@ -247,8 +238,8 @@ spec:
           - 'permit(principal, action, resource);'
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
-          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
-          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-r640-backend_scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-external_restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-external_scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
   outgoingAuth:
     default: {type: discovered}
   config:
@@ -256,9 +247,9 @@ spec:
       conflictResolution: prefix
       conflictResolutionConfig: {prefixFormat: "{workload}_"}
       tools:
-        - workload: ops-observe-r640-backend
+        - workload: ops-observe-external
           toolConfigRef: {name: ops-public-read-tools}
-        - workload: ops-operate-r640-backend
+        - workload: ops-operate-external
           toolConfigRef: {name: ops-operate-tools}
     operational:
       failureHandling: {partialFailureMode: best_effort}
@@ -270,5 +261,14 @@ spec:
   telemetryConfigRef: {name: platform-tools-telemetry}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/instance: re8ch-tools-vmcp}}
+              topologyKey: kubernetes.io/hostname
       securityContext: {seccompProfile: {type: RuntimeDefault}}

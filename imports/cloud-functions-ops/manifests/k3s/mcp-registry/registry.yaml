@@ -38,6 +38,18 @@ spec:
       storage: 5Gi
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mcp-registry-postgresql-ab
+  namespace: mcp-registry
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: postgresql
@@ -67,13 +79,14 @@ spec:
       labels:
         app.kubernetes.io/name: mcp-registry-postgresql
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: pg-re8ch
-          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
       containers:
         - name: postgresql
           image: postgres:16.9-alpine
@@ -103,7 +116,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: mcp-registry-postgresql-r640
+            claimName: mcp-registry-postgresql-ab
 ---
 apiVersion: v1
 kind: Service
@@ -134,13 +147,14 @@ spec:
       labels:
         app.kubernetes.io/name: mcp-registry
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: pg-re8ch
-          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
       containers:
         - name: registry
           # GHCR did not publish the v1.7.9 tag; pin the release-channel
@@ -197,6 +211,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: mcp-registry
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: toolhive-system
       ports:
         - protocol: TCP
           port: 5432

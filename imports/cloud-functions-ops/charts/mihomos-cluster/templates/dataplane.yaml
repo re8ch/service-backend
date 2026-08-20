@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: mihomos-node-configs, namespace: {{ .Release.Namespace }}}
+data:
+  cn.yaml: |
+    mixed-port: {{ .Values.nodeProxy.port }}
+    external-controller: 0.0.0.0:{{ .Values.nodeProxy.controllerPort }}
+    allow-lan: true
+    mode: rule
+    proxies: [{name: GLOBAL-FABRIC, type: socks5, server: mihomos-global-exit.{{ .Release.Namespace }}.svc.cluster.local, port: {{ .Values.exits.port }}}]
+    proxy-groups: [{name: GLOBAL, type: fallback, proxies: [GLOBAL-FABRIC], url: "https://www.gstatic.com/generate_204", interval: 30}]
+    rules: ["IP-CIDR,192.0.2.203/8,DIRECT,no-resolve", "IP-CIDR,192.0.2.225/10,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,DIRECT", "GEOIP,CN,DIRECT", "MATCH,GLOBAL"]
+  global.yaml: |
+    mixed-port: {{ .Values.nodeProxy.port }}
+    external-controller: 0.0.0.0:{{ .Values.nodeProxy.controllerPort }}
+    allow-lan: true
+    mode: rule
+    proxies: [{name: CN-FABRIC, type: socks5, server: mihomos-cn-exit.{{ .Release.Namespace }}.svc.cluster.local, port: {{ .Values.exits.port }}}]
+    proxy-groups: [{name: CN, type: fallback, proxies: [CN-FABRIC], url: "https://connectivitycheck.gstatic.com/generate_204", interval: 30}]
+    rules: ["IP-CIDR,192.0.2.203/8,DIRECT,no-resolve", "IP-CIDR,192.0.2.225/10,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,CN", "GEOIP,CN,CN", "MATCH,DIRECT"]
+  exit.yaml: |
+    mixed-port: {{ .Values.exits.port }}
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: direct
+    rules: ["MATCH,DIRECT"]
+---
+{{- range $geo := list "cn" "global" }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomos-node-{{ $geo }}, namespace: {{ $.Release.Namespace }}}
+spec:
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxSurge: 0, maxUnavailable: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: mihomos-node-{{ $geo }}}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: mihomos-node-{{ $geo }}, app.kubernetes.io/component: node-proxy}}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector: {networking.re8ch.com/geo: {{ $geo }}}
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: mihomo
+          image: {{ include "mihomos-cluster.image" $ }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          args: [-d, /etc/mihomo]
+          ports: [{name: mixed, containerPort: {{ $.Values.nodeProxy.port }}}, {name: controller, containerPort: {{ $.Values.nodeProxy.controllerPort }}}]
+          readinessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 5}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: config, mountPath: /etc/mihomo/config.yaml, subPath: {{ $geo }}.yaml, readOnly: true}]
+      volumes: [{name: config, configMap: {name: mihomos-node-configs}}]
+---
+{{- end }}
+{{- range $geo := list "cn" "global" }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomos-{{ $geo }}-exit, namespace: {{ $.Release.Namespace }}}
+spec:
+  selector: {matchLabels: {app.kubernetes.io/name: mihomos-{{ $geo }}-exit}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: mihomos-{{ $geo }}-exit}}
+    spec:
+      hostNetwork: true
+      dnsPolicy: Default
+      priorityClassName: system-node-critical
+      nodeSelector:
+        {{- if eq $geo "cn" }}
+        networking.re8ch.com/mihomo-exit-cn: enabled
+        {{- else }}
+        networking.re8ch.com/mihomo-exit: enabled
+        {{- end }}
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: mihomo
+          image: {{ include "mihomos-cluster.image" $ }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          args: [-d, /etc/mihomo]
+          ports: [{name: socks, containerPort: {{ $.Values.exits.port }}}]
+          readinessProbe: {tcpSocket: {port: socks}, periodSeconds: 5}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: config, mountPath: /etc/mihomo/config.yaml, subPath: exit.yaml, readOnly: true}]
+      volumes: [{name: config, configMap: {name: mihomos-node-configs}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: mihomos-{{ $geo }}-exit, namespace: {{ $.Release.Namespace }}}
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: mihomos-{{ $geo }}-exit}
+  ports: [{name: socks, port: {{ $.Values.exits.port }}, targetPort: socks}]
+---
+{{- end }}

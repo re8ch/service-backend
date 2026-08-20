@@ -1,0 +1,33 @@
+image:
+  repository: docker.io/metacubex/mihomo
+  tag: v1.19.29
+  digest: sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+  pullPolicy: IfNotPresent
+
+nodeProxy:
+  port: 17891
+  controllerPort: 19090
+  geoLabel: networking.re8ch.com/geo
+
+exits:
+  globalLabel: networking.re8ch.com/mihomo-exit
+  cnLabel: networking.re8ch.com/mihomo-exit-cn
+  port: 1080
+
+telemetry:
+  enabled: true
+  intervalSeconds: 60
+  image: docker.1ms.run/library/python:3.12-alpine
+  ipLookupUrl: https://ipinfo.io/json
+  probes:
+    cn:
+      - {name: baidu, url: "https://www.baidu.com/"}
+      - {name: aliyun, url: "https://www.aliyun.com/"}
+    global:
+      - {name: github, url: "https://github.com/"}
+      - {name: ghcr, url: "https://ghcr.io/v2/", expectedStatus: 401}
+      - {name: google, url: "https://www.google.com/generate_204", expectedStatus: 204}
+
+headlampPlugin:
+  enabled: true
+  statusLabel: app.kubernetes.io/component=mihomos-node-status
