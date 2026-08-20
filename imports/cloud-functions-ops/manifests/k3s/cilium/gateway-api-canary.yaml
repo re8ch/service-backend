@@ -47,6 +47,18 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: headlamp-https
       hostname: headlamp.re8ch.com
       protocol: HTTPS
