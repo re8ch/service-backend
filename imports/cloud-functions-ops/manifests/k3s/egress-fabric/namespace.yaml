@@ -3,7 +3,9 @@ kind: Namespace
 metadata:
   name: egress-fabric
   labels:
+    # Exit Pods use host networking but generate a config that binds only the
+    # private Node InternalIP, never 0.0.0.0 or a public interface.
+    pod-security.kubernetes.io/enforce: privileged
     app.kubernetes.io/part-of: re8ch-egress-fabric
-    pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
