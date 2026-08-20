@@ -1,5 +1,5 @@
 operator:
-  replicaCount: 1
+  replicaCount: 2
   features:
     experimental: false
     storageVersionMigrator: false
@@ -23,5 +23,16 @@ operator:
   serviceAccount:
     create: true
     name: toolhive-operator
-  nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels: {app.kubernetes.io/name: toolhive-operator}
+          topologyKey: kubernetes.io/hostname

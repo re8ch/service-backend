@@ -67,7 +67,7 @@ metadata:
     toolhive.stacklok.dev/registry-url: https://tools.re8ch.com/mcp
 spec:
   groupRef: {name: platform-observe}
-  image: docker.io/library/python:3.12-alpine
+  image: docker.1ms.run/library/python:3.12-alpine
   backendReplicas: 2
   replicas: 2
   sessionAffinity: None
@@ -111,7 +111,16 @@ spec:
     metadata:
       annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/instance: ops-observe-external}}
+              topologyKey: kubernetes.io/hostname
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       containers:
@@ -135,7 +144,7 @@ metadata:
     app.kubernetes.io/name: toolhive-cloud-ui
     app.kubernetes.io/part-of: toolhive
 spec:
-  replicas: 1
+  replicas: 2
   selector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
   template:
     metadata:
@@ -144,12 +153,22 @@ spec:
         app.kubernetes.io/part-of: toolhive
     spec:
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: ghcr-re8ch}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
+              topologyKey: kubernetes.io/hostname
       tolerations:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
         - name: cloud-ui
-          image: ghcr.io/stacklok/toolhive-cloud-ui:v0.6.2
+          image: ghcr.io/re8ch/toolhive-cloud-ui@sha256:8f4a01e811e64bd2f76102f5b9e2736145b1c44f6325c8b8474a8b8c9c714488
           imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 3000}]
           env:
@@ -159,6 +178,7 @@ spec:
             - {name: BETTER_AUTH_URL, value: "https://tools.re8ch.com"}
             - {name: TRUSTED_ORIGINS, value: "https://tools.re8ch.com"}
             - {name: API_BASE_URL, value: "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080"}
+            - {name: PUBLIC_CATALOG, value: "true"}
             - {name: OIDC_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: oidc-client-secret}}}
             - {name: BETTER_AUTH_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: better-auth-secret}}}
           resources:
@@ -181,6 +201,21 @@ metadata:
 spec:
   selector: {app.kubernetes.io/name: toolhive-cloud-ui}
   ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: toolhive-cloud-ui
+  namespace: toolhive-system
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [tools.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      backendRefs: [{name: toolhive-cloud-ui, port: 80}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
