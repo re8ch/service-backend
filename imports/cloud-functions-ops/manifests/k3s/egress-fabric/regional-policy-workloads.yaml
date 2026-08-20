@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomo-egress-cn, namespace: egress-fabric}
+spec:
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: mihomo-egress-cn}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: mihomo-egress-cn}}
+    spec:
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      nodeSelector: {networking.re8ch.com/mihomo-exit-cn: enabled}
+      tolerations: [{operator: Exists}]
+      automountServiceAccountToken: false
+      dnsPolicy: Default
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: bind-private-node-address
+          image: alpine:3.22
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              sed "s|0.0.0.0|${HOST_IP}|" /base/config.yaml > /work/config.yaml
+          env: [{name: HOST_IP, valueFrom: {fieldRef: {fieldPath: status.hostIP}}}]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: config, mountPath: /base, readOnly: true}, {name: work, mountPath: /work}]
+      containers:
+        - name: mihomo
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          imagePullPolicy: IfNotPresent
+          args: [-d, /etc/mihomo]
+          ports: [{name: socks, containerPort: 1080, protocol: TCP}]
+          readinessProbe: {tcpSocket: {port: socks}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: socks}, periodSeconds: 15}
+          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 800m, memory: 512Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: work, mountPath: /etc/mihomo}]
+      volumes: [{name: config, configMap: {name: mihomo-la-config}}, {name: work, emptyDir: {}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: mihomo-egress-cn-headless, namespace: egress-fabric}
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: mihomo-egress-cn}
+  ports: [{name: socks, port: 1080, targetPort: socks, protocol: TCP}]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomo-node-global, namespace: egress-fabric}
+spec:
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxSurge: 0, maxUnavailable: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: mihomo-node-global}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mihomo-node-global, networking.re8ch.com/mihomo-local-proxy: "true"}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector: {networking.re8ch.com/geo: global}
+      tolerations: [{operator: Exists}]
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mihomo
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          imagePullPolicy: IfNotPresent
+          args: [-d, /etc/mihomo]
+          ports: [{name: mixed, containerPort: 17891}, {name: controller, containerPort: 19090}]
+          startupProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 5, failureThreshold: 60}
+          readinessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 15}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: work, mountPath: /etc/mihomo}
+            - {name: config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: cn-rules, mountPath: /etc/mihomo/rules, readOnly: true}
+      volumes:
+        - {name: config, configMap: {name: mihomo-node-global-config}}
+        - {name: cn-rules, configMap: {name: mihomo-cn-ip-rules}}
+        - {name: work, emptyDir: {}}
