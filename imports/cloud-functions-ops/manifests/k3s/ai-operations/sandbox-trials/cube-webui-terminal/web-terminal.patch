@@ -1,0 +1,523 @@
+diff --git a/deploy/kubernetes/chart/templates/_helpers.tpl b/deploy/kubernetes/chart/templates/_helpers.tpl
+index 869d510..1824757 100644
+--- a/deploy/kubernetes/chart/templates/_helpers.tpl
++++ b/deploy/kubernetes/chart/templates/_helpers.tpl
+@@ -271,6 +271,8 @@ http {
+             proxy_set_header X-Forwarded-Proto $scheme;
+             proxy_set_header Upgrade $http_upgrade;
+             proxy_set_header Connection $connection_upgrade;
++            proxy_buffering off;
++            proxy_request_buffering off;
+             proxy_read_timeout 7206s;
+             proxy_send_timeout 7206s;
+ 
+diff --git a/web/package-lock.json b/web/package-lock.json
+index 26643ac..02abb76 100644
+--- a/web/package-lock.json
++++ b/web/package-lock.json
+@@ -22,6 +22,8 @@
+         "@radix-ui/react-toast": "^1.2.2",
+         "@radix-ui/react-tooltip": "^1.1.3",
+         "@tanstack/react-query": "^5.59.0",
++        "@xterm/addon-fit": "^0.10.0",
++        "@xterm/xterm": "^5.5.0",
+         "class-variance-authority": "^0.7.0",
+         "clsx": "^2.1.1",
+         "cmdk": "^1.0.0",
+@@ -2980,6 +2982,21 @@
+         "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+       }
+     },
++    "node_modules/@xterm/addon-fit": {
++      "version": "0.10.0",
++      "resolved": "https://registry.npmjs.org/@xterm/addon-fit/-/addon-fit-0.10.0.tgz",
++      "integrity": "sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ==",
++      "license": "MIT",
++      "peerDependencies": {
++        "@xterm/xterm": "^5.0.0"
++      }
++    },
++    "node_modules/@xterm/xterm": {
++      "version": "5.5.0",
++      "resolved": "https://registry.npmjs.org/@xterm/xterm/-/xterm-5.5.0.tgz",
++      "integrity": "sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A==",
++      "license": "MIT"
++    },
+     "node_modules/agent-base": {
+       "version": "7.1.4",
+       "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-7.1.4.tgz",
+diff --git a/web/package.json b/web/package.json
+index ec87687..ac72e2f 100644
+--- a/web/package.json
++++ b/web/package.json
+@@ -28,6 +28,8 @@
+     "@radix-ui/react-toast": "^1.2.2",
+     "@radix-ui/react-tooltip": "^1.1.3",
+     "@tanstack/react-query": "^5.59.0",
++    "@xterm/addon-fit": "^0.10.0",
++    "@xterm/xterm": "^5.5.0",
+     "class-variance-authority": "^0.7.0",
+     "clsx": "^2.1.1",
+     "cmdk": "^1.0.0",
+diff --git a/web/src/api/client.ts b/web/src/api/client.ts
+index f0b2f5e..f9f9863 100644
+--- a/web/src/api/client.ts
++++ b/web/src/api/client.ts
+@@ -205,6 +205,8 @@ export const sandboxApi = {
+     limit?: number;
+   }) => api<ListedSandboxDto[]>('/v2/sandboxes', { params }).then((items) => items.map(mapSandbox)),
+   get: (id: string) => api<SandboxDetailDto>(`/sandboxes/${id}`).then(mapSandboxDetail),
++  connect: (id: string) =>
++    api<SandboxSessionDto>(`/sandboxes/${id}/connect`, { method: 'POST', body: '{}' }),
+   kill: (id: string) => api<void>(`/sandboxes/${id}`, { method: 'DELETE' }),
+   pause: (id: string) => api<void>(`/sandboxes/${id}/pause`, { method: 'POST' }),
+   resume: (id: string, body: SandboxResumeRequest = DEFAULT_RESUME_BODY) =>
+diff --git a/web/src/lib/cubePty.ts b/web/src/lib/cubePty.ts
+new file mode 100644
+index 0000000..015a441
+--- /dev/null
++++ b/web/src/lib/cubePty.ts
+@@ -0,0 +1,226 @@
++import type { SandboxSessionDto } from '@/api/client';
++
++const ENVD_PORT = 49983;
++const CONNECT_END_STREAM = 0x02;
++const MAX_FRAME_SIZE = 64 * 1024 * 1024;
++
++export interface PtySize {
++  rows: number;
++  cols: number;
++}
++
++export interface BrowserPty {
++  pid: number;
++  stream: ReadableStream<Uint8Array>;
++  send(data: string): Promise<void>;
++  resize(size: PtySize): Promise<void>;
++  kill(): Promise<void>;
++  disconnect(): void;
++}
++
++function bytesToBase64(bytes: Uint8Array): string {
++  let binary = '';
++  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
++    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
++  }
++  return btoa(binary);
++}
++
++function textToBase64(value: string): string {
++  return bytesToBase64(new TextEncoder().encode(value));
++}
++
++function base64ToBytes(value: string): Uint8Array {
++  const binary = atob(value);
++  const bytes = new Uint8Array(binary.length);
++  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
++  return bytes;
++}
++
++function encodeFrame(payload: unknown): Uint8Array {
++  const data = new TextEncoder().encode(JSON.stringify(payload));
++  const frame = new Uint8Array(5 + data.length);
++  frame[0] = 0;
++  new DataView(frame.buffer).setUint32(1, data.length, false);
++  frame.set(data, 5);
++  return frame;
++}
++
++function headers(session: SandboxSessionDto, streaming: boolean, user?: string): HeadersInit {
++  const result: Record<string, string> = {
++    'Content-Type': streaming ? 'application/connect+json' : 'application/json',
++    'Connect-Protocol-Version': '1',
++  };
++  if (streaming) result['Connect-Content-Encoding'] = 'identity';
++  if (user) result.Authorization = `Basic ${btoa(`${user}:`)}`;
++  if (session.envdAccessToken) result['X-Access-Token'] = session.envdAccessToken;
++  if (session.trafficAccessToken) {
++    result['e2b-traffic-access-token'] = session.trafficAccessToken;
++    result['cube-traffic-access-token'] = session.trafficAccessToken;
++  }
++  return result;
++}
++
++function endpoint(sandboxID: string, method: string): string {
++  return `/sandbox/${encodeURIComponent(sandboxID)}/${ENVD_PORT}/process.Process/${method}`;
++}
++
++async function unary(
++  session: SandboxSessionDto,
++  method: string,
++  payload: unknown,
++  keepalive = false,
++): Promise<void> {
++  const response = await fetch(endpoint(session.sandboxID, method), {
++    method: 'POST',
++    headers: headers(session, false),
++    body: JSON.stringify(payload),
++    keepalive,
++  });
++  if (!response.ok && !(method === 'SendSignal' && response.status === 404)) {
++    throw new Error(`${method} failed: HTTP ${response.status}`);
++  }
++}
++
++interface ParsedEvent {
++  start?: { pid?: number };
++  data?: { pty?: string };
++  end?: { error?: string; exitCode?: number };
++}
++
++function parseConnectStream(
++  source: ReadableStream<Uint8Array>,
++  onStart: (pid: number) => void,
++): ReadableStream<Uint8Array> {
++  const reader = source.getReader();
++  let pending = new Uint8Array(0);
++  return new ReadableStream<Uint8Array>({
++    async pull(controller) {
++      for (;;) {
++        if (pending.length >= 5) {
++          const size = new DataView(pending.buffer, pending.byteOffset, pending.byteLength).getUint32(1, false);
++          if (size > MAX_FRAME_SIZE) throw new Error(`PTY frame too large: ${size}`);
++          if (pending.length >= 5 + size) {
++            const flags = pending[0];
++            const payload = pending.slice(5, 5 + size);
++            pending = pending.slice(5 + size);
++            if (flags & CONNECT_END_STREAM) {
++              if (payload.length) {
++                const trailer = JSON.parse(new TextDecoder().decode(payload));
++                if (trailer?.error) throw new Error(trailer.error.message ?? 'PTY stream failed');
++              }
++              controller.close();
++              return;
++            }
++            const message = JSON.parse(new TextDecoder().decode(payload)) as { event?: ParsedEvent };
++            const event = message.event;
++            if (event?.start?.pid != null) onStart(Number(event.start.pid));
++            if (event?.data?.pty) {
++              controller.enqueue(base64ToBytes(event.data.pty));
++              return;
++            }
++            if (event?.end) {
++              if (event.end.error) throw new Error(event.end.error);
++              controller.close();
++              return;
++            }
++            continue;
++          }
++        }
++        const { done, value } = await reader.read();
++        if (done) {
++          if (pending.length) controller.error(new Error('PTY stream ended with a partial frame'));
++          else controller.close();
++          return;
++        }
++        if (value?.length) {
++          const merged = new Uint8Array(pending.length + value.length);
++          merged.set(pending);
++          merged.set(value, pending.length);
++          pending = merged;
++        }
++      }
++    },
++    async cancel() {
++      await reader.cancel();
++    },
++  });
++}
++
++export async function openBrowserPty(
++  session: SandboxSessionDto,
++  size: PtySize,
++): Promise<BrowserPty> {
++  const controller = new AbortController();
++  const response = await fetch(endpoint(session.sandboxID, 'Start'), {
++    method: 'POST',
++    headers: headers(session, true, 'root'),
++    body: encodeFrame({
++      process: {
++        cmd: '/bin/bash',
++        args: ['-i', '-l'],
++        cwd: '/workspace',
++        envs: { TERM: 'xterm-256color', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' },
++      },
++      pty: { size },
++    }) as BodyInit,
++    signal: controller.signal,
++  });
++  if (!response.ok || !response.body) {
++    throw new Error(`Start PTY failed: HTTP ${response.status}`);
++  }
++
++  let pid = 0;
++  let resolvePid!: (value: number) => void;
++  const pidReady = new Promise<number>((resolve) => {
++    resolvePid = resolve;
++  });
++  const stream = parseConnectStream(response.body, (value) => {
++    if (!pid) {
++      pid = value;
++      resolvePid(value);
++    }
++  });
++
++  // Start reading one frame so the server's start event supplies the PID before
++  // input handlers are exposed. Reconstruct the stream with the first output.
++  const reader = stream.getReader();
++  const firstRead = reader.read();
++  const resolvedPid = await Promise.race([
++    pidReady,
++    firstRead.then(() => pidReady),
++    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('PTY did not return a PID')), 15_000)),
++  ]);
++  const output = new ReadableStream<Uint8Array>({
++    async start(outputController) {
++      const first = await firstRead;
++      if (!first.done && first.value) outputController.enqueue(first.value);
++    },
++    async pull(outputController) {
++      const next = await reader.read();
++      if (next.done) outputController.close();
++      else outputController.enqueue(next.value);
++    },
++    async cancel() {
++      await reader.cancel();
++    },
++  });
++
++  return {
++    pid: resolvedPid,
++    stream: output,
++    send: (data) =>
++      unary(session, 'SendInput', {
++        process: { pid: resolvedPid },
++        input: { pty: textToBase64(data) },
++      }),
++    resize: (nextSize) =>
++      unary(session, 'Update', { process: { pid: resolvedPid }, pty: { size: nextSize } }),
++    kill: () =>
++      unary(session, 'SendSignal', {
++        process: { pid: resolvedPid },
++        signal: 'SIGNAL_SIGKILL',
++      }, true),
++    disconnect: () => controller.abort(),
++  };
++}
+diff --git a/web/src/locales/en/sandboxDetail.json b/web/src/locales/en/sandboxDetail.json
+index fdd5165..0b0504f 100644
+--- a/web/src/locales/en/sandboxDetail.json
++++ b/web/src/locales/en/sandboxDetail.json
+@@ -43,7 +43,8 @@
+   "actions": {
+     "resume": "Resume",
+     "pause": "Pause",
+-    "kill": "Kill"
++    "kill": "Kill",
++    "terminal": "Open terminal"
+   },
+   "errors": {
+     "unknown": "Unknown error",
+diff --git a/web/src/locales/zh/sandboxDetail.json b/web/src/locales/zh/sandboxDetail.json
+index c8c0720..c1c3af2 100644
+--- a/web/src/locales/zh/sandboxDetail.json
++++ b/web/src/locales/zh/sandboxDetail.json
+@@ -43,7 +43,8 @@
+   "actions": {
+     "resume": "恢复",
+     "pause": "暂停",
+-    "kill": "终止"
++    "kill": "终止",
++    "terminal": "打开终端"
+   },
+   "errors": {
+     "unknown": "未知错误",
+diff --git a/web/src/main.tsx b/web/src/main.tsx
+index 15113fe..df740b1 100644
+--- a/web/src/main.tsx
++++ b/web/src/main.tsx
+@@ -13,6 +13,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
+ import OverviewPage from '@/pages/Overview';
+ import SandboxesPage from '@/pages/Sandboxes';
+ import SandboxDetailPage from '@/pages/SandboxDetail';
++import SandboxTerminalPage from '@/pages/SandboxTerminal';
+ import SandboxNewPage from '@/pages/SandboxNew';
+ import TemplatesPage from '@/pages/Templates';
+ import NodesPage from '@/pages/Nodes';
+@@ -52,6 +53,7 @@ const App = () => (
+                 <Route path="/sandboxes" element={<SandboxesPage />} />
+                 <Route path="/sandboxes/new" element={<SandboxNewPage />} />
+                 <Route path="/sandboxes/:sandboxID" element={<SandboxDetailPage />} />
++                <Route path="/sandboxes/:sandboxID/terminal" element={<SandboxTerminalPage />} />
+                 <Route path="/templates" element={<TemplatesPage />} />
+                 <Route path="/templates/:templateID" element={<TemplateDetailPage />} />
+                 <Route path="/nodes" element={<NodesPage />} />
+diff --git a/web/src/pages/SandboxDetail.tsx b/web/src/pages/SandboxDetail.tsx
+index 4987db2..e45b568 100644
+--- a/web/src/pages/SandboxDetail.tsx
++++ b/web/src/pages/SandboxDetail.tsx
+@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
+ import { Badge } from '@/components/ui/badge';
+ 
+ import { Skeleton } from '@/components/ui/skeleton';
+-import { ArrowLeft, Pause, Play, Trash2, RefreshCw } from 'lucide-react';
++import { ArrowLeft, Pause, Play, Trash2, RefreshCw, SquareTerminal } from 'lucide-react';
+ import { cn, formatBytes, formatRelative } from '@/lib/utils';
+ import { formatSandboxActionError } from '@/lib/sandboxActionError';
+ import { SandboxActionErrorBanner } from '@/components/SandboxActionErrorBanner';
+@@ -219,6 +219,13 @@ export default function SandboxDetailPage() {
+         </div>
+         {data ? (
+           <div className="flex gap-2">
++            {state === 'running' ? (
++              <Button variant="default" asChild>
++                <Link to={`/sandboxes/${encodeURIComponent(sandboxID)}/terminal`}>
++                  <SquareTerminal size={14} /> {t('actions.terminal')}
++                </Link>
++              </Button>
++            ) : null}
+             {state === 'paused' ? (
+               <Button variant="outline" onClick={() => resume.mutate()} disabled={resume.isPending}>
+                 <Play size={14} /> {t('actions.resume')}
+diff --git a/web/src/pages/SandboxTerminal.tsx b/web/src/pages/SandboxTerminal.tsx
+new file mode 100644
+index 0000000..fdf60c7
+--- /dev/null
++++ b/web/src/pages/SandboxTerminal.tsx
+@@ -0,0 +1,136 @@
++import { useEffect, useRef, useState } from 'react';
++import { Link, useParams } from 'react-router-dom';
++import { Terminal } from '@xterm/xterm';
++import { FitAddon } from '@xterm/addon-fit';
++import '@xterm/xterm/css/xterm.css';
++import { ArrowLeft, RefreshCw, SquareTerminal, X } from 'lucide-react';
++import { sandboxApi } from '@/api/client';
++import { openBrowserPty, type BrowserPty } from '@/lib/cubePty';
++import { Button } from '@/components/ui/button';
++import { Card } from '@/components/ui/card';
++
++export default function SandboxTerminalPage() {
++  const { sandboxID = '' } = useParams();
++  const hostRef = useRef<HTMLDivElement>(null);
++  const terminalRef = useRef<Terminal>();
++  const ptyRef = useRef<BrowserPty>();
++  const generationRef = useRef(0);
++  const [status, setStatus] = useState<'connecting' | 'connected' | 'closed' | 'error'>('connecting');
++  const [error, setError] = useState('');
++
++  const connect = async () => {
++    const generation = ++generationRef.current;
++    setStatus('connecting');
++    setError('');
++    await ptyRef.current?.kill().catch(() => undefined);
++    ptyRef.current?.disconnect();
++
++    const terminal = terminalRef.current;
++    if (!terminal) return;
++    terminal.reset();
++    terminal.writeln('\x1b[36mConnecting to CubeSandbox PTY…\x1b[0m');
++    try {
++      const session = await sandboxApi.connect(sandboxID);
++      const pty = await openBrowserPty(session, { rows: terminal.rows, cols: terminal.cols });
++      if (generation !== generationRef.current) {
++        await pty.kill().catch(() => undefined);
++        pty.disconnect();
++        return;
++      }
++      ptyRef.current = pty;
++      setStatus('connected');
++      const reader = pty.stream.getReader();
++      for (;;) {
++        const { done, value } = await reader.read();
++        if (done) break;
++        terminal.write(value);
++      }
++      if (generation === generationRef.current) {
++        setStatus('closed');
++        terminal.writeln('\r\n\x1b[33mPTY session closed.\x1b[0m');
++      }
++    } catch (cause) {
++      if (generation !== generationRef.current) return;
++      const message = cause instanceof Error ? cause.message : String(cause);
++      setError(message);
++      setStatus('error');
++      terminal.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
++    }
++  };
++
++  useEffect(() => {
++    if (!hostRef.current) return;
++    const terminal = new Terminal({
++      cursorBlink: true,
++      convertEol: true,
++      fontFamily: 'JetBrains Mono Variable, ui-monospace, monospace',
++      fontSize: 14,
++      scrollback: 10_000,
++      theme: { background: '#090d12', foreground: '#d8e2ec', cursor: '#34d399' },
++    });
++    const fit = new FitAddon();
++    terminal.loadAddon(fit);
++    terminal.open(hostRef.current);
++    terminalRef.current = terminal;
++    fit.fit();
++
++    const input = terminal.onData((data) => {
++      void ptyRef.current?.send(data).catch((cause) => {
++        setError(cause instanceof Error ? cause.message : String(cause));
++        setStatus('error');
++      });
++    });
++    const resize = terminal.onResize((size) => void ptyRef.current?.resize(size).catch(() => undefined));
++    const observer = new ResizeObserver(() => fit.fit());
++    observer.observe(hostRef.current);
++    void connect();
++
++    return () => {
++      generationRef.current += 1;
++      void ptyRef.current?.kill().catch(() => undefined);
++      ptyRef.current?.disconnect();
++      observer.disconnect();
++      input.dispose();
++      resize.dispose();
++      terminal.dispose();
++      terminalRef.current = undefined;
++    };
++    // The route creates a fresh component when sandboxID changes.
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [sandboxID]);
++
++  const closeSession = async () => {
++    generationRef.current += 1;
++    await ptyRef.current?.kill().catch(() => undefined);
++    ptyRef.current?.disconnect();
++    ptyRef.current = undefined;
++    setStatus('closed');
++    terminalRef.current?.writeln('\r\n\x1b[33mPTY session terminated.\x1b[0m');
++  };
++
++  const tone = status === 'connected' ? 'text-emerald-400' : status === 'error' ? 'text-red-400' : 'text-amber-300';
++
++  return (
++    <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-4">
++      <div className="flex items-center gap-3">
++        <Button variant="ghost" size="icon" asChild>
++          <Link to={`/sandboxes/${encodeURIComponent(sandboxID)}`}><ArrowLeft size={16} /></Link>
++        </Button>
++        <SquareTerminal size={20} />
++        <div className="min-w-0 flex-1">
++          <h1 className="truncate font-mono text-lg font-medium">{sandboxID}</h1>
++          <p className={`text-xs ${tone}`}>{status}{error ? ` · ${error}` : ''}</p>
++        </div>
++        <Button variant="outline" onClick={() => void connect()} disabled={status === 'connecting'}>
++          <RefreshCw size={14} /> 重新连接
++        </Button>
++        <Button variant="destructive" onClick={() => void closeSession()} disabled={status !== 'connected'}>
++          <X size={14} /> 结束会话
++        </Button>
++      </div>
++      <Card className="min-h-0 flex-1 overflow-hidden bg-[#090d12] p-2">
++        <div ref={hostRef} className="h-full min-h-[620px] w-full" />
++      </Card>
++    </div>
++  );
++}
