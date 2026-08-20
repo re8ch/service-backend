@@ -4,8 +4,8 @@ metadata: {name: external-operate-oidc, namespace: toolhive-system}
 spec:
   type: inline
   inline:
-    issuer: https://auth.re8ch.com/application/o/toolhive-platform-operate/
-    clientId: re8ch-platform-operate
+    issuer: https://dex.re8ch.com
+    clientId: re8ch-platform-tools
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPOIDCConfig
@@ -13,7 +13,7 @@ metadata: {name: external-admin-oidc, namespace: toolhive-system}
 spec:
   type: inline
   inline:
-    issuer: https://auth.re8ch.com/application/o/toolhive-platform-admin/
+    issuer: https://dex.re8ch.com
     clientId: re8ch-platform-admin
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
@@ -31,7 +31,7 @@ metadata:
     toolhive.stacklok.dev/registry-url: https://operate.tools.re8ch.com/mcp
 spec:
   groupRef: {name: platform-operate}
-  image: docker.io/library/python:3.12-alpine
+  image: docker.1ms.run/library/python:3.12-alpine
   backendReplicas: 2
   replicas: 2
   sessionAffinity: None
@@ -55,9 +55,9 @@ spec:
   audit: {enabled: true}
   oidcConfigRef:
     name: external-operate-oidc
-    audience: https://operate.tools.re8ch.com/mcp
+    audience: re8ch-platform-tools
     resourceUrl: https://operate.tools.re8ch.com/mcp
-    scopes: [openid, profile, email, "platform:operate"]
+    scopes: [openid, profile, email, groups, offline_access]
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
@@ -65,7 +65,16 @@ spec:
     metadata:
       annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/instance: ops-operate-external}}
+              topologyKey: kubernetes.io/hostname
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
@@ -89,7 +98,7 @@ metadata:
     toolhive.stacklok.dev/registry-url: https://admin.re8ch.com:8443/mcp
 spec:
   groupRef: {name: platform-admin}
-  image: docker.io/library/python:3.12-alpine
+  image: docker.1ms.run/library/python:3.12-alpine
   backendReplicas: 2
   replicas: 2
   sessionAffinity: None
@@ -116,9 +125,9 @@ spec:
   audit: {enabled: true}
   oidcConfigRef:
     name: external-admin-oidc
-    audience: https://admin.re8ch.com:8443/mcp
+    audience: re8ch-platform-admin
     resourceUrl: https://admin.re8ch.com:8443/mcp
-    scopes: [openid, profile, email, "platform:admin"]
+    scopes: [openid, profile, email, groups, offline_access]
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 250m, memory: 256Mi}
@@ -126,15 +135,21 @@ spec:
     metadata:
       annotations: {re8ch.com/code-revision: scalable-vmcp-v3-admin-workflow}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/instance: ops-admin-external}}
+              topologyKey: kubernetes.io/hostname
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
           command: [python, /app/app.py]
           env:
-            - {name: AUTHENTIK_API_URL, value: "http://authentik-server.auth.svc.cluster.local/api/v3"}
-            - name: AUTHENTIK_API_TOKEN
-              valueFrom: {secretKeyRef: {name: toolhive-authentik-admin-api, key: token}}
             - name: HARBOR_USERNAME
               valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: username}}
             - name: HARBOR_PASSWORD
