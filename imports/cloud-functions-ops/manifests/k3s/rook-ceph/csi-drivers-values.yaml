@@ -71,6 +71,9 @@ drivers:
     controllerPlugin:
       # Provisioning must survive one scheduled control-plane restart.
       replicas: 2
+      # A1/B1 currently cannot reliably reach the Kubernetes Service VIP from
+      # PodCIDR. Keep the CSI control plane independent of that service path.
+      hostNetwork: true
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

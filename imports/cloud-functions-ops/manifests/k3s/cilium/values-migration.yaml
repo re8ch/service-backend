@@ -26,7 +26,10 @@ kubeProxyReplacement: "false"
 
 # Bootstrap Cilium against the stable ZeroTier API endpoint. A newly joined
 # node cannot reliably reach the kubernetes ClusterIP before its CNI exists.
-k8sServiceHost: 192.0.2.178
+# A1 is the current control-plane API anchor. This must move to the dedicated
+# A1/B1 HNSC API VIP once the two-node VIP is commissioned; never pin it back
+# to an application/storage node such as restricted-node-6dc3f140f9.
+k8sServiceHost: 192.0.2.176
 k8sServicePort: 6443
 
 routingMode: tunnel
@@ -48,9 +51,14 @@ cni:
 
 operator:
   # Keep the operator control plane on the two stable K3s/etcd WSL nodes.
-  # The live Deployment also overrides KUBERNETES_SERVICE_HOST to 127.0.0.1
-  # so each host-networked operator uses its node-local K3s API server.
-  replicas: 2
+  # Each host-networked operator uses its node-local K3s API server, so an
+  # restricted-node-6dc3f140f9 outage cannot stall Gateway API reconciliation.
+  replicas: 1
+  extraEnv:
+    - name: KUBERNETES_SERVICE_HOST
+      value: "127.0.0.1"
+    - name: KUBERNETES_SERVICE_PORT
+      value: "6443"
   image:
     repository: quay.io/cilium/operator
     tag: latest

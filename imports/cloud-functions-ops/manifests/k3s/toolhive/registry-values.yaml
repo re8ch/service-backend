@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 2
 
 image:
   registryServerUrl: ghcr.io/stacklok/thv-registry-api:v1.5.0
@@ -14,8 +14,19 @@ resources:
   requests: {cpu: 50m, memory: 128Mi}
   limits: {cpu: 500m, memory: 512Mi}
 
-nodeSelector:
-  kubernetes.io/hostname: restricted-node-6dc3f140f9
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels: {app.kubernetes.io/name: toolhive-registry-server}
+        topologyKey: kubernetes.io/hostname
 
 rbac:
   scope: namespace
@@ -27,18 +38,20 @@ config:
     - name: managed-workloads
       kubernetes:
         namespaces: [toolhive-system]
+    - name: re8ch-managed
+      managed: {}
   registries:
     - name: approved
-      sources: [managed-workloads]
+      sources: [managed-workloads, re8ch-managed]
   database:
     # Temporary Service IP: B1 currently cannot reach kube-dns (192.0.2.240).
     # Restore postgresql.mcp-registry.svc.cluster.local after the Cilium/CoreDNS
     # service-routing incident is resolved.
     host: 192.0.2.150
     port: 5432
-    user: toolhive_registry
+    user: mcpregistry
     migrationUser: mcpregistry
-    database: toolhive_registry
+    database: mcp-registry
     sslMode: disable
     maxOpenConns: 10
   auth:
@@ -62,7 +75,7 @@ extraEnv:
     valueFrom:
       secretKeyRef:
         name: toolhive-registry-database
-        key: password
+        key: migration-password
   - name: THV_REGISTRY_DATABASE_MIGRATIONPASSWORD
     valueFrom:
       secretKeyRef:

@@ -14,9 +14,6 @@ kubectl --server="$KUBE_SERVER" -n toolhive-system create configmap ops-mcp-serv
 kubectl --server="$KUBE_SERVER" -n ops get secret ops-mcp-harbor-auth -o json | \
   jq '.metadata = {name: "ops-mcp-harbor-auth", namespace: "toolhive-system"}' | \
   kubectl --server="$KUBE_SERVER" apply -f -
-kubectl --server="$KUBE_SERVER" -n auth get secret toolhive-authentik-admin-api -o json | \
-  jq '.metadata = {name: "toolhive-authentik-admin-api", namespace: "toolhive-system"}' | \
-  kubectl --server="$KUBE_SERVER" apply -f -
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/proxy-scheduling-policy.yaml"
 # Admission policies are observed asynchronously by kube-apiserver. Give the
 # binding a short establishment window before the operator writes Deployments.

@@ -14,15 +14,15 @@ only; it does not carry arbitrary terminal IP traffic.
   for high-performance transparent forwarding. Node-local proxy workers remain
   unprivileged where possible; host networking and host-route ownership are
   used only when a measured node-local design requires them.
-- Each eligible node gets one `mihomo-node` Pod. The `mihomo-node` Service uses
+- Every schedulable node gets one `mihomo-node` Pod. The `mihomo-node` Service uses
   `internalTrafficPolicy: Local`, so a workload using
   `http://mihomo-node.egress-fabric.svc:7890` reaches the node-local proxy.
 - Node geography is declared with `networking.re8ch.com/firewall=cn|none`.
   This is an observed reachability fact, not a security posture. Desired
   behavior is separate: `networking.re8ch.com/egress-policy=auto|direct|overseas`.
-- Mihomo placement requires `networking.re8ch.com/mihomo-node=enabled` only
-  after the pinned image is available. `mihomo-gateway` is a non-local
-  ClusterIP bootstrap path for explicit registry access before that point.
+- `networking.re8ch.com/mihomo-node=enabled` records the installed capability;
+  it no longer gates DaemonSet placement. `mihomo-gateway` remains the non-local
+  ClusterIP bootstrap path while a node is warming its pinned image.
 - While restricted-node-6dc3f140f9 host-to-Cilium ingress is under repair,
   `re8ch-mihomo-transit-relay.service` may expose that gateway only on
   `192.0.2.179:7890`. It must never bind a public, LAN, or Node InternalIP.
@@ -30,10 +30,9 @@ only; it does not carry arbitrary terminal IP traffic.
   environment file. `NO_PROXY` keeps all cluster, private, RE8CH, etcd and
   storage traffic direct. Enabling or disabling it requires a one-node-at-a-time
   K3S restart and control-plane readiness verification.
-- The initial eligible set is `restricted-node-6dc3f140f9` and `amdwsl-zt`. A1/B1 are held back
-  because their Docker Hub pulls time out. Expand the hostname allowlist only
-  after the pinned image is mirrored, signed and scanned in Harbor. Nuclio and
-  database nodes remain excluded.
+- The DaemonSet covers control-plane, worker, Nuclio and database nodes. Nodes
+  that cannot pull the pinned image are repaired through the bootstrap gateway
+  or digest-preserving peer cache transfer; they are not silently excluded.
 - The LA gateway runs on `overseas-edge-50` and exits with that node's ordinary
   network. Its ClusterIP path is carried by Cilium over whichever node underlay
   is currently reachable. Its mixed listener is unauthenticated but reachable

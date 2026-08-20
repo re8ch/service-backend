@@ -11,6 +11,14 @@ metadata:
   namespace: regional-routing
 data:
   NAMESERVERS: ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.
+  BIND_ADDRESSES_JSON: '{"restricted-node-1eb0570f74":"192.0.2.176","restricted-node-296f36f2fb":"192.0.2.4","domain-ex":"192.0.2.200","vm-20-12-ubuntu":"192.0.2.239","overseas-kl":"192.0.2.145","overseas-la":"192.0.2.111"}'
+  AUTHORITY_REGIONS_JSON: '{"restricted-node-1eb0570f74":"loudi","restricted-node-296f36f2fb":"loudi","domain-ex":"shanghai","vm-20-12-ubuntu":"guangzhou","overseas-kl":"kuala-lumpur","overseas-la":"los-angeles"}'
+  SERVICES_JSON: |-
+    {
+      "api.re8ch.com.": {"service":"api","paths":["auth","nuclio","ledger","image","compocv"]},
+      "db-ro.re8ch.com.": {"service":"db-ro","paths":["postgrest"]},
+      "db-rw.re8ch.com.": {"service":"db-rw","paths":["postgrest"]}
+    }
   CANDIDATES_JSON: |-
     [
       {
@@ -18,49 +26,65 @@ data:
         "region": "shanghai",
         "ip": "192.0.2.62",
         "localIp": "192.0.2.200",
-        "priority": 0,
-        "priorityByRegion": {"shanghai": 20, "guangzhou": 20, "los-angeles": 30},
-        "probes": {
-          "api": "https://api.re8ch.com/ledger/_region",
-          "db-ro": "https://db-ro.re8ch.com/auth/",
-          "db-rw": "https://db-rw.re8ch.com/auth/"
-        }
-      },
-      {
-        "id": "vm-20-12-ubuntu",
-        "region": "guangzhou",
-        "ip": "192.0.2.122",
-        "localIp": "192.0.2.239",
-        "priority": 5,
-        "priorityByRegion": {"shanghai": 25, "guangzhou": 20, "los-angeles": 30},
-        "probes": {
-          "api": "https://api.re8ch.com/ledger/_region",
-          "db-ro": "https://db-ro.re8ch.com/auth/",
-          "db-rw": "https://db-rw.re8ch.com/auth/"
-        }
-      },
-      {
-        "id": "overseas-edge-50",
-        "region": "los-angeles",
-        "ip": "192.0.2.189",
-        "localIp": "192.0.2.189",
+        "probeIp": "192.0.2.62",
+        "gatewayVip": "192.0.2.201",
         "priority": 10,
-        "priorityByRegion": {"shanghai": 40, "guangzhou": 40, "los-angeles": -30},
+        "priorityByRegion": {"shanghai": -30, "guangzhou": 10, "los-angeles": 30},
+        "paths": {"db-ro":["postgrest"],"db-rw":["postgrest"]},
         "probes": {
-          "api": "https://api.re8ch.com/ledger/_region",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"
         }
+      },
+      {
+        "id": "zan",
+        "region": "guangzhou",
+        "ip": "192.0.2.192",
+        "localIp": "192.0.2.138",
+        "probeIp": "192.0.2.192",
+        "gatewayVip": "192.0.2.143",
+        "priority": 10,
+        "priorityByRegion": {"shanghai": 10, "guangzhou": -30, "los-angeles": 30},
+        "paths": {"db-ro":["postgrest"],"db-rw":["postgrest"]},
+        "probes": {
+          "db-ro": "https://db-ro.re8ch.com/auth/",
+          "db-rw": "https://db-rw.re8ch.com/auth/"
+        }
+      },
+      {
+        "id": "muaya-ecs",
+        "region": "hangzhou",
+        "ip": "192.0.2.185",
+        "localIp": "192.0.2.74",
+        "probeIp": "192.0.2.185",
+        "gatewayVip": "192.0.2.116",
+        "priority": 20,
+        "priorityByRegion": {"shanghai": 5, "guangzhou": 10, "los-angeles": 40},
+        "paths": {"api":["nuclio"]},
+        "probes": {
+          "api": "https://api.re8ch.com/__edge/ready"
+        }
+      },
+      {
+        "id": "muaya-lightweight", "region": "shanghai", "ip": "192.0.2.197",
+        "localIp": "192.0.2.112", "gatewayVip": "192.0.2.150", "priority": 20,
+        "probeIp": "192.0.2.197",
+        "priorityByRegion": {"shanghai": -20, "guangzhou": 10, "los-angeles": 40},
+        "paths": {"api":["nuclio"]},
+        "probes": {"api":"https://api.re8ch.com/__edge/ready"}
       },
       {
         "id": "restricted-node-6dc3f140f9",
-        "region": "china-central",
+        "region": "loudi",
         "ip": "192.0.2.138",
         "localIp": "192.0.2.169",
+        "probeIp": "192.0.2.138",
+        "gatewayVip": "192.0.2.148",
         "priority": -30,
-        "priorityByRegion": {"shanghai": -40, "guangzhou": -40, "los-angeles": 25},
+        "priorityByRegion": {"shanghai": -10, "guangzhou": -10, "los-angeles": 25},
+        "paths": {"api":["auth","nuclio","ledger","image","compocv"],"db-ro":["postgrest"],"db-rw":["postgrest"]},
         "probes": {
-          "api": "https://api.re8ch.com/ledger/_region",
+          "api": "https://api.re8ch.com/__edge/ready",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"
         }
@@ -93,7 +117,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [domain-ex, vm-20-12-ubuntu, overseas-edge-50]
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, domain-ex, vm-20-12-ubuntu, overseas-kl, overseas-la]
       tolerations: [{operator: Exists}]
       containers:
         - name: authority

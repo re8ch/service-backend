@@ -66,7 +66,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: cloud-platform-tool, namespace: ai-operations}
 spec:
-  replicas: 1
+  replicas: 2
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   selector: {matchLabels: {app: cloud-platform-tool}}
   template:
@@ -77,7 +77,16 @@ spec:
       imagePullSecrets: [{name: ghcr-re8ch}]
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: cloud-platform-tool}}
+              topologyKey: kubernetes.io/hostname
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
@@ -90,7 +99,7 @@ spec:
             - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/cloud/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/mcp"}
-            - {name: INFRA_EXEC_NODE, value: restricted-node-6dc3f140f9}
+            - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
             - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
             - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-server.opensandbox-system.svc.cluster.local:8080"}
@@ -130,7 +139,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: cluster-infra-tool, namespace: ai-operations}
 spec:
-  replicas: 1
+  replicas: 2
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   selector: {matchLabels: {app: cluster-infra-tool}}
   template:
@@ -141,7 +150,16 @@ spec:
       imagePullSecrets: [{name: ghcr-re8ch}]
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: cluster-infra-tool}}
+              topologyKey: kubernetes.io/hostname
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
@@ -154,7 +172,7 @@ spec:
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/infra/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/infra/mcp"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
-            - {name: INFRA_EXEC_NODE, value: restricted-node-6dc3f140f9}
+            - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
           ports: [{name: http, containerPort: 19443}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5, failureThreshold: 6}
           livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15, failureThreshold: 6}
@@ -248,7 +266,13 @@ metadata:
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: tools-https}
   hostnames: [tools.re8ch.com]
   rules:
     - matches: [{path: {type: Exact, value: /mcp}}]
@@ -266,7 +290,13 @@ metadata:
   name: cluster-infra-tool
   namespace: ai-operations
 spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: tools-https}
   hostnames: [tools.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /infra}}]

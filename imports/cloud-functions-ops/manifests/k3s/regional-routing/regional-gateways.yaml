@@ -1,0 +1,237 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata: {name: re8ch-region-loudi, namespace: kube-system}
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
+    annotations: {lbipam.cilium.io/ips: 192.0.2.148}
+  listeners:
+    - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: api-https
+      hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls: {mode: Passthrough}
+      allowedRoutes: {namespaces: {from: All}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata: {name: re8ch-region-guangzhou, namespace: kube-system}
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
+    annotations: {lbipam.cilium.io/ips: 192.0.2.143}
+  listeners:
+    - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: api-https
+      hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls: {mode: Passthrough}
+      allowedRoutes: {namespaces: {from: All}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata: {name: re8ch-region-shanghai, namespace: kube-system}
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
+    annotations: {lbipam.cilium.io/ips: 192.0.2.201}
+  listeners:
+    - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: api-https
+      hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls: {mode: Passthrough}
+      allowedRoutes: {namespaces: {from: All}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata: {name: re8ch-region-hangzhou-nuclio, namespace: kube-system}
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
+    annotations: {lbipam.cilium.io/ips: 192.0.2.116}
+  listeners:
+    - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: api-https
+      hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls: {mode: Passthrough}
+      allowedRoutes: {namespaces: {from: All}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata: {name: re8ch-region-shanghai-nuclio, namespace: kube-system}
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
+    annotations: {lbipam.cilium.io/ips: 192.0.2.150}
+  listeners:
+    - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: api-https
+      hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls: {mode: Passthrough}
+      allowedRoutes: {namespaces: {from: All}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: auth-regional, namespace: auth}
+spec:
+  parentRefs:
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: api-https}
+  hostnames: [api.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /auth}}]
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: regional-discovery-regional, namespace: regional-routing}
+spec:
+  parentRefs:
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: api-https}
+  hostnames: [api.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /.well-known/re8ch-routing/v1}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/discovery}}
+      backendRefs: [{name: regional-routing-authority, port: 8080}]

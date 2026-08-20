@@ -31,7 +31,7 @@ metadata:
   annotations:
     # DNS names belong to the public 443 edge, while the Gateway and backend
     # Pods may live anywhere in the Cilium routing domain.
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
 spec:
   gatewayClassName: cilium-re8ch
   infrastructure:
@@ -44,6 +44,54 @@ spec:
     - name: http
       protocol: HTTP
       port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
       allowedRoutes:
         namespaces:
           from: All
@@ -60,12 +108,8 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: headlamp-public
+  name: headlamp-edge-origin
   namespace: headlamp
-  labels: {public.re8ch.com/external-dns: enabled}
-  annotations:
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   parentRefs:
     - name: re8ch-gateway-canary
@@ -73,9 +117,69 @@ spec:
       sectionName: http
   hostnames: [headlamp.re8ch.com]
   rules:
-    - backendRefs:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
         - name: headlamp
           port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: headlamp-public
+  namespace: headlamp
+  annotations:
+    # Gateway status contains private service VIPs for every regional parent.
+    # Publish only the routable public edge; the VIPs remain internal origins.
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: headlamp-https
+  hostnames: [headlamp.re8ch.com]
+  rules:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
+        - name: headlamp
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-edge-origin
+  namespace: qianwen-ops
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [grafana.re8ch.com]
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
+        - name: panel-grafana
+          port: 3000
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -90,7 +194,7 @@ spec:
   parentRefs:
     - name: re8ch-gateway-canary
       namespace: kube-system
-      sectionName: http
+      sectionName: grafana-https
   hostnames: [grafana.re8ch.com]
   rules:
     - matches:
@@ -108,6 +212,12 @@ spec:
         - path:
             type: PathPrefix
             value: /grafana
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
       backendRefs:
         - name: panel-grafana
           port: 3000

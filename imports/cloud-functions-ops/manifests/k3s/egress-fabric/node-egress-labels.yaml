@@ -2,28 +2,77 @@ apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-6dc3f140f9
-  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled}
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-1eb0570f74
-  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto}
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-296f36f2fb
-  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto}
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
   name: amdwsl-zt
-  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled}
+  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hubei, topology.kubernetes.io/zone: hubei}
 ---
 apiVersion: v1
 kind: Node
 metadata:
   name: overseas-edge-50
-  labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct}
+  labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-exit: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: us-ca, topology.kubernetes.io/zone: us-ca}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-kl
+  labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-exit: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: my-kul, topology.kubernetes.io/zone: malaysia}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: domain-ex, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: muaya-ecs, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-zhejiang, topology.kubernetes.io/zone: zhejiang}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: muaya-lightweight, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: qwen-1, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: qwen-2, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: qwen-3, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: suxunji, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: vm-20-12-ubuntu, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: zan, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-guangdong, topology.kubernetes.io/zone: guangdong}}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-la
+  # Exit eligibility is intentionally absent while the node is NotReady.
+  labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: us-ca, topology.kubernetes.io/zone: us-ca}

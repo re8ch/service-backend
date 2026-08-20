@@ -5,13 +5,13 @@ metadata:
   namespace: egress-fabric
 data:
   config.yaml: |
-    mixed-port: 7890
+    mixed-port: 17891
     allow-lan: true
     bind-address: "0.0.0.0"
     mode: rule
     log-level: warning
     ipv6: false
-    external-controller: 0.0.0.0:9090
+    external-controller: 0.0.0.0:19090
     external-controller-cors:
       allow-private-network: false
     secret: ""
@@ -21,7 +21,10 @@ data:
     proxies:
       - name: LA-FABRIC
         type: socks5
-        server: mihomo-egress-la.egress-fabric.svc.cluster.local
+        # Headless resolution returns the private node addresses of Ready
+        # host-network exit agents. This works for node-local proxies without
+        # depending on host-to-ClusterIP forwarding.
+        server: mihomo-egress-headless.egress-fabric.svc.cluster.local
         port: 1080
         udp: true
     proxy-providers:
@@ -47,27 +50,54 @@ data:
         interval: 30
         timeout: 5000
         lazy: false
+    rule-providers:
+      cn-ip:
+        type: file
+        behavior: classical
+        path: /etc/mihomo/rules/cn-ip-rules.yaml
     rules:
       - IP-CIDR,192.0.2.183/8,DIRECT,no-resolve
       - IP-CIDR,192.0.2.81/10,DIRECT,no-resolve
       - IP-CIDR,192.0.2.33/12,DIRECT,no-resolve
       - IP-CIDR,192.0.2.136/16,DIRECT,no-resolve
-      - DOMAIN-SUFFIX,google.com,stable-egress
-      - DOMAIN-SUFFIX,youtube.com,stable-egress
-      - DOMAIN-SUFFIX,openai.com,stable-egress
-      - DOMAIN-SUFFIX,github.com,stable-egress
-      - DOMAIN-SUFFIX,githubusercontent.com,stable-egress
-      - DOMAIN-SUFFIX,ghcr.io,stable-egress
-      - DOMAIN-SUFFIX,quay.io,stable-egress
-      - DOMAIN-SUFFIX,registry.k8s.io,stable-egress
-      - DOMAIN-SUFFIX,pkg.dev,stable-egress
-      - DOMAIN-SUFFIX,docker.io,stable-egress
-      - DOMAIN-SUFFIX,docker.com,stable-egress
-      - DOMAIN-SUFFIX,amazonaws.com,stable-egress
-      - DOMAIN-SUFFIX,telegram.org,stable-egress
-      - DOMAIN-SUFFIX,twitter.com,stable-egress
-      - DOMAIN-SUFFIX,x.com,stable-egress
-      - DOMAIN-SUFFIX,netflix.com,stable-egress
+      # Probe/control destinations must reveal the physical direct path.
+      - DOMAIN,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,cn,DIRECT
+      - RULE-SET,cn-ip,DIRECT
+      - MATCH,stable-egress
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mihomo-node-global-config
+  namespace: egress-fabric
+data:
+  config.yaml: |
+    mixed-port: 17891
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:19090
+    unified-delay: true
+    tcp-concurrent: true
+    proxies:
+      - {name: CN-FABRIC, type: socks5, server: mihomo-egress-cn-headless.egress-fabric.svc.cluster.local, port: 1080, udp: true}
+    proxy-groups:
+      - {name: stable-cn-egress, type: fallback, proxies: [CN-FABRIC], url: "https://connectivitycheck.gstatic.com/generate_204", interval: 30, timeout: 5000, lazy: false}
+    rule-providers:
+      cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
+    rules:
+      - IP-CIDR,192.0.2.183/8,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.81/10,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.33/12,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.136/16,DIRECT,no-resolve
+      - DOMAIN,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,cn,stable-cn-egress
+      - RULE-SET,cn-ip,stable-cn-egress
       - MATCH,DIRECT
 ---
 apiVersion: v1

@@ -1,0 +1,36 @@
+{{- if .Values.telemetry.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: mihomos-status-agent, namespace: {{ .Release.Namespace }}}
+data:
+  collector.py: |
+{{ .Files.Get "files/collector.py" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomos-status-agent, namespace: {{ .Release.Namespace }}}
+spec:
+  selector: {matchLabels: {app.kubernetes.io/name: mihomos-status-agent}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: mihomos-status-agent}}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: mihomos-status
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: collector
+          image: {{ .Values.telemetry.image | quote }}
+          command: [python, /opt/mihomos/collector.py]
+          env:
+            - {name: NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}
+            - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
+            - {name: INTERVAL_SECONDS, value: {{ .Values.telemetry.intervalSeconds | quote }}}
+            - {name: IP_LOOKUP_URL, value: {{ .Values.telemetry.ipLookupUrl | quote }}}
+            - {name: LOCAL_PROXY, value: "http://127.0.0.1:{{ .Values.nodeProxy.port }}"}
+            - {name: LOCAL_CONTROLLER, value: "http://127.0.0.1:{{ .Values.nodeProxy.controllerPort }}/version"}
+            - {name: PROBES_JSON, value: {{ dict "cn" .Values.telemetry.probes.cn "global" .Values.telemetry.probes.global | toJson | quote }}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: code, mountPath: /opt/mihomos, readOnly: true}]
+      volumes: [{name: code, configMap: {name: mihomos-status-agent}}]
+{{- end }}
