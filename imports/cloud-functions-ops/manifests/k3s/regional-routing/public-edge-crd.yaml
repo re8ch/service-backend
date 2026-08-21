@@ -141,8 +141,10 @@ spec:
   region: loudi
   area: CN
   nodeName: restricted-node-6dc3f140f9
-  # RouterOS learns the canonical Gateway VIP from restricted-node-6dc3f140f9 FRR over eBGP.
-  enabled: true
+  # Quarantined from publication: TCP/443 is reachable from the internal
+  # fabric but times out from an independent public client. Re-enable only
+  # after RouterOS forwarding passes an off-fabric Host/SNI probe.
+  enabled: false
   draining: false
   endpoint: {type: PublicIP, value: 192.0.2.138, probeAddress: 192.0.2.138}
   gatewayVIP: 192.0.2.213
