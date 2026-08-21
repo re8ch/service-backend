@@ -267,7 +267,7 @@ spec:
     authority: RouterOS
     deliveryMode: EBGPTransitAndDNAT
     lanBackend: 192.0.2.169
-    requiredForwardPorts: [80, 443, 28443]
+    requiredForwardPorts: [80, 443]
   bgp:
     routerASN: 4200064001
     peerASN: 4200000128

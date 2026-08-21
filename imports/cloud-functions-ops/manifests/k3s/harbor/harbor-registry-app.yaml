@@ -654,6 +654,9 @@ spec:
               containerPort: 8080
             - name: https
               containerPort: 8443
+              # Temporary cluster-only compatibility for nodes whose containerd
+              # mirror still targets :28443. RouterOS no longer publishes this
+              # port; remove it after the rolling node mirror migration to 443.
               hostPort: 28443
           readinessProbe:
             tcpSocket:
