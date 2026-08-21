@@ -49,5 +49,5 @@ metadata:
     networking.re8ch.com/routeros-management-ip: 192.0.2.131
     networking.re8ch.com/lan-backend-ip: 192.0.2.97
     networking.re8ch.com/public-delivery-mode: EBGPTransitAndDNAT
-    networking.re8ch.com/required-forward-ports: "80,443,28443"
+    networking.re8ch.com/required-forward-ports: "80,443"
     networking.re8ch.com/credentials-secret-ref: ops/mikrotik-routeros-admin

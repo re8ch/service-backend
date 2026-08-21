@@ -118,7 +118,7 @@ spec:
     - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
     - {name: OPS_TOOL_PROFILE, value: admin}
     - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
-    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com:28443"}
+    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com"}
     - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
   toolConfigRef: {name: ops-admin-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-platform-admin-external}

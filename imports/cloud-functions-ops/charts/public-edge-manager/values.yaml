@@ -36,9 +36,6 @@ publicEdges:
     area: CN
     region: loudi
     nodeName: restricted-node-6dc3f140f9
-    # Keep unavailable candidates declarative; capacity must never override
-    # failed off-fabric reachability.
-    enabled: false
     endpoint: {type: PublicIP, value: 192.0.2.79}
     gatewayVIP: 192.0.2.209
     capacityMbps: 1000
