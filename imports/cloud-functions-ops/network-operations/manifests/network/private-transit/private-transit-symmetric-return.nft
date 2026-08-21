@@ -1,0 +1,15 @@
+table inet re8ch_private_transit {
+  chain prerouting {
+    type filter hook prerouting priority mangle + 100; policy accept;
+    iifname "wg-pt-a1" ip saddr 192.0.2.106/24 ct mark set 0x1
+    iifname "wg-pt-b1" ip saddr 192.0.2.106/24 ct mark set 0x2
+    ct mark 0x1 meta mark set 0x1
+    ct mark 0x2 meta mark set 0x2
+  }
+
+  chain output {
+    type route hook output priority mangle + 100; policy accept;
+    ct mark 0x1 meta mark set 0x1
+    ct mark 0x2 meta mark set 0x2
+  }
+}

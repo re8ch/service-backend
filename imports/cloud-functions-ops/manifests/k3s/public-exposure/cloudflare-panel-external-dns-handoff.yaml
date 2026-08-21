@@ -4,7 +4,8 @@ metadata:
   name: cloudflare-panel-dns-controller-config
   namespace: qianwen-ops
 data:
-  APPLY: "1"
+  # Historical handoff input only; the legacy controller must remain inert.
+  APPLY: "0"
   CF_ZONE_NAME: re8ch.com
   CF_TTL: "60"
   CF_PROXIED: "false"

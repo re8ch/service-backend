@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["fabric", "pool", "advertisement", "nodes", "mihomoGateway"],
+  "required": ["fabric", "pool", "advertisement", "nodes", "mihomoGateway", "advancedFabric"],
   "properties": {
     "fabric": {
       "type": "object",
@@ -9,6 +9,22 @@
       "properties": {"enabled": {"type": "boolean"}}
     },
     "stage": {"type": "integer", "minimum": 0},
+    "advancedFabric": {
+      "type": "object",
+      "required": ["enabled", "mode", "applyEnabled", "observeDays", "emergencyDisable", "nativeRoutingCIDR", "acceleratedCIDR", "serviceCIDR", "nodes"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "mode": {"enum": ["observe-only", "guarded-apply"]},
+        "applyEnabled": {"type": "boolean"},
+        "observeDays": {"type": "integer", "minimum": 0},
+        "emergencyDisable": {"type": "boolean"},
+        "timezone": {"type": "string", "const": "Asia/Shanghai"},
+        "nativeRoutingCIDR": {"type": "string", "const": "192.0.2.224/16"},
+        "acceleratedCIDR": {"type": "string", "const": "192.0.2.106/24"},
+        "serviceCIDR": {"type": "string", "const": "192.0.2.215/24"},
+        "nodes": {"type": "array", "minItems": 8, "items": {"type": "object"}}
+      }
+    },
     "pool": {
       "type": "object",
       "required": ["cidr", "enabled"],

@@ -1,0 +1,40 @@
+# Explicitly approved three-voter Cilium Operator placement for Advanced Fabric.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cilium-operator
+  namespace: kube-system
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    # hostNetwork operator replicas reserve the same health ports. Keep one
+    # surge slot for A1, then retire the legacy B1 replica before replacing it.
+    rollingUpdate: {maxUnavailable: 1, maxSurge: 1}
+  template:
+    spec:
+      nodeSelector: {kubernetes.io/os: linux}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {io.cilium/app: operator, name: cilium-operator}
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cilium-operator
+  namespace: kube-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels: {io.cilium/app: operator, name: cilium-operator}

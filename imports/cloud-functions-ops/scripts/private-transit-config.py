@@ -89,6 +89,9 @@ def allowed_for_spoke(inv, node, fabric, gw):
         values += [f'{n["ztIp"]}/32' for n in inv["publicNodes"]]
         values.append(f'{gw["ztIp"]}/32')
     else:
+        # Public spokes must retain a control-plane path when the shared
+        # ZeroTier identity network or restricted-node-6dc3f140f9 is unavailable.
+        values.append(f'{gw["ztIp"]}/32')
         values += [f'{accelerated(inv, n)}/32' for n in nodes(inv)]
     return values
 
@@ -109,9 +112,17 @@ def render_wg(inv, node, fabric, keys):
     for peer in peers_for(inv, node, fabric):
         lines.append(f'PostUp = ip route replace {transport(inv, fabric, peer)}/32 dev %i scope link')
         lines.append(f'PostDown = ip route del {transport(inv, fabric, peer)}/32 dev %i || true')
+        if node == gw and peer.get("podCIDR"):
+            lines.append(f'PostUp = ip route replace {peer["ztIp"]}/32 dev %i src {node["ztIp"]} metric 5')
+            lines.append(f'PostDown = ip route del {peer["ztIp"]}/32 dev %i || true')
+        if node in inv["publicNodes"] and peer == gw:
+            lines.append(f'PostUp = ip route replace {gw["ztIp"]}/32 dev %i src {node["ztIp"]} metric 5')
+            lines.append(f'PostDown = ip route del {gw["ztIp"]}/32 dev %i || true')
     for peer in peers_for(inv, node, fabric):
         if node["name"] == gw["name"]:
             allowed = [f'{transport(inv, fabric, peer)}/32', f'{accelerated(inv, peer)}/32']
+            if peer.get("podCIDR"):
+                allowed += [f'{peer["ztIp"]}/32', peer["podCIDR"]]
         else:
             allowed = allowed_for_spoke(inv, node, fabric, gw)
         lines += ["", "[Peer]", f'# {peer["name"]}', f'PublicKey = {key_for(keys, peer, fabric)}', f'AllowedIPs = {", ".join(allowed)}']
@@ -219,7 +230,7 @@ def main():
     inv = load(args.inventory)
     validate(inv)
     if args.command == "validate":
-        print(f'private transit inventory valid: dedicated accelerated /24, two fabrics, two gateways, {len(inv["workers"])} workers, eight public nodes')
+        print(f'private transit inventory valid: dedicated accelerated /24, two fabrics, two gateways, {len(inv["workers"])} workers, {len(inv["publicNodes"])} public nodes')
         return
     node = by_name(inv, args.node)
     if args.command == "identity-unit":

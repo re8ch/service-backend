@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: domain-ex
+  labels: {networking.re8ch.com/public-edge: shanghai-domain-ex}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: zan
+  labels: {networking.re8ch.com/public-edge: guangzhou-zan}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-6dc3f140f9
+  labels: {networking.re8ch.com/public-edge: loudi-r640}

@@ -21,6 +21,26 @@ spec:
   egress:
     - {}
 ---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: netbird-control-plane-from-gateway
+  namespace: netbird-access
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [netbird-server, netbird-dashboard]
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - {port: "80", protocol: TCP}
+            - {port: "9000", protocol: TCP}
+            - {port: "9090", protocol: TCP}
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

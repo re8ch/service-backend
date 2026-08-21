@@ -6,6 +6,10 @@ spec:
     type: RollingUpdate
     rollingUpdate: {maxUnavailable: 1, maxSurge: 1}
   template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headlamp
+        traffic.re8ch.com/headlamp-active: "true"
     spec:
       nodeSelector: null
       affinity:
@@ -15,24 +19,21 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    # B1 intermittently lost the Kubernetes Service VIP during
-                    # its WSL recovery, causing 30s Headlamp proxy stalls and
-                    # retry-driven 429/watch failures. Keep the two replicas on
-                    # independent, currently healthy API paths.
-                    values: [restricted-node-296f36f2fb, suxunji]
+                    # Keep the management UI on the two surviving control-plane
+                    # nodes so it stays available while restricted-node-6dc3f140f9 or a worker is down.
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
               labelSelector:
                 matchLabels: {app.kubernetes.io/name: headlamp}
-      # Keep the cluster-management UI independent from the Ceph cluster it
-      # manages. The previous shared plugin PVC blocked every replacement pod
-      # when CephFS CSI attach stalled and the Rook plugin also burst-listed
-      # CRDs on login, producing client-visible 429 responses.
+      # Only plugin artifacts are shared. Runtime, cache and identity state
+      # remain inside the stateless Headlamp containers.
       volumes:
         - name: plugins
-          persistentVolumeClaim: null
-          emptyDir: {}
+          emptyDir: null
+          persistentVolumeClaim:
+            claimName: headlamp-plugins
       # Use the node underlay for the Kubernetes API proxy. This avoids B1's
       # intermittent Pod-network path to the API Service VIP while preserving
       # two independent replicas and routable Service endpoints.

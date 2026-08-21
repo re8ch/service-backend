@@ -2,3 +2,4 @@
 # This changes only the DNS server injected into newly created restricted-node-6dc3f140f9 Pods.
 kubelet-arg:
   - cluster-dns=192.0.2.207
+  - max-pods=1024

@@ -1,7 +1,7 @@
 [Unit]
 Description=Expose the restricted-node-6dc3f140f9 local NAS copy before mounting CephFS primary
 RequiresMountsFor=/srv/nas
-Before=srv-nas-shared.mount
+Before=srv-nas-shared.automount srv-nas-shared.mount
 
 [Service]
 Type=oneshot

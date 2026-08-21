@@ -8,4 +8,5 @@ cilium-frr-handoff.yaml
 canary-service.yaml
 host-network-audit-pods.yaml
 validate.py
-README.md
+files/__pycache__/
+files/*.pyc

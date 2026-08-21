@@ -1,0 +1,103 @@
+diff --git a/src/hooks/use-add-mcp-to-client.ts b/src/hooks/use-add-mcp-to-client.ts
+index 1330942..cf45cd6 100644
+--- a/src/hooks/use-add-mcp-to-client.ts
++++ b/src/hooks/use-add-mcp-to-client.ts
+@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
+ import { toast } from "sonner";
+ import {
+   buildClaudeCodeCommand,
++  buildCodexInstallUrl,
+   buildCursorDeeplink,
+   buildVSCodeDeeplink,
+   CLIENT_METADATA,
+@@ -61,6 +62,10 @@ export function useAddMcpToClient({
+         command: buildClaudeCodeCommand(serverName, config),
+         metadata: CLIENT_METADATA[MCP_CLIENTS.claudeCode],
+       },
++      [MCP_CLIENTS.codex]: {
++        deeplink: buildCodexInstallUrl(serverName),
++        metadata: CLIENT_METADATA[MCP_CLIENTS.codex],
++      },
+     }),
+     [serverName, config],
+   );
+diff --git a/src/lib/mcp/client-configs.ts b/src/lib/mcp/client-configs.ts
+index fe34f1a..1bd088c 100644
+--- a/src/lib/mcp/client-configs.ts
++++ b/src/lib/mcp/client-configs.ts
+@@ -8,6 +8,7 @@ export const MCP_CLIENTS = {
+   cursor: "cursor",
+   vscode: "vscode",
+   claudeCode: "claude-code",
++  codex: "codex",
+ } as const;
+ 
+ export type McpClientType = (typeof MCP_CLIENTS)[keyof typeof MCP_CLIENTS];
+@@ -88,6 +89,22 @@ export function buildVSCodeDeeplink(
+   return `vscode:mcp/install?${encodeURIComponent(configJson)}`;
+ }
+ 
++/** Start RE8CH Dex authorization before opening a signed Codex plugin. */
++export function buildCodexInstallUrl(serverName: string): string {
++  const aliases: Record<string, string> = {
++    "cloud-platform-tool": "re8ch-cloud-platform-tool",
++    "re8ch-cloud-platform-tool": "re8ch-cloud-platform-tool",
++    "cluster-infra-tool": "re8ch-cluster-infra-tool",
++    "re8ch-cluster-infra-tool": "re8ch-cluster-infra-tool",
++    "agent-orchestra-collab": "re8ch-agent-orchestra-collab",
++    "re8ch-agent-orchestra-collab": "re8ch-agent-orchestra-collab",
++  };
++  const suffix = (serverName.split("/").pop() ?? serverName).toLowerCase();
++  const plugin = aliases[suffix] ?? suffix;
++  const query = new URLSearchParams({ plugin, channel: "codex" });
++  return `https://marketplace.re8ch.com/install/authorize?${query.toString()}`;
++}
++
+ /** Generate Claude Code CLI command for MCP installation */
+ export function buildClaudeCodeCommand(
+   serverName: string,
+@@ -132,6 +149,11 @@ export const CLIENT_METADATA: Record<
+     hasDeeplink: false,
+     menuLabel: "Claude Code (copy CLI command)",
+   },
++  [MCP_CLIENTS.codex]: {
++    name: "Codex",
++    hasDeeplink: true,
++    menuLabel: "Codex (Dex authorization)",
++  },
+ };
+ 
+ /** List of MCP clients for dropdown menus */
+diff --git a/src/lib/api-client.ts b/src/lib/api-client.ts
+index bf9bc8e..49b8a20 100644
+--- a/src/lib/api-client.ts
++++ b/src/lib/api-client.ts
+@@ -27,6 +27,7 @@ const MOCK_SCENARIO_HEADER = "X-Mock-Scenario";
+ 
+ // Validate required environment variables at module load time (fail-fast)
+ const API_BASE_URL = process.env.API_BASE_URL;
++const PUBLIC_CATALOG = process.env.PUBLIC_CATALOG === "true";
+ 
+ /**
+  * Gets an authenticated API client with OIDC access token.
+@@ -51,7 +52,7 @@ const API_BASE_URL = process.env.API_BASE_URL;
+  */
+ export async function getAuthenticatedClient(accessToken?: string) {
+   // If no token provided, get it from the session
+-  if (accessToken === undefined) {
++  if (accessToken === undefined && !PUBLIC_CATALOG) {
+     const requestHeaders = await nextHeaders();
+ 
+     const session = await auth.api.getSession({
+@@ -114,9 +115,8 @@ export async function getAuthenticatedClient(accessToken?: string) {
+     accessToken = tokenData.accessToken;
+   }
+ 
+-  const requestHeaders: Record<string, string> = {
+-    Authorization: `Bearer ${accessToken}`,
+-  };
++  const requestHeaders: Record<string, string> = {};
++  if (accessToken) requestHeaders.Authorization = `Bearer ${accessToken}`;
+ 
+   // Mock scenario header is only used in development for testing different backend states
+   if (process.env.NODE_ENV === "development") {
