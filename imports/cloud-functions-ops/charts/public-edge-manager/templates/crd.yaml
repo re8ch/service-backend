@@ -1,0 +1,57 @@
+{{- if .Values.crd.install }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: publicedges.networking.re8ch.com
+spec:
+  group: networking.re8ch.com
+  scope: Cluster
+  names: {plural: publicedges, singular: publicedge, kind: PublicEdge, shortNames: [pedge]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      additionalPrinterColumns:
+        - {name: Area, type: string, jsonPath: .spec.area}
+        - {name: Region, type: string, jsonPath: .spec.region}
+        - {name: Capacity, type: integer, jsonPath: .spec.capacityMbps}
+        - {name: Published, type: string, jsonPath: .spec.endpoint.value}
+        - {name: Ready, type: string, jsonPath: '.status.conditions[?(@.type=="Ready")].status'}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [area, region, endpoint, gatewayVIP, enabled, draining, capacityMbps, protocols]
+              properties:
+                area: {type: string, minLength: 1}
+                region: {type: string, minLength: 1}
+                nodeName: {type: string}
+                enabled: {type: boolean}
+                draining: {type: boolean}
+                gatewayVIP: {type: string, format: ipv4}
+                capacityMbps: {type: integer, minimum: 1}
+                priority: {type: integer, minimum: -1000, maximum: 1000}
+                endpoint:
+                  type: object
+                  required: [type, value]
+                  properties:
+                    type: {type: string, enum: [PublicIP, AnycastIP, HostnameTunnel]}
+                    value: {type: string, minLength: 1}
+                    probeAddress: {type: string}
+                protocols:
+                  type: array
+                  items: {type: string, enum: [dns-udp, dns-tcp, http, https, tls-passthrough, grpc, tcp, udp]}
+                ports: {type: array, items: {type: integer, minimum: 1, maximum: 65535}}
+                serviceClasses: {type: array, items: {type: string}}
+                priorityByRegion: {type: object, additionalProperties: {type: integer}}
+                forwarding:
+                  type: object
+                  properties:
+                    mode: {type: string, enum: [DirectGateway, RegionalRelay]}
+                    originArea: {type: string}
+                    originGatewayVIP: {type: string, format: ipv4}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+{{- end }}

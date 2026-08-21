@@ -25,11 +25,15 @@ SERVICE_DEFINITIONS = json.loads(os.getenv("SERVICES_JSON", '''{
 }'''))
 SERVICES = {name: definition["service"] for name, definition in SERVICE_DEFINITIONS.items()}
 AUTHORITY_REGIONS = json.loads(os.getenv("AUTHORITY_REGIONS_JSON", "{}"))
+AUTHORITY_AREAS = json.loads(os.getenv("AUTHORITY_AREAS_JSON", "{}"))
 REGION = AUTHORITY_REGIONS.get(NODE, next((item["region"] for item in CANDIDATES if item["id"] == NODE), "unknown"))
+AREA = AUTHORITY_AREAS.get(NODE, next((item.get("area", item["region"]) for item in CANDIDATES if item["id"] == NODE), REGION))
 LOCK = threading.Lock()
 HEALTH = {service: {} for service in SERVICES.values()}
 KUBERNETES_API = os.getenv("KUBERNETES_SERVICE_HOST", "")
 SERVICE_ACCOUNT = "/var/run/secrets/kubernetes.io/serviceaccount"
+PUBLISHER_NODE = os.getenv("PUBLISHER_NODE", "")
+PUBLICATION_REFS = json.loads(os.getenv("PUBLICATION_REFS_JSON", "{}"))
 
 
 def kubernetes_get(path):
@@ -48,6 +52,19 @@ def kubernetes_get(path):
     except Exception as exc:
         print(f"kubernetes_get path={path} error={exc}", flush=True)
         return None
+
+
+def kubernetes_patch(path, payload):
+    with open(f"{SERVICE_ACCOUNT}/token", encoding="utf-8") as stream:
+        token = stream.read().strip()
+    context = ssl.create_default_context(cafile=f"{SERVICE_ACCOUNT}/ca.crt")
+    request = urllib.request.Request(
+        f"https://{KUBERNETES_API}:{os.getenv('KUBERNETES_SERVICE_PORT_HTTPS', '443')}{path}",
+        data=json.dumps(payload).encode(), method="PATCH",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/merge-patch+json"},
+    )
+    with urllib.request.urlopen(request, context=context, timeout=5) as response:
+        return json.load(response)
 
 
 def candidates_from_public_edges():
@@ -72,12 +89,15 @@ def candidates_from_public_edges():
             "id": item["metadata"]["name"],
             "nodeName": spec.get("nodeName", ""),
             "region": spec["region"],
+            "area": spec.get("area", spec["region"]),
             "ip": endpoint["value"],
             "probeIp": endpoint.get("probeAddress", endpoint["value"]),
             "endpointType": endpoint["type"],
             "gatewayVip": spec["gatewayVIP"],
             "priority": spec.get("priority", 0),
+            "capacityMbps": spec.get("capacityMbps", 1),
             "priorityByRegion": spec.get("priorityByRegion", {}),
+            "forwarding": spec.get("forwarding", {"mode": "DirectGateway"}),
             "probes": probes,
         })
     return candidates
@@ -166,7 +186,35 @@ def probe_all():
 def probe_loop():
     while True:
         probe_all()
+        publish_default_area()
         time.sleep(10)
+
+
+def publish_default_area():
+    """Update the one ExternalDNS authority object for non-delegated names.
+
+    Regional NS answers stay request-area aware. Cloudflare A records cannot,
+    so one elected authority publishes the configured default area (CN) and
+    removes DNS ownership from application Routes.
+    """
+    if NODE != PUBLISHER_NODE:
+        return
+    for service, ref in PUBLICATION_REFS.items():
+        try:
+            selected = next((item for item in ranked(service) if item["state"] == "ready"), None)
+            if not selected:
+                continue
+            path = f"/apis/networking.k8s.io/v1/namespaces/{ref['namespace']}/ingresses/{ref['name']}"
+            current = kubernetes_get(path)
+            annotations = (current or {}).get("metadata", {}).get("annotations", {})
+            if annotations.get("external-dns.alpha.kubernetes.io/target") == selected["ip"]:
+                continue
+            kubernetes_patch(path, {"metadata": {"annotations": {
+                "external-dns.alpha.kubernetes.io/target": selected["ip"],
+                "networking.re8ch.com/selected-public-edge": selected["id"],
+            }}})
+        except Exception as exc:
+            print(f"publication service={service} error={exc}", flush=True)
 
 
 def ranked(service):
@@ -183,15 +231,24 @@ def ranked(service):
         score = 0
         if ready:
             regional_priority = candidate.get("priorityByRegion", {}).get(REGION, candidate.get("priority", 0))
-            score = 70 - int(regional_priority) - min(int(observed.get("latencyMs", 0)) // 20, 20)
+            # Area is the hard locality boundary: a US authority should publish a
+            # healthy US relay even when the origin is in CN. Inside one area,
+            # capacity is intentionally the dominant signal so CN clients reach
+            # restricted-node-6dc3f140f9 directly instead of hairpinning through a 100 Mbps edge.
+            score = int(candidate.get("capacityMbps", 1)) * 10
+            if candidate.get("area", candidate["region"]) == AREA:
+                score += 100000
+            score -= int(regional_priority)
+            score -= min(int(observed.get("latencyMs", 0)) // 20, 50)
             if candidate["id"] == NODE:
-                score += 20
-            if candidate["region"] == REGION:
-                score += 10
+                score += 5
         result.append({
-            "id": candidate["id"], "region": candidate["region"], "ip": candidate["ip"],
+            "id": candidate["id"], "region": candidate["region"],
+            "area": candidate.get("area", candidate["region"]), "ip": candidate["ip"],
+            "capacityMbps": candidate.get("capacityMbps", 1),
             "endpointType": candidate.get("endpointType", "PublicIP"),
             "gatewayVip": candidate.get("gatewayVip", ""),
+            "forwarding": candidate.get("forwarding", {"mode": "DirectGateway"}),
             "paths": candidate.get("paths", {}).get(service, []),
             "score": score, "state": "ready" if ready else "unavailable",
             "statusCode": observed.get("statusCode", 0), "latencyMs": observed.get("latencyMs", 0),
@@ -344,13 +401,14 @@ def main():
     if not CANDIDATES and not KUBERNETES_API:
         raise RuntimeError("no PublicEdge API or CANDIDATES_JSON configured")
     probe_all()
+    publish_default_area()
     threading.Thread(target=probe_loop, daemon=True).start()
     dns_bind = bind_address()
     udp = ReusableUDPServer((dns_bind, 53), UDPHandler)
     tcp = ReusableTCPServer((dns_bind, 53), TCPHandler)
     threading.Thread(target=udp.serve_forever, daemon=True).start()
     threading.Thread(target=tcp.serve_forever, daemon=True).start()
-    print(f"node={NODE} region={REGION} dns={dns_bind}:53 http=:8080", flush=True)
+    print(f"node={NODE} area={AREA} region={REGION} dns={dns_bind}:53 http=:8080", flush=True)
     ThreadingHTTPServer(("0.0.0.0", 8080), HTTPHandler).serve_forever()
 
 
