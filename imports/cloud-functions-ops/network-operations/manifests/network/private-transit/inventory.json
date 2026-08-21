@@ -6,8 +6,8 @@
     "b1": {"interface": "wg-pt-b1", "prefix": "192.0.2.90/24", "port": 51890, "gateway": "restricted-node-296f36f2fb"}
   },
   "gateways": [
-    {"id": 147, "name": "restricted-node-1eb0570f74", "ztIp": "192.0.2.18", "asn": 4200010147, "fabric": "a1", "egressIp": "192.0.2.55"},
-    {"id": 125, "name": "restricted-node-296f36f2fb", "ztIp": "192.0.2.208", "asn": 4200010125, "fabric": "b1", "egressIp": "192.0.2.55"}
+    {"id": 147, "name": "restricted-node-1eb0570f74", "ztIp": "192.0.2.18", "podCIDR": "192.0.2.109/24", "asn": 4200010147, "fabric": "a1", "egressIp": "192.0.2.55"},
+    {"id": 125, "name": "restricted-node-296f36f2fb", "ztIp": "192.0.2.208", "podCIDR": "192.0.2.26/24", "asn": 4200010125, "fabric": "b1", "egressIp": "192.0.2.55"}
   ],
   "workers": [
     {"id": 24, "name": "qianwen-prod-nuclio-3", "ztIp": "192.0.2.115", "asn": 4200010024},
@@ -23,7 +23,7 @@
     {"id": 89, "name": "overseas-kl", "ztIp": "192.0.2.50", "publicIp": "192.0.2.27", "podCIDR": "192.0.2.55/24", "asn": 4200000089, "region": "kuala-lumpur"},
     {"id": 95, "name": "harbor-registry", "ztIp": "192.0.2.203", "publicIp": "192.0.2.210", "asn": 4200000095, "region": "hangzhou"},
     {"id": 104, "name": "overseas-la", "ztIp": "192.0.2.55", "publicIp": "192.0.2.91", "podCIDR": "192.0.2.15/24", "asn": 4200000104, "region": "los-angeles"},
-    {"id": 128, "name": "restricted-node-6dc3f140f9", "ztIp": "192.0.2.183", "publicIp": "192.0.2.79", "asn": 4200000128, "region": "r640-lan"},
+    {"id": 128, "name": "restricted-node-6dc3f140f9", "ztIp": "192.0.2.183", "publicIp": "192.0.2.79", "podCIDR": "192.0.2.18/24", "asn": 4200000128, "region": "r640-lan"},
     {"id": 186, "name": "pg-re8ch-replica-186", "ztIp": "192.0.2.172", "publicIp": "192.0.2.72", "asn": 4200000186, "region": "unknown"}
   ]
 }
