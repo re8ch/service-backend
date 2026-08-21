@@ -197,7 +197,8 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        kubernetes.io/hostname: rancher-panel
+        # The former rancher-panel node is now registered as zan.
+        kubernetes.io/hostname: zan
       tolerations:
         - key: dedicated
           operator: Equal
@@ -207,7 +208,8 @@ spec:
         fsGroup: 8978
       initContainers:
         - name: seed-config
-          image: mjhsdd6xkcym4k.xuanyuan.run/dbeaver/cloudbeaver:24.3.5
+          # Cached on zan; mirror this digest into registry.re8ch.com before upgrading.
+          image: dbeaver/cloudbeaver:24.3.5
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -224,7 +226,7 @@ spec:
               readOnly: true
       containers:
         - name: cloudbeaver
-          image: mjhsdd6xkcym4k.xuanyuan.run/dbeaver/cloudbeaver:24.3.5
+          image: dbeaver/cloudbeaver:24.3.5
           imagePullPolicy: IfNotPresent
           env:
             - name: CLOUDBEAVER_WEB_SERVER_PORT
@@ -265,3 +267,60 @@ spec:
         - name: datasource-config
           configMap:
             name: cloudbeaver-datasources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudbeaver
+  namespace: ops
+spec:
+  selector:
+    app: cloudbeaver
+  ports:
+    - name: http
+      port: 8978
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cloudbeaver-public
+  namespace: ops
+  annotations:
+    networking.re8ch.com/dns-authority: ops/cloudbeaver-dns-authority
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: dbgui-https
+  hostnames: [dbgui.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: cloudbeaver
+          port: 8978
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudbeaver-dns-authority
+  namespace: ops
+  labels:
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: dbgui.re8ch.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: dbgui.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cloudbeaver
+                port:
+                  number: 8978
