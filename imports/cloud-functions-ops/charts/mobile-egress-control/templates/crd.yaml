@@ -43,7 +43,7 @@ spec:
                     type: object
                     required: [type, host, port]
                     properties:
-                      type: {type: string, enum: [hysteria2, trojan-tls]}
+                      type: {type: string, enum: [socks5, socks5-tls]}
                       host: {type: string, minLength: 1}
                       port: {type: integer, minimum: 1, maximum: 65535}
             status:

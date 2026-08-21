@@ -18,7 +18,7 @@ class MobileEgressTests(unittest.TestCase):
             {"node":"la","timestamp":1,"isGlobalExit":True,"consumer":{"ok":True,"latencyMs":42}},
             {"node":"leaf","timestamp":1,"isCnExit":True,"consumer":{"ok":True,"latencyMs":8}},
         ]
-        self.transport = [{"type":"hysteria2","host":"la.egress.re8ch.com","port":443,"sni":"la.egress.re8ch.com"}]
+        self.transport = [{"type":"socks5","host":"exit.example.invalid","port":1080}]
 
     def test_projection_is_explicit_and_rejects_ordinary_leaf(self):
         value = project_mobile_egresses(self.nodes, self.status, [
@@ -63,4 +63,3 @@ class MobileEgressTests(unittest.TestCase):
 
 
 if __name__ == "__main__": unittest.main()
-
