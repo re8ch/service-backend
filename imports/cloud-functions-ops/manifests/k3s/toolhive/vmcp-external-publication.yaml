@@ -109,6 +109,128 @@ kind: MCPGroup
 metadata: {name: platform-tools-public, namespace: toolhive-system}
 spec: {description: "External observe and operate tools aggregated through the tools vMCP."}
 ---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata: {name: vmcp-internal-backend, namespace: toolhive-system}
+spec: {type: unauthenticated}
+---
+# vMCP terminates end-user OIDC once. These entries use the backend Services,
+# not their user-facing OAuth proxies, avoiding a second interactive auth hop.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-admin-vmcp-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-admin}
+  remoteUrl: https://admin.re8ch.com:8443/backend/admin/mcp
+  transport: streamable-http
+  externalAuthConfigRef: {name: vmcp-internal-backend}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-observe-vmcp-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-observe}
+  remoteUrl: https://admin.re8ch.com:8443/backend/observe/mcp
+  transport: streamable-http
+  externalAuthConfigRef: {name: vmcp-internal-backend}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-operate-vmcp-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-operate}
+  remoteUrl: https://admin.re8ch.com:8443/backend/operate/mcp
+  transport: streamable-http
+  externalAuthConfigRef: {name: vmcp-internal-backend}
+---
+# vMCP's user-facing listener authenticates once. These private MCPServer
+# workloads deliberately have no oidcConfigRef; their proxy Services are
+# ClusterIP-only and are consumed only by the vMCP aggregation groups.
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: ops-admin-vmcp-internal, namespace: toolhive-system, labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}}
+spec:
+  groupRef: {name: platform-admin-public}
+  image: docker.1ms.run/library/python:3.12-alpine
+  replicas: 1
+  backendReplicas: 1
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-admin
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: OPS_TOOL_PROFILE, value: admin}
+    - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
+    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com"}
+    - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
+  toolConfigRef: {name: ops-admin-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-admin-vmcp-internal}
+  audit: {enabled: true}
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: mcp
+          command: [python, /app/app.py]
+          env:
+            - {name: HARBOR_USERNAME, valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: username}}}
+            - {name: HARBOR_PASSWORD, valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: password}}}
+          volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]
+      volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: ops-observe-vmcp-internal, namespace: toolhive-system, labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}}
+spec:
+  groupRef: {name: platform-tools-public}
+  image: docker.1ms.run/library/python:3.12-alpine
+  replicas: 1
+  backendReplicas: 1
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-public
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: OPS_TOOL_PROFILE, value: observe}
+    - {name: TENANT_NAMESPACE, value: platform}
+    - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
+    - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
+    - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
+    - {name: METRICS_URL, value: "http://192.0.2.178:30428"}
+  toolConfigRef: {name: ops-public-read-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-observe-vmcp-internal}
+  audit: {enabled: true}
+  podTemplateSpec:
+    spec:
+      containers:
+        - {name: mcp, command: [python, /app/app.py], volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
+      volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: ops-operate-vmcp-internal, namespace: toolhive-system, labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}}
+spec:
+  groupRef: {name: platform-tools-public}
+  image: docker.1ms.run/library/python:3.12-alpine
+  replicas: 1
+  backendReplicas: 1
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-operate
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: OPS_TOOL_PROFILE, value: operate}
+  toolConfigRef: {name: ops-operate-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-operate-vmcp-internal}
+  audit: {enabled: true}
+  podTemplateSpec:
+    spec:
+      containers:
+        - {name: mcp, command: [python, /app/app.py], volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
+      volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: ops-external-backends-from-vmcp, namespace: toolhive-system}
@@ -185,7 +307,7 @@ spec:
       conflictResolution: prefix
       conflictResolutionConfig: {prefixFormat: "{workload}_"}
       tools:
-        - workload: ops-admin-external
+        - workload: ops-admin-vmcp-internal
           toolConfigRef: {name: ops-admin-tools}
     audit:
       enabled: true
@@ -247,9 +369,9 @@ spec:
       conflictResolution: prefix
       conflictResolutionConfig: {prefixFormat: "{workload}_"}
       tools:
-        - workload: ops-observe-external
+        - workload: ops-observe-vmcp-internal
           toolConfigRef: {name: ops-public-read-tools}
-        - workload: ops-operate-external
+        - workload: ops-operate-vmcp-internal
           toolConfigRef: {name: ops-operate-tools}
     operational:
       failureHandling: {partialFailureMode: best_effort}
