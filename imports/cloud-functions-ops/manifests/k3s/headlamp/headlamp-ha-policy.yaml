@@ -3,6 +3,10 @@ kind: PodDisruptionBudget
 metadata:
   name: headlamp
   namespace: headlamp
+  annotations:
+    helm.re8ch.com/ha-mode: SingleActive
+    helm.re8ch.com/ha-constraint: headlamp-v0.42-process-local-oidc-state
+    helm.re8ch.com/ha-upgrade-gate: portable-or-shared-oidc-state
 spec:
   minAvailable: 1
   selector:
