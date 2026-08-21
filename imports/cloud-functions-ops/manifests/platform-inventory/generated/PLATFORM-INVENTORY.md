@@ -10,9 +10,11 @@ Generated; do not edit.
 | amdwsl-zt | True | fc64:f13e:b4c:5bfb:7a0f::1 |  | Ubuntu 24.04.1 LTS |
 | restricted-node-296f36f2fb | True | 192.0.2.208 |  | Ubuntu 24.04 LTS |
 | domain-ex | True | 192.0.2.172 | 192.0.2.72 | Ubuntu 22.04 LTS |
-| muaya-ecs | True | 192.0.2.203 | 192.0.2.210 | Ubuntu 26.04 LTS |
+| muaya-ecs | Unknown | 192.0.2.203 | 192.0.2.210 | Ubuntu 26.04 LTS |
 | muaya-lightweight | True | 192.0.2.141 | 192.0.2.110 | Ubuntu 24.04.2 LTS |
 | overseas-edge-50 | True | 192.0.2.122 | 192.0.2.3 | Ubuntu 24.04.3 LTS |
+| overseas-kl | True | 192.0.2.50 | 192.0.2.27 | Ubuntu 24.04 LTS |
+| overseas-la | True | 192.0.2.55 | 192.0.2.91 | Ubuntu 26.04 LTS |
 | qwen-1 | True | 192.0.2.115 |  | Ubuntu 24.04.4 LTS |
 | qwen-2 | True | 192.0.2.91 |  | Ubuntu 24.04.4 LTS |
 | qwen-3 | True | 192.0.2.33 |  | Ubuntu 24.04.4 LTS |
@@ -25,7 +27,7 @@ Generated; do not edit.
 
 | Namespace | Kind | Name | State / exposure |
 |---|---|---|---|
-| agent-collab | Deployment | teable | 1/1 ready |
+| agent-collab | Deployment | teable | 0/1 ready |
 | agent-collab | Deployment | teable-edge-relay | 1/1 ready |
 | agent-collab | Deployment | teable-redis | 1/1 ready |
 | agent-collab | Deployment | wechat-content-orchestrator | 1/1 ready |
@@ -38,7 +40,7 @@ Generated; do not edit.
 | ai-gateway | Service | re8ch-ai-gateway | ClusterIP ports=4000 |
 | ai-operations | Deployment | agent-orchestra-collab | 1/1 ready |
 | ai-operations | Deployment | browser-runtime-pool-poc | 0/0 ready |
-| ai-operations | Deployment | cloud-platform-tool | 1/1 ready |
+| ai-operations | Deployment | cloud-platform-tool | 1/2 ready |
 | ai-operations | Deployment | cluster-infra-tool | 1/1 ready |
 | ai-operations | Deployment | oauth2-proxy-steel | 1/1 ready |
 | ai-operations | Deployment | steel-browser | 1/1 ready |
@@ -53,10 +55,9 @@ Generated; do not edit.
 | ai-operations | Service | steel-browser | ClusterIP ports=3000,9223 |
 | ai-operations | Service | steel-browser-gateway | ClusterIP ports=8080 |
 | ai-operations | Service | steel-browser-ui | ClusterIP ports=80 |
-| anycam | Deployment | multicloud-functions-dns-controller | 1/1 ready |
 | anycam | Deployment | nuclio-anycam-model-gateway | 0/1 ready |
 | anycam | Service | nuclio-anycam-model-gateway | ClusterIP ports=8080 |
-| anysite | Deployment | anysite-postgrest | 1/1 ready |
+| anysite | Deployment | anysite-postgrest | 0/1 ready |
 | anysite | Deployment | scale-api | 2/2 ready |
 | anysite | Deployment | scale-worker | 1/1 ready |
 | anysite | Ingress | scale-api | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api.re8ch.com |
@@ -66,7 +67,7 @@ Generated; do not edit.
 | auth | Deployment | authentik-server | 0/0 ready |
 | auth | Deployment | authentik-worker | 0/0 ready |
 | auth | Deployment | nuclio-re8ch-auth-gateway | 0/0 ready |
-| auth | Deployment | re8ch-auth-gateway | 0/1 ready |
+| auth | Deployment | re8ch-auth-gateway | 1/1 ready |
 | auth | Ingress | authentik-server | auth.re8ch.com |
 | auth | Ingress | re8ch-auth-gateway | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api-shanghai77.re8ch.com, api.re8ch.com |
 | auth | Service | authentik-postgres-primary | ClusterIP ports=5432 |
@@ -74,7 +75,13 @@ Generated; do not edit.
 | auth | Service | authentik-server | ClusterIP ports=80,443 |
 | auth | Service | nuclio-re8ch-auth-gateway | ClusterIP ports=8080,8090 |
 | auth | Service | re8ch-auth-gateway | ClusterIP ports=8080 |
-| cephfs-smoke | DaemonSet | cephfs-cross-node-smoke | 4/4 ready |
+| cephfs-smoke | DaemonSet | cephfs-cross-node-smoke | 3/4 ready |
+| cert-manager | Deployment | cert-manager | 1/1 ready |
+| cert-manager | Deployment | cert-manager-cainjector | 1/1 ready |
+| cert-manager | Deployment | cert-manager-webhook | 1/1 ready |
+| cert-manager | Service | cert-manager | ClusterIP ports=9402 |
+| cert-manager | Service | cert-manager-cainjector | ClusterIP ports=9402 |
+| cert-manager | Service | cert-manager-webhook | ClusterIP ports=443,9402 |
 | codex-app-server | Deployment | codex-app-server | 1/1 ready |
 | codex-app-server | Service | codex-app-server | ClusterIP ports=4500 |
 | codex-platform | Deployment | codex-app-server-console | 1/1 ready |
@@ -86,7 +93,7 @@ Generated; do not edit.
 | codex-platform | Service | codex-app-server-console | ClusterIP ports=8080 |
 | codex-platform | Service | codex-app-server-console-internal | NodePort ports=8080 |
 | codex-platform | Service | codex-session-web | ClusterIP ports=8080 |
-| comfy-agent | Deployment | comfyui-agent-r640 | 1/1 ready |
+| comfy-agent | Deployment | comfyui-agent-r640 | 0/1 ready |
 | comfy-agent | Deployment | comfyui-amd | 1/1 ready |
 | comfy-agent | Service | comfyui-agent | ClusterIP ports=8080 |
 | comfy-agent | Service | comfyui-amd | ClusterIP ports=8188 |
@@ -126,23 +133,28 @@ Generated; do not edit.
 | dataspace | Ingress | storage-collaborator | storage.re8ch.com |
 | dataspace | Service | dataspace-gateway | ClusterIP ports=8080 |
 | default | Service | kubernetes | ClusterIP ports=443 |
-| dex | Deployment | dex | 2/2 ready |
+| dex | Deployment | dex | 1/2 ready |
+| dex | Ingress | dex-dns-authority | dex.re8ch.com |
 | dex | Service | dex | NodePort ports=80 |
 | edge-devices | DaemonSet | r640-usb-dra | 1/1 ready |
 | edge-devices | Deployment | device-fabric-controller | 1/1 ready |
 | edge-devices | Service | grandstream-gui-canary | ClusterIP ports=80 |
 | edge-devices | Service | r640-voice-control-canary | ClusterIP ports=18092 |
-| egress-fabric | DaemonSet | mihomo-node | 2/2 ready |
-| egress-fabric | Deployment | mihomo-egress-la | 1/1 ready |
+| egress-fabric | DaemonSet | mihomos-cn-exit | 6/7 ready |
+| egress-fabric | DaemonSet | mihomos-global-exit | 2/2 ready |
+| egress-fabric | DaemonSet | mihomos-node-cn | 9/13 ready |
+| egress-fabric | DaemonSet | mihomos-node-global | 3/3 ready |
+| egress-fabric | DaemonSet | mihomos-status-agent | 15/16 ready |
+| egress-fabric | Deployment | mihomo-egress-kl | 0/0 ready |
+| egress-fabric | Deployment | mihomo-egress-la | 0/0 ready |
 | egress-fabric | Deployment | network-decomplexer-policy-api | 0/1 ready |
 | egress-fabric | Deployment | path-controller | 1/1 ready |
 | egress-fabric | Ingress | network-decomplexer-policy-api-dns | agent.re8ch.com |
-| egress-fabric | Service | mihomo-egress-la | ClusterIP ports=1080 |
-| egress-fabric | Service | mihomo-gateway | ClusterIP ports=7890 |
-| egress-fabric | Service | mihomo-node | ClusterIP ports=7890 |
+| egress-fabric | Service | mihomos-cn-exit | ClusterIP ports=1080 |
+| egress-fabric | Service | mihomos-global-exit | ClusterIP ports=1080 |
 | egress-fabric | Service | network-decomplexer-policy-api | ClusterIP ports=80 |
 | egress-fabric | Service | path-controller | ClusterIP ports=8080 |
-| fleet | Deployment | fleet | 0/1 ready |
+| fleet | Deployment | fleet | 1/1 ready |
 | fleet | Deployment | fleet-egress-proxy | 1/1 ready |
 | fleet | Deployment | fleet-redis | 1/1 ready |
 | fleet | Ingress | fleet | fleet.re8ch.com |
@@ -167,12 +179,17 @@ Generated; do not edit.
 | harbor | Service | log | ClusterIP ports=10514 |
 | harbor | Service | portal | ClusterIP ports=8080 |
 | harbor | Service | postgresql | ClusterIP ports=5432 |
+| harbor | Service | re8ch-cilium-gateway-vip | ClusterIP ports=443 |
 | harbor | Service | redis | ClusterIP ports=6379 |
 | harbor | Service | registry | ClusterIP ports=5000 |
 | harbor | Service | registryctl | ClusterIP ports=8080 |
 | harbor | Service | trivy-adapter | ClusterIP ports=8080 |
 | headlamp | Deployment | headlamp | 2/2 ready |
+| headlamp | Ingress | headlamp-dns-authority | headlamp.re8ch.com |
+| headlamp | Ingress | headlamp-gateway-http | headlamp.re8ch.com |
+| headlamp | Ingress | headlamp-gateway-https | headlamp.re8ch.com |
 | headlamp | Service | headlamp | LoadBalancer ports=80 |
+| headlamp | Service | headlamp-gateway-origin | ClusterIP ports=80 |
 | image | Deployment | nuclio-registry-image-control-api | 0/0 ready |
 | image | Deployment | nuclio-registry-image-metering-worker | 0/0 ready |
 | image | Ingress | registry-image-control-api | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api-shanghai77.re8ch.com, api.re8ch.com, image.re8ch.com |
@@ -197,22 +214,29 @@ Generated; do not edit.
 | kagent | Service | my-first-k8s-agent | ClusterIP ports=8080 |
 | kagent | Service | readonly-k8s-diagnostic-agent | ClusterIP ports=8080 |
 | kagent | Service | wechat-content-operations-agent | ClusterIP ports=8080 |
-| kube-system | DaemonSet | cilium | 14/14 ready |
-| kube-system | DaemonSet | https-8443-compat | 5/5 ready |
-| kube-system | DaemonSet | re8ch-node-external-ip-agent | 10/11 ready |
-| kube-system | DaemonSet | traefik | 2/2 ready |
+| kube-system | DaemonSet | cilium | 14/16 ready |
+| kube-system | DaemonSet | https-8443-compat | 4/5 ready |
+| kube-system | DaemonSet | podcidr-fabric-reconciler | 15/16 ready |
+| kube-system | DaemonSet | re8ch-node-external-ip-agent | 11/13 ready |
+| kube-system | DaemonSet | regional-origin-dnat | 3/3 ready |
+| kube-system | DaemonSet | traefik | 1/1 ready |
 | kube-system | DaemonSet | traefik-public-edge | 1/2 ready |
 | kube-system | DaemonSet | traefik-r640 | 1/1 ready |
-| kube-system | Deployment | cilium-operator | 2/2 ready |
+| kube-system | Deployment | cilium-operator | 3/3 ready |
 | kube-system | Deployment | coredns | 2/2 ready |
 | kube-system | Deployment | coredns-r640 | 0/0 ready |
 | kube-system | Deployment | hubble-relay | 0/1 ready |
-| kube-system | Deployment | hubble-ui | 1/1 ready |
+| kube-system | Deployment | hubble-ui | 0/1 ready |
 | kube-system | Deployment | kube-state-metrics | 1/1 ready |
 | kube-system | Deployment | local-path-provisioner | 1/1 ready |
 | kube-system | Deployment | metrics-server | 2/2 ready |
 | kube-system | Deployment | routeros-node-controller | 1/1 ready |
 | kube-system | Service | cilium-gateway-re8ch-gateway-canary | LoadBalancer ports=80,443 |
+| kube-system | Service | cilium-gateway-re8ch-region-guangzhou | LoadBalancer ports=80,443 |
+| kube-system | Service | cilium-gateway-re8ch-region-hangzhou-nuclio | LoadBalancer ports=80,443 |
+| kube-system | Service | cilium-gateway-re8ch-region-loudi | LoadBalancer ports=80,443 |
+| kube-system | Service | cilium-gateway-re8ch-region-shanghai | LoadBalancer ports=80,443 |
+| kube-system | Service | cilium-gateway-re8ch-region-shanghai-nuclio | LoadBalancer ports=80,443 |
 | kube-system | Service | hubble-peer | ClusterIP ports=443 |
 | kube-system | Service | hubble-relay | ClusterIP ports=80 |
 | kube-system | Service | hubble-ui | ClusterIP ports=80 |
@@ -222,7 +246,6 @@ Generated; do not edit.
 | kube-system | Service | metrics-server | ClusterIP ports=443 |
 | kube-system | Service | re8ch-cilium-lb-canary | LoadBalancer ports=4240 |
 | kube-system | Service | traefik | ClusterIP ports=80,443 |
-| ledger | Deployment | multicloud-functions-dns-controller | 1/1 ready |
 | ledger | Deployment | nuclio-ledger-api-gateway | 1/1 ready |
 | ledger | Deployment | nuclio-ledger-api-gateway-shanghai217 | 0/0 ready |
 | ledger | Deployment | nuclio-ledger-api-gateway-shanghai77 | 0/0 ready |
@@ -249,7 +272,7 @@ Generated; do not edit.
 | llm-gateway | Ingress | litellm-admin | litellm.re8ch.com |
 | llm-gateway | Service | litellm | NodePort ports=4000 |
 | llm-gateway | Service | litellm-postgresql | ClusterIP ports=5432 |
-| mcp-registry | Deployment | mcp-registry | 1/1 ready |
+| mcp-registry | Deployment | mcp-registry | 0/1 ready |
 | mcp-registry | Deployment | mcp-registry-postgresql | 1/1 ready |
 | mcp-registry | Service | mcp-registry | ClusterIP ports=8080 |
 | mcp-registry | Service | postgresql | ClusterIP ports=5432 |
@@ -265,11 +288,11 @@ Generated; do not edit.
 | neo4j | StatefulSet | ledger-economicsgraph | 1/1 ready |
 | neo4j | StatefulSet | neo4j | 1/1 ready |
 | netbird-access | Deployment | netbird-dashboard | 1/1 ready |
-| netbird-access | Deployment | netbird-egress-probe | 1/1 ready |
+| netbird-access | Deployment | netbird-egress-probe | 0/1 ready |
 | netbird-access | Deployment | netbird-relay-gz-1 | 1/1 ready |
-| netbird-access | Deployment | netbird-relay-hz-1 | 1/1 ready |
-| netbird-access | Deployment | netbird-router-cn | 1/1 ready |
-| netbird-access | Deployment | netbird-router-la | 1/1 ready |
+| netbird-access | Deployment | netbird-relay-hz-1 | 0/1 ready |
+| netbird-access | Deployment | netbird-router-cn | 0/1 ready |
+| netbird-access | Deployment | netbird-router-la | 0/1 ready |
 | netbird-access | Deployment | netbird-server | 1/1 ready |
 | netbird-access | Ingress | netbird-access-dns | access.re8ch.com |
 | netbird-access | Ingress | netbird-relay-gz-1-dns | relay-gz-1.re8ch.com |
@@ -280,8 +303,8 @@ Generated; do not edit.
 | netbird-access | Service | netbird-routing-peer-metrics | ClusterIP ports=9100 |
 | netbird-access | Service | netbird-server | ClusterIP ports=80,9000,9090 |
 | netbird-access | Service | netbird-stun | NodePort ports=3478 |
-| nuclio | DaemonSet | ledger-accounting-agent-edge-proxy | 1/1 ready |
-| nuclio | DaemonSet | ledger-decision-r640-proxy | 1/1 ready |
+| nuclio | DaemonSet | ledger-accounting-agent-edge-proxy | 0/0 ready |
+| nuclio | DaemonSet | ledger-decision-r640-proxy | 0/1 ready |
 | nuclio | Deployment | ledger-accounting-agent | 1/1 ready |
 | nuclio | Deployment | ledger-accounting-agent-reverse-tunnel | 1/1 ready |
 | nuclio | Deployment | ledger-decision-analysis | 1/1 ready |
@@ -290,8 +313,8 @@ Generated; do not edit.
 | nuclio | Deployment | nuclio-bench-hello | 0/0 ready |
 | nuclio | Deployment | nuclio-bench-pg-read | 0/0 ready |
 | nuclio | Deployment | nuclio-bench-pg-write | 0/0 ready |
-| nuclio | Deployment | nuclio-controller | 0/1 ready |
-| nuclio | Deployment | nuclio-dashboard | 0/0 ready |
+| nuclio | Deployment | nuclio-controller | 1/1 ready |
+| nuclio | Deployment | nuclio-dashboard | 0/1 ready |
 | nuclio | Ingress | ledger-accounting-agent | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api-shanghai77.re8ch.com, api.re8ch.com, neo4j.re8ch.com |
 | nuclio | Ingress | ledger-decision-analysis | decision.re8ch.com |
 | nuclio | Ingress | ledger-decision-analysis-api | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api-shanghai77.re8ch.com, api.re8ch.com |
@@ -321,7 +344,8 @@ Generated; do not edit.
 | observability-ai | Service | trial-gateway-collector-monitoring | ClusterIP ports=8888 |
 | observable | Deployment | observable-postgrest | 2/2 ready |
 | observable | Service | observable-postgrest | ClusterIP ports=3000 |
-| opencost | Deployment | opencost | 1/1 ready |
+| observable | Service | pigsty-postgrest-role-gateway | ClusterIP ports=3080 |
+| opencost | Deployment | opencost | 2/2 ready |
 | opencost | Service | opencost | ClusterIP ports=8081,9003,9090 |
 | opensandbox-system | Deployment | opensandbox-controller-manager | 1/1 ready |
 | opensandbox-system | Deployment | opensandbox-server | 1/1 ready |
@@ -352,21 +376,17 @@ Generated; do not edit.
 | pigsty-external | Service | pgwrite | ClusterIP ports=3000,3080,5432,6432 |
 | qianwen-ops | DaemonSet | alloy-nuclio-logs | 1/1 ready |
 | qianwen-ops | DaemonSet | panel-harbor-node-vmagent | 0/1 ready |
-| qianwen-ops | DaemonSet | panel-node-exporter | 9/9 ready |
+| qianwen-ops | DaemonSet | panel-node-exporter | 8/9 ready |
 | qianwen-ops | DaemonSet | panel-qwen-functions-vmagent | 2/2 ready |
-| qianwen-ops | DaemonSet | panel-vlagent | 2/2 ready |
+| qianwen-ops | DaemonSet | panel-vlagent | 1/2 ready |
 | qianwen-ops | Deployment | aliyun-esa-api-origin-controller | 0/0 ready |
-| qianwen-ops | Deployment | aliyun-esa-pg-dns-controller | 0/0 ready |
-| qianwen-ops | Deployment | cloudflare-api-edge-dns-controller | 1/1 ready |
-| qianwen-ops | Deployment | cloudflare-panel-dns-controller | 0/0 ready |
-| qianwen-ops | Deployment | cloudflare-pg-dns-controller | 0/0 ready |
-| qianwen-ops | Deployment | external-dns-cloudflare | 1/1 ready |
-| qianwen-ops | Deployment | hyperglass | 1/1 ready |
+| qianwen-ops | Deployment | external-dns-cloudflare | 0/1 ready |
+| qianwen-ops | Deployment | hyperglass | 2/2 ready |
 | qianwen-ops | Deployment | hyperglass-redis | 1/1 ready |
 | qianwen-ops | Deployment | loki-lite | 0/1 ready |
-| qianwen-ops | Deployment | oauth2-proxy-hubble | 1/1 ready |
-| qianwen-ops | Deployment | oauth2-proxy-hyperglass | 1/1 ready |
-| qianwen-ops | Deployment | oauth2-proxy-opencost | 1/1 ready |
+| qianwen-ops | Deployment | oauth2-proxy-hubble | 2/2 ready |
+| qianwen-ops | Deployment | oauth2-proxy-hyperglass | 2/2 ready |
+| qianwen-ops | Deployment | oauth2-proxy-opencost | 2/2 ready |
 | qianwen-ops | Deployment | panel-blackbox-exporter | 1/1 ready |
 | qianwen-ops | Deployment | panel-grafana | 1/1 ready |
 | qianwen-ops | Deployment | panel-grafana-renderer | 0/1 ready |
@@ -378,6 +398,7 @@ Generated; do not edit.
 | qianwen-ops | Deployment | panel-victoria-metrics | 1/1 ready |
 | qianwen-ops | Deployment | re8ch-routing-advisor | 1/1 ready |
 | qianwen-ops | Ingress | panel-grafana | grafana.re8ch.com |
+| qianwen-ops | Ingress | panel-grafana-gateway-http | grafana.re8ch.com |
 | qianwen-ops | Ingress | static-cilium-edge-services-dns | registry.re8ch.com |
 | qianwen-ops | Ingress | static-hangzhou-services-dns | auth.re8ch.com |
 | qianwen-ops | Ingress | static-icp-services-dns | feishu-agent.re8ch.com |
@@ -396,6 +417,7 @@ Generated; do not edit.
 | qianwen-ops | Service | oauth2-proxy-opencost | NodePort ports=4180 |
 | qianwen-ops | Service | panel-blackbox-exporter | ClusterIP ports=9115 |
 | qianwen-ops | Service | panel-grafana | LoadBalancer ports=3000 |
+| qianwen-ops | Service | panel-grafana-gateway-origin | ClusterIP ports=80 |
 | qianwen-ops | Service | panel-grafana-renderer | ClusterIP ports=8081 |
 | qianwen-ops | Service | panel-grafana-vip-origin | ClusterIP ports=3000 |
 | qianwen-ops | Service | panel-node-exporter | ClusterIP ports=9100 |
@@ -410,7 +432,6 @@ Generated; do not edit.
 | qianwen-ops | Service | pigsty-pg-meta-exporters | ClusterIP ports=8008,9101,9630,9631,9854 |
 | qianwen-ops | Service | re8ch-routing-advisor | ClusterIP ports=9790 |
 | qwen | Deployment | aliyun-esa-api-origin-controller | 1/1 ready |
-| qwen | Deployment | aliyun-esa-pg-dns-controller | 1/1 ready |
 | qwen | Deployment | nuclio-qianwen-agent-api | 0/1 ready |
 | qwen | Deployment | nuclio-qianwen-mcp-gateway | 0/1 ready |
 | qwen | Deployment | nuclio-qianwen-prod-analytics | 0/1 ready |
@@ -496,20 +517,16 @@ Generated; do not edit.
 | qwen | Service | qwen-edge-redirects | ClusterIP ports=8080 |
 | qwen | Service | test-mgr-postgrest-upstream | ClusterIP ports=3080 |
 | regional-routing | DaemonSet | regional-edge-tls-proxy | 1/1 ready |
-| regional-routing | DaemonSet | regional-routing-authority | 3/3 ready |
+| regional-routing | DaemonSet | regional-routing-authority | 6/6 ready |
 | regional-routing | Service | regional-routing-authority | ClusterIP ports=8080 |
 | rook-ceph | DaemonSet | rook-ceph.cephfs.csi.ceph.com-nodeplugin | 4/4 ready |
 | rook-ceph | DaemonSet | rook-ceph.rbd.csi.ceph.com-nodeplugin | 4/4 ready |
 | rook-ceph | Deployment | ceph-csi-controller-manager | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-a1-wsl-zt | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-b1-wsl-zt | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-crashcollector-qwen-1 | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-crashcollector-qwen-2 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-crashcollector-r640 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-a1-wsl-zt | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-b1-wsl-zt | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-exporter-qwen-1 | 1/1 ready |
-| rook-ceph | Deployment | rook-ceph-exporter-qwen-2 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-exporter-r640 | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-a | 1/1 ready |
 | rook-ceph | Deployment | rook-ceph-mds-re8ch-files-b | 1/1 ready |
@@ -530,7 +547,7 @@ Generated; do not edit.
 | rook-ceph | Service | rook-ceph-mgr-dashboard | ClusterIP ports=8443 |
 | storage-fabric | DaemonSet | csi-rclone-node | 1/1 ready |
 | storage-fabric | Deployment | csi-rclone-controller | 1/2 ready |
-| supabase-pg-re8ch | Deployment | supabase-auth | 1/1 ready |
+| supabase-pg-re8ch | Deployment | supabase-auth | 0/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-imgproxy | 1/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-kong | 1/1 ready |
 | supabase-pg-re8ch | Deployment | supabase-meta | 1/1 ready |
@@ -556,9 +573,9 @@ Generated; do not edit.
 | toolhive-system | Deployment | ops-operate-managed | 1/1 ready |
 | toolhive-system | Deployment | re8ch-admin-vmcp | 2/2 ready |
 | toolhive-system | Deployment | re8ch-tools-vmcp | 2/2 ready |
-| toolhive-system | Deployment | toolhive-cloud-ui | 1/1 ready |
-| toolhive-system | Deployment | toolhive-operator | 1/1 ready |
-| toolhive-system | Deployment | toolhive-registry-server | 1/1 ready |
+| toolhive-system | Deployment | toolhive-cloud-ui | 2/2 ready |
+| toolhive-system | Deployment | toolhive-operator | 2/2 ready |
+| toolhive-system | Deployment | toolhive-registry-server | 2/2 ready |
 | toolhive-system | Ingress | admin-tools-re8ch-com | admin.re8ch.com |
 | toolhive-system | Ingress | operate-tools-re8ch-com | operate.tools.re8ch.com |
 | toolhive-system | Ingress | toolhive-cloud-ui | tools.re8ch.com |
@@ -593,6 +610,7 @@ Generated; do not edit.
 | toolhive-system | StatefulSet | ops-observe-managed | 1/1 ready |
 | toolhive-system | StatefulSet | ops-operate-external | 2/2 ready |
 | toolhive-system | StatefulSet | ops-operate-managed | 1/1 ready |
-| toolhive-system | StatefulSet | toolhive-auth-redis | 1/1 ready |
+| toolhive-system | StatefulSet | toolhive-auth-redis | 0/0 ready |
+| toolhive-system | StatefulSet | toolhive-auth-redis-ab | 1/1 ready |
 | voice-observability | Ingress | homer-ui | phonycenter.re8ch.com |
 | voice-observability | Service | homer-ui | ClusterIP ports=80 |

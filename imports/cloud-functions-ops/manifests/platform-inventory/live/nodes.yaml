@@ -45,7 +45,7 @@
       "name": "muaya-ecs",
       "internalIp": "192.0.2.203",
       "externalIp": "192.0.2.210",
-      "ready": "True",
+      "ready": "Unknown",
       "unschedulable": true,
       "osImage": "Ubuntu 26.04 LTS",
       "kubeletVersion": "v1.36.0-rc3+k3s1",
@@ -68,6 +68,26 @@
       "ready": "True",
       "unschedulable": false,
       "osImage": "Ubuntu 24.04.3 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "overseas-kl",
+      "internalIp": "192.0.2.50",
+      "externalIp": "192.0.2.27",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "overseas-la",
+      "internalIp": "192.0.2.55",
+      "externalIp": "192.0.2.91",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 26.04 LTS",
       "kubeletVersion": "v1.36.0-rc3+k3s1",
       "containerRuntime": "containerd://2.2.3-k3s1"
     },
