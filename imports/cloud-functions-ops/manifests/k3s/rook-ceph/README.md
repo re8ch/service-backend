@@ -123,6 +123,11 @@ helm upgrade --install rook-ceph-cluster rook-release/rook-ceph-cluster \
 Do not install the cluster chart until the operator deployment and discovery
 pods are healthy.
 
+The re8ch-files MDS placement is a required allowlist, not a preference.
+Metadata servers may run only on restricted-node-6dc3f140f9, restricted-node-1eb0570f74, or restricted-node-296f36f2fb. Qwen/Nuclio
+nodes are business-function nodes and are not valid Ceph control-plane
+candidates. Pod anti-affinity must remain enabled in addition to node affinity.
+
 `cluster-values-production-encrypted.yaml` is the applied production encryption
 overlay. It was rolled out only after all MONs, the manager and PGs were
 healthy. It enables native Ceph
@@ -141,7 +146,18 @@ boundary and promotion gates.
 4. The smoke DaemonSet has one pod on each pilot node and all three files are
    visible from every pod.
 5. Existing Qwen pods and public smoke endpoints remain healthy.
+6. Both MDS Pods run on distinct approved nodes; desired and observed
+   CephFilesystem generations match.
+7. CephFS subvolumegroup and subvolume listing complete without timeout.
+8. A disposable cephfs-re8ch PVC can be provisioned and mounted on A1 and B1.
 
 The smoke namespace is disposable, but deleting its retained PV does not erase
 the CephFS subvolume automatically. Perform that cleanup only after explicitly
 confirming it contains no needed data.
+
+## Operations references
+
+- [Headlamp CephFS plugin PVC runbook](../../../docs/headlamp-cephfs-plugin-pvc-runbook-2026-08-21.md)
+- [Rook CephFS MDS placement and CSI dependency policy](../../../docs/rook-cephfs-mds-placement-policy-2026-08-21.md)
+- [Headlamp plugin CephFS CSI incident](../../../docs/incidents/2026-08-21-headlamp-cephfs-csi-control-plane.md)
+- [CephFS network-fabric contract](../../../docs/cephfs-network-fabric-contract-2026-08-13.md)
