@@ -1,0 +1,21 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: harbor-registry
+  namespace: harbor
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: harbor-tls
+  hostnames:
+    - registry.re8ch.com
+  rules:
+    - backendRefs:
+        - name: harbor-registry
+          port: 443

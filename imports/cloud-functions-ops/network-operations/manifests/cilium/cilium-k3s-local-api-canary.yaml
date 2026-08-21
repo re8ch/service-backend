@@ -1,0 +1,14 @@
+# K3s agents already maintain a local, health-checked control-plane load
+# balancer on 127.0.0.1:6444.  Use it on remote nodes whose direct connection
+# to a single server is less reliable than the local K3s failover path.
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: k3s-local-api-overseas-la
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: overseas-la
+  defaults:
+    k8s-api-server-urls: https://127.0.0.1:6444

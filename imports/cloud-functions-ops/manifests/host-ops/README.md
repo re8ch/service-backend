@@ -1,4 +1,8 @@
-# RE8CH Linux Host Operations
+# RE8CH Linux Host Operations (legacy rollback)
+
+This short-lived certificate flow is retained only as rollback data. New Cloud
+Platform Tool deployments use the permanent server-held jump-host identity in
+`manifests/k3s/ai-operations/`; do not run this signer during normal operation.
 
 Host access uses short-lived OpenSSH user certificates. The CA private key is
 kept root-only on restricted-node-6dc3f140f9 and must never be copied into Kubernetes. Agents use the

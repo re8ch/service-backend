@@ -1,0 +1,27 @@
+{
+  "acceleratedPrefix": "192.0.2.106/24",
+  "decisionTable": 15300,
+  "decisionRulePriority": 11530,
+  "probeIntervalSeconds": 2,
+  "probeCount": 3,
+  "probeTimeoutSeconds": 1,
+  "minimumHoldSeconds": 60,
+  "weightChangeThresholdPercent": 20,
+  "telemetryPort": 9918,
+  "telemetryTimeoutSeconds": 0.5,
+  "telemetryMaxAgeSeconds": 10,
+  "gateways": [
+    {"name": "a1", "address": "192.0.2.18", "interface": "wg-pt-a1", "probeTable": 15101, "mark": "0x1", "staticWeight": 100, "capacityMbps": 200},
+    {"name": "b1", "address": "192.0.2.208", "interface": "wg-pt-b1", "probeTable": 15102, "mark": "0x2", "staticWeight": 100, "capacityMbps": 200}
+  ],
+  "targets": [
+    {"name": "rancher-panel", "address": "192.0.2.63", "region": "guangzhou", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "overseas-edge-50", "address": "192.0.2.225", "region": "overseas", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "vm-20-12-ubuntu", "address": "192.0.2.114", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "artchais-nuclio-1", "address": "192.0.2.145", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "qianwen-nuclio-79", "address": "192.0.2.24", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "harbor-registry", "address": "192.0.2.46", "region": "hangzhou", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "restricted-node-6dc3f140f9", "address": "192.0.2.205", "region": "r640-lan", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "pg-re8ch-replica-186", "address": "192.0.2.31", "region": "unknown", "staticPreference": {"a1": 100, "b1": 100}}
+  ]
+}

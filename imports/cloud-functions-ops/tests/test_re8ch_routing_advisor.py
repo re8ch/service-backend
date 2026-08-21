@@ -83,6 +83,12 @@ class AdvisorPolicyTests(unittest.TestCase):
         self.assertEqual(recommendation["spec"]["recommendedLocalPreference"], 200)
         self.assertFalse(recommendation["spec"]["apply"])
 
+    def test_quota_pressure_uses_tiers_without_fake_price(self):
+        self.assertEqual(ADVISOR.quota_pressure(80, 100)["tier"], "warning")
+        self.assertEqual(ADVISOR.quota_pressure(95, 100)["tier"], "critical")
+        self.assertEqual(ADVISOR.quota_pressure(100, 100)["tier"], "exhausted")
+        self.assertEqual(ADVISOR.quota_pressure(999, None)["tier"], "unlimited")
+
 
 if __name__ == "__main__":
     unittest.main()

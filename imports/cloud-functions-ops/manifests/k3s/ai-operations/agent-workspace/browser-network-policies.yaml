@@ -1,0 +1,40 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: steel-browser
+  namespace: ai-operations
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: steel-browser
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ai-operations
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cube-trial
+      toPorts:
+        - ports:
+            - {port: "3000", protocol: TCP}
+            - {port: "9223", protocol: TCP}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: egress-fabric
+            k8s:app.kubernetes.io/name: mihomo-node
+      toPorts:
+        - ports:
+            - {port: "7890", protocol: TCP}
+    - toEntities: [world]
+      toPorts:
+        - ports:
+            - {port: "80", protocol: TCP}
+            - {port: "443", protocol: TCP}

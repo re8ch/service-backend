@@ -9,8 +9,8 @@ principles:
   - Secret values and unrestricted Kubernetes objects are never exposed to agents.
   - No RE8CH role implies membership in authentik Admins.
 ssh:
-  caHost: restricted-node-6dc3f140f9
-  caPrivateKeyRef: host://restricted-node-6dc3f140f9/var/lib/re8ch-ssh-ca/ssh_user_ca
-  trustedCaPublicKeyPath: /etc/ssh/re8ch_user_ca.pub
+  mode: cloud-platform-permanent-jump-key
+  privateKeyRef: secret://ai-operations/cloud-platform-runtime#id_ed25519
   account: re8ch-ai
-  privateKeysPersisted: false
+  clientPrivateKeyReturned: false
+  deactivationAuthority: ai-operations/device-registry

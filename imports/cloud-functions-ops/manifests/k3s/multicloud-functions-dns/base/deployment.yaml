@@ -3,7 +3,10 @@ kind: Deployment
 metadata:
   name: multicloud-functions-dns-controller
 spec:
-  replicas: 1
+  # Retired: public DNS is exclusively managed by
+  # qianwen-ops/external-dns-cloudflare. Keep this at zero so an old overlay
+  # cannot resurrect a second Cloudflare writer.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: multicloud-functions-dns-controller

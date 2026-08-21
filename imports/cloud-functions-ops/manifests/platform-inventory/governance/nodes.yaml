@@ -2,8 +2,7 @@ schemaVersion: re8ch.com/v1alpha1
 defaults:
   operatingSystem: linux
   sshUser: re8ch-ai
-  authentication: openssh-user-certificate
-  certificateTtlMinutes: 10
+  authentication: cloud-platform-permanent-jump-key
 nodes:
   - {id: restricted-node-6dc3f140f9, roles: [control-plane, etcd, pg-re8ch], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
   - {id: restricted-node-1eb0570f74, roles: [control-plane, etcd], sshTarget: null, operationPolicy: control-plane-two-person, managementState: unverified, firewall: cn, egressPolicy: auto, cephStorage: true, cephClient: true}

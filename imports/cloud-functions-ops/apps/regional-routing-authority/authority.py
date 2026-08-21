@@ -10,18 +10,92 @@ import struct
 import threading
 import time
 import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 NODE = os.getenv("NODE_NAME", "unknown")
+PROBE_CONNECT_TIMEOUT = float(os.getenv("PROBE_CONNECT_TIMEOUT_SECONDS", "5"))
+PROBE_RESPONSE_TIMEOUT = float(os.getenv("PROBE_RESPONSE_TIMEOUT_SECONDS", "12"))
 NAMESERVERS = os.getenv("NAMESERVERS", "ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.").split()
-CANDIDATES = json.loads(os.environ["CANDIDATES_JSON"])
-SERVICES = {"api.re8ch.com.": "api", "db-ro.re8ch.com.": "db-ro", "db-rw.re8ch.com.": "db-rw"}
-REGION = next((item["region"] for item in CANDIDATES if item["id"] == NODE), "unknown")
+CANDIDATES = json.loads(os.getenv("CANDIDATES_JSON", "[]"))
+SERVICE_DEFINITIONS = json.loads(os.getenv("SERVICES_JSON", '''{
+  "api.re8ch.com.": {"service": "api", "paths": ["auth", "nuclio", "ledger", "image", "compocv"]},
+  "db-ro.re8ch.com.": {"service": "db-ro", "paths": ["postgrest"]},
+  "db-rw.re8ch.com.": {"service": "db-rw", "paths": ["postgrest"]}
+}'''))
+SERVICES = {name: definition["service"] for name, definition in SERVICE_DEFINITIONS.items()}
+AUTHORITY_REGIONS = json.loads(os.getenv("AUTHORITY_REGIONS_JSON", "{}"))
+REGION = AUTHORITY_REGIONS.get(NODE, next((item["region"] for item in CANDIDATES if item["id"] == NODE), "unknown"))
 LOCK = threading.Lock()
 HEALTH = {service: {} for service in SERVICES.values()}
+KUBERNETES_API = os.getenv("KUBERNETES_SERVICE_HOST", "")
+SERVICE_ACCOUNT = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+
+def kubernetes_get(path):
+    if not KUBERNETES_API:
+        return None
+    try:
+        with open(f"{SERVICE_ACCOUNT}/token", encoding="utf-8") as stream:
+            token = stream.read().strip()
+        context = ssl.create_default_context(cafile=f"{SERVICE_ACCOUNT}/ca.crt")
+        request = urllib.request.Request(
+            f"https://{KUBERNETES_API}:{os.getenv('KUBERNETES_SERVICE_PORT_HTTPS', '443')}{path}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        with urllib.request.urlopen(request, context=context, timeout=3) as response:
+            return json.load(response)
+    except Exception as exc:
+        print(f"kubernetes_get path={path} error={exc}", flush=True)
+        return None
+
+
+def candidates_from_public_edges():
+    payload = kubernetes_get("/apis/networking.re8ch.com/v1alpha1/publicedges")
+    if not payload:
+        return []
+    candidates = []
+    for item in payload.get("items", []):
+        spec = item.get("spec", {})
+        endpoint = spec.get("endpoint", {})
+        if not spec.get("enabled") or spec.get("draining"):
+            continue
+        service_classes = set(spec.get("serviceClasses", []))
+        probes = {}
+        for hostname, definition in SERVICE_DEFINITIONS.items():
+            service = definition["service"]
+            service_class = definition.get("class", "web")
+            if service_class not in service_classes:
+                continue
+            probes[service] = f"https://{hostname.rstrip('.')}{definition.get('probePath', '/')}"
+        candidates.append({
+            "id": item["metadata"]["name"],
+            "nodeName": spec.get("nodeName", ""),
+            "region": spec["region"],
+            "ip": endpoint["value"],
+            "probeIp": endpoint.get("probeAddress", endpoint["value"]),
+            "endpointType": endpoint["type"],
+            "gatewayVip": spec["gatewayVIP"],
+            "priority": spec.get("priority", 0),
+            "priorityByRegion": spec.get("priorityByRegion", {}),
+            "probes": probes,
+        })
+    return candidates
+
+
+def refresh_candidates():
+    discovered = candidates_from_public_edges()
+    if discovered:
+        with LOCK:
+            CANDIDATES[:] = discovered
+            for service in SERVICES.values():
+                HEALTH.setdefault(service, {})
 
 
 def bind_address():
+    per_node = json.loads(os.getenv("BIND_ADDRESSES_JSON", "{}"))
+    if NODE in per_node:
+        return per_node[NODE]
     configured = os.getenv("BIND_ADDRESS", "").strip()
     if configured:
         return configured
@@ -40,10 +114,10 @@ def probe(candidate, service, url):
     failure = ""
     try:
         context = ssl.create_default_context()
-        probe_ip = candidate.get("localIp", candidate["ip"]) if candidate["id"] == NODE else candidate["ip"]
-        sock = socket.create_connection((probe_ip, 443), timeout=3)
+        probe_ip = candidate.get("probeIp", candidate.get("localIp", candidate["ip"]))
+        sock = socket.create_connection((probe_ip, 443), timeout=PROBE_CONNECT_TIMEOUT)
         tls = context.wrap_socket(sock, server_hostname=parsed.hostname)
-        connection = http.client.HTTPConnection(parsed.hostname, timeout=4)
+        connection = http.client.HTTPConnection(parsed.hostname, timeout=PROBE_RESPONSE_TIMEOUT)
         connection.sock = tls
         path = parsed.path or "/"
         if parsed.query:
@@ -78,6 +152,7 @@ def probe(candidate, service, url):
 
 
 def probe_all():
+    refresh_candidates()
     threads = []
     for candidate in CANDIDATES:
         for service, url in candidate.get("probes", {}).items():
@@ -85,7 +160,7 @@ def probe_all():
             thread.start()
             threads.append(thread)
     for thread in threads:
-        thread.join(timeout=5)
+        thread.join(timeout=PROBE_CONNECT_TIMEOUT + PROBE_RESPONSE_TIMEOUT + 2)
 
 
 def probe_loop():
@@ -98,7 +173,11 @@ def ranked(service):
     with LOCK:
         snapshot = dict(HEALTH.get(service, {}))
     result = []
-    for candidate in CANDIDATES:
+    with LOCK:
+        candidates = list(CANDIDATES)
+    for candidate in candidates:
+        if service not in candidate.get("probes", {}):
+            continue
         observed = snapshot.get(candidate["id"], {})
         ready = bool(observed.get("ready"))
         score = 0
@@ -111,6 +190,9 @@ def ranked(service):
                 score += 10
         result.append({
             "id": candidate["id"], "region": candidate["region"], "ip": candidate["ip"],
+            "endpointType": candidate.get("endpointType", "PublicIP"),
+            "gatewayVip": candidate.get("gatewayVip", ""),
+            "paths": candidate.get("paths", {}).get(service, []),
             "score": score, "state": "ready" if ready else "unavailable",
             "statusCode": observed.get("statusCode", 0), "latencyMs": observed.get("latencyMs", 0),
             "observedAt": observed.get("observedAt", 0), "reason": observed.get("failure", ""),
@@ -166,9 +248,16 @@ def dns_response(query):
     if not service:
         rcode = 3
     elif qtype in (1, 255):
-        selected = next((item for item in ranked(service) if item["state"] == "ready"), None)
-        if selected:
-            answers.append(rr(name, 1, 30, ipaddress.ip_address(selected["ip"]).packed))
+        ready = [item for item in ranked(service) if item["state"] == "ready"]
+        if ready:
+            best_score = ready[0]["score"]
+            for selected in [item for item in ready if item["score"] == best_score]:
+                if selected.get("endpointType") == "HostnameTunnel":
+                    answers.append(rr(name, 5, 30, encode_name(selected["ip"])))
+                else:
+                    address = ipaddress.ip_address(selected["ip"])
+                    if address.version == 4:
+                        answers.append(rr(name, 1, 30, address.packed))
     elif qtype == 2:
         answers.extend(rr(name, 2, 300, encode_name(ns)) for ns in NAMESERVERS)
     elif qtype == 6:
@@ -186,6 +275,14 @@ class UDPHandler(socketserver.BaseRequestHandler):
         response = dns_response(data)
         if response:
             sock.sendto(response, self.client_address)
+
+
+class ReusableUDPServer(socketserver.ThreadingUDPServer):
+    allow_reuse_address = True
+
+
+class ReusableTCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
 
 
 class TCPHandler(socketserver.BaseRequestHandler):
@@ -220,13 +317,14 @@ class HTTPHandler(BaseHTTPRequestHandler):
         service = query.get("service", [""])[0]
         if service == "db":
             service = "db-" + query.get("mode", [""])[0]
-        if service not in ("api", "db-ro", "db-rw"):
-            self.send_error(400, "service must be api, db-ro, db-rw, or db with mode")
+        if service not in set(SERVICES.values()):
+            self.send_error(400, "unknown service")
             return
         candidates = ranked(service)
         selected = next((item["id"] for item in candidates if item["state"] == "ready"), "")
         payload = json.dumps({
             "version": 1, "generation": int(time.time() // 10 * 10), "service": service,
+            "paths": next((item.get("paths", []) for item in SERVICE_DEFINITIONS.values() if item["service"] == service), []),
             "selected": selected, "ttlSeconds": 30, "servedBy": NODE,
             "client": self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip(),
             "candidates": candidates,
@@ -243,11 +341,13 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
 
 def main():
+    if not CANDIDATES and not KUBERNETES_API:
+        raise RuntimeError("no PublicEdge API or CANDIDATES_JSON configured")
     probe_all()
     threading.Thread(target=probe_loop, daemon=True).start()
     dns_bind = bind_address()
-    udp = socketserver.ThreadingUDPServer((dns_bind, 53), UDPHandler)
-    tcp = socketserver.ThreadingTCPServer((dns_bind, 53), TCPHandler)
+    udp = ReusableUDPServer((dns_bind, 53), UDPHandler)
+    tcp = ReusableTCPServer((dns_bind, 53), TCPHandler)
     threading.Thread(target=udp.serve_forever, daemon=True).start()
     threading.Thread(target=tcp.serve_forever, daemon=True).start()
     print(f"node={NODE} region={REGION} dns={dns_bind}:53 http=:8080", flush=True)
