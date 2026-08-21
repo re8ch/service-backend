@@ -16,10 +16,17 @@ authorityNodes:
   overseas-la: {bindAddress: 192.0.2.111, area: US, region: los-angeles}
 
 services:
+  api.re8ch.com.: {service: api, class: api, probePath: /__edge/ready}
+  db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
+  db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
   registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
   headlamp.re8ch.com.: {service: headlamp, class: web, probePath: /}
   grafana.re8ch.com.: {service: grafana, class: web, probePath: /grafana/api/health}
   dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration}
+  litellm.re8ch.com.: {service: litellm, class: web, probePath: /health/readiness}
+  cube.re8ch.com.: {service: cube, class: web, probePath: /}
+  dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
+  browser.re8ch.com.: {service: browser, class: web, probePath: /}
 
 publicEdges:
   - name: guangzhou-zan
@@ -27,7 +34,7 @@ publicEdges:
     region: guangzhou
     nodeName: zan
     endpoint: {type: PublicIP, value: 192.0.2.192}
-    gatewayVIP: 192.0.2.213
+    gatewayVIP: 192.0.2.143
     capacityMbps: 100
     priority: 10
     serviceClasses: [api, db-ro, db-rw, web, registry]
@@ -50,12 +57,15 @@ probe:
 publication:
   # Cloudflare A records are global. The elected CN authority publishes the
   # default answer; region-aware names should be delegated to the NS service.
-  publisherNode: restricted-node-1eb0570f74
+  publisherNode: vm-20-12-ubuntu
   refs:
     registry: {namespace: qianwen-ops, name: static-cilium-edge-services-dns}
     headlamp: {namespace: headlamp, name: headlamp-dns-authority}
     grafana: {namespace: qianwen-ops, name: grafana-dns-authority}
     dex: {namespace: dex, name: dex-dns-authority}
+    litellm: {namespace: llm-gateway, name: litellm-dns-authority}
+    cube: {namespace: cube-trial, name: cube-dns-authority}
+    dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
 
 resources:
   requests: {cpu: 20m, memory: 32Mi}
