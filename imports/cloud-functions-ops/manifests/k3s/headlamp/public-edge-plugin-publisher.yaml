@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: headlamp-public-edge-plugin-0-1-0
+  name: headlamp-public-edge-plugin-0-1-1
   namespace: headlamp
   labels: {app.kubernetes.io/name: headlamp-public-edge-plugin}
 spec:
@@ -24,7 +24,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              install_dir=/plugins/public-edge-0.1.0
+              install_dir=/plugins/public-edge-0.1.1
               mkdir -p "$install_dir"
               cp /bundle/main.js "$install_dir/main.js.next"
               cp /bundle/package.json "$install_dir/package.json.next"

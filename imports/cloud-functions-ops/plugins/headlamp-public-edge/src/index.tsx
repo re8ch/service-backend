@@ -36,14 +36,14 @@ function Dashboard() {
     {(edgeError || routeError) && <Alert severity="error">无法读取 PublicEdge/Gateway API：{String(edgeError || routeError)}</Alert>}
     <SectionBox title={`Candidates (${(edges || []).length})`}>
       <Table data={edges || []} columns={[
-        {header:'Candidate',accessorFn:(x:any)=>x.metadata.name},
-        {header:'Area / Region',accessorFn:(x:any)=>`${x.spec.area} / ${x.spec.region}`},
-        {header:'Node',accessorFn:(x:any)=>x.spec.nodeName || '-'},
-        {header:'Public endpoint',accessorFn:(x:any)=>x.spec.endpoint?.value || '-'},
-        {header:'Gateway VIP',accessorFn:(x:any)=>x.spec.gatewayVIP},
-        {header:'Capacity',accessorFn:(x:any)=>`${x.spec.capacityMbps} Mbps`},
-        {header:'State',accessorFn:(x:any)=><StatusLabel status={condition(x,'Ready')?'success':'error'}>{x.spec.draining?'Draining':condition(x,'Ready')?'Ready':'Unavailable'}</StatusLabel>},
-        {header:'Classes',accessorFn:(x:any)=><Box sx={{display:'flex',gap:.5,flexWrap:'wrap'}}>{(x.spec.serviceClasses || []).map((v:string)=><Chip key={v} size="small" label={v}/>)}</Box>}
+        {header:'Candidate',accessorFn:(x:any)=>x?.metadata?.name || '-'},
+        {header:'Area / Region',accessorFn:(x:any)=>`${x?.spec?.area || '-'} / ${x?.spec?.region || '-'}`},
+        {header:'Node',accessorFn:(x:any)=>x?.spec?.nodeName || '-'},
+        {header:'Public endpoint',accessorFn:(x:any)=>x?.spec?.endpoint?.value || '-'},
+        {header:'Gateway VIP',accessorFn:(x:any)=>x?.spec?.gatewayVIP || '-'},
+        {header:'Capacity',accessorFn:(x:any)=>x?.spec?.capacityMbps == null ? '-' : `${x.spec.capacityMbps} Mbps`},
+        {header:'State',accessorFn:(x:any)=><StatusLabel status={condition(x,'Ready')?'success':'error'}>{x?.spec?.draining?'Draining':condition(x,'Ready')?'Ready':'Unavailable'}</StatusLabel>},
+        {header:'Classes',accessorFn:(x:any)=><Box sx={{display:'flex',gap:.5,flexWrap:'wrap'}}>{(Array.isArray(x?.spec?.serviceClasses) ? x.spec.serviceClasses : []).map((v:string)=><Chip key={v} size="small" label={v}/>)}</Box>}
       ] as any}/>
     </SectionBox>
     <SectionBox title={`Published services (${routeRows.length})`}>

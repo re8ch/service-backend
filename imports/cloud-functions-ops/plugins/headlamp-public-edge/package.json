@@ -1,6 +1,6 @@
 {
   "name": "@re8ch/headlamp-public-edge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Headlamp topology and health console for PublicEdgeManager",
   "scripts": {"build":"headlamp-plugin build","lint":"headlamp-plugin lint","package":"headlamp-plugin package","tsc":"headlamp-plugin tsc"},
   "keywords": ["headlamp", "public-edge", "gateway-api", "external-dns"],
