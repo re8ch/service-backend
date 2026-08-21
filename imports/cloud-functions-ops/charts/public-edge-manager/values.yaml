@@ -1,7 +1,7 @@
 image:
-  repository: registry.re8ch.com/platform/regional-routing-authority
-  tag: "0.1.0"
-  digest: ""
+  repository: docker.1ms.run/library/python
+  tag: "3.12-alpine"
+  digest: "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
   pullPolicy: IfNotPresent
 
 crd:
@@ -11,9 +11,7 @@ nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com., ns-us.re8ch.com.]
 authorityNodes:
   restricted-node-1eb0570f74: {bindAddress: 192.0.2.18, area: CN, region: loudi}
   restricted-node-296f36f2fb: {bindAddress: 192.0.2.208, area: CN, region: loudi}
-  domain-ex: {bindAddress: 192.0.2.241, area: CN, region: shanghai}
   vm-20-12-ubuntu: {bindAddress: 192.0.2.158, area: CN, region: guangzhou}
-  overseas-la: {bindAddress: 192.0.2.91, area: US, region: los-angeles}
 
 services:
   api.re8ch.com.: {service: api, class: api, probePath: /__edge/ready}
@@ -43,6 +41,7 @@ publicEdges:
     area: CN
     region: loudi
     nodeName: restricted-node-6dc3f140f9
+    enabled: false
     endpoint: {type: PublicIP, value: 192.0.2.79}
     gatewayVIP: 192.0.2.209
     capacityMbps: 1000
