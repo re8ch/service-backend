@@ -9,8 +9,11 @@ data:
   ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
   API_ORIGIN_POOL_NAME: api
   API_READY_HOST: api.jz.ynzs.com
-  API_ORIGINS: api-2,nuc-2.ynzs.com api-3,nuc-3.ynzs.com
-  API_ORIGIN_PROBE_ADDRESSES: api-2=192.0.2.110 api-3=192.0.2.210
+  # PublicEdgeManager selected restricted-node-6dc3f140f9 is the healthy high-bandwidth CN origin.
+  # The Cilium Gateway terminates api.jz.ynzs.com and forwards to Traefik's
+  # existing path authority, so ESA no longer probes cordoned muaya nodes.
+  API_ORIGINS: public-edge-r640,192.0.2.79
+  API_ORIGIN_PROBE_ADDRESSES: public-edge-r640=192.0.2.79
   # Keep nuc-2/3 as CNAMEs to nuc-1/2.re8ch.com. This controller manages the
   # origin pool health only and must not replace those aliases with A records.
   API_ORIGIN_A_RECORDS: ""
