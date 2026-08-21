@@ -10,6 +10,7 @@ metadata:
     external-dns.alpha.kubernetes.io/target: 192.0.2.67
     external-dns.alpha.kubernetes.io/ttl: "1"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    networking.re8ch.com/provider: public-edge-manager
 spec:
   # No ingress controller owns this class. The object is strictly the public
   # DNS authority; Cilium Gateway API remains the HTTP/TLS routing authority.
