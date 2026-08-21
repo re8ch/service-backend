@@ -40,7 +40,6 @@ spec:
             - -oidc-idp-issuer-url=https://dex.re8ch.com
             - -oidc-callback-url=https://headlamp.re8ch.com/oidc-callback
             - -oidc-scopes=openid,profile,email,groups
-            - -oidc-skip-tls-verify
             - -plugins-dir=/headlamp/plugins
           volumeMounts:
             - name: plugins

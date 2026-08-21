@@ -13,6 +13,13 @@ spec:
   type: LoadBalancer
   loadBalancerClass: io.cilium/bgp-control-plane
   externalTrafficPolicy: Cluster
+  # Headlamp v0.42 keeps OIDC authorization state in process memory. Keep the
+  # authorize request and callback on the same HA replica until upstream ships
+  # portable signed state or a shared state store.
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
   selector:
     app.kubernetes.io/name: headlamp
   ports:
