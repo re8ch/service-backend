@@ -20,7 +20,9 @@
     {"id": 73, "name": "vm-20-12-ubuntu", "ztIp": "192.0.2.192", "publicIp": "192.0.2.122", "asn": 4200000073, "region": "shanghai"},
     {"id": 77, "name": "artchais-nuclio-1", "ztIp": "192.0.2.182", "publicIp": "192.0.2.86", "asn": 4200000077, "region": "shanghai"},
     {"id": 79, "name": "qianwen-nuclio-79", "ztIp": "192.0.2.112", "publicIp": "192.0.2.197", "asn": 4200000079, "region": "shanghai"},
+    {"id": 89, "name": "overseas-kl", "ztIp": "192.0.2.245", "publicIp": "192.0.2.145", "podCIDR": "192.0.2.110/24", "asn": 4200000089, "region": "kuala-lumpur"},
     {"id": 95, "name": "harbor-registry", "ztIp": "192.0.2.74", "publicIp": "192.0.2.185", "asn": 4200000095, "region": "hangzhou"},
+    {"id": 104, "name": "overseas-la", "ztIp": "192.0.2.110", "publicIp": "192.0.2.111", "podCIDR": "192.0.2.114/24", "asn": 4200000104, "region": "los-angeles"},
     {"id": 128, "name": "restricted-node-6dc3f140f9", "ztIp": "192.0.2.178", "publicIp": "192.0.2.138", "asn": 4200000128, "region": "r640-lan"},
     {"id": 186, "name": "pg-re8ch-replica-186", "ztIp": "192.0.2.89", "publicIp": "192.0.2.62", "asn": 4200000186, "region": "unknown"}
   ]

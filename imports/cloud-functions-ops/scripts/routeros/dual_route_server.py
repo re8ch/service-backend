@@ -202,17 +202,74 @@ def failover(router, connection):
     return result
 
 
+def diagnose_next_hops(router):
+    """Probe node underlay next hops from RouterOS without exposing auth data."""
+    addresses = (
+        "192.0.2.10",
+        "192.0.2.192",
+        "192.0.2.178",
+        "192.0.2.176",
+        "192.0.2.4",
+        "192.0.2.89",
+        # Representative Cilium health endpoints: restricted-node-6dc3f140f9, known-good remote,
+        # and the three paths currently failing from restricted-node-6dc3f140f9.
+        "192.0.2.230",
+        "192.0.2.134",
+        "192.0.2.239",
+        "192.0.2.238",
+        "192.0.2.84",
+    )
+    result = {}
+    for address in addresses:
+        replies = router.request(
+            "/ping", "POST", {"address": address, "count": "3", "interval": "200ms"}
+        )
+        result[address] = {
+            "received": sum(1 for reply in replies if "time" in reply),
+            "sent": len(replies),
+        }
+    routes = router.request(
+        "/ip/route?.proplist=dst-address,gateway,active,dynamic,disabled,comment"
+    )
+    router_addresses = router.request(
+        "/ip/address?.proplist=address,interface,disabled,dynamic,comment"
+    )
+    inspected = {
+        "192.0.2.10/32",
+        "192.0.2.192/32",
+        "192.0.2.89/32",
+        "192.0.2.57/24",
+        "192.0.2.134/24",
+        "192.0.2.94/24",
+    }
+    return {
+        "pings": result,
+        "routerAddresses": router_addresses,
+        "routes": [route for route in routes if route.get("dst-address") in inspected],
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "action",
-        choices=("observe", "apply", "disable-static", "enable-static", "test-a1", "test-b1"),
+        choices=(
+            "observe",
+            "diagnose",
+            "apply",
+            "disable-static",
+            "enable-static",
+            "test-a1",
+            "test-b1",
+        ),
     )
     args = parser.parse_args()
     router = RouterOS()
     result = None
     if args.action == "apply":
         reconcile(router)
+    elif args.action == "diagnose":
+        result = {"nextHopPings": diagnose_next_hops(router)}
     elif args.action == "disable-static":
         result = {"disabled": set_static_routes(router, True)}
     elif args.action == "enable-static":

@@ -278,7 +278,9 @@ metadata:
   namespace: opensandbox-system
 spec:
   type: NodePort
-  externalTrafficPolicy: Local
+  # Keep the legacy NodePort during migration, but allow Cilium Gateway
+  # instances on other nodes to select the restricted-node-6dc3f140f9 endpoint.
+  externalTrafficPolicy: Cluster
   selector:
     app.kubernetes.io/name: opensandbox-server
   ports:
@@ -653,6 +655,23 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: opensandbox-server-from-gateway
+  namespace: opensandbox-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: opensandbox-server
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

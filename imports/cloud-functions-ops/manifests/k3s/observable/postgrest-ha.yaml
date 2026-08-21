@@ -81,6 +81,34 @@ spec:
   ports:
     - {name: http, port: 3000, targetPort: http}
 ---
+# Stable in-cluster representation of the Pigsty PostgREST role gateway.
+# The endpoint is updated by the Pigsty role reconciler when the primary moves;
+# public DNS and regional Gateways never point at an individual database Pod.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pigsty-postgrest-role-gateway
+  namespace: observable
+spec:
+  ports:
+    - {name: http, port: 3080, targetPort: 3080}
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pigsty-postgrest-role-gateway-domain-ex
+  namespace: observable
+  labels:
+    kubernetes.io/service-name: pigsty-postgrest-role-gateway
+    endpointslice.kubernetes.io/managed-by: re8ch-pigsty-role-reconciler
+addressType: IPv4
+ports:
+  - {name: http, protocol: TCP, port: 3080}
+endpoints:
+  - addresses: [192.0.2.89]
+    conditions: {ready: true}
+    hostname: domain-ex
+---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -117,6 +145,11 @@ metadata:
 spec:
   parentRefs:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-rw-https}
   hostnames: [db-rw.re8ch.com]
   rules:
     - matches:
@@ -127,6 +160,10 @@ spec:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
       backendRefs:
         - {name: observable-postgrest, port: 3000}
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: pigsty-postgrest-role-gateway, port: 3080}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -136,6 +173,11 @@ metadata:
 spec:
   parentRefs:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-ro-https}
   hostnames: [db-ro.re8ch.com]
   rules:
     - matches:
@@ -146,3 +188,7 @@ spec:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
       backendRefs:
         - {name: observable-postgrest, port: 3000}
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: pigsty-postgrest-role-gateway, port: 3080}

@@ -4,7 +4,8 @@ metadata:
   name: aliyun-esa-pg-dns-controller-config
   namespace: qwen
 data:
-  APPLY: "1"
+  # Retired in favor of qianwen-ops/external-dns-cloudflare.
+  APPLY: "0"
   ESA_SITE_NAME: ynzs.com
   ESA_ENDPOINT: esa.cn-hangzhou.aliyuncs.com
   ESA_TTL: "1"
@@ -314,7 +315,8 @@ metadata:
   labels:
     app.kubernetes.io/name: aliyun-esa-pg-dns-controller
 spec:
-  replicas: 1
+  # Retired: never run a second DNS writer from this legacy manifest.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: aliyun-esa-pg-dns-controller

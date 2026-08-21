@@ -676,7 +676,7 @@ metadata:
     app.kubernetes.io/name: panel-blackbox-exporter
     app.kubernetes.io/part-of: panel-observability
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -886,7 +886,8 @@ spec:
     matchLabels:
       app.kubernetes.io/name: panel-victoria-metrics
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
   template:
     metadata:
       labels:
@@ -894,9 +895,16 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       serviceAccountName: panel-victoria-metrics
-      nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
-        kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector: {matchLabels: {app.kubernetes.io/name: panel-grafana}}
       tolerations:
         - key: dedicated
           operator: Equal
@@ -2774,7 +2782,10 @@ data:
         uid: pigsty-metrics
         type: prometheus
         access: proxy
-        url: http://192.0.2.192:8428
+        # Reuse the in-cluster VictoriaMetrics authority.  The previous
+        # vm-20-12-ubuntu node IP was a single-node dependency and is no
+        # longer a valid metrics origin after native-routing migration.
+        url: http://${PANEL_VICTORIA_METRICS_SERVICE_HOST}:8428
         isDefault: false
         editable: true
         jsonData:
@@ -3230,6 +3241,16 @@ spec:
               value: "false"
             - name: GF_ANALYTICS_CHECK_FOR_UPDATES
               value: "false"
+            - {name: GF_DATABASE_TYPE, value: postgres}
+            - name: GF_DATABASE_HOST
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: host}}
+            - name: GF_DATABASE_NAME
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: name}}
+            - name: GF_DATABASE_USER
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: user}}
+            - name: GF_DATABASE_PASSWORD
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: password}}
+            - {name: GF_DATABASE_SSL_MODE, value: disable}
             - name: GF_PLUGINS_PREINSTALL
               value: victoriametrics-metrics-datasource,victoriametrics-logs-datasource,yesoreyeram-infinity-datasource,marcusolsson-static-datasource
             - name: GF_PLUGINS_PREINSTALL_AUTO_UPDATE
@@ -3275,6 +3296,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/grafana
+            - name: plugins
+              mountPath: /var/lib/grafana/plugins
             - name: datasources
               mountPath: /etc/grafana/provisioning/datasources
               readOnly: true
@@ -3283,11 +3306,9 @@ spec:
               readOnly: true
       volumes:
         - name: data
-          # Keep the SQLite database local until Grafana is moved to PostgreSQL.
-          # CephFS is retained for exports/backups, not the live SQLite file.
-          hostPath:
-            path: /var/lib/rancher/k3s/storage/pvc-64ae1b9e-53cb-49e6-9402-6b2d2dc7d5f6_qianwen-ops_panel-grafana-data
-            type: Directory
+          emptyDir: {}
+        - name: plugins
+          persistentVolumeClaim: {claimName: panel-grafana-plugins}
         - name: datasources
           configMap:
             name: panel-grafana-datasources
@@ -3312,47 +3333,6 @@ spec:
       port: 3000
       targetPort: http
       nodePort: 30080
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: panel-grafana
-  namespace: qianwen-ops
-  labels:
-    app.kubernetes.io/name: panel-grafana
-    app.kubernetes.io/part-of: panel-observability
-  annotations:
-    external-dns.alpha.kubernetes.io/target: 192.0.2.192
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: grafana.re8ch.com
-      http:
-        paths:
-          # restricted-node-6dc3f140f9 public 443 terminates at the host-network Traefik. Keep the
-          # canonical root redirect on this data plane as well as HTTPRoute.
-          - path: /
-            pathType: Exact
-            backend:
-              service:
-                name: panel-grafana-vip-origin
-                port:
-                  name: http
-          - path: /grafana
-            pathType: Prefix
-            backend:
-              service:
-                name: panel-grafana-vip-origin
-                port:
-                  name: http
-  tls:
-    - hosts:
-        - grafana.re8ch.com
-      secretName: re8ch-wildcard-tls
 ---
 apiVersion: apps/v1
 kind: Deployment

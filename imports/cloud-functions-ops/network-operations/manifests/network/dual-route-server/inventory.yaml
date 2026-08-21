@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-dual-route-server-inventory
+  namespace: kube-system
+  labels:
+    networking.re8ch.com/fabric: podcidr
+data:
+  fabric.yaml: |
+    routerOS:
+      address: 192.0.2.178
+      asn: 4200064001
+      export: [192.0.2.140/24]
+      import: 192.0.2.57/16 exact-/24
+      reject: [0.0.0.0/0, 192.0.2.20/24]
+    routeServers:
+      - {name: restricted-node-1eb0570f74, address: 192.0.2.176, asn: 4200010147}
+      - {name: restricted-node-296f36f2fb, address: 192.0.2.4, asn: 4200010125}
+    currentPodCIDRs:
+      vm-20-12-ubuntu: 192.0.2.57/24
+      restricted-node-6dc3f140f9: 192.0.2.140/24
+      amdwsl-zt: 192.0.2.134/24
+      qwen-3: 192.0.2.6/24
+      restricted-node-1eb0570f74: 192.0.2.48/24
+      overseas-edge-50: 192.0.2.4/24
+      qwen-1: 192.0.2.96/24
+      restricted-node-296f36f2fb: 192.0.2.234/24
+      qwen-2: 192.0.2.207/24
+      suxunji: 192.0.2.79/24
+      muaya-ecs: 192.0.2.237/24
+      muaya-lightweight: 192.0.2.89/24
+      zan: 192.0.2.128/24
+      domain-ex: 192.0.2.94/24
+    # Temporary advertisements while pre-reassignment Pods remain alive.
+    legacyActivePodCIDRs:
+      qwen-2: 192.0.2.114/24
+      qwen-1: 192.0.2.203/24
+      zan: 192.0.2.113/24

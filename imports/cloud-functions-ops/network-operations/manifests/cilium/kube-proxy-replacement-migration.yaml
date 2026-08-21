@@ -1,0 +1,181 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: kube-proxy-replacement
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      io.cilium.migration/kube-proxy-replacement: "true"
+  defaults:
+    kube-proxy-replacement: "true"
+    kube-proxy-replacement-healthz-bind-address: "'0.0.0.0:10256'"
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-probe-panel, namespace: kube-system}
+spec:
+  nodeName: vm-20-12-ubuntu
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: probe
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sh, -ec]
+      args: ["bpftool feature probe kernel >/dev/null || exit 11; test -d /host/run/cilium/cgroupv2 || exit 12; test -d /host/sys/fs/bpf || exit 13"]
+      securityContext: {privileged: true}
+      volumeMounts: [{name: host-root, mountPath: /host, readOnly: true}]
+  volumes: [{name: host-root, hostPath: {path: /, type: Directory}}]
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-apiserver-a1-v2, namespace: kube-system}
+spec:
+  nodeName: vm-20-12-ubuntu
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  serviceAccountName: cilium
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [cilium-dbg, build-config]
+      env:
+        - {name: K8S_NODE_NAME, value: vm-20-12-ubuntu}
+        - {name: CILIUM_K8S_NAMESPACE, value: kube-system}
+        - {name: KUBERNETES_SERVICE_HOST, value: 192.0.2.176}
+        - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-apiserver-b1-v2, namespace: kube-system}
+spec:
+  nodeName: vm-20-12-ubuntu
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  serviceAccountName: cilium
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [cilium-dbg, build-config]
+      env:
+        - {name: K8S_NODE_NAME, value: vm-20-12-ubuntu}
+        - {name: CILIUM_K8S_NAMESPACE, value: kube-system}
+        - {name: KUBERNETES_SERVICE_HOST, value: 192.0.2.4}
+        - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-panel-host-route-audit, namespace: kube-system}
+spec:
+  nodeName: vm-20-12-ubuntu
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: audit
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sh, -ec]
+      args:
+        - >-
+          nsenter -t 1 -m -n -- sh -c '
+          ip route get 192.0.2.178;
+          ip route get 192.0.2.176;
+          ip route get 192.0.2.4;
+          systemctl is-active wg-quick@wg-r640 || true;
+          wg show wg-r640 || true;
+          vtysh -c "show ip route 192.0.2.178/32" || true
+          ' > /dev/termination-log 2>&1
+      securityContext: {privileged: true}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-panel-r640-lan-canary, namespace: kube-system}
+spec:
+  nodeName: vm-20-12-ubuntu
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: canary
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sh, -ec]
+      args:
+        - >-
+          nsenter -t 1 -m -n -- sh -ec '
+          peer=$(wg show wg-r640 peers);
+          wg set wg-r640 peer "$peer" allowed-ips 192.0.2.48/32,192.0.2.178/32,192.0.2.169/32;
+          ip route replace 192.0.2.169/32 dev wg-r640 metric 20;
+          ip route get 192.0.2.169;
+          timeout 8 bash -c "exec 3<>/dev/tcp/192.0.2.169/6443";
+          echo R640_LAN_API_TCP_OK
+          ' > /dev/termination-log 2>&1
+      securityContext: {privileged: true}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-apiserver-r640-v3, namespace: kube-system}
+spec:
+  nodeName: vm-20-12-ubuntu
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  serviceAccountName: cilium
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [cilium-dbg, build-config]
+      env:
+        - {name: K8S_NODE_NAME, value: vm-20-12-ubuntu}
+        - {name: CILIUM_K8S_NAMESPACE, value: kube-system}
+        - {name: KUBERNETES_SERVICE_HOST, value: 192.0.2.178}
+        - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-probe-domain, namespace: kube-system}
+spec:
+  nodeName: domain-ex
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: probe
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sh, -ec]
+      args: ["bpftool feature probe kernel >/dev/null || exit 11; test -d /host/run/cilium/cgroupv2 || exit 12; test -d /host/sys/fs/bpf || exit 13"]
+      securityContext: {privileged: true}
+      volumeMounts: [{name: host-root, mountPath: /host, readOnly: true}]
+  volumes: [{name: host-root, hostPath: {path: /, type: Directory}}]
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: re8ch-kpr-probe-muaya-lightweight, namespace: kube-system}
+spec:
+  nodeName: muaya-lightweight
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: probe
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sh, -ec]
+      args: ["bpftool feature probe kernel >/dev/null || exit 11; test -d /host/run/cilium/cgroupv2 || exit 12; test -d /host/sys/fs/bpf || exit 13"]
+      securityContext: {privileged: true}
+      volumeMounts: [{name: host-root, mountPath: /host, readOnly: true}]
+  volumes: [{name: host-root, hostPath: {path: /, type: Directory}}]

@@ -8,6 +8,12 @@ spec:
     annotations: {lbipam.cilium.io/ips: 192.0.2.148}
   listeners:
     - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
     - name: headlamp-https
       hostname: headlamp.re8ch.com
       protocol: HTTPS
@@ -28,6 +34,18 @@ spec:
       allowedRoutes: {namespaces: {from: All}}
     - name: api-https
       hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-ro-https
+      hostname: db-ro.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-rw-https
+      hostname: db-rw.re8ch.com
       protocol: HTTPS
       port: 443
       tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
@@ -49,6 +67,12 @@ spec:
     annotations: {lbipam.cilium.io/ips: 192.0.2.143}
   listeners:
     - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
     - name: headlamp-https
       hostname: headlamp.re8ch.com
       protocol: HTTPS
@@ -69,6 +93,18 @@ spec:
       allowedRoutes: {namespaces: {from: All}}
     - name: api-https
       hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-ro-https
+      hostname: db-ro.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-rw-https
+      hostname: db-rw.re8ch.com
       protocol: HTTPS
       port: 443
       tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
@@ -90,6 +126,12 @@ spec:
     annotations: {lbipam.cilium.io/ips: 192.0.2.201}
   listeners:
     - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
     - name: headlamp-https
       hostname: headlamp.re8ch.com
       protocol: HTTPS
@@ -110,6 +152,18 @@ spec:
       allowedRoutes: {namespaces: {from: All}}
     - name: api-https
       hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-ro-https
+      hostname: db-ro.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-rw-https
+      hostname: db-rw.re8ch.com
       protocol: HTTPS
       port: 443
       tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
@@ -131,6 +185,12 @@ spec:
     annotations: {lbipam.cilium.io/ips: 192.0.2.116}
   listeners:
     - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
     - name: headlamp-https
       hostname: headlamp.re8ch.com
       protocol: HTTPS
@@ -151,6 +211,18 @@ spec:
       allowedRoutes: {namespaces: {from: All}}
     - name: api-https
       hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-ro-https
+      hostname: db-ro.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-rw-https
+      hostname: db-rw.re8ch.com
       protocol: HTTPS
       port: 443
       tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
@@ -172,6 +244,12 @@ spec:
     annotations: {lbipam.cilium.io/ips: 192.0.2.150}
   listeners:
     - {name: http, protocol: HTTP, port: 80, allowedRoutes: {namespaces: {from: All}}}
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
     - name: headlamp-https
       hostname: headlamp.re8ch.com
       protocol: HTTPS
@@ -192,6 +270,18 @@ spec:
       allowedRoutes: {namespaces: {from: All}}
     - name: api-https
       hostname: api.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-ro-https
+      hostname: db-ro.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: db-rw-https
+      hostname: db-rw.re8ch.com
       protocol: HTTPS
       port: 443
       tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}

@@ -5,15 +5,17 @@ metadata:
   namespace: qianwen-ops
 data:
   API_ALLOW_CANDIDATE_COLLAPSE: "true"
-  API_CAND_SLOT_NAMES: api-cand1.re8ch.com api-cand2.re8ch.com api-cand3.re8ch.com
+  # Qwen is out of the recovery path; retain one compatibility candidate and
+  # reserve DNS quota for platform control services.
+  API_CAND_SLOT_NAMES: ""
   API_CAND_TARGET_MODE: regional-name
   API_DNS_POLICY_CLASS: mixed
   API_EDGE_DOMAIN: re8ch.com
   API_EDGE_GENERAL_ENABLED: "true"
   API_EDGE_ORIGIN_TARGETS: suxunji=192.0.2.86 qwen-1=192.0.2.5 qwen-2=192.0.2.45
   API_EDGE_USE_ZT_AS_ORIGIN: "false"
-  API_SYNC_REGIONAL_RECORDS: "true"
+  API_SYNC_REGIONAL_RECORDS: "false"
   API_TENANT_DNS_ENABLED: "true"
-  # Public platform services are owned by ExternalDNS + Gateway API.  Keep
-  # only Qwen's image API in this legacy regional controller.
-  API_TENANT_DNS_RULES: image.re8ch.com=api-shanghai77.re8ch.com
+  # Headlamp's explicit public target is mirrored here so DNS remains
+  # convergent while ExternalDNS is being rescheduled away from restricted-node-6dc3f140f9.
+  API_TENANT_DNS_RULES: image.re8ch.com=api-shanghai77.re8ch.com headlamp.re8ch.com=192.0.2.192,ttl=1,proxied=true

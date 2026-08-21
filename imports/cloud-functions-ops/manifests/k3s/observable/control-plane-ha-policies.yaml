@@ -1,0 +1,39 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: panel-grafana, namespace: qianwen-ops}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: panel-grafana}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: hyperglass, namespace: qianwen-ops}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: hyperglass}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: oauth2-proxy-hubble, namespace: qianwen-ops}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-hubble}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: oauth2-proxy-hyperglass, namespace: qianwen-ops}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-hyperglass}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: oauth2-proxy-opencost, namespace: qianwen-ops}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-opencost}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: opencost, namespace: opencost}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: opencost}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: hubble-ui, namespace: kube-system}
+spec: {minAvailable: 1, selector: {matchLabels: {k8s-app: hubble-ui}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: hubble-relay, namespace: kube-system}
+spec: {minAvailable: 1, selector: {matchLabels: {k8s-app: hubble-relay}}}

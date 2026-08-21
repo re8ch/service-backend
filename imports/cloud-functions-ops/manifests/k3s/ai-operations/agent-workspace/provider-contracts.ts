@@ -40,11 +40,11 @@ export type TerminalRuntime = { provider: string; instanceRef: string; volumeRef
 export type BrowserSession = { provider: string; sessionRef: string; profileRef: string; workerRef?: string };
 export type ExecResult = { operationId: string; exitCode: number; stdout: string; stderr: string };
 
-// Blaxel adapter semantics:
-// - ensure() uses SandboxInstance.createIfNotExists/get.
-// - an API/process connection resumes STANDBY automatically; there is no fake start().
-// - releaseActivity() closes SDK/WebSocket activity and lets Blaxel enter standby.
-// - recreate() attaches the durable Blaxel Volume to a new sandbox. CephFS is
-//   synchronized by the control plane; it is not mounted directly by Blaxel.
-// CiliumServiceGatewayBGPConnectivity is preferred only after the provider has
-// private routing/tunneling that can learn/reach the BGP-advertised VIP.
+// CubeSandbox adapter semantics:
+// - CubeAPI/CubeMaster/Cubelet own microVM creation, scheduling and snapshots.
+// - lifecycle methods only translate the Cloud Platform contract; they must not
+//   reproduce Cube scheduling, isolation or snapshot logic.
+// - CephFS owns durable workspace state. Prefer a direct mount after the
+//   K3s/Cilium/Ceph compatibility gate; otherwise use revisioned checkpointing.
+// - OpenSandbox BatchSandbox remains the Kubernetes workload path. CubeSandbox
+//   uses a thin adapter until it is an upstream OpenSandbox provider.

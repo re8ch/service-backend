@@ -3,11 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "tsc --noEmit",
-    "poc:blaxel": "tsx poc-blaxel-terminal.ts"
-  },
-  "dependencies": {
-    "@blaxel/core": "0.3.11"
+    "check": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
