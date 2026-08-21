@@ -17,7 +17,7 @@ data:
   # Publication must be elected by an off-LAN observer. A1 can hairpin through
   # RouterOS and incorrectly classify an externally unreachable restricted-node-6dc3f140f9 as ready.
   PUBLISHER_NODE: vm-20-12-ubuntu
-  PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"qianwen-ops","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"}}'
+  PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"qianwen-ops","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"},"litellm":{"namespace":"llm-gateway","name":"litellm-dns-authority"},"cube":{"namespace":"cube-trial","name":"cube-dns-authority"},"dbgui":{"namespace":"ops","name":"cloudbeaver-dns-authority"}}'
   SERVICES_JSON: |-
     {
       "api.re8ch.com.": {"service":"api","class":"api","probePath":"/__edge/ready","paths":["auth","nuclio","ledger","image","compocv"]},
@@ -33,6 +33,7 @@ data:
       "phonycenter.re8ch.com.": {"service":"phonycenter","class":"web","probePath":"/"},
       "marketplace.re8ch.com.": {"service":"marketplace","class":"web","probePath":"/"},
       "cube.re8ch.com.": {"service":"cube","class":"web","probePath":"/"},
+      "dbgui.re8ch.com.": {"service":"dbgui","class":"web","probePath":"/"},
       "teable.re8ch.com.": {"service":"teable","class":"web","probePath":"/"},
       "browser.re8ch.com.": {"service":"browser","class":"web","probePath":"/"},
       "storage.re8ch.com.": {"service":"storage","class":"web","probePath":"/"},
