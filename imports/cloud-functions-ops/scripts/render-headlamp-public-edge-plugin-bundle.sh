@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+plugin_dir="$repo_root/plugins/headlamp-public-edge"
+
+cd "$plugin_dir"
+npm run tsc >&2
+npm run build >&2
+kubectl create configmap headlamp-public-edge-plugin-bundle \
+  --namespace headlamp \
+  --from-file=main.js=dist/main.js \
+  --from-file=package.json=package.json \
+  --dry-run=client -o yaml

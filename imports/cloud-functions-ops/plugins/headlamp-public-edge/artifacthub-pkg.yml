@@ -1,0 +1,13 @@
+version: 0.1.0
+name: public-edge
+displayName: Public Edge
+createdAt: "2026-08-21T08:00:00Z"
+description: Observe PublicEdge candidates, geographic selection and public-exit to Gateway/Service topology.
+license: Apache-2.0
+homeURL: https://github.com/re8ch/headlamp-public-edge
+containersImages: []
+annotations:
+  headlamp/plugin/archive-url: https://github.com/re8ch/headlamp-public-edge/releases/download/v0.1.0/re8ch-headlamp-public-edge-0.1.0.tar.gz
+  headlamp/plugin/archive-checksum: SHA256:e1a2b9506355d518c65539881b7976d310854c9935756d52ab6c3686187827e5
+  headlamp/plugin/version-compat: ">=0.42.0"
+  headlamp/plugin/distro-compat: in-cluster,web,docker-desktop,desktop
