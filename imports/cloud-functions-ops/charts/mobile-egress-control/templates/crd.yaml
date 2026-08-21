@@ -1,0 +1,52 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: mobileegresses.networking.re8ch.com
+spec:
+  group: networking.re8ch.com
+  scope: Cluster
+  names:
+    plural: mobileegresses
+    singular: mobileegress
+    kind: MobileEgress
+    shortNames: [meg]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - {name: Node, type: string, jsonPath: .spec.nodeRef}
+        - {name: Capability, type: string, jsonPath: .spec.capability}
+        - {name: Draining, type: boolean, jsonPath: .spec.draining}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [id, nodeRef, capability, transports]
+              properties:
+                id: {type: string, minLength: 1}
+                nodeRef: {type: string, minLength: 1}
+                area: {type: string}
+                region: {type: string}
+                capability: {type: string, enum: [cn, global]}
+                enabled: {type: boolean, default: true}
+                draining: {type: boolean, default: false}
+                allowLeaf: {type: boolean, default: false}
+                capacityMbps: {type: integer, minimum: 1}
+                monthlyTrafficLimitGiB: {type: integer, minimum: 1}
+                transports:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [type, host, port]
+                    properties:
+                      type: {type: string, enum: [hysteria2, trojan-tls]}
+                      host: {type: string, minLength: 1}
+                      port: {type: integer, minimum: 1, maximum: 65535}
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources: {status: {}}
