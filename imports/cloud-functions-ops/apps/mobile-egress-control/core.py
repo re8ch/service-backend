@@ -60,7 +60,7 @@ def project_mobile_egresses(
             continue
         transports = [
             item for item in gateway.get("transports", [])
-            if item.get("type") in {"hysteria2", "trojan-tls"}
+            if item.get("type") in {"socks5", "socks5-tls"}
             and item.get("host") and 0 < int(item.get("port", 0)) < 65536
         ]
         if not transports:
@@ -170,4 +170,3 @@ class MobileService:
                 raise ValueError("device mismatch")
             accepted += 1
         return {"accepted": accepted}
-
