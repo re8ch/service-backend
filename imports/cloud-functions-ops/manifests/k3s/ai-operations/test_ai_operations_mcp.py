@@ -35,6 +35,19 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("kubectl_exec", names)
         self.assertNotIn("ssh_exec", names)
 
+    def test_infra_exposes_litellm_toolset(self):
+        m = load("infra")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertIn("litellm_gateway_status", names)
+        self.assertIn("litellm_models", names)
+        self.assertIn("litellm_spend", names)
+        infra_observe = next(tool for tool in m.tools() if tool["name"] == "infra_observe")
+        self.assertIn("litellm", infra_observe["inputSchema"]["properties"]["domain"]["enum"])
+
+    def test_litellm_uses_its_real_health_path(self):
+        m = load("orchestra")
+        self.assertEqual(m.ORCHESTRA_HEALTH_PATHS["litellm"], "/health/liveliness")
+
     def test_cross_audience_token_rejected(self):
         cloud = load("cloud")
         _, token = cloud.registry().activate("user-1", [cloud.ADMIN_GROUP], None)

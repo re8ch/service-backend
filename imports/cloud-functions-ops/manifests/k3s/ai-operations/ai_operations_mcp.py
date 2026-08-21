@@ -67,6 +67,7 @@ CREDENTIAL_CATALOG = {
     "kubernetes": {"kind": "file", "paths": [str(KUBECONFIG_DIR / "re8ch.yaml")], "actions": ["kubectl"]},
     "harbor-api": {"kind": "environment", "env": "HARBOR_API_TOKEN", "actions": ["harbor-api"]},
     "grafana-api": {"kind": "environment", "env": "GRAFANA_API_TOKEN", "actions": ["grafana-api"]},
+    "litellm-api": {"kind": "environment", "env": "LITELLM_API_TOKEN", "actions": ["litellm-read"]},
     "github-native": {"kind": "native-connection", "actions": ["github-api"]},
 }
 
@@ -478,8 +479,11 @@ CLOUD_TOOLS = [
 ]
 
 INFRA_TOOLS = [
-    {"name": "infra_observe", "description": "Run the reviewed observation command for an infrastructure domain.", "inputSchema": schema({"domain": {"type": "string", "enum": ["cilium", "ceph", "pigsty", "harbor", "grafana", "github"]}}, ["domain"])},
+    {"name": "infra_observe", "description": "Run the reviewed observation command for an infrastructure domain.", "inputSchema": schema({"domain": {"type": "string", "enum": ["cilium", "ceph", "pigsty", "harbor", "grafana", "github", "litellm"]}}, ["domain"])},
     {"name": "infra_execute", "description": "Run an authorized infrastructure command using server-side credentials.", "inputSchema": schema({"domain": {"type": "string", "enum": ["cilium", "ceph", "pigsty", "harbor", "grafana", "github"]}, "argv": {"type": "array", "items": {"type": "string"}}, "stdin": {"type": "string"}, "timeout_seconds": {"type": "integer"}}, ["domain", "argv"])},
+    {"name": "litellm_gateway_status", "description": "Read the cluster LiteLLM liveness and readiness endpoints without exposing credentials.", "inputSchema": schema({})},
+    {"name": "litellm_models", "description": "List models exposed by the cluster LiteLLM gateway using its server-held credential.", "inputSchema": schema({})},
+    {"name": "litellm_spend", "description": "Read LiteLLM aggregate spend data using its server-held credential.", "inputSchema": schema({})},
 ]
 
 ORCHESTRA_TOOLS = [
@@ -488,11 +492,35 @@ ORCHESTRA_TOOLS = [
     {"name": "link_execution", "description": "Validate and return the stable cross-system execution identity chain.", "inputSchema": schema({"task_id": {"type": "string"}, "kagent_session_id": {"type": "string"}, "trace_id": {"type": "string"}, "codex_thread_id": {"type": "string"}, "artifact_id": {"type": "string"}}, ["task_id"])},
 ]
 
+ORCHESTRA_HEALTH_PATHS = {
+    "teable": "/api/health",
+    "litellm": "/health/liveliness",
+    "opensandbox": "/health",
+    "kagent": "/healthz",
+    "codex": "/healthz",
+}
+
 
 def tools() -> list[dict[str, Any]]:
     if PROFILE == "all":
         return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + ORCHESTRA_TOOLS
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS}.get(PROFILE, [])
+
+
+def litellm_get(path: str, authenticated: bool = True) -> dict[str, Any]:
+    base = os.getenv("LITELLM_BASE_URL", "http://litellm.llm-gateway.svc.cluster.local:4000").rstrip("/")
+    headers = {"Accept": "application/json"}
+    if authenticated:
+        token = os.getenv("LITELLM_API_TOKEN", "")
+        if not token:
+            raise ValueError("litellm-api credential is not configured")
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(base + path, method="GET", headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return {"status": response.status, "body": response.read(MAX_OUTPUT).decode(errors="replace")}
+    except urllib.error.HTTPError as exc:
+        return {"status": exc.code, "body": exc.read(MAX_OUTPUT).decode(errors="replace")}
 
 
 def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
@@ -579,6 +607,16 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"session_id": args["session_id"], "status": "terminated"}
 
     if PROFILE in {"infra", "all"}:
+        if name == "litellm_gateway_status":
+            return {
+                "service": "litellm",
+                "liveness": litellm_get("/health/liveliness", authenticated=False),
+                "readiness": litellm_get("/health/readiness", authenticated=False),
+            }
+        if name == "litellm_models":
+            return {"service": "litellm", **litellm_get("/v1/models")}
+        if name == "litellm_spend":
+            return {"service": "litellm", **litellm_get("/global/spend")}
         domain = args.get("domain")
         exec_node = resolve_node(os.getenv("INFRA_EXEC_NODE", "restricted-node-6dc3f140f9"))
         routes = {
@@ -588,6 +626,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             "harbor": ("direct", "service-api-proxy"),
             "grafana": ("direct", "service-api-proxy"),
             "github": ("direct", "github-native-connection"),
+            "litellm": ("direct", "cluster-service-api"),
         }
         commands = {
             "cilium": ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), "--namespace", "kube-system", "get", "pods", "-l", "k8s-app=cilium", "-o", "wide"],
@@ -596,12 +635,13 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             "harbor": ["curl", "-fsS", os.getenv("HARBOR_HEALTH_URL", "https://registry.re8ch.com/api/v2.0/health")],
             "grafana": ["curl", "-fsS", os.getenv("GRAFANA_HEALTH_URL", "https://grafana.re8ch.com/api/health")],
             "github": ["gh", "repo", "view", os.getenv("GITHUB_REPOSITORY", "re8ch/cloud-functions"), "--json", "nameWithOwner,defaultBranchRef"],
+            "litellm": ["curl", "-fsS", os.getenv("LITELLM_BASE_URL", "http://litellm.llm-gateway.svc.cluster.local:4000") + "/health/readiness"],
         }
         if name == "infra_observe":
             interface_mode, transport = routes[domain]
             if domain in {"cilium", "ceph"}:
                 result = command_result(commands[domain], None, 120)
-            elif domain in {"harbor", "grafana"}:
+            elif domain in {"harbor", "grafana", "litellm"}:
                 result = command_result(commands[domain], None, 120)
             else:
                 result = command_result(ssh_argv(exec_node, shlex.join(commands[domain])), None, 120)
@@ -620,7 +660,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         base = os.getenv(f"{service.upper()}_BASE_URL", "").rstrip("/")
         if not base:
             raise ValueError("service base URL is not configured")
-        path = "/healthz" if name == "orchestra_service_status" else args["path"]
+        path = ORCHESTRA_HEALTH_PATHS.get(service, "/healthz") if name == "orchestra_service_status" else args["path"]
         if not path.startswith("/") or ".." in path:
             raise ValueError("invalid service path")
         method = "GET" if name == "orchestra_service_status" else args["method"]
