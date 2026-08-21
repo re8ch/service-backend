@@ -163,7 +163,7 @@ spec:
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: ghcr.io/re8ch/re8ch-ai-operations:0.1.12@sha256:0f5fde1a0baed6f5590472f41485ccfe73d9437d5c4c9f9683b259a16840f7dc
+          image: registry.re8ch.com/library/re8ch-ai-operations:0.1.14@sha256:85613dd67ec0828735c580d9d962f3f122004f4bafd1f607e9dc53aec6d7c314
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: infra}
@@ -173,6 +173,8 @@ spec:
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/infra/mcp"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
+            - {name: LITELLM_BASE_URL, value: "http://litellm.llm-gateway.svc.cluster.local:4000"}
+            - {name: LITELLM_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-litellm, key: LITELLM_API_TOKEN}}}
           ports: [{name: http, containerPort: 19443}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5, failureThreshold: 6}
           livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15, failureThreshold: 6}
@@ -211,11 +213,16 @@ spec:
       imagePullSecrets: [{name: ghcr-re8ch}]
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: ghcr.io/re8ch/re8ch-ai-operations:0.1.12@sha256:0f5fde1a0baed6f5590472f41485ccfe73d9437d5c4c9f9683b259a16840f7dc
+          image: registry.re8ch.com/library/re8ch-ai-operations:0.1.14@sha256:85613dd67ec0828735c580d9d962f3f122004f4bafd1f607e9dc53aec6d7c314
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: orchestra}
@@ -310,7 +317,13 @@ metadata:
   name: agent-orchestra-collab
   namespace: ai-operations
 spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: tools-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: tools-https}
   hostnames: [tools.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /orchestra}}]
