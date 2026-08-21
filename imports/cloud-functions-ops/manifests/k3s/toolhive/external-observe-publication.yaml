@@ -222,7 +222,7 @@ kind: Ingress
 metadata:
   name: tools-re8ch-com
   namespace: toolhive-system
-  labels: {public.re8ch.com/external-dns: enabled}
+  labels: {public.re8ch.com/external-dns: migrated-to-gateway-route}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.138

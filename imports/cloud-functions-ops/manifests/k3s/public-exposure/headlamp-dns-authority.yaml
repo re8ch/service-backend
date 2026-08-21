@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headlamp-dns-authority
+  namespace: headlamp
+  labels:
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: headlamp.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/ttl: "1"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+spec:
+  # No ingress controller owns this class. The object is strictly the public
+  # DNS authority; Cilium Gateway API remains the HTTP/TLS routing authority.
+  ingressClassName: external-dns-only
+  rules:
+    - host: headlamp.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: headlamp
+                port:
+                  number: 80

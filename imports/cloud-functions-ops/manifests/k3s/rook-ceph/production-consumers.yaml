@@ -53,3 +53,17 @@ spec:
   resources:
     requests:
       storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-grafana-plugins
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    storage.re8ch.com/consumer: cephfs-re8ch
+    storage.re8ch.com/purpose: plugin-artifacts
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources: {requests: {storage: 2Gi}}

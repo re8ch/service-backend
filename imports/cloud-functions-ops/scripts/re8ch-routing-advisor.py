@@ -28,6 +28,20 @@ METRICS = (
 GIB = 1024 ** 3
 
 
+def quota_pressure(usage_gib, limit_gib):
+    """Return natural-month quota pressure without inventing an overage price."""
+    if limit_gib in (None, 0):
+        return {"ratio": 0.0, "tier": "unlimited", "penalty": 0.0}
+    ratio = max(0.0, float(usage_gib) / float(limit_gib))
+    if ratio >= 1.0:
+        return {"ratio": ratio, "tier": "exhausted", "penalty": 1000.0}
+    if ratio >= 0.95:
+        return {"ratio": ratio, "tier": "critical", "penalty": 400.0}
+    if ratio >= 0.80:
+        return {"ratio": ratio, "tier": "warning", "penalty": 120.0}
+    return {"ratio": ratio, "tier": "normal", "penalty": -100.0 * ratio}
+
+
 def validate_catalogs(nodes, catalog):
     errors = []
     seen = set()
@@ -122,7 +136,7 @@ def cost_for_path(catalog, path, source="*", destination="*"):
         price = entry.get("pricePerGiB")
         if price is None and entry.get("tiers"):
             price = entry["tiers"][0].get("pricePerGiB")
-        return price, entry.get("monthlyBudget"), entry.get("id")
+        return price, entry.get("monthlyBudget", entry.get("budgetMonthly")), entry.get("id")
     return None, None, "unconfigured"
 
 
@@ -341,6 +355,10 @@ class Advisor:
                                   ("observedSpeedtestRttMs", "re8ch_node_observed_speedtest_rtt_ms")):
                 if node.get(field) is not None:
                     lines.append(prom(metric, float(node[field]), labels))
+            fabric_labels = {**labels, "class": node.get("fabricClass", "C"),
+                             "role": node.get("fabricRole", "leaf")}
+            lines.append(prom("re8ch_node_fabric_info", 1, fabric_labels))
+            lines.append(prom("re8ch_node_inventory_complete", 1 if node.get("inventoryComplete", node.get("status") == "confirmed") else 0, fabric_labels))
             lines.append(prom("re8ch_node_routing_eligible", 1 if node.get("routingEligible", False) else 0, labels))
             lines.append(prom("re8ch_node_public_direct_eligible", 1 if node.get("publicDirectEligible", False) else 0, labels))
             renewal = node.get("renewalDate")
@@ -349,6 +367,7 @@ class Advisor:
                 lines.append(prom("re8ch_node_renewal_days", days, labels))
             cost_nodes.append(node)
         cost_paths = []
+        catalog_nodes = {item["name"]: item for item in self.node_catalog.get("nodes", [])}
         for (node, peer), pair in sorted(pairs.items()):
             for path, facts in sorted(pair["paths"].items()):
                 entry = path_entry(self.catalog, node, peer, path)
@@ -361,9 +380,14 @@ class Advisor:
                 if budget and estimated is not None:
                     lines.append(prom("re8ch_network_path_budget_ratio", estimated / float(budget), labels))
                 included = entry.get("monthlyIncludedGiB") if entry else None
+                if included is None:
+                    included = catalog_nodes.get(node, {}).get("monthlyTrafficLimitGiB")
                 if included is not None:
                     lines.append(prom("re8ch_network_path_included_gib_remaining", max(0.0, float(included) - usage), labels))
-                cost_paths.append({"source": node, "destination": peer, "pathType": path, "usageGiB": usage, "estimatedMonthlyCost": estimated, "budget": budget, "catalog": entry})
+                pressure = quota_pressure(usage, included)
+                pressure_labels = {**labels, "quota_tier": pressure["tier"], "price_status": "known" if entry and entry.get("pricePerGiB") is not None else "unknown"}
+                lines.append(prom("re8ch_network_path_quota_pressure_ratio", pressure["ratio"], pressure_labels))
+                cost_paths.append({"source": node, "destination": peer, "pathType": path, "usageGiB": usage, "estimatedMonthlyCost": estimated, "budget": budget, "quotaPressure": pressure, "priceStatus": pressure_labels["price_status"], "catalog": entry})
         lines.append(prom("re8ch_routing_advisor_last_success_unixtime", int(now)))
         with self.lock:
             self.output = "\n".join(lines) + "\n"

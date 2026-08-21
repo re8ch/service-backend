@@ -1,0 +1,15 @@
+{
+  "policy": {
+    "intervalSeconds": 900,
+    "maximumBytesPerTarget": 524288,
+    "estimatedMonthlyGiBPerNode": 1.41,
+    "notes": "Short bounded downloads; measurements are cached and never run in the Prometheus request path."
+  },
+  "targets": [
+    {
+      "name": "global-direct-cloudflare",
+      "url": "https://speed.cloudflare.com/__down?bytes=524288",
+      "path": "direct"
+    }
+  ]
+}

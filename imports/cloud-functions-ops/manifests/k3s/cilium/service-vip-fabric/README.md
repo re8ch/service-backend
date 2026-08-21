@@ -1,17 +1,64 @@
-# RE8CH Cilium service-VIP fabric
+# RE8CH Advanced Fabric
+
+Chart `0.3.x` upgrades the existing `re8ch-network-fabric` Helm release in
+place. It adds the seven-spine A/B topology, non-transit C leaves, native-route
+rollout configuration, observe-first economics controller, host validation
+agent, and `TrafficPolicy.networking.re8ch.com/v1alpha1`. It does not create a
+second routing authority.
+
+The default is deliberately safe:
+
+```yaml
+advancedFabric:
+  mode: observe-only
+  applyEnabled: false
+  emergencyDisable: false
+  weightedEcmp: {enabled: false}
+```
+
+In this mode the controller resolves workload selectors, writes status and a
+desired-state ConfigMap, while the host agent only verifies that FRR is active.
+It cannot modify FRR, nftables, `ip rule`, or kernel routes. Guarded apply must
+remain disabled until the seven-day observation gate and live failure tests
+have passed.
+
+Example workload policy:
+
+```yaml
+apiVersion: networking.re8ch.com/v1alpha1
+kind: TrafficPolicy
+metadata: {name: batch-greedy, namespace: example}
+spec:
+  podSelector: {matchLabels: {workload-class: batch}}
+  destination: {class: public-internet}
+  profile: greedy
+  fallbackProfile: balanced
+  priority: 100
+```
+
+The economics plane may change only LOCAL_PREF, policy-table ECMP eligibility
+and validated weights. ASN, peer membership, prefix ownership, redistribution,
+default-route origination and FRR daemon topology remain immutable network
+truth.
 
 This directory defines the safe boundary between Cilium LB IPAM and the
 existing FRR transit fabrics. Stage 1 is live with an opt-in canary; production
 Services remain excluded unless they carry both advertisement labels.
 
-It is also the source of the independently maintained
-`re8ch-network-fabric` Helm application. Releases are published as OCI charts:
+It remains compatible with the existing `re8ch-network-fabric` Helm release.
+The canonical public OCI endpoint uses Harbor HTTPS on port 443; do not append
+the retired `:28443` port. Releases are packaged for:
 
 ```sh
 helm upgrade --install re8ch-network-fabric \
-  oci://ghcr.io/re8ch/charts/re8ch-network-fabric \
-  --version 0.2.0 --namespace egress-fabric --create-namespace
+  oci://registry.re8ch.com/helm/re8ch-advanced-fabric \
+  --version 0.3.0 --namespace egress-fabric --create-namespace
 ```
+
+Artifact Hub publication and repository-verification steps are documented in
+`ARTIFACT_HUB.md`. The chart does not include registry credentials or the
+retired Xuanyuan Docker Hub proxy. Cluster image mirrors must target
+`https://registry.re8ch.com` and are managed separately from workload routing.
 
 The default install does not enable Mihomo. Set `mihomoGateway.enabled=true`
 only after creating `mihomoGateway.existingPathsSecret`; provider credentials

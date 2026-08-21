@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: panel-grafana-sqlite-cephfs-backup
+  namespace: qianwen-ops
+spec:
+  backoffLimit: 1
+  template:
+    metadata: {labels: {app.kubernetes.io/name: panel-grafana-backup}}
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: suxunji
+        storage.re8ch.com/ceph-client: "true"
+      securityContext: {runAsUser: 0, runAsGroup: 0}
+      containers:
+        - name: backup
+          image: alpine:3.22
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+              destination="/backup/sqlite-${stamp}"
+              mkdir -p "${destination}"
+              cp -a /source/grafana.db "${destination}/grafana.db"
+              if [ -d /source/plugins ]; then cp -a /source/plugins "${destination}/plugins"; fi
+              sha256sum "${destination}/grafana.db" > "${destination}/SHA256SUMS"
+              sync
+          volumeMounts:
+            - {name: source, mountPath: /source, readOnly: true}
+            - {name: backup, mountPath: /backup}
+      volumes:
+        - name: source
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-64ae1b9e-53cb-49e6-9402-6b2d2dc7d5f6_qianwen-ops_panel-grafana-data
+            type: Directory
+        - name: backup
+          persistentVolumeClaim: {claimName: panel-grafana-cephfs-data}

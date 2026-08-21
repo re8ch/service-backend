@@ -1,0 +1,59 @@
+global:
+  timezone: Asia/Shanghai
+
+# Bind all chart-managed durable state to the existing Rook/CephFS fabric.
+persistence:
+  storageClassName: cephfs-re8ch
+
+placement:
+  controlPlane:
+    nodeSelector:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      cube.tencent.com/cube-control: "true"
+    tolerations: []
+  compute:
+    nodeSelector:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      cube.tencent.com/cube-node: "true"
+    tolerations: []
+  # Kept deliberately unmatched. The trial must never install a host kernel.
+  pvm:
+    nodeSelector:
+      cube.tencent.com/allow-pvm-bootstrap: "disabled-for-trial"
+    tolerations: []
+
+cubeNode:
+  pvmGuestKernel:
+    enabled: false
+  network:
+    # Separate from the K3s 10.42/16 Pod and 10.43/16 Service ranges.
+    cidr: 192.0.2.33/18
+    # v0.6.0 does not expose cube-router as a native Helm value. Apply
+    # cube-router-daemonset.patch.yaml after each Helm install or upgrade.
+
+cubeProxy:
+  enabled: true
+  domain: cube-trial.internal
+  configureClusterDNS: false
+  ingress:
+    enabled: false
+  service:
+    type: ClusterIP
+
+bootstrap:
+  pvmHostKernel:
+    enabled: false
+  nodeInit:
+    dataCubelet:
+      loopback:
+        enabled: true
+        imagePath: /data/cubelet-xfs.img
+        size: 25G
+
+# Trial credentials are injected at render/apply time and are never committed.
+mysql:
+  persistence:
+    storageClassName: cephfs-re8ch
+redis:
+  persistence:
+    storageClassName: cephfs-re8ch

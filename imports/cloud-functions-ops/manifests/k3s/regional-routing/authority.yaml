@@ -15,9 +15,27 @@ data:
   AUTHORITY_REGIONS_JSON: '{"restricted-node-1eb0570f74":"loudi","restricted-node-296f36f2fb":"loudi","domain-ex":"shanghai","vm-20-12-ubuntu":"guangzhou","overseas-kl":"kuala-lumpur","overseas-la":"los-angeles"}'
   SERVICES_JSON: |-
     {
-      "api.re8ch.com.": {"service":"api","paths":["auth","nuclio","ledger","image","compocv"]},
-      "db-ro.re8ch.com.": {"service":"db-ro","paths":["postgrest"]},
-      "db-rw.re8ch.com.": {"service":"db-rw","paths":["postgrest"]}
+      "api.re8ch.com.": {"service":"api","class":"api","probePath":"/__edge/ready","paths":["auth","nuclio","ledger","image","compocv"]},
+      "db-ro.re8ch.com.": {"service":"db-ro","class":"db-ro","probePath":"/auth/","paths":["postgrest"]},
+      "db-rw.re8ch.com.": {"service":"db-rw","class":"db-rw","probePath":"/auth/","paths":["postgrest"]},
+      "headlamp.re8ch.com.": {"service":"headlamp","class":"web","probePath":"/"},
+      "grafana.re8ch.com.": {"service":"grafana","class":"web","probePath":"/grafana/api/health"},
+      "dex.re8ch.com.": {"service":"dex","class":"web","probePath":"/.well-known/openid-configuration"},
+      "tools.re8ch.com.": {"service":"tools","class":"web","probePath":"/"},
+      "registry.re8ch.com.": {"service":"registry","class":"registry","probePath":"/v2/"},
+      "litellm.re8ch.com.": {"service":"litellm","class":"web","probePath":"/health/readiness"},
+      "supabase.re8ch.com.": {"service":"supabase","class":"web","probePath":"/"},
+      "phonycenter.re8ch.com.": {"service":"phonycenter","class":"web","probePath":"/"},
+      "marketplace.re8ch.com.": {"service":"marketplace","class":"web","probePath":"/"},
+      "cube.re8ch.com.": {"service":"cube","class":"web","probePath":"/"},
+      "teable.re8ch.com.": {"service":"teable","class":"web","probePath":"/"},
+      "browser.re8ch.com.": {"service":"browser","class":"web","probePath":"/"},
+      "storage.re8ch.com.": {"service":"storage","class":"web","probePath":"/"},
+      "agent.re8ch.com.": {"service":"agent","class":"web","probePath":"/healthz"},
+      "access.re8ch.com.": {"service":"access","class":"web","probePath":"/"},
+      "opensandbox.re8ch.com.": {"service":"opensandbox","class":"web","probePath":"/healthz"},
+      "admin.re8ch.com.": {"service":"admin-tools","class":"web","probePath":"/mcp"},
+      "operate.tools.re8ch.com.": {"service":"operate-tools","class":"web","probePath":"/mcp"}
     }
   CANDIDATES_JSON: |-
     [
@@ -79,7 +97,7 @@ data:
         "ip": "192.0.2.138",
         "localIp": "192.0.2.169",
         "probeIp": "192.0.2.138",
-        "gatewayVip": "192.0.2.148",
+        "gatewayVip": "192.0.2.213",
         "priority": -30,
         "priorityByRegion": {"shanghai": -10, "guangzhou": -10, "los-angeles": 25},
         "paths": {"api":["auth","nuclio","ledger","image","compocv"],"db-ro":["postgrest"],"db-rw":["postgrest"]},
@@ -99,13 +117,15 @@ metadata:
 spec:
   selector:
     matchLabels: {app.kubernetes.io/name: regional-routing-authority}
-  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1}}
+  # One permanently NotReady edge must not deadlock updates for healthy NS replicas.
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 2}}
   template:
     metadata:
       labels:
         app.kubernetes.io/name: regional-routing-authority
         app.kubernetes.io/part-of: regional-routing
     spec:
+      serviceAccountName: regional-routing-authority
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical

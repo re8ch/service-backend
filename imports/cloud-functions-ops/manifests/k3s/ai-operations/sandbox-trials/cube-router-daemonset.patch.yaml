@@ -1,0 +1,70 @@
+spec:
+  template:
+    metadata:
+      annotations:
+        re8ch.com/cube-router-mode: linux-routing-stack
+    spec:
+      containers:
+        - name: network-agent
+          command:
+            - /usr/bin/tini
+            - -s
+            - --
+            - /bin/bash
+            - -ec
+            - |
+              cfg=/usr/local/services/cubetoolbox/Cubelet/config/config.toml
+              sentinel=/usr/local/services/cubetoolbox/.staged-cubelet
+              until test -f "${sentinel}" && test -f "${cfg}"; do sleep 1; done
+              sed -i -E \
+                -e 's|^([[:space:]]*)cube_router_enable = .*|\1cube_router_enable = true|' \
+                -e 's|^([[:space:]]*)cube_router_cidr = .*|\1cube_router_cidr = ""|' \
+                "${cfg}"
+              grep -qE '^[[:space:]]*cube_router_enable = true$' "${cfg}"
+              exec /usr/local/bin/component-entrypoint.sh
+          env:
+            # Cubelet already stages the effective sandbox CIDR. Keeping this
+            # empty avoids the published entrypoint's unanchored replacement
+            # from rewriting cube_router_cidr to the sandbox /18.
+            - name: CUBE_SANDBOX_NETWORK_CIDR
+              value: ""
+            - name: CUBE_SANDBOX_CUBE_ROUTER_ENABLE
+              value: "1"
+        - name: cubelet
+          command:
+            - /usr/bin/tini
+            - -s
+            - --
+            - /bin/bash
+            - -ec
+            - |
+              cfg=/opt/cube-image/Cubelet/config/config.toml
+              sed -i -E \
+                -e 's|^([[:space:]]*)cidr = .*|\1cidr = "192.0.2.33/18"|' \
+                -e 's|^([[:space:]]*)cube_router_enable = .*|\1cube_router_enable = true|' \
+                -e 's|^([[:space:]]*)cube_router_cidr = .*|\1cube_router_cidr = ""|' \
+                "${cfg}"
+              set +e
+              /usr/local/bin/component-entrypoint.sh
+              rc=$?
+              pid="$(pidof cubelet 2>/dev/null | awk '{print $1}' || true)"
+              if test -n "${pid}" && kill -0 "${pid}" 2>/dev/null \
+                && ss -lntp 2>/dev/null | grep -q ':9999'; then
+                printf '%s\n' "${pid}" >/run/cube-node/cubelet.pid
+                cleanup() { kill -TERM "${pid}" 2>/dev/null || true; }
+                trap cleanup TERM INT HUP EXIT
+                while kill -0 "${pid}" 2>/dev/null; do sleep 10; done
+                exit 1
+              fi
+              exit "${rc}"
+          env:
+            - name: CUBE_SANDBOX_NETWORK_CIDR
+              value: ""
+            - name: CUBE_SANDBOX_CUBE_ROUTER_ENABLE
+              value: "1"
+        - name: cube-egress-net
+          env:
+            # The upstream iptables script derives --on-ip from this variable;
+            # CUBE_TPROXY_ON_IP is not consumed by the published v0.6.0 script.
+            - name: CUBE_SANDBOX_NETWORK_CIDR
+              value: 192.0.2.33/18
