@@ -1,10 +1,13 @@
+# Headlamp v0.42 keeps OAuth state in process memory. Run one active process so
+# authorize and callback cannot land on different replicas. Kubernetes may
+# reschedule it between A1/B1 after a node failure.
 # Apply with: kubectl patch deployment/headlamp -n headlamp --type=merge
 #   --patch-file manifests/k3s/headlamp/headlamp-ha-deployment-patch.yaml
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate: {maxUnavailable: 1, maxSurge: 1}
+    type: Recreate
+    rollingUpdate: null
   template:
     metadata:
       labels:
@@ -20,7 +23,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     # Keep the management UI on the two surviving control-plane
-                    # nodes so it stays available while restricted-node-6dc3f140f9 or a worker is down.
+                    # nodes so it can be rescheduled when either node is down.
                     values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -35,7 +38,6 @@ spec:
           persistentVolumeClaim:
             claimName: headlamp-plugins
       # Use the node underlay for the Kubernetes API proxy. This avoids B1's
-      # intermittent Pod-network path to the API Service VIP while preserving
-      # two independent replicas and routable Service endpoints.
+      # intermittent Pod-network path to the API Service VIP.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
