@@ -113,6 +113,15 @@ spec:
     - {name: litellm-https, hostname: litellm.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: cube-https, hostname: cube.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: dbgui-https, hostname: dbgui.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - name: qianwen-api-https
+      hostname: api.jz.ynzs.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - {kind: Secret, name: api-jz-ynzs-tls, namespace: qwen}
+      allowedRoutes: {namespaces: {from: All}}
     - name: harbor-tls
       hostname: registry.re8ch.com
       protocol: TLS
@@ -122,6 +131,35 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata: {name: allow-public-gateway-api-jz-cert, namespace: qwen}
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: Gateway, namespace: kube-system}
+  to:
+    - {group: "", kind: Secret, name: api-jz-ynzs-tls}
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata: {name: allow-qwen-route-to-traefik, namespace: kube-system}
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: HTTPRoute, namespace: qwen}
+  to:
+    - {group: "", kind: Service, name: traefik}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: qianwen-api-public-edge, namespace: qwen}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: qianwen-api-https}
+  hostnames: [api.jz.ynzs.com]
+  rules:
+    - backendRefs:
+        - {name: traefik, namespace: kube-system, port: 80}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
