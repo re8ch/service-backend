@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 NODE = os.getenv("NODE_NAME", "unknown")
 PROBE_CONNECT_TIMEOUT = float(os.getenv("PROBE_CONNECT_TIMEOUT_SECONDS", "5"))
 PROBE_RESPONSE_TIMEOUT = float(os.getenv("PROBE_RESPONSE_TIMEOUT_SECONDS", "12"))
+PROBE_INTERVAL_SECONDS = max(1, int(os.getenv("PROBE_INTERVAL_SECONDS", "3")))
 NAMESERVERS = os.getenv("NAMESERVERS", "ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.").split()
 CANDIDATES = json.loads(os.getenv("CANDIDATES_JSON", "[]"))
 SERVICE_DEFINITIONS = json.loads(os.getenv("SERVICES_JSON", '''{
@@ -187,7 +188,7 @@ def probe_loop():
     while True:
         probe_all()
         publish_default_area()
-        time.sleep(10)
+        time.sleep(PROBE_INTERVAL_SECONDS)
 
 
 def publish_default_area():

@@ -30,6 +30,7 @@ spec:
             - {name: NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}
             - {name: PROBE_CONNECT_TIMEOUT_SECONDS, value: {{ .Values.probe.connectTimeoutSeconds | quote }}}
             - {name: PROBE_RESPONSE_TIMEOUT_SECONDS, value: {{ .Values.probe.responseTimeoutSeconds | quote }}}
+            - {name: PROBE_INTERVAL_SECONDS, value: {{ .Values.probe.intervalSeconds | quote }}}
           ports:
             - {name: dns-udp, containerPort: 53, protocol: UDP}
             - {name: dns-tcp, containerPort: 53, protocol: TCP}

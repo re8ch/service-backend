@@ -41,7 +41,6 @@ publicEdges:
     area: CN
     region: loudi
     nodeName: restricted-node-6dc3f140f9
-    enabled: false
     endpoint: {type: PublicIP, value: 192.0.2.138}
     gatewayVIP: 192.0.2.213
     capacityMbps: 1000
@@ -52,6 +51,7 @@ publicEdges:
 probe:
   connectTimeoutSeconds: 5
   responseTimeoutSeconds: 12
+  intervalSeconds: 3
 
 publication:
   # Cloudflare A records are global. The elected CN authority publishes the
