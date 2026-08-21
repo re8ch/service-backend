@@ -1,0 +1,9 @@
+apiVersion: v2
+name: public-edge-manager
+description: Region- and capacity-aware PublicEdge health authority for RE8CH public entry selection.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords: [public-edge, dns, external-dns, gateway-api, cilium, geo-routing]
+maintainers:
+  - name: RE8CH Platform

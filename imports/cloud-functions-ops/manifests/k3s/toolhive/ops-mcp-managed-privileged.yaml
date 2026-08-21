@@ -221,7 +221,7 @@ spec:
     - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
     - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
     - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
-    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com:28443"}
+    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com"}
     - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
     - {name: TENANT_HARBOR_PROJECT, value: qianwen}
     - {name: METRICS_URL, value: "http://192.0.2.178:30428"}

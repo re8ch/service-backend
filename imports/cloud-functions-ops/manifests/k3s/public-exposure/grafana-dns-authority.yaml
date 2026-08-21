@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-dns-authority
+  namespace: qianwen-ops
+  labels:
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: grafana.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: grafana.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: panel-grafana
+                port:
+                  number: 3000

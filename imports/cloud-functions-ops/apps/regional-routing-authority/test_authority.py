@@ -55,6 +55,32 @@ class AuthorityTests(unittest.TestCase):
         response = authority.dns_response(query)
         self.assertEqual(struct.unpack("!H", response[6:8])[0], 0)
 
+    def test_cn_prefers_high_capacity_r640(self):
+        original_area = authority.AREA
+        authority.AREA = "CN"
+        authority.CANDIDATES[:] = [
+            {"id": "small-cn", "region": "guangzhou", "area": "CN", "ip": "192.0.2.213", "capacityMbps": 100, "priority": 0, "probes": {"app": "https://app.re8ch.com/"}},
+            {"id": "restricted-node-6dc3f140f9", "region": "loudi", "area": "CN", "ip": "192.0.2.219", "capacityMbps": 1000, "priority": 0, "probes": {"app": "https://app.re8ch.com/"}},
+        ]
+        authority.HEALTH["app"] = {name: {"ready": True, "latencyMs": 10} for name in ("small-cn", "restricted-node-6dc3f140f9")}
+        try:
+            self.assertEqual(authority.ranked("app")[0]["id"], "restricted-node-6dc3f140f9")
+        finally:
+            authority.AREA = original_area
+
+    def test_us_prefers_regional_relay_over_remote_capacity(self):
+        original_area = authority.AREA
+        authority.AREA = "US"
+        authority.CANDIDATES[:] = [
+            {"id": "us-relay", "region": "los-angeles", "area": "US", "ip": "192.0.2.158", "capacityMbps": 100, "priority": 0, "forwarding": {"mode": "RegionalRelay", "originArea": "CN"}, "probes": {"app": "https://app.re8ch.com/"}},
+            {"id": "restricted-node-6dc3f140f9", "region": "loudi", "area": "CN", "ip": "192.0.2.219", "capacityMbps": 1000, "priority": 0, "probes": {"app": "https://app.re8ch.com/"}},
+        ]
+        authority.HEALTH["app"] = {name: {"ready": True, "latencyMs": 10} for name in ("us-relay", "restricted-node-6dc3f140f9")}
+        try:
+            self.assertEqual(authority.ranked("app")[0]["id"], "us-relay")
+        finally:
+            authority.AREA = original_area
+
 
 if __name__ == "__main__":
     unittest.main()
