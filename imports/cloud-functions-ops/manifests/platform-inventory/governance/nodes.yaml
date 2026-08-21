@@ -5,8 +5,50 @@ defaults:
   authentication: cloud-platform-permanent-jump-key
 nodes:
   - {id: restricted-node-6dc3f140f9, roles: [control-plane, etcd, pg-re8ch], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
-  - {id: restricted-node-1eb0570f74, roles: [control-plane, etcd], sshTarget: null, operationPolicy: control-plane-two-person, managementState: unverified, firewall: cn, egressPolicy: auto, cephStorage: true, cephClient: true}
-  - {id: restricted-node-296f36f2fb, roles: [control-plane, etcd], sshTarget: null, operationPolicy: control-plane-two-person, managementState: unverified, firewall: cn, egressPolicy: auto, cephStorage: true, cephClient: true}
+  - id: restricted-node-1eb0570f74
+    roles: [control-plane, etcd]
+    sshTarget: null
+    operationPolicy: control-plane-two-person
+    managementState: unverified
+    firewall: cn
+    egressPolicy: auto
+    cephStorage: true
+    cephClient: true
+    host:
+      platform: Windows Server 2022 / WSL2 NAT
+      windowsLanIp: 192.0.2.145
+      wslNatCidr: 192.0.2.56/20
+      peerHost: restricted-node-296f36f2fb
+      peerWindowsLanIp: 192.0.2.253
+    fabric:
+      nodeIdentity: 192.0.2.18
+      podCIDR: 192.0.2.109/24
+      windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.41/30, peerPort: 51820}
+      hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
+      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.59/30, peer: restricted-node-296f36f2fb}
+      r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 192.0.2.79, hubBackend: 192.0.2.97}
+  - id: restricted-node-296f36f2fb
+    roles: [control-plane, etcd]
+    sshTarget: null
+    operationPolicy: control-plane-two-person
+    managementState: unverified
+    firewall: cn
+    egressPolicy: auto
+    cephStorage: true
+    cephClient: true
+    host:
+      platform: Windows Server 2022 / WSL2 NAT
+      windowsLanIp: 192.0.2.253
+      wslNatCidr: 192.0.2.216/20
+      peerHost: restricted-node-1eb0570f74
+      peerWindowsLanIp: 192.0.2.145
+    fabric:
+      nodeIdentity: 192.0.2.208
+      podCIDR: 192.0.2.26/24
+      windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.165/30, peerPort: 51820}
+      hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
+      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.163/30, peer: restricted-node-1eb0570f74}
+      r640Transit: {interface: wg-pt-b1, port: 51890, hubPublicIp: 192.0.2.79, hubBackend: 192.0.2.97}
   - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
   - {id: artchais-nuclio-1, roles: [nuclio], sshTarget: artchais, operationPolicy: worker-one-person}
   - {id: harbor-registry, roles: [platform], sshTarget: harbor, operationPolicy: worker-one-person}

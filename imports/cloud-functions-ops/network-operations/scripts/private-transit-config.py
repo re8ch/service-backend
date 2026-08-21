@@ -92,6 +92,8 @@ def allowed_for_spoke(inv, node, fabric, gw):
         # Public spokes must retain a control-plane path when the shared
         # ZeroTier identity network or restricted-node-6dc3f140f9 is unavailable.
         values.append(f'{gw["ztIp"]}/32')
+        if gw.get("podCIDR"):
+            values.append(gw["podCIDR"])
         values += [f'{accelerated(inv, n)}/32' for n in nodes(inv)]
     return values
 

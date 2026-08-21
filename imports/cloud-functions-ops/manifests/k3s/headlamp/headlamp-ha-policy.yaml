@@ -3,6 +3,10 @@ kind: PodDisruptionBudget
 metadata:
   name: headlamp
   namespace: headlamp
+  annotations:
+    helm.re8ch.com/ha-mode: SingleActive
+    helm.re8ch.com/ha-constraint: headlamp-v0.42-process-local-oidc-state
+    helm.re8ch.com/ha-upgrade-gate: portable-or-shared-oidc-state
 spec:
   minAvailable: 1
   selector:
@@ -15,8 +19,10 @@ metadata:
   namespace: headlamp
 spec:
   scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: headlamp}
-  minReplicas: 2
-  maxReplicas: 4
+  # Headlamp v0.42 OAuth state is process-local; autoscaling above one replica
+  # breaks callbacks when authorize and callback select different processes.
+  minReplicas: 1
+  maxReplicas: 1
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300

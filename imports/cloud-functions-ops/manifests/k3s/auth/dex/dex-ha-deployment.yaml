@@ -64,3 +64,20 @@ metadata: {name: dex, namespace: dex}
 spec:
   minAvailable: 1
   selector: {matchLabels: {app.kubernetes.io/name: dex}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: dex
+  labels: {app.kubernetes.io/name: dex}
+spec:
+  type: NodePort
+  # Prefer the Dex replica colocated with an in-cluster caller, while retaining
+  # the other replica as an automatic fallback during failure or rollout.
+  trafficDistribution: PreferSameNode
+  internalTrafficPolicy: Cluster
+  externalTrafficPolicy: Cluster
+  selector: {app.kubernetes.io/name: dex}
+  ports:
+    - {name: http, port: 80, targetPort: http, protocol: TCP, nodePort: 30781}

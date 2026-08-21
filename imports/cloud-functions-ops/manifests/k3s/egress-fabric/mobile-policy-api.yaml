@@ -15,7 +15,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: api
-          image: registry.re8ch.com:28443/egress/network-decomplexer-policy-api:20260811-001
+          image: registry.re8ch.com/egress/network-decomplexer-policy-api:20260811-001
           imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 8080}]
           env:

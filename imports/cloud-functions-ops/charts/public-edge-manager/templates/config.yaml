@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: {{ include "public-edge-manager.name" . }}}
+data:
+  NAMESERVERS: {{ join " " .Values.nameservers | quote }}
+  SERVICES_JSON: {{ .Values.services | toJson | quote }}
+  PUBLISHER_NODE: {{ .Values.publication.publisherNode | quote }}
+  PUBLICATION_REFS_JSON: {{ .Values.publication.refs | toJson | quote }}
+{{- $bind := dict -}}{{- $regions := dict -}}{{- $areas := dict -}}
+{{- range $node, $v := .Values.authorityNodes -}}
+{{- $_ := set $bind $node $v.bindAddress -}}{{- $_ := set $regions $node $v.region -}}{{- $_ := set $areas $node $v.area -}}
+{{- end }}
+  BIND_ADDRESSES_JSON: {{ $bind | toJson | quote }}
+  AUTHORITY_REGIONS_JSON: {{ $regions | toJson | quote }}
+  AUTHORITY_AREAS_JSON: {{ $areas | toJson | quote }}
