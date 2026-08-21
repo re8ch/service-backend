@@ -35,6 +35,10 @@ spec:
               required: [region, endpoint, gatewayVIP, enabled, draining, protocols]
               properties:
                 region: {type: string, minLength: 1}
+                area:
+                  type: string
+                  description: Coarse traffic locality such as CN, US, EU or APAC.
+                  minLength: 1
                 nodeName: {type: string}
                 enabled: {type: boolean}
                 draining: {type: boolean}
@@ -65,6 +69,12 @@ spec:
                 priorityByRegion:
                   type: object
                   additionalProperties: {type: integer, minimum: -1000, maximum: 1000}
+                forwarding:
+                  type: object
+                  properties:
+                    mode: {type: string, enum: [DirectGateway, RegionalRelay]}
+                    originArea: {type: string}
+                    originGatewayVIP: {type: string, format: ipv4}
             status:
               type: object
               properties:
@@ -94,6 +104,7 @@ kind: PublicEdge
 metadata: {name: shanghai-domain-ex}
 spec:
   region: shanghai
+  area: CN
   nodeName: domain-ex
   # Public 443 is still blocked outside the host firewall/security group.
   enabled: false
@@ -111,6 +122,7 @@ kind: PublicEdge
 metadata: {name: guangzhou-zan}
 spec:
   region: guangzhou
+  area: CN
   nodeName: zan
   enabled: true
   draining: false
@@ -127,6 +139,7 @@ kind: PublicEdge
 metadata: {name: loudi-r640}
 spec:
   region: loudi
+  area: CN
   nodeName: restricted-node-6dc3f140f9
   # RouterOS learns the canonical Gateway VIP from restricted-node-6dc3f140f9 FRR over eBGP.
   enabled: true

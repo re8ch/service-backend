@@ -13,6 +13,9 @@ data:
   NAMESERVERS: ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.
   BIND_ADDRESSES_JSON: '{"restricted-node-1eb0570f74":"192.0.2.18","restricted-node-296f36f2fb":"192.0.2.208","domain-ex":"192.0.2.241","vm-20-12-ubuntu":"192.0.2.158","overseas-kl":"192.0.2.27","overseas-la":"192.0.2.91"}'
   AUTHORITY_REGIONS_JSON: '{"restricted-node-1eb0570f74":"loudi","restricted-node-296f36f2fb":"loudi","domain-ex":"shanghai","vm-20-12-ubuntu":"guangzhou","overseas-kl":"kuala-lumpur","overseas-la":"los-angeles"}'
+  AUTHORITY_AREAS_JSON: '{"restricted-node-1eb0570f74":"CN","restricted-node-296f36f2fb":"CN","domain-ex":"CN","vm-20-12-ubuntu":"CN","overseas-kl":"APAC","overseas-la":"US"}'
+  PUBLISHER_NODE: restricted-node-1eb0570f74
+  PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"qianwen-ops","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"}}'
   SERVICES_JSON: |-
     {
       "api.re8ch.com.": {"service":"api","class":"api","probePath":"/__edge/ready","paths":["auth","nuclio","ledger","image","compocv"]},
@@ -118,7 +121,7 @@ spec:
   selector:
     matchLabels: {app.kubernetes.io/name: regional-routing-authority}
   # One permanently NotReady edge must not deadlock updates for healthy NS replicas.
-  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 2}}
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 3}}
   template:
     metadata:
       labels:
