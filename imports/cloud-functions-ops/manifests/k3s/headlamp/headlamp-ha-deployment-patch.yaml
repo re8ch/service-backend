@@ -23,6 +23,9 @@ spec:
         app.kubernetes.io/name: headlamp
         traffic.re8ch.com/headlamp-active: "true"
     spec:
+      # Emergency ConfigMap copy initContainers are not part of the durable
+      # CephFS plugin path. Publishers populate the RWX PVC independently.
+      initContainers: null
       nodeSelector: null
       affinity:
         nodeAffinity:
@@ -45,7 +48,7 @@ spec:
         - name: plugins
           emptyDir: null
           persistentVolumeClaim:
-            claimName: headlamp-plugins
+            claimName: headlamp-plugins-v2
       # Use the node underlay for the Kubernetes API proxy. This avoids B1's
       # intermittent Pod-network path to the API Service VIP.
       hostNetwork: true

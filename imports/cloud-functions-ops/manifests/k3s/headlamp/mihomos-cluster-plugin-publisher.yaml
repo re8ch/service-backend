@@ -42,4 +42,4 @@ spec:
         - name: bundle
           configMap: {name: headlamp-mihomos-cluster-plugin-bundle}
         - name: plugins
-          persistentVolumeClaim: {claimName: headlamp-plugins}
+          persistentVolumeClaim: {claimName: headlamp-plugins-v2}

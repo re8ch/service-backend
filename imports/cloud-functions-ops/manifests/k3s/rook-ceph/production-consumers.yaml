@@ -40,6 +40,22 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: headlamp-plugins-v2
+  namespace: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    storage.re8ch.com/consumer: cephfs-re8ch
+    storage.re8ch.com/generation: "v2"
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   name: panel-grafana-cephfs-data
   namespace: qianwen-ops
   labels:
