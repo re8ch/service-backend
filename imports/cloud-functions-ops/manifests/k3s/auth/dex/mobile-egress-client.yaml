@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-mobile-egress-client-contract
+  namespace: dex
+  labels:
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/part-of: network-decomplexer
+  annotations:
+    re8ch.com/purpose: "Non-secret contract to merge into the live dex-config staticClients list"
+data:
+  client.yaml: |
+    id: mobile-egress-app
+    name: Network Decomplexer Mobile
+    public: true
+    redirectURIs:
+      - network-decomplexer:/oauth/callback
+  access.md: |
+    Authentication uses the existing GitHub connector, restricted to members of
+    the re8ch GitHub organization. Woomou membership was verified before rollout.
+    The native app uses Authorization Code with PKCE and carries no client secret.
