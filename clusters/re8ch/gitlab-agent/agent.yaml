@@ -10,7 +10,7 @@ spec:
       serviceAccountName: gitlab-agent
       containers:
         - name: agentk
-          image: registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:v18.3.0
+          image: registry.re8ch.com/functions-shared/gitlab-agentk@sha256:a951ecb82430cea62dff4d2e0468ed027ed6dfd995d537c315b686e867d76756
           args: [--kas-address=wss://kas.gitlab.com]
           env:
             - name: AGENT_TOKEN
