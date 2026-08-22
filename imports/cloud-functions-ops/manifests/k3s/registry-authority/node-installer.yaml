@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry-authority
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k3s-registry-authority-installer
+  namespace: registry-authority
+data:
+  registries-prefix.yaml: |
+    mirrors:
+      docker.io:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-dockerhub/$1"}
+      ghcr.io:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-ghcr/$1"}
+      gcr.io:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-gcr/$1"}
+      quay.io:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-quay/$1"}
+      nvcr.io:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-nvcr/$1"}
+      registry.k8s.io:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-k8s/$1"}
+      mcr.microsoft.com:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-mcr/$1"}
+      docker.elastic.co:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-elastic/$1"}
+      container-registry.oracle.com:
+        endpoint: ["https://registry.re8ch.com"]
+        rewrite: {"^(.*)$": "proxy-oracle/$1"}
+      registry.re8ch.com:
+        endpoint: ["https://registry.re8ch.com:28443"]
+  install.sh: |
+    #!/bin/sh
+    set -eu
+
+    host=/host
+    registry_dir="$host/etc/rancher/k3s"
+    registry_file="$registry_dir/registries.yaml"
+    prefix=/config/registries-prefix.yaml
+    proxy_url=http://127.0.0.1:17891
+    no_proxy=127.0.0.1,localhost,::1,.re8ch.com,.zt.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16
+
+    mkdir -p "$registry_dir"
+    work=$(mktemp "$registry_dir/.registries.yaml.XXXXXX")
+    trap 'rm -f "$work"' EXIT
+    cp "$prefix" "$work"
+    if [ -f "$registry_file" ] && grep -q '^configs:' "$registry_file"; then
+      awk '/^configs:/{copy=1} copy{print}' "$registry_file" >>"$work"
+    else
+      printf 'configs: {}\n' >>"$work"
+    fi
+
+    changed=true
+    if [ -f "$registry_file" ] && cmp -s "$work" "$registry_file"; then
+      changed=false
+    else
+      if [ -f "$registry_file" ]; then
+        cp -p "$registry_file" "$registry_file.pre-re8ch-authority"
+      fi
+      install -m 0600 "$work" "$registry_file"
+    fi
+
+    service=k3s-agent
+    if [ -e "$host/etc/systemd/system/k3s.service" ]; then service=k3s; fi
+    dropin="$host/etc/systemd/system/$service.service.d"
+    mkdir -p "$dropin"
+    cat >"$dropin/20-re8ch-registry-egress.conf" <<EOF
+    [Service]
+    Environment="HTTP_PROXY=$proxy_url"
+    Environment="HTTPS_PROXY=$proxy_url"
+    Environment="http_proxy=$proxy_url"
+    Environment="https_proxy=$proxy_url"
+    Environment="NO_PROXY=$no_proxy"
+    Environment="no_proxy=$no_proxy"
+    EOF
+
+    chroot "$host" systemctl daemon-reload
+    printf 'service=%s changed=%s\n' "$service" "$changed"
+    if [ "${RESTART_K3S:-false}" = true ] && [ "$changed" = true ]; then
+      chroot "$host" systemd-run --quiet --collect \
+        --unit=re8ch-k3s-registry-restart --on-active=3s \
+        /bin/systemctl restart "$service"
+    fi
