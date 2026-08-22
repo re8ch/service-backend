@@ -10,7 +10,6 @@ helm template re8ch-traefik-crds traefik/traefik-crds \
   --set traefik=true \
   --set gatewayAPI=false \
   --set gatewayAPIExperimental=false \
-  # K3s chart 39 validates the Hub API set even when Hub features are off.
   --set hub=true \
   --set knative=false \
   | kubectl apply --server-side --field-manager=re8ch-traefik-crds -f -
