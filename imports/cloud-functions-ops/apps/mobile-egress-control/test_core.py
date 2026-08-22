@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from core import Identity, MobileService, project_mobile_egresses
+from core import Identity, MobileService, project_kubernetes_catalog, project_mobile_egresses
 
 
 class MobileEgressTests(unittest.TestCase):
@@ -36,6 +36,7 @@ class MobileEgressTests(unittest.TestCase):
             {"id":"la","nodeName":"la","capability":"global","transports":self.transport}
         ])
         return MobileService(lambda: catalog, Ed25519PrivateKey.generate(), b"x"*32,
+                             lambda: ("device", "secret"),
                              now=lambda: datetime(2026, 8, 21, tzinfo=timezone.utc))
 
     def test_enrollment_is_stable_and_catalog_is_signed(self):
@@ -52,6 +53,8 @@ class MobileEgressTests(unittest.TestCase):
         service = self.service()
         value = service.credentials(Identity("user-1"), "device", "la")
         self.assertEqual(value["egressID"], "la")
+        self.assertEqual(value["credentialType"], "socks5-userpass")
+        self.assertEqual(value["username"], "device")
         with self.assertRaises(LookupError):
             service.credentials(Identity("user-1"), "device", "missing")
 
@@ -60,6 +63,14 @@ class MobileEgressTests(unittest.TestCase):
         self.assertEqual(service.accept_telemetry("d", {"samples":[{"eTLDPlusOne":"github.com","bytes":1}]}), {"accepted":1})
         with self.assertRaises(ValueError):
             service.accept_telemetry("d", {"samples":[{"eTLDPlusOne":"github.com","url":"https://github.com/a"}]})
+
+    def test_kubernetes_catalog_requires_ready_node_publication_and_external_ip(self):
+        node = {"metadata":{"name":"real","labels":{"networking.re8ch.com/mihomo-exit":"enabled"}},
+                "status":{"conditions":[{"type":"Ready","status":"True"}],"addresses":[{"type":"ExternalIP","address":"192.0.2.109"}]}}
+        fabric = {"spec":{"nodes":[{"name":"real","region":"region","role":"spine","asn":65000,"uplinkMbps":100}]}}
+        pod = {"spec":{"nodeName":"real"},"status":{"phase":"Running","conditions":[{"type":"Ready","status":"True"}]}}
+        self.assertEqual(project_kubernetes_catalog([node], fabric, [pod], 31081)[0]["id"], "real")
+        self.assertEqual(project_kubernetes_catalog([node], fabric, [], 31081), [])
 
 
 if __name__ == "__main__": unittest.main()
