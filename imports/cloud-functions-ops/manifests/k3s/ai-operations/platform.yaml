@@ -83,7 +83,7 @@ spec:
     spec:
       serviceAccountName: ai-operations
       automountServiceAccountToken: false
-      imagePullSecrets: [{name: ghcr-re8ch}]
+      imagePullSecrets: [{name: harbor-registry-pull}]
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       affinity:
@@ -172,7 +172,7 @@ spec:
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: registry.re8ch.com/library/re8ch-ai-operations:0.1.14@sha256:85613dd67ec0828735c580d9d962f3f122004f4bafd1f607e9dc53aec6d7c314
+          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.16@sha256:b6f88647c5bdc316822e89cfe894a3f8c865940b8c8c2e89c8af8b7da6244417
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: infra}
@@ -184,6 +184,7 @@ spec:
             - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
             - {name: LITELLM_BASE_URL, value: "http://litellm.llm-gateway.svc.cluster.local:4000"}
             - {name: LITELLM_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-litellm, key: LITELLM_API_TOKEN}}}
+            - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
           ports: [{name: http, containerPort: 19443}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5, failureThreshold: 6}
           livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15, failureThreshold: 6}
