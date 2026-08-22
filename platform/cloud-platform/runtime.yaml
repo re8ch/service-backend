@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: re8ch-cloud-platform, namespace: toolhive-system}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: re8ch-cloud-platform}}
+  template:
+    metadata: {labels: {app: re8ch-cloud-platform}}
+    spec:
+      serviceAccountName: re8ch-cloud-platform
+      containers:
+        - name: runtime
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:89294da2645a8de15998b600a322467a1ad75dc1da87f84d1683142c626f7947
+          ports: [{name: mcp, containerPort: 19443}]
+          env:
+            - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
+            - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
+            - {name: SSH_CONFIG, value: /etc/re8ch-platform/ssh/ssh-config}
+            - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-cloud-platform-runtime, key: service-token}}}
+          readinessProbe: {httpGet: {path: /readyz, port: mcp}, initialDelaySeconds: 2, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: mcp}, initialDelaySeconds: 5, periodSeconds: 10}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
+            - {name: ssh, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
+      volumes:
+        - {name: kubeconfig, secret: {secretName: re8ch-cloud-platform-kubeconfig}}
+        - {name: ssh, secret: {secretName: re8ch-cloud-platform-ssh}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: re8ch-cloud-platform, namespace: toolhive-system}
+spec: {selector: {app: re8ch-cloud-platform}, ports: [{name: mcp, port: 19443, targetPort: mcp}]}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: re8ch-cloud-platform, namespace: toolhive-system}
+automountServiceAccountToken: false
