@@ -1,5 +1,12 @@
 # restricted-node-6dc3f140f9 self-hosted sandbox trials
 
+> **Status (2026-08-21): CubeSandbox is deprecated.** Do not repair, upgrade,
+> extend, or select `cube-trial` for new workloads. Preserve its PVCs and
+> existing resources only until an explicit removal/migration decision. MitOS
+> is the active microVM candidate; it is not production-ready until guest
+> networking, tenant isolation, credential injection, terminal access, and
+> fork/restore acceptance tests pass.
+
 The trials compare CubeSandbox and MitOS on the existing K3s, Cilium and CephFS
 infrastructure. They run in isolated namespaces and do not replace OpenSandbox.
 
@@ -49,12 +56,12 @@ MitOS still has `eth0` (`192.0.2.237/30`) but cannot reach its `192.0.2.12`
 gateway. CephFS currently owns Cube control-plane durable state; it is not yet
 mounted as a guest workspace volume.
 
-Current selection: continue with CubeSandbox as the primary candidate because
-its official SDK, command/file API, lifecycle, memory snapshot and 32 ms resume
-path all passed. Keep MitOS as a smaller comparison runtime until its guest
-network path is repaired. The next integration slice is deliberately narrow:
+Current selection (superseded on 2026-08-21): CubeSandbox is deprecated and
+must receive no further repair or feature work. MitOS is now the active microVM
+candidate. The next integration slice is deliberately narrow:
 Cilium-compatible guest routing first, then a dedicated CephFS-backed workspace
-mount. No OpenSandbox layer is required for that work.
+mount, authenticated terminal access, tenant-scoped credential injection, and
+fork/restore tests. No public endpoint may be enabled before those checks pass.
 
 ## Shared browser runtime
 
