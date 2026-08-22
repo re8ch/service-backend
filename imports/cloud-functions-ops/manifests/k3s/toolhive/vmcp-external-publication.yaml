@@ -364,6 +364,21 @@ spec:
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-external_restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"ops-operate-external_scale_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          # Plugin discovery and read tools remain available to authenticated
+          # callers. Runtime lifecycle changes and every generated write tool
+          # require the existing infrastructure operator/admin Dex groups;
+          # the impersonated plugin ServiceAccount RBAC remains the final gate.
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"plugins.enable") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"plugins.disable") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"plugins.sync") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"plugins.rollback") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"mihomos.configmaps.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"mihomos.nodes.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"public-edge.publicedges.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"public-edge.httproutes.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"advanced-fabrics.advancedfabrics.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"cilium.ciliumnetworkpolicies.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+          - 'forbid(principal, action == Action::"call_tool", resource == Tool::"rook-ceph.cephfilesystems.patch") unless { principal in THVGroup::"re8ch:infra-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
   outgoingAuth:
     default: {type: discovered}
   config:
