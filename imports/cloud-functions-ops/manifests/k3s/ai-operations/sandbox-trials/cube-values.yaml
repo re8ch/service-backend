@@ -1,3 +1,5 @@
+# DEPRECATED 2026-08-21: retain only for rollback/data recovery. Do not use
+# CubeSandbox for new workloads or perform further repair/feature work.
 global:
   timezone: Asia/Shanghai
 
