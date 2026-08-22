@@ -21,7 +21,8 @@ metadata:
   name: supabase-pg-re8ch-env
   namespace: supabase-pg-re8ch
 data:
-  POSTGRES_HOST: 192.0.2.178
+  # Patroni-owned role Service; never bind a writer to a PostgreSQL node IP.
+  POSTGRES_HOST: pg-re8ch-primary.pigsty-external.svc.cluster.local
   POSTGRES_PORT: "5432"
   POSTGRES_DB: postgres
   PGRST_DB_SCHEMAS: public,storage,graphql_public

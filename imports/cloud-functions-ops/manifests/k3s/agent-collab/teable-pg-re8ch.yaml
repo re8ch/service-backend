@@ -6,12 +6,12 @@
 #
 # Database wiring:
 # - Secret agent-collab/teable-db-credentials owns PRISMA_DATABASE_URL material.
-# - PGHOST_WRITE should use the MikroTik-managed ZeroTier service entrypoint
-#   192.0.2.178 so cluster, docs, and service config all share one address
-#   system. The 192.0.2.169 LAN address is a lower-level MikroTik/restricted-node-6dc3f140f9 path,
-#   not the public K3S service contract for this deployment.
-# - Do not point Teable back at legacy pgwrite.* overlay hostnames for this
-#   deployment.
+# - All write and migration URLs must use
+#   pg-re8ch-primary.pigsty-external.svc.cluster.local. The EndpointSlice is
+#   reconciled from Patroni's current Leader and must never be a node IP in an
+#   application Secret.
+# - Legacy pgwrite.* overlay names and physical node addresses are not the K3S
+#   service contract for this deployment.
 #
 # SSH/network reminder:
 # - 192.0.2.178:22 is restricted-node-6dc3f140f9 through MikroTik forwarding.
