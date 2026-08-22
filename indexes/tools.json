@@ -1,0 +1,314 @@
+[
+  {
+    "module": "2woodblog",
+    "ref": "npm"
+  },
+  {
+    "module": "aesthete",
+    "ref": "python"
+  },
+  {
+    "module": "aesthete",
+    "ref": "blender"
+  },
+  {
+    "module": "aesthete",
+    "ref": "git-lfs"
+  },
+  {
+    "module": "z-anatomy-models",
+    "ref": "git-lfs"
+  },
+  {
+    "module": "anycam",
+    "ref": "npm"
+  },
+  {
+    "module": "anycam-backend",
+    "ref": "docker"
+  },
+  {
+    "module": "anycam-backend",
+    "ref": "kubectl"
+  },
+  {
+    "module": "anycam-ios",
+    "ref": "xcodebuild"
+  },
+  {
+    "module": "anycam-website",
+    "ref": "npm"
+  },
+  {
+    "module": "anysiteonearth",
+    "ref": "npm"
+  },
+  {
+    "module": "anysiteonearth-website",
+    "ref": "npm"
+  },
+  {
+    "module": "artchais-microservices",
+    "ref": "docker"
+  },
+  {
+    "module": "artchais-microservices",
+    "ref": "kubectl"
+  },
+  {
+    "module": "artchais-microservices",
+    "ref": "nuclio"
+  },
+  {
+    "module": "artchais-web",
+    "ref": "npm"
+  },
+  {
+    "module": "arthandler-artchais-web",
+    "ref": "npm"
+  },
+  {
+    "module": "arthandler-gallery-robot",
+    "ref": "python"
+  },
+  {
+    "module": "baozou-ppt-studio",
+    "ref": "npm"
+  },
+  {
+    "module": "baozou-ppt-studio",
+    "ref": "python"
+  },
+  {
+    "module": "director-engines",
+    "ref": "python"
+  },
+  {
+    "module": "career-ops",
+    "ref": "git"
+  },
+  {
+    "module": "compocv",
+    "ref": "npm"
+  },
+  {
+    "module": "compocv",
+    "ref": "docker"
+  },
+  {
+    "module": "compocv",
+    "ref": "kubectl"
+  },
+  {
+    "module": "garageband-mcp",
+    "ref": "garageband-mcp"
+  },
+  {
+    "module": "garageband-mcp",
+    "ref": "node"
+  },
+  {
+    "module": "garageband-mcp-site",
+    "ref": "npm"
+  },
+  {
+    "module": "jjklive",
+    "ref": "npm"
+  },
+  {
+    "module": "jjklive",
+    "ref": "cocos-creator"
+  },
+  {
+    "module": "jjklive",
+    "ref": "wechat-devtools"
+  },
+  {
+    "module": "ledger",
+    "ref": "ledger-plugin"
+  },
+  {
+    "module": "ledger",
+    "ref": "docker"
+  },
+  {
+    "module": "ledger",
+    "ref": "kubectl"
+  },
+  {
+    "module": "ledger-dashboard",
+    "ref": "npm"
+  },
+  {
+    "module": "ledger-site",
+    "ref": "npm"
+  },
+  {
+    "module": "motor-muscle-sim",
+    "ref": "python"
+  },
+  {
+    "module": "motor-muscle-sim",
+    "ref": "mujoco"
+  },
+  {
+    "module": "netbird-core",
+    "ref": "go"
+  },
+  {
+    "module": "network-decomplexer-ios",
+    "ref": "xcodebuild"
+  },
+  {
+    "module": "phonaid-android",
+    "ref": "gradle"
+  },
+  {
+    "module": "phonaid-service",
+    "ref": "docker"
+  },
+  {
+    "module": "phonaid-service",
+    "ref": "kubectl"
+  },
+  {
+    "module": "phonaid-website",
+    "ref": "npm"
+  },
+  {
+    "module": "advanced-fabric",
+    "ref": "advanced-fabrics"
+  },
+  {
+    "module": "advanced-fabric",
+    "ref": "kubectl"
+  },
+  {
+    "module": "brand-assets",
+    "ref": "git-lfs"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "re8ch-cloud-platform-tool"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "re8ch-cluster-infra-tool"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "kubectl"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "helm"
+  },
+  {
+    "module": "cluster-website",
+    "ref": "npm"
+  },
+  {
+    "module": "codex-admin-plugins",
+    "ref": "plugin-creator"
+  },
+  {
+    "module": "codex-admin-plugins",
+    "ref": "toolhive"
+  },
+  {
+    "module": "headlamp-advanced-fabric",
+    "ref": "npm"
+  },
+  {
+    "module": "headlamp-advanced-fabric",
+    "ref": "kubectl"
+  },
+  {
+    "module": "image-website",
+    "ref": "npm"
+  },
+  {
+    "module": "mcp-registry",
+    "ref": "go"
+  },
+  {
+    "module": "mihomos-cluster",
+    "ref": "mihomos"
+  },
+  {
+    "module": "mihomos-cluster",
+    "ref": "kubectl"
+  },
+  {
+    "module": "observable-website",
+    "ref": "npm"
+  },
+  {
+    "module": "product-public-data",
+    "ref": "git"
+  },
+  {
+    "module": "re8ch-core",
+    "ref": "git"
+  },
+  {
+    "module": "registry-product-site",
+    "ref": "npm"
+  },
+  {
+    "module": "service-backend",
+    "ref": "glab"
+  },
+  {
+    "module": "service-backend",
+    "ref": "flux"
+  },
+  {
+    "module": "service-backend",
+    "ref": "re8ch-workspace"
+  },
+  {
+    "module": "tool-distribution",
+    "ref": "toolhive"
+  },
+  {
+    "module": "qianwen-app",
+    "ref": "npm"
+  },
+  {
+    "module": "qianwen-brand",
+    "ref": "git-lfs"
+  },
+  {
+    "module": "qianwen-capture-helper",
+    "ref": "npm"
+  },
+  {
+    "module": "qianwen-extension",
+    "ref": "npm"
+  },
+  {
+    "module": "qianwen-extension",
+    "ref": "browser"
+  },
+  {
+    "module": "qianwen-ios",
+    "ref": "xcodebuild"
+  },
+  {
+    "module": "qianwen-web",
+    "ref": "npm"
+  },
+  {
+    "module": "qianwen-wechat",
+    "ref": "wechat-devtools"
+  },
+  {
+    "module": "space-mining-stage",
+    "ref": "npm"
+  },
+  {
+    "module": "thiking-machine",
+    "ref": "python"
+  }
+]

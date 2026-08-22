@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: workspace-agent-artifacts, namespace: ai-operations}
+spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-re8ch, resources: {requests: {storage: 20Gi}}}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: workspace-mirror-sync, namespace: ai-operations}
+spec:
+  schedule: "17 */2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata: {labels: {app: workspace-mirror-sync}}
+        spec:
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          serviceAccountName: workspace-controller
+          containers:
+            - name: mirror
+              image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:026b90ae35e05204fe686e4a13b9c73082e8202a1ad5ed8ac928288287d59062
+              args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, sync]
+              env: [{name: GIT_SSH_COMMAND, value: "ssh -F /credentials/ssh-config -o BatchMode=yes"}]
+              securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, capabilities: {drop: [ALL]}}
+              volumeMounts:
+                - {name: mirrors, mountPath: /var/lib/re8ch/workspace-mirrors}
+                - {name: worktrees, mountPath: /var/lib/re8ch/agent-workspaces}
+                - {name: credentials, mountPath: /credentials, readOnly: true}
+                - {name: artifacts, mountPath: /srv/re8ch/agent-artifacts}
+          volumes:
+            - {name: mirrors, hostPath: {path: /var/lib/re8ch/workspace-mirrors, type: Directory}}
+            - {name: worktrees, hostPath: {path: /var/lib/re8ch/agent-workspaces, type: Directory}}
+            - {name: credentials, secret: {secretName: workspace-git-credentials, defaultMode: 256}}
+            - {name: artifacts, persistentVolumeClaim: {claimName: workspace-agent-artifacts}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: workspace-controller, namespace: ai-operations}
+automountServiceAccountToken: false

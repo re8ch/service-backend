@@ -19,3 +19,7 @@ def validate(pattern, schema_name):
 
 validate("plugins/*.yaml", "plugin-definition.schema.json")
 validate("inventory/*.yaml", "infrastructure-target.schema.json")
+validate("catalogs/*/modules/*/module.yaml", "workspace-module.schema.json")
+
+lock_schema = json.loads((ROOT / "schemas/workspace-lock.schema.json").read_text())
+jsonschema.validate(yaml.safe_load((ROOT / "workspace/workspace.lock.yaml").read_text()), lock_schema)

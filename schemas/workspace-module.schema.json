@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/workspace-module.v1.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "workspace.re8ch.com/v1alpha1"},
+    "kind": {"const": "WorkspaceModule"},
+    "metadata": {"type": "object", "required": ["name", "catalog"]},
+    "spec": {
+      "type": "object",
+      "required": ["ownership", "lifecycle", "repository", "workspace", "projectType", "writePolicy"],
+      "properties": {
+        "ownership": {"enum": ["owned", "collaboration", "external", "archive"]},
+        "lifecycle": {"enum": ["active", "maintenance", "incubating", "archived"]},
+        "repository": {"type": "object", "required": ["provider", "url", "defaultBranch"], "properties": {"provider": {"enum": ["github", "gitlab"]}, "url": {"type": "string", "pattern": "^(https://|ssh://|git@)"}, "defaultBranch": {"type": "string"}, "owner": {"type": "string"}}},
+        "workspace": {"type": "object", "required": ["macPath", "r640Path"], "properties": {"macPath": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._/-]+$"}, "r640Path": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._/-]+$"}}},
+        "projectType": {"type": "string"},
+        "writePolicy": {"enum": ["github-pr", "authorized-upstream-pr", "patch-only", "read-only"]},
+        "knowledge": {"type": "array", "items": {"type": "string"}},
+        "tools": {"type": "array", "items": {"type": "string"}},
+        "deployments": {"type": "array", "items": {"type": "string"}},
+        "dependencies": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

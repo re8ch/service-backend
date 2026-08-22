@@ -1,0 +1,13 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceModule
+metadata: {name: service-backend, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: gitlab, url: git@gitlab.com:reachievellc/service-backend.git, defaultBranch: main, owner: reachievellc}
+  workspace: {macPath: platform/service-backend, r640Path: platform/service-backend}
+  projectType: gitops-control-plane
+  writePolicy: github-pr
+  knowledge: [README.md, runbooks/]
+  tools: [glab, flux, re8ch-workspace]
+  deployments: [gitlab.com/reachievellc/service-backend]
