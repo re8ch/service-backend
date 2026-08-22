@@ -400,13 +400,3 @@ spec:
               - configMap: {name: podcidr-fabric-inventory, items: [{key: inventory.json, path: inventory.json}]}
         - name: host-root
           hostPath: {path: /, type: Directory}
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: podcidr-fabric-reconciler
-  namespace: kube-system
-spec:
-  maxUnavailable: 1
-  selector:
-    matchLabels: {app.kubernetes.io/name: podcidr-fabric-reconciler}

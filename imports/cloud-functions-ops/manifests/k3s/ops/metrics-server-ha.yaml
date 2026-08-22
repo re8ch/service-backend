@@ -8,7 +8,7 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: metrics-server
+  name: metrics-server-ha
   namespace: kube-system
   labels:
     k8s-app: metrics-server
@@ -71,6 +71,10 @@ spec:
             - --secure-port=10251
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
             - --kubelet-use-node-status-port
+            # Some imported worker kubelet serving certificates are signed by
+            # their former cluster CA. Authentication remains delegated to the
+            # Kubernetes API; skip only the per-node serving-cert check.
+            - --kubelet-insecure-tls
             - --metric-resolution=15s
             - --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
           resources:
@@ -88,7 +92,7 @@ spec:
               scheme: HTTPS
             initialDelaySeconds: 0
             periodSeconds: 2
-            timeoutSeconds: 1
+            timeoutSeconds: 3
             successThreshold: 1
             failureThreshold: 3
           livenessProbe:
@@ -98,7 +102,7 @@ spec:
               scheme: HTTPS
             initialDelaySeconds: 60
             periodSeconds: 10
-            timeoutSeconds: 1
+            timeoutSeconds: 3
             successThreshold: 1
             failureThreshold: 3
           securityContext:
@@ -113,7 +117,7 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: metrics-server
+  name: metrics-server-ha
   namespace: kube-system
 spec:
   minAvailable: 1

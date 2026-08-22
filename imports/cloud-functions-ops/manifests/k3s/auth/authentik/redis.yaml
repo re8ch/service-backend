@@ -22,7 +22,8 @@ metadata:
     app.kubernetes.io/name: authentik-redis
     app.kubernetes.io/part-of: authentik
 spec:
-  replicas: 1
+  # Authentik is retired; retain the PVC and definition only for rollback.
+  replicas: 0
   strategy:
     type: Recreate
   selector:

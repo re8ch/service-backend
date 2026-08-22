@@ -10,7 +10,7 @@ spec:
     hostNetwork: true
     dnsPolicy: ClusterFirstWithHostNet
     nodeSelector:
-      pigsty.cc/workload: nuclio
+      kubernetes.io/hostname: muaya-lightweight
     podSecurityContext:
       runAsNonRoot: false
       runAsUser: 0

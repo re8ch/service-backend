@@ -31,6 +31,10 @@ data:
     if chroot "$host" systemctl list-unit-files systemd-resolved.service >/dev/null 2>&1; then
       chroot "$host" systemctl daemon-reload
       chroot "$host" systemctl enable --now systemd-resolved.service re8ch-split-dns.service
+      if [ ! -e "$host/etc/resolv.conf.re8ch-backup" ]; then
+        cp -a "$host/etc/resolv.conf" "$host/etc/resolv.conf.re8ch-backup"
+      fi
+      ln -sfn /run/systemd/resolve/stub-resolv.conf "$host/etc/resolv.conf"
       chroot "$host" resolvectl flush-caches
     else
       echo "systemd-resolved is not installed; leaving this node's resolver unchanged"

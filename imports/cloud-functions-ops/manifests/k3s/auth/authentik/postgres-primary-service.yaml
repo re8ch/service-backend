@@ -79,6 +79,7 @@ kind: CronJob
 metadata: {name: authentik-postgres-primary-controller, namespace: auth}
 spec:
   schedule: "* * * * *"
+  suspend: true
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
