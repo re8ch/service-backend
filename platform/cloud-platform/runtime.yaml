@@ -1,23 +1,37 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: re8ch-cloud-platform, namespace: toolhive-system}
+metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 spec:
   replicas: 2
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 1}}
   selector: {matchLabels: {app: re8ch-cloud-platform}}
   template:
     metadata: {labels: {app: re8ch-cloud-platform}}
     spec:
       serviceAccountName: re8ch-cloud-platform
+      securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"]}
+                  - {key: kubernetes.io/hostname, operator: NotIn, values: [restricted-node-6dc3f140f9]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:98a3646a822254bbaba14c08823675c38747f16565fc44af39dca27ff3619fdf
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:bd28c59e70e6de4df4e39e1938b6959283a2fae43f127cb7fc4093cf32af5e67
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
             - {name: SSH_CONFIG, value: /etc/re8ch-platform/ssh/ssh-config}
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
-            - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-cloud-platform-runtime, key: service-token}}}
+            - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
           readinessProbe: {httpGet: {path: /readyz, port: mcp}, initialDelaySeconds: 2, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /healthz, port: mcp}, initialDelaySeconds: 5, periodSeconds: 10}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
@@ -25,15 +39,15 @@ spec:
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
             - {name: ssh, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
       volumes:
-        - {name: kubeconfig, secret: {secretName: re8ch-cloud-platform-kubeconfig}}
-        - {name: ssh, secret: {secretName: re8ch-cloud-platform-ssh}}
+        - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}
+        - {name: ssh, secret: {secretName: cloud-platform-runtime, items: [{key: ssh-config, path: ssh-config}, {key: id_ed25519, path: id_ed25519}], defaultMode: 288}}
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: re8ch-cloud-platform, namespace: toolhive-system}
+metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 spec: {selector: {app: re8ch-cloud-platform}, ports: [{name: mcp, port: 19443, targetPort: mcp}]}
 ---
 apiVersion: v1
 kind: ServiceAccount
-metadata: {name: re8ch-cloud-platform, namespace: toolhive-system}
+metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 automountServiceAccountToken: false
