@@ -10,7 +10,7 @@ metadata:
     browser.re8ch.com/profile-id: default
 spec:
   accessModes: [ReadWriteMany]
-  storageClassName: cephfs-re8ch
+  storageClassName: cephfs-r640
   resources:
     requests:
       storage: 50Gi

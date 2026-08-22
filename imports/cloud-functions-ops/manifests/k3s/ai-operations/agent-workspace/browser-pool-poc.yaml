@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata: {name: browser-profile-pool-poc, namespace: ai-operations}
 spec:
   accessModes: [ReadWriteMany]
-  storageClassName: cephfs-re8ch
+  storageClassName: cephfs-r640
   resources: {requests: {storage: 10Gi}}
 ---
 apiVersion: apps/v1

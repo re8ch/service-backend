@@ -4,9 +4,15 @@ kind: StorageClass
 metadata:
   name: cephfs-r640
   labels:
+    storage.re8ch.com/availability-class: single-node
     storage.re8ch.com/failure-domain: restricted-node-6dc3f140f9
+    storage.re8ch.com/replication: "1"
   annotations:
     storageclass.kubernetes.io/is-default-class: "false"
+    storage.re8ch.com/ha: "false"
+    storage.re8ch.com/usage-policy: >-
+      R640-local non-HA storage; use only for workloads that intentionally
+      accept the restricted-node-6dc3f140f9 failure domain.
 provisioner: rook-ceph.cephfs.csi.ceph.com
 parameters:
   clusterID: rook-ceph

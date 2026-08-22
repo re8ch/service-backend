@@ -9,7 +9,7 @@ metadata:
   namespace: dataspace
 spec:
   accessModes: [ReadWriteMany]
-  storageClassName: cephfs-re8ch
+  storageClassName: cephfs-r640
   resources: {requests: {storage: 100Gi}}
 ---
 apiVersion: apps/v1
