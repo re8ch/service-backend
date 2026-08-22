@@ -8,13 +8,24 @@ spec:
     metadata: {labels: {app: gitlab-agent}}
     spec:
       serviceAccountName: gitlab-agent
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"]}
+                  - {key: kubernetes.io/hostname, operator: NotIn, values: [restricted-node-6dc3f140f9]}
       containers:
         - name: agentk
           image: registry.re8ch.com/functions-shared/gitlab-agentk@sha256:a951ecb82430cea62dff4d2e0468ed027ed6dfd995d537c315b686e867d76756
           args: [--kas-address=wss://kas.gitlab.com]
           env:
-            - name: AGENT_TOKEN
+            - name: AGENTK_TOKEN
               valueFrom: {secretKeyRef: {name: gitlab-agent-token, key: token}}
+            - name: POD_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
 ---
 apiVersion: v1
 kind: ServiceAccount

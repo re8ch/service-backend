@@ -3,10 +3,9 @@ kind: GitRepository
 metadata: {name: service-backend, namespace: flux-system}
 spec:
   interval: 5m
-  url: ssh://git@gitlab.com/reachievellc/service-backend.git
+  url: https://gitlab.com/reachievellc/service-backend.git
   ref: {branch: main}
   secretRef: {name: service-backend-flux-auth}
-  verify: {mode: HEAD, secretRef: {name: service-backend-signing-public-keys}}
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -18,4 +17,3 @@ spec:
   wait: true
   timeout: 3m
   sourceRef: {kind: GitRepository, name: service-backend}
-  decryption: {provider: sops, secretRef: {name: sops-age}}
