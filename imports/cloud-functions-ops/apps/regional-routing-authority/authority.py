@@ -35,6 +35,25 @@ KUBERNETES_API = os.getenv("KUBERNETES_SERVICE_HOST", "")
 SERVICE_ACCOUNT = "/var/run/secrets/kubernetes.io/serviceaccount"
 PUBLISHER_NODE = os.getenv("PUBLISHER_NODE", "")
 PUBLICATION_REFS = json.loads(os.getenv("PUBLICATION_REFS_JSON", "{}"))
+CANDIDATE_CAPACITY_WEIGHT = max(0, int(os.getenv("CANDIDATE_CAPACITY_WEIGHT", "10")))
+CANDIDATE_LOCAL_AREA_BONUS = max(0, int(os.getenv("CANDIDATE_LOCAL_AREA_BONUS", "100000")))
+CANDIDATE_PRIORITY_WEIGHT = max(0, int(os.getenv("CANDIDATE_PRIORITY_WEIGHT", "1")))
+CANDIDATE_LATENCY_DIVISOR_MS = max(1, int(os.getenv("CANDIDATE_LATENCY_DIVISOR_MS", "20")))
+CANDIDATE_LATENCY_PENALTY_CAP = max(0, int(os.getenv("CANDIDATE_LATENCY_PENALTY_CAP", "50")))
+CANDIDATE_LOCAL_NODE_BONUS = max(0, int(os.getenv("CANDIDATE_LOCAL_NODE_BONUS", "5")))
+
+
+def patroni_write_authority_ready():
+    authority = kubernetes_get("/api/v1/namespaces/kube-system/configmaps/pg-re8ch-role-authority")
+    endpoint_slice = kubernetes_get("/apis/discovery.k8s.io/v1/namespaces/pigsty-external/endpointslices/pg-re8ch-primary")
+    try:
+        result = json.loads(authority["data"]["authority.json"])
+        addresses = [address for endpoint in endpoint_slice.get("endpoints", [])
+                     if endpoint.get("conditions", {}).get("ready", True)
+                     for address in endpoint.get("addresses", [])]
+        return result.get("authority") == "patroni" and result["leader"]["address"] in addresses and len(addresses) == 1
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def kubernetes_get(path):
@@ -219,6 +238,7 @@ def publish_default_area():
 
 
 def ranked(service):
+    database_authority_ready = service != "db-rw" or patroni_write_authority_ready()
     with LOCK:
         snapshot = dict(HEALTH.get(service, {}))
     result = []
@@ -228,7 +248,7 @@ def ranked(service):
         if service not in candidate.get("probes", {}):
             continue
         observed = snapshot.get(candidate["id"], {})
-        ready = bool(observed.get("ready"))
+        ready = bool(observed.get("ready")) and database_authority_ready
         score = 0
         if ready:
             regional_priority = candidate.get("priorityByRegion", {}).get(REGION, candidate.get("priority", 0))
@@ -236,13 +256,13 @@ def ranked(service):
             # healthy US relay even when the origin is in CN. Inside one area,
             # capacity is intentionally the dominant signal so CN clients reach
             # restricted-node-6dc3f140f9 directly instead of hairpinning through a 100 Mbps edge.
-            score = int(candidate.get("capacityMbps", 1)) * 10
+            score = int(candidate.get("capacityMbps", 1)) * CANDIDATE_CAPACITY_WEIGHT
             if candidate.get("area", candidate["region"]) == AREA:
-                score += 100000
-            score -= int(regional_priority)
-            score -= min(int(observed.get("latencyMs", 0)) // 20, 50)
+                score += CANDIDATE_LOCAL_AREA_BONUS
+            score -= int(regional_priority) * CANDIDATE_PRIORITY_WEIGHT
+            score -= min(int(observed.get("latencyMs", 0)) // CANDIDATE_LATENCY_DIVISOR_MS, CANDIDATE_LATENCY_PENALTY_CAP)
             if candidate["id"] == NODE:
-                score += 5
+                score += CANDIDATE_LOCAL_NODE_BONUS
         result.append({
             "id": candidate["id"], "region": candidate["region"],
             "area": candidate.get("area", candidate["region"]), "ip": candidate["ip"],
@@ -253,7 +273,8 @@ def ranked(service):
             "paths": candidate.get("paths", {}).get(service, []),
             "score": score, "state": "ready" if ready else "unavailable",
             "statusCode": observed.get("statusCode", 0), "latencyMs": observed.get("latencyMs", 0),
-            "observedAt": observed.get("observedAt", 0), "reason": observed.get("failure", ""),
+            "observedAt": observed.get("observedAt", 0),
+            "reason": (observed.get("failure", "") if database_authority_ready else "Patroni role authority unavailable"),
         })
     return sorted(result, key=lambda item: (-item["score"], item["id"]))
 

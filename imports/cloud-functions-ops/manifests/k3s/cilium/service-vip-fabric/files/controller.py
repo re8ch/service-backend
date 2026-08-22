@@ -18,13 +18,15 @@ TOKEN = open("/var/run/secrets/kubernetes.io/serviceaccount/token", encoding="ut
 CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 CONTEXT = ssl.create_default_context(cafile=CA)
 ADVISOR_URL = os.environ.get("ADVISOR_URL", "http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790")
+PATRONI_MEMBERS = json.loads(os.environ.get("PATRONI_MEMBERS_JSON", "{}"))
+PG_NAMESPACE = os.environ.get("PG_ROLE_NAMESPACE", "pigsty-external")
 
 
 def request(method, path, body=None):
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
     if data is not None:
-        headers["Content-Type"] = "application/merge-patch+json"
+        headers["Content-Type"] = "application/merge-patch+json" if method == "PATCH" else "application/json"
     req = urllib.request.Request(BASE + path, data=data, headers=headers, method=method)
     with urllib.request.urlopen(req, context=CONTEXT, timeout=15) as response:
         return json.load(response)
@@ -50,6 +52,59 @@ def advisor_items(path):
             return json.load(response).get("items", [])
     except Exception:
         return []
+
+
+def patroni_role_authority():
+    """Mirror Patroni's result; never infer or elect a PostgreSQL leader here."""
+    cluster = None
+    source = None
+    for name, address in PATRONI_MEMBERS.items():
+        try:
+            with urllib.request.urlopen(f"http://{address}:8008/cluster", timeout=4) as response:
+                candidate = json.load(response)
+            if candidate.get("scope") == "pg-re8ch" and candidate.get("members"):
+                cluster, source = candidate, name
+                break
+        except Exception as exc:
+            print(json.dumps({"event": "patroni-observation-failed", "member": name,
+                              "address": address, "error": str(exc)}), flush=True)
+    if not cluster:
+        raise RuntimeError("no Patroni /cluster authority is reachable")
+    observed = [{"name": item.get("name"), "address": item.get("host"),
+                 "role": item.get("role"), "state": item.get("state"),
+                 "timeline": item.get("timeline"), "lag": item.get("lag")}
+                for item in cluster["members"]]
+    primaries = [item for item in observed if item["role"] in ("primary", "leader") and item["state"] == "running"]
+    timelines = {item["timeline"] for item in observed if item["timeline"] is not None}
+    if len(observed) < 2 or len(primaries) != 1 or len(timelines) != 1:
+        raise RuntimeError(f"Patroni authority ambiguous: observed={len(observed)} primaries={len(primaries)} timelines={len(timelines)}")
+    primary = primaries[0]
+    replicas = [item for item in observed if item["name"] != primary["name"] and
+                item["role"] in ("replica", "standby") and item["state"] in ("running", "streaming")]
+    primary_endpoints = [{"addresses": [primary["address"]], "conditions": {"ready": True}}]
+    replica_endpoints = [{"addresses": [item["address"]], "conditions": {"ready": True}} for item in replicas]
+    for name, endpoints in (("pg-re8ch-primary", primary_endpoints),
+                            ("pg-re8ch-replicas", replica_endpoints),
+                            ("pgwrite", primary_endpoints)):
+        request("PATCH", f"/apis/discovery.k8s.io/v1/namespaces/{PG_NAMESPACE}/endpointslices/{name}",
+                {"metadata": {"annotations": {"networking.re8ch.com/role-authority": "patroni"}},
+                 "endpoints": endpoints})
+    authority = {"schemaVersion": "networking.re8ch.com/v1alpha1", "authority": "patroni",
+                 "cluster": "pg-re8ch", "leader": primary, "replicas": replicas,
+                 "observedMembers": observed, "sourceMember": source,
+                 "observedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    configmap = {"apiVersion": "v1", "kind": "ConfigMap",
+                 "metadata": {"name": "pg-re8ch-role-authority", "namespace": "kube-system",
+                              "labels": {"app.kubernetes.io/part-of": "re8ch-advanced-fabric",
+                                         "networking.re8ch.com/database-role-authority": "patroni"}},
+                 "data": {"authority.json": json.dumps(authority, separators=(",", ":"))}}
+    try:
+        request("PATCH", "/api/v1/namespaces/kube-system/configmaps/pg-re8ch-role-authority", configmap)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        request("POST", "/api/v1/namespaces/kube-system/configmaps", configmap)
+    return authority
 
 
 def quota_pressure(usage, limit):
@@ -87,6 +142,7 @@ def rank_paths(profile, node, edges, costs, ready):
 
 def reconcile():
     fabric = request("GET", "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/re8ch")
+    role_authority = patroni_role_authority()
     spec = fabric["spec"]
     node_objects = request("GET", "/api/v1/nodes").get("items", [])
     ready = {item["metadata"]["name"]: any(c["type"] == "Ready" and c["status"] == "True"
@@ -142,7 +198,8 @@ def reconcile():
               "mode": spec["mode"], "applyEnabled": bool(spec.get("applyEnabled")),
               "inventoryIncomplete": incomplete, "ineligibleSpines": unavailable,
               "conditions": [condition("InventoryReady", not incomplete, "InventoryEvaluated", ",".join(incomplete) or "complete"),
-                             condition("ApplySafe", not unavailable and not spec.get("emergencyDisable"), "SpinesEvaluated", ",".join(unavailable) or "all eligible")],
+                             condition("ApplySafe", not unavailable and not spec.get("emergencyDisable"), "SpinesEvaluated", ",".join(unavailable) or "all eligible"),
+                             condition("DatabaseRoleAuthorityReady", True, "PatroniObserved", "leader=" + role_authority["leader"]["name"])],
               "lastEvaluationTime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     request("PATCH", "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/re8ch/status", {"status": status})
 
