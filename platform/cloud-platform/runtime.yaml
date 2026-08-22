@@ -16,6 +16,7 @@ spec:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
             - {name: SSH_CONFIG, value: /etc/re8ch-platform/ssh/ssh-config}
+            - {name: WORKSPACE_ROOT, value: /srv/service-backend}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-cloud-platform-runtime, key: service-token}}}
           readinessProbe: {httpGet: {path: /readyz, port: mcp}, initialDelaySeconds: 2, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /healthz, port: mcp}, initialDelaySeconds: 5, periodSeconds: 10}

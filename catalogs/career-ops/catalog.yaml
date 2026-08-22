@@ -1,0 +1,4 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceCatalog
+metadata: {name: career-ops}
+spec: {title: Career Ops, ownership: owned, knowledgeRoot: knowledge, toolIndex: tools/index.yaml}

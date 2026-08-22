@@ -1,0 +1,17 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceSources
+spec:
+  localRoots:
+    - /Volumes/A1/RE8CHProjects
+    - /Volumes/A1/cloud-functions
+    - /Volumes/A1/Qianwen-app-test
+    - /Volumes/A1/ArtChais-Web
+    - /Volumes/A1/Artchais-MicroServices
+    - /Volumes/A1/ledger
+    - /Volumes/A1/JJKLive
+  codexCatalog: /Users/harryneo/.codex/sqlite/codex-dev.db
+  macWorkspaceRoot: /Volumes/A1/RE8CHWorkspace
+  r640MirrorRoot: /var/lib/re8ch/workspace-mirrors
+  r640WorktreeRoot: /var/lib/re8ch/agent-workspaces
+  r640ArtifactRoot: /srv/re8ch/agent-artifacts
+  providers: [github, gitlab]

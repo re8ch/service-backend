@@ -1,0 +1,13 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceModule
+metadata: {name: tool-distribution, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: https://github.com/re8ch/tool-distribution.git, defaultBranch: main, owner: re8ch}
+  workspace: {macPath: platform/tool-distribution, r640Path: platform/tool-distribution}
+  projectType: tool-distribution
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [toolhive]
+  deployments: [toolhive-system]

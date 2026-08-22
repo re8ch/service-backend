@@ -28,3 +28,27 @@ secret-scan:
   stage: security
   script:
     - python tests/check_no_plaintext_secrets.py
+
+workspace-drift:
+  stage: validate
+  script:
+    - python operations/workspace-controller/workspace.py doctor
+    - python operations/workspace-controller/workspace.py index --write
+    - git diff --exit-code -- indexes
+
+workspace-lock-mr:
+  stage: render
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  before_script:
+    - apk add --no-cache git openssh-client curl glab
+    - pip install --disable-pip-version-check PyYAML
+  script:
+    - python operations/workspace-controller/workspace.py sync --write
+    - |
+      if git diff --quiet -- workspace/workspace.lock.yaml; then exit 0; fi
+    - git checkout -b "bot/workspace-lock-${CI_PIPELINE_ID}"
+    - git add workspace/workspace.lock.yaml
+    - git -c user.name="RE8CH Workspace Bot" -c user.email="workspace-bot@re8ch.com" commit -m "chore(workspace): refresh locked module revisions"
+    - git push "https://oauth2:${WORKSPACE_BOT_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" HEAD
+    - glab mr create --source-branch "bot/workspace-lock-${CI_PIPELINE_ID}" --target-branch main --title "chore(workspace): refresh locked module revisions" --description "Automated locked SHA refresh. Schema, secret and workspace drift jobs must pass."

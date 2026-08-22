@@ -1,0 +1,285 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceLock
+metadata:
+  generatedAt: '2026-08-22T16:00:54Z'
+  generation: 1787414454
+  schemaHash: 5d783beee9ec746ad36400ea00b60eb901479576fc81f47062923892236bfe23
+modules:
+  2woodblog:
+    commit: 265367d21e23442d3100f7f3970dc3d63f8359bc
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/Woomou/2woodblog.git
+  advanced-fabric:
+    commit: 27ed1e0a4dac64810dfdaf6fce02460a4525dae0
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/advanced-fabric.git
+  aesthete:
+    commit: 1f09ddb56645fb8c1dcb624f5f00b60ef84f2f7b
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/aesthete.git
+  anycam:
+    commit: 0451d68f9d4b5a92046fbeb6a553fdf711f2577a
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/Anycam.git
+  anycam-backend:
+    commit: b64b3d2558812882848e4fd22ece1b7dd067ee41
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/anycam-backend.git
+  anycam-ios:
+    commit: 48e48d1eb6bd9008ee97b5f1ab2cf4a31d3b8cc3
+    defaultBranch: main
+    dependencies:
+    - anycam-backend
+    repository: https://github.com/re8ch/AnycamIOS.git
+  anycam-website:
+    commit: 325d3c0565d6609fe554618f95673a83b05aca40
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/anycam-website.git
+  anysiteonearth:
+    commit: 60882aec884a277b2e0dc0bf3a232d84e2ab25c7
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/anysiteonearth.git
+  anysiteonearth-website:
+    commit: 14761865d16dc5f8d3ba9bc4fa88cbb30d63892a
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/anysiteonearth-website.git
+  artchais-microservices:
+    commit: aa2b9eda6785027c41bf789c0f201a36c5a02d55
+    defaultBranch: main
+    dependencies:
+    - artchais-web
+    repository: https://github.com/XProfessorJ/Artchais-MicroServices.git
+  artchais-web:
+    commit: 22ae111927323bce9adaa9cf9f28f9a36807c359
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/XProfessorJ/ArtChais-Web.git
+  arthandler-artchais-web:
+    commit: 541afc8f91a93604621b6c7c35344c0709c6d0f9
+    defaultBranch: main
+    dependencies:
+    - artchais-web
+    repository: https://github.com/re8ch/arthandler-artchais-web.git
+  arthandler-gallery-robot:
+    commit: d18ba129b46ea9e5011fdb02bb841cea78418d26
+    defaultBranch: main
+    dependencies:
+    - artchais-web
+    repository: https://github.com/Woomou/ArtHandler-Gallery-Robot.git
+  baozou-ppt-studio:
+    commit: 36badbd631c0c0cc48241a3ca029a00ac7a5f782
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/baozou-ppt-studio.git
+  brand-assets:
+    commit: ede3e0d11c92b08b0973a1946282283224ff2378
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/brand-assets.git
+  career-ops:
+    commit: 996e181b1e4362b062931c206091a812fbb6aee5
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/Woomou/career-ops.git
+  cloud-functions:
+    commit: f2da95fdaa076256cc17df54b4ea13f643434bfd
+    defaultBranch: master
+    dependencies: []
+    repository: https://github.com/re8ch/cloud-functions.git
+  cluster-website:
+    commit: 18d18b4ba07f4c8afac3572ee9401d20bdfe6c82
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/cluster-website.git
+  codex-admin-plugins:
+    commit: eed495c27a05f0686f107514bf1fff24981129cb
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/codex-admin-plugins.git
+  compocv:
+    commit: d43c17fa0ec5768f6817d252e29cba5c27058062
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/compocv.git
+  director-engines:
+    commit: 2dd4402951ad35c18bfbfcc8af77fea5887657ae
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/director-engines.git
+  garageband-mcp:
+    commit: 5ada07239e582e824d06ce6a44e68ec14991cb14
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/garageband-mcp.git
+  garageband-mcp-site:
+    commit: d6e3a713924101d30b6992b2753376e8e484e2e1
+    defaultBranch: main
+    dependencies:
+    - garageband-mcp
+    repository: https://github.com/re8ch/garageband-mcp-site.git
+  headlamp-advanced-fabric:
+    commit: b7d2847a39b4af1971e09db199193805635f37f3
+    defaultBranch: main
+    dependencies:
+    - advanced-fabric
+    repository: https://github.com/re8ch/headlamp-advanced-fabric.git
+  image-website:
+    commit: ee99adcdd9bf7cfd7c2500f5a753d12d068c7a4c
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/image-website.git
+  jjklive:
+    commit: eeece7297c6cf2a3359ef98f3e2416ee268a665e
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/jjklive.git
+  ledger:
+    commit: 70b08985c332deb48d10f436a449ef4949f504fe
+    defaultBranch: main
+    dependencies:
+    - ledger-dashboard
+    repository: https://github.com/re8ch/ledger.git
+  ledger-dashboard:
+    commit: d509cb094d697a23d755a988ba3c7f15f11afd72
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/ledger-dashboard.git
+  ledger-site:
+    commit: 83ca7276494a13bf6f757d7c0ab4e0329f0a6551
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/ledger-website.git
+  mcp-registry:
+    commit: 6036804f1c62633b5e7d2927f411a6f4127f148a
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/modelcontextprotocol/registry.git
+  mihomos-cluster:
+    commit: 9df614280166dec3e858b98bf44dee011093b996
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/mihomos-cluster.git
+  motor-muscle-sim:
+    commit: a047bd9ea3ce87d212fcdf61f25ebdccd9adffb6
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/motor-muscle-sim.git
+  netbird-core:
+    commit: 335adfe9c371cdd3b7433d62ec9ac888a57aa2c1
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/netbirdio/netbird.git
+  network-decomplexer-ios:
+    commit: 5e68621e51c6522160533442a91caf9f29bf7605
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/Woomou/network-decomplexer-ios.git
+  observable-website:
+    commit: 99046ee81c6c0c2c561b17eabcfaa17eb6edbfcb
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/observable-website.git
+  phonaid-android:
+    commit: d27d4c4fd370e4f717e796b6adbd7f772cac3ca4
+    defaultBranch: main
+    dependencies:
+    - phonaid-service
+    repository: https://github.com/Woomou/phonaid-android.git
+  phonaid-service:
+    commit: 79120a01a695122e0361532672469f24e4915abb
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/phonaid-service.git
+  phonaid-website:
+    commit: c3dcf4adae41646c3ef4cae322b98d94f8d265ca
+    defaultBranch: main
+    dependencies:
+    - phonaid-service
+    repository: https://github.com/re8ch/phonaid-website.git
+  product-public-data:
+    commit: 09be04795a084fcc69dad2507b81c68244ce1284
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/product-public-data.git
+  qianwen-app:
+    commit: 86cbb76d6786f5d0a8279126515562bed97a15fb
+    defaultBranch: master
+    dependencies: []
+    repository: https://github.com/OCGS-with-pattern/Qianwen-app.git
+  qianwen-brand:
+    commit: dbc97e542c7c0aca23ab70c5b7424c3adaf4c919
+    defaultBranch: master
+    dependencies: []
+    repository: https://github.com/OCGS-with-pattern/Qianwen-brand.git
+  qianwen-capture-helper:
+    commit: 7152e9ff6a9e5e5361e3f45468a6d43fc2e57e90
+    defaultBranch: master
+    dependencies: []
+    repository: https://github.com/OCGS-with-pattern/Qianwen-capture-helper.git
+  qianwen-extension:
+    commit: 1ec6c97ced4060cac69c8a99ba7600c61a7bb6c2
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/OCGS-with-pattern/Qianwen-extension.git
+  qianwen-ios:
+    commit: c3282416ab8d96ed028a4920b25cb3c001bf1158
+    defaultBranch: master
+    dependencies:
+    - qianwen-app
+    repository: https://github.com/OCGS-with-pattern/QianwenIOS.git
+  qianwen-web:
+    commit: 41bfdd230e90b363ea4e46afffdabdf6cb28f14b
+    defaultBranch: master
+    dependencies:
+    - qianwen-app
+    repository: https://github.com/OCGS-with-pattern/Qianwen-web.git
+  qianwen-wechat:
+    commit: fe69994ffa352bb845b7ea773f9208d29a36c780
+    defaultBranch: master
+    dependencies:
+    - qianwen-app
+    repository: https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git
+  re8ch-core:
+    commit: 31676ef891e20ef8b2b1a76604435d1e9c73108b
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/re8ch.git
+  registry-product-site:
+    commit: af3b8d8fc66b6e5ad87864e2fb87385f3bd5a17c
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/registry-website.git
+  service-backend:
+    commit: 5fdacc9442f497d69838d9665f3d8c9a4a9f3633
+    defaultBranch: main
+    dependencies: []
+    repository: git@gitlab.com:reachievellc/service-backend.git
+  space-mining-stage:
+    commit: 8157a66a8e88ddc414a8a01d92e0b5be3cef72f1
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/space-mining-stage.git
+  thiking-machine:
+    commit: 706d9e71a2951a14b4aa2420535b4eadf6b97ad3
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/thiking-machine.git
+  tool-distribution:
+    commit: 042d4aeab711c516af18ab3cb68d88bc38e20700
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/tool-distribution.git
+  z-anatomy-models:
+    commit: 7ff6c89d1fdbbe527ea705e9c3688052b981126f
+    defaultBranch: master
+    dependencies: []
+    repository: https://github.com/Z-Anatomy/Models-of-human-anatomy.git
+

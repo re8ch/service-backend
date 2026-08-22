@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +19,7 @@ SERVICE_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 DEX_USERINFO = os.getenv("DEX_USERINFO_URL", "https://dex.re8ch.com/userinfo")
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
+WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "nodes.list": {},
@@ -28,9 +30,16 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **{f"kube.resource.{verb}": {"resource": {"type": "string"}, "namespace": {"type": "string"}, "name": {"type": "string"}, "manifest": {"type": "object"}, "resourceVersion": {"type": "string"}} for verb in ("get", "list", "watch", "apply", "patch", "delete")},
     "kube.events.query": {"namespace": {"type": "string"}, "involvedObject": {"type": "string"}, "reason": {"type": "string"}, "type": {"type": "string"}},
     "kube.events.watch": {"namespace": {"type": "string"}, "involvedObject": {"type": "string"}, "reason": {"type": "string"}, "type": {"type": "string"}},
+    "workspace.list": {},
+    "workspace.status": {},
+    "workspace.scan": {},
+    "workspace.doctor": {},
+    "workspace.index": {"write": {"type": "boolean"}},
+    "workspace.sync": {"write": {"type": "boolean"}},
+    "workspace.materialize": {"catalogs": {"type": "array", "items": {"type": "string"}}, "apply": {"type": "boolean"}},
 }
 
-WRITE_TOOLS = {"node.ssh.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete"}
+WRITE_TOOLS = {"node.ssh.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.sync", "workspace.materialize"}
 
 
 REQUIRED = {
@@ -79,6 +88,20 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
         return service.node_reachability(args["name"])
     if name == "node.ssh.exec":
         return service.node_ssh_exec(args["name"], args["argv"], args.get("timeout", 30))
+    if name.startswith("workspace."):
+        command = name.removeprefix("workspace.")
+        argv = ["python", "/app/workspace.py", "--root", str(WORKSPACE_ROOT), command]
+        if command == "materialize":
+            for catalog in args.get("catalogs", []):
+                argv += ["--catalog", catalog]
+            if args.get("apply"):
+                argv.append("--apply")
+        elif command in {"sync", "index"} and args.get("write"):
+            argv.append("--write")
+        completed = subprocess.run(argv, text=True, capture_output=True, timeout=3600, check=False)
+        if completed.returncode:
+            raise OperationError("WORKSPACE_OPERATION_FAILED", completed.stderr[-2048:])
+        return json.loads(completed.stdout)
     if name.startswith("kube.resource."):
         return service.kube_resource(name.rsplit(".", 1)[1], args["resource"], namespace=args.get("namespace"), name=args.get("name"), manifest=args.get("manifest"), resource_version=args.get("resourceVersion"))
     if name.startswith("kube.events."):

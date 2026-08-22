@@ -1,0 +1,234 @@
+[
+  {
+    "module": "2woodblog",
+    "ref": "README.md"
+  },
+  {
+    "module": "aesthete",
+    "ref": "README.md"
+  },
+  {
+    "module": "z-anatomy-models",
+    "ref": "README.md"
+  },
+  {
+    "module": "anycam",
+    "ref": "README.md"
+  },
+  {
+    "module": "anycam-backend",
+    "ref": "README.md"
+  },
+  {
+    "module": "anycam-ios",
+    "ref": "README.md"
+  },
+  {
+    "module": "anycam-website",
+    "ref": "README.md"
+  },
+  {
+    "module": "anysiteonearth",
+    "ref": "README.md"
+  },
+  {
+    "module": "anysiteonearth-website",
+    "ref": "README.md"
+  },
+  {
+    "module": "artchais-microservices",
+    "ref": "README.md"
+  },
+  {
+    "module": "artchais-web",
+    "ref": "README.md"
+  },
+  {
+    "module": "arthandler-artchais-web",
+    "ref": "README.md"
+  },
+  {
+    "module": "arthandler-gallery-robot",
+    "ref": "README.md"
+  },
+  {
+    "module": "baozou-ppt-studio",
+    "ref": "README.md"
+  },
+  {
+    "module": "director-engines",
+    "ref": "README.md"
+  },
+  {
+    "module": "career-ops",
+    "ref": "README.md"
+  },
+  {
+    "module": "compocv",
+    "ref": "README.md"
+  },
+  {
+    "module": "garageband-mcp",
+    "ref": "README.md"
+  },
+  {
+    "module": "garageband-mcp-site",
+    "ref": "README.md"
+  },
+  {
+    "module": "jjklive",
+    "ref": "README.md"
+  },
+  {
+    "module": "jjklive",
+    "ref": "AGENTS.md"
+  },
+  {
+    "module": "jjklive",
+    "ref": "COCOS_WECHAT_README.md"
+  },
+  {
+    "module": "ledger",
+    "ref": "README.md"
+  },
+  {
+    "module": "ledger-dashboard",
+    "ref": "README.md"
+  },
+  {
+    "module": "ledger-site",
+    "ref": "README.md"
+  },
+  {
+    "module": "motor-muscle-sim",
+    "ref": "README.md"
+  },
+  {
+    "module": "netbird-core",
+    "ref": "README.md"
+  },
+  {
+    "module": "network-decomplexer-ios",
+    "ref": "README.md"
+  },
+  {
+    "module": "phonaid-android",
+    "ref": "README.md"
+  },
+  {
+    "module": "phonaid-service",
+    "ref": "README.md"
+  },
+  {
+    "module": "phonaid-website",
+    "ref": "README.md"
+  },
+  {
+    "module": "advanced-fabric",
+    "ref": "README.md"
+  },
+  {
+    "module": "brand-assets",
+    "ref": "README.md"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "README.md"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "AGENTS.md"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "docs/"
+  },
+  {
+    "module": "cluster-website",
+    "ref": "README.md"
+  },
+  {
+    "module": "codex-admin-plugins",
+    "ref": "README.md"
+  },
+  {
+    "module": "headlamp-advanced-fabric",
+    "ref": "README.md"
+  },
+  {
+    "module": "image-website",
+    "ref": "README.md"
+  },
+  {
+    "module": "mcp-registry",
+    "ref": "README.md"
+  },
+  {
+    "module": "mihomos-cluster",
+    "ref": "README.md"
+  },
+  {
+    "module": "observable-website",
+    "ref": "README.md"
+  },
+  {
+    "module": "product-public-data",
+    "ref": "README.md"
+  },
+  {
+    "module": "re8ch-core",
+    "ref": "README.md"
+  },
+  {
+    "module": "registry-product-site",
+    "ref": "README.md"
+  },
+  {
+    "module": "service-backend",
+    "ref": "README.md"
+  },
+  {
+    "module": "service-backend",
+    "ref": "runbooks/"
+  },
+  {
+    "module": "tool-distribution",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-app",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-brand",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-capture-helper",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-extension",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-ios",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-web",
+    "ref": "README.md"
+  },
+  {
+    "module": "qianwen-wechat",
+    "ref": "README.md"
+  },
+  {
+    "module": "space-mining-stage",
+    "ref": "README.md"
+  },
+  {
+    "module": "thiking-machine",
+    "ref": "README.md"
+  }
+]
