@@ -47,7 +47,8 @@ spec:
         expose:
           default: false
       metrics:
-        port: 9100
+        # node-exporter owns 9100 on host-network nodes.
+        port: 19101
         expose:
           default: false
     service:
