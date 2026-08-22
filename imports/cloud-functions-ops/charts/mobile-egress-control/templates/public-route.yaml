@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-mobile-egress-control
+  namespace: {{ .Release.Namespace }}
+spec:
+  hostnames: [agent.re8ch.com]
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: agent-https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /v1/mobile/control}
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /v1/mobile}}
+      backendRefs:
+        - name: {{ .Release.Name }}-mobile-egress-control
+          port: {{ .Values.service.port }}
