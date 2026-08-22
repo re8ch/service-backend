@@ -35,7 +35,7 @@ metadata:
     toolhive.stacklok.dev/registry-category: operations,controlled-write,internal,canary
     toolhive.stacklok.dev/authz-claims: '{"access_level":"operate","audience":"agent"}'
 spec:
-  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  image: registry.re8ch.com/proxy-dockerhub/library/python:3.12-alpine
   transport: streamable-http
   proxyPort: 8080
   mcpPort: 8088
@@ -196,7 +196,7 @@ metadata:
     toolhive.stacklok.dev/registry-category: operations,privileged,internal,canary
     toolhive.stacklok.dev/authz-claims: '{"access_level":"admin","audience":"agent"}'
 spec:
-  image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+  image: registry.re8ch.com/proxy-dockerhub/library/python:3.12-alpine
   transport: streamable-http
   proxyPort: 8080
   mcpPort: 8088
