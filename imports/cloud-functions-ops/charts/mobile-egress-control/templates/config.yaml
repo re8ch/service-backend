@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-mobile-egress-control
+  namespace: {{ .Release.Namespace }}
 data:
   catalog.json: |
     {{ dict "egresses" .Values.catalog.egresses | toJson }}

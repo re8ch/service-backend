@@ -1,11 +1,13 @@
 replicaCount: 2
 image:
-  repository: ghcr.io/re8ch/mobile-egress-control
-  tag: latest
+  repository: registry.re8ch.com/network-decomplexer/mobile-egress-control
+  tag: 20260822-05
   pullPolicy: IfNotPresent
-authMeURL: https://api.re8ch.com/auth/me
+imagePullSecrets: []
+authMeURL: http://dex.dex.svc.cluster.local/userinfo
 signingKeyID: mobile-egress-2026-01
 existingSecret: mobile-egress-control
+socksCredentialsSecret: mihomos-mobile-socks-auth
 service:
   port: 8080
 catalog:
