@@ -44,6 +44,14 @@ class RegistryTests(unittest.TestCase):
         infra_observe = next(tool for tool in m.tools() if tool["name"] == "infra_observe")
         self.assertIn("litellm", infra_observe["inputSchema"]["properties"]["domain"]["enum"])
 
+    def test_infra_exposes_headlamp_and_storage_views(self):
+        m = load("infra")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertTrue({
+            "mihomos_cluster_status", "public_edge_status", "advanced_fabric_status",
+            "cilium_helm_app_status", "rook_csi_app_status",
+        }.issubset(names))
+
     def test_litellm_uses_its_real_health_path(self):
         m = load("orchestra")
         self.assertEqual(m.ORCHESTRA_HEALTH_PATHS["litellm"], "/health/liveliness")
@@ -53,6 +61,15 @@ class RegistryTests(unittest.TestCase):
         _, token = cloud.registry().activate("user-1", [cloud.ADMIN_GROUP], None)
         infra = load("infra")
         self.assertIsNone(infra.registry().authenticate(token))
+
+    def test_service_token_is_profile_scoped(self):
+        m = load("infra")
+        m.SERVICE_API_TOKEN = "service-test-token"
+        handler = object.__new__(m.Handler)
+        handler.headers = {"Authorization": "Bearer service-test-token"}
+        identity = handler.identity()
+        self.assertEqual(identity["subject"], "service:litellm")
+        self.assertTrue(m.allowed(identity))
 
     def test_capsule_is_signed_one_time_and_broker_hides_material(self):
         m = load("cloud")
