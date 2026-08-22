@@ -24,7 +24,7 @@ hubble:
       useDigest: true
       pullPolicy: IfNotPresent
     nodeSelector:
-      kubernetes.io/hostname: artchais-nuclio-1
+      kubernetes.io/hostname: restricted-node-1eb0570f74
     tolerations:
       - key: dedicated
         operator: Equal
@@ -42,7 +42,7 @@ hubble:
     enabled: true
     replicas: 1
     nodeSelector:
-      kubernetes.io/hostname: vm-20-12-ubuntu
+      kubernetes.io/hostname: restricted-node-296f36f2fb
     tolerations:
       - key: anchor
         operator: Equal
