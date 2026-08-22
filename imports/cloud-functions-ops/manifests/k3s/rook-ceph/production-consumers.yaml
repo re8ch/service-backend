@@ -2,8 +2,14 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: cephfs-re8ch
+  labels:
+    storage.re8ch.com/availability-class: replicated-whitelist
+    storage.re8ch.com/replication: "3"
   annotations:
     storageclass.kubernetes.io/is-default-class: "false"
+    storage.re8ch.com/usage-policy: >-
+      Replicated CephFS is deny-by-default. New claims require the
+      storage.re8ch.com/replicated-approved=true label.
 provisioner: rook-ceph.cephfs.csi.ceph.com
 reclaimPolicy: Retain
 allowVolumeExpansion: true
@@ -46,6 +52,7 @@ metadata:
     app.kubernetes.io/name: headlamp
     storage.re8ch.com/consumer: cephfs-re8ch
     storage.re8ch.com/generation: "v2"
+    storage.re8ch.com/replicated-approved: "true"
 spec:
   accessModes: [ReadWriteMany]
   storageClassName: cephfs-re8ch
@@ -63,6 +70,7 @@ metadata:
     app.kubernetes.io/part-of: panel-observability
     storage.re8ch.com/consumer: cephfs-re8ch
     storage.re8ch.com/purpose: backup-export
+    storage.re8ch.com/replicated-approved: "true"
 spec:
   accessModes: [ReadWriteMany]
   storageClassName: cephfs-re8ch
@@ -79,6 +87,7 @@ metadata:
     app.kubernetes.io/name: panel-grafana
     storage.re8ch.com/consumer: cephfs-re8ch
     storage.re8ch.com/purpose: plugin-artifacts
+    storage.re8ch.com/replicated-approved: "true"
 spec:
   accessModes: [ReadWriteMany]
   storageClassName: cephfs-re8ch
