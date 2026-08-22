@@ -298,6 +298,7 @@ kind: HTTPRoute
 metadata: {name: auth-regional, namespace: auth}
 spec:
   parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
     - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
     - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
     - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
@@ -313,6 +314,7 @@ kind: HTTPRoute
 metadata: {name: regional-discovery-regional, namespace: regional-routing}
 spec:
   parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
     - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
     - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
     - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
@@ -324,4 +326,4 @@ spec:
       filters:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/discovery}}
-      backendRefs: [{name: regional-routing-authority, port: 8080}]
+      backendRefs: [{name: public-edge-manager, port: 8080}]
