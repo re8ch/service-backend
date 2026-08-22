@@ -22,7 +22,7 @@ spec:
           serviceAccountName: workspace-controller
           containers:
             - name: mirror
-              image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:REQUIRES_SIGNED_DIGEST
+              image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:026b90ae35e05204fe686e4a13b9c73082e8202a1ad5ed8ac928288287d59062
               args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, sync]
               env: [{name: GIT_SSH_COMMAND, value: "ssh -F /credentials/ssh-config -o BatchMode=yes"}]
               securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, capabilities: {drop: [ALL]}}

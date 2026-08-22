@@ -10,7 +10,7 @@ spec:
       serviceAccountName: re8ch-cloud-platform
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:89294da2645a8de15998b600a322467a1ad75dc1da87f84d1683142c626f7947
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:98a3646a822254bbaba14c08823675c38747f16565fc44af39dca27ff3619fdf
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
