@@ -1,0 +1,21 @@
+# Apply with `kubectl patch --type=merge` after reading the live aggregation.
+# It is deliberately excluded from kustomization.yaml to avoid taking
+# server-side-apply ownership from the existing ToolHive reconciler.
+spec:
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig: {prefixFormat: "{workload}_"}
+      tools:
+        - workload: ops-observe-vmcp-internal
+          toolConfigRef: {name: ops-public-read-tools}
+        - workload: ops-operate-vmcp-internal
+          toolConfigRef: {name: ops-operate-tools}
+        - workload: cluster-infra-plugins-runtime
+    operational:
+      failureHandling: {partialFailureMode: best_effort}
+    audit:
+      enabled: true
+      component: re8ch-tools-vmcp
+      includeRequestData: false
+      includeResponseData: false
