@@ -240,7 +240,9 @@ class Controller:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="re8ch-workspace")
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
+    script = Path(__file__).resolve()
+    default_root = script.parents[2] if len(script.parents) > 2 else Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
+    parser.add_argument("--root", type=Path, default=default_root)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("list", "scan", "discovery", "status", "resolve-lock", "doctor"):
         sub.add_parser(name)
