@@ -42,7 +42,10 @@ spec:
                     operator: In
                     # zan already has a host-level listener on 80/443. Keep it
                     # out of this DaemonSet until that listener is migrated.
-                    values: [domain-ex, suxunji]
+                    # Domain-EX already has Pigsty nginx bound to :80/:443.
+                    # A shared SNI/Host frontend is required before re-enabling
+                    # PublicEdge there; avoid a permanent host-port crashloop.
+                    values: [suxunji]
       containers:
         - name: traefik
           image: rancher/mirrored-library-traefik:3.6.13

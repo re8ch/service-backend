@@ -25,9 +25,9 @@ data:
         proxy_connect_timeout 5s;
         proxy_read_timeout 65s;
         proxy_send_timeout 65s;
-        # restricted-node-6dc3f140f9 is reached through its existing ZeroTier/MikroTik service
-        # entrypoint. The NodePort avoids the broken cross-node PodCIDR path.
-        proxy_pass http://192.0.2.97:32080;
+        # Kubernetes Service discovery is the stable authority. Advanced
+        # Fabrics/Cilium select the node-to-node transport underneath it.
+        proxy_pass http://compocv-api-r640-nodeport.compocv.svc.cluster.local:8080;
       }
     }
 ---
@@ -52,17 +52,14 @@ spec:
         app.kubernetes.io/name: compocv-api-relay
         app.kubernetes.io/part-of: compocv
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       containers:
         - name: nginx
-          image: nginx:1.29-alpine
+          image: nginx:1.27-alpine
           ports:
             - name: http
               containerPort: 18080
-              hostPort: 18080
           readinessProbe:
             httpGet:
               path: /compocv/health

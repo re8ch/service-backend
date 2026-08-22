@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: re8ch-access
 spec:
   # restricted-node-6dc3f140f9 canary for the NetBird -> Mihomo transparent gateway.
-  replicas: 1
+  replicas: 0
   strategy: {type: Recreate}
   selector:
     matchLabels: *cnLabels
@@ -162,7 +162,7 @@ metadata:
     app.kubernetes.io/instance: la
     app.kubernetes.io/part-of: re8ch-access
 spec:
-  replicas: 1
+  replicas: 0
   strategy: {type: Recreate}
   selector:
     matchLabels: *laLabels

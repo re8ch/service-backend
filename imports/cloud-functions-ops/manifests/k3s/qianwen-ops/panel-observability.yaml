@@ -1141,7 +1141,7 @@ spec:
     spec:
       serviceAccountName: panel-vlagent
       nodeSelector:
-        pigsty.cc/workload: nuclio
+        observability.re8ch.com/agent: "true"
       tolerations:
         - operator: Exists
       containers:
@@ -2306,7 +2306,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: panel-victoria-metrics
       nodeSelector:
-        pigsty.cc/workload: nuclio
+        observability.re8ch.com/agent: "true"
       tolerations:
         - operator: Exists
       initContainers:
@@ -3366,7 +3366,7 @@ spec:
         - name: renderer
           # Node-local immutable alias for the verified linux/amd64 manifest
           # sha256:9af1f59e43fba59d15f3cefc6e32d5bef9ad25d0b8d74c38d7466e13e5d19931.
-          image: grafana/grafana-image-renderer:latest-amd64-9af1f59e
+          image: grafana/grafana-image-renderer:v5.12.1-amd64
           imagePullPolicy: IfNotPresent
           env:
             - name: AUTH_TOKEN
