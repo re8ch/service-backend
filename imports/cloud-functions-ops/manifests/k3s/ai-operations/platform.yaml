@@ -49,17 +49,26 @@ data:
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: cloud-device-registry, namespace: ai-operations}
+metadata:
+  name: cloud-device-registry
+  namespace: ai-operations
+  labels: {storage.re8ch.com/replicated-approved: "true"}
 spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-re8ch, resources: {requests: {storage: 1Gi}}}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: infra-device-registry, namespace: ai-operations}
+metadata:
+  name: infra-device-registry
+  namespace: ai-operations
+  labels: {storage.re8ch.com/replicated-approved: "true"}
 spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-re8ch, resources: {requests: {storage: 1Gi}}}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: orchestra-device-registry, namespace: ai-operations}
+metadata:
+  name: orchestra-device-registry
+  namespace: ai-operations
+  labels: {storage.re8ch.com/replicated-approved: "true"}
 spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-re8ch, resources: {requests: {storage: 1Gi}}}
 ---
 apiVersion: apps/v1

@@ -42,6 +42,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: mcp-registry-postgresql-ab
   namespace: mcp-registry
+  labels:
+    storage.re8ch.com/replicated-approved: "true"
 spec:
   accessModes: [ReadWriteMany]
   storageClassName: cephfs-re8ch

@@ -8,6 +8,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: cephfs-shared
   namespace: cephfs-smoke
+  labels:
+    storage.re8ch.com/replicated-approved: "true"
 spec:
   accessModes:
     - ReadWriteMany
