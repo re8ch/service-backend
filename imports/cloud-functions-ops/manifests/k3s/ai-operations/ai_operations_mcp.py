@@ -9,6 +9,7 @@ import hmac
 import html
 import json
 import os
+import re
 import secrets
 import shlex
 import sqlite3
@@ -37,6 +38,7 @@ SSH_IDENTITY_FILE = os.getenv("SSH_IDENTITY_FILE", "/etc/re8ch-ai-operations/id_
 MAX_TIMEOUT = int(os.getenv("MAX_COMMAND_TIMEOUT_SECONDS", "3600"))
 MAX_OUTPUT = int(os.getenv("MAX_OUTPUT_BYTES", str(4 * 1024 * 1024)))
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
+SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -484,6 +486,19 @@ INFRA_TOOLS = [
     {"name": "litellm_gateway_status", "description": "Read the cluster LiteLLM liveness and readiness endpoints without exposing credentials.", "inputSchema": schema({})},
     {"name": "litellm_models", "description": "List models exposed by the cluster LiteLLM gateway using its server-held credential.", "inputSchema": schema({})},
     {"name": "litellm_spend", "description": "Read LiteLLM aggregate spend data using its server-held credential.", "inputSchema": schema({})},
+    {"name": "mihomos_cluster_status", "description": "Return the sanitized Mihomos provider/consumer status used by the Headlamp Mihomos Cluster plugin.", "inputSchema": schema({})},
+    {"name": "public_edge_status", "description": "Return PublicEdge candidates and accepted public HTTPRoutes without changing DNS or routing.", "inputSchema": schema({})},
+    {"name": "advanced_fabric_status", "description": "Return the sanitized node fabric status used by the Headlamp Advanced Fabrics plugin.", "inputSchema": schema({})},
+    {"name": "cilium_helm_app_status", "description": "Return Cilium Helm release metadata and workload readiness without exposing Helm Secret payloads.", "inputSchema": schema({})},
+    {"name": "rook_csi_app_status", "description": "Return Rook/Ceph CSI Helm release metadata and workload readiness without exposing Helm Secret payloads.", "inputSchema": schema({})},
+    {"name": "mihomos_node_configure", "description": "Preview or apply constrained Mihomos node role labels.", "inputSchema": schema({"node": {"type": "string"}, "geo": {"type": "string", "enum": ["cn", "global"]}, "exit": {"type": "string", "enum": ["none", "cn", "global"]}, "apply": {"type": "boolean"}}, ["node", "geo", "exit"])},
+    {"name": "mihomos_rule_configure", "description": "Preview or apply a validated domain-suffix rule before MATCH in a Mihomos node profile.", "inputSchema": schema({"profile": {"type": "string", "enum": ["cn", "global"]}, "domain_suffix": {"type": "string"}, "action": {"type": "string", "enum": ["DIRECT", "GLOBAL", "CN"]}, "present": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["profile", "domain_suffix", "action"])},
+    {"name": "advanced_fabric_node_configure", "description": "Preview or apply bounded AdvancedFabric per-node rate and traffic limits.", "inputSchema": schema({"node": {"type": "string"}, "uplink_mbps": {"type": "integer", "minimum": 1, "maximum": 100000}, "monthly_traffic_limit_gib": {"type": "integer", "minimum": 1, "maximum": 10000000}, "apply": {"type": "boolean"}}, ["node"])},
+    {"name": "public_edge_candidate_configure", "description": "Preview or apply constrained PublicEdge candidate capacity, priority, lifecycle, and service classes.", "inputSchema": schema({"candidate": {"type": "string"}, "capacity_mbps": {"type": "integer", "minimum": 1, "maximum": 100000}, "priority": {"type": "integer", "minimum": -100000, "maximum": 100000}, "enabled": {"type": "boolean"}, "draining": {"type": "boolean"}, "service_classes": {"type": "array", "items": {"type": "string", "enum": ["api", "db-ro", "db-rw", "web", "registry"]}}, "apply": {"type": "boolean"}}, ["candidate"])},
+    {"name": "public_edge_service_configure", "description": "Preview or register/update a public hostname and its ExternalDNS-only publication authority.", "inputSchema": schema({"hostname": {"type": "string"}, "service": {"type": "string"}, "service_class": {"type": "string", "enum": ["api", "db-ro", "db-rw", "web", "registry"]}, "probe_path": {"type": "string"}, "publication_namespace": {"type": "string"}, "publication_name": {"type": "string"}, "present": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["hostname", "service", "service_class", "publication_namespace", "publication_name"])},
+    {"name": "public_edge_candidate_policy_configure", "description": "Preview or apply bounded Candidate Selection scoring weights.", "inputSchema": schema({"capacity_weight": {"type": "integer", "minimum": 0, "maximum": 10000}, "local_area_bonus": {"type": "integer", "minimum": 0, "maximum": 10000000}, "priority_weight": {"type": "integer", "minimum": 0, "maximum": 10000}, "latency_divisor_ms": {"type": "integer", "minimum": 1, "maximum": 60000}, "latency_penalty_cap": {"type": "integer", "minimum": 0, "maximum": 100000}, "local_node_bonus": {"type": "integer", "minimum": 0, "maximum": 100000}, "apply": {"type": "boolean"}})},
+    {"name": "cilium_helm_app_configure", "description": "Preview or apply a safe Cilium dynamic configuration field; does not change operator replica count.", "inputSchema": schema({"key": {"type": "string", "enum": ["debug", "enable-hubble", "enable-bgp-control-plane-status-report", "bpf-events-drop-enabled", "bpf-events-policy-verdict-enabled", "bpf-events-trace-enabled"]}, "value": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["key", "value"])},
+    {"name": "rook_csi_app_configure", "description": "Preview or apply a safe Rook operator configuration field.", "inputSchema": schema({"key": {"type": "string", "enum": ["ROOK_LOG_LEVEL", "ROOK_CEPH_COMMANDS_TIMEOUT_SECONDS", "ROOK_ENABLE_DISCOVERY_DAEMON"]}, "value": {"type": "string"}, "apply": {"type": "boolean"}}, ["key", "value"])},
 ]
 
 ORCHESTRA_TOOLS = [
@@ -521,6 +536,77 @@ def litellm_get(path: str, authenticated: bool = True) -> dict[str, Any]:
             return {"status": response.status, "body": response.read(MAX_OUTPUT).decode(errors="replace")}
     except urllib.error.HTTPError as exc:
         return {"status": exc.code, "body": exc.read(MAX_OUTPUT).decode(errors="replace")}
+
+
+def kubectl_json(argv: list[str], timeout: int = 120) -> dict[str, Any]:
+    command = ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), *argv, "-o", "json"]
+    result = command_result(command, None, timeout)
+    if result["exit_code"] != 0:
+        return result
+    try:
+        return {"operation_id": result["operation_id"], "items": json.loads(result["stdout"]).get("items", [])}
+    except (ValueError, AttributeError):
+        return {**result, "parse_error": "Kubernetes response was not a list"}
+
+
+def kubectl_object(argv: list[str], timeout: int = 120) -> tuple[dict[str, Any], str]:
+    command = ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), *argv, "-o", "json"]
+    result = command_result(command, None, timeout)
+    if result["exit_code"] != 0:
+        raise ValueError(result["stderr"] or "kubectl failed")
+    return json.loads(result["stdout"]), result["operation_id"]
+
+
+def kubectl_patch(argv: list[str], payload: dict[str, Any]) -> dict[str, Any]:
+    command = ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), *argv,
+               "--type=merge", "--patch", json.dumps(payload, separators=(",", ":")), "-o", "json"]
+    result = command_result(command, None, 120)
+    if result["exit_code"] != 0:
+        raise ValueError(result["stderr"] or "kubectl patch failed")
+    return {"operation_id": result["operation_id"], "object": json.loads(result["stdout"])}
+
+
+def mutation_preview(resource: str, before: Any, after: Any, apply: bool, rollback: Any) -> dict[str, Any]:
+    return {"resource": resource, "applied": apply, "before": before, "after": after, "rollback": rollback,
+            "safety": "explicit apply=true required; inputs are allowlisted and bounded"}
+
+
+def valid_dns_label(value: str) -> str:
+    value = value.strip().lower().rstrip(".")
+    if len(value) > 253 or not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", value):
+        raise ValueError("invalid DNS name")
+    return value
+
+
+def configmap_json_status(namespace: str, selector: str) -> dict[str, Any]:
+    result = kubectl_json(["--namespace", namespace, "get", "configmaps", "--selector", selector])
+    statuses = []
+    for item in result.get("items", []):
+        raw = (item.get("data") or {}).get("status.json")
+        if not raw:
+            continue
+        try:
+            statuses.append(json.loads(raw))
+        except ValueError:
+            statuses.append({"name": item.get("metadata", {}).get("name"), "valid": False})
+    return {"operation_id": result.get("operation_id"), "count": len(statuses), "statuses": statuses}
+
+
+def helm_app_status(namespace: str, release: str, selectors: list[str]) -> dict[str, Any]:
+    releases = kubectl_json(["--namespace", namespace, "get", "secrets", "--selector", f"owner=helm,name={release}"])
+    workloads = []
+    for selector in selectors:
+        value = kubectl_json(["--namespace", namespace, "get", "deployments,statefulsets,daemonsets", "--selector", selector])
+        for item in value.get("items", []):
+            status = item.get("status") or {}
+            workloads.append({
+                "kind": item.get("kind"), "name": item.get("metadata", {}).get("name"),
+                "desired": status.get("replicas", status.get("desiredNumberScheduled", 0)),
+                "ready": status.get("readyReplicas", status.get("numberReady", 0)),
+                "available": status.get("availableReplicas", status.get("numberAvailable", 0)),
+            })
+    revisions = [{"name": x.get("metadata", {}).get("name"), "version": x.get("metadata", {}).get("labels", {}).get("version"), "status": x.get("metadata", {}).get("labels", {}).get("status")} for x in releases.get("items", [])]
+    return {"namespace": namespace, "release": release, "revisions": revisions, "workloads": workloads}
 
 
 def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
@@ -607,6 +693,145 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"session_id": args["session_id"], "status": "terminated"}
 
     if PROFILE in {"infra", "all"}:
+        if name == "mihomos_node_configure":
+            node, op = kubectl_object(["get", "node", args["node"]])
+            labels = dict((node.get("metadata") or {}).get("labels") or {})
+            before = {k: labels.get(k) for k in ("networking.re8ch.com/geo", "networking.re8ch.com/mihomo-exit", "networking.re8ch.com/mihomo-exit-cn")}
+            desired = {"networking.re8ch.com/geo": args["geo"]}
+            desired["networking.re8ch.com/mihomo-exit"] = "enabled" if args["exit"] == "global" else None
+            desired["networking.re8ch.com/mihomo-exit-cn"] = "enabled" if args["exit"] == "cn" else None
+            response = mutation_preview(f"node/{args['node']}", before, desired, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            if args.get("apply"):
+                changed = kubectl_patch(["patch", "node", args["node"]], {"metadata": {"labels": desired}})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name == "mihomos_rule_configure":
+            suffix = valid_dns_label(args["domain_suffix"])
+            cm, op = kubectl_object(["--namespace", "egress-fabric", "get", "configmap", "mihomos-node-configs"])
+            key = args["profile"] + ".yaml"
+            before = (cm.get("data") or {}).get(key, "")
+            rule = f"  - DOMAIN-SUFFIX,{suffix},{args['action']}"
+            lines = [line for line in before.splitlines() if line.strip() != rule.strip()]
+            if args.get("present", True):
+                index = next((i for i, line in enumerate(lines) if line.strip().startswith("- MATCH,")), len(lines))
+                lines.insert(index, rule)
+            after = "\n".join(lines) + ("\n" if before.endswith("\n") else "")
+            response = mutation_preview(f"configmap/egress-fabric/mihomos-node-configs:{key}", before, after, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            if args.get("apply"):
+                changed = kubectl_patch(["--namespace", "egress-fabric", "patch", "configmap", "mihomos-node-configs"], {"data": {key: after}})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name == "advanced_fabric_node_configure":
+            fabric, op = kubectl_object(["get", "advancedfabric.networking.re8ch.com", "re8ch"])
+            nodes = list((fabric.get("spec") or {}).get("nodes") or [])
+            target = next((item for item in nodes if item.get("name") == args["node"]), None)
+            if target is None:
+                raise ValueError("unknown AdvancedFabric node")
+            before = dict(target)
+            if "uplink_mbps" in args:
+                target["uplinkMbps"] = max(1, min(100000, int(args["uplink_mbps"])))
+            if "monthly_traffic_limit_gib" in args:
+                target["monthlyTrafficLimitGiB"] = max(1, min(10000000, int(args["monthly_traffic_limit_gib"])))
+            response = mutation_preview("advancedfabric/re8ch", before, target, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            if args.get("apply"):
+                changed = kubectl_patch(["patch", "advancedfabric.networking.re8ch.com", "re8ch"], {"spec": {"nodes": nodes}})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name == "public_edge_candidate_configure":
+            edge, op = kubectl_object(["get", "publicedge.networking.re8ch.com", args["candidate"]])
+            before = dict(edge.get("spec") or {})
+            desired = dict(before)
+            mappings = {"capacity_mbps": "capacityMbps", "priority": "priority", "enabled": "enabled", "draining": "draining", "service_classes": "serviceClasses"}
+            for source, destination in mappings.items():
+                if source in args:
+                    desired[destination] = args[source]
+            response = mutation_preview(f"publicedge/{args['candidate']}", before, desired, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            if args.get("apply"):
+                changed = kubectl_patch(["patch", "publicedge.networking.re8ch.com", args["candidate"]], {"spec": desired})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name == "public_edge_service_configure":
+            hostname = valid_dns_label(args["hostname"]) + "."
+            service = valid_dns_label(args["service"])
+            probe_path = args.get("probe_path", "/")
+            if not probe_path.startswith("/") or ".." in probe_path:
+                raise ValueError("probe_path must be an absolute safe path")
+            ingress, _ = kubectl_object(["--namespace", args["publication_namespace"], "get", "ingress", args["publication_name"]])
+            if (ingress.get("spec") or {}).get("ingressClassName") != "external-dns-only":
+                raise ValueError("publication ingress must use ingressClassName external-dns-only")
+            cm, op = kubectl_object(["--namespace", "regional-routing", "get", "configmap", "public-edge-manager"])
+            services = json.loads((cm.get("data") or {}).get("SERVICES_JSON", "{}"))
+            refs = json.loads((cm.get("data") or {}).get("PUBLICATION_REFS_JSON", "{}"))
+            before = {"service": services.get(hostname), "publication": refs.get(service)}
+            if args.get("present", True):
+                services[hostname] = {"service": service, "class": args["service_class"], "probePath": probe_path}
+                refs[service] = {"namespace": args["publication_namespace"], "name": args["publication_name"]}
+            else:
+                services.pop(hostname, None); refs.pop(service, None)
+            after = {"service": services.get(hostname), "publication": refs.get(service)}
+            response = mutation_preview("configmap/regional-routing/public-edge-manager", before, after, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            if args.get("apply"):
+                changed = kubectl_patch(["--namespace", "regional-routing", "patch", "configmap", "public-edge-manager"], {"data": {"SERVICES_JSON": json.dumps(services, separators=(",", ":")), "PUBLICATION_REFS_JSON": json.dumps(refs, separators=(",", ":"))}})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name == "public_edge_candidate_policy_configure":
+            cm, op = kubectl_object(["--namespace", "regional-routing", "get", "configmap", "public-edge-manager"])
+            mapping = {"capacity_weight": "CANDIDATE_CAPACITY_WEIGHT", "local_area_bonus": "CANDIDATE_LOCAL_AREA_BONUS", "priority_weight": "CANDIDATE_PRIORITY_WEIGHT", "latency_divisor_ms": "CANDIDATE_LATENCY_DIVISOR_MS", "latency_penalty_cap": "CANDIDATE_LATENCY_PENALTY_CAP", "local_node_bonus": "CANDIDATE_LOCAL_NODE_BONUS"}
+            defaults = {"CANDIDATE_CAPACITY_WEIGHT": "10", "CANDIDATE_LOCAL_AREA_BONUS": "100000", "CANDIDATE_PRIORITY_WEIGHT": "1", "CANDIDATE_LATENCY_DIVISOR_MS": "20", "CANDIDATE_LATENCY_PENALTY_CAP": "50", "CANDIDATE_LOCAL_NODE_BONUS": "5"}
+            before = {key: (cm.get("data") or {}).get(key, default) for key, default in defaults.items()}
+            after = dict(before)
+            for source, destination in mapping.items():
+                if source in args:
+                    after[destination] = str(args[source])
+            response = mutation_preview("configmap/regional-routing/public-edge-manager", before, after, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            if args.get("apply"):
+                changed = kubectl_patch(["--namespace", "regional-routing", "patch", "configmap", "public-edge-manager"], {"data": after})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name in {"cilium_helm_app_configure", "rook_csi_app_configure"}:
+            if name.startswith("cilium"):
+                namespace, configmap = "kube-system", "cilium-config"
+                value = "true" if args["value"] else "false"
+            else:
+                namespace, configmap = "rook-ceph", "rook-ceph-operator-config"
+                value = args["value"]
+                if args["key"] == "ROOK_LOG_LEVEL" and value not in {"DEBUG", "INFO", "WARNING", "ERROR"}:
+                    raise ValueError("invalid Rook log level")
+                if args["key"] == "ROOK_ENABLE_DISCOVERY_DAEMON" and value not in {"true", "false"}:
+                    raise ValueError("Rook discovery value must be true or false")
+                if args["key"] == "ROOK_CEPH_COMMANDS_TIMEOUT_SECONDS" and not (value.isdigit() and 5 <= int(value) <= 300):
+                    raise ValueError("Rook command timeout must be 5..300 seconds")
+            cm, op = kubectl_object(["--namespace", namespace, "get", "configmap", configmap])
+            before = (cm.get("data") or {}).get(args["key"])
+            response = mutation_preview(f"configmap/{namespace}/{configmap}:{args['key']}", before, value, bool(args.get("apply")), before)
+            response["operation_id"] = op
+            response["activation"] = "configuration is persisted; workload rollout remains a separate deliberate operation"
+            if args.get("apply"):
+                changed = kubectl_patch(["--namespace", namespace, "patch", "configmap", configmap], {"data": {args["key"]: value}})
+                response["operation_id"] = changed["operation_id"]
+            return response
+        if name == "mihomos_cluster_status":
+            return configmap_json_status("egress-fabric", "app.kubernetes.io/component=mihomos-node-status")
+        if name == "advanced_fabric_status":
+            return configmap_json_status("kube-system", "networking.re8ch.com/node-status=true")
+        if name == "public_edge_status":
+            edges = kubectl_json(["get", "publicedges.networking.re8ch.com"])
+            routes = kubectl_json(["get", "httproutes.gateway.networking.k8s.io", "--all-namespaces"])
+            return {
+                "candidates": [{"name": x.get("metadata", {}).get("name"), "spec": x.get("spec"), "conditions": (x.get("status") or {}).get("conditions", [])} for x in edges.get("items", [])],
+                "routes": [{"namespace": x.get("metadata", {}).get("namespace"), "name": x.get("metadata", {}).get("name"), "hostnames": (x.get("spec") or {}).get("hostnames", []), "parents": (x.get("status") or {}).get("parents", [])} for x in routes.get("items", []) if (x.get("spec") or {}).get("hostnames")],
+                "policy": "read-only; PublicEdge controllers remain DNS and routing authority",
+            }
+        if name == "cilium_helm_app_status":
+            return helm_app_status("kube-system", "cilium", ["k8s-app=cilium", "name=cilium-operator"])
+        if name == "rook_csi_app_status":
+            return helm_app_status("rook-ceph", "rook-ceph", ["app=rook-ceph-operator", "app=csi-rbdplugin", "app=csi-cephfsplugin"])
         if name == "litellm_gateway_status":
             return {
                 "service": "litellm",
@@ -784,6 +1009,8 @@ class Handler(BaseHTTPRequestHandler):
         if not header.startswith("Bearer "):
             return None
         token = header[7:]
+        if SERVICE_API_TOKEN and hmac.compare_digest(token, SERVICE_API_TOKEN):
+            return {"subject": "service:litellm", "groups": sorted(PROFILE_GROUPS.get(PROFILE, set())), "auth_type": "service"}
         return registry().authenticate(token) if token.startswith("r8d_") else dex_identity(token)
 
     def do_GET(self) -> None:
