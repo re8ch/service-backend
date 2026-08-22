@@ -1,0 +1,1 @@
+tools: [re8ch-cloud-platform-tool, re8ch-cluster-infra-tool, kubectl, helm, flux, glab, gh, cosign]

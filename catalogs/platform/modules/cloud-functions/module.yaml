@@ -1,0 +1,13 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceModule
+metadata: {name: cloud-functions, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: https://github.com/re8ch/cloud-functions.git, defaultBranch: master, owner: re8ch}
+  workspace: {macPath: platform/cloud-functions, r640Path: platform/cloud-functions}
+  projectType: kubernetes-platform
+  writePolicy: github-pr
+  knowledge: [README.md, AGENTS.md, docs/]
+  tools: [re8ch-cloud-platform-tool, re8ch-cluster-infra-tool, kubectl, helm]
+  deployments: [k3s/re8ch]
