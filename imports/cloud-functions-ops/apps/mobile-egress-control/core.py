@@ -60,7 +60,7 @@ def project_mobile_egresses(
             continue
         transports = [
             item for item in gateway.get("transports", [])
-            if item.get("type") in {"socks5", "socks5-tls"}
+            if item.get("type") == "socks5"
             and item.get("host") and 0 < int(item.get("port", 0)) < 65536
         ]
         if not transports:
@@ -86,6 +86,34 @@ def project_mobile_egresses(
     return sorted(result, key=lambda item: item["id"])
 
 
+def project_kubernetes_catalog(nodes: list[dict[str, Any]], fabric: dict[str, Any],
+                               publication_pods: list[dict[str, Any]], port: int) -> list[dict[str, Any]]:
+    fabric_nodes = {item["name"]: item for item in fabric.get("spec", {}).get("nodes", [])}
+    published = {pod.get("spec", {}).get("nodeName") for pod in publication_pods
+                 if pod.get("status", {}).get("phase") == "Running"
+                 and all(condition.get("status") == "True" for condition in pod.get("status", {}).get("conditions", [])
+                         if condition.get("type") == "Ready")}
+    result: list[dict[str, Any]] = []
+    for node in nodes:
+        metadata, status = node.get("metadata", {}), node.get("status", {})
+        name = metadata.get("name")
+        if metadata.get("labels", {}).get("networking.re8ch.com/mihomo-exit") != "enabled" or name not in published:
+            continue
+        ready = any(item.get("type") == "Ready" and item.get("status") == "True" for item in status.get("conditions", []))
+        external_ip = next((item.get("address") for item in status.get("addresses", []) if item.get("type") == "ExternalIP"), None)
+        facts = fabric_nodes.get(name)
+        if not ready or not external_ip or not facts:
+            continue
+        item = {"id": name, "nodeRef": name, "area": "GLOBAL", "region": facts["region"],
+                "capability": "global", "role": facts["role"], "asn": int(facts["asn"]),
+                "capacityMbps": int(facts["uplinkMbps"]), "health": {"ready": True},
+                "transports": [{"type": "socks5", "host": external_ip, "port": port}]}
+        if "monthlyTrafficLimitGiB" in facts:
+            item["monthlyTrafficLimitGiB"] = int(facts["monthlyTrafficLimitGiB"])
+        result.append(item)
+    return sorted(result, key=lambda item: item["id"])
+
+
 @dataclass(frozen=True)
 class Identity:
     subject: str
@@ -98,6 +126,7 @@ class MobileService:
         catalog_loader: Callable[[], list[dict[str, Any]]],
         signing_key: Ed25519PrivateKey,
         credential_secret: bytes,
+        socks_credentials: Callable[[], tuple[str, str]] | None = None,
         key_id: str = "mobile-egress-2026-01",
         now: Callable[[], datetime] | None = None,
     ) -> None:
@@ -106,6 +135,7 @@ class MobileService:
         self.catalog_loader = catalog_loader
         self.signing_key = signing_key
         self.credential_secret = credential_secret
+        self.socks_credentials = socks_credentials
         self.key_id = key_id
         self.now = now or (lambda: datetime.now(timezone.utc))
 
@@ -126,7 +156,7 @@ class MobileService:
             "expiresAt": (issued + timedelta(hours=24)).isoformat().replace("+00:00", "Z"),
             "catalogRefreshSeconds": 30,
             "credentialRefreshSeconds": 2700,
-            "dns": {"defaultMode": "tunnel-doh", "allowSystemFallback": True},
+            "dns": {"defaultMode": "tunnel-dns-over-socks5", "allowSystemFallback": True},
             "fallback": {"default": "direct", "allowed": ["direct", "best-remaining"]},
         }
         return signed_envelope(payload, self.signing_key, self.key_id)
@@ -146,13 +176,14 @@ class MobileService:
         candidate = next((item for item in self.catalog_loader() if item["id"] == egress_id), None)
         if candidate is None:
             raise LookupError("egress is not eligible")
-        expires = int(self.now().timestamp()) + 3600
-        claims = {"sub": identity.subject, "device": device_id, "egress": egress_id, "exp": expires}
-        raw = base64.urlsafe_b64encode(canonical_json(claims)).rstrip(b"=")
-        signature = hmac.new(self.credential_secret, raw, hashlib.sha256).digest()
-        token = raw.decode() + "." + base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
-        return {"egressID": egress_id, "credential": token, "expiresAt": expires,
-                "transports": candidate["transports"]}
+        if self.socks_credentials is None:
+            raise RuntimeError("SOCKS credentials are not configured")
+        username, password = self.socks_credentials()
+        if not username or not password:
+            raise RuntimeError("SOCKS credentials are empty")
+        return {"egressID": egress_id, "credentialType": "socks5-userpass",
+                "username": username, "password": password,
+                "rotation": "shared-secret", "transports": candidate["transports"]}
 
     def accept_telemetry(self, device_id: str, batch: dict[str, Any]) -> dict[str, int]:
         samples = batch.get("samples")

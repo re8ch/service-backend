@@ -53,6 +53,14 @@ probe:
   responseTimeoutSeconds: 12
   intervalSeconds: 3
 
+candidateSelection:
+  capacityWeight: 10
+  localAreaBonus: 100000
+  priorityWeight: 1
+  latencyDivisorMs: 20
+  latencyPenaltyCap: 50
+  localNodeBonus: 5
+
 publication:
   # Cloudflare A records are global. The elected CN authority publishes the
   # default answer; region-aware names should be delegated to the NS service.

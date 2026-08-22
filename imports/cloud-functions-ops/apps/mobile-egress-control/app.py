@@ -12,7 +12,7 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from core import Identity, MobileService, canonical_json
+from core import Identity, MobileService, canonical_json, project_kubernetes_catalog
 
 
 def load_key(path: str) -> Ed25519PrivateKey:
@@ -24,14 +24,35 @@ def load_key(path: str) -> Ed25519PrivateKey:
     return Ed25519PrivateKey.from_private_bytes(raw)
 
 
+def kube_get(path: str) -> dict:
+    host, port = os.environ["KUBERNETES_SERVICE_HOST"], os.environ["KUBERNETES_SERVICE_PORT_HTTPS"]
+    token = Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
+    ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    request = urllib.request.Request(f"https://{host}:{port}{path}", headers={"Authorization": f"Bearer {token}"})
+    import ssl
+    with urllib.request.urlopen(request, context=ssl.create_default_context(cafile=ca), timeout=5) as response:
+        return json.load(response)
+
+
 def catalog() -> list[dict]:
-    return json.loads(Path(os.environ["CATALOG_PATH"]).read_text()).get("egresses", [])
+    if os.getenv("KUBERNETES_CATALOG", "false").lower() != "true":
+        return json.loads(Path(os.environ["CATALOG_PATH"]).read_text()).get("egresses", [])
+    nodes = kube_get("/api/v1/nodes").get("items", [])
+    pods = kube_get("/api/v1/namespaces/egress-fabric/pods?labelSelector=app.kubernetes.io%2Fname%3Dmihomos-mobile-publication").get("items", [])
+    fabric = kube_get("/apis/networking.re8ch.com/v1alpha1/advancedfabrics/re8ch")
+    return project_kubernetes_catalog(nodes, fabric, pods, int(os.getenv("MOBILE_SOCKS_PORT", "31081")))
+
+
+def socks_credentials() -> tuple[str, str]:
+    return (Path(os.environ["SOCKS_USERNAME_PATH"]).read_text().strip(),
+            Path(os.environ["SOCKS_PASSWORD_PATH"]).read_text().strip())
 
 
 SERVICE = MobileService(
     catalog,
     load_key(os.environ["SIGNING_KEY_PATH"]),
     Path(os.environ["CREDENTIAL_SECRET_PATH"]).read_bytes().strip(),
+    socks_credentials,
     os.getenv("SIGNING_KEY_ID", "mobile-egress-2026-01"),
 )
 
@@ -112,4 +133,3 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     ThreadingHTTPServer(("0.0.0.0", int(os.getenv("HTTP_PORT", "8080"))), Handler).serve_forever()
-
