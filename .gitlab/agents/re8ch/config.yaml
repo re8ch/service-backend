@@ -1,0 +1,8 @@
+ci_access:
+  projects:
+    - id: reachievellc/service-backend
+      environments: {protected: true}
+user_access:
+  access_as: {agent: {}}
+observability:
+  logging: {level: info}
