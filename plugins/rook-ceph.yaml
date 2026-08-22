@@ -2,7 +2,7 @@ apiVersion: plugins.re8ch.com/v1alpha1
 kind: PluginDefinition
 metadata: {name: rook-ceph}
 spec:
-  source: {type: kubernetes, apiGroups: [ceph.rook.io], cliImage: registry.re8ch.com/tools/ceph-cli@sha256:REPLACE_WITH_VERIFIED_DIGEST}
+  source: {type: kubernetes, apiGroups: [ceph.rook.io], cliImage: registry.re8ch.com/tools/ceph-cli@sha256:REQUIRES_VERIFIED_DIGEST}
   identityRef: rook-ceph-operator
   healthCheck: {type: command, commandRef: ceph-status}
   policy: {resourceScopes: [rook-ceph], allowedOperations: [get, list, watch, status, health, pg, pool, cephfs, rbd, csi], deniedFields: [data, key, secret]}
