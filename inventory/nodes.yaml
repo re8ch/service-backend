@@ -1,0 +1,19 @@
+apiVersion: operations.re8ch.com/v1alpha1
+kind: InfrastructureTargetList
+items:
+  - {metadata: {name: restricted-node-6dc3f140f9}, spec: {transport: ssh, address: restricted-node-6dc3f140f9, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd, harbor, pigsty], commands: {read: [hostname, uptime, systemctl-status], write: [systemctl-restart], rollback: [systemctl-restart]}}}
+  - {metadata: {name: restricted-node-1eb0570f74}, spec: {transport: ssh, address: restricted-node-1eb0570f74, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: restricted-node-296f36f2fb}, spec: {transport: ssh, address: restricted-node-296f36f2fb, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: amdwsl-zt}, spec: {transport: ssh, address: amdwsl-zt, credentialRef: node-ssh, capabilities: [k3s-worker], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: domain-ex}, spec: {transport: ssh, address: domain-ex, credentialRef: node-ssh, capabilities: [k3s-worker, pigsty], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: zan}, spec: {transport: ssh, address: zan, credentialRef: node-ssh, capabilities: [k3s-worker, pigsty], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: muaya-ecs}, spec: {transport: ssh, address: muaya-ecs, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: muaya-lightweight}, spec: {transport: ssh, address: muaya-lightweight, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: overseas-edge-50}, spec: {transport: ssh, address: overseas-edge-50, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: overseas-kl}, spec: {transport: ssh, address: overseas-kl, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: overseas-la}, spec: {transport: ssh, address: overseas-la, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: qwen-1}, spec: {transport: ssh, address: qwen-1, credentialRef: node-ssh, capabilities: [k3s-worker, inference], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: qwen-2}, spec: {transport: ssh, address: qwen-2, credentialRef: node-ssh, capabilities: [k3s-worker, inference], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: qwen-3}, spec: {transport: ssh, address: qwen-3, credentialRef: node-ssh, capabilities: [k3s-worker, inference], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: suxunji}, spec: {transport: ssh, address: suxunji, credentialRef: node-ssh, capabilities: [k3s-worker], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - {metadata: {name: vm-20-12-ubuntu}, spec: {transport: ssh, address: vm-20-12-ubuntu, credentialRef: node-ssh, capabilities: [k3s-worker], commands: {read: [hostname, uptime], write: [], rollback: []}}}
