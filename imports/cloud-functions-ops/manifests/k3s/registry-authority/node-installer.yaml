@@ -71,8 +71,21 @@ data:
       install -m 0600 "$work" "$registry_file"
     fi
 
+    # Some former servers retain a disabled k3s.service alongside the active
+    # agent unit. Selecting by unit-file existence can accidentally start a
+    # second local control plane and replace the agent CA. Prefer the unit that
+    # is active, then the one enabled for boot.
     service=k3s-agent
-    if [ -e "$host/etc/systemd/system/k3s.service" ]; then service=k3s; fi
+    if chroot "$host" systemctl is-active --quiet k3s-agent ||
+       chroot "$host" systemctl is-enabled --quiet k3s-agent; then
+      service=k3s-agent
+    elif chroot "$host" systemctl is-active --quiet k3s ||
+         chroot "$host" systemctl is-enabled --quiet k3s; then
+      service=k3s
+    else
+      printf 'no active or enabled k3s unit found\n' >&2
+      exit 1
+    fi
     dropin="$host/etc/systemd/system/$service.service.d"
     mkdir -p "$dropin"
     cat >"$dropin/20-re8ch-registry-egress.conf" <<EOF
