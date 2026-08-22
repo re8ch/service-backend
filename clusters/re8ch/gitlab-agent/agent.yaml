@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gitlab-agent, namespace: gitlab-agent}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: gitlab-agent}}
+  template:
+    metadata: {labels: {app: gitlab-agent}}
+    spec:
+      serviceAccountName: gitlab-agent
+      containers:
+        - name: agentk
+          image: registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:v18.3.0
+          args: [--kas-address=wss://kas.gitlab.com]
+          env:
+            - name: AGENT_TOKEN
+              valueFrom: {secretKeyRef: {name: gitlab-agent-token, key: token}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: gitlab-agent, namespace: gitlab-agent}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: gitlab-agent-observer}
+rules:
+  - apiGroups: ["", apps, batch, networking.k8s.io]
+    resources: [nodes, namespaces, pods, services, endpoints, events, deployments, statefulsets, daemonsets, jobs, cronjobs, ingresses]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: gitlab-agent-observer}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: gitlab-agent-observer}
+subjects: [{kind: ServiceAccount, name: gitlab-agent, namespace: gitlab-agent}]
