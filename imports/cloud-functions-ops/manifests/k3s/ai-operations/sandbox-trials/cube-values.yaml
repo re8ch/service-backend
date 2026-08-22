@@ -3,7 +3,7 @@ global:
 
 # Bind all chart-managed durable state to the existing Rook/CephFS fabric.
 persistence:
-  storageClassName: cephfs-re8ch
+  storageClassName: cephfs-r640
 
 placement:
   controlPlane:
@@ -53,7 +53,7 @@ bootstrap:
 # Trial credentials are injected at render/apply time and are never committed.
 mysql:
   persistence:
-    storageClassName: cephfs-re8ch
+    storageClassName: rbd-r640
 redis:
   persistence:
-    storageClassName: cephfs-re8ch
+    storageClassName: rbd-r640

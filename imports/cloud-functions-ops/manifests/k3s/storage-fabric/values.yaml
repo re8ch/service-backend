@@ -100,6 +100,9 @@ r640Allocations:
   ceph:
     deviceClass: r640-hdd
     crushRule: r640-local
+    availabilityClass: single-node
+    failureDomain: restricted-node-6dc3f140f9
+    ha: false
     rbdPool: {name: r640-rbd, replicas: 1}
     cephfsDataPool: {name: re8ch-files-r640, replicas: 1}
     hostImages:
