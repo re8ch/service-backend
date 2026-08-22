@@ -8,13 +8,13 @@ apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-1eb0570f74
-  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
+  labels: {node-role.kubernetes.io/observe: "true", observability.re8ch.com/agent: "true", networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-296f36f2fb
-  labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
+  labels: {node-role.kubernetes.io/observe: "true", observability.re8ch.com/agent: "true", networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
@@ -48,15 +48,15 @@ metadata: {name: muaya-lightweight, labels: {networking.re8ch.com/mihomo-node: e
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: qwen-1, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+metadata: {name: qwen-1, labels: {node-role.kubernetes.io/qwen: "true", re8ch.com/business: qwen, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: qwen-2, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+metadata: {name: qwen-2, labels: {node-role.kubernetes.io/qwen: "true", re8ch.com/business: qwen, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: qwen-3, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+metadata: {name: qwen-3, labels: {node-role.kubernetes.io/qwen: "true", re8ch.com/business: qwen, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
 ---
 apiVersion: v1
 kind: Node
