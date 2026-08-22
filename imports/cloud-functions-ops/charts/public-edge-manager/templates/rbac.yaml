@@ -16,7 +16,7 @@ rules:
     resources: [gateways, httproutes, tlsroutes]
     verbs: [get, list, watch]
   - apiGroups: [""]
-    resources: [services, endpoints]
+    resources: [services, endpoints, configmaps]
     verbs: [get, list, watch]
   - apiGroups: [discovery.k8s.io]
     resources: [endpointslices]
