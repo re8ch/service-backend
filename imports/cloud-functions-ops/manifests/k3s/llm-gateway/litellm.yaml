@@ -33,6 +33,15 @@ data:
       success_callback: [prometheus]
       failure_callback: [prometheus]
       drop_params: true
+    mcp_servers:
+      re8ch_toolhive:
+        transport: http
+        url: http://vmcp-re8ch-tools-vmcp.toolhive-system.svc.cluster.local:4483/mcp
+        auth_type: none
+        extra_headers: [Authorization]
+        oauth_passthrough: true
+        allow_all_keys: false
+        description: RE8CH ToolHive unified hot-pluggable tool catalog
     general_settings:
       master_key: os.environ/LITELLM_MASTER_KEY
       database_url: os.environ/DATABASE_URL
