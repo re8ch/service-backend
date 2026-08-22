@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/infrastructure-target.v1.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "operations.re8ch.com/v1alpha1"},
+    "kind": {"const": "InfrastructureTarget"},
+    "metadata": {"type": "object", "required": ["name"]},
+    "spec": {
+      "type": "object",
+      "required": ["transport", "address", "credentialRef", "capabilities"],
+      "properties": {
+        "transport": {"enum": ["ssh", "https", "netconf", "snmp", "kubernetes", "cloud-cli"]},
+        "address": {"type": "string", "minLength": 1},
+        "credentialRef": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+$"},
+        "capabilities": {"type": "array", "items": {"type": "string"}},
+        "commands": {
+          "type": "object",
+          "properties": {
+            "read": {"type": "array", "items": {"type": "string"}},
+            "write": {"type": "array", "items": {"type": "string"}},
+            "rollback": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    }
+  }
+}
