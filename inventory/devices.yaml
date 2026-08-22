@@ -1,0 +1,31 @@
+apiVersion: operations.re8ch.com/v1alpha1
+kind: InfrastructureTargetList
+items:
+  - metadata: {name: r640-mikrotik}
+    spec:
+      transport: ssh
+      address: r640-mikrotik
+      credentialRef: routeros-r640
+      capabilities: [routeros, routing, firewall, proxy-diagnostics]
+      commands: {read: [system-resource-print, ip-route-print, ip-firewall-print, ip-dns-print], write: [safe-mode-script], rollback: [safe-mode-rollback]}
+  - metadata: {name: r640-huawei-enterprise-gateway}
+    spec:
+      transport: netconf
+      address: huawei-r640
+      credentialRef: huawei-r640
+      capabilities: [routing, interfaces, nat]
+      commands: {read: [get-config, get-interface-state, get-route-state], write: [edit-config-candidate], rollback: [discard-changes]}
+  - metadata: {name: r640-grandstream}
+    spec:
+      transport: https
+      address: grandstream-r640
+      credentialRef: grandstream-r640
+      capabilities: [voice, sip, status]
+      commands: {read: [system-status, sip-status], write: [configuration-import], rollback: [configuration-restore]}
+  - metadata: {name: r640-ctyun-voice-gateway}
+    spec:
+      transport: https
+      address: ctyun-voice-r640
+      credentialRef: ctyun-voice-r640
+      capabilities: [voice, sip, trunk]
+      commands: {read: [system-status, trunk-status], write: [configuration-update], rollback: [configuration-restore]}

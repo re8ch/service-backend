@@ -1,0 +1,7 @@
+apiVersion: operations.re8ch.com/v1alpha1
+kind: InfrastructureTargetList
+items:
+  - {metadata: {name: aliyun}, spec: {transport: cloud-cli, address: aliyun, credentialRef: aliyun-cli, capabilities: [instances, network, security-groups, disks], commands: {read: [describe], write: [start, stop, reboot, authorize-security-group], rollback: [revoke-security-group]}}}
+  - {metadata: {name: tencent}, spec: {transport: cloud-cli, address: tccli, credentialRef: tencent-cli, capabilities: [instances, network, security-groups, disks], commands: {read: [describe], write: [start, stop, reboot, modify-security-group], rollback: [restore-security-group]}}}
+  - {metadata: {name: ctyun}, spec: {transport: cloud-cli, address: ctyun, credentialRef: ctyun-cli, capabilities: [instances, network, firewall, disks], commands: {read: [describe], write: [start, stop, reboot, firewall-update], rollback: [firewall-restore]}}}
+  - {metadata: {name: oracle}, spec: {transport: cloud-cli, address: oci, credentialRef: oci-cli, capabilities: [instances, vcn, security-lists, volumes], commands: {read: [get, list], write: [instance-action, security-list-update], rollback: [security-list-restore]}}}
