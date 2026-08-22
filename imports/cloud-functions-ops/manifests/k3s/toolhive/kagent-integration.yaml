@@ -135,7 +135,7 @@ spec:
             seccompProfile: {type: RuntimeDefault}
           containers:
             - name: rotate
-              image: mjhsdd6xkcym4k.xuanyuan.run/library/python:3.12-alpine
+              image: registry.re8ch.com/proxy-dockerhub/library/python:3.12-alpine
               command: ["python", "/opt/rotate/rotate.py"]
               securityContext:
                 allowPrivilegeEscalation: false
