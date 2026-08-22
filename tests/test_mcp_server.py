@@ -26,9 +26,17 @@ def test_admin_catalog_has_mutating_tools():
     assert server.WRITE_TOOLS <= names
     by_name = {tool["name"]: tool for tool in server.tool_list(Identity("admin", (server.ADMIN_GROUP,)))}
     assert by_name["node.ssh.exec"]["inputSchema"]["required"] == ["name", "argv"]
+    assert "workspace.sync" in names
+    assert "workspace.materialize" in names
 
 
 def test_dispatch_rechecks_authorization():
     with pytest.raises(OperationError) as caught:
         server.dispatch(service(), "node.ssh.exec", {"name": "restricted-node-6dc3f140f9", "argv": ["hostname"]}, Identity("observer", ()))
     assert caught.value.code == "AUTHORIZATION_DENIED"
+
+
+def test_observer_can_see_workspace_status_but_not_materialize():
+    names = {tool["name"] for tool in server.tool_list(Identity("observer", ())) }
+    assert "workspace.status" in names
+    assert "workspace.materialize" not in names

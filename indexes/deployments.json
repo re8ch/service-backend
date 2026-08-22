@@ -1,0 +1,46 @@
+[
+  {
+    "module": "anycam-backend",
+    "ref": "anycam"
+  },
+  {
+    "module": "compocv",
+    "ref": "compocv"
+  },
+  {
+    "module": "ledger",
+    "ref": "ledger"
+  },
+  {
+    "module": "phonaid-service",
+    "ref": "phonaid"
+  },
+  {
+    "module": "advanced-fabric",
+    "ref": "advanced-fabric"
+  },
+  {
+    "module": "cloud-functions",
+    "ref": "k3s/re8ch"
+  },
+  {
+    "module": "cluster-website",
+    "ref": "cluster-website"
+  },
+  {
+    "module": "codex-admin-plugins",
+    "ref": "codex-plugin-marketplace"
+  },
+  {
+    "module": "mihomos-cluster",
+    "ref": "mihomos"
+  },
+  {
+    "module": "service-backend",
+    "ref": "gitlab.com/reachievellc/service-backend"
+  },
+  {
+    "module": "tool-distribution",
+    "ref": "toolhive-system"
+  }
+]
