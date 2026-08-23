@@ -66,6 +66,30 @@ spec:
               readOnly: true
             - name: qwen-kubeconfig
               mountPath: /work
+        - name: render-artc-kubeconfig
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              umask 077
+              while IFS= read -r line; do
+                printf '%s\n' "$line"
+                if [ "$line" = "          client-id: headlamp" ]; then
+                  printf '          client-%s: "%s"\n' secret "$OIDC_CLIENT_SECRET"
+                fi
+              done < /template/artc.kubeconfig.template > /work/artc.kubeconfig
+          env:
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: client-secret
+          volumeMounts:
+            - name: artc-kubeconfig-template
+              mountPath: /template
+              readOnly: true
+            - name: artc-kubeconfig
+              mountPath: /work
       containers:
         - name: headlamp
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
@@ -74,7 +98,7 @@ spec:
             - -in-cluster
             - -in-cluster-context-name=re8ch-k3s
             - -enable-dynamic-clusters
-            - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig
+            - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
             - -oidc-client-id=headlamp
             - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
             - -oidc-idp-issuer-url=https://dex.re8ch.com
@@ -108,6 +132,9 @@ spec:
             - name: qwen-kubeconfig
               mountPath: /etc/headlamp/qwen
               readOnly: true
+            - name: artc-kubeconfig
+              mountPath: /etc/headlamp/artc
+              readOnly: true
       volumes:
         - name: plugins
           persistentVolumeClaim:
@@ -116,4 +143,9 @@ spec:
           configMap:
             name: headlamp-qwen-kubeconfig-template
         - name: qwen-kubeconfig
+          emptyDir: {}
+        - name: artc-kubeconfig-template
+          configMap:
+            name: headlamp-artc-kubeconfig-template
+        - name: artc-kubeconfig
           emptyDir: {}
