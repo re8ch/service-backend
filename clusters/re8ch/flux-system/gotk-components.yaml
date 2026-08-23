@@ -5345,6 +5345,7 @@ spec:
         - mountPath: /tmp
           name: tmp
       nodeSelector:
+        kubernetes.io/hostname: restricted-node-1eb0570f74
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       securityContext:
