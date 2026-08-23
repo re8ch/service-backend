@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.re8ch.devops-worker</string>
+  <key>ProgramArguments</key><array>
+    <string>/Volumes/A1/service-backend/.venv/bin/python</string>
+    <string>/Volumes/A1/service-backend/operations/macmini/macmini_worker.py</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>PathState</key><dict><key>/Volumes/A1</key><true/></dict></dict>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>/Users/harryneo/Library/Logs/re8ch-devops-worker.log</string>
+  <key>StandardErrorPath</key><string>/Users/harryneo/Library/Logs/re8ch-devops-worker.error.log</string>
+</dict></plist>

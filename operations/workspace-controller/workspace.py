@@ -51,6 +51,25 @@ def repository_key(url: str) -> str:
     return value.lower()
 
 
+PRUNED_DIRECTORIES = {
+    ".git", ".cache", ".venv", "DerivedData", "Library", "node_modules",
+    "Pods", "build", "dist", "target", "vendor",
+}
+
+
+def repository_candidates(start: Path) -> list[Path]:
+    """Find Git worktrees without descending into common generated trees."""
+    if not start.is_dir():
+        return []
+    found: list[Path] = []
+    for current, directories, _files in os.walk(start):
+        if ".git" in directories:
+            found.append(Path(current))
+            directories.remove(".git")
+        directories[:] = [name for name in directories if name not in PRUNED_DIRECTORIES]
+    return found
+
+
 @dataclass(frozen=True)
 class Module:
     name: str
@@ -109,9 +128,7 @@ class Controller:
         for start in roots:
             if not start.exists():
                 continue
-            candidates = [start]
-            if start.is_dir():
-                candidates += [path.parent for path in start.rglob(".git") if ".git" not in path.parent.parts]
+            candidates = repository_candidates(start)
             for candidate in candidates:
                 root = repo_root(candidate)
                 if root is None or str(root) in found:
@@ -186,6 +203,8 @@ class Controller:
             target.parent.mkdir(parents=True, exist_ok=True)
             subprocess.run(["git", "clone", "--filter=blob:none", module.repository, str(target)], check=True)
             subprocess.run(["git", "-C", str(target), "checkout", "--detach", locked["commit"]], check=True)
+            memory_path = module.source.parent / "MEMORY.md"
+            self._inject_agent_context(target, memory_path.read_text(errors="replace") if memory_path.exists() else "")
         return operation("workspace.materialize", {"dryRun": dry_run, "actions": actions}, target=str(target_root))
 
     def build_indexes(self) -> dict[str, Any]:
@@ -195,9 +214,101 @@ class Controller:
             spec = doc["spec"]
             projects.append({"id": module.name, "catalog": module.catalog, "ownership": module.ownership, "repository": module.repository, "projectType": spec["projectType"]})
             knowledge.extend({"module": module.name, "ref": ref} for ref in spec.get("knowledge", []))
+            memory_path = module.source.parent / "MEMORY.md"
+            if memory_path.exists():
+                knowledge.append({"module": module.name, "ref": str(memory_path.relative_to(self.root)), "kind": "agent-memory", "sha256": hashlib.sha256(memory_path.read_bytes()).hexdigest()})
             tools.extend({"module": module.name, "ref": ref} for ref in spec.get("tools", []))
             deployments.extend({"module": module.name, "ref": ref} for ref in spec.get("deployments", []))
         return {"projects": projects, "knowledge": knowledge, "tools": tools, "deployments": deployments}
+
+    def context(self, module_name: str | None = None, query: str | None = None) -> dict[str, Any]:
+        rows = []
+        for module in self.registry.modules.values():
+            if module_name and module.name != module_name:
+                continue
+            doc = yaml.safe_load(module.source.read_text())
+            spec = doc["spec"]
+            memory_path = module.source.parent / "MEMORY.md"
+            row = {
+                "module": module.name, "catalog": module.catalog,
+                "ownership": module.ownership, "writePolicy": module.write_policy,
+                "repository": module.repository, "defaultBranch": module.branch,
+                "workspace": {"mac": module.mac_path, "restricted-node-6dc3f140f9": module.r640_path},
+                "knowledge": spec.get("knowledge", []), "tools": spec.get("tools", []),
+                "deployments": spec.get("deployments", []), "dependencies": list(module.dependencies),
+                "memory": memory_path.read_text(errors="replace") if memory_path.exists() else "",
+                "memoryAvailable": memory_path.exists(),
+            }
+            if query and query.lower() not in json.dumps(row, ensure_ascii=False).lower():
+                continue
+            rows.append(row)
+        if module_name and not rows:
+            raise WorkspaceError(f"unknown module: {module_name}")
+        return operation("workspace.context", rows)
+
+    def memory_audit(self) -> dict[str, Any]:
+        rows = []
+        for module in self.registry.modules.values():
+            path = module.source.parent / "MEMORY.md"
+            rows.append({"module": module.name, "catalog": module.catalog, "memory": str(path.relative_to(self.root)), "available": path.exists(), "bytes": path.stat().st_size if path.exists() else 0})
+        return operation("workspace.memory-audit", {"modules": rows, "complete": all(row["available"] for row in rows)})
+
+    def link_modules(self, *, apply: bool) -> dict[str, Any]:
+        found: dict[str, Path] = {}
+        excluded = {".git", "node_modules", ".venv", "DerivedData", ".cache", ".Trash", "RE8CHWorkspace"}
+        for root_value in self.sources["localRoots"]:
+            root = Path(root_value)
+            if not root.exists():
+                continue
+            for current, dirs, _files in os.walk(root):
+                dirs[:] = [name for name in dirs if name not in excluded and not name.startswith(".Trash")]
+                path = Path(current)
+                if ".git" not in dirs and not (path / ".git").exists():
+                    continue
+                if ".git" in dirs:
+                    dirs.remove(".git")
+                remote = git(path, "remote", "get-url", "origin", check=False)
+                if remote:
+                    key = repository_key(remote)
+                    candidate = path.resolve()
+                    if key not in found or len(candidate.parts) < len(found[key].parts):
+                        found[key] = candidate
+        link_root = self.root / "workspace/modules"
+        actions = []
+        for module in self.registry.modules.values():
+            source = found.get(repository_key(module.repository))
+            link = link_root / module.catalog / module.name
+            if not source:
+                actions.append({"module": module.name, "action": "missing-local", "link": str(link)})
+                continue
+            relative = os.path.relpath(source, link.parent)
+            if link.is_symlink():
+                if os.readlink(link) == relative:
+                    actions.append({"module": module.name, "action": "preserve-existing", "link": str(link), "target": relative})
+                else:
+                    actions.append({"module": module.name, "action": "relink", "link": str(link), "target": relative})
+                    if apply:
+                        link.unlink()
+                        link.symlink_to(relative, target_is_directory=True)
+                continue
+            if link.exists():
+                actions.append({"module": module.name, "action": "blocked-existing", "link": str(link), "target": str(source)})
+                continue
+            actions.append({"module": module.name, "action": "link", "link": str(link), "target": relative})
+            if apply:
+                link.parent.mkdir(parents=True, exist_ok=True)
+                link.symlink_to(relative, target_is_directory=True)
+        return operation("workspace.link", {"apply": apply, "root": str(link_root), "actions": actions})
+
+    @staticmethod
+    def _inject_agent_context(target: Path, memory: str) -> None:
+        if not memory or (target / "AGENTS.md").exists():
+            return
+        (target / "AGENTS.md").write_text("# RE8CH workspace context (generated; do not commit)\n\n" + memory)
+        exclude = target / ".git/info/exclude"
+        if exclude.exists() and "/AGENTS.md" not in exclude.read_text(errors="replace").splitlines():
+            with exclude.open("a") as handle:
+                handle.write("\n/AGENTS.md\n")
 
     def sync(self, *, write: bool) -> dict[str, Any]:
         desired = self.resolve_lock()
@@ -244,8 +355,11 @@ def main() -> None:
     default_root = script.parents[2] if len(script.parents) > 2 else Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
     parser.add_argument("--root", type=Path, default=default_root)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("list", "scan", "discovery", "status", "resolve-lock", "doctor"):
+    for name in ("list", "scan", "discovery", "status", "resolve-lock", "doctor", "memory-audit"):
         sub.add_parser(name)
+    context = sub.add_parser("context")
+    context.add_argument("--module")
+    context.add_argument("--query")
     index = sub.add_parser("index")
     index.add_argument("--write", action="store_true")
     sync = sub.add_parser("sync")
@@ -253,6 +367,8 @@ def main() -> None:
     materialize = sub.add_parser("materialize")
     materialize.add_argument("--catalog", action="append", default=[])
     materialize.add_argument("--apply", action="store_true")
+    link = sub.add_parser("link")
+    link.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     controller = Controller(args.root)
     if args.command == "doctor":
@@ -261,6 +377,9 @@ def main() -> None:
     elif args.command == "sync": result = controller.sync(write=args.write)
     elif args.command == "resolve-lock": result = operation("workspace.resolve-lock", controller.resolve_lock())
     elif args.command == "materialize": result = controller.materialize(set(args.catalog), dry_run=not args.apply)
+    elif args.command == "context": result = controller.context(args.module, args.query)
+    elif args.command == "memory-audit": result = controller.memory_audit()
+    elif args.command == "link": result = controller.link_modules(apply=args.apply)
     else: result = getattr(controller, args.command)()
     json.dump(result, sys.stdout, indent=2, default=str); print()
 

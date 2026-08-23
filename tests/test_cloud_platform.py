@@ -16,7 +16,9 @@ def completed(stdout="{}", returncode=0):
 
 def test_inventory_contains_all_sixteen_k3s_nodes():
     inventory = Inventory([ROOT / "inventory/nodes.yaml"])
-    assert len(inventory.targets) == 16
+    k3s = {name for name, item in inventory.targets.items() if any(capability.startswith("k3s-") for capability in item["spec"].get("capabilities", []))}
+    assert len(k3s) == 16
+    assert "macmini-a1" in inventory.targets
     assert {"restricted-node-6dc3f140f9", "overseas-kl", "overseas-la", "suxunji", "vm-20-12-ubuntu"} <= set(inventory.targets)
 
 
