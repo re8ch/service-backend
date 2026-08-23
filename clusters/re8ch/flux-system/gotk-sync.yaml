@@ -6,6 +6,9 @@ spec:
   url: https://gitlab.com/reachievellc/service-backend.git
   ref: {branch: main}
   secretRef: {name: service-backend-flux-auth}
+  verify:
+    mode: HEAD
+    secretRef: {name: service-backend-verification-keys}
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -16,4 +19,7 @@ spec:
   prune: false
   wait: true
   timeout: 3m
+  decryption:
+    provider: sops
+    secretRef: {name: sops-age}
   sourceRef: {kind: GitRepository, name: service-backend}
