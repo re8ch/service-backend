@@ -5302,7 +5302,7 @@ spec:
             resourceFieldRef:
               containerName: manager
               resource: limits.memory
-        image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:6d9a4cf6e69088077ea34872e29c1b2ca4494f12c155ee975fa7f0a00b7271e4
+        image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
