@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+  namespace: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: headlamp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headlamp
+    spec:
+      serviceAccountName: headlamp
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: headlamp
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+        - operator: Exists
+      initContainers:
+        - name: install-flux-plugin
+          image: registry.re8ch.com/functions-shared/headlamp-plugin-flux@sha256:1570eba449f69bbc0d07bfc7fa983abcdc747c1885be4b15ea4792b4d63e5595
+          command: [/bin/sh, -c]
+          args:
+            - cp -R /plugins/flux /headlamp/plugins/flux.new && rm -rf /headlamp/plugins/flux && mv /headlamp/plugins/flux.new /headlamp/plugins/flux
+          volumeMounts:
+            - name: plugins
+              mountPath: /headlamp/plugins
+      containers:
+        - name: headlamp
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          imagePullPolicy: IfNotPresent
+          args:
+            - -in-cluster
+            - -in-cluster-context-name=re8ch-k3s
+            - -enable-dynamic-clusters
+            - -oidc-client-id=headlamp
+            - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
+            - -oidc-idp-issuer-url=https://dex.re8ch.com
+            - -oidc-callback-url=https://headlamp.re8ch.com/oidc-callback
+            - -oidc-scopes=openid,profile,email,groups
+            - -plugins-dir=/headlamp/plugins
+          env:
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: client-secret
+          ports:
+            - name: http
+              containerPort: 4466
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          volumeMounts:
+            - name: plugins
+              mountPath: /headlamp/plugins
+      volumes:
+        - name: plugins
+          persistentVolumeClaim:
+            claimName: headlamp-plugins-v2

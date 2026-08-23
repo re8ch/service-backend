@@ -3,5 +3,8 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - flux-system/gotk-components.yaml
+  - flux-system/verification-keys.yaml
+  - flux-system/sops-canary.sops.yaml
   - flux-system/gotk-sync.yaml
   - gitlab-agent/agent.yaml
+  - ../../platform/headlamp

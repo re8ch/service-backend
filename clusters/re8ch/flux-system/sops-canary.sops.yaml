@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: flux-sops-canary
+    namespace: flux-system
+type: Opaque
+stringData:
+    status: ENC[AES256_GCM,data:WB/1jOJGbqgZ7qTVOap5ubU=,iv:1rCMCHduGA93BCQiu6BvD01Ix7rBw5kP/fbYHzxQRAA=,tag:uIZcxSxJ8Qlu4Fbs1X/GDw==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAyb3NVbWpjdWgvTnhBR2Y0
+            bWZKT0RqQlhZTzUxZ2hycWRrOXlGaVF0SFJFCkdjUURtc0dlNlNJUGxtZ0kzRHNN
+            V0diYW9EQW4wcXppOS9qRC9NcWppMkUKLS0tIG9sbWduU0hFcklFalBjRHhJNHF5
+            TGl1Y1FyNnA5bHNYTGN1bTJITHN1djgKjdTqnu7tJ1j5KBfH2UngageNlFkbVJeN
+            Q3e6G7xVDdjoh3+oFqdw8M/upXW+rSejOBMdEkDKbuzU/AlXzo9moA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-08-23T06:47:52Z"
+    mac: ENC[AES256_GCM,data:5QehO0Z/q5JoaSykFQYmrD0U2rkEDKgvUXcPWUm1SacjgJkaiHoPZT1bven6T/TT2dD1aNRl8rkDkbtlUOxxit/N4hFRp+AxmD0HtA8zbrmzi28JBKzbcXrhEdZ1IBXnvS6FuR5Q4Y6JlxLAiG5z+myHKfFRfXRNUA2m0eTz/30=,iv:5J/QTn7tJD0oC9yFRbrXRlWCC96hUbJe3MtbptQQUuE=,tag:1aJMn4Dt/kcSjocljX2rPg==,type:str]
+    version: 3.13.3
