@@ -40,3 +40,4 @@ def test_observer_can_see_workspace_status_but_not_materialize():
     names = {tool["name"] for tool in server.tool_list(Identity("observer", ())) }
     assert "workspace.status" in names
     assert "workspace.materialize" not in names
+    assert {"workspace.context", "workspace.memory-audit"} <= names

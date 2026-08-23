@@ -3,6 +3,7 @@ RUN apk add --no-cache git openssh-client && addgroup -S re8ch && adduser -S -G 
 WORKDIR /app
 COPY operations/workspace-controller/mirror.py ./mirror.py
 COPY workspace/workspace.lock.yaml /config/workspace.lock.yaml
+COPY catalogs/ /srv/service-backend/catalogs/
 RUN pip install --no-cache-dir PyYAML==6.0.2
 USER 65532:65532
 ENTRYPOINT ["python", "/app/mirror.py"]

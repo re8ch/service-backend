@@ -8,3 +8,4 @@ resources:
   - flux-system/gotk-sync.yaml
   - gitlab-agent/agent.yaml
   - ../../platform/headlamp
+  - ../../platform/cloud-platform

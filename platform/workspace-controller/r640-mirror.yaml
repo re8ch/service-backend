@@ -22,8 +22,8 @@ spec:
           serviceAccountName: workspace-controller
           containers:
             - name: mirror
-              image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:026b90ae35e05204fe686e4a13b9c73082e8202a1ad5ed8ac928288287d59062
-              args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, sync]
+              image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
+              args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, --memory-root, /srv/service-backend/catalogs, sync]
               env: [{name: GIT_SSH_COMMAND, value: "ssh -F /credentials/ssh-config -o BatchMode=yes"}]
               securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, capabilities: {drop: [ALL]}}
               volumeMounts:

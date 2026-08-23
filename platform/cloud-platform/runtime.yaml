@@ -24,7 +24,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:bd28c59e70e6de4df4e39e1938b6959283a2fae43f127cb7fc4093cf32af5e67
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:b9c9755165049a55dad9ff96213d21683db0b379a0396100c9407db58e961975
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
