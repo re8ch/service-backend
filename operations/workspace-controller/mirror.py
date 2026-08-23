@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""restricted-node-6dc3f140f9 mirror cache and task worktree lifecycle.
+"""R640 mirror cache and task worktree lifecycle.
 
 Credentials remain in Git's configured credential helper/SSH agent. This tool
 never prints environment variables, credential files or remote URLs containing
@@ -24,10 +24,11 @@ def run(argv: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 class MirrorController:
-    def __init__(self, lock_path: Path, mirror_root: Path, worktree_root: Path):
+    def __init__(self, lock_path: Path, mirror_root: Path, worktree_root: Path, memory_root: Path | None = None):
         self.lock = yaml.safe_load(lock_path.read_text())["modules"]
         self.mirror_root = mirror_root
         self.worktree_root = worktree_root
+        self.memory_root = memory_root
 
     def sync(self, modules: set[str] | None = None) -> dict[str, Any]:
         results = []
@@ -60,6 +61,12 @@ class MirrorController:
             proc = run(["git", "clone", "--shared", "--no-checkout", str(mirror), str(target)])
             if proc.returncode == 0:
                 proc = run(["git", "-C", str(target), "checkout", "--detach", item["commit"]])
+            if proc.returncode == 0 and self.memory_root:
+                matches = list(self.memory_root.glob(f"*/modules/{name}/MEMORY.md"))
+                if matches and not (target / "AGENTS.md").exists():
+                    (target / "AGENTS.md").write_text("# RE8CH workspace context (generated; do not commit)\n\n" + matches[0].read_text(errors="replace"))
+                    with (target / ".git/info/exclude").open("a") as handle:
+                        handle.write("\n/AGENTS.md\n")
             results.append({"module": name, "path": str(target), "commit": item["commit"], "exitCode": proc.returncode})
         return self._envelope("worktree.create", results)
 
@@ -92,12 +99,13 @@ def main() -> None:
     parser.add_argument("--lock", type=Path, required=True)
     parser.add_argument("--mirrors", type=Path, required=True)
     parser.add_argument("--worktrees", type=Path, required=True)
+    parser.add_argument("--memory-root", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
     sync = sub.add_parser("sync"); sync.add_argument("modules", nargs="*")
     create = sub.add_parser("create"); create.add_argument("task_id"); create.add_argument("modules", nargs="+")
     cleanup = sub.add_parser("cleanup"); cleanup.add_argument("task_id"); cleanup.add_argument("--artifacts", type=Path, required=True)
     args = parser.parse_args()
-    controller = MirrorController(args.lock, args.mirrors, args.worktrees)
+    controller = MirrorController(args.lock, args.mirrors, args.worktrees, args.memory_root)
     if args.command == "sync": result = controller.sync(set(args.modules) or None)
     elif args.command == "create": result = controller.create(args.task_id, set(args.modules))
     else: result = controller.cleanup(args.task_id, args.artifacts)

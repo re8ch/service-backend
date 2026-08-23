@@ -1,6 +1,7 @@
 apiVersion: operations.re8ch.com/v1alpha1
 kind: InfrastructureTargetList
 items:
+  - {metadata: {name: macmini-a1}, spec: {transport: ssh, address: 192.0.2.225, credentialRef: node-ssh, capabilities: [devops-primary, a1-workspace, docker-build, ci-runner], commands: {read: [hostname, uptime, workspace-context], write: [workspace-materialize, ci-build], rollback: [workspace-cleanup]}}}
   - {metadata: {name: restricted-node-6dc3f140f9}, spec: {transport: ssh, address: restricted-node-6dc3f140f9, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd, harbor, pigsty], commands: {read: [hostname, uptime, systemctl-status], write: [systemctl-restart], rollback: [systemctl-restart]}}}
   - {metadata: {name: restricted-node-1eb0570f74}, spec: {transport: ssh, address: restricted-node-1eb0570f74, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd], commands: {read: [hostname, uptime], write: [], rollback: []}}}
   - {metadata: {name: restricted-node-296f36f2fb}, spec: {transport: ssh, address: restricted-node-296f36f2fb, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd], commands: {read: [hostname, uptime], write: [], rollback: []}}}

@@ -53,3 +53,13 @@ def test_materialize_defaults_to_dry_run_and_preserves_existing(tmp_path):
 
 def test_repository_key_normalizes_ssh_and_https():
     assert workspace.repository_key("git@github.com:re8ch/example.git") == workspace.repository_key("https://github.com/re8ch/example.git")
+
+
+def test_every_module_has_agent_memory_and_context_is_queryable():
+    controller = workspace.Controller(ROOT)
+    audit = controller.memory_audit()["result"]
+    assert audit["complete"] is True
+    assert len(audit["modules"]) == len(controller.registry.modules)
+    context = controller.context("cloud-functions")["result"][0]
+    assert context["memoryAvailable"] is True
+    assert "Cloud Functions" in context["memory"]

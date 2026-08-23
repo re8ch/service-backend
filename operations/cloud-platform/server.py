@@ -37,9 +37,12 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "workspace.index": {"write": {"type": "boolean"}},
     "workspace.sync": {"write": {"type": "boolean"}},
     "workspace.materialize": {"catalogs": {"type": "array", "items": {"type": "string"}}, "apply": {"type": "boolean"}},
+    "workspace.context": {"module": {"type": "string"}, "query": {"type": "string"}},
+    "workspace.memory-audit": {},
+    "workspace.link": {"apply": {"type": "boolean"}},
 }
 
-WRITE_TOOLS = {"node.ssh.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.sync", "workspace.materialize"}
+WRITE_TOOLS = {"node.ssh.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.sync", "workspace.materialize", "workspace.link"}
 
 
 REQUIRED = {
@@ -96,8 +99,15 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
                 argv += ["--catalog", catalog]
             if args.get("apply"):
                 argv.append("--apply")
+        elif command == "link" and args.get("apply"):
+            argv.append("--apply")
         elif command in {"sync", "index"} and args.get("write"):
             argv.append("--write")
+        elif command == "context":
+            if args.get("module"):
+                argv += ["--module", args["module"]]
+            if args.get("query"):
+                argv += ["--query", args["query"]]
         completed = subprocess.run(argv, text=True, capture_output=True, timeout=3600, check=False)
         if completed.returncode:
             raise OperationError("WORKSPACE_OPERATION_FAILED", completed.stderr[-2048:])

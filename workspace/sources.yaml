@@ -2,6 +2,7 @@ apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceSources
 spec:
   localRoots:
+    - /Volumes/A1
     - /Volumes/A1/RE8CHProjects
     - /Volumes/A1/cloud-functions
     - /Volumes/A1/Qianwen-app-test

@@ -4,76 +4,190 @@
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "2woodblog",
+    "ref": "catalogs/2woodblog/modules/2woodblog/MEMORY.md",
+    "sha256": "d6742b1844aa95b0c236a0c5b2aa5396d57a44364bde45da3b4cccc9dc568692"
+  },
+  {
     "module": "aesthete",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "aesthete",
+    "ref": "catalogs/aesthete/modules/aesthete/MEMORY.md",
+    "sha256": "eb0695e3f5c56216e936901cc2cef87831ede1588f4244683bdb9a972d41524f"
   },
   {
     "module": "z-anatomy-models",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "z-anatomy-models",
+    "ref": "catalogs/aesthete/modules/z-anatomy-models/MEMORY.md",
+    "sha256": "158a8e22bf10f7702693c1408438a1a66ed2f247b61787f372849a0d9cdb3310"
+  },
+  {
     "module": "anycam",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "anycam",
+    "ref": "catalogs/anycam/modules/anycam/MEMORY.md",
+    "sha256": "2a9566c6655dca36c9850dc1f8a55c7699571ff0079e6de77e8666298ef7b272"
   },
   {
     "module": "anycam-backend",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "anycam-backend",
+    "ref": "catalogs/anycam/modules/anycam-backend/MEMORY.md",
+    "sha256": "144f5dc44eb9999d87dd79e0210229fc059c1bfe55dbd8a15b884a52d8da7a78"
+  },
+  {
     "module": "anycam-ios",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "anycam-ios",
+    "ref": "catalogs/anycam/modules/anycam-ios/MEMORY.md",
+    "sha256": "309a8d5c1898f25e4d7f1c7b854aaab92394407012c4c2bbacb6599bd14f86fd"
   },
   {
     "module": "anycam-website",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "anycam-website",
+    "ref": "catalogs/anycam/modules/anycam-website/MEMORY.md",
+    "sha256": "a96f483ca2daeb46f5def8be1642ea0a93b51cb6b2ab70c82d3ae0e41c384910"
+  },
+  {
     "module": "anysiteonearth",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "anysiteonearth",
+    "ref": "catalogs/anysiteonearth/modules/anysiteonearth/MEMORY.md",
+    "sha256": "3d8a454009a607f46a7cd3a3beaa29e36f4020e654576a61e187b59dbbb21e22"
   },
   {
     "module": "anysiteonearth-website",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "anysiteonearth-website",
+    "ref": "catalogs/anysiteonearth/modules/anysiteonearth-website/MEMORY.md",
+    "sha256": "0b453542e833e35a1506423b101469a73ef0b065b58328bd189734d426e2ee76"
+  },
+  {
     "module": "artchais-microservices",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "artchais-microservices",
+    "ref": "catalogs/artchais/modules/artchais-microservices/MEMORY.md",
+    "sha256": "6ebcf20f1df131d54bf5b9ef970f2e575504d682042b72931f7e4de848c0f430"
   },
   {
     "module": "artchais-web",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "artchais-web",
+    "ref": "catalogs/artchais/modules/artchais-web/MEMORY.md",
+    "sha256": "00a6fd37297243d72bbe512aac593367787a2c7eaecae71987d96eabd0083a96"
+  },
+  {
     "module": "arthandler-artchais-web",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "arthandler-artchais-web",
+    "ref": "catalogs/artchais/modules/arthandler-artchais-web/MEMORY.md",
+    "sha256": "8faff9c8ed5ee1ba6eacbf7872c670a9426ba3a0d190c18a6229c598753a3693"
   },
   {
     "module": "arthandler-gallery-robot",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "arthandler-gallery-robot",
+    "ref": "catalogs/artchais/modules/arthandler-gallery-robot/MEMORY.md",
+    "sha256": "90e65f449c0695793e78662338f53b0bed0f1b5450db608433f6ce3e3717a418"
+  },
+  {
     "module": "baozou-ppt-studio",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "baozou-ppt-studio",
+    "ref": "catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/MEMORY.md",
+    "sha256": "f06226dc3891491d2d63097b446a94b3479f02a3c777491eace0417cd5fd93df"
   },
   {
     "module": "director-engines",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "director-engines",
+    "ref": "catalogs/baozou-ppt-studio/modules/director-engines/MEMORY.md",
+    "sha256": "6d12cf73da2cfbcc00bfe837966a7f4e7c9020858e35c08ca72aa274e4d21f0b"
+  },
+  {
     "module": "career-ops",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "career-ops",
+    "ref": "catalogs/career-ops/modules/career-ops/MEMORY.md",
+    "sha256": "22216a8dd52e2140160e3ba4068079ee0a53d00e6aef282e1ba39e34652fb9f6"
   },
   {
     "module": "compocv",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "compocv",
+    "ref": "catalogs/compocv/modules/compocv/MEMORY.md",
+    "sha256": "15c0ef896c61650b4d57b3dfc066e9696af1232e082aefc194a030de53d686e7"
+  },
+  {
     "module": "garageband-mcp",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "garageband-mcp",
+    "ref": "catalogs/garageband/modules/garageband-mcp/MEMORY.md",
+    "sha256": "d02b151ecad471a84eb241d142eef253ab5174005dc71787f2ffd46fffe82108"
+  },
+  {
     "module": "garageband-mcp-site",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "garageband-mcp-site",
+    "ref": "catalogs/garageband/modules/garageband-mcp-site/MEMORY.md",
+    "sha256": "ab840a3a10716f8a6ebe999259a9dc84a6fbebc712a6d5d9db96e323d2a6987a"
   },
   {
     "module": "jjklive",
@@ -88,48 +202,120 @@
     "ref": "COCOS_WECHAT_README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "jjklive",
+    "ref": "catalogs/jjklive/modules/jjklive/MEMORY.md",
+    "sha256": "daf0d8eacb101e3981e5abd0486f7203a0e9e4bcb2e1acda9d0e9b77d46761a8"
+  },
+  {
     "module": "ledger",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "ledger",
+    "ref": "catalogs/ledger/modules/ledger/MEMORY.md",
+    "sha256": "a1b0c1dbb4143d002ded28a98132330414c9c114538dec41f80a0d89fb843d6e"
   },
   {
     "module": "ledger-dashboard",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "ledger-dashboard",
+    "ref": "catalogs/ledger/modules/ledger-dashboard/MEMORY.md",
+    "sha256": "209adbbb66d34f0452553bd24f2a43929b455e5df636af35af0c0a15b26fa9ff"
+  },
+  {
     "module": "ledger-site",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "ledger-site",
+    "ref": "catalogs/ledger/modules/ledger-site/MEMORY.md",
+    "sha256": "8f5b74044d80ed8b307c9cf9b60b75c15e21167f9cda15fd1a7712b5ce6b05f6"
   },
   {
     "module": "motor-muscle-sim",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "motor-muscle-sim",
+    "ref": "catalogs/motor-muscle-sim/modules/motor-muscle-sim/MEMORY.md",
+    "sha256": "ba7971fbdeeca6e3ef9105d4e47b31d8689036a17216ec1ddd7601437be2d646"
+  },
+  {
     "module": "netbird-core",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "netbird-core",
+    "ref": "catalogs/network-decomplexer/modules/netbird-core/MEMORY.md",
+    "sha256": "bd15545a45d34b1d5439c46ff212cb31e11f06e5262e1c230f502e330fcc428f"
   },
   {
     "module": "network-decomplexer-ios",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "network-decomplexer-ios",
+    "ref": "catalogs/network-decomplexer/modules/network-decomplexer-ios/MEMORY.md",
+    "sha256": "8cadd0612dfdaf774f571bbc9a4c705b142288238253f4e42ba3f70f3037e905"
+  },
+  {
     "module": "phonaid-android",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "phonaid-android",
+    "ref": "catalogs/phonaid/modules/phonaid-android/MEMORY.md",
+    "sha256": "99ae0406701fc76ba26304c6727de2b5e066442823262f6e3c9acd77fa1d8a9e"
   },
   {
     "module": "phonaid-service",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "phonaid-service",
+    "ref": "catalogs/phonaid/modules/phonaid-service/MEMORY.md",
+    "sha256": "c1e601f739f115eaafd1ab50022b7ed62b704de85e2ca9e75f3f8198e0e2f4b2"
+  },
+  {
     "module": "phonaid-website",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "phonaid-website",
+    "ref": "catalogs/phonaid/modules/phonaid-website/MEMORY.md",
+    "sha256": "0b084bdf353f524c042494c10d56dc42f9aceafb1a3c88247ca4e42dc1d60d70"
   },
   {
     "module": "advanced-fabric",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "advanced-fabric",
+    "ref": "catalogs/platform/modules/advanced-fabric/MEMORY.md",
+    "sha256": "8e4e79f89184b5474fa675610e0b9233722af0a0965fd72746a8338d3230af29"
+  },
+  {
     "module": "brand-assets",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "brand-assets",
+    "ref": "catalogs/platform/modules/brand-assets/MEMORY.md",
+    "sha256": "9f7393495a0492c593d9d4a9c4a6c4aad2bbf3b5771a1e9264616879f8dc08c3"
   },
   {
     "module": "cloud-functions",
@@ -144,44 +330,110 @@
     "ref": "docs/"
   },
   {
+    "kind": "agent-memory",
+    "module": "cloud-functions",
+    "ref": "catalogs/platform/modules/cloud-functions/MEMORY.md",
+    "sha256": "1d1c7b8b7256e415d17ad41b6db0e071d93cfc5569155985305ac8662842bfd8"
+  },
+  {
     "module": "cluster-website",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "cluster-website",
+    "ref": "catalogs/platform/modules/cluster-website/MEMORY.md",
+    "sha256": "4a9b74c84d545eeadda0977f8f4ac269731bf062d24f95b436fc630ecdcde6e8"
   },
   {
     "module": "codex-admin-plugins",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "codex-admin-plugins",
+    "ref": "catalogs/platform/modules/codex-admin-plugins/MEMORY.md",
+    "sha256": "978282271d981d996abbd5b07c95f4a3966a2c264e3120ba3a47722d1bdc169b"
+  },
+  {
     "module": "headlamp-advanced-fabric",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "headlamp-advanced-fabric",
+    "ref": "catalogs/platform/modules/headlamp-advanced-fabric/MEMORY.md",
+    "sha256": "56f3fb2c57792e45e8c59066b3f5b801e64cc413166d7289e85f2d7513b395a9"
   },
   {
     "module": "image-website",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "image-website",
+    "ref": "catalogs/platform/modules/image-website/MEMORY.md",
+    "sha256": "944248af1ed7bc7671d146c930cae6dd79d1b3f5f36579aa4f6dd0ff58ea7f4a"
+  },
+  {
     "module": "mcp-registry",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "mcp-registry",
+    "ref": "catalogs/platform/modules/mcp-registry/MEMORY.md",
+    "sha256": "164cd92143db8ee481d79e33ec927ce0a3f5e0aa3e3a428a7910595a93dc950f"
   },
   {
     "module": "mihomos-cluster",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "mihomos-cluster",
+    "ref": "catalogs/platform/modules/mihomos-cluster/MEMORY.md",
+    "sha256": "0f73f591e9dd88409ccb9d41584ae5d82792f2ce4d7412eb13c8645c68dfae24"
+  },
+  {
     "module": "observable-website",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "observable-website",
+    "ref": "catalogs/platform/modules/observable-website/MEMORY.md",
+    "sha256": "92d759407daab9efca735a72ad250caab86ca8bca564453950adc7cc63937afe"
   },
   {
     "module": "product-public-data",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "product-public-data",
+    "ref": "catalogs/platform/modules/product-public-data/MEMORY.md",
+    "sha256": "6c5ad4517e232e85a0883aeee8be8e1827d553d69c41aa3c13407cbcc4bd266d"
+  },
+  {
     "module": "re8ch-core",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "re8ch-core",
+    "ref": "catalogs/platform/modules/re8ch-core/MEMORY.md",
+    "sha256": "aeeb9db998fe562bc8b06339bf99e90c8368a281cca8563008d7f024d0643bbb"
+  },
+  {
     "module": "registry-product-site",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "registry-product-site",
+    "ref": "catalogs/platform/modules/registry-product-site/MEMORY.md",
+    "sha256": "59f676ba4dc269f3200497acb24d8dc68a047c397cc7ce5288abdb997638e496"
   },
   {
     "module": "service-backend",
@@ -192,43 +444,109 @@
     "ref": "runbooks/"
   },
   {
+    "kind": "agent-memory",
+    "module": "service-backend",
+    "ref": "catalogs/platform/modules/service-backend/MEMORY.md",
+    "sha256": "ef81bd30c5fea66fe16d0eef45c7c0bbf5a757dd26733b262f65650e1c04253e"
+  },
+  {
     "module": "tool-distribution",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "tool-distribution",
+    "ref": "catalogs/platform/modules/tool-distribution/MEMORY.md",
+    "sha256": "dc79c9e3a29c591af8f090ceae9e09f99eb7bd82f57819249bd2fbb57ee84c5a"
   },
   {
     "module": "qianwen-app",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "qianwen-app",
+    "ref": "catalogs/qianwen/modules/qianwen-app/MEMORY.md",
+    "sha256": "4da6e44209e28de09234c2cabf697074abd908e379c9bcfa2d43d672589eaebb"
+  },
+  {
     "module": "qianwen-brand",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "qianwen-brand",
+    "ref": "catalogs/qianwen/modules/qianwen-brand/MEMORY.md",
+    "sha256": "9027798ae38c16177f03e73e23c7848fb0ce37679e2edfa683d4b1d318a52a6f"
   },
   {
     "module": "qianwen-capture-helper",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "qianwen-capture-helper",
+    "ref": "catalogs/qianwen/modules/qianwen-capture-helper/MEMORY.md",
+    "sha256": "fed3974b228319d5a59ffe65c558e49d16215680f9b9113202917663446622f7"
+  },
+  {
     "module": "qianwen-extension",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "qianwen-extension",
+    "ref": "catalogs/qianwen/modules/qianwen-extension/MEMORY.md",
+    "sha256": "ba77a2390855a93aad0e3d75a07309e4dc90f46f7089d74f5bc760364c05cdad"
   },
   {
     "module": "qianwen-ios",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "qianwen-ios",
+    "ref": "catalogs/qianwen/modules/qianwen-ios/MEMORY.md",
+    "sha256": "63e06010260a9d653a96d7357eada6dcd07aea19b2b873baa9905bb5ee2fbcac"
+  },
+  {
     "module": "qianwen-web",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "qianwen-web",
+    "ref": "catalogs/qianwen/modules/qianwen-web/MEMORY.md",
+    "sha256": "957cc9f3691beddc9b0a8de18a8f31ae4d4f7726ef591c4b82f75da836742fe1"
   },
   {
     "module": "qianwen-wechat",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "qianwen-wechat",
+    "ref": "catalogs/qianwen/modules/qianwen-wechat/MEMORY.md",
+    "sha256": "b2ebd30fb0fad58ffc98f21806e17c62fe975ecd730773ea2a5d821c0a8e3368"
+  },
+  {
     "module": "space-mining-stage",
     "ref": "README.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "space-mining-stage",
+    "ref": "catalogs/space-mining-stage/modules/space-mining-stage/MEMORY.md",
+    "sha256": "e8e75b14c6b067a208483f359b5272082accce99255176f7585e55a927f2c584"
+  },
+  {
     "module": "thiking-machine",
     "ref": "README.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "thiking-machine",
+    "ref": "catalogs/thiking-machine/modules/thiking-machine/MEMORY.md",
+    "sha256": "36d2f537eeb0c47cb3171f01e5f5b93a02836835d663f3e0cf7b8586b1801ba7"
   }
 ]
