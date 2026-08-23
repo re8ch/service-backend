@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: headlamp
+        traffic.re8ch.com/headlamp-active: "true"
     spec:
       serviceAccountName: headlamp
       affinity:
