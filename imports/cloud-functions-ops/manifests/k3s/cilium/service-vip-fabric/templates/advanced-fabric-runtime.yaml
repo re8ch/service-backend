@@ -62,6 +62,8 @@ spec:
           image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
           command: [python3, /runtime/controller.py]
           env:
+            - {name: API_HOST, value: "192.0.2.220"}
+            - {name: API_PORT, value: "6443"}
             - {name: ADVISOR_URL, value: "http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790"}
             - {name: PATRONI_MEMBERS_JSON, value: '{"pg-re8ch-1":"192.0.2.183","pg-re8ch-2":"192.0.2.172","pg-re8ch-3":"192.0.2.79"}'}
             - {name: PG_ROLE_NAMESPACE, value: "pigsty-external"}
