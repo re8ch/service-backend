@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - storage.yaml
+  - collectors.yaml
+  - scrapes.yaml
+  - rules.yaml
+  - otel.yaml
+  - dashboards.yaml
+configMapGenerator:
+  - name: re8ch-observability-dashboards
+    namespace: observability-system
+    files:
+      - dashboards/re8ch-fleet.json
+      - dashboards/re8ch-storage.json
+      - dashboards/re8ch-network.json
+      - dashboards/re8ch-stateful.json
+      - dashboards/re8ch-stateless.json
+      - dashboards/re8ch-events.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+        app.kubernetes.io/part-of: re8ch-observability
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,123 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMCluster
+metadata:
+  name: re8ch-metrics
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  retentionPeriod: "30d"
+  vmstorage:
+    replicaCount: 1
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    extraArgs: {dedup.minScrapeInterval: 15s}
+    storageDataPath: /vm-data
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: rbd-r640
+          accessModes: [ReadWriteOnce]
+          resources: {requests: {storage: 100Gi}}
+    resources:
+      requests: {cpu: "2", memory: 4Gi}
+      limits: {cpu: "2", memory: 4Gi}
+  vmselect:
+    replicaCount: 2
+    extraArgs: {dedup.minScrapeInterval: 15s}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels: {app.kubernetes.io/name: vmselect}
+            topologyKey: kubernetes.io/hostname
+    resources:
+      requests: {cpu: 500m, memory: 1Gi}
+      limits: {cpu: "2", memory: 2Gi}
+  vminsert:
+    replicaCount: 2
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels: {app.kubernetes.io/name: vminsert}
+            topologyKey: kubernetes.io/hostname
+    resources:
+      requests: {cpu: 250m, memory: 256Mi}
+      limits: {cpu: "1", memory: 1Gi}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  name: re8ch-analytics
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  retentionPeriod: "180d"
+  nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+  storage:
+    accessModes: [ReadWriteOnce]
+    storageClassName: rbd-r640
+    resources: {requests: {storage: 50Gi}}
+  resources:
+    requests: {cpu: "1", memory: 2Gi}
+    limits: {cpu: "2", memory: 4Gi}
+---
+apiVersion: operator.victoriametrics.com/v1
+kind: VTCluster
+metadata:
+  name: re8ch-traces
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  insert:
+    replicaCount: 2
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector: {matchLabels: {app.kubernetes.io/component: vtinsert}}
+            topologyKey: kubernetes.io/hostname
+    resources:
+      requests: {cpu: 250m, memory: 256Mi}
+      limits: {cpu: "1", memory: 1Gi}
+  select:
+    replicaCount: 2
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector: {matchLabels: {app.kubernetes.io/component: vtselect}}
+            topologyKey: kubernetes.io/hostname
+    resources:
+      requests: {cpu: 250m, memory: 256Mi}
+      limits: {cpu: "1", memory: 1Gi}
+  storage:
+    replicaCount: 1
+    retentionPeriod: "30d"
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: rbd-r640
+          accessModes: [ReadWriteOnce]
+          resources: {requests: {storage: 100Gi}}
+    resources:
+      requests: {cpu: "1", memory: 2Gi}
+      limits: {cpu: "2", memory: 4Gi}

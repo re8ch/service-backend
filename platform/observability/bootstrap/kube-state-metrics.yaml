@@ -1,0 +1,75 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: prometheus-community
+  namespace: observability-system
+spec:
+  interval: 1h
+  url: https://prometheus-community.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: re8ch-kube-state-metrics
+  namespace: observability-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: kube-state-metrics
+      version: 8.3.0
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: observability-system
+  install: {remediation: {retries: 3}}
+  upgrade: {remediation: {retries: 3, remediateLastFailure: true}}
+  values:
+    fullnameOverride: re8ch-kube-state-metrics
+    replicas: 2
+    customLabels:
+      observability.re8ch.com/component: inventory
+    collectors:
+      - cronjobs
+      - daemonsets
+      - deployments
+      - endpointslices
+      - horizontalpodautoscalers
+      - ingresses
+      - jobs
+      - leases
+      - namespaces
+      - networkpolicies
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - poddisruptionbudgets
+      - pods
+      - replicasets
+      - replicationcontrollers
+      - resourcequotas
+      - services
+      - statefulsets
+      - storageclasses
+      - volumeattachments
+    metricLabelsAllowlist:
+      - nodes=[topology.kubernetes.io/region,topology.kubernetes.io/zone,node-role.kubernetes.io/control-plane,pigsty.cc/workload]
+      - pods=[app.kubernetes.io/name,app.kubernetes.io/component,app.kubernetes.io/instance,observability.re8ch.com/tier]
+      - services=[app.kubernetes.io/name,app.kubernetes.io/component,observability.re8ch.com/tier,observability.re8ch.com/scrape]
+      - persistentvolumeclaims=[app.kubernetes.io/name,app.kubernetes.io/component]
+    metricAnnotationsAllowList:
+      - services=[observability.re8ch.com/owner,observability.re8ch.com/runbook,observability.re8ch.com/metrics-doc,observability.re8ch.com/slo]
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels: {app.kubernetes.io/name: kube-state-metrics}
+            topologyKey: kubernetes.io/hostname
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: "1", memory: 1Gi}

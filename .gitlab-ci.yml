@@ -24,7 +24,11 @@ render:
     - 'case "$(uname -m)" in x86_64) KUSTOMIZE_ARCH=amd64 ;; aarch64|arm64) KUSTOMIZE_ARCH=arm64 ;; *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;; esac'
     - curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.6.0/kustomize_v5.6.0_linux_${KUSTOMIZE_ARCH}.tar.gz" | tar xz
     - ./kustomize build clusters/re8ch >/tmp/rendered.yaml
+    - ./kustomize build platform/observability/bootstrap >/tmp/observability-bootstrap.yaml
+    - ./kustomize build platform/observability/production >/tmp/observability-production.yaml
     - test -s /tmp/rendered.yaml
+    - test -s /tmp/observability-bootstrap.yaml
+    - test -s /tmp/observability-production.yaml
 
 secret-scan:
   stage: security

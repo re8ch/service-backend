@@ -1,0 +1,236 @@
+apiVersion: observability.re8ch.com/v1alpha1
+kind: ServiceObservabilityCatalog
+metadata:
+  name: re8ch-production
+  cluster: re8ch
+  observedAt: "2026-08-25T23:00:00+08:00"
+spec:
+  scope:
+    include: platform-and-formal-products
+    excludedNamespaces: [bench, cephfs-smoke, cube-trial, mitos-trial, symphony-trial]
+    excludedWorkloads: [completed-jobs, explicitly-scaled-to-zero]
+    exclusionsRemainInventoried: true
+  nodes:
+    - {name: restricted-node-6dc3f140f9, ready: true, zone: hunan, cpu: "80", memory: 259312228Ki, roles: [control-plane, etcd, storage, nuclio, database]}
+    - {name: restricted-node-1eb0570f74, ready: true, zone: hunan, cpu: "8", memory: 12247672Ki, roles: [control-plane, etcd, observability-ingest, ceph]}
+    - {name: restricted-node-296f36f2fb, ready: true, zone: hunan, cpu: "8", memory: 12247680Ki, roles: [control-plane, etcd, observability-ingest, ceph]}
+    - {name: amdwsl-zt, ready: true, zone: hubei, cpu: "8", memory: 24610916Ki, roles: [model-runtime]}
+    - {name: domain-ex, ready: true, zone: shanghai, cpu: "4", memory: 3481048Ki, roles: [edge, pigsty]}
+    - {name: muaya-ecs, ready: true, zone: zhejiang, cpu: "2", memory: 1646400Ki, roles: [edge]}
+    - {name: muaya-lightweight, ready: true, zone: shanghai, cpu: "2", memory: 1651808Ki, roles: [edge, pigsty]}
+    - {name: overseas-edge-50, ready: true, zone: us-ca, cpu: 900m, memory: 1753092Ki, roles: [edge]}
+    - {name: overseas-kl, ready: true, zone: malaysia, cpu: "1", memory: 2015396Ki, roles: [edge]}
+    - {name: overseas-la, ready: false, zone: us-ca, cpu: "1", memory: 2009924Ki, roles: [edge], finding: ReadyUnknown}
+    - {name: suxunji, ready: true, zone: shanghai, cpu: "4", memory: 3481044Ki, roles: [legacy-observability]}
+    - {name: vm-20-12-ubuntu, ready: true, zone: cn-unverified, cpu: "2", memory: 1978068Ki, roles: [edge, application]}
+    - {name: zan, ready: true, zone: guangdong, cpu: "4", memory: 3481048Ki, roles: [edge]}
+  scrapeProfiles: {critical: 15s, standard: 30s, heavy: 60s}
+  requiredContract: [owner, tier, workloadClass, metricsEndpoint, metricsDocumentation, slo, runbook, dashboard, recordingRules]
+  serviceGroups:
+    - namespace: kube-system
+      owner: platform-network
+      tier: critical
+      workloadClass: network
+      status: partial-native
+      workloads: [cilium, cilium-operator, coredns, coredns-r640, hubble-relay, hubble-ui, node-local-dns, re8ch-advanced-fabric-controller, re8ch-advanced-fabric-agent, podcidr-fabric-reconciler, regional-origin-dnat, traefik, traefik-public-edge, traefik-r640]
+      services: [hubble-peer, hubble-relay, hubble-ui, kube-dns, kube-dns-r640, traefik]
+      nativeMetrics: [cilium, hubble, coredns, traefik]
+      action: enable-values-hubble-and-scrape-native-ports
+    - namespace: rook-ceph
+      owner: platform-storage
+      tier: critical
+      workloadClass: storage
+      status: exporter-present-not-centralized
+      workloads: [rook-ceph-mgr-a, rook-ceph-mgr-b, rook-ceph-mon-a, rook-ceph-mon-b, rook-ceph-mon-c, rook-ceph-mds-re8ch-files-a, rook-ceph-mds-re8ch-files-b, rook-ceph-osd-0, rook-ceph-osd-1, rook-ceph-osd-2, rook-ceph-operator, rook-ceph-exporter-a1-wsl-zt, rook-ceph-exporter-b1-wsl-zt, rook-ceph-exporter-r640, rook-ceph.cephfs.csi.ceph.com-nodeplugin, rook-ceph.rbd.csi.ceph.com-nodeplugin]
+      services: [rook-ceph-exporter, rook-ceph-mgr, rook-ceph-mgr-dashboard]
+      nativeMetrics: [ceph-mgr-prometheus, rook-ceph-exporter]
+      blockingFinding: HEALTH_ERR-with-recovery-unfound-and-one-unfound-object
+    - namespace: qianwen-ops
+      owner: platform-observability
+      tier: critical
+      workloadClass: platform
+      status: legacy-central-config
+      workloads: [panel-grafana, panel-victoria-metrics, panel-victoria-logs, panel-re8ch-vmalert, panel-pigsty-vmalert, panel-node-exporter, panel-qwen-functions-vmagent, panel-harbor-node-vmagent, panel-vlagent, alloy-nuclio-logs, re8ch-routing-advisor]
+      services: [panel-grafana, panel-victoria-metrics, panel-victoria-logs, panel-re8ch-vmalert, panel-pigsty-vmalert, panel-node-exporter, panel-vlagent, pigsty-pg-re8ch-exporters, pigsty-pg-meta-exporters, pigsty-icp-infra-exporters, re8ch-routing-advisor]
+      nativeMetrics: [victoriametrics, victorialogs, vmalert, node-exporter, pigsty]
+      action: parallel-run-fourteen-days-before-cutover
+    - namespace: harbor
+      owner: platform-registry
+      tier: critical
+      workloadClass: stateful
+      status: native-endpoint-review
+      workloads: [harbor-core, harbor-jobservice, harbor-portal, harbor-postgresql, harbor-redis, harbor-registry, harbor-registryctl, trivy-adapter]
+      services: [core, jobservice, portal, postgresql, redis, registry, registryctl, trivy-adapter]
+      requiredMetrics: [request-red, blob-latency, storage-errors, queue-depth, scan-freshness, database-health]
+    - namespace: neo4j
+      owner: platform-data
+      tier: high
+      workloadClass: stateful
+      status: exporter-enable-required
+      workloads: [ledger-casegraph, ledger-economicsgraph, neo4j]
+      services: [ledger-casegraph, ledger-economicsgraph, neo4j]
+      requiredMetrics: [transaction-rate, query-latency, page-cache, heap, store-size, cluster-health, backup-freshness]
+    - namespace: llm-gateway
+      owner: platform-ai
+      tier: critical
+      workloadClass: stateful
+      status: contract-required
+      workloads: [litellm, litellm-postgresql]
+      services: [litellm, litellm-postgresql]
+      requiredMetrics: [provider-latency, provider-errors, tokens, spend, queue-time, model-capacity, database-health]
+    - namespace: ai-operations
+      owner: platform-ai-operations
+      tier: critical
+      workloadClass: stateless
+      status: contract-required
+      workloads: [agent-orchestra-collab, cloud-platform-tool, cluster-infra-tool, re8ch-cloud-platform, steel-browser, steel-browser-gateway, steel-browser-ui]
+      services: [agent-orchestra-collab, cloud-platform-tool, cluster-infra-tool, re8ch-cloud-platform, steel-browser, steel-browser-gateway, steel-browser-ui]
+      requiredMetrics: [request-red, tool-call-outcomes, operation-duration, queue-depth, dependency-health]
+    - namespace: toolhive-system
+      owner: platform-tools
+      tier: high
+      workloadClass: mixed
+      status: contract-required
+      workloads: [toolhive-operator, toolhive-cloud-ui, toolhive-registry-server, re8ch-admin-vmcp, re8ch-tools-vmcp, re8ch-plugin-runtime, toolhive-auth-redis, toolhive-auth-redis-ab, cluster-infra-plugins-runtime, ops-admin-external, ops-admin-managed, ops-observe-external, ops-observe-managed, ops-operate-external, ops-operate-managed]
+      services: [toolhive-cloud-ui, toolhive-registry-server, toolhive-auth-redis, re8ch-plugin-runtime, vmcp-re8ch-admin-vmcp, vmcp-re8ch-tools-vmcp, mcp-cluster-infra-plugins-runtime, mcp-ops-admin-external, mcp-ops-admin-managed, mcp-ops-observe-external, mcp-ops-observe-managed, mcp-ops-operate-external, mcp-ops-operate-managed]
+      requiredMetrics: [mcp-request-red, tool-call-outcomes, authorization-denials, runtime-restarts, redis-health]
+    - namespace: auth
+      owner: re8ch/auth
+      tier: critical
+      workloadClass: stateless
+      status: contract-required
+      workloads: [re8ch-auth-gateway]
+      services: [re8ch-auth-gateway]
+      inventoryOnlyScaledToZero: [authentik-redis, authentik-server, authentik-worker, nuclio-re8ch-auth-gateway]
+      requiredMetrics: [login-rate, otp-outcomes, session-verification, provider-latency, dependency-health, rate-limit]
+    - namespace: anycam
+      owner: re8ch/anycam
+      tier: high
+      workloadClass: function
+      status: contract-required
+      workloads: [nuclio-anycam-model-gateway]
+      services: [nuclio-anycam-model-gateway]
+      requiredMetrics: [request-red, provider-latency, transfer-volume, cache, cold-start, concurrency]
+    - namespace: anysite
+      owner: re8ch/anysiteonearth
+      tier: high
+      workloadClass: mixed
+      status: contract-required
+      workloads: [anysite-postgrest, scale-api, scale-worker]
+      services: [anysite-postgrest, scale-api]
+      requiredMetrics: [request-red, queue-depth, job-outcomes, retries, dead-letter, last-success, database-pool]
+    - namespace: compocv
+      owner: re8ch/compocv
+      tier: high
+      workloadClass: function
+      status: contract-required
+      workloads: [compocv-api-relay, nuclio-compocv-api]
+      services: [compocv-api-relay, nuclio-compocv-api]
+      inventoryOnlyScaledToZero: [compocv]
+      requiredMetrics: [request-red, model-latency, processing-duration, failures, cold-start, concurrency]
+    - namespace: ledger
+      owner: re8ch/ledger
+      tier: critical
+      workloadClass: function
+      status: contract-required
+      workloads: [nuclio-ledger-api-gateway, nuclio-ledger-api-gateway-shanghai217, nuclio-ledger-api-gateway-shanghai77, nuclio-ledger-gnucash-report-runner, nuclio-ledger-gnucash-report-runner-shanghai217, nuclio-ledger-gnucash-report-runner-shanghai77, nuclio-ledger-wechat-auth, nuclio-ledger-wechat-auth-shanghai217, nuclio-ledger-wechat-auth-shanghai77]
+      services: [nuclio-ledger-api-gateway, nuclio-ledger-api-gateway-shanghai217, nuclio-ledger-api-gateway-shanghai77, nuclio-ledger-gnucash-report-runner, nuclio-ledger-gnucash-report-runner-shanghai217, nuclio-ledger-gnucash-report-runner-shanghai77, nuclio-ledger-wechat-auth, nuclio-ledger-wechat-auth-shanghai217, nuclio-ledger-wechat-auth-shanghai77]
+      requiredMetrics: [request-red, job-outcomes, queue-wait, report-duration, auth-outcomes, cold-start, concurrency, region]
+    - namespace: qwen
+      owner: re8ch/qianwen
+      tier: critical
+      workloadClass: function
+      status: contract-required
+      workloads: [nuclio-qianwen-agent-api, nuclio-qianwen-mcp-gateway, nuclio-qianwen-prod-analytics, nuclio-qianwen-prod-api-core, nuclio-qianwen-prod-assets-api, nuclio-qianwen-prod-feishu-agent, nuclio-qianwen-prod-image-api, nuclio-qianwen-prod-image-worker, nuclio-qianwen-prod-integrations-api, nuclio-qianwen-prod-oss-sts, nuclio-qianwen-prod-reverse-image-prompt, nuclio-qianwen-prod-script-api, nuclio-qianwen-prod-storyboard-api, nuclio-qianwen-prod-tasks, nuclio-qianwen-prod-text-api, nuclio-qianwen-prod-video-api, nuclio-qianwen-prod-video-meta, nuclio-qianwen-prod-workflow-api]
+      services: [nuclio-qianwen-agent-api, nuclio-qianwen-mcp-gateway, nuclio-qianwen-prod-analytics, nuclio-qianwen-prod-api-core, nuclio-qianwen-prod-assets-api, nuclio-qianwen-prod-feishu-agent, nuclio-qianwen-prod-image-api, nuclio-qianwen-prod-image-worker, nuclio-qianwen-prod-integrations-api, nuclio-qianwen-prod-oss-sts, nuclio-qianwen-prod-reverse-image-prompt, nuclio-qianwen-prod-script-api, nuclio-qianwen-prod-storyboard-api, nuclio-qianwen-prod-tasks, nuclio-qianwen-prod-text-api, nuclio-qianwen-prod-video-api, nuclio-qianwen-prod-video-meta, nuclio-qianwen-prod-workflow-api]
+      requiredMetrics: [request-red, provider-model-latency, queue-depth, queue-wait, task-outcomes, retries, dead-letter, cold-start, concurrency, capacity]
+    - namespace: cert-manager
+      owner: platform-security
+      tier: critical
+      workloadClass: controller
+      status: native-endpoint-review
+      workloads: [cert-manager, cert-manager-cainjector, cert-manager-webhook]
+      services: [cert-manager, cert-manager-cainjector, cert-manager-webhook]
+      requiredMetrics: [reconcile-rate, errors, certificate-expiry, issuance-duration]
+    - namespace: flux-system
+      owner: platform-gitops
+      tier: critical
+      workloadClass: controller
+      status: native-endpoint-review
+      workloads: [helm-controller, image-automation-controller, image-reflector-controller, kustomize-controller, notification-controller, source-controller]
+      services: [notification-controller, source-controller, webhook-receiver]
+      requiredMetrics: [reconcile-rate, reconcile-errors, reconcile-duration, artifact-freshness]
+    - namespace: dex
+      owner: platform-identity
+      tier: critical
+      workloadClass: stateless
+      status: contract-required
+      workloads: [dex]
+      services: [dex]
+      requiredMetrics: [request-red, connector-errors, token-issuance, dependency-health]
+    - namespace: headlamp
+      owner: platform-console
+      tier: high
+      workloadClass: stateless
+      status: contract-required
+      workloads: [headlamp, headlamp-active-elector]
+      services: [headlamp, headlamp-gateway-origin]
+      requiredMetrics: [request-red, active-election, plugin-errors, kubernetes-api-latency]
+    - namespace: kagent
+      owner: platform-agents
+      tier: high
+      workloadClass: mixed
+      status: partial-native
+      workloads: [kagent-controller, kagent-kmcp-controller-manager, kagent-postgresql, kagent-tools, kagent-ui, my-first-k8s-agent, readonly-k8s-diagnostic-agent, wechat-content-operations-agent]
+      services: [kagent-controller, kagent-kmcp-controller-manager-metrics-service, kagent-postgresql, kagent-tools, kagent-tools-metrics, kagent-ui, my-first-k8s-agent, readonly-k8s-diagnostic-agent, wechat-content-operations-agent]
+      requiredMetrics: [reconcile-rate, agent-runs, tool-outcomes, model-latency, queue-depth, database-health]
+    - namespace: netbird-access
+      owner: platform-network
+      tier: high
+      workloadClass: network
+      status: native-endpoint-review
+      workloads: [netbird-dashboard, netbird-egress-probe, netbird-relay-gz-1, netbird-relay-hz-1, netbird-router-cn, netbird-router-la, netbird-server]
+      services: [netbird-dashboard, netbird-relay-gz-1-dns, netbird-relay-hz-1-dns, netbird-routing-peer-metrics, netbird-server, netbird-stun]
+      requiredMetrics: [peer-health, relay-sessions, route-latency, packet-loss, control-plane-red]
+    - namespace: opensandbox-system
+      owner: platform-sandbox
+      tier: high
+      workloadClass: stateful
+      status: contract-required
+      workloads: [opensandbox-controller-manager, opensandbox-server, teable-infra-git, teable-infra-minio]
+      services: [opensandbox-server, teable-infra, teable-infra-git, teable-infra-minio]
+      requiredMetrics: [sandbox-queue, create-duration, failures, active-capacity, object-errors]
+    - namespace: opencost
+      owner: platform-finops
+      tier: standard
+      workloadClass: stateful
+      status: native-endpoint-review
+      workloads: [opencost]
+      services: [opencost]
+      requiredMetrics: [allocation-cost, asset-cost, pricing-errors, scrape-freshness]
+    - namespace: supabase-pg-re8ch
+      owner: platform-data
+      tier: high
+      workloadClass: stateful
+      status: contract-required
+      workloads: [supabase-auth, supabase-imgproxy, supabase-kong, supabase-meta, supabase-realtime, supabase-rest, supabase-storage, supabase-studio]
+      services: [supabase-api-kong, supabase-auth, supabase-imgproxy, supabase-meta, supabase-pg-re8ch, supabase-realtime, supabase-rest, supabase-storage, supabase-studio]
+      requiredMetrics: [request-red, database-pool, realtime-connections, object-storage, auth-outcomes]
+    - namespace: agent-collab
+      owner: platform-collaboration
+      tier: high
+      workloadClass: mixed
+      status: contract-required
+      workloads: [teable, teable-edge-relay, teable-redis, wechat-content-orchestrator]
+      services: [teable, teable-edge-relay, teable-redis, wechat-content-orchestrator]
+      requiredMetrics: [request-red, job-outcomes, queue-depth, redis-health, dependency-health]
+  dynamicJoins:
+    nodeToWorkload: [kube_pod_info, kube_pod_owner, kube_replicaset_owner]
+    serviceToWorkload: [kube_service_info, kube_endpointslice_info, kube_endpointslice_endpoints, kube_pod_labels]
+    workloadToStorage: [kube_pod_spec_volumes_persistentvolumeclaims_info, kube_persistentvolumeclaim_info, kube_persistentvolume_info]
+  acceptance:
+    - every-listed-service-has-owner-tier-doc-slo-runbook-dashboard
+    - every-listed-workload-is-dynamically-mapped-to-current-nodes
+    - every-native-exporter-has-a-stable-up-series
+    - no-unbounded-or-sensitive-metric-labels
+    - excluded-and-scaled-zero-resources-remain-inventory-only
