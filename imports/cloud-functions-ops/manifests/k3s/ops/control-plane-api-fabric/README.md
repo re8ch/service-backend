@@ -35,6 +35,28 @@ peer URL, then confirm quorum before any other action. Do not remove the
 The rollout is blocked whenever A1 is NotReady, any etcd member is catching up,
 or a protected aggregate (`192.0.2.20/24` or `192.0.2.57/16`) appears in FRR.
 
+## A1/B1 WSL recovery contract
+
+A1 and B1 must be started by their Windows Task Scheduler definitions. Those
+tasks carry the required WSL arguments and startup ordering; an interactive,
+argument-free `wsl.exe` launch is not an equivalent recovery path.
+
+If either WSL control-plane node develops PLEG/containerd initialization
+failures after a manual WSL restart:
+
+1. Do not repeatedly restart K3s, delete containerd state, or manually launch
+   the distribution again.
+2. Reboot the Windows host and allow the existing scheduled task to start WSL.
+3. Verify the scheduled task's last result and command line before changing it.
+4. Require the node to be `Ready`, CRI `RuntimeReady` and `NetworkReady`, K3s
+   and FRR active, its WireGuard BGP session `Established`, and etcd/API healthy.
+
+On 2026-08-24, launching A1's WSL directly left containerd with zero live tasks,
+many exited CRI records and stale empty `cri-containerd-*.scope` cgroups; PLEG
+never became healthy. A Windows host reboot followed by the existing scheduled
+task restored the node without changing the task definition. Treat this symptom
+set as a startup-contract failure before investigating the cluster network.
+
 During the 2026-08-24 A1 recovery, Spegel repeatedly rejected malformed legacy
 ToolHive image metadata and consumed a full CPU while kubelet remained
 NotReady. Install `a1-disable-embedded-registry.yaml` as an A1-only K3s config
