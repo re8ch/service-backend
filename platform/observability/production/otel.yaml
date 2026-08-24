@@ -1,0 +1,189 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: re8ch-gateway
+  namespace: observability-system
+spec:
+  mode: deployment
+  replicas: 2
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels: {app.kubernetes.io/name: re8ch-gateway-collector}
+          topologyKey: kubernetes.io/hostname
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "2", memory: 2Gi}
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {endpoint: 0.0.0.0:4317}
+          http: {endpoint: 0.0.0.0:4318}
+    processors:
+      memory_limiter: {check_interval: 1s, limit_mib: 1536, spike_limit_mib: 384}
+      k8sattributes:
+        auth_type: serviceAccount
+        extract:
+          metadata: [k8s.namespace.name, k8s.deployment.name, k8s.statefulset.name, k8s.daemonset.name, k8s.pod.name, k8s.node.name]
+      tail_sampling:
+        decision_wait: 10s
+        num_traces: 100000
+        policies:
+          - {name: errors, type: status_code, status_code: {status_codes: [ERROR]}}
+          - {name: slow, type: latency, latency: {threshold_ms: 1000}}
+          - {name: baseline, type: probabilistic, probabilistic: {sampling_percentage: 10}}
+      batch: {send_batch_size: 4096, timeout: 5s}
+    connectors:
+      spanmetrics:
+        histogram: {explicit: {buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2.5s, 5s, 10s]}}
+        dimensions: [{name: service.namespace}, {name: k8s.node.name}]
+      servicegraph:
+        dimensions: [service.namespace, k8s.namespace.name]
+    exporters:
+      prometheusremotewrite:
+        endpoint: http://vminsert-re8ch-metrics.observability-system.svc:8480/insert/0/prometheus/api/v1/write
+        resource_to_telemetry_conversion: {enabled: true}
+      otlphttp/traces:
+        endpoint: http://vtinsert-re8ch-traces.observability-system.svc:10481/insert/opentelemetry
+      otlphttp/logs:
+        endpoint: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/insert/opentelemetry
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, tail_sampling, batch]
+          exporters: [spanmetrics, servicegraph, otlphttp/traces]
+        metrics:
+          receivers: [otlp, spanmetrics, servicegraph]
+          processors: [memory_limiter, k8sattributes, batch]
+          exporters: [prometheusremotewrite]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, batch]
+          exporters: [otlphttp/logs]
+      telemetry:
+        metrics:
+          readers:
+            - pull: {exporter: {prometheus: {host: 0.0.0.0, port: 8888}}}
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: re8ch-node-agent
+  namespace: observability-system
+spec:
+  mode: daemonset
+  env:
+    - name: K8S_NODE_NAME
+      valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+  config:
+    receivers:
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          disk: {}
+          filesystem: {exclude_mount_points: {mount_points: [/dev/*, /proc/*, /sys/*, /var/lib/kubelet/pods/*/volumes/kubernetes.io~secret/*], match_type: regexp}}
+          load: {}
+          memory: {}
+          network: {}
+          paging: {}
+          processes: {}
+      kubeletstats:
+        auth_type: serviceAccount
+        collection_interval: 30s
+        endpoint: https://${env:K8S_NODE_NAME}:10250
+        insecure_skip_verify: true
+        metric_groups: [node, pod, container, volume]
+    processors:
+      memory_limiter: {check_interval: 1s, limit_mib: 384}
+      resource:
+        attributes:
+          - {key: k8s.node.name, value: "${env:K8S_NODE_NAME}", action: upsert}
+          - {key: cluster, value: re8ch, action: upsert}
+      batch: {timeout: 5s}
+    exporters:
+      otlp:
+        endpoint: re8ch-gateway-collector.observability-system.svc:4317
+        tls: {insecure: true}
+    service:
+      pipelines:
+        metrics:
+          receivers: [hostmetrics, kubeletstats]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlp]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: re8ch-event-collector
+  namespace: observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch-event-collector
+rules:
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch-event-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch-event-collector
+subjects:
+  - kind: ServiceAccount
+    name: re8ch-event-collector
+    namespace: observability-system
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: re8ch-event-collector
+  namespace: observability-system
+spec:
+  mode: deployment
+  replicas: 1
+  serviceAccount: re8ch-event-collector
+  nodeSelector:
+    kubernetes.io/hostname: restricted-node-1eb0570f74
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+  config:
+    receivers:
+      k8sobjects:
+        auth_type: serviceAccount
+        objects:
+          - {name: events, mode: watch, group: events.k8s.io}
+    processors:
+      memory_limiter: {check_interval: 1s, limit_mib: 384}
+      resource:
+        attributes:
+          - {key: cluster, value: re8ch, action: upsert}
+          - {key: signal.type, value: kubernetes.event, action: upsert}
+      batch: {timeout: 5s}
+    exporters:
+      otlphttp/logs:
+        endpoint: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/insert/opentelemetry
+    service:
+      pipelines:
+        logs:
+          receivers: [k8sobjects]
+          processors: [memory_limiter, resource, batch]
+          exporters: [otlphttp/logs]

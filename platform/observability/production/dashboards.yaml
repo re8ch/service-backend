@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-observability-datasources
+  namespace: observability-system
+  labels:
+    grafana_datasource: "1"
+    app.kubernetes.io/part-of: re8ch-observability
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: RE8CH Raw Metrics
+        uid: ds-prometheus
+        type: prometheus
+        access: proxy
+        url: http://vmselect-re8ch-metrics.observability-system.svc:8481/select/0/prometheus
+        isDefault: true
+        jsonData: {timeInterval: 15s, exemplarTraceIdDestinations: [{name: trace_id, datasourceUid: re8ch-traces}]}
+      - name: RE8CH Analytics
+        uid: re8ch-analytics
+        type: prometheus
+        access: proxy
+        url: http://vmsingle-re8ch-analytics.observability-system.svc:8429
+        jsonData: {timeInterval: 30s}
+      - name: RE8CH Traces
+        uid: re8ch-traces
+        type: jaeger
+        access: proxy
+        url: http://vtselect-re8ch-traces.observability-system.svc:10471/select/jaeger
+        jsonData:
+          tracesToLogsV2: {datasourceUid: re8ch-vlogs, spanStartTimeShift: -5m, spanEndTimeShift: 5m, tags: [service.name, k8s.namespace.name, k8s.pod.name]}
+          tracesToMetrics: {datasourceUid: ds-prometheus, spanStartTimeShift: -5m, spanEndTimeShift: 5m, tags: [{key: service.name, value: service_name}]}
+      - name: RE8CH Events and Logs
+        uid: re8ch-vlogs
+        type: victoriametrics-logs-datasource
+        access: proxy
+        url: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-observability-grafana-alerts
+  namespace: observability-system
+  labels:
+    grafana_alert: "1"
+    app.kubernetes.io/part-of: re8ch-observability
+data:
+  composite-alerts.yaml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: RE8CH multi-signal
+        folder: RE8CH Composite Alerts
+        interval: 1m
+        rules:
+          - uid: re8ch-service-multisignal
+            title: Service availability, errors and latency degradation
+            condition: G
+            for: 10m
+            noDataState: OK
+            execErrState: Error
+            labels: {severity: critical, alert_layer: grafana, owner: platform-observability}
+            annotations:
+              summary: A critical service is degraded across multiple signals
+              runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+            data:
+              - refId: A
+                relativeTimeRange: {from: 600, to: 0}
+                datasourceUid: ds-prometheus
+                model: {expr: 're8ch:service:target_up:ratio{tier="critical"}', instant: true, refId: A}
+              - refId: B
+                relativeTimeRange: {from: 600, to: 0}
+                datasourceUid: ds-prometheus
+                model: {expr: 're8ch:service:http_errors:ratio5m{tier="critical"}', instant: true, refId: B}
+              - refId: C
+                relativeTimeRange: {from: 600, to: 0}
+                datasourceUid: ds-prometheus
+                model: {expr: 're8ch:service:http_latency:p95_5m{tier="critical"}', instant: true, refId: C}
+              - refId: D
+                datasourceUid: __expr__
+                model: {expression: A, reducer: last, refId: D, type: reduce}
+              - refId: E
+                datasourceUid: __expr__
+                model: {expression: B, reducer: last, refId: E, type: reduce}
+              - refId: F
+                datasourceUid: __expr__
+                model: {expression: C, reducer: last, refId: F, type: reduce}
+              - refId: G
+                datasourceUid: __expr__
+                model: {expression: '($D < 0.99) && (($E > 0.05) || ($F > 1))', refId: G, type: math}

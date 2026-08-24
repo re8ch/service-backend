@@ -1,0 +1,224 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: application-critical
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  discoveryRole: endpointslice
+  namespaceSelector: {any: true}
+  selector:
+    matchLabels:
+      observability.re8ch.com/scrape: "true"
+      observability.re8ch.com/tier: critical
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: false
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_namespace], targetLabel: namespace}
+        - {sourceLabels: [__meta_kubernetes_service_name], targetLabel: service}
+        - {sourceLabels: [__meta_kubernetes_endpointslice_endpoint_node_name], targetLabel: node}
+        - {sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_name], targetLabel: app}
+        - {sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_component], targetLabel: component}
+        - {sourceLabels: [__meta_kubernetes_service_annotation_observability_re8ch_com_owner], targetLabel: owner}
+        - {sourceLabels: [__meta_kubernetes_service_annotation_observability_re8ch_com_runbook], targetLabel: runbook}
+        - {sourceLabels: [__meta_kubernetes_service_annotation_observability_re8ch_com_metrics_doc], targetLabel: metrics_doc}
+        - {sourceLabels: [__meta_kubernetes_service_label_observability_re8ch_com_tier], targetLabel: tier}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: application-standard
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  discoveryRole: endpointslice
+  namespaceSelector: {any: true}
+  selector:
+    matchExpressions:
+      - {key: observability.re8ch.com/scrape, operator: In, values: ["true"]}
+      - {key: observability.re8ch.com/tier, operator: In, values: [high, standard, best-effort]}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      honorLabels: false
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_namespace], targetLabel: namespace}
+        - {sourceLabels: [__meta_kubernetes_service_name], targetLabel: service}
+        - {sourceLabels: [__meta_kubernetes_endpointslice_endpoint_node_name], targetLabel: node}
+        - {sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_name], targetLabel: app}
+        - {sourceLabels: [__meta_kubernetes_service_label_app_kubernetes_io_component], targetLabel: component}
+        - {sourceLabels: [__meta_kubernetes_service_annotation_observability_re8ch_com_owner], targetLabel: owner}
+        - {sourceLabels: [__meta_kubernetes_service_annotation_observability_re8ch_com_runbook], targetLabel: runbook}
+        - {sourceLabels: [__meta_kubernetes_service_annotation_observability_re8ch_com_metrics_doc], targetLabel: metrics_doc}
+        - {sourceLabels: [__meta_kubernetes_service_label_observability_re8ch_com_tier], targetLabel: tier}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMNodeScrape
+metadata:
+  name: kubelet
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  selector: {}
+  scheme: https
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  tlsConfig: {insecureSkipVerify: true}
+  relabelConfigs:
+    - {sourceLabels: [__meta_kubernetes_node_name], targetLabel: node}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMNodeScrape
+metadata:
+  name: kubelet-cadvisor
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  selector: {}
+  scheme: https
+  interval: 30s
+  scrapeTimeout: 15s
+  path: /metrics/cadvisor
+  bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  tlsConfig: {insecureSkipVerify: true}
+  relabelConfigs:
+    - {sourceLabels: [__meta_kubernetes_node_name], targetLabel: node}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kube-state-metrics
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [observability-system]}
+  selector: {matchLabels: {app.kubernetes.io/instance: re8ch-kube-state-metrics}}
+  endpoints:
+    - port: http
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: ceph-manager
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [rook-ceph]}
+  selector: {matchLabels: {app: rook-ceph-mgr}}
+  endpoints:
+    - port: http-metrics
+      interval: 60s
+      scrapeTimeout: 20s
+      relabelConfigs:
+        - {targetLabel: service, replacement: ceph}
+        - {targetLabel: signal_domain, replacement: storage}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: ceph-exporter
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [rook-ceph]}
+  selector: {matchLabels: {app: rook-ceph-exporter}}
+  endpoints:
+    - port: ceph-exporter-http-metrics
+      interval: 60s
+      scrapeTimeout: 20s
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_endpoint_node_name], targetLabel: node}
+        - {targetLabel: service, replacement: ceph-exporter}
+        - {targetLabel: signal_domain, replacement: storage}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cilium-agent
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kube-system]}
+  selector: {matchLabels: {k8s-app: cilium}}
+  podMetricsEndpoints:
+    - port: prometheus
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_pod_node_name], targetLabel: node}
+        - {targetLabel: service, replacement: cilium-agent}
+        - {targetLabel: signal_domain, replacement: network}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMStaticScrape
+metadata:
+  name: hubble-metrics
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  jobName: hubble-metrics
+  targetEndpoints:
+    - targets: [hubble-metrics.kube-system.svc:9965]
+      interval: 30s
+      scrapeTimeout: 10s
+      labels: {service: hubble, signal_domain: network}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cilium-operator
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kube-system]}
+  selector: {matchLabels: {io.cilium/app: operator}}
+  podMetricsEndpoints:
+    - port: prometheus
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_pod_node_name], targetLabel: node}
+        - {targetLabel: service, replacement: cilium-operator}
+        - {targetLabel: signal_domain, replacement: network}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: coredns
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kube-system]}
+  selector: {matchLabels: {k8s-app: kube-dns}}
+  endpoints:
+    - port: metrics
+      interval: 30s
+      relabelConfigs:
+        - {targetLabel: service, replacement: coredns}
+        - {targetLabel: signal_domain, replacement: network}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: pigsty-postgresql
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [qianwen-ops]}
+  selector: {matchLabels: {app.kubernetes.io/name: pigsty-pg-re8ch-exporters}}
+  endpoints:
+    - {port: metrics-pg, interval: 60s, scrapeTimeout: 20s}
+    - {port: metrics-pgbouncer, interval: 60s, scrapeTimeout: 20s}
+    - {port: metrics-patroni, interval: 60s, scrapeTimeout: 20s}
+    - {port: metrics-haproxy, interval: 60s, scrapeTimeout: 20s}
+    - {port: metrics-pgbackrest, interval: 60s, scrapeTimeout: 20s}

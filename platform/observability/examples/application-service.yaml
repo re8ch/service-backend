@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-api-metrics
+  namespace: example
+  labels:
+    app.kubernetes.io/name: example-api
+    app.kubernetes.io/component: api
+    observability.re8ch.com/scrape: "true"
+    observability.re8ch.com/tier: high
+  annotations:
+    observability.re8ch.com/owner: re8ch/example-api
+    observability.re8ch.com/runbook: https://github.com/re8ch/example-api/blob/main/docs/runbook.md
+    observability.re8ch.com/metrics-doc: https://github.com/re8ch/example-api/blob/main/docs/metrics.md
+    observability.re8ch.com/slo: availability=99.9,latency-p95=0.5
+spec:
+  selector:
+    app.kubernetes.io/name: example-api
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics

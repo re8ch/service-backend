@@ -1,0 +1,65 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: victoriametrics
+  namespace: observability-system
+spec:
+  interval: 1h
+  url: https://victoriametrics.github.io/helm-charts/
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: victoria-metrics-operator
+  namespace: observability-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: victoria-metrics-operator
+      version: 0.67.2
+      sourceRef:
+        kind: HelmRepository
+        name: victoriametrics
+        namespace: observability-system
+      interval: 1h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+  values:
+    crds:
+      enabled: true
+      plain: false
+      cleanup:
+        enabled: false
+    operator:
+      disable_prometheus_converter: true
+    admissionWebhooks:
+      enabled: true
+    replicaCount: 2
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: victoria-metrics-operator
+            topologyKey: kubernetes.io/hostname
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: 1, memory: 512Mi}
