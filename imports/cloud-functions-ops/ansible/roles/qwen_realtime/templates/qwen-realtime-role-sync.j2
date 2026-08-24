@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE="{{ qwen_realtime_image }}"
+CONTAINER="{{ qwen_realtime_container_name }}"
+DB_NAME="{{ qwen_realtime_db_name }}"
+ENV_FILE="{{ qwen_realtime_env_file }}"
+LOCK_FILE="/run/qwen-realtime-role-sync.lock"
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || exit 0
+
+stop_realtime() {
+  if docker inspect "$CONTAINER" >/dev/null 2>&1; then
+    docker stop "$CONTAINER" >/dev/null 2>&1 || true
+  fi
+}
+
+if ! IN_RECOVERY="$(sudo -iu postgres psql -X -qAt -d "$DB_NAME" -c 'select pg_is_in_recovery()')"; then
+  stop_realtime
+  exit 0
+fi
+
+if [[ "$IN_RECOVERY" == "f" ]]; then
+  if ! docker inspect "$CONTAINER" >/dev/null 2>&1; then
+    # Prefer a preloaded/Harbor-cached image. Some DB nodes intentionally
+    # cannot authenticate to the public Docker Hub mirror.
+    docker image inspect "$IMAGE" >/dev/null 2>&1 || docker pull "$IMAGE" >/dev/null
+    docker run -d \
+      --name "$CONTAINER" \
+      --restart unless-stopped \
+      --network host \
+      --memory {{ qwen_realtime_memory_limit }} \
+      --cpus {{ qwen_realtime_cpus }} \
+      --env-file "$ENV_FILE" \
+      "$IMAGE" >/dev/null
+  elif [[ "$(docker inspect -f '{{ "{{" }}.State.Running{{ "}}" }}' "$CONTAINER" 2>/dev/null || echo false)" != "true" ]]; then
+    docker start "$CONTAINER" >/dev/null
+  fi
+else
+  stop_realtime
+fi

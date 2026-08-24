@@ -1,0 +1,214 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mihomo-node-config
+  namespace: egress-fabric
+data:
+  config.yaml: |
+    mixed-port: 17891
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:19090
+    external-controller-cors:
+      allow-private-network: false
+    secret: ""
+    unified-delay: true
+    tcp-concurrent: true
+    find-process-mode: "off"
+    proxies:
+      - name: LA-FABRIC
+        type: socks5
+        # Headless resolution returns the private node addresses of Ready
+        # host-network exit agents. This works for node-local proxies without
+        # depending on host-to-ClusterIP forwarding.
+        server: mihomo-egress-headless.egress-fabric.svc.cluster.local
+        port: 1080
+        udp: true
+    proxy-providers:
+      external-paths:
+        type: file
+        path: /etc/mihomo/paths.yaml
+        health-check:
+          enable: true
+          url: https://www.gstatic.com/generate_204
+          interval: 30
+          timeout: 5000
+          lazy: false
+    proxy-groups:
+      - name: stable-egress
+        type: select
+        proxies: [LA-FABRIC]
+        use: [external-paths]
+      - name: automatic-fallback
+        type: fallback
+        proxies: [LA-FABRIC]
+        use: [external-paths]
+        url: https://www.gstatic.com/generate_204
+        interval: 30
+        timeout: 5000
+        lazy: false
+    rule-providers:
+      cn-ip:
+        type: file
+        behavior: classical
+        path: /etc/mihomo/rules/cn-ip-rules.yaml
+    rules:
+      - IP-CIDR,192.0.2.183/8,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.81/10,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.33/12,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.136/16,DIRECT,no-resolve
+      # Probe/control destinations must reveal the physical direct path.
+      - DOMAIN,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,cn,DIRECT
+      - RULE-SET,cn-ip,DIRECT
+      - MATCH,stable-egress
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mihomo-node-global-config
+  namespace: egress-fabric
+data:
+  config.yaml: |
+    mixed-port: 17891
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:19090
+    unified-delay: true
+    tcp-concurrent: true
+    proxies:
+      - {name: CN-FABRIC, type: socks5, server: mihomo-egress-cn-headless.egress-fabric.svc.cluster.local, port: 1080, udp: true}
+    proxy-groups:
+      - {name: stable-cn-egress, type: fallback, proxies: [CN-FABRIC], url: "https://connectivitycheck.gstatic.com/generate_204", interval: 30, timeout: 5000, lazy: false}
+    rule-providers:
+      cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
+    rules:
+      - IP-CIDR,192.0.2.183/8,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.81/10,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.33/12,DIRECT,no-resolve
+      - IP-CIDR,192.0.2.136/16,DIRECT,no-resolve
+      - DOMAIN,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,cn,stable-cn-egress
+      - RULE-SET,cn-ip,stable-cn-egress
+      - MATCH,DIRECT
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mihomo-la-config
+  namespace: egress-fabric
+data:
+  config.yaml: |
+    mixed-port: 1080
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: direct
+    log-level: warning
+    ipv6: false
+    external-controller: 127.0.0.1:9090
+    rules:
+      - MATCH,DIRECT
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: path-controller-code
+  namespace: egress-fabric
+data:
+  path-controller.py: |
+    #!/usr/bin/env python3
+    import json, os, ssl, time, urllib.parse, urllib.request
+
+    NAMESPACE = os.getenv("POD_NAMESPACE", "egress-fabric")
+    LABEL = os.getenv("POD_SELECTOR", "app.kubernetes.io/name=mihomo-node")
+    GROUP = os.getenv("MIHOMO_GROUP", "stable-egress")
+    URL = os.getenv("PROBE_URL", "https://www.gstatic.com/generate_204")
+    INTERVAL = int(os.getenv("PROBE_INTERVAL_SECONDS", "15"))
+    TIMEOUT_MS = int(os.getenv("PROBE_TIMEOUT_MS", "5000"))
+    LOSS_PENALTY = float(os.getenv("LOSS_PENALTY_MS", "1500"))
+    ALPHA = float(os.getenv("EWMA_ALPHA", "0.35"))
+    MARGIN = float(os.getenv("SWITCH_MARGIN", "0.15"))
+    HOLD = int(os.getenv("MIN_HOLD_SECONDS", "60"))
+    API = "https://kubernetes.default.svc"
+    TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+    def request(url, method="GET", payload=None, headers=None, context=None, timeout=8):
+      body = None if payload is None else json.dumps(payload).encode()
+      req = urllib.request.Request(url, data=body, method=method, headers=headers or {})
+      with urllib.request.urlopen(req, context=context, timeout=timeout) as res:
+        return json.load(res) if res.length != 0 else {}
+
+    def pods():
+      token = open(TOKEN_PATH).read().strip()
+      query = urllib.parse.urlencode({"labelSelector": LABEL})
+      data = request(f"{API}/api/v1/namespaces/{NAMESPACE}/pods?{query}",
+        headers={"Authorization": f"Bearer {token}"},
+        context=ssl.create_default_context(cafile=CA_PATH))
+      return [x["status"]["podIP"] for x in data.get("items", [])
+        if x.get("status", {}).get("phase") == "Running" and x["status"].get("podIP")]
+
+    def candidates(base):
+      group = request(f"{base}/proxies/{urllib.parse.quote(GROUP)}")
+      return [x for x in group.get("all", []) if x not in ("DIRECT", "REJECT", GROUP)]
+
+    def delay(base, name):
+      q = urllib.parse.urlencode({"url": URL, "timeout": TIMEOUT_MS})
+      try:
+        return float(request(f"{base}/proxies/{urllib.parse.quote(name)}/delay?{q}")["delay"]), True
+      except Exception:
+        return float(TIMEOUT_MS), False
+
+    class Scorer:
+      def __init__(self): self.ewma, self.loss = {}, {}
+      def observe(self, name, latency, ok):
+        old = self.ewma.get(name, latency)
+        self.ewma[name] = ALPHA * latency + (1 - ALPHA) * old
+        old_loss = self.loss.get(name, 0.0)
+        self.loss[name] = ALPHA * (0.0 if ok else 1.0) + (1 - ALPHA) * old_loss
+      def score(self, name):
+        return self.ewma.get(name, TIMEOUT_MS) + LOSS_PENALTY * self.loss.get(name, 0.0)
+
+    def choose(scores, current, changed_at, now):
+      if not scores: return current, changed_at
+      best = min(scores, key=scores.get)
+      if not current: return best, now
+      if best == current or now - changed_at < HOLD: return current, changed_at
+      if scores[best] < scores.get(current, float("inf")) * (1 - MARGIN): return best, now
+      return current, changed_at
+
+    def main():
+      scorer, current, changed_at = Scorer(), None, 0
+      while True:
+        state = {"timestamp": int(time.time()), "instances": {}, "selected": current}
+        try:
+          targets = pods()
+          names = candidates(f"http://{targets[0]}:9090") if targets else []
+          for ip in targets:
+            base, observed = f"http://{ip}:9090", {}
+            for name in names:
+              latency, ok = delay(base, name)
+              scorer.observe(name, latency, ok)
+              observed[name] = {"latencyMs": latency, "ok": ok, "score": round(scorer.score(name), 2)}
+            state["instances"][ip] = observed
+          scores = {n: scorer.score(n) for n in names}
+          current, changed_at = choose(scores, current, changed_at, time.time())
+          if current:
+            for ip in targets:
+              request(f"http://{ip}:9090/proxies/{urllib.parse.quote(GROUP)}", "PUT", {"name": current},
+                headers={"Content-Type": "application/json"})
+          state.update({"selected": current, "scores": scores, "changedAt": int(changed_at)})
+          print(json.dumps(state, sort_keys=True), flush=True)
+        except Exception as exc:
+          print(json.dumps({"timestamp": int(time.time()), "error": str(exc)}), flush=True)
+        time.sleep(INTERVAL)
+
+    if __name__ == "__main__": main()

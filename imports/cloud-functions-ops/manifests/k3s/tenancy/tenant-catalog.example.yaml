@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-catalog-example
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: tenant-catalog
+    saas.re8ch.com/layer: example
+data:
+  tenants.yaml: |
+    tenants:
+      - id: qwen
+        product: qianwen
+        layer: prod
+        defaultRegion: guangzhou
+        domains:
+          frontend: jz.ynzs.com
+          api: api.jz.ynzs.com
+          dbRw: mgr-rw.jz.ynzs.com
+          dbRo: mgr-ro.jz.ynzs.com
+        registry:
+          harborProject: qianwen
+          pullSecret: harbor-qianwen-pull
+          robotAccount: robot$qianwen+qianwen-pull-20260602b
+        database:
+          mode: database-per-tenant
+          database: qianwen_prod
+          schema: public
+          roles:
+            readonly: qianwen_prod_ro
+            readwrite: qianwen_prod_rw
+            migrator: qianwen_prod_migrator
+            pgadmin: qianwen_prod_pgadmin
+        kubernetes:
+          namespace: qwen
+          legacyNamespace: nuclio
+          serviceAccount: qwen-runtime
+          labels:
+            saas.re8ch.com/product: qianwen
+            saas.re8ch.com/tenant: qwen
+            saas.re8ch.com/layer: prod
+        observability:
+          tenantId: qianwen
+          namespace: qwen
+          grafanaOrg: qwen
+          grafanaFolder: Tenant / Qwen
+          grafanaTeam: qwen-viewers
+          dashboardUid: tenant-qianwen-overview
+          metricsDatasourceUid: tenant-metrics
+          logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
+          metricsPath: /qianwen
+          logsPath: /qianwen
+          eventReadRole: observable_app_ro
+          portainerTeam: qwen-operators
+          pgAdminGroup: qwen-db-viewers
+
+      - id: ledger
+        product: ledger
+        layer: prod
+        defaultRegion: shanghai
+        domains:
+          frontend: ledger.re8ch.com
+          api: api-ledger.re8ch.com
+          dbRw: mgr-rw.jz.ynzs.com
+          dbRo: mgr-ro.jz.ynzs.com
+        registry:
+          harborProject: ledger
+          pullSecret: harbor-ledger-pull
+          robotAccount: robot$ledger+ledger-pull-20260602b
+        database:
+          mode: database-per-tenant
+          database: ledger
+          schema: public
+          roles:
+            readonly: ledger_ro
+            readwrite: ledger_rw
+            migrator: ledger_migrator
+            pgadmin: ledger_pgadmin
+        kubernetes:
+          namespace: ledger
+          previousNamespace: nuclio
+          migratedAt: "2026-06-02T17:50:00+08:00"
+          serviceAccount: ledger-runtime
+          labels:
+            saas.re8ch.com/product: ledger
+            saas.re8ch.com/tenant: ledger
+            saas.re8ch.com/layer: prod
+        observability:
+          tenantId: ledger
+          namespace: ledger
+          grafanaOrg: Tenant ledger
+          grafanaFolder: Tenant / Ledger
+          grafanaTeam: ledger-viewers
+          dashboardUid: tenant-ledger-overview
+          metricsDatasourceUid: tenant-metrics
+          logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
+          metricsPath: /ledger
+          logsPath: /ledger
+          eventReadRole: observable_app_ro
+          portainerTeam: ledger-operators
+          pgAdminGroup: ledger-db-viewers

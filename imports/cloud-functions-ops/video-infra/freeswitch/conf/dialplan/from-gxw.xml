@@ -1,0 +1,10 @@
+<include><context name="from-gxw">
+  <extension name="eight-lines">
+    <condition field="destination_number" expression="^(autoanswer|line0[1-8])$">
+      <action application="set" data="voice_line=$1"/><action application="set" data="hangup_after_bridge=true"/>
+      <action application="set" data="call_timeout=30"/><action application="set" data="absolute_codec_string=PCMA"/>
+      <action application="set" data="voice_call_id=${uuid}"/><action application="answer"/>
+      <action application="conference" data="${voice_call_id}@voice+flags{endconf}"/>
+    </condition>
+  </extension>
+</context></include>

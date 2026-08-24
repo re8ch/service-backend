@@ -1,0 +1,98 @@
+# Rook v1.20.3 requires the separate ceph-csi-drivers chart. These values are
+# based on Rook's v1.20.3 recommended values and enable the CephFS and RBD
+# drivers used by the storage fabric.
+operatorConfig:
+  namespace: rook-ceph
+  driverSpecDefaults:
+    imageSet:
+      name: rook-csi-operator-image-set-configmap
+    nodePlugin:
+      priorityClassName: system-node-critical
+    controllerPlugin:
+      priorityClassName: system-cluster-critical
+      replicas: 2
+
+drivers:
+  rbd:
+    enabled: true
+    name: rook-ceph.rbd.csi.ceph.com
+    nodePlugin:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: storage.re8ch.com/ceph-client
+                    operator: In
+                    values: ["true"]
+    controllerPlugin:
+      replicas: 2
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [rook-ceph.rbd.csi.ceph.com-ctrlplugin]
+              topologyKey: kubernetes.io/hostname
+  cephfs:
+    enabled: true
+    name: rook-ceph.cephfs.csi.ceph.com
+    # Production uses native Ceph Messenger v2 secure mode. Without an
+    # explicit v2 mode, the kernel client may attempt a V1 banner on port 3300.
+    kernelMountOptions:
+      ms_mode: secure
+    nodePlugin:
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: storage.re8ch.com/ceph-client
+                    operator: In
+                    values: ["true"]
+    controllerPlugin:
+      # Provisioning must survive one scheduled control-plane restart.
+      replicas: 2
+      # A1/B1 currently cannot reliably reach the Kubernetes Service VIP from
+      # PodCIDR. Keep the CSI control plane independent of that service path.
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [rook-ceph.cephfs.csi.ceph.com-ctrlplugin]
+              topologyKey: kubernetes.io/hostname
+  nfs:
+    enabled: false
+    name: rook-ceph.nfs.csi.ceph.com
+  nvmeof:
+    enabled: false
+    name: rook-ceph.nvmeof.csi.ceph.com

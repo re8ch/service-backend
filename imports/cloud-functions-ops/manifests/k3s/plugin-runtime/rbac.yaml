@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: re8ch-plugin-runtime, namespace: toolhive-system}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: plugin-cilium, namespace: toolhive-system}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: plugin-rook-ceph, namespace: toolhive-system}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: plugin-mihomos-cluster, namespace: toolhive-system}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: plugin-public-edge, namespace: toolhive-system}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: plugin-advanced-fabrics, namespace: toolhive-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:plugin-runtime-impersonator}
+rules:
+  - apiGroups: [""]
+    resources: [serviceaccounts]
+    resourceNames: [plugin-cilium, plugin-rook-ceph, plugin-mihomos-cluster, plugin-public-edge, plugin-advanced-fabrics]
+    verbs: [impersonate]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:plugin-runtime-impersonator}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "re8ch:plugin-runtime-impersonator"}
+subjects: [{kind: ServiceAccount, name: re8ch-plugin-runtime, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:plugin-cilium}
+rules:
+  - {apiGroups: [cilium.io], resources: [ciliumendpoints, ciliumnetworkpolicies, ciliumbgpclusterconfigs], verbs: [get, list]}
+  - {apiGroups: [cilium.io], resources: [ciliumnetworkpolicies], verbs: [patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:plugin-cilium}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "re8ch:plugin-cilium"}
+subjects: [{kind: ServiceAccount, name: plugin-cilium, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:plugin-rook-ceph}
+rules:
+  - {apiGroups: [ceph.rook.io], resources: [cephclusters, cephfilesystems], verbs: [get, list]}
+  - {apiGroups: [ceph.rook.io], resources: [cephfilesystems], verbs: [patch]}
+  - {apiGroups: [storage.k8s.io], resources: [csidrivers], verbs: [get, list]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:plugin-rook-ceph}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "re8ch:plugin-rook-ceph"}
+subjects: [{kind: ServiceAccount, name: plugin-rook-ceph, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:plugin-mihomos}
+rules:
+  - {apiGroups: [apps], resources: [daemonsets], verbs: [get, list]}
+  - {apiGroups: [""], resources: [configmaps, nodes], verbs: [get, list]}
+  - {apiGroups: [""], resources: [configmaps, nodes], verbs: [patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:plugin-mihomos}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "re8ch:plugin-mihomos"}
+subjects: [{kind: ServiceAccount, name: plugin-mihomos-cluster, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:plugin-public-edge}
+rules:
+  - {apiGroups: [networking.re8ch.com], resources: [publicedges], verbs: [get, list, patch]}
+  - {apiGroups: [gateway.networking.k8s.io], resources: [httproutes], verbs: [get, list, patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:plugin-public-edge}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "re8ch:plugin-public-edge"}
+subjects: [{kind: ServiceAccount, name: plugin-public-edge, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:plugin-advanced-fabrics}
+rules:
+  - {apiGroups: [networking.re8ch.com], resources: [advancedfabrics], verbs: [get, list, patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:plugin-advanced-fabrics}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: "re8ch:plugin-advanced-fabrics"}
+subjects: [{kind: ServiceAccount, name: plugin-advanced-fabrics, namespace: toolhive-system}]

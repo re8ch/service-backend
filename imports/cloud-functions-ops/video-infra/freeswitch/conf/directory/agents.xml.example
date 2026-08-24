@@ -1,0 +1,3 @@
+<include><domain name="voice.internal"><params><param name="dial-string" value="{sip_invite_domain=${dialed_domain}}${sofia_contact(${dialed_user}@${dialed_domain})}"/></params><groups><group name="agents"><users>
+  <user id="agent-example"><params><param name="password" value="REPLACE_ME"/></params><variables><variable name="user_context" value="from-agents"/><variable name="effective_caller_id_name" value="agent-example"/></variables></user>
+</users></group></groups></domain></include>

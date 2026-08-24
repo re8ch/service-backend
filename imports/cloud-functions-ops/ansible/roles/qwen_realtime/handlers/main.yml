@@ -1,0 +1,16 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Run qwen realtime role sync
+  ansible.builtin.systemd:
+    name: qwen-realtime-role-sync.service
+    state: started
+
+- name: Reload patroni
+  ansible.builtin.shell:
+    cmd: >-
+      systemctl reload {{ qwen_realtime_patroni_service | quote }}
+      || systemctl kill -s HUP {{ qwen_realtime_patroni_service | quote }}
+  changed_when: true

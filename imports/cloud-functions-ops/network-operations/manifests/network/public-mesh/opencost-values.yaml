@@ -1,0 +1,44 @@
+opencost:
+  exporter:
+    defaultClusterId: re8ch-k3s
+    image:
+      tag: "1.121.0"
+      pullPolicy: IfNotPresent
+  prometheus:
+    internal:
+      enabled: false
+    external:
+      enabled: true
+      url: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+  customPricing:
+    enabled: true
+    provider: default
+    costModel:
+      description: RE8CH placeholder pricing; replace null-equivalent zero values before chargeback
+      CPU: 0.0
+      RAM: 0.0
+      GPU: 0.0
+      storage: 0.0
+      zoneNetworkEgress: 0.0
+      regionNetworkEgress: 0.0
+      internetNetworkEgress: 0.0
+  ui:
+    enabled: true
+    image:
+      tag: "1.121.0"
+      pullPolicy: IfNotPresent
+  metrics:
+    serviceMonitor:
+      enabled: false
+    kubeStateMetrics:
+      emitKsmV1Metrics: false
+      emitKsmV1MetricsOnly: false
+    nodeExporter:
+      enabled: false
+  nodeSelector:
+    kubernetes.io/hostname: rancher-panel
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: panel
+      effect: NoSchedule

@@ -1,0 +1,22 @@
+spec:
+  template:
+    metadata:
+      labels:
+        re8ch.com/availability-workaround: cached-system-image
+    spec:
+      tolerations:
+        - key: anchor
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - harbor-registry
+                      - qianwen-nuclio-79
+                      - vm-20-12-ubuntu

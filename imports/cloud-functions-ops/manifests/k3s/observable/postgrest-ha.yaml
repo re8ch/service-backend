@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observable
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: observable-postgrest
+  namespace: observable
+  labels:
+    app.kubernetes.io/name: observable-postgrest
+    app.kubernetes.io/part-of: observable
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    # With required two-node anti-affinity a third surge Pod cannot schedule;
+    # replace one replica at a time while the other remains available.
+    rollingUpdate: {maxUnavailable: 1, maxSurge: 1}
+  selector:
+    matchLabels: {app.kubernetes.io/name: observable-postgrest}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: observable-postgrest
+        app.kubernetes.io/part-of: observable
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels: {app.kubernetes.io/name: observable-postgrest}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: {app.kubernetes.io/name: observable-postgrest}
+      containers:
+        - name: postgrest
+          image: docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGRST_DB_URI
+              valueFrom: {secretKeyRef: {name: observable-postgrest, key: PGRST_DB_URI}}
+            - {name: PGRST_DB_SCHEMAS, value: api}
+            - {name: PGRST_DB_ANON_ROLE, value: anon}
+            - name: PGRST_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: observable-postgrest, key: PGRST_JWT_SECRET}}
+            - {name: PGRST_DB_POOL, value: "10"}
+          ports:
+            - {name: http, containerPort: 3000}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: {port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: observable-postgrest
+  namespace: observable
+spec:
+  selector: {app.kubernetes.io/name: observable-postgrest}
+  ports:
+    - {name: http, port: 3000, targetPort: http}
+---
+# Stable in-cluster representation of the Pigsty PostgREST role gateway.
+# The endpoint is updated by the Pigsty role reconciler when the primary moves;
+# public DNS and regional Gateways never point at an individual database Pod.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pigsty-postgrest-role-gateway
+  namespace: observable
+spec:
+  ports:
+    - {name: http, port: 3080, targetPort: 3080}
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pigsty-postgrest-role-gateway-domain-ex
+  namespace: observable
+  labels:
+    kubernetes.io/service-name: pigsty-postgrest-role-gateway
+    endpointslice.kubernetes.io/managed-by: re8ch-pigsty-role-reconciler
+addressType: IPv4
+ports:
+  - {name: http, protocol: TCP, port: 3080}
+endpoints:
+  - addresses: [192.0.2.89]
+    conditions: {ready: true}
+    hostname: domain-ex
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: observable-postgrest
+  namespace: observable
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: observable-postgrest}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: observable-postgrest
+  namespace: observable
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: observable-postgrest}
+  minReplicas: 2
+  maxReplicas: 4
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 65}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: observable-postgrest-rw
+  namespace: observable
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-rw-https}
+  hostnames: [db-rw.re8ch.com]
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /observable}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+      backendRefs:
+        - {name: observable-postgrest, port: 3000}
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: pigsty-postgrest-role-gateway, port: 3080}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: observable-postgrest-ro
+  namespace: observable
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-ro-https}
+  hostnames: [db-ro.re8ch.com]
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /observable}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+      backendRefs:
+        - {name: observable-postgrest, port: 3000}
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: pigsty-postgrest-role-gateway, port: 3080}

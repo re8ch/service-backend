@@ -1,0 +1,35 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: re8ch-public-gateway
+  namespace: kube-system
+spec:
+  secretName: re8ch-wildcard-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: re8ch-cloudflare-dns01
+  dnsNames: [re8ch.com, "*.re8ch.com"]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: re8ch-tools-public-gateway
+  namespace: kube-system
+spec:
+  secretName: re8ch-tools-wildcard-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: re8ch-cloudflare-dns01
+  dnsNames: ["*.tools.re8ch.com"]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always

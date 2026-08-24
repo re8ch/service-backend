@@ -1,0 +1,121 @@
+# Cilium 1.21.0-dev migration-stage values for the RE8CH K3s topology.
+#
+# Source chart commit:
+# 82c7f10d7b82b6d04147d90d64f6c3a6be16e8ad
+#
+# This is intentionally a migration-stage configuration. It does not write the
+# CNI conflist and does not restart pods created by Flannel.
+
+image:
+  repository: quay.io/cilium/cilium-ci
+  tag: latest
+  digest: sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+  useDigest: true
+  pullPolicy: IfNotPresent
+
+nodeSelector:
+  kubernetes.io/os: linux
+  re8ch.com/cilium-migrate: "true"
+
+envoy:
+  nodeSelector:
+    kubernetes.io/os: linux
+    re8ch.com/cilium-migrate: "true"
+
+kubeProxyReplacement: "false"
+
+# Bootstrap Cilium against the stable ZeroTier API endpoint. A newly joined
+# node cannot reliably reach the kubernetes ClusterIP before its CNI exists.
+# A1 is the current control-plane API anchor. This must move to the dedicated
+# A1/B1 HNSC API VIP once the two-node VIP is commissioned; never pin it back
+# to an application/storage node such as restricted-node-6dc3f140f9.
+k8sServiceHost: 192.0.2.176
+k8sServicePort: 6443
+
+routingMode: tunnel
+tunnelProtocol: vxlan
+# Flannel currently owns UDP 8472. Keep the overlays distinct while both exist.
+tunnelPort: 8473
+
+ipam:
+  mode: kubernetes
+
+k8s:
+  requireIPv4PodCIDR: true
+
+cni:
+  install: true
+  customConf: true
+  exclusive: false
+  uninstall: false
+
+operator:
+  # Keep the operator control plane on the two stable K3s/etcd WSL nodes.
+  # Each host-networked operator uses its node-local K3s API server, so an
+  # restricted-node-6dc3f140f9 outage cannot stall Gateway API reconciliation.
+  replicas: 1
+  extraEnv:
+    - name: KUBERNETES_SERVICE_HOST
+      value: "127.0.0.1"
+    - name: KUBERNETES_SERVICE_PORT
+      value: "6443"
+  image:
+    repository: quay.io/cilium/operator
+    tag: latest
+    genericDigest: sha256:b6390ca03f3cba10d8ab963a9735ec1657e62bce254de45ffb101d1d4d528315
+    useDigest: true
+    pullPolicy: IfNotPresent
+    suffix: -ci
+  unmanagedPodWatcher:
+    restart: false
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - restricted-node-1eb0570f74
+                  - restricted-node-296f36f2fb
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              io.cilium/app: operator
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: observability
+      effect: NoSchedule
+    - key: harbor.re8ch.com/standalone
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+    - key: dedicated
+      operator: Equal
+      value: panel
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+    - key: node.cloudprovider.kubernetes.io/uninitialized
+      operator: Exists
+
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+    replicas: 2
+    image:
+      repository: quay.io/cilium/hubble-relay-ci
+      tag: latest
+      digest: sha256:0fb8e68e13da4c54d7d5d2e7af31e090965a2af60e0c1761e253c2ae93e10496
+      useDigest: true
+      pullPolicy: IfNotPresent
+  ui:
+    enabled: true

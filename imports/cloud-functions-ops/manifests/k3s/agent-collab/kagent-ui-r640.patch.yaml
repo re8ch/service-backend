@@ -1,0 +1,20 @@
+# Apply as a strategic merge patch, not as a standalone Deployment:
+# kubectl -n kagent patch deployment kagent-ui --type=strategic \
+#   --patch-file manifests/k3s/agent-collab/kagent-ui-r640.patch.yaml
+spec:
+  template:
+    spec:
+      containers:
+      - name: ui
+        startupProbe:
+          httpGet:
+            path: /
+            port: http
+          failureThreshold: 30
+          periodSeconds: 2
+        volumeMounts:
+        - name: nginx-logs
+          mountPath: /var/lib/nginx/logs
+      volumes:
+      - name: nginx-logs
+        emptyDir: {}

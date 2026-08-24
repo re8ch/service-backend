@@ -1,0 +1,85 @@
+# syntax=docker/dockerfile:1.7
+
+FROM --platform=linux/arm/v7 debian:bullseye AS build
+
+ARG ZT_VERSION=1.10.3
+ARG ZT_COMMIT=dc762196dc65d3de0b7adc6b4ac8bece95f5cd9e
+
+RUN set -eux; \
+  printf '%s\n' \
+    'Acquire::Retries "5";' \
+    'Acquire::http::Timeout "30";' \
+    'Acquire::https::Timeout "30";' \
+    > /etc/apt/apt.conf.d/80-re8ch-retries; \
+  apt-get update; \
+  installed=0; \
+  for attempt in 1 2 3; do \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ca-certificates \
+      g++ \
+      gcc \
+      git \
+      make \
+      python3 \
+    && installed=1 && break; \
+    apt-get clean; \
+    sleep 5; \
+    apt-get update; \
+  done; \
+  test "${installed}" = "1"; \
+  rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+RUN git clone --branch "${ZT_VERSION}" --depth 1 https://github.com/zerotier/ZeroTierOne.git .
+
+COPY inject_custom_planet.py /usr/local/bin/inject_custom_planet.py
+COPY --from=planet planet /tmp/re8ch-planet
+
+RUN python3 /usr/local/bin/inject_custom_planet.py \
+    /src \
+    /tmp/re8ch-planet \
+    --expected-ref "${ZT_VERSION}" \
+    --expected-commit "${ZT_COMMIT}" \
+  && make -f make-linux.mk -j"$(nproc)" ZT_EMBEDDED=1 one \
+  && ./zerotier-one -v
+
+FROM --platform=linux/arm/v7 debian:bullseye-slim
+
+ARG DEFAULT_ZT_PORT=9994
+ARG DEFAULT_NETWORK_ID=
+
+RUN set -eux; \
+  printf '%s\n' \
+    'Acquire::Retries "5";' \
+    'Acquire::http::Timeout "30";' \
+    'Acquire::https::Timeout "30";' \
+    > /etc/apt/apt.conf.d/80-re8ch-retries; \
+  apt-get update; \
+  installed=0; \
+  for attempt in 1 2 3; do \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ca-certificates \
+      iproute2 \
+      iputils-ping \
+      procps \
+    && installed=1 && break; \
+    apt-get clean; \
+    sleep 5; \
+    apt-get update; \
+  done; \
+  test "${installed}" = "1"; \
+  rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /src/zerotier-one /usr/sbin/zerotier-one
+RUN ln -s zerotier-one /usr/sbin/zerotier-cli \
+  && ln -s zerotier-one /usr/sbin/zerotier-idtool \
+  && mkdir -p /var/lib/zerotier-one
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod 0755 /entrypoint.sh
+
+ENV ZT_PORT=${DEFAULT_ZT_PORT}
+ENV DEFAULT_NETWORK_ID=${DEFAULT_NETWORK_ID}
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD []

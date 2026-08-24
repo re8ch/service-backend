@@ -1,0 +1,122 @@
+# Exact downstream authorization for restart_managed_platform_deployment.
+# Tool validation is not treated as an authorization boundary; every namespace
+# repeats the allowlist with Kubernetes resourceNames.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: auth}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [authentik-server, authentik-worker]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: auth}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: llm-gateway}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [litellm]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: llm-gateway}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: kagent}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [kagent-controller]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: kagent}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: opensandbox-system}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [opensandbox-server]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: opensandbox-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: fleet}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [fleet]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: fleet}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: supabase-pg-re8ch}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [supabase-studio]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: supabase-pg-re8ch}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: nuclio}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [nuclio-dashboard]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: nuclio}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-platform-restart, namespace: codex-platform}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [codex-session-web]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-platform-restart, namespace: codex-platform}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]

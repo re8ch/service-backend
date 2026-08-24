@@ -1,0 +1,145 @@
+rcloneCsi:
+  enabled: false
+  controller:
+    replicas: 2
+    defaultOnDeletePolicy: retain
+    runOnControlPlane: false
+    nodeSelector:
+      storage.re8ch.com/ceph-pilot: "true"
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: csi-rclone-controller
+            topologyKey: kubernetes.io/hostname
+  node:
+    maxUnavailable: 1
+    mountTimeout: 90s
+    nodeSelector:
+      storage.re8ch.com/object-client: "true"
+    metrics:
+      enabled: true
+
+# Secrets are created out-of-band with least-privilege RAM/CAM identities.
+# The chart never renders access keys.
+providers:
+  aliyun:
+    remote: aliyun-oss
+    existingSecret: rclone-aliyun-oss
+    secretNamespace: storage-fabric
+  tencent:
+    remote: tencent-cos
+    existingSecret: rclone-tencent-cos
+    secretNamespace: storage-fabric
+
+# Static account inventory captured through read-only cloud APIs. An entry in
+# this list is discoverable metadata, not permission for workloads to mount it.
+buckets:
+  aliyun:
+    - {name: filesof, region: oss-cn-guangzhou, class: data, acl: private}
+    - {name: re8ch-teable-agent-private, region: oss-cn-hangzhou, class: data, acl: private}
+    - {name: re8ch-teable-agent-public, region: oss-cn-hangzhou, class: assets, acl: public-read}
+    - {name: regitry, region: oss-cn-hangzhou, class: registry, acl: private, redundancy: ZRS}
+  tencent:
+    - {name: 2woodblog-1301339749, region: ap-guangzhou, class: website}
+    - {name: 6672-free-d3g09qkre0bd2fba4-1301339749, region: ap-shanghai, class: empty}
+    - {name: 6da2-static-free-d3g09qkre0bd2fba4-1301339749, region: ap-shanghai, class: website}
+    - {name: analytics-1301339749, region: ap-guangzhou, class: data}
+    - {name: anycamstorage-1301339749, region: ap-guangzhou, class: data}
+    - {name: anycamwebsite-1301339749, region: ap-shanghai, class: website}
+    - {name: anysiteonearth-1301339749, region: ap-chongqing, class: website}
+    - {name: brandassets-1301339749, region: ap-guangzhou, class: assets}
+    - {name: clusterbackup-1301339749, region: ap-guangzhou, class: backup}
+    - {name: clusterwebsite-1301339749, region: ap-chengdu, class: website}
+    - {name: compocv-1301339749, region: ap-guangzhou, class: website}
+    - {name: general-1301339749, region: ap-guangzhou, class: data}
+    - {name: ledgerofficial-1301339749, region: ap-chengdu, class: website}
+    - {name: ledgeruserdata-1301339749, region: ap-hongkong, class: empty}
+    - {name: observablewebsite-1301339749, region: ap-guangzhou, class: website}
+    - {name: phonaid-1301339749, region: ap-guangzhou, class: website}
+    - {name: re8ch-1301339749, region: ap-guangzhou, class: website}
+    - {name: re8chuserdata-1301339749, region: ap-hongkong, class: data}
+    - {name: registry-re8ch-product-1301339749, region: ap-guangzhou, class: website}
+    - {name: registryimage-1301339749, region: ap-shanghai, class: website}
+    - {name: showcasedata-1301339749, region: ap-shanghai, class: data}
+    - {name: sls-cloudfunction-ap-guangzhou-code-1301339749, region: ap-guangzhou, class: empty}
+    - {name: spacemining-data-1301339749, region: ap-guangzhou, class: data}
+    - {name: spacemining-site-1301339749, region: ap-guangzhou, class: website}
+    - {name: webassets-1301339749, region: ap-guangzhou, class: assets}
+
+# Each declaration creates one static Retain PV and PVC. Multiple declarations
+# may point at the same bucket, but concurrent writers must use distinct prefix.
+mounts: []
+# - name: anycam-models-ro
+#   namespace: anycam
+#   provider: tencent
+#   bucket: anycamstorage-1301339749
+#   prefix: models
+#   capacity: 1Ti
+#   accessModes: [ReadOnlyMany]
+#   mountOptions: [read-only, vfs-cache-mode=full]
+
+placementClasses:
+  durableLarge:
+    nodes: [restricted-node-6dc3f140f9]
+    description: Device-bound large data; temporary unavailability is allowed.
+  cephService:
+    nodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    description: Small HA control daemons only; no automatic disk discovery.
+  objectCache:
+    label: storage.re8ch.com/object-cache
+    description: Node-local disposable cache for object-backed datasets.
+
+r640Allocations:
+  physical:
+    systemDisk: /dev/sdb3
+    volumeGroup: ubuntu-vg
+    rootLV: {name: ubuntu-lv, capacity: 300Gi}
+    cephOSDLV: {name: ceph_pilot_osd, capacity: 2131.45Gi, osd: 0}
+  ceph:
+    deviceClass: r640-hdd
+    crushRule: r640-local
+    availabilityClass: single-node
+    failureDomain: restricted-node-6dc3f140f9
+    ha: false
+    rbdPool: {name: r640-rbd, replicas: 1}
+    cephfsDataPool: {name: re8ch-files-r640, replicas: 1}
+    hostImages:
+      - {name: pigsty-r640, capacity: 100Gi, mount: /data/pigsty, fallback: /srv/nas/fallback/pigsty}
+
+# restricted-node-6dc3f140f9 remains the active local working set. Each dataset receives a
+# cluster-visible CephFS managed copy. Synchronization is additive: source
+# files are never deleted, which is the local-disk fallback when Ceph is down.
+managedDatasets:
+  enabled: false
+  storageClassName: cephfs-r640
+  nodeSelector:
+    kubernetes.io/hostname: restricted-node-6dc3f140f9
+  image: docker.io/library/busybox:1.36
+  datasets:
+    - name: nas-shared
+      sourcePath: /srv/nas/shared
+      capacity: 30Gi
+      schedule: "7,37 * * * *"
+      suspend: true
+      category: nas-models
+      sourceDevice: /dev/sda1
+    - name: pigsty-archives
+      sourcePath: /srv/nas/fallback/pigsty
+      capacity: 20Gi
+      schedule: "17,47 * * * *"
+      category: database-backups
+      sourceDevice: /dev/sda1
+    - name: neo4j-exports
+      sourcePath: /srv/nas/fallback/neo4j
+      capacity: 10Gi
+      schedule: "22,52 * * * *"
+      category: graph-backups
+      sourceDevice: /dev/sda1
+    - name: model-assets
+      sourcePath: /srv/nas/shared/cosyvoice-delivery
+      capacity: 20Gi
+      schedule: "27,57 * * * *"
+      category: ai-models
+      sourceDevice: /dev/sda1

@@ -1,0 +1,23 @@
+[Unit]
+Description=RE8CH FreeSWITCH voice control API
+After=network-online.target freeswitch.service
+Requires=freeswitch.service
+
+[Service]
+Type=simple
+User=voice-gateway
+Group=voice-gateway
+EnvironmentFile=/etc/re8ch-voice/voice-gateway.env
+ExecStart=/usr/bin/python3 /opt/re8ch-voice/voice_gateway.py
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/re8ch-voice
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

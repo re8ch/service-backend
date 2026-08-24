@@ -1,0 +1,60 @@
+schemaVersion: re8ch.com/v1alpha1
+defaults:
+  operatingSystem: linux
+  sshUser: re8ch-ai
+  authentication: cloud-platform-permanent-jump-key
+nodes:
+  - {id: restricted-node-6dc3f140f9, roles: [control-plane, etcd, pg-re8ch], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
+  - id: restricted-node-1eb0570f74
+    roles: [control-plane, etcd]
+    sshTarget: null
+    operationPolicy: control-plane-two-person
+    managementState: unverified
+    firewall: cn
+    egressPolicy: auto
+    cephStorage: true
+    cephClient: true
+    host:
+      platform: Windows Server 2022 / WSL2 NAT
+      windowsLanIp: 192.0.2.246
+      wslNatCidr: 192.0.2.250/20
+      peerHost: restricted-node-296f36f2fb
+      peerWindowsLanIp: 192.0.2.35
+    fabric:
+      nodeIdentity: 192.0.2.176
+      podCIDR: 192.0.2.48/24
+      windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.139/30, peerPort: 51820}
+      hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
+      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.148/30, peer: restricted-node-296f36f2fb}
+      r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 192.0.2.138, hubBackend: 192.0.2.169}
+  - id: restricted-node-296f36f2fb
+    roles: [control-plane, etcd]
+    sshTarget: null
+    operationPolicy: control-plane-two-person
+    managementState: unverified
+    firewall: cn
+    egressPolicy: auto
+    cephStorage: true
+    cephClient: true
+    host:
+      platform: Windows Server 2022 / WSL2 NAT
+      windowsLanIp: 192.0.2.35
+      wslNatCidr: 192.0.2.229/20
+      peerHost: restricted-node-1eb0570f74
+      peerWindowsLanIp: 192.0.2.246
+    fabric:
+      nodeIdentity: 192.0.2.4
+      podCIDR: 192.0.2.234/24
+      windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.90/30, peerPort: 51820}
+      hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
+      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.12/30, peer: restricted-node-1eb0570f74}
+      r640Transit: {interface: wg-pt-b1, port: 51890, hubPublicIp: 192.0.2.138, hubBackend: 192.0.2.169}
+  - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
+  - {id: artchais-nuclio-1, roles: [nuclio], sshTarget: artchais, operationPolicy: worker-one-person}
+  - {id: harbor-registry, roles: [platform], sshTarget: harbor, operationPolicy: worker-one-person}
+  - {id: overseas-edge-50, roles: [edge], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified, firewall: none, egressPolicy: direct}
+  - {id: qianwen-nuclio-79, roles: [nuclio], sshTarget: ali, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: qianwen-prod-nuclio-3, roles: [database], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: qianwen-test-nuclio-2, roles: [worker], sshTarget: null, operationPolicy: worker-one-person, managementState: unverified}
+  - {id: rancher-panel, roles: [panel], sshTarget: rancher, operationPolicy: worker-one-person}
+  - {id: vm-20-12-ubuntu, roles: [worker], sshTarget: ICP, operationPolicy: worker-one-person}

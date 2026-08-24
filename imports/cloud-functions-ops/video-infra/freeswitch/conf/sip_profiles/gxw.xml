@@ -1,0 +1,14 @@
+<profile name="gxw">
+  <gateways>
+    <X-PRE-PROCESS cmd="include" data="gxw/*.xml"/>
+  </gateways>
+  <settings>
+    <param name="sip-ip" value="192.0.2.169"/><param name="sip-port" value="5160"/>
+    <param name="rtp-ip" value="192.0.2.169"/><param name="context" value="from-gxw"/>
+    <param name="apply-inbound-acl" value="gxw"/><param name="auth-calls" value="false"/>
+    <param name="inbound-codec-prefs" value="PCMA"/><param name="outbound-codec-prefs" value="PCMA"/>
+    <param name="disable-transcoding" value="true"/><param name="inbound-late-negotiation" value="false"/>
+    <param name="rtp-timeout-sec" value="30"/><param name="rtp-hold-timeout-sec" value="60"/>
+    <param name="dtmf-type" value="rfc2833"/><param name="inbound-use-callid-as-uuid" value="false"/>
+  </settings>
+</profile>

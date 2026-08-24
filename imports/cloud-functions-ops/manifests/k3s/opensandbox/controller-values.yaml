@@ -1,0 +1,31 @@
+namespaceOverride: opensandbox-system
+
+controller:
+  replicaCount: 1
+  image:
+    repository: sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/controller
+    tag: "v0.2.0"
+    pullPolicy: IfNotPresent
+  nodeSelector:
+    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    opensandbox.re8ch.com/control-plane: "true"
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: pg-re8ch
+      effect: NoSchedule
+  priorityClassName: opensandbox-control
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+
+crds:
+  install: true
+  keep: true
+
+networkPolicy:
+  enabled: false

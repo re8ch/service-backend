@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: re8ch-auth-gateway
+  namespace: auth
+  labels:
+    saas.re8ch.com/tenant: auth
+    saas.re8ch.com/product: re8ch-auth
+    saas.re8ch.com/layer: prod
+    saas.re8ch.com/function: gateway
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: api.re8ch.com
+      http: &re8ch_auth_paths
+        paths:
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: re8ch-auth-gateway
+                port:
+                  number: 8080
+    - host: api-guangzhou24.re8ch.com
+      http: *re8ch_auth_paths
+    - host: api-shanghai217.re8ch.com
+      http: *re8ch_auth_paths
+    - host: api-shanghai77.re8ch.com
+      http: *re8ch_auth_paths

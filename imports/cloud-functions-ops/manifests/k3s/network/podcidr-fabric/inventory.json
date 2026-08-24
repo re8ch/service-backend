@@ -1,0 +1,27 @@
+{
+  "nativeRoutingCIDR": "192.0.2.57/16",
+  "acceleratedCIDR": "192.0.2.65/24",
+  "serviceCIDR": "192.0.2.121/24",
+  "removeCiliumDirectRoutes": true,
+  "controlPlaneNodes": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
+  "routeServers": [
+    {"name": "restricted-node-1eb0570f74", "internalIp": "192.0.2.176", "transportIp": "192.0.2.178", "rrInterconnectIp": "192.0.2.148", "podCIDR": "192.0.2.48/24", "acceleratedIp": "192.0.2.242", "asn": 4200010147},
+    {"name": "restricted-node-296f36f2fb", "internalIp": "192.0.2.4", "transportIp": "192.0.2.101", "rrInterconnectIp": "192.0.2.12", "podCIDR": "192.0.2.234/24", "acceleratedIp": "192.0.2.1", "asn": 4200010125}
+  ],
+  "nodes": [
+    {"name": "restricted-node-6dc3f140f9", "internalIp": "192.0.2.178", "podCIDR": "192.0.2.140/24", "acceleratedIp": "192.0.2.179", "asn": 4200000128, "peerMode": "transport", "routerOsPeer": "192.0.2.240", "serviceVipExports": ["192.0.2.213/32"]},
+    {"name": "amdwsl-zt", "internalIp": "192.0.2.10", "podCIDR": "192.0.2.134/24", "acceleratedIp": "192.0.2.117", "asn": 4200010038, "peerMode": "identity"},
+    {"name": "overseas-edge-50", "internalIp": "192.0.2.79", "podCIDR": "192.0.2.4/24", "acceleratedIp": "192.0.2.81", "asn": 4200000050, "peerMode": "identity"},
+    {"name": "overseas-kl", "internalIp": "192.0.2.245", "podCIDR": "192.0.2.110/24", "acceleratedIp": "192.0.2.149", "asn": 4200000089, "peerMode": "transport"},
+    {"name": "overseas-la", "internalIp": "192.0.2.110", "podCIDR": "192.0.2.114/24", "acceleratedIp": "192.0.2.147", "asn": 4200000104, "peerMode": "transport"},
+    {"name": "suxunji", "internalIp": "192.0.2.182", "podCIDR": "192.0.2.79/24", "acceleratedIp": "192.0.2.246", "asn": 4200000077, "peerMode": "transport"},
+    {"name": "muaya-lightweight", "internalIp": "192.0.2.112", "podCIDR": "192.0.2.89/24", "acceleratedIp": "192.0.2.160", "asn": 4200000079, "peerMode": "transport"},
+    {"name": "muaya-ecs", "internalIp": "192.0.2.74", "podCIDR": "192.0.2.237/24", "acceleratedIp": "192.0.2.32", "asn": 4200000095, "peerMode": "transport"},
+    {"name": "zan", "internalIp": "192.0.2.138", "podCIDR": "192.0.2.128/24", "acceleratedIp": "192.0.2.152", "asn": 4200000016, "peerMode": "transport"},
+    {"name": "domain-ex", "internalIp": "192.0.2.89", "podCIDR": "192.0.2.94/24", "acceleratedIp": "192.0.2.46", "asn": 4200000186, "peerMode": "transport"},
+    {"name": "qwen-1", "internalIp": "192.0.2.154", "podCIDR": "192.0.2.96/24", "acceleratedIp": "192.0.2.147", "asn": 4200010024, "peerMode": "identity"},
+    {"name": "qwen-2", "internalIp": "192.0.2.111", "podCIDR": "192.0.2.207/24", "acceleratedIp": "192.0.2.214", "asn": 4200010217, "peerMode": "identity"},
+    {"name": "qwen-3", "internalIp": "192.0.2.251", "podCIDR": "192.0.2.6/24", "acceleratedIp": "192.0.2.18", "asn": 4200010047, "peerMode": "identity"},
+    {"name": "vm-20-12-ubuntu", "internalIp": "192.0.2.192", "podCIDR": "192.0.2.57/24", "acceleratedIp": "192.0.2.223", "asn": 4200000073, "peerMode": "identity"}
+  ]
+}

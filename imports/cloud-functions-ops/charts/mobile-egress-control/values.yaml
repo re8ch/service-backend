@@ -1,0 +1,19 @@
+replicaCount: 1
+image:
+  repository: registry.re8ch.com/network-decomplexer/mobile-egress-control
+  tag: 20260822-06
+  pullPolicy: IfNotPresent
+nodeSelector:
+  kubernetes.io/hostname: restricted-node-6dc3f140f9
+imagePullSecrets: []
+authMeURL: http://dex.dex.svc.cluster.local/userinfo
+signingKeyID: mobile-egress-2026-01
+existingSecret: mobile-egress-control
+socksCredentialsSecret: mihomos-mobile-socks-auth
+service:
+  port: 8080
+catalog:
+  egresses: []
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 500m, memory: 256Mi}

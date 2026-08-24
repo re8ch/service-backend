@@ -1,0 +1,50 @@
+image:
+  repository: docker.io/metacubex/mihomo
+  tag: v1.19.29
+  digest: sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+  pullPolicy: IfNotPresent
+
+dataplane:
+  enabled: true
+
+nodeProxy:
+  port: 17891
+  controllerPort: 19090
+  geoLabel: networking.re8ch.com/geo
+
+exits:
+  globalLabel: networking.re8ch.com/mihomo-exit
+  cnLabel: networking.re8ch.com/mihomo-exit-cn
+  port: 1080
+  # Keep every advertised exit as an independently health-checked Mihomo
+  # proxy. A single headless-Service hostname hides endpoint health from
+  # Mihomo and makes DNS selection look like random connection failures.
+  globalCandidates:
+    - {name: global-edge-50, address: 192.0.2.79}
+    - {name: global-kl, address: 192.0.2.245}
+  cnCandidates:
+    - {name: cn-r640, address: 192.0.2.178}
+    - {name: cn-a1, address: 192.0.2.176}
+    - {name: cn-b1, address: 192.0.2.4}
+
+telemetry:
+  enabled: true
+  intervalSeconds: 60
+  image: docker.1ms.run/library/python:3.12-alpine
+  ipLookupUrl: https://ipinfo.io/json
+  probes:
+    cn:
+      - {name: baidu, url: "https://www.baidu.com/"}
+      - {name: aliyun, url: "https://www.aliyun.com/"}
+      - {name: tencent-cloud, url: "https://cloud.tencent.com/"}
+      - {name: douyin, url: "https://www.douyin.com/"}
+    global:
+      - {name: github, url: "https://github.com/"}
+      - {name: ghcr, url: "https://ghcr.io/v2/", expectedStatus: 401}
+      - {name: google, url: "https://www.google.com/generate_204", expectedStatus: 204}
+      - {name: openai, url: "https://api.openai.com/v1/models", expectedStatus: 401}
+      - {name: apple, url: "https://www.apple.com/library/test/success.html"}
+      - {name: microsoft, url: "https://www.microsoft.com/favicon.ico"}
+
+statusReaders:
+  - {namespace: headlamp, serviceAccount: headlamp}

@@ -1,0 +1,26 @@
+schemaVersion: re8ch.routing-acceptance/v1
+runId: not-run
+status: BLOCKED
+blockers:
+  - two canary client IDs and physical locations are not configured
+  - whoami-cn, whoami-la, and whoami-kl trace endpoints are not all deployed
+  - physical terminal OS and trusted Geo evidence has not been collected
+  - KL encrypted listener/path is not deployed
+cases:
+  A_CN_to_CN: {expected: DIRECT, observed: null, evidence: []}
+  B_CN_to_GLOBAL: {expected: OVERSEAS_FABRIC, observed: null, evidence: []}
+  C_GLOBAL_to_GLOBAL: {expected: DIRECT, observed: null, evidence: []}
+  D_GLOBAL_to_CN: {expected: CN_FABRIC, observed: null, evidence: []}
+shadowEvidence:
+  geodbVersion: 4018a5b617ddb76d97a9835995633c35db4f0fa3
+  geodbSha256: 2187d580ae7ece4c1c399e0723ed2adbf29f666a5d1a013d6746fb8cf9943ff5
+  CN_to_baidu: {destinationClass: CN, decision: DIRECT, verified: true}
+  CN_to_google: {destinationClass: GLOBAL, decision: OVERSEAS_FABRIC, verified: true}
+failureInjection:
+  kill_cn_peer: NOT_RUN
+  block_p2p_udp: NOT_RUN
+  impair_cn_a: NOT_RUN
+  saturate_small_peer: NOT_RUN
+  kill_la: NOT_RUN
+  kill_kl: BLOCKED_KL_NOT_DEPLOYED
+  concurrent_20: NOT_RUN

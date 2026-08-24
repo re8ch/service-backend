@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-egress-probe
+  namespace: netbird-access
+  labels:
+    app.kubernetes.io/name: netbird-egress-probe
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: netbird-egress-probe}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: netbird-egress-probe}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      automountServiceAccountToken: false
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:0.74.6
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom: {secretKeyRef: {name: netbird-egress-probe-key, key: NB_SETUP_KEY}}
+            - {name: NB_MANAGEMENT_URL, value: "https://access.re8ch.com:8443"}
+            - {name: NB_HOSTNAME, value: re8ch-egress-probe-r640}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities: {add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+          startupProbe:
+            exec: {command: [netbird, status, --check, startup]}
+            periodSeconds: 3
+            timeoutSeconds: 10
+            failureThreshold: 40
+          readinessProbe:
+            exec: {command: [netbird, status, --check, ready]}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: state, mountPath: /var/lib/netbird}
+        - name: probe
+          image: nicolaka/netshoot:v0.13
+          command: [sh, -ec]
+          args: ["trap 'exit 0' TERM INT; while true; do sleep 3600; done"]
+          securityContext:
+            capabilities: {add: [NET_ADMIN, NET_RAW]}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          volumeMounts:
+            - {name: benchmark, mountPath: /opt/re8ch, readOnly: true}
+        - name: quality-benchmark
+          image: nicolaka/netshoot:v0.13
+          command: [/opt/re8ch/quality-benchmark.sh]
+          env:
+            - {name: INTERVAL_SECONDS, value: "900"}
+            - {name: DOWNLOAD_BYTES, value: "5000000"}
+            - {name: GATEWAY_IP, value: "192.0.2.175"}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {add: [NET_RAW]}
+          volumeMounts:
+            - {name: benchmark, mountPath: /opt/re8ch, readOnly: true}
+      volumes:
+        - name: tun
+          hostPath: {path: /dev/net/tun, type: CharDevice}
+        - name: state
+          hostPath: {path: /var/lib/rancher/netbird/egress-probe, type: DirectoryOrCreate}
+        - name: benchmark
+          configMap: {name: netbird-quality-benchmark, defaultMode: 0555}

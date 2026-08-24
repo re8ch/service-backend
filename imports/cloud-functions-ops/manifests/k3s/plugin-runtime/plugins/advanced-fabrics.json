@@ -1,0 +1,19 @@
+{
+  "apiVersion": "plugins.re8ch.com/v1alpha1",
+  "kind": "PluginDefinition",
+  "metadata": {"name": "advanced-fabrics"},
+  "spec": {
+    "source": {"type": "kubernetes"},
+    "discovery": {"mode": "api-discovery"},
+    "identityRef": "plugin-advanced-fabrics",
+    "healthCheck": {"type": "kubernetes", "resource": "advancedfabrics.networking.re8ch.com"},
+    "policy": {
+      "allowedOperations": ["get", "list", "patch"],
+      "deniedFields": ["secret", "password", "token", "privateKey", "clientSecret", "apiKey"],
+      "resourceScopes": [
+        {"group": "networking.re8ch.com", "version": "v1alpha1", "resource": "advancedfabrics", "namespaced": false, "verbs": ["get", "list", "patch"]}
+      ]
+    },
+    "publication": {"enabled": true, "toolPrefix": "advanced-fabrics"}
+  }
+}

@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+allowed_services=' k3s k3s-agent '
+action=${1:-}
+target=${2:-}
+
+case $action in
+  status)
+    exec /usr/bin/systemctl is-system-running
+    ;;
+  service-status)
+    case "$allowed_services" in *" $target "*) exec /usr/bin/systemctl --no-pager --full status "$target" ;; esac
+    ;;
+  service-restart)
+    case "$allowed_services" in *" $target "*) exec /usr/bin/systemctl restart "$target" ;; esac
+    ;;
+  reboot)
+    [ "$target" = "--approved" ] && exec /usr/bin/systemctl reboot
+    ;;
+esac
+echo "operation or target is not allowlisted" >&2
+exit 2

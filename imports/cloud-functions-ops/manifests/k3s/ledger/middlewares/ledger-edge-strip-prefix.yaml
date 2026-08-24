@@ -1,0 +1,25 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ledger-strip-wechat-auth-prefix
+  namespace: ledger
+  labels:
+    saas.re8ch.com/product: ledger
+    saas.re8ch.com/tenant: ledger
+spec:
+  stripPrefix:
+    prefixes:
+      - /ledger-wechat-auth
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ledger-strip-report-runner-prefix
+  namespace: ledger
+  labels:
+    saas.re8ch.com/product: ledger
+    saas.re8ch.com/tenant: ledger
+spec:
+  stripPrefix:
+    prefixes:
+      - /ledger-gnucash-report-runner

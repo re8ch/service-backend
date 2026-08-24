@@ -1,0 +1,35 @@
+apiVersion: operations.re8ch.com/v1alpha1
+kind: RepositoryBoundary
+metadata:
+  name: advanced-fabric-network-operations
+spec:
+  publicProduct:
+    repository: https://github.com/re8ch/advanced-fabric
+    chartPath: charts/re8ch-advanced-fabric
+    contains:
+      - helm-chart
+      - crds
+      - controller
+      - host-agent
+      - sanitized-examples
+  privateOperations:
+    root: network-operations
+    contains:
+      - cluster-inventory
+      - cilium-rollout-values
+      - frr-and-podcidr-reconcilers
+      - private-transit
+      - public-mesh
+      - routeros-boundary
+      - harbor-l4-tls-passthrough
+      - incident-and-performance-runbooks
+  compatibilityRoots:
+    - manifests/k3s/cilium
+    - manifests/k3s/network
+    - scripts
+    - docs
+  policy:
+    publicInventory: forbidden
+    credentialsInEitherRepository: forbidden
+    removeCompatibilityPathsAfterReferenceAudit: true
+

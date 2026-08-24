@@ -1,0 +1,3419 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-victoria-metrics-config
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 30s
+      scrape_timeout: 10s
+
+    scrape_configs:
+      - job_name: victoria-self
+        static_configs:
+          - targets: ["127.0.0.1:8428"]
+            labels:
+              node: rancher-panel
+              source: k3s
+              cls: observability
+
+      - job_name: toolhive-mcp-control-plane
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["mcp-ops-observe-managed-proxy.toolhive-system.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              source: toolhive
+              cls: mcp-control-plane
+              access_level: observe
+          - targets: ["mcp-ops-operate-managed-proxy.toolhive-system.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              source: toolhive
+              cls: mcp-control-plane
+              access_level: operate
+          - targets: ["mcp-ops-admin-managed-proxy.toolhive-system.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              source: toolhive
+              cls: mcp-control-plane
+              access_level: admin
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'toolhive_mcp_.*|mcp_server_operation_.*|process_(cpu|resident_memory|start_time)_.*'
+            action: keep
+
+      - job_name: re8ch-network-exporters
+        scrape_interval: 30s
+        scrape_timeout: 15s
+        static_configs:
+          - targets:
+              - "192.0.2.192:9788"
+              - "192.0.2.178:9788"
+              - "192.0.2.112:9788"
+              - "192.0.2.182:9788"
+              - "192.0.2.74:9788"
+              - "192.0.2.138:9788"
+              - "192.0.2.89:9788"
+              - "192.0.2.79:9788"
+            labels:
+              tenant: re8ch
+              source: host-network
+              cls: network-economics
+
+      - job_name: re8ch-routing-advisor
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790"]
+            labels:
+              tenant: re8ch
+              source: k3s
+              cls: network-economics
+
+      - job_name: opencost
+        scrape_interval: 60s
+        scrape_timeout: 15s
+        static_configs:
+          - targets: ["opencost.opencost.svc.cluster.local:9003"]
+            labels:
+              tenant: re8ch
+              source: k3s
+              cls: cost-management
+
+      - job_name: victoria-logs-self
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["panel-victoria-logs.qianwen-ops.svc.cluster.local:9428"]
+            labels:
+              tenant: platform
+              layer: observability
+              category: logs
+              service: victoria-logs
+              node: rancher-panel
+              source: k3s
+              cls: observability
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vl_.*|vm_.*|process_.*|go_.*'
+            action: keep
+
+      - job_name: victoria-logs-vlagent
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: panel-vlagent
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: http
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_node_name]
+            target_label: node
+          - target_label: tenant
+            replacement: platform
+          - target_label: layer
+            replacement: observability
+          - target_label: category
+            replacement: logs
+          - target_label: service
+            replacement: vlagent
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: observability
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vl_.*|vm_.*|process_.*|go_.*'
+            action: keep
+
+      - job_name: kube-state-metrics
+        static_configs:
+          - targets: ["kube-state-metrics.kube-system.svc.cluster.local:8080"]
+            labels:
+              tenant: re8ch
+              node: rancher-panel
+              source: k3s
+              cls: k3s
+
+      - job_name: k8s-coredns
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        static_configs:
+          - targets: ["192.0.2.240:9153"]
+            labels:
+              tenant: re8ch
+              node: rancher-panel
+              source: k3s
+              cls: k3s
+
+      - job_name: k8s-traefik
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - kube-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            regex: traefik
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:9100
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s-gateway
+          - target_label: tenant
+            replacement: re8ch
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'traefik_(entrypoint|service|router)_.*|traefik_config_.*'
+            action: keep
+          - source_labels: [service]
+            target_label: backend_service
+          - source_labels: [service]
+            regex: '^([^-]+)-nuclio-(.+)-8080@kubernetes$'
+            target_label: namespace
+            replacement: ${1}
+          - source_labels: [service]
+            regex: '^([^-]+)-nuclio-(.+)-8080@kubernetes$'
+            target_label: function
+            replacement: ${2}
+          - source_labels: [function]
+            regex: '^([^-]+).*'
+            target_label: tenant
+            replacement: ${1}
+          - source_labels: [function]
+            regex: '^[^-]+-([^-]+).*'
+            target_label: layer
+            replacement: ${1}
+          - source_labels: [function]
+            regex: '^[^-]+-[^-]+-([^-]+).*'
+            target_label: category
+            replacement: ${1}
+
+      - job_name: pigsty-infra-node-exporter
+        static_configs:
+          - labels:
+              tenant: re8ch
+              source: pigsty
+              cls: pigsty-infra
+            targets:
+              - "192.0.2.192:9100"
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
+
+      - job_name: pigsty-pg-meta-node-exporter
+        static_configs:
+          - labels:
+              tenant: re8ch
+              source: pigsty
+              cls: pg-meta
+            targets:
+              - "192.0.2.89:9100"
+              - "192.0.2.112:9100"
+              - "192.0.2.251:9100"
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
+
+      - job_name: k3s-node-exporter
+        scrape_interval: 60s
+        scrape_timeout: 45s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: panel-node-exporter
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_node_name]
+            target_label: node
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s
+          - target_label: tenant
+            replacement: re8ch
+
+      - job_name: k8s-kubelet
+        scrape_interval: 60s
+        scrape_timeout: 20s
+        scheme: https
+        metrics_path: /metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: harbor-registry
+            action: drop
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:10250
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s
+          - target_label: tenant
+            replacement: re8ch
+
+      - job_name: k8s-cadvisor
+        scrape_interval: 120s
+        scrape_timeout: 25s
+        scheme: https
+        metrics_path: /metrics/cadvisor
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: harbor-registry
+            action: drop
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:10250
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+          - target_label: source
+            replacement: k3s
+          - target_label: cls
+            replacement: k3s
+          - target_label: tenant
+            replacement: re8ch
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_fs_.*|container_network_.*|machine_.*'
+            action: keep
+          - source_labels: [container]
+            regex: ''
+            action: drop
+
+      - job_name: pigsty-infra-exporters
+        scrape_interval: 30s
+        scrape_timeout: 20s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: pigsty-icp-infra-exporters
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-.+
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-(.+)
+            target_label: component
+          - source_labels: [__meta_kubernetes_endpoint_hostname]
+            target_label: node
+          - target_label: source
+            replacement: pigsty
+          - target_label: cls
+            replacement: pigsty-infra
+          - target_label: tenant
+            replacement: re8ch
+
+      - job_name: pigsty-pgsql-exporters
+        scrape_interval: 30s
+        scrape_timeout: 20s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - qianwen-ops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: pigsty-pg-meta-exporters
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-.+
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-(.+)
+            target_label: component
+          - source_labels: [__address__]
+            regex: ([^:]+):.*
+            target_label: ip
+          - source_labels: [__meta_kubernetes_endpoint_hostname]
+            target_label: ins
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-pg
+            target_label: job
+            replacement: pgsql
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-pgbouncer
+            target_label: job
+            replacement: pgbouncer
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-patroni
+            target_label: job
+            replacement: patroni
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-haproxy
+            target_label: job
+            replacement: haproxy
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics-pgbackrest
+            target_label: job
+            replacement: pgbackrest
+          - target_label: source
+            replacement: pigsty
+          - target_label: cls
+            replacement: pg-meta
+        metric_relabel_configs:
+          - source_labels: [datname]
+            regex: 'qianwen_prod|qianwen_test|cardcat'
+            target_label: tenant
+            replacement: qianwen
+          - source_labels: [datname]
+            regex: 'ledger'
+            target_label: tenant
+            replacement: ledger
+          - source_labels: [datname]
+            regex: 'anycam_prod'
+            target_label: tenant
+            replacement: anycam
+          - source_labels: [datname]
+            regex: 'bench'
+            target_label: tenant
+            replacement: bench
+
+      - job_name: http-probe
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        static_configs:
+          - labels:
+              tenant: platform
+              layer: panel
+              category: grafana
+              service: portainer-grafana
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://grafana.re8ch.com/grafana/api/health
+          - labels:
+              tenant: platform
+              layer: network
+              category: planet
+              service: zt-planet
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://zt.re8ch.com/
+          - labels:
+              tenant: re8ch
+              layer: public
+              category: api
+              service: api-root
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://api.re8ch.com/health
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-public
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://registry.re8ch.com/
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-api-ping
+              source: re8ch
+              cls: http-probe
+            targets:
+              - https://registry.re8ch.com/api/v2.0/ping
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-core-internal
+              source: re8ch
+              cls: http-probe
+            targets:
+              - http://core.harbor.svc.cluster.local:8080/api/v2.0/ping
+          - labels:
+              tenant: platform
+              layer: registry
+              category: harbor
+              service: harbor-registry-v2
+              source: re8ch
+              cls: http-probe
+            targets:
+              - http://registry.harbor.svc.cluster.local:5000/v2/
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: panel-blackbox-exporter.qianwen-ops.svc.cluster.local:9115
+
+      - job_name: harbor-trivy-adapter
+        scrape_interval: 120s
+        scrape_timeout: 30s
+        static_configs:
+          - targets: ["trivy-adapter.harbor.svc.cluster.local:8080"]
+            labels:
+              tenant: platform
+              layer: registry
+              category: scanner
+              service: trivy-adapter
+              source: k3s
+              cls: harbor
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'trivy_.*|go_goroutines|go_memstats_alloc_bytes|process_cpu_seconds_total|process_resident_memory_bytes|up'
+            action: keep
+
+      - job_name: pigsty-blackbox-probe
+        scrape_interval: 60s
+        scrape_timeout: 10s
+        metrics_path: /probe
+        params:
+          module: [icmp]
+        static_configs:
+          - labels:
+              source: pigsty
+              cls: pg-meta
+            targets:
+              - 192.0.2.192
+              - 192.0.2.89
+              - 192.0.2.112
+              - 192.0.2.251
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: pigsty-icp-infra-exporters.qianwen-ops.svc.cluster.local:9115
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: panel-victoria-metrics
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: panel-victoria-metrics-discovery
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints", "services", "pods", "nodes", "nodes/proxy", "nodes/metrics"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: panel-victoria-metrics-discovery
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+subjects:
+  - kind: ServiceAccount
+    name: panel-victoria-metrics
+    namespace: qianwen-ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: panel-victoria-metrics-discovery
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pigsty-icp-infra-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-icp-infra-exporters
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  ports:
+    - name: metrics-alertmanager
+      port: 9059
+      targetPort: 9059
+    - name: metrics-blackbox
+      port: 9115
+      targetPort: 9115
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: pigsty-icp-infra-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-icp-infra-exporters
+    app.kubernetes.io/part-of: panel-observability
+subsets:
+  - addresses:
+      - ip: 192.0.2.192
+        hostname: icp
+    ports:
+      - name: metrics-alertmanager
+        port: 9059
+      - name: metrics-blackbox
+        port: 9115
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pigsty-pg-meta-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-pg-meta-exporters
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  ports:
+    - name: metrics-pg
+      port: 9630
+      targetPort: 9630
+    - name: metrics-pgbouncer
+      port: 9631
+      targetPort: 9631
+    - name: metrics-patroni
+      port: 8008
+      targetPort: 8008
+    - name: metrics-haproxy
+      port: 9101
+      targetPort: 9101
+    - name: metrics-pgbackrest
+      port: 9854
+      targetPort: 9854
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: pigsty-pg-meta-exporters
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: pigsty-pg-meta-exporters
+    app.kubernetes.io/part-of: panel-observability
+subsets:
+  - addresses:
+      - ip: 192.0.2.89
+        hostname: pg-meta-1
+      - ip: 192.0.2.112
+        hostname: pg-meta-2
+      - ip: 192.0.2.251
+        hostname: pg-meta-3
+    ports:
+      - name: metrics-pg
+        port: 9630
+      - name: metrics-pgbouncer
+        port: 9631
+      - name: metrics-patroni
+        port: 8008
+      - name: metrics-haproxy
+        port: 9101
+      - name: metrics-pgbackrest
+        port: 9854
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-blackbox-exporter
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-blackbox-exporter
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-blackbox-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-blackbox-exporter
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: blackbox-exporter
+          image: quay.io/prometheus/blackbox-exporter:v0.27.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/blackbox_exporter/config.yml
+            - --web.listen-address=:9115
+          ports:
+            - name: http
+              containerPort: 9115
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-blackbox-exporter
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-blackbox-exporter
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-blackbox-exporter
+  ports:
+    - name: http
+      port: 9115
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-node-exporter
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-node-exporter
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: panel-node-exporter
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-node-exporter
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-node-exporter
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-node-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-node-exporter
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostPID: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - artchais-nuclio-1
+                      - qianwen-prod-nuclio-3
+                      - qianwen-test-nuclio-2
+                      - vm-20-12-ubuntu
+                      - rancher-panel
+                      - harbor-registry
+                      - amdwsl-zt
+                      - restricted-node-296f36f2fb
+                      - restricted-node-1eb0570f74
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v1.9.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/host/root
+            - --web.listen-address=:19100
+            - --collector.disable-defaults
+            - --collector.cpu
+            - --collector.meminfo
+            - --collector.diskstats
+            - --collector.filesystem
+            - --collector.netdev
+            - --collector.loadavg
+            - --collector.uname
+            - --collector.time
+            - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+          ports:
+            - name: metrics
+              containerPort: 19100
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: root
+              mountPath: /host/root
+              readOnly: true
+              mountPropagation: HostToContainer
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: root
+          hostPath:
+            path: /
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-victoria-metrics-data
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-victoria-metrics
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-victoria-metrics
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-victoria-metrics
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      serviceAccountName: panel-victoria-metrics
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector: {matchLabels: {app.kubernetes.io/name: panel-grafana}}
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: victoria-metrics
+          image: victoriametrics/victoria-metrics:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -storageDataPath=/victoria-metrics-data
+            - -httpListenAddr=:8428
+            - -retentionPeriod=7d
+            - -promscrape.config=/etc/victoria-metrics/prometheus.yml
+            - -promscrape.fileSDCheckInterval=5s
+          ports:
+            - name: http
+              containerPort: 8428
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /etc/victoria-metrics
+              readOnly: true
+            - name: data
+              mountPath: /victoria-metrics-data
+      volumes:
+        - name: config
+          configMap:
+            name: panel-victoria-metrics-config
+        - name: data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-28ec4dcc-ec9d-4153-a3a0-abb861b27c40_qianwen-ops_panel-victoria-metrics-data
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-victoria-metrics
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-metrics
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: panel-victoria-metrics
+  ports:
+    - name: http
+      port: 8428
+      targetPort: http
+      nodePort: 30428
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-victoria-logs-data
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-logs
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-victoria-logs
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-logs
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-victoria-logs
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-victoria-logs
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: victoria-logs
+          image: victoriametrics/victoria-logs:v1.50.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -storageDataPath=/victoria-logs-data
+            - -httpListenAddr=:9428
+            - -retentionPeriod=7d
+            - -retention.maxDiskSpaceUsageBytes=6GiB
+          ports:
+            - name: http
+              containerPort: 9428
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: data
+              mountPath: /victoria-logs-data
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/rancher/k3s/storage/pvc-d2d50ebe-f8cf-43c9-b5f1-0389e7e9d2c8_qianwen-ops_panel-victoria-logs-data
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-victoria-logs
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-victoria-logs
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-victoria-logs
+  ports:
+    - name: http
+      port: 9428
+      targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: panel-vlagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: panel-vlagent
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: panel-vlagent
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+subjects:
+  - kind: ServiceAccount
+    name: panel-vlagent
+    namespace: qianwen-ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: panel-vlagent
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-vlagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-vlagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-vlagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      serviceAccountName: panel-vlagent
+      nodeSelector:
+        observability.re8ch.com/agent: "true"
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: vlagent
+          image: victoriametrics/vlagent:v1.50.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -kubernetesCollector
+            - -loggerFormat=json
+            - -envflag.enable
+            - -httpListenAddr=:9429
+            - -tmpDataPath=/var/lib/vlagent
+            - -remoteWrite.url=http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/insert/native
+            - -remoteWrite.maxDiskUsagePerURL=512MiB
+            - -kubernetesCollector.extraFields={"job":"nuclio-pod-logs","cluster":"re8ch-k3s"}
+            - -kubernetesCollector.excludeFilter=kubernetes.pod_name:=%{HOSTNAME} or kubernetes.pod_namespace:in(kube-system,harbor,qianwen-ops,ops,dex,headlamp,portainer)
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: http
+              containerPort: 9429
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/vlagent
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: data
+          hostPath:
+            path: /var/lib/re8ch-vlagent
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-vlagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-vlagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: panel-vlagent
+  ports:
+    - name: http
+      port: 9429
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-tenant-logs-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+    app.kubernetes.io/part-of: panel-observability
+data:
+  tenant-logs-proxy.py: |
+    #!/usr/bin/env python3
+    import json
+    import os
+    import re
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    VLOGS_SERVICE_HOST = os.getenv("PANEL_VICTORIA_LOGS_SERVICE_HOST", "panel-victoria-logs.qianwen-ops.svc.cluster.local")
+    UPSTREAM = os.getenv("VLOGS_UPSTREAM", "http://%s:9428" % VLOGS_SERVICE_HOST).rstrip("/")
+    TENANTS = {
+        "qianwen": {"tenant": "qianwen", "namespaces": ["qwen"], "dashboardUid": "tenant-qianwen-overview", "orgId": "2"},
+        "ledger": {"tenant": "ledger", "namespaces": ["ledger"], "dashboardUid": "tenant-ledger-overview", "orgId": "3"},
+        "anycam": {"tenant": "anycam", "namespaces": ["anycam"], "dashboardUid": "", "orgId": ""},
+        "bench": {"tenant": "bench", "namespaces": ["bench"], "dashboardUid": "", "orgId": ""},
+        "cardcat": {"tenant": "cardcat", "namespaces": ["cardcat"], "dashboardUid": "", "orgId": ""},
+    }
+    SHARED_PIGSTY_IPS = {"192.0.2.89", "192.0.2.112", "192.0.2.251"}
+    SHARED_PIGSTY_LOG_JOBS = {"postgres", "pgbackrest", "syslog"}
+    SHARED_PIGSTY_SYSLOG_APPS = {
+        "postgres",
+        "patroni",
+        "pgbouncer",
+        "pg_exporter",
+        "pgbouncer_exporter",
+        "pgbackrest_exporter",
+        "vip-manager",
+    }
+    ALLOWED_ENDPOINTS = {
+        "select/logsql/query",
+        "select/logsql/tail",
+        "select/logsql/hits",
+        "select/logsql/field_names",
+        "select/logsql/field_values",
+        "select/logsql/stats_query",
+        "select/logsql/stats_query_range",
+    }
+
+    def shared_pigsty_log_query(query):
+        query = (query or "").strip()
+        ip_values = set()
+        for values in re.findall(r"\b(?:ip|host):in\(([^)]*)\)", query):
+            ip_values.update(value.strip().strip('"') for value in values.split(","))
+        ip_values.update(re.findall(r"\b(?:ip|host):\"?([0-9.]+)\"?", query))
+        if not ip_values or any(ip not in SHARED_PIGSTY_IPS for ip in ip_values):
+            return False
+        jobs = set(re.findall(r"\bjob:([A-Za-z0-9_-]+)", query))
+        if not jobs or any(job not in SHARED_PIGSTY_LOG_JOBS for job in jobs):
+            return False
+        app_values = set(re.findall(r"\bapp:([A-Za-z0-9_-]+)", query))
+        for values in re.findall(r"\bapp:in\(([^)]*)\)", query):
+            app_values.update(value.strip().strip('"') for value in values.split(","))
+        return not app_values or all(app in SHARED_PIGSTY_SYSLOG_APPS for app in app_values)
+
+    def scoped_query(cfg, query):
+        query = (query or "*").strip() or "*"
+        if shared_pigsty_log_query(query):
+            return query
+        namespace = cfg["namespaces"][0]
+        scope = "kubernetes.pod_namespace:%s" % namespace
+        if query == "*":
+            return scope
+        if query.startswith(scope):
+            return query
+        return "%s %s" % (scope, query)
+
+    def query_looks_cross_tenant(cfg, query):
+        query = query or ""
+        allowed_namespaces = set(cfg["namespaces"])
+        allowed_tenant = cfg["tenant"]
+        for match in re.findall(r"\b(?:tenant|kubernetes\.pod_namespace|namespace):([A-Za-z0-9_-]+)", query):
+            if match != allowed_tenant and match not in allowed_namespaces:
+                return True
+        for tenant, other in TENANTS.items():
+            if tenant != allowed_tenant and re.search(r"\b%s\b" % re.escape(tenant), query):
+                return True
+            for namespace in other["namespaces"]:
+                if namespace not in allowed_namespaces and re.search(r"\b%s\b" % re.escape(namespace), query):
+                    return True
+        return False
+
+    def update_form_query(raw_body, cfg):
+        params = urllib.parse.parse_qs(raw_body.decode(), keep_blank_values=True)
+        query = params.get("query", [""])[0]
+        if query_looks_cross_tenant(cfg, query):
+            raise PermissionError("query references another tenant or namespace")
+        params["query"] = [scoped_query(cfg, query)]
+        return urllib.parse.urlencode(params, doseq=True).encode()
+
+    def update_url_query(raw_query, cfg):
+        params = urllib.parse.parse_qs(raw_query, keep_blank_values=True)
+        query = params.get("query", [""])[0]
+        if query_looks_cross_tenant(cfg, query):
+            raise PermissionError("query references another tenant or namespace")
+        params["query"] = [scoped_query(cfg, query)]
+        return urllib.parse.urlencode(params, doseq=True)
+
+    def open_upstream(req):
+        last_exc = None
+        for attempt in range(3):
+            try:
+                return urllib.request.urlopen(req, timeout=20)
+            except urllib.error.URLError as exc:
+                last_exc = exc
+                if attempt == 2:
+                    break
+                time.sleep(0.2 * (attempt + 1))
+        raise last_exc
+
+    class Handler(BaseHTTPRequestHandler):
+        def send_json(self, status, obj):
+            data = json.dumps(obj).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def forward(self, method):
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path in ("/health", "/-/healthy"):
+                self.send_json(200, {"status": "ok"})
+                return
+            parts = parsed.path.strip("/").split("/", 1)
+            if len(parts) != 2 or parts[0] not in TENANTS:
+                self.send_json(404, {"status": "error", "error": "unknown tenant path"})
+                return
+            tenant, rest = parts
+            if rest not in ALLOWED_ENDPOINTS:
+                self.send_json(404, {"status": "error", "error": "unsupported VictoriaLogs endpoint"})
+                return
+            cfg = TENANTS[tenant]
+            body = None
+            query = parsed.query
+            headers = {}
+            try:
+                if method == "POST":
+                    length = int(self.headers.get("Content-Length") or 0)
+                    body = self.rfile.read(length) if length else b""
+                    content_type = self.headers.get("Content-Type", "application/x-www-form-urlencoded")
+                    headers["Content-Type"] = content_type
+                    if "application/x-www-form-urlencoded" in content_type:
+                        body = update_form_query(body, cfg)
+                    else:
+                        query = update_url_query(query, cfg)
+                else:
+                    query = update_url_query(query, cfg)
+            except PermissionError as exc:
+                self.send_json(403, {"status": "error", "error": str(exc)})
+                return
+            target = "%s/%s" % (UPSTREAM, rest)
+            if query:
+                target += "?" + query
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            try:
+                with open_upstream(req) as resp:
+                    data = resp.read()
+                    self.send_response(resp.status)
+                    self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+            except Exception as exc:
+                self.send_json(502, {"status": "error", "error": str(exc)})
+
+        def do_GET(self):
+            self.forward("GET")
+
+        def do_POST(self):
+            self.forward("POST")
+
+        def log_message(self, fmt, *args):
+            print(fmt % args, flush=True)
+
+    if __name__ == "__main__":
+        ThreadingHTTPServer(("0.0.0.0", 39092), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-tenant-logs-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-tenant-logs-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-tenant-logs-proxy
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: proxy
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/app/tenant-logs-proxy.py"]
+          env:
+            - name: VLOGS_UPSTREAM
+              value: http://192.0.2.172:9428
+          ports:
+            - name: http
+              containerPort: 39092
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: panel-tenant-logs-proxy
+            defaultMode: 0555
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-tenant-logs-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-tenant-logs-proxy
+  ports:
+    - name: http
+      port: 39092
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-tenant-metrics-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+    app.kubernetes.io/part-of: panel-observability
+data:
+  tenant-metrics-proxy.py: |
+    #!/usr/bin/env python3
+    import json
+    import os
+    import re
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    VM_SERVICE_HOST = os.getenv("PANEL_VICTORIA_METRICS_SERVICE_HOST", "panel-victoria-metrics.qianwen-ops.svc.cluster.local")
+    UPSTREAM = os.getenv("VM_UPSTREAM", "http://%s:8428" % VM_SERVICE_HOST).rstrip("/")
+    TENANTS = {
+        "qianwen": {"tenant": "qianwen", "namespaces": ["qwen"], "databases": ["qianwen_prod", "qianwen_test", "cardcat"]},
+        "ledger": {"tenant": "ledger", "namespaces": ["ledger"], "databases": ["ledger"]},
+        "anycam": {"tenant": "anycam", "namespaces": ["anycam"], "databases": ["anycam_prod"]},
+        "bench": {"tenant": "bench", "namespaces": ["bench"], "databases": ["bench"]},
+        "cardcat": {"tenant": "cardcat", "namespaces": ["cardcat"], "databases": ["cardcat"]},
+    }
+    QUERY_ENDPOINTS = {"api/v1/query", "api/v1/query_range"}
+    READONLY_ENDPOINTS = {"api/v1/status/buildinfo"}
+    METADATA_ENDPOINTS = {"api/v1/labels", "api/v1/series"}
+    SHARED_TENANTS = {"re8ch"}
+    SHARED_PIGSTY_INS = ["pg-meta-1", "pg-meta-2", "pg-meta-3"]
+    SHARED_PIGSTY_IPS = ["192.0.2.89", "192.0.2.112", "192.0.2.251"]
+    SHARED_SYSTEM_DATABASES = {"wal", "log", "pgbouncer", "template0", "template1"}
+    TENANT_DB_METRIC_PREFIXES = (
+        "pg_db",
+        "pg:db:",
+        "pg_table",
+        "pg:table:",
+        "pg_query",
+        "pg:query:",
+        "pg_activity",
+        "pg_lock",
+        "pg_size",
+        "pg_index",
+        "pg_class",
+        "pg_namespace",
+        "pg_stat",
+        "pgbouncer:db:",
+        "pgbouncer_database",
+    )
+    SHARED_NODE_PATTERNS = [
+        re.compile(r"\bnode_cpu_seconds_total\s*\{\s*node\s*="),
+        re.compile(r"\brate\s*\(\s*node_cpu_seconds_total\s*\{\s*node\s*="),
+        re.compile(r"\bup\s*\{\s*job\s*=~\s*\"\.\*node\.\*\""),
+        re.compile(r"\bup\s*\{\s*ip\s*=~"),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*\"(?:nginx|grafana|vmetrics|vlogs|vtraces|vmalert|alertmanager)\"[^{}]*\bip\s*=~?"),
+        re.compile(r"\bup\s*\{[^{}]*\bjob\s*=~?\s*\"juice\"[^{}]*\bip\s*=~?"),
+        re.compile(r"\bkube_node_status_condition\s*\{\s*condition\s*=\s*\"Ready\"\s*,\s*status\s*=\s*\"true\""),
+        re.compile(r"\bpg_up\s*\{\s*source\s*=\s*\"pigsty\""),
+        re.compile(r"\bup\s*\{\s*job\s*=\s*\"pgsql\""),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*\"pg-meta\"[^{}]*\bjob\s*=~?\s*\"pgsql\""),
+        re.compile(r"\b(?:docker|etcd|redis|minio|mongo|mysql|mysql_exporter|vector)_up(?:\{|,|\)|$)"),
+        re.compile(r"\bnode_up(?:\{|,|\)|$)"),
+        re.compile(r"\bnode_load[0-9]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode_uname_info(?:\{|,|\)|$)"),
+        re.compile(r"\bnode_memory_[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode_filesystem_[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:fs:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:cpu:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:dev:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:cls:[A-Za-z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bup\s*\{[^{}]*\bjob\s*=~?\s*\"etcd\"[^{}]*\bcls\s*=~?\s*\"etcd\""),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*\"etcd\"[^{}]*\bjob\s*=~?\s*\"etcd\""),
+        re.compile(r"\betcd_server_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bprobe_duration_seconds(?:\{|,|\)|$)"),
+        re.compile(r"\bprobe_success\s*\{[^{}]*\bjob\s*=~?\s*\"pgsql-vip\""),
+    ]
+    SHARED_PIGSTY_CLUSTER_PATTERNS = [
+        re.compile(r"\bpg_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpg:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg:env:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bcls:pressure1(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_in_recovery(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_uptime(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_meta_info(?:\{|,|\)|$)"),
+        re.compile(r"\bpatroni_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bhaproxy_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bhaproxy_process_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bhaproxy_process_[a-zA-Z0-9_:]+\s*\{"),
+        re.compile(r"\bpgbackrest_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_lock_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_lsn(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_repl_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_lag(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_recv_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_sync_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_pub[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_sub[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_slot_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_timeline_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_xact_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_checkpoint_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_checkpointer_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_bgwriter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_backend_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_wait_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_setting_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_archiver_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_io_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_version(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_conf_reload_time(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_is_wal_replay_paused(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_stat_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bnode:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bhaproxy:ins:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bhaproxy:cls:[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bprocess_cpu_seconds_total(?:\{|,|\)|$)"),
+        re.compile(r"\bins:pressure1(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbackrest_exporter_agent_up(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbouncer_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpgbackrest_exporter_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bpg_backup_[a-zA-Z0-9_:]+(?:\{|,|\)|$)"),
+        re.compile(r"\bup\s*\{[^{}]*\bins\s*=~?\s*\"pg-meta-[123]\"[^{}]*\bjob\s*=~?\s*\"pgsql\|pgrds\""),
+        re.compile(r"\bup\s*\{[^{}]*\bins\s*=~?\s*\"pg-meta-[123]\"[^{}]*\bjob\s*=~?\s*\"pgrds\|pgsql\""),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*[\"']pg-meta\.\*[\"'][^{}]*\bjob\s*=~?\s*[\"']pgsql\|pgrds[\"']"),
+        re.compile(r"\bup\s*\{[^{}]*\bcls\s*=~?\s*[\"']pg-meta\.\*[\"'][^{}]*\bjob\s*=~?\s*[\"']pgrds\|pgsql[\"']"),
+        re.compile(r"\bpg_downstream_count(?:\{|,|\)|$)"),
+        re.compile(r"\bALERTS(?:\{|,|\)|$)"),
+    ]
+
+    def query_looks_cross_tenant(cfg, query):
+        allowed_tenant = cfg["tenant"]
+        allowed_namespaces = set(cfg["namespaces"])
+        allowed_databases = set(cfg.get("databases", []))
+        for label, value in re.findall(r'\b(tenant|namespace|kubernetes_namespace|kubernetes_pod_namespace|datname|database)\s*=~?\s*"([^"]+)"', query or ""):
+            values = {re.sub(r"[^A-Za-z0-9_-]", "", part) for part in re.split(r"[|,]", value) if part}
+            if label == "tenant" and any(part != allowed_tenant and part not in SHARED_TENANTS for part in values):
+                return True
+            if label in ("datname", "database"):
+                allowed_db_values = allowed_databases | SHARED_SYSTEM_DATABASES
+                if any(part not in allowed_db_values and not part.startswith("template") for part in values):
+                    return True
+                continue
+            if label != "tenant" and any(part not in allowed_namespaces for part in values):
+                return True
+        for tenant, other in TENANTS.items():
+            if tenant != allowed_tenant and tenant not in allowed_databases and re.search(r"\b%s\b" % re.escape(tenant), query or ""):
+                return True
+            for namespace in other["namespaces"]:
+                if namespace not in allowed_namespaces and namespace not in allowed_databases and re.search(r"\b%s\b" % re.escape(namespace), query or ""):
+                    return True
+        return False
+
+    def tenantize_db_metric_query(cfg, query):
+        def replace_selector(match):
+            metric = match.group("metric")
+            labels = match.group("labels")
+            if not metric.startswith(TENANT_DB_METRIC_PREFIXES):
+                return match.group(0)
+            if re.search(r'\btenant\s*=~?\s*["\']', labels):
+                return match.group(0)
+            labels = labels.strip()
+            if labels:
+                labels = 'tenant="%s",%s' % (cfg["tenant"], labels)
+            else:
+                labels = 'tenant="%s"' % cfg["tenant"]
+            return "%s{%s}" % (metric, labels)
+        query = re.sub(r'(?P<metric>\b[a-zA-Z_:][a-zA-Z0-9_:]*)\s*\{(?P<labels>[^{}]*)\}', replace_selector, query)
+        for prefix in TENANT_DB_METRIC_PREFIXES:
+            query = re.sub(
+                r'(?<![A-Za-z0-9_:])(%s[A-Za-z0-9_:]*)(?!\s*\{|[A-Za-z0-9_:])' % re.escape(prefix),
+                r'\1{tenant="%s"}' % cfg["tenant"],
+                query,
+            )
+        return query
+
+    def query_is_allowed(cfg, query):
+        query = (query or "").strip()
+        if not query:
+            return False
+        if re.fullmatch(r"\s*(?:vector\s*\(\s*)?-?\d+(?:\.\d+)?\s*\)?\s*", query):
+            return True
+        if query_looks_cross_tenant(cfg, query):
+            return False
+        if query.startswith(TENANT_DB_METRIC_PREFIXES):
+            return True
+        if any(pattern.search(query) for pattern in SHARED_PIGSTY_CLUSTER_PATTERNS):
+            return True
+        tenant_label = 'tenant="%s"' % cfg["tenant"]
+        tenant_regex = 'tenant=~"%s"' % cfg["tenant"]
+        shared_tenant_labels = ['tenant="%s"' % tenant for tenant in SHARED_TENANTS]
+        shared_tenant_regexes = ['tenant=~"%s"' % tenant for tenant in SHARED_TENANTS]
+        namespace_labels = []
+        for namespace in cfg["namespaces"]:
+            namespace_labels.extend([
+                'namespace="%s"' % namespace,
+                'kubernetes_namespace="%s"' % namespace,
+                'kubernetes_pod_namespace="%s"' % namespace,
+            ])
+        database_labels = []
+        for database in cfg.get("databases", []):
+            database_labels.extend([
+                'datname="%s"' % database,
+                'database="%s"' % database,
+            ])
+        if (
+            tenant_label in query
+            or tenant_regex in query
+            or any(label in query for label in shared_tenant_labels)
+            or any(label in query for label in shared_tenant_regexes)
+            or any(label in query for label in namespace_labels)
+            or any(label in query for label in database_labels)
+        ):
+            return True
+        for database in cfg.get("databases", []):
+            if re.search(r'\b(datname|database)\s*=~\s*"[^"]*\b%s\b[^"]*"' % re.escape(database), query):
+                return True
+        return any(pattern.search(query) for pattern in SHARED_NODE_PATTERNS)
+
+    def allowed_label_values(cfg, label):
+        shared = {
+            "tenant": [cfg["tenant"], "re8ch"],
+            "namespace": cfg["namespaces"],
+            "kubernetes_namespace": cfg["namespaces"],
+            "kubernetes_pod_namespace": cfg["namespaces"],
+            "datname": cfg.get("databases", []),
+            "database": cfg.get("databases", []),
+            "cls": ["k3s", "pg-meta", "pigsty-infra"],
+            "ins": SHARED_PIGSTY_INS,
+            "ip": SHARED_PIGSTY_IPS,
+            "node": SHARED_PIGSTY_IPS,
+            "nodename": ["pg-meta-1", "pg-meta-2", "pg-meta-3"],
+            "job": [
+                "http-probe",
+                "k3s-node-exporter",
+                "k8s-cadvisor",
+                "k8s-coredns",
+                "k8s-kubelet",
+                "k8s-traefik",
+                "kube-state-metrics",
+                "pigsty-infra-exporters",
+                "pigsty-infra-node-exporter",
+                "pigsty-pg-meta-node-exporter",
+                "pgsql",
+                "pgbouncer",
+                "patroni",
+                "haproxy",
+                "pgbackrest",
+            ],
+        }
+        return shared.get(label)
+
+    def series_is_allowed(cfg, metric):
+        tenant = metric.get("tenant")
+        if tenant and tenant not in {cfg["tenant"], *SHARED_TENANTS}:
+            return False
+        datname = metric.get("datname") or metric.get("database")
+        if datname and datname not in set(cfg.get("databases", [])):
+            return False
+        namespace = metric.get("namespace") or metric.get("kubernetes_namespace") or metric.get("kubernetes_pod_namespace")
+        if namespace and namespace not in set(cfg["namespaces"]):
+            return False
+        return bool(tenant or datname or namespace or metric.get("source") in {"k3s", "pigsty"})
+
+    def filter_metadata_response(cfg, rest, payload):
+        data = payload.get("data")
+        if rest == "api/v1/series" and isinstance(data, list):
+            payload["data"] = [metric for metric in data if isinstance(metric, dict) and series_is_allowed(cfg, metric)]
+        elif rest.startswith("api/v1/label/") and rest.endswith("/values") and isinstance(data, list):
+            label = rest.removeprefix("api/v1/label/").removesuffix("/values")
+            allowed = allowed_label_values(cfg, label)
+            if allowed is not None:
+                payload["data"] = [value for value in data if value in set(allowed)]
+        elif rest == "api/v1/labels" and isinstance(data, list):
+            payload["data"] = [label for label in data if label not in {"project", "stack", "tenant_id"}]
+        return payload
+
+    def read_body_params(handler):
+        length = int(handler.headers.get("Content-Length") or 0)
+        body = handler.rfile.read(length) if length else b""
+        content_type = handler.headers.get("Content-Type", "application/x-www-form-urlencoded")
+        if body and "application/x-www-form-urlencoded" in content_type:
+            return body, urllib.parse.parse_qs(body.decode(), keep_blank_values=True), content_type
+        return body, {}, content_type
+
+    def open_upstream(req):
+        last_exc = None
+        for attempt in range(3):
+            try:
+                return urllib.request.urlopen(req, timeout=20)
+            except urllib.error.URLError as exc:
+                last_exc = exc
+                if attempt == 2:
+                    break
+                time.sleep(0.2 * (attempt + 1))
+        raise last_exc
+
+    class Handler(BaseHTTPRequestHandler):
+        def send_json(self, status, obj):
+            data = json.dumps(obj).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def forward(self, method):
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path in ("/health", "/-/healthy"):
+                self.send_json(200, {"status": "ok"})
+                return
+            parts = parsed.path.strip("/").split("/", 1)
+            if len(parts) != 2 or parts[0] not in TENANTS:
+                self.send_json(404, {"status": "error", "error": "unknown tenant path"})
+                return
+            tenant, rest = parts
+            cfg = TENANTS[tenant]
+            body = None
+            query = parsed.query
+            headers = {}
+            if rest in QUERY_ENDPOINTS:
+                if method == "POST":
+                    body, form, content_type = read_body_params(self)
+                    headers["Content-Type"] = content_type
+                    promql = form.get("query", [""])[0] if form else urllib.parse.parse_qs(query).get("query", [""])[0]
+                    scoped_promql = tenantize_db_metric_query(cfg, promql)
+                    if form and scoped_promql != promql:
+                        form["query"] = [scoped_promql]
+                        body = urllib.parse.urlencode(form, doseq=True).encode()
+                    elif scoped_promql != promql:
+                        params = urllib.parse.parse_qs(query, keep_blank_values=True)
+                        params["query"] = [scoped_promql]
+                        query = urllib.parse.urlencode(params, doseq=True)
+                    promql = scoped_promql
+                else:
+                    promql = urllib.parse.parse_qs(query).get("query", [""])[0]
+                    scoped_promql = tenantize_db_metric_query(cfg, promql)
+                    if scoped_promql != promql:
+                        params = urllib.parse.parse_qs(query, keep_blank_values=True)
+                        params["query"] = [scoped_promql]
+                        query = urllib.parse.urlencode(params, doseq=True)
+                    promql = scoped_promql
+                if not query_is_allowed(cfg, promql):
+                    self.send_json(403, {"status": "error", "error": "query is outside tenant allowlist"})
+                    return
+            elif rest in READONLY_ENDPOINTS:
+                pass
+            elif rest.startswith("api/v1/label/") and rest.endswith("/values"):
+                label = rest.removeprefix("api/v1/label/").removesuffix("/values")
+                matches = urllib.parse.parse_qs(query).get("match[]", [])
+                if any(not query_is_allowed(cfg, match) for match in matches):
+                    self.send_json(403, {"status": "error", "error": "metadata query is outside tenant allowlist"})
+                    return
+                static_values = allowed_label_values(cfg, label) if not matches else None
+                if static_values is not None:
+                    self.send_json(200, {"status": "success", "data": static_values})
+                    return
+            elif rest in METADATA_ENDPOINTS:
+                matches = urllib.parse.parse_qs(query).get("match[]", [])
+                if any(not query_is_allowed(cfg, match) for match in matches):
+                    self.send_json(403, {"status": "error", "error": "metadata query is outside tenant allowlist"})
+                    return
+            else:
+                self.send_json(403, {"status": "error", "error": "endpoint is disabled for tenant datasource"})
+                return
+            target = "%s/%s" % (UPSTREAM, rest)
+            if query:
+                target += "?" + query
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            try:
+                with open_upstream(req) as resp:
+                    data = resp.read()
+                    if rest in METADATA_ENDPOINTS or (rest.startswith("api/v1/label/") and rest.endswith("/values")):
+                        try:
+                            payload = json.loads(data.decode())
+                            data = json.dumps(filter_metadata_response(cfg, rest, payload)).encode()
+                        except Exception:
+                            pass
+                    self.send_response(resp.status)
+                    self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+            except Exception as exc:
+                self.send_json(502, {"status": "error", "error": str(exc)})
+
+        def do_GET(self):
+            self.forward("GET")
+
+        def do_POST(self):
+            self.forward("POST")
+
+        def log_message(self, fmt, *args):
+            print(fmt % args, flush=True)
+
+    if __name__ == "__main__":
+        ThreadingHTTPServer(("0.0.0.0", 39091), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-tenant-metrics-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-tenant-metrics-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-tenant-metrics-proxy
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: proxy
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/app/tenant-metrics-proxy.py"]
+          env:
+            - name: VM_UPSTREAM
+              value: http://$(PANEL_VICTORIA_METRICS_SERVICE_HOST):8428
+          ports:
+            - name: http
+              containerPort: 39091
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: panel-tenant-metrics-proxy
+            defaultMode: 0555
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-tenant-metrics-proxy
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-tenant-metrics-proxy
+  ports:
+    - name: http
+      port: 39091
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-harbor-node-vmagent-config
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-harbor-node-vmagent
+    app.kubernetes.io/part-of: panel-observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 2m
+      scrape_timeout: 25s
+
+    scrape_configs:
+      - job_name: harbor-node-vmagent-self
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:8429"]
+            labels:
+              tenant: platform
+              layer: registry
+              category: vmagent
+              service: harbor-node-vmagent
+              source: k3s
+              cls: harbor
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vmagent_remotewrite_.*|vm_promscrape_.*|process_.*|go_.*'
+            action: keep
+
+      - job_name: k8s-kubelet
+        scheme: https
+        metrics_path: /metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        static_configs:
+          - targets: ["127.0.0.1:10250"]
+            labels:
+              node: harbor-registry
+              source: k3s
+              cls: k3s
+
+      - job_name: k8s-cadvisor
+        scheme: https
+        metrics_path: /metrics/cadvisor
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        static_configs:
+          - targets: ["127.0.0.1:10250"]
+            labels:
+              node: harbor-registry
+              source: k3s
+              cls: k3s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_fs_.*|container_network_.*|machine_.*'
+            action: keep
+          - source_labels: [container]
+            regex: ''
+            action: drop
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-harbor-node-vmagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-harbor-node-vmagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-harbor-node-vmagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-harbor-node-vmagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: panel-victoria-metrics
+      nodeSelector:
+        kubernetes.io/hostname: harbor-registry
+        kubernetes.io/os: linux
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -promscrape.config=/etc/vmagent/prometheus.yml
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/api/v1/write
+            - -httpListenAddr=:8429
+            - -promscrape.fileSDCheckInterval=30s
+          ports:
+            - name: http
+              containerPort: 8429
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /etc/vmagent
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: panel-harbor-node-vmagent-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-qwen-functions-vmagent-config
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-qwen-functions-vmagent
+    app.kubernetes.io/part-of: panel-observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 2m
+      scrape_timeout: 20s
+
+    scrape_configs:
+      - job_name: qwen-functions-vmagent-self
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["127.0.0.1:8429"]
+            labels:
+              tenant: qianwen
+              layer: observability
+              category: vmagent
+              service: functions-vmagent
+              source: re8ch
+              cls: qwen-vmagent
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'vmagent_remotewrite_.*|vm_promscrape_.*|process_.*|go_.*'
+            action: keep
+
+      - job_name: k8s-nuclio-functions
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - qwen
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: qwen
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_class]
+            regex: function
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            regex: __NODE_NAME__
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:8080
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            target_label: function
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: ([^-]+).*
+            target_label: tenant
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-([^-]+).*'
+            target_label: layer
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-[^-]+-([^-]+).*'
+            target_label: category
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-(.*)'
+            target_label: service
+            replacement: ${1}
+          - target_label: source
+            replacement: re8ch
+          - target_label: cls
+            replacement: qwen-function-metrics
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 're8ch_cloud_function_.*|re8ch_generation_task_failures_total'
+            action: keep
+          - source_labels: [path_template]
+            regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
+            action: drop
+          - source_labels: [path]
+            regex: '.*/\.env|.*phpinfo.*|.*phpversion.*|.*pinfo\.php|/cgi-bin.*|/onvif.*|/\.git.*|/\.ht.*|/HNAP1|/boaform.*|/vendor/phpunit.*|.*/wp-.*|.*/xmlrpc\.php|.*/wlwmanifest\.xml'
+            action: drop
+          - source_labels: [path_template, path]
+            separator: ';'
+            regex: ';(.+)'
+            target_label: path_template
+            replacement: ${1}
+            action: replace
+          - regex: 'path|status|exported_.*'
+            action: labeldrop
+
+      - job_name: k8s-nuclio-functions-runtime
+        scrape_interval: 2m
+        scrape_timeout: 20s
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - qwen
+                - ledger
+                - anycam
+                - nuclio
+                - bench
+                - cardcat
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_class]
+            regex: function
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            regex: __NODE_NAME__
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:8090
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            target_label: function
+          - source_labels: [__meta_kubernetes_pod_label_saas_re8ch_com_tenant]
+            target_label: tenant
+          - source_labels: [__meta_kubernetes_pod_label_saas_re8ch_com_layer]
+            target_label: layer
+          - source_labels: [__meta_kubernetes_pod_label_saas_re8ch_com_function]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: ([^-]+).*
+            target_label: tenant
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-([^-]+).*'
+            target_label: layer
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-[^-]+-([^-]+).*'
+            target_label: category
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_label_nuclio_io_function_name]
+            regex: '[^-]+-(.*)'
+            target_label: service
+            replacement: ${1}
+          - target_label: source
+            replacement: re8ch
+          - target_label: cls
+            replacement: nuclio-runtime
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'nuclio_processor_.*|up'
+            action: keep
+          - regex: 'path|exported_.*'
+            action: labeldrop
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: panel-qwen-functions-vmagent
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-qwen-functions-vmagent
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-qwen-functions-vmagent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-qwen-functions-vmagent
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: panel-victoria-metrics
+      nodeSelector:
+        observability.re8ch.com/agent: "true"
+      tolerations:
+        - operator: Exists
+      initContainers:
+        - name: render-config
+          image: busybox:1.36
+          command: ["/bin/sh", "-ec"]
+          args:
+            - sed "s/__NODE_NAME__/${NODE_NAME}/g" /template/prometheus.yml > /generated/prometheus.yml
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: config-template
+              mountPath: /template
+              readOnly: true
+            - name: generated-config
+              mountPath: /generated
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -promscrape.config=/generated/prometheus.yml
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/api/v1/write
+            - -httpListenAddr=:8429
+            - -promscrape.fileSDCheckInterval=30s
+          ports:
+            - name: http
+              containerPort: 8429
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: generated-config
+              mountPath: /generated
+              readOnly: true
+      volumes:
+        - name: config-template
+          configMap:
+            name: panel-qwen-functions-vmagent-config
+        - name: generated-config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-re8ch-vmalert-rules
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+    app.kubernetes.io/part-of: panel-observability
+data:
+  re8ch.yml: |
+    groups:
+      - name: re8ch-observability-lite-rules
+        interval: 30s
+        rules:
+          - record: qianwen_nuclio_function_info
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      label_replace(
+                        kube_deployment_status_replicas_available{namespace=~"nuclio|qwen|ledger|anycam|cardcat|bench",deployment=~"nuclio-.+",deployment!~"nuclio-(controller|dashboard)"}
+                      , "function", "$1", "deployment", "nuclio-(.*)")
+                    , "tenant", "$1", "deployment", "nuclio-([^-]+).*")
+                , "layer", "$1", "deployment", "nuclio-[^-]+-([^-]+).*")
+              , "category", "$1", "deployment", "nuclio-[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "deployment", "nuclio-[^-]+-(.*)")
+          - record: qianwen_nuclio_function_started_unixtime
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_started_unixtime
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_cold_starts_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_cold_starts_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_requests_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_requests_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_errors_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_errors_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_request_duration_seconds_bucket
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_request_duration_seconds_bucket
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_request_duration_seconds_sum
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_request_duration_seconds_sum
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_nuclio_function_request_duration_seconds_count
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_cloud_function_request_duration_seconds_count
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+          - record: qianwen_generation_task_failures_total
+            expr: |
+              label_replace(
+                label_replace(
+                  label_replace(
+                    label_replace(
+                      re8ch_generation_task_failures_total
+                    , "tenant", "$1", "function", "([^-]+).*")
+                  , "layer", "$1", "function", "[^-]+-([^-]+).*")
+                , "category", "$1", "function", "[^-]+-[^-]+-([^-]+).*")
+              , "service", "$1", "function", "[^-]+-(.*)")
+      - name: re8ch-headlamp-recording-rules
+        interval: 30s
+        rules:
+          - record: re8ch:nuclio:function_info
+            expr: qianwen_nuclio_function_info
+          - record: re8ch:nuclio:function_requests:rate5m
+            expr: |
+              sum by (tenant, layer, category, service, function) (
+                rate(qianwen_nuclio_function_requests_total[5m])
+              )
+          - record: re8ch:nuclio:function_errors:rate5m
+            expr: |
+              sum by (tenant, layer, category, service, function) (
+                rate(qianwen_nuclio_function_errors_total[5m])
+              )
+          - record: re8ch:gateway:requests:rate5m
+            expr: |
+              sum by (tenant, layer, category, namespace, function, backend_service, code, method) (
+                rate(traefik_service_request_duration_seconds_count[5m])
+              )
+          - record: re8ch:gateway:errors:rate5m
+            expr: |
+              sum by (tenant, layer, category, namespace, function, backend_service, code, method) (
+                rate(traefik_service_request_duration_seconds_count{code=~"[45].*"}[5m])
+              )
+          - record: re8ch:harbor:container_cpu:rate5m
+            expr: |
+              sum by (namespace, pod, container, node) (
+                rate(container_cpu_usage_seconds_total{namespace="harbor"}[5m])
+              )
+      - name: re8ch-headlamp-alert-rules
+        interval: 30s
+        rules:
+          - alert: Re8chVMAgentRemoteWriteBacklog
+            expr: sum(vmagent_remotewrite_pending_data_bytes{job=~".*vmagent-self"}) > 0
+            for: 10m
+            labels:
+              severity: warning
+              service: observability
+            annotations:
+              summary: vmagent remote write backlog is non-zero
+          - alert: Re8chTraefikScrapeDown
+            expr: up{job="k8s-traefik"} == 0
+            for: 5m
+            labels:
+              severity: warning
+              service: gateway
+            annotations:
+              summary: Traefik metrics scrape is down
+          - alert: Re8chNuclioRuntimeScrapeDown
+            expr: up{job="k8s-nuclio-functions-runtime"} == 0
+            for: 10m
+            labels:
+              severity: warning
+              service: nuclio
+            annotations:
+              summary: Nuclio runtime metrics scrape is down
+          - alert: Re8chHarborProbeFailed
+            expr: probe_success{job="http-probe", category="harbor"} == 0
+            for: 5m
+            labels:
+              severity: warning
+              service: harbor
+            annotations:
+              summary: Harbor public or internal probe failed
+          - alert: Re8chToolHiveMCPProxyDown
+            expr: up{job="toolhive-mcp-control-plane"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              service: toolhive
+            annotations:
+              summary: ToolHive MCP proxy scrape is down
+              description: "{{ $labels.access_level }} ToolHive proxy {{ $labels.instance }} has been down for two minutes"
+          - alert: Re8chToolHiveToolCallErrors
+            expr: |
+              sum by (server) (
+                rate(toolhive_mcp_requests_total{mcp_method="tools/call",status_code!~"2.."}[5m])
+              ) > 0
+            for: 5m
+            labels:
+              severity: warning
+              service: toolhive
+            annotations:
+              summary: ToolHive MCP tool calls are returning errors
+              description: "ToolHive server {{ $labels.server }} has failed tool calls for five minutes"
+          - alert: Re8chPanelVMDiskFreeLow
+            expr: |
+              100 * min by (node, mountpoint) (
+                node_filesystem_avail_bytes{job="k3s-node-exporter", node="rancher-panel", fstype!~"tmpfs|overlay"}
+                /
+                node_filesystem_size_bytes{job="k3s-node-exporter", node="rancher-panel", fstype!~"tmpfs|overlay"}
+              ) < 15
+            for: 10m
+            labels:
+              severity: warning
+              service: observability
+            annotations:
+              summary: Panel VictoriaMetrics node disk free is below 15 percent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-re8ch-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-re8ch-vmalert
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-re8ch-vmalert
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: vmalert
+          image: victoriametrics/vmalert:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -rule=/etc/vmalert/rules/*.yml
+            - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -evaluationInterval=30s
+            - -external.label=source=re8ch
+            - -notifier.blackhole=true
+            - -httpListenAddr=:8880
+          ports:
+            - name: http
+              containerPort: 8880
+          resources:
+            requests:
+              cpu: 15m
+              memory: 48Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: rules
+              mountPath: /etc/vmalert/rules
+              readOnly: true
+      volumes:
+        - name: rules
+          configMap:
+            name: panel-re8ch-vmalert-rules
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-re8ch-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-re8ch-vmalert
+  ports:
+    - name: http
+      port: 8880
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-pigsty-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-pigsty-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-pigsty-vmalert
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-pigsty-vmalert
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: vmalert
+          image: victoriametrics/vmalert:v1.142.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - -rule=/etc/vmalert/rules/*.yml
+            - -datasource.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428?extra_label=source%3Dpigsty
+            - -remoteWrite.url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - -evaluationInterval=30s
+            - -external.label=source=pigsty
+            - -notifier.blackhole=true
+            - -httpListenAddr=:8880
+          ports:
+            - name: http
+              containerPort: 8880
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - name: rules
+              mountPath: /etc/vmalert/rules
+              readOnly: true
+      volumes:
+        - name: rules
+          configMap:
+            name: panel-pigsty-vmalert-rules
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-pigsty-vmalert
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-pigsty-vmalert
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-pigsty-vmalert
+  ports:
+    - name: http
+      port: 8880
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-grafana-datasources
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: ds-prometheus
+        type: prometheus
+        access: proxy
+        url: http://${PANEL_VICTORIA_METRICS_SERVICE_HOST}:8428
+        isDefault: true
+        editable: true
+      - name: Pigsty Metrics
+        uid: pigsty-metrics
+        type: prometheus
+        access: proxy
+        # Reuse the in-cluster VictoriaMetrics authority.  The previous
+        # vm-20-12-ubuntu node IP was a single-node dependency and is no
+        # longer a valid metrics origin after native-routing migration.
+        url: http://${PANEL_VICTORIA_METRICS_SERVICE_HOST}:8428
+        isDefault: false
+        editable: true
+        jsonData:
+          timeInterval: "60s"
+          queryTimeout: "60s"
+          tlsAuth: false
+          tlsAuthWithCACert: false
+      - name: Re8ch Loki
+        uid: re8ch-loki
+        type: loki
+        access: proxy
+        url: http://loki-lite.qianwen-ops.svc.cluster.local:3100
+        isDefault: false
+        editable: true
+      - name: Re8ch VictoriaLogs
+        uid: re8ch-vlogs
+        type: victoriametrics-logs-datasource
+        access: proxy
+        url: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428
+        isDefault: false
+        editable: true
+      - name: Static
+        uid: ds-static
+        type: marcusolsson-static-datasource
+        access: proxy
+        isDefault: false
+        editable: true
+      - name: Network Topology JSON
+        uid: re8ch-network-topology
+        type: yesoreyeram-infinity-datasource
+        access: proxy
+        isDefault: false
+        editable: false
+        jsonData:
+          auth_method: none
+          allowedHosts:
+            - http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790
+      - name: Tenant Metrics
+        uid: tenant-metrics
+        orgId: 2
+        type: prometheus
+        access: proxy
+        url: http://${PANEL_TENANT_METRICS_PROXY_SERVICE_HOST}:39091/qianwen
+        isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: "30s"
+          queryTimeout: "30s"
+      - name: Tenant Logs
+        uid: tenant-vlogs
+        orgId: 2
+        type: victoriametrics-logs-datasource
+        access: proxy
+        url: http://${PANEL_TENANT_LOGS_PROXY_SERVICE_HOST}:39092/qianwen
+        isDefault: false
+        editable: true
+      - name: pg-meta-1.anycam_prod
+        uid: pg-meta-1-anycam-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: anycam_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: anycam_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.qianwen_prod
+        uid: pg-meta-1-qianwen-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: qianwen_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: qianwen_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.ledger
+        uid: pg-meta-1-ledger
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: ledger
+        isDefault: false
+        editable: true
+        jsonData:
+          database: ledger
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.meta
+        uid: pg-meta-1-meta
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: meta
+        isDefault: false
+        editable: true
+        jsonData:
+          database: meta
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-1.postgres
+        uid: pg-meta-1-postgres
+        type: postgres
+        access: proxy
+        url: 192.0.2.89:5432
+        user: dbuser_monitor
+        database: postgres
+        isDefault: false
+        editable: true
+        jsonData:
+          database: postgres
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.anycam_prod
+        uid: pg-meta-2-anycam-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: anycam_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: anycam_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.qianwen_prod
+        uid: pg-meta-2-qianwen-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: qianwen_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: qianwen_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.ledger
+        uid: pg-meta-2-ledger
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: ledger
+        isDefault: false
+        editable: true
+        jsonData:
+          database: ledger
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.meta
+        uid: pg-meta-2-meta
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: meta
+        isDefault: false
+        editable: true
+        jsonData:
+          database: meta
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-2.postgres
+        uid: pg-meta-2-postgres
+        type: postgres
+        access: proxy
+        url: 192.0.2.112:5432
+        user: dbuser_monitor
+        database: postgres
+        isDefault: false
+        editable: true
+        jsonData:
+          database: postgres
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.anycam_prod
+        uid: pg-meta-3-anycam-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: anycam_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: anycam_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.qianwen_prod
+        uid: pg-meta-3-qianwen-prod
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: qianwen_prod
+        isDefault: false
+        editable: true
+        jsonData:
+          database: qianwen_prod
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.ledger
+        uid: pg-meta-3-ledger
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: ledger
+        isDefault: false
+        editable: true
+        jsonData:
+          database: ledger
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.meta
+        uid: pg-meta-3-meta
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: meta
+        isDefault: false
+        editable: true
+        jsonData:
+          database: meta
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+      - name: pg-meta-3.postgres
+        uid: pg-meta-3-postgres
+        type: postgres
+        access: proxy
+        url: 192.0.2.251:5432
+        user: dbuser_monitor
+        database: postgres
+        isDefault: false
+        editable: true
+        jsonData:
+          database: postgres
+          connMaxLifetime: 3600
+          maxIdleConns: 1
+          maxOpenConns: 8
+          postgresVersion: 1500
+          sslmode: require
+          tlsAuth: false
+          tlsAuthWithCACert: false
+        secureJsonData:
+          password: ${PG_MONITOR_PASSWORD}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: panel-grafana-dashboard-providers
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: Re8ch Observability
+        orgId: 1
+        folder: Re8ch Observability
+        type: file
+        disableDeletion: false
+        allowUiUpdates: true
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards/qianwen
+          foldersFromFilesStructure: false
+      - name: Pigsty PGSQL
+        orgId: 1
+        folder: Pigsty PGSQL
+        type: file
+        disableDeletion: false
+        allowUiUpdates: true
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards/pigsty
+          foldersFromFilesStructure: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-grafana-data
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-grafana
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-grafana
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-grafana
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:13.0.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GF_SERVER_DOMAIN
+              value: grafana.re8ch.com
+            - name: GF_SERVER_ROOT_URL
+              value: https://grafana.re8ch.com/grafana/
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_SECURITY_COOKIE_SECURE
+              value: "true"
+            - name: GF_ANALYTICS_REPORTING_ENABLED
+              value: "false"
+            - name: GF_ANALYTICS_CHECK_FOR_UPDATES
+              value: "false"
+            - {name: GF_DATABASE_TYPE, value: postgres}
+            - name: GF_DATABASE_HOST
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: host}}
+            - name: GF_DATABASE_NAME
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: name}}
+            - name: GF_DATABASE_USER
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: user}}
+            - name: GF_DATABASE_PASSWORD
+              valueFrom: {secretKeyRef: {name: panel-grafana-database, key: password}}
+            - {name: GF_DATABASE_SSL_MODE, value: disable}
+            - name: GF_PLUGINS_PREINSTALL
+              value: victoriametrics-metrics-datasource,victoriametrics-logs-datasource,yesoreyeram-infinity-datasource,marcusolsson-static-datasource
+            - name: GF_PLUGINS_PREINSTALL_AUTO_UPDATE
+              value: "false"
+            - name: GF_RENDERING_SERVER_URL
+              value: http://panel-grafana-renderer.qianwen-ops.svc.cluster.local:8081/render
+            - name: GF_RENDERING_CALLBACK_URL
+              value: http://panel-grafana.qianwen-ops.svc.cluster.local:3000/grafana/
+            - name: GF_RENDERING_RENDERER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: panel-grafana-renderer-auth
+                  key: token
+            - name: GF_RENDERING_SERVER_TIMEOUT
+              value: "60"
+            - name: PG_MONITOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: panel-grafana-pg-monitor
+                  key: password
+          ports:
+            - name: http
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/grafana
+            - name: plugins
+              mountPath: /var/lib/grafana/plugins
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: dashboard-providers
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: plugins
+          persistentVolumeClaim: {claimName: panel-grafana-plugins}
+        - name: datasources
+          configMap:
+            name: panel-grafana-datasources
+        - name: dashboard-providers
+          configMap:
+            name: panel-grafana-dashboard-providers
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-grafana
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: panel-grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      nodePort: 30080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-grafana-renderer
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana-renderer
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-grafana-renderer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-grafana-renderer
+        app.kubernetes.io/part-of: panel-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      containers:
+        - name: renderer
+          # Node-local immutable alias for the verified linux/amd64 manifest
+          # sha256:9af1f59e43fba59d15f3cefc6e32d5bef9ad25d0b8d74c38d7466e13e5d19931.
+          image: grafana/grafana-image-renderer:v5.12.1-amd64
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: panel-grafana-renderer-auth
+                  key: token
+            - name: TZ
+              value: Asia/Shanghai
+            - name: GOMEMLIMIT
+              value: 512MiB
+          ports:
+            - name: http
+              containerPort: 8081
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /render/version
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /render/version
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: panel-grafana-renderer
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana-renderer
+    app.kubernetes.io/part-of: panel-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: panel-grafana-renderer
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http

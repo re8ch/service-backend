@@ -1,0 +1,12 @@
+# Apply only after the pilot reaches HEALTH_OK, all PGs are clean, and a
+# messenger-encryption rollback window is approved. This overlay does not send
+# Ceph traffic through Mihomo; it enables native Ceph Messenger v2 encryption.
+cephClusterSpec:
+  network:
+    provider: host
+    connections:
+      encryption:
+        enabled: true
+      compression:
+        enabled: false
+      requireMsgr2: true

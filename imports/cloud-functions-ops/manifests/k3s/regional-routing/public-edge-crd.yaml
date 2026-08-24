@@ -1,0 +1,154 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: publicedges.networking.re8ch.com
+spec:
+  group: networking.re8ch.com
+  scope: Cluster
+  names:
+    plural: publicedges
+    singular: publicedge
+    kind: PublicEdge
+    shortNames: [pedge]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - {name: Region, type: string, jsonPath: .spec.region}
+        - {name: Type, type: string, jsonPath: .spec.endpoint.type}
+        - {name: Published, type: string, jsonPath: .spec.endpoint.value}
+        - {name: Gateway, type: string, jsonPath: .spec.gatewayVIP}
+        - {name: Enabled, type: boolean, jsonPath: .spec.enabled}
+        - {name: Draining, type: boolean, jsonPath: .spec.draining}
+        - name: Ready
+          type: string
+          jsonPath: '.status.conditions[?(@.type=="Ready")].status'
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [region, endpoint, gatewayVIP, enabled, draining, protocols]
+              properties:
+                region: {type: string, minLength: 1}
+                area:
+                  type: string
+                  description: Coarse traffic locality such as CN, US, EU or APAC.
+                  minLength: 1
+                nodeName: {type: string}
+                enabled: {type: boolean}
+                draining: {type: boolean}
+                gatewayVIP: {type: string, format: ipv4}
+                capacityMbps: {type: integer, minimum: 1}
+                priority: {type: integer, minimum: -1000, maximum: 1000}
+                endpoint:
+                  type: object
+                  required: [type, value]
+                  properties:
+                    type:
+                      type: string
+                      enum: [PublicIP, AnycastIP, HostnameTunnel]
+                    value: {type: string, minLength: 1}
+                    probeAddress: {type: string}
+                protocols:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum: [dns-udp, dns-tcp, http, https, tls-passthrough, grpc, tcp, udp]
+                ports:
+                  type: array
+                  items: {type: integer, minimum: 1, maximum: 65535}
+                serviceClasses:
+                  type: array
+                  items: {type: string}
+                priorityByRegion:
+                  type: object
+                  additionalProperties: {type: integer, minimum: -1000, maximum: 1000}
+                forwarding:
+                  type: object
+                  properties:
+                    mode: {type: string, enum: [DirectGateway, RegionalRelay]}
+                    originArea: {type: string}
+                    originGatewayVIP: {type: string, format: ipv4}
+            status:
+              type: object
+              properties:
+                observedGeneration: {type: integer, format: int64}
+                lastProbeTime: {type: string, format: date-time}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, reason, lastTransitionTime]
+                    properties:
+                      type: {type: string}
+                      status: {type: string, enum: ["True", "False", Unknown]}
+                      reason: {type: string}
+                      message: {type: string}
+                      lastTransitionTime: {type: string, format: date-time}
+                services:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: networking.re8ch.com/v1alpha1
+kind: PublicEdge
+metadata: {name: shanghai-domain-ex}
+spec:
+  region: shanghai
+  area: CN
+  nodeName: domain-ex
+  # Public 443 is still blocked outside the host firewall/security group.
+  enabled: false
+  draining: false
+  endpoint: {type: PublicIP, value: 192.0.2.62, probeAddress: 192.0.2.62}
+  gatewayVIP: 192.0.2.213
+  capacityMbps: 100
+  priority: 10
+  protocols: [dns-udp, dns-tcp, http, https, tls-passthrough]
+  ports: [53, 80, 443]
+  serviceClasses: [api, db-ro, db-rw, web, registry]
+---
+apiVersion: networking.re8ch.com/v1alpha1
+kind: PublicEdge
+metadata: {name: guangzhou-zan}
+spec:
+  region: guangzhou
+  area: CN
+  nodeName: zan
+  enabled: true
+  draining: false
+  endpoint: {type: PublicIP, value: 192.0.2.192, probeAddress: 192.0.2.192}
+  gatewayVIP: 192.0.2.213
+  capacityMbps: 100
+  priority: 10
+  protocols: [dns-udp, dns-tcp, http, https, tls-passthrough]
+  ports: [53, 80, 443]
+  serviceClasses: [api, db-ro, db-rw, web, registry]
+---
+apiVersion: networking.re8ch.com/v1alpha1
+kind: PublicEdge
+metadata: {name: loudi-r640}
+spec:
+  region: loudi
+  area: CN
+  nodeName: restricted-node-6dc3f140f9
+  # RouterOS forwards public 80/443 to the canonical Cilium Gateway VIP.
+  # Per-service Host/SNI probes decide whether this edge is publishable.
+  enabled: true
+  draining: false
+  endpoint: {type: PublicIP, value: 192.0.2.138, probeAddress: 192.0.2.138}
+  gatewayVIP: 192.0.2.213
+  capacityMbps: 1000
+  priority: -30
+  protocols: [http, https, tls-passthrough]
+  ports: [80, 443]
+  serviceClasses: [api, db-ro, db-rw, web, registry]

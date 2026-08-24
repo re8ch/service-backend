@@ -1,0 +1,359 @@
+apiVersion: cilium.io/v2alpha1
+kind: CiliumGatewayClassConfig
+metadata:
+  name: re8ch-service-vip
+  namespace: kube-system
+spec:
+  description: RE8CH Cilium-FRR service VIP gateway
+  service:
+    type: LoadBalancer
+    loadBalancerClass: io.cilium/bgp-control-plane
+    externalTrafficPolicy: Cluster
+    allocateLoadBalancerNodePorts: true
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: cilium-re8ch
+spec:
+  controllerName: io.cilium/gateway-controller
+  parametersRef:
+    group: cilium.io
+    kind: CiliumGatewayClassConfig
+    name: re8ch-service-vip
+    namespace: kube-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: re8ch-gateway-canary
+  namespace: kube-system
+  annotations:
+    # DNS names belong to the public 443 edge, while the Gateway and backend
+    # Pods may live anywhere in the Cilium routing domain.
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+spec:
+  gatewayClassName: cilium-re8ch
+  infrastructure:
+    labels:
+      networking.re8ch.com/lb-pool: service-vip
+      networking.re8ch.com/bgp-advertise: enabled
+    annotations:
+      lbipam.cilium.io/ips: 192.0.2.213
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - {name: teable-https, hostname: teable.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: browser-https, hostname: browser.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: storage-https, hostname: storage.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: agent-https, hostname: agent.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-https, hostname: access.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: opensandbox-https, hostname: opensandbox.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: admin-https, hostname: admin.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - name: tools-wildcard-https
+      hostname: "*.tools.re8ch.com"
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs: [{kind: Secret, name: re8ch-tools-wildcard-tls}]
+      allowedRoutes: {namespaces: {from: All}}
+    - name: tools-https
+      hostname: tools.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: headlamp-https
+      hostname: headlamp.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: dex-https
+      hostname: dex.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: grafana-https
+      hostname: grafana.re8ch.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - {name: litellm-https, hostname: litellm.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: cube-https, hostname: cube.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: dbgui-https, hostname: dbgui.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-https, hostname: api.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: db-ro-https, hostname: db-ro.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: db-rw-https, hostname: db-rw.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - name: qianwen-api-https
+      hostname: api.jz.ynzs.com
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - {kind: Secret, name: api-jz-ynzs-tls, namespace: qwen}
+      allowedRoutes: {namespaces: {from: All}}
+    - name: harbor-tls
+      hostname: registry.re8ch.com
+      protocol: TLS
+      port: 443
+      tls:
+        mode: Passthrough
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata: {name: allow-public-gateway-api-jz-cert, namespace: qwen}
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: Gateway, namespace: kube-system}
+  to:
+    - {group: "", kind: Secret, name: api-jz-ynzs-tls}
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata: {name: allow-qwen-route-to-traefik, namespace: kube-system}
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: HTTPRoute, namespace: qwen}
+  to:
+    - {group: "", kind: Service, name: traefik}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: qianwen-api-public-edge, namespace: qwen}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: qianwen-api-https}
+  hostnames: [api.jz.ynzs.com]
+  rules:
+    - backendRefs:
+        - {name: traefik, namespace: kube-system, port: 80}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: headlamp-edge-origin
+  namespace: headlamp
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [headlamp.re8ch.com]
+  rules:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
+        - name: headlamp
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: headlamp-public
+  namespace: headlamp
+  annotations:
+    # Gateway status contains private service VIPs for every regional parent.
+    # Publish only the routable public edge; the VIPs remain internal origins.
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: headlamp-https
+  hostnames: [headlamp.re8ch.com]
+  rules:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
+        - name: headlamp
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-edge-origin
+  namespace: qianwen-ops
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [grafana.re8ch.com]
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
+        - name: panel-grafana
+          port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-public
+  namespace: qianwen-ops
+  annotations:
+    networking.re8ch.com/dns-authority: qianwen-ops/grafana-dns-authority
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: grafana-https
+  hostnames: [grafana.re8ch.com]
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /grafana/
+            statusCode: 302
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /grafana
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: X-Re8ch-Gateway
+                value: cilium
+      backendRefs:
+        - name: panel-grafana
+          port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: phonycenter-public
+  namespace: voice-observability
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [phonycenter.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: homer-ui
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: litellm-public
+  namespace: llm-gateway
+  annotations:
+    networking.re8ch.com/dns-authority: llm-gateway/litellm-dns-authority
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: litellm-https
+  hostnames: [litellm.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: litellm
+          port: 4000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm-dns-authority
+  namespace: llm-gateway
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: litellm.re8ch.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: litellm.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: litellm, port: {number: 4000}}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: supabase-public
+  namespace: supabase-pg-re8ch
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [supabase.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: supabase-api-kong
+          port: 8000

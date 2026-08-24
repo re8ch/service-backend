@@ -1,0 +1,6 @@
+db-uri = "postgres://image_pgrst:__DB_PASSWORD__@192.0.2.178:5432/image"
+db-schemas = "api"
+db-anon-role = "web_anon"
+db-pool = 20
+jwt-secret = "__JWT_SECRET__"
+server-port = 3016

@@ -1,0 +1,394 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: edgedevices.devices.re8ch.com
+spec:
+  group: devices.re8ch.com
+  scope: Namespaced
+  names:
+    plural: edgedevices
+    singular: edgedevice
+    kind: EdgeDevice
+    shortNames: [edev]
+    categories: [re8ch]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Vendor
+          type: string
+          jsonPath: .spec.identity.vendor
+        - name: Model
+          type: string
+          jsonPath: .spec.identity.model
+        - name: Site
+          type: string
+          jsonPath: .spec.placement.site
+        - name: Ready
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [identity, placement, connections]
+              properties:
+                identity:
+                  type: object
+                  required: [vendor, model]
+                  properties:
+                    vendor: {type: string, minLength: 1, maxLength: 128}
+                    model: {type: string, minLength: 1, maxLength: 128}
+                    serialNumber: {type: string, maxLength: 256}
+                    assetTag: {type: string, maxLength: 128}
+                    firmwareVersion: {type: string, maxLength: 128}
+                placement:
+                  type: object
+                  required: [site]
+                  properties:
+                    site: {type: string, minLength: 1, maxLength: 63}
+                    rack: {type: string, maxLength: 63}
+                    nodeName: {type: string, maxLength: 253}
+                    upstreamDeviceRef:
+                      type: object
+                      required: [name]
+                      properties:
+                        name: {type: string, minLength: 1}
+                connections:
+                  type: array
+                  minItems: 1
+                  maxItems: 64
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [name]
+                  items:
+                    type: object
+                    required: [name, type]
+                    x-kubernetes-validations:
+                      - rule: "self.type == 'Network' ? has(self.network) : !has(self.network)"
+                        message: network must be set only for Network connections
+                      - rule: "self.type == 'USB' ? has(self.usb) : !has(self.usb)"
+                        message: usb must be set only for USB connections
+                    properties:
+                      name: {type: string, minLength: 1, maxLength: 63}
+                      type: {type: string, enum: [Network, USB, Serial]}
+                      network:
+                        type: object
+                        required: [addresses]
+                        properties:
+                          addresses:
+                            type: array
+                            minItems: 1
+                            maxItems: 8
+                            items: {type: string, format: ipv4}
+                          macAddress:
+                            type: string
+                            pattern: "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
+                          vlanID: {type: integer, minimum: 1, maximum: 4094}
+                      usb:
+                        type: object
+                        required: [vendorID, productID]
+                        properties:
+                          vendorID: {type: string, pattern: "^[0-9A-Fa-f]{4}$"}
+                          productID: {type: string, pattern: "^[0-9A-Fa-f]{4}$"}
+                          serialNumber: {type: string, maxLength: 256}
+                          portPath: {type: string, maxLength: 128}
+                      serial:
+                        type: object
+                        properties:
+                          path: {type: string, pattern: "^/dev/[^/]+$"}
+                          baudRate: {type: integer, minimum: 300, maximum: 4000000}
+                capabilities:
+                  type: array
+                  maxItems: 64
+                  x-kubernetes-list-type: set
+                  items:
+                    type: string
+                    enum: [WebGUI, SIP, RTP, FXO, FXS, PSTN, VoiceControl, USB, Serial, Redfish, ONVIF, SNMP]
+                management:
+                  type: object
+                  properties:
+                    protocols:
+                      type: array
+                      maxItems: 16
+                      x-kubernetes-list-type: set
+                      items: {type: string, enum: [HTTP, HTTPS, SSH, SNMP, TR069, Redfish, ONVIF]}
+                    credentialSecretRef:
+                      type: object
+                      required: [name]
+                      properties:
+                        name: {type: string, minLength: 1}
+              x-kubernetes-validations:
+                - rule: "!has(self.management) || !has(self.management.credentialSecretRef) || self.management.credentialSecretRef.name != ''"
+                  message: credential Secret reference must have a name
+            status:
+              type: object
+              properties:
+                observedGeneration: {type: integer, format: int64, minimum: 0}
+                lastSeenTime: {type: string, format: date-time}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, reason, message, lastTransitionTime]
+                    properties:
+                      type: {type: string, minLength: 1}
+                      status: {type: string, enum: ["True", "False", Unknown]}
+                      observedGeneration: {type: integer, format: int64, minimum: 0}
+                      reason: {type: string, minLength: 1, maxLength: 1024}
+                      message: {type: string, maxLength: 32768}
+                      lastTransitionTime: {type: string, format: date-time}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: deviceservices.devices.re8ch.com
+spec:
+  group: devices.re8ch.com
+  scope: Namespaced
+  names:
+    plural: deviceservices
+    singular: deviceservice
+    kind: DeviceService
+    shortNames: [dsvc]
+    categories: [re8ch]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Device
+          type: string
+          jsonPath: .spec.deviceRef.name
+        - name: Protocol
+          type: string
+          jsonPath: .spec.protocol
+        - name: Hostname
+          type: string
+          jsonPath: .spec.exposure.hostname
+        - name: Ready
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [deviceRef, connectionName, protocol, port, exposure]
+              x-kubernetes-validations:
+                - rule: "self.exposure.mode == 'Gateway' && self.protocol in ['HTTP', 'HTTPS'] ? has(self.exposure.hostname) : true"
+                  message: Gateway HTTP and HTTPS services require a hostname
+                - rule: "self.exposure.mode == 'Gateway' ? self.protocol in ['HTTP', 'HTTPS', 'TLS', 'TCP', 'UDP'] : true"
+                  message: Gateway exposure requires a routable Gateway API protocol
+                - rule: "self.exposure.visibility == 'Authenticated' ? has(self.authentication) : true"
+                  message: Authenticated exposure requires an authentication policy
+              properties:
+                deviceRef:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: {type: string, minLength: 1}
+                connectionName: {type: string, minLength: 1, maxLength: 63}
+                protocol: {type: string, enum: [HTTP, HTTPS, TLS, TCP, UDP, SIP, RTP, USB, Serial]}
+                port: {type: integer, minimum: 1, maximum: 65535}
+                backendTLS:
+                  type: object
+                  properties:
+                    serverName: {type: string, maxLength: 253}
+                    caCertificateRefs:
+                      type: array
+                      maxItems: 8
+                      items:
+                        type: object
+                        required: [name]
+                        properties:
+                          name: {type: string, minLength: 1}
+                exposure:
+                  type: object
+                  required: [mode]
+                  properties:
+                    mode: {type: string, enum: [ClusterIP, Gateway, DRA]}
+                    hostname: {type: string, maxLength: 253}
+                    gatewayRef:
+                      type: object
+                      required: [name, namespace]
+                      properties:
+                        name: {type: string, minLength: 1}
+                        namespace: {type: string, minLength: 1}
+                        sectionName: {type: string, maxLength: 253}
+                    visibility: {type: string, enum: [Private, Authenticated, Public], default: Private}
+                  x-kubernetes-validations:
+                    - rule: "self.mode == 'Gateway' ? has(self.gatewayRef) : !has(self.gatewayRef)"
+                      message: gatewayRef is required only for Gateway exposure
+                healthCheck:
+                  type: object
+                  properties:
+                    protocol: {type: string, enum: [TCP, HTTP, HTTPS, SIPOptions]}
+                    path: {type: string, pattern: "^/"}
+                    intervalSeconds: {type: integer, minimum: 5, maximum: 3600, default: 30}
+                authentication:
+                  type: object
+                  required: [mode]
+                  properties:
+                    mode: {type: string, enum: [Upstream, ExternalAuth]}
+                    externalAuthServiceRef:
+                      type: object
+                      required: [name, namespace, port]
+                      properties:
+                        name: {type: string, minLength: 1}
+                        namespace: {type: string, minLength: 1}
+                        port: {type: integer, minimum: 1, maximum: 65535}
+                  x-kubernetes-validations:
+                    - rule: "self.mode == 'ExternalAuth' ? has(self.externalAuthServiceRef) : !has(self.externalAuthServiceRef)"
+                      message: externalAuthServiceRef is required only for ExternalAuth mode
+            status:
+              type: object
+              properties:
+                observedGeneration: {type: integer, format: int64, minimum: 0}
+                serviceRef: {type: string}
+                endpointSliceRef: {type: string}
+                routeRef: {type: string}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, reason, message, lastTransitionTime]
+                    properties:
+                      type: {type: string}
+                      status: {type: string, enum: ["True", "False", Unknown]}
+                      observedGeneration: {type: integer, format: int64, minimum: 0}
+                      reason: {type: string}
+                      message: {type: string}
+                      lastTransitionTime: {type: string, format: date-time}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: voicegateways.devices.re8ch.com
+spec:
+  group: devices.re8ch.com
+  scope: Namespaced
+  names:
+    plural: voicegateways
+    singular: voicegateway
+    kind: VoiceGateway
+    shortNames: [vgw]
+    categories: [re8ch]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Provider
+          type: string
+          jsonPath: .spec.provider
+        - name: Device
+          type: string
+          jsonPath: .spec.deviceRef.name
+        - name: Ready
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Ready")].status
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [provider, deviceRef, signaling, media, lines]
+              properties:
+                provider: {type: string, enum: [Grandstream, ChinaTelecomCloud, GovernmentEnterprise, GenericSIP]}
+                deviceRef:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: {type: string, minLength: 1}
+                signaling:
+                  type: object
+                  required: [transport, port]
+                  properties:
+                    transport: {type: string, enum: [UDP, TCP, TLS]}
+                    port: {type: integer, minimum: 1, maximum: 65535}
+                    realm: {type: string, maxLength: 253}
+                    credentialSecretRef:
+                      type: object
+                      required: [name]
+                      properties:
+                        name: {type: string, minLength: 1}
+                media:
+                  type: object
+                  required: [rtpPortRange, codecs]
+                  properties:
+                    rtpPortRange:
+                      type: object
+                      required: [start, end]
+                      x-kubernetes-validations:
+                        - rule: "self.start <= self.end"
+                          message: RTP port range start must not exceed end
+                      properties:
+                        start: {type: integer, minimum: 1024, maximum: 65535}
+                        end: {type: integer, minimum: 1024, maximum: 65535}
+                    codecs:
+                      type: array
+                      minItems: 1
+                      x-kubernetes-list-type: set
+                      items: {type: string, enum: [PCMA, PCMU, G722, OPUS, G729]}
+                    dtmfMode: {type: string, enum: [RFC2833, SIPInfo, InBand], default: RFC2833}
+                lines:
+                  type: array
+                  minItems: 1
+                  maxItems: 256
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [name]
+                  items:
+                    type: object
+                    required: [name, direction]
+                    properties:
+                      name: {type: string, pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", maxLength: 63}
+                      physicalPort: {type: string, maxLength: 64}
+                      direction: {type: string, enum: [Inbound, Outbound, Bidirectional]}
+                      enabled: {type: boolean, default: true}
+                      numberRef: {type: string, maxLength: 128}
+                controlServiceRef:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: {type: string, minLength: 1}
+            status:
+              type: object
+              properties:
+                observedGeneration: {type: integer, format: int64, minimum: 0}
+                activeCalls: {type: integer, minimum: 0}
+                registeredLines: {type: integer, minimum: 0}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, reason, message, lastTransitionTime]
+                    properties:
+                      type: {type: string}
+                      status: {type: string, enum: ["True", "False", Unknown]}
+                      observedGeneration: {type: integer, format: int64, minimum: 0}
+                      reason: {type: string}
+                      message: {type: string}
+                      lastTransitionTime: {type: string, format: date-time}

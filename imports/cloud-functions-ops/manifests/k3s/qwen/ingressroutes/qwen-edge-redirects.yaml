@@ -1,0 +1,91 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: qwen-edge-redirects
+  namespace: qwen
+  labels:
+    saas.re8ch.com/product: qianwen
+    saas.re8ch.com/tenant: qianwen
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`api.jz.ynzs.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-guangzhou24.re8ch.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-shanghai217.re8ch.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-shanghai77.re8ch.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-cand1.re8ch.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-cand3.re8ch.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api.re8ch.com`) && Path(`/callback`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api.jz.ynzs.com`) && Path(`/billing/alipay/return`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-guangzhou24.re8ch.com`) && Path(`/billing/alipay/return`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-shanghai217.re8ch.com`) && Path(`/billing/alipay/return`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-shanghai77.re8ch.com`) && Path(`/billing/alipay/return`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-cand1.re8ch.com`) && Path(`/billing/alipay/return`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080
+    - match: Host(`api-cand3.re8ch.com`) && Path(`/billing/alipay/return`)
+      kind: Rule
+      priority: 200
+      services:
+        - name: qwen-edge-redirects
+          port: 8080

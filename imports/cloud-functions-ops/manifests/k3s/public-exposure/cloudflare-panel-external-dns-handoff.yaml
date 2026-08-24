@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflare-panel-dns-controller-config
+  namespace: qianwen-ops
+data:
+  # Historical handoff input only; the legacy controller must remain inert.
+  APPLY: "0"
+  CF_ZONE_NAME: re8ch.com
+  CF_TTL: "60"
+  CF_PROXIED: "false"
+  DNS_COMMENT: managed by qianwen-ops/cloudflare-panel-dns-controller
+  RUN_INTERVAL_SECONDS: "300"
+  DNS_RECORDS: |
+    portainer.re8ch.com=192.0.2.192
+    grafana.re8ch.com=192.0.2.192
+    hubble.re8ch.com=192.0.2.192
+    cost.re8ch.com=192.0.2.192
+    bgp.re8ch.com=192.0.2.192
+    dbgui.re8ch.com=192.0.2.192
+    files.re8ch.com=192.0.2.138
+    phonycenter.re8ch.com=192.0.2.192
+    feishu-agent.re8ch.com=192.0.2.122
+    registry.re8ch.com=192.0.2.192
+    nuc-1.re8ch.com=192.0.2.197
+    nuc-2.re8ch.com=192.0.2.197
+    nuc-3.re8ch.com=192.0.2.185
+    pg-1.re8ch.com=192.0.2.5
+    pg-2.re8ch.com=192.0.2.45
+    pg-3.re8ch.com=192.0.2.41

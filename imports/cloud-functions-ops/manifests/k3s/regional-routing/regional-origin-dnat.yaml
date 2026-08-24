@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regional-origin-dnat-script
+  namespace: kube-system
+data:
+  reconcile.sh: |
+    #!/bin/sh
+    set -eu
+
+    # One canonical Gateway owns Host/SNI routing. FRR/Cilium may deliver this
+    # VIP through any healthy internal next hop; public edge identity does not
+    # create another copy of the application route table.
+    VIP=192.0.2.213
+
+    nft() {
+      nsenter -t 1 -n chroot /host /usr/sbin/nft "$@"
+    }
+
+    host_sysctl() {
+      nsenter -t 1 -n chroot /host /usr/sbin/sysctl "$@"
+    }
+
+    iptables() {
+      nsenter -t 1 -n chroot /host /usr/sbin/iptables "$@"
+    }
+
+    install_rules() {
+      BACKEND_PORT="$(cilium-dbg service list | awk -v frontend="${VIP}:443/TCP" \
+        '$2 == frontend { split($6, endpoint, ":"); split(endpoint[2], port, "/"); print port[1]; exit }')"
+      if [ -z "${BACKEND_PORT}" ]; then
+        echo "${NODE_NAME}: no local Cilium backend for Gateway VIP ${VIP}" >&2
+        return 1
+      fi
+      # Provider-NAT packets are redirected to Cilium's loopback Envoy. Linux
+      # rejects that path unless route_localnet is enabled on the ingress NIC,
+      # and an INPUT policy of DROP must explicitly admit only this listener.
+      for interface in $(ls /sys/class/net | grep -v -E '^(lo|cilium_|cilium|lxc|veth|cni|flannel)'); do
+        host_sysctl -w "net.ipv4.conf.${interface}.route_localnet=1" >/dev/null || true
+      done
+      iptables -C INPUT -p tcp -d 127.0.0.1 --dport "${BACKEND_PORT}" \
+        -m comment --comment re8ch-regional-origin -j ACCEPT 2>/dev/null || \
+        iptables -I INPUT 1 -p tcp -d 127.0.0.1 --dport "${BACKEND_PORT}" \
+          -m comment --comment re8ch-regional-origin -j ACCEPT
+      nft delete table ip re8ch_regional_origin 2>/dev/null || true
+      nft add table ip re8ch_regional_origin
+      nft 'add chain ip re8ch_regional_origin prerouting { type nat hook prerouting priority dstnat - 5; policy accept; }'
+      # Provider NAT means the public address is not necessarily present on-host.
+      # Only packets arriving for a local address are redirected; forwarded
+      # traffic and traffic already addressed to a Service VIP are untouched.
+      # Cilium's Service LB runs before nft at TC ingress, so resolving the
+      # VIP-owned local Envoy backend avoids a second, impossible BPF pass.
+      nft add rule ip re8ch_regional_origin prerouting \
+        fib daddr type local iifname != "lo" tcp dport 80 dnat to "127.0.0.1:${BACKEND_PORT}"
+      nft add rule ip re8ch_regional_origin prerouting \
+        fib daddr type local iifname != "lo" tcp dport 443 dnat to "127.0.0.1:${BACKEND_PORT}"
+      echo "${NODE_NAME}: host 80/443 -> Gateway ${VIP} (local Envoy ${BACKEND_PORT}) installed"
+    }
+
+    cleanup() {
+      if [ -n "${BACKEND_PORT:-}" ]; then
+        iptables -D INPUT -p tcp -d 127.0.0.1 --dport "${BACKEND_PORT}" \
+          -m comment --comment re8ch-regional-origin -j ACCEPT 2>/dev/null || true
+      fi
+      nft delete table ip re8ch_regional_origin 2>/dev/null || true
+    }
+    trap cleanup EXIT INT TERM
+
+    install_rules
+    while sleep 30; do
+      nft list table ip re8ch_regional_origin >/dev/null 2>&1 || install_rules
+    done
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: regional-origin-dnat
+  namespace: kube-system
+  labels: {app.kubernetes.io/name: regional-origin-dnat}
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: regional-origin-dnat}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: regional-origin-dnat}
+    spec:
+      hostNetwork: true
+      hostPID: true
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 10
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: networking.re8ch.com/public-edge
+                    operator: Exists
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: reconciler
+          image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+          imagePullPolicy: IfNotPresent
+          command: [/usr/bin/sh, /config/reconcile.sh]
+          securityContext:
+            privileged: true
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          volumeMounts:
+            - {name: script, mountPath: /config, readOnly: true}
+            - {name: host-root, mountPath: /host, readOnly: true}
+            - {name: cilium-run, mountPath: /var/run/cilium, readOnly: true}
+          readinessProbe:
+            exec:
+              command: [/usr/bin/nsenter, -t, "1", -n, chroot, /host, /usr/sbin/nft, list, table, ip, re8ch_regional_origin]
+            initialDelaySeconds: 2
+            periodSeconds: 10
+      volumes:
+        - name: script
+          configMap: {name: regional-origin-dnat-script, defaultMode: 365}
+        - name: host-root
+          hostPath: {path: /, type: Directory}
+        - name: cilium-run
+          hostPath: {path: /var/run/cilium, type: Directory}

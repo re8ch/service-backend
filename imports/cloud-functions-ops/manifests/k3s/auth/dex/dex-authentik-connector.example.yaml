@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-authentik-connector-example
+  namespace: dex
+  annotations:
+    re8ch.com/purpose: "Reference patch for the live dex-config Secret; do not apply directly."
+data:
+  config-snippet.yaml: |
+    # Merge this into the live dex-config Secret config.yaml after creating
+    # the matching Authentik OIDC application.
+    connectors:
+      - type: oidc
+        id: authentik
+        name: Authentik
+        config:
+          issuer: https://auth.re8ch.com/application/o/dex/
+          clientID: $DEX_AUTHENTIK_CLIENT_ID
+          clientSecret: $DEX_AUTHENTIK_CLIENT_SECRET
+          redirectURI: https://dex.re8ch.com/callback
+          scopes:
+            - openid
+            - email
+            - profile
+            - groups
+          insecureEnableGroups: false
+
+    # Keep existing Headlamp client and staticPasswords. Add this only if
+    # re8ch-auth-gateway should also use Dex as an optional upstream provider.
+    staticClients:
+      - id: re8ch-auth-gateway
+        name: RE8CH Auth Gateway
+        secret: $DEX_RE8CH_AUTH_GATEWAY_CLIENT_SECRET
+        redirectURIs:
+          - https://api.re8ch.com/auth/callback/dex

@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "re8ch.com/v1alpha1",
+  "nodes": [
+    {
+      "name": "restricted-node-1eb0570f74",
+      "internalIp": "192.0.2.176",
+      "externalIp": null,
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "amdwsl-zt",
+      "internalIp": "fc64:f13e:b4c:5bfb:7a0f::1",
+      "externalIp": null,
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04.1 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "restricted-node-296f36f2fb",
+      "internalIp": "192.0.2.4",
+      "externalIp": null,
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "domain-ex",
+      "internalIp": "192.0.2.89",
+      "externalIp": "192.0.2.62",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 22.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "muaya-ecs",
+      "internalIp": "192.0.2.74",
+      "externalIp": "192.0.2.185",
+      "ready": "Unknown",
+      "unschedulable": true,
+      "osImage": "Ubuntu 26.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "muaya-lightweight",
+      "internalIp": "192.0.2.112",
+      "externalIp": "192.0.2.197",
+      "ready": "True",
+      "unschedulable": true,
+      "osImage": "Ubuntu 24.04.2 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "overseas-edge-50",
+      "internalIp": "192.0.2.79",
+      "externalIp": "192.0.2.189",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04.3 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "overseas-kl",
+      "internalIp": "192.0.2.245",
+      "externalIp": "192.0.2.145",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "overseas-la",
+      "internalIp": "192.0.2.110",
+      "externalIp": "192.0.2.111",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 26.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "qwen-1",
+      "internalIp": "192.0.2.154",
+      "externalIp": null,
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04.4 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "qwen-2",
+      "internalIp": "192.0.2.111",
+      "externalIp": null,
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04.4 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "qwen-3",
+      "internalIp": "192.0.2.251",
+      "externalIp": null,
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 24.04.4 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "restricted-node-6dc3f140f9",
+      "internalIp": "192.0.2.178",
+      "externalIp": "192.0.2.138",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 26.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "suxunji",
+      "internalIp": "192.0.2.182",
+      "externalIp": "192.0.2.86",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 22.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "vm-20-12-ubuntu",
+      "internalIp": "192.0.2.192",
+      "externalIp": "192.0.2.122",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 22.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    },
+    {
+      "name": "zan",
+      "internalIp": "192.0.2.138",
+      "externalIp": "192.0.2.192",
+      "ready": "True",
+      "unschedulable": false,
+      "osImage": "Ubuntu 22.04 LTS",
+      "kubeletVersion": "v1.36.0-rc3+k3s1",
+      "containerRuntime": "containerd://2.2.3-k3s1"
+    }
+  ]
+}

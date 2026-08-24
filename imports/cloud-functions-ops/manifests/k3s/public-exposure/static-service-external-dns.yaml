@@ -1,0 +1,208 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-dns-placeholder
+  namespace: qianwen-ops
+spec:
+  ports:
+    - name: dns-only
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-panel-services-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: portainer.re8ch.com,hubble.re8ch.com,cost.re8ch.com,bgp.re8ch.com,dbgui.re8ch.com,fleet.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: portainer.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-r640-services-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: files.re8ch.com,neo4j.re8ch.com,codex.re8ch.com,decision.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: files.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-cilium-edge-services-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: migrated-to-gateway-route}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: registry.re8ch.com,phonycenter.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: registry.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-icp-services-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: feishu-agent.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.122
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: feishu-agent.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-hangzhou-services-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: auth.re8ch.com,operate.tools.re8ch.com,nuc-3.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.185
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: auth.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-nuclio-shanghai-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: nuc-1.re8ch.com,nuc-2.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.197
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: nuc-1.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-pg1-identity-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: pg-1.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.5
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: pg-1.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-pg2-services-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: pg-2.re8ch.com,ledger-decisions.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.45
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: pg-2.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: static-pg3-identity-dns
+  namespace: qianwen-ops
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: pg-3.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.41
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: pg-3.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: external-dns-placeholder, port: {name: dns-only}}

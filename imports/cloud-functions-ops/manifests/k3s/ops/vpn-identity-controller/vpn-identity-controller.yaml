@@ -1,0 +1,309 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vpn-identity-controller-data
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: vpn-identity-controller
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vpn-identity-controller-config
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: vpn-identity-controller
+    app.kubernetes.io/part-of: re8ch-ops
+data:
+  identities.json: |
+    {
+      "users": []
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vpn-identity-controller
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: vpn-identity-controller
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vpn-identity-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vpn-identity-controller
+        app.kubernetes.io/part-of: re8ch-ops
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: web
+          image: registry.re8ch.com/ops/vpn-identity-controller:20260715-001
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /app/controller.py
+            - serve
+            - --port
+            - "8080"
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: DRY_RUN
+              value: "true"
+            - name: MIKROTIK_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-identity-controller-secrets
+                  key: mikrotik_base_url
+            - name: MIKROTIK_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-identity-controller-secrets
+                  key: mikrotik_username
+            - name: MIKROTIK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-identity-controller-secrets
+                  key: mikrotik_password
+            - name: FLEET_BASE_URL
+              value: "https://fleet.re8ch.com"
+            - name: FLEET_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-identity-controller-secrets
+                  key: fleet_api_token
+                  optional: true
+            - name: INVITE_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vpn-identity-controller-secrets
+                  key: invite_signing_key
+                  optional: true
+            - name: PUBLIC_BASE_URL
+              value: "https://fleet.re8ch.com/re8ch-vpn"
+            - name: FLEET_IOS_ENROLL_URL_TEMPLATE
+              value: "https://fleet.re8ch.com/api/v1/fleet/enrollment_profiles/ota?enroll_secret={secret}"
+            - name: STATUS_WEBCLIP_URL
+              value: "https://fleet.re8ch.com/re8ch-vpn"
+            - name: DESIRED_IDENTITIES_PATH
+              value: /config/identities.json
+            - name: STATE_PATH
+              value: /data/state.json
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: vpn-identity-controller-data
+        - name: config
+          configMap:
+            name: vpn-identity-controller-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpn-identity-controller
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: vpn-identity-controller
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: vpn-identity-controller
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vpn-identity-controller-sync
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: vpn-identity-controller
+    app.kubernetes.io/part-of: re8ch-ops
+spec:
+  suspend: true
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: vpn-identity-controller
+            app.kubernetes.io/component: sync
+        spec:
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: rancher-panel
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+          containers:
+            - name: sync
+              image: registry.re8ch.com/ops/vpn-identity-controller:20260715-001
+              imagePullPolicy: IfNotPresent
+              command:
+                - python
+                - /app/controller.py
+                - sync
+              env:
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+                - name: DRY_RUN
+                  value: "true"
+                - name: MIKROTIK_BASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: vpn-identity-controller-secrets
+                      key: mikrotik_base_url
+                - name: MIKROTIK_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: vpn-identity-controller-secrets
+                      key: mikrotik_username
+                - name: MIKROTIK_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: vpn-identity-controller-secrets
+                      key: mikrotik_password
+                - name: FLEET_BASE_URL
+                  value: "https://fleet.re8ch.com"
+                - name: FLEET_API_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vpn-identity-controller-secrets
+                      key: fleet_api_token
+                      optional: true
+                - name: INVITE_SIGNING_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: vpn-identity-controller-secrets
+                      key: invite_signing_key
+                      optional: true
+                - name: PUBLIC_BASE_URL
+                  value: "https://fleet.re8ch.com/re8ch-vpn"
+                - name: FLEET_IOS_ENROLL_URL_TEMPLATE
+                  value: "https://fleet.re8ch.com/api/v1/fleet/enrollment_profiles/ota?enroll_secret={secret}"
+                - name: STATUS_WEBCLIP_URL
+                  value: "https://fleet.re8ch.com/re8ch-vpn"
+                - name: DESIRED_IDENTITIES_PATH
+                  value: /config/identities.json
+                - name: STATE_PATH
+                  value: /data/state.json
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: vpn-identity-controller-data
+            - name: config
+              configMap:
+                name: vpn-identity-controller-config
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vpn-identity-controller-invite
+  namespace: ops
+  labels:
+    app.kubernetes.io/name: vpn-identity-controller
+    app.kubernetes.io/part-of: re8ch-ops
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: fleet.re8ch.com
+      http:
+        paths:
+          - path: /re8ch-vpn/invite
+            pathType: Prefix
+            backend:
+              service:
+                name: vpn-identity-controller
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - fleet.re8ch.com
+      secretName: re8ch-wildcard-tls
