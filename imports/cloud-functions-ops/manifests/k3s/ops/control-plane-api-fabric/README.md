@@ -34,3 +34,10 @@ peer URL, then confirm quorum before any other action. Do not remove the
 
 The rollout is blocked whenever A1 is NotReady, any etcd member is catching up,
 or a protected aggregate (`192.0.2.20/24` or `192.0.2.57/16`) appears in FRR.
+
+During the 2026-08-24 A1 recovery, Spegel repeatedly rejected malformed legacy
+ToolHive image metadata and consumed a full CPU while kubelet remained
+NotReady. Install `a1-disable-embedded-registry.yaml` as an A1-only K3s config
+drop-in before restarting that voter. Do not delete containerd content to fix
+this condition. Remove the override only after the malformed image reference is
+absent and an offline `ctr images check` succeeds.
