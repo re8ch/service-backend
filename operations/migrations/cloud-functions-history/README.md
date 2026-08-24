@@ -13,7 +13,7 @@ free prefix. A signed integration commit then moved the current files into
 
 - Original master: `9d2aa44fa7d848c23e4e7d756871b2716a0b8ac7`
 - Rewritten cloud-functions master: `bd00c4ada735f5f0ba6d6d10955a72c0f00159bb`
-- Imported operations master: `aba7770ebeb819d84e258506da76221c9c0383df`
+- Imported operations master: `1c2f4fd47207fd22d36f1893586da486f6d3f13f`
 - Imported inventory drift tip: `e188110923452adfe7dca67d925e35626c5f342d`
 - Pre-rewrite bundle SHA-256:
   `f567d0b556450bce751bea7eea07d3532bd0c23df4bd73e80fe1b36ded3337de`
