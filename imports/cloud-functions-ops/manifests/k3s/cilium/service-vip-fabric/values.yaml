@@ -40,6 +40,9 @@ advancedFabric:
         localAsn: 4200000128
         vipInterface: lo
         frrExportPrefixLists: [POD-FABRIC-SELF]
+        frrImportPrefixLists: [SELF]
+        frrNeighborPolicies:
+          - {neighbor: 192.0.2.4, maximumPrefixes: 8}
         wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
         wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
         fallbackRoutes:
@@ -72,7 +75,15 @@ advancedFabric:
       - {name: muaya-ecs, localAsn: 4200000095, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.116/32]}
       - {name: suxunji, localAsn: 4200000077, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.116/32]}
       - {name: vm-20-12-ubuntu, localAsn: 4200000073, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.116/32]}
-      - {name: overseas-edge-50, localAsn: 4200000050, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.116/32]}
+      - name: overseas-edge-50
+        localAsn: 4200000050
+        vipInterface: lo
+        frrExportPrefixLists: []
+        frrImportPrefixLists: [FROM-128]
+        frrNeighborPolicies:
+          - {neighbor: 192.0.2.125, maximumPrefixes: 8, routeMap: WG-R640-IN, matchPrefixList: FROM-128, localPreference: 300}
+        wireguardInterfaces: [wg-pt-a1]
+        wireguardAllowedPrefixes: [192.0.2.116/32]
       - {name: overseas-kl, localAsn: 4200000089, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.116/32]}
       - name: overseas-la
         localAsn: 4200000104
