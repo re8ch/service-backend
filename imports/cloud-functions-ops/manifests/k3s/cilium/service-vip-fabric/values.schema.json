@@ -31,6 +31,8 @@
             "port": {"const": 6443},
             "mode": {"const": "healthy-ecmp"},
             "eligibleNodes": {"type": "array", "minItems": 3, "uniqueItems": true, "items": {"enum": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}},
+            "guardedNodes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}},
+            "nodeOperations": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["name", "localAsn", "vipInterface", "frrExportPrefixLists", "wireguardInterfaces"], "properties": {"name": {"enum": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}, "localAsn": {"type": "integer"}, "vipInterface": {"const": "lo"}, "frrExportPrefixLists": {"type": "array", "items": {"type": "string"}}, "wireguardInterfaces": {"type": "array", "items": {"type": "string"}}, "fallbackRoutes": {"type": "array", "items": {"type": "object"}}}}},
             "primaryTransport": {"const": "wireguard"},
             "fallbackTransport": {"const": "zerotier"},
             "healthCheck": {"type": "object"}
