@@ -169,6 +169,16 @@ announce_vip() {
   frr_vip apply
 }
 
+vip_announced() {
+  vip=$(transaction | jq -r '.vip'); iface=$(transaction | jq -r '.vipInterface'); sequence=$(transaction | jq -r '.frrPrefixSequence')
+  host ip -o -4 address show dev "${iface}" | grep -Fq " ${vip} " || return 1
+  running=$(host vtysh -c 'show running-config')
+  printf '%s\n' "${running}" | grep -Fq "network ${vip}" || return 1
+  for list in $(transaction | jq -r '.frrExportPrefixLists[]?'); do
+    printf '%s\n' "${running}" | grep -Fq "ip prefix-list ${list} seq ${sequence} permit ${vip}" || return 1
+  done
+}
+
 api_healthy() {
   timeout_seconds=$(jq -r '.controlPlaneApi.healthCheck.timeoutSeconds' "${NODE_FILE}")
   host timeout "${timeout_seconds}" k3s kubectl --server=https://127.0.0.1:6443 get --raw=/readyz 2>/dev/null | grep -qx ok
@@ -199,6 +209,9 @@ while :; do
       successes=$((successes + 1)); failures=0
       threshold=$(jq -r '.controlPlaneApi.healthCheck.successThreshold' "${NODE_FILE}")
       if [ "${announced}" = false ] && [ "${successes}" -ge "${threshold}" ]; then announce_vip; announced=true; fi
+      # Reassert a healthy transaction when another declarative reconciler
+      # rewrites the loopback, BGP network, or export prefix-list state.
+      if [ "${announced}" = true ] && ! vip_announced; then announce_vip; fi
     else
       failures=$((failures + 1)); successes=0
       threshold=$(jq -r '.controlPlaneApi.healthCheck.failureThreshold' "${NODE_FILE}")
