@@ -55,6 +55,22 @@ data:
 
     reconcile_wireguard_allowed_ips() {
       if [ -n "${route_server}" ]; then
+        # The A1/B1 interconnect also carries return traffic for the opposite
+        # route server's transport spokes.  Without this explicit transport
+        # CIDR, a reflected route can be reachable in the forward direction
+        # while replies escape through WSL's default gateway.
+        if host ip link show wg-wsl-lan >/dev/null 2>&1; then
+          jq -c --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own)' /config/inventory.json | while read -r other_rr; do
+            other_interconnect="$(printf '%s' "${other_rr}" | jq -r .rrInterconnectIp)"
+            other_transport_octet="$(printf '%s' "${other_rr}" | jq -r '.transportIp | split(".")[2]')"
+            other_transport_cidr="172.31.${other_transport_octet}.0/24"
+            peer_key="$(host wg show wg-wsl-lan allowed-ips | awk -v needle="${other_interconnect}/32" '$0 ~ needle {print $1; exit}')"
+            [ -n "${peer_key}" ] || continue
+            allowed="$(host wg show wg-wsl-lan allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+            case ",${allowed}," in *",${other_transport_cidr},"*) : ;; *) host wg set wg-wsl-lan peer "${peer_key}" allowed-ips "${allowed},${other_transport_cidr}" ;; esac
+            host vtysh -c 'configure terminal' -c "ip route ${other_transport_cidr} ${other_interconnect} wg-wsl-lan 5" -c end
+          done
+        fi
         if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
         host ip link show "${iface}" >/dev/null 2>&1 || return 0
         jq -c '.nodes[] | select(.peerMode == "transport")' /config/inventory.json | while read -r spoke; do
@@ -231,10 +247,18 @@ data:
           echo "neighbor ${peer} prefix-list POD-FABRIC-OUT in"
           echo "neighbor ${peer} prefix-list POD-FABRIC-OUT out"
           echo "neighbor ${peer} maximum-prefix 64 90 restart 5"
-          echo "no neighbor ${peer} next-hop-self force"
           echo "no neighbor ${peer} route-map POD-FABRIC-IDENTITY-OUT out"
           echo "no neighbor ${peer} route-map POD-FABRIC-TRANSPORT-OUT out"
-          echo "neighbor ${peer} attribute-unchanged next-hop"
+          if [ "${mode}" = transport ]; then
+            # A transport spoke cannot resolve a route-server interconnect
+            # next hop learned from the other control-plane route server.
+            # Re-anchor reflected routes on this directly attached WG peer.
+            echo "no neighbor ${peer} attribute-unchanged next-hop"
+            echo "neighbor ${peer} next-hop-self force"
+          else
+            echo "no neighbor ${peer} next-hop-self force"
+            echo "neighbor ${peer} attribute-unchanged next-hop"
+          fi
           echo "neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
           if [ "${mode}" = transport ]; then
             echo "no neighbor ${peer} route-map POD-NH-${last} in"
