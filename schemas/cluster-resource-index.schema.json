@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/cluster-resource-index.v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "governance.re8ch.com/v1alpha1"},
+    "kind": {"const": "ClusterResourceIndex"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}}
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["controlPlane", "lookup", "evidence"],
+      "properties": {
+        "controlPlane": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "revision", "indexPath"],
+          "properties": {
+            "repository": {"type": "string"},
+            "revision": {"type": "string"},
+            "indexPath": {"const": "indexes/deployments.json"}
+          }
+        },
+        "lookup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "catalog", "declaredDeployments"],
+          "properties": {
+            "module": {"type": "string"},
+            "catalog": {"type": "string"},
+            "declaredDeployments": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authority", "requiredPlanes"],
+          "properties": {
+            "authority": {"const": "kubernetes"},
+            "requiredPlanes": {
+              "type": "array",
+              "minItems": 3,
+              "items": {"enum": ["monitoring", "deploying", "planning"]},
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

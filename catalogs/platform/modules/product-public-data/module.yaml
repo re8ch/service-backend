@@ -1,4 +1,4 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: product-public-data, catalog: platform}
-spec: {ownership: owned, lifecycle: active, repository: {provider: github, url: https://github.com/re8ch/product-public-data.git, defaultBranch: main, owner: re8ch}, workspace: {macPath: platform/product-public-data, r640Path: platform/product-public-data}, projectType: public-data, writePolicy: github-pr, knowledge: [README.md], tools: [git]}
+spec: {ownership: owned, lifecycle: active, repository: {provider: github, url: 'https://github.com/re8ch/product-public-data.git', defaultBranch: main, owner: re8ch}, projectType: public-data, writePolicy: github-pr, knowledge: [README.md], tools: [git], source: {kind: submodule, path: source, metadataPolicy: in-repository}, identity: {maintainerAddress: product-public-data-maintain@phonaid.com, accountClass: project-maintainer}, clusterIndex: {path: .re8ch/cluster-resources.yaml}}

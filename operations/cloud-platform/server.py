@@ -36,13 +36,11 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "workspace.doctor": {},
     "workspace.index": {"write": {"type": "boolean"}},
     "workspace.sync": {"write": {"type": "boolean"}},
-    "workspace.materialize": {"catalogs": {"type": "array", "items": {"type": "string"}}, "apply": {"type": "boolean"}},
     "workspace.context": {"module": {"type": "string"}, "query": {"type": "string"}},
     "workspace.memory-audit": {},
-    "workspace.link": {"apply": {"type": "boolean"}},
 }
 
-WRITE_TOOLS = {"node.ssh.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.sync", "workspace.materialize", "workspace.link"}
+WRITE_TOOLS = {"node.ssh.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.sync"}
 
 
 REQUIRED = {
@@ -94,14 +92,7 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
     if name.startswith("workspace."):
         command = name.removeprefix("workspace.")
         argv = ["python", "/app/workspace.py", "--root", str(WORKSPACE_ROOT), command]
-        if command == "materialize":
-            for catalog in args.get("catalogs", []):
-                argv += ["--catalog", catalog]
-            if args.get("apply"):
-                argv.append("--apply")
-        elif command == "link" and args.get("apply"):
-            argv.append("--apply")
-        elif command in {"sync", "index"} and args.get("write"):
+        if command in {"sync", "index"} and args.get("write"):
             argv.append("--write")
         elif command == "context":
             if args.get("module"):

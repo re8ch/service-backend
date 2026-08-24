@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: mcp-registry
+spec:
+  parent:
+    catalog: platform
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/platform/modules/mcp-registry
+    submodulePath: catalogs/platform/modules/mcp-registry/source
+  identity:
+    maintainerAddress: mcp-registry-readonly@phonaid.com
+    accountClass: external-readonly
+    googleWorkspacePolicy: external
+  workspace:
+    name: mcp-registry-readonly
+    oneActivePerAccount: true
+    branchPrefix: workspace/mcp-registry-readonly/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

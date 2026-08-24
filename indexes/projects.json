@@ -1,373 +1,479 @@
 [
   {
     "catalog": "2woodblog",
+    "commit": "019c2b9c2a21f93bf371ecb3e01eec3ed605f38c",
     "id": "2woodblog",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/Woomou/2woodblog.git"
+    "repository": "https://github.com/Woomou/2woodblog.git",
+    "source": "catalogs/2woodblog/modules/2woodblog/source"
   },
   {
     "catalog": "aesthete",
+    "commit": "1e06ed1aebca1067a1b1c07bc24833bfb70a2ef3",
     "id": "aesthete",
     "ownership": "owned",
     "projectType": "visual-product",
-    "repository": "https://github.com/re8ch/aesthete.git"
+    "repository": "https://github.com/re8ch/aesthete.git",
+    "source": "catalogs/aesthete/modules/aesthete/source"
   },
   {
     "catalog": "aesthete",
+    "commit": "7ff6c89d1fdbbe527ea705e9c3688052b981126f",
     "id": "z-anatomy-models",
     "ownership": "external",
     "projectType": "model-assets",
-    "repository": "https://github.com/Z-Anatomy/Models-of-human-anatomy.git"
+    "repository": "https://github.com/Z-Anatomy/Models-of-human-anatomy.git",
+    "source": "catalogs/aesthete/modules/z-anatomy-models/source"
   },
   {
     "catalog": "anycam",
+    "commit": "51151cc9d7d4395d47fcdf27b32c015ac2d34e31",
     "id": "anycam",
     "ownership": "owned",
     "projectType": "app",
-    "repository": "https://github.com/re8ch/Anycam.git"
+    "repository": "https://github.com/re8ch/Anycam.git",
+    "source": "catalogs/anycam/modules/anycam/source"
   },
   {
     "catalog": "anycam",
+    "commit": "7b0a7fce25661632fed83184105c97612268e308",
     "id": "anycam-backend",
     "ownership": "owned",
     "projectType": "service",
-    "repository": "https://github.com/re8ch/anycam-backend.git"
+    "repository": "https://github.com/re8ch/anycam-backend.git",
+    "source": "catalogs/anycam/modules/anycam-backend/source"
   },
   {
     "catalog": "anycam",
+    "commit": "f5d3cc7eae370f48e31612d8dfa8a65e899709a2",
     "id": "anycam-ios",
     "ownership": "owned",
     "projectType": "ios",
-    "repository": "https://github.com/re8ch/AnycamIOS.git"
+    "repository": "https://github.com/re8ch/AnycamIOS.git",
+    "source": "catalogs/anycam/modules/anycam-ios/source"
   },
   {
     "catalog": "anycam",
+    "commit": "37df7b97a36cf52e8afaa96cfc7699600e0d1e1d",
     "id": "anycam-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/anycam-website.git"
+    "repository": "https://github.com/re8ch/anycam-website.git",
+    "source": "catalogs/anycam/modules/anycam-website/source"
   },
   {
     "catalog": "anysiteonearth",
+    "commit": "4902b906dec60aca6265ad5bed0ba0973491d995",
     "id": "anysiteonearth",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/anysiteonearth.git"
+    "repository": "https://github.com/re8ch/anysiteonearth.git",
+    "source": "catalogs/anysiteonearth/modules/anysiteonearth/source"
   },
   {
     "catalog": "anysiteonearth",
+    "commit": "43532c9d1bcf77a7389bb3a12b74817b388ee939",
     "id": "anysiteonearth-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/anysiteonearth-website.git"
+    "repository": "https://github.com/re8ch/anysiteonearth-website.git",
+    "source": "catalogs/anysiteonearth/modules/anysiteonearth-website/source"
   },
   {
     "catalog": "artchais",
+    "commit": "aa2b9eda6785027c41bf789c0f201a36c5a02d55",
     "id": "artchais-microservices",
     "ownership": "collaboration",
     "projectType": "microservices",
-    "repository": "https://github.com/XProfessorJ/Artchais-MicroServices.git"
+    "repository": "https://github.com/XProfessorJ/Artchais-MicroServices.git",
+    "source": "catalogs/artchais/modules/artchais-microservices/source"
   },
   {
     "catalog": "artchais",
+    "commit": "22ae111927323bce9adaa9cf9f28f9a36807c359",
     "id": "artchais-web",
     "ownership": "collaboration",
     "projectType": "web",
-    "repository": "https://github.com/XProfessorJ/ArtChais-Web.git"
+    "repository": "https://github.com/XProfessorJ/ArtChais-Web.git",
+    "source": "catalogs/artchais/modules/artchais-web/source"
   },
   {
     "catalog": "artchais",
+    "commit": "541afc8f91a93604621b6c7c35344c0709c6d0f9",
     "id": "arthandler-artchais-web",
     "ownership": "collaboration",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/arthandler-artchais-web.git"
+    "repository": "https://github.com/re8ch/arthandler-artchais-web.git",
+    "source": "catalogs/artchais/modules/arthandler-artchais-web/source"
   },
   {
     "catalog": "artchais",
+    "commit": "d18ba129b46ea9e5011fdb02bb841cea78418d26",
     "id": "arthandler-gallery-robot",
     "ownership": "collaboration",
     "projectType": "automation",
-    "repository": "https://github.com/Woomou/ArtHandler-Gallery-Robot.git"
+    "repository": "https://github.com/Woomou/ArtHandler-Gallery-Robot.git",
+    "source": "catalogs/artchais/modules/arthandler-gallery-robot/source"
   },
   {
     "catalog": "baozou-ppt-studio",
+    "commit": "6638d35c72443dad258c2f248076f751e0a337c0",
     "id": "baozou-ppt-studio",
     "ownership": "owned",
     "projectType": "presentation-product",
-    "repository": "https://github.com/re8ch/baozou-ppt-studio.git"
+    "repository": "https://github.com/re8ch/baozou-ppt-studio.git",
+    "source": "catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source"
   },
   {
     "catalog": "baozou-ppt-studio",
+    "commit": "012ebfd676464b062e986758548c3215d2f12b24",
     "id": "director-engines",
     "ownership": "owned",
     "projectType": "rendering-engine",
-    "repository": "https://github.com/re8ch/director-engines.git"
+    "repository": "https://github.com/re8ch/director-engines.git",
+    "source": "catalogs/baozou-ppt-studio/modules/director-engines/source"
   },
   {
     "catalog": "career-ops",
+    "commit": "99cb01e7cc7c47061a2cdbd48097b6ecd553470b",
     "id": "career-ops",
     "ownership": "owned",
     "projectType": "operations",
-    "repository": "https://github.com/Woomou/career-ops.git"
+    "repository": "https://github.com/Woomou/career-ops.git",
+    "source": "catalogs/career-ops/modules/career-ops/source"
   },
   {
     "catalog": "compocv",
+    "commit": "bc4c867a44047b0fd0e016d47d2798b6570b6b7b",
     "id": "compocv",
     "ownership": "owned",
     "projectType": "product-api",
-    "repository": "https://github.com/re8ch/compocv.git"
+    "repository": "https://github.com/re8ch/compocv.git",
+    "source": "catalogs/compocv/modules/compocv/source"
   },
   {
     "catalog": "garageband",
+    "commit": "d430c62fdbb14edaddba5ebadd47ca24ee669aef",
     "id": "garageband-mcp",
     "ownership": "owned",
     "projectType": "mcp-server",
-    "repository": "https://github.com/re8ch/garageband-mcp.git"
+    "repository": "https://github.com/re8ch/garageband-mcp.git",
+    "source": "catalogs/garageband/modules/garageband-mcp/source"
   },
   {
     "catalog": "garageband",
+    "commit": "33f05b518e06c1f5fc86ee4cad000c1fb6c94bb7",
     "id": "garageband-mcp-site",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/garageband-mcp-site.git"
+    "repository": "https://github.com/re8ch/garageband-mcp-site.git",
+    "source": "catalogs/garageband/modules/garageband-mcp-site/source"
   },
   {
     "catalog": "jjklive",
+    "commit": "232dabf876406a0d47bf22ebb7388d39cf39e6c2",
     "id": "jjklive",
     "ownership": "owned",
     "projectType": "game",
-    "repository": "https://github.com/re8ch/jjklive.git"
+    "repository": "https://github.com/re8ch/jjklive.git",
+    "source": "catalogs/jjklive/modules/jjklive/source"
   },
   {
     "catalog": "ledger",
+    "commit": "20966b88af0df626e2b4f9de5bd4686f6e9f7b64",
     "id": "ledger",
     "ownership": "owned",
     "projectType": "finance-platform",
-    "repository": "https://github.com/re8ch/ledger.git"
+    "repository": "https://github.com/re8ch/ledger.git",
+    "source": "catalogs/ledger/modules/ledger/source"
   },
   {
     "catalog": "ledger",
+    "commit": "67b4ee074621d1e19e86503ab01844fb6cdf3631",
     "id": "ledger-dashboard",
     "ownership": "owned",
     "projectType": "web-dashboard",
-    "repository": "https://github.com/re8ch/ledger-dashboard.git"
+    "repository": "https://github.com/re8ch/ledger-dashboard.git",
+    "source": "catalogs/ledger/modules/ledger-dashboard/source"
   },
   {
     "catalog": "ledger",
+    "commit": "5c76495e98c8a81c2b735846546d8ee5bf15d57a",
     "id": "ledger-site",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/ledger-website.git"
+    "repository": "https://github.com/re8ch/ledger-website.git",
+    "source": "catalogs/ledger/modules/ledger-site/source"
   },
   {
     "catalog": "motor-muscle-sim",
+    "commit": "ba37d6cf9b82c71e1bda20e291382f1dc72c14d1",
     "id": "motor-muscle-sim",
     "ownership": "owned",
     "projectType": "simulation",
-    "repository": "https://github.com/re8ch/motor-muscle-sim.git"
+    "repository": "https://github.com/re8ch/motor-muscle-sim.git",
+    "source": "catalogs/motor-muscle-sim/modules/motor-muscle-sim/source"
   },
   {
     "catalog": "network-decomplexer",
+    "commit": "335adfe9c371cdd3b7433d62ec9ac888a57aa2c1",
     "id": "netbird-core",
     "ownership": "external",
     "projectType": "upstream-dependency",
-    "repository": "https://github.com/netbirdio/netbird.git"
+    "repository": "https://github.com/netbirdio/netbird.git",
+    "source": "catalogs/network-decomplexer/modules/netbird-core/source"
   },
   {
     "catalog": "network-decomplexer",
+    "commit": "363988906641ebaa9c6081b792023ec8eb724c6a",
     "id": "network-decomplexer-ios",
     "ownership": "owned",
     "projectType": "ios",
-    "repository": "https://github.com/Woomou/network-decomplexer-ios.git"
+    "repository": "https://github.com/Woomou/network-decomplexer-ios.git",
+    "source": "catalogs/network-decomplexer/modules/network-decomplexer-ios/source"
   },
   {
     "catalog": "phonaid",
+    "commit": "26f58f18b66fb0e51a65af3a33ef92ab16607012",
     "id": "phonaid-android",
     "ownership": "owned",
     "projectType": "android",
-    "repository": "https://github.com/Woomou/phonaid-android.git"
+    "repository": "https://github.com/re8ch/phonaid-android.git",
+    "source": "catalogs/phonaid/modules/phonaid-android/source"
   },
   {
     "catalog": "phonaid",
+    "commit": "a76b242c4ef107393ca94f731708a34237448e27",
     "id": "phonaid-service",
     "ownership": "owned",
     "projectType": "service",
-    "repository": "https://github.com/re8ch/phonaid-service.git"
+    "repository": "https://github.com/re8ch/phonaid-service.git",
+    "source": "catalogs/phonaid/modules/phonaid-service/source"
   },
   {
     "catalog": "phonaid",
+    "commit": "7b7d3e8ff0a7e6dfebb6b6b1b49dba3be307c2fa",
     "id": "phonaid-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/phonaid-website.git"
+    "repository": "https://github.com/re8ch/phonaid-website.git",
+    "source": "catalogs/phonaid/modules/phonaid-website/source"
   },
   {
     "catalog": "platform",
+    "commit": "e7936165d55e23b0b6ff417197eecb378caa31f9",
     "id": "advanced-fabric",
     "ownership": "owned",
     "projectType": "network-controller",
-    "repository": "https://github.com/re8ch/advanced-fabric.git"
+    "repository": "https://github.com/re8ch/advanced-fabric.git",
+    "source": "catalogs/platform/modules/advanced-fabric/source"
   },
   {
     "catalog": "platform",
+    "commit": "e1fd190fefd8e8535dfd1410327e901afde873c2",
     "id": "brand-assets",
     "ownership": "owned",
     "projectType": "brand-assets",
-    "repository": "https://github.com/re8ch/brand-assets.git"
+    "repository": "https://github.com/re8ch/brand-assets.git",
+    "source": "catalogs/platform/modules/brand-assets/source"
   },
   {
     "catalog": "platform",
+    "commit": "14fe4fc855e1eb65f519d1b5882ab02661199ecb",
     "id": "cloud-functions",
     "ownership": "owned",
     "projectType": "nuclio-functions",
-    "repository": "https://github.com/re8ch/cloud-functions.git"
+    "repository": "https://github.com/re8ch/cloud-functions.git",
+    "source": "catalogs/platform/modules/cloud-functions/source"
   },
   {
     "catalog": "platform",
+    "commit": "b23a0185ca251ec7148f2b64c55301b9bee8e084",
     "id": "cluster-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/cluster-website.git"
+    "repository": "https://github.com/re8ch/cluster-website.git",
+    "source": "catalogs/platform/modules/cluster-website/source"
   },
   {
     "catalog": "platform",
+    "commit": "89a5342e9d04ee14e97d3cd6ad5e7f241f16e3ed",
     "id": "codex-admin-plugins",
     "ownership": "owned",
     "projectType": "codex-plugin-bundle",
-    "repository": "https://github.com/re8ch/codex-admin-plugins.git"
+    "repository": "https://github.com/re8ch/codex-admin-plugins.git",
+    "source": "catalogs/platform/modules/codex-admin-plugins/source"
   },
   {
     "catalog": "platform",
+    "commit": "d7cdacfca52425341e49181a3a10924fc43bf263",
     "id": "headlamp-advanced-fabric",
     "ownership": "owned",
     "projectType": "headlamp-plugin",
-    "repository": "https://github.com/re8ch/headlamp-advanced-fabric.git"
+    "repository": "https://github.com/re8ch/headlamp-advanced-fabric.git",
+    "source": "catalogs/platform/modules/headlamp-advanced-fabric/source"
   },
   {
     "catalog": "platform",
+    "commit": "2b178d3664e6a0d63f8bf886dcad79ae8c18470a",
     "id": "image-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/image-website.git"
+    "repository": "https://github.com/re8ch/image-website.git",
+    "source": "catalogs/platform/modules/image-website/source"
   },
   {
     "catalog": "platform",
+    "commit": "6036804f1c62633b5e7d2927f411a6f4127f148a",
     "id": "mcp-registry",
     "ownership": "external",
     "projectType": "upstream-dependency",
-    "repository": "https://github.com/modelcontextprotocol/registry.git"
+    "repository": "https://github.com/modelcontextprotocol/registry.git",
+    "source": "catalogs/platform/modules/mcp-registry/source"
   },
   {
     "catalog": "platform",
+    "commit": "59eb7bf217e769facb0db6868d13031e518642a1",
     "id": "mihomos-cluster",
     "ownership": "owned",
     "projectType": "kubernetes-network-controller",
-    "repository": "https://github.com/re8ch/mihomos-cluster.git"
+    "repository": "https://github.com/re8ch/mihomos-cluster.git",
+    "source": "catalogs/platform/modules/mihomos-cluster/source"
   },
   {
     "catalog": "platform",
+    "commit": "78ddb592dff46e62307e46ca3b0fca8d5071550d",
     "id": "observable-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/observable-website.git"
+    "repository": "https://github.com/re8ch/observable-website.git",
+    "source": "catalogs/platform/modules/observable-website/source"
   },
   {
     "catalog": "platform",
+    "commit": "f694be0bc4b7d01b499c03b20c1198c0112b7dbf",
     "id": "product-public-data",
     "ownership": "owned",
     "projectType": "public-data",
-    "repository": "https://github.com/re8ch/product-public-data.git"
+    "repository": "https://github.com/re8ch/product-public-data.git",
+    "source": "catalogs/platform/modules/product-public-data/source"
   },
   {
     "catalog": "platform",
+    "commit": "9c0dd75c583b4ea96b3ec5445c868d75419067e1",
     "id": "re8ch-core",
     "ownership": "owned",
     "projectType": "organization-core",
-    "repository": "https://github.com/re8ch/re8ch.git"
+    "repository": "https://github.com/re8ch/re8ch.git",
+    "source": "catalogs/platform/modules/re8ch-core/source"
   },
   {
     "catalog": "platform",
+    "commit": "80cc8e0fd1f0b4d85a70e930e0d35a2505ff935b",
     "id": "registry-product-site",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/registry-website.git"
+    "repository": "https://github.com/re8ch/registry-website.git",
+    "source": "catalogs/platform/modules/registry-product-site/source"
   },
   {
     "catalog": "platform",
+    "commit": "self",
     "id": "service-backend",
     "ownership": "owned",
     "projectType": "gitops-control-plane",
-    "repository": "git@gitlab.com:reachievellc/service-backend.git"
+    "repository": "git@gitlab.com:reachievellc/service-backend.git",
+    "source": "."
   },
   {
     "catalog": "platform",
+    "commit": "21f3df9ac8d9d046537ba5f395e3ca44672b27d3",
     "id": "tool-distribution",
     "ownership": "owned",
     "projectType": "tool-distribution",
-    "repository": "https://github.com/re8ch/tool-distribution.git"
+    "repository": "https://github.com/re8ch/tool-distribution.git",
+    "source": "catalogs/platform/modules/tool-distribution/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "86cbb76d6786f5d0a8279126515562bed97a15fb",
     "id": "qianwen-app",
     "ownership": "collaboration",
     "projectType": "web-app",
-    "repository": "https://github.com/OCGS-with-pattern/Qianwen-app.git"
+    "repository": "https://github.com/OCGS-with-pattern/Qianwen-app.git",
+    "source": "catalogs/qianwen/modules/qianwen-app/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "dbc97e542c7c0aca23ab70c5b7424c3adaf4c919",
     "id": "qianwen-brand",
     "ownership": "collaboration",
     "projectType": "brand-assets",
-    "repository": "https://github.com/OCGS-with-pattern/Qianwen-brand.git"
+    "repository": "https://github.com/OCGS-with-pattern/Qianwen-brand.git",
+    "source": "catalogs/qianwen/modules/qianwen-brand/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "7152e9ff6a9e5e5361e3f45468a6d43fc2e57e90",
     "id": "qianwen-capture-helper",
     "ownership": "collaboration",
     "projectType": "helper",
-    "repository": "https://github.com/OCGS-with-pattern/Qianwen-capture-helper.git"
+    "repository": "https://github.com/OCGS-with-pattern/Qianwen-capture-helper.git",
+    "source": "catalogs/qianwen/modules/qianwen-capture-helper/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "1ec6c97ced4060cac69c8a99ba7600c61a7bb6c2",
     "id": "qianwen-extension",
     "ownership": "collaboration",
     "projectType": "browser-extension",
-    "repository": "https://github.com/OCGS-with-pattern/Qianwen-extension.git"
+    "repository": "https://github.com/OCGS-with-pattern/Qianwen-extension.git",
+    "source": "catalogs/qianwen/modules/qianwen-extension/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "c3282416ab8d96ed028a4920b25cb3c001bf1158",
     "id": "qianwen-ios",
     "ownership": "collaboration",
     "projectType": "ios",
-    "repository": "https://github.com/OCGS-with-pattern/QianwenIOS.git"
+    "repository": "https://github.com/OCGS-with-pattern/QianwenIOS.git",
+    "source": "catalogs/qianwen/modules/qianwen-ios/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "41bfdd230e90b363ea4e46afffdabdf6cb28f14b",
     "id": "qianwen-web",
     "ownership": "collaboration",
     "projectType": "web",
-    "repository": "https://github.com/OCGS-with-pattern/Qianwen-web.git"
+    "repository": "https://github.com/OCGS-with-pattern/Qianwen-web.git",
+    "source": "catalogs/qianwen/modules/qianwen-web/source"
   },
   {
     "catalog": "qianwen",
+    "commit": "fe69994ffa352bb845b7ea773f9208d29a36c780",
     "id": "qianwen-wechat",
     "ownership": "collaboration",
     "projectType": "wechat-miniprogram",
-    "repository": "https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git"
+    "repository": "https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git",
+    "source": "catalogs/qianwen/modules/qianwen-wechat/source"
   },
   {
     "catalog": "space-mining-stage",
+    "commit": "34d3befceffe587fcbd926d00e88bdf733447392",
     "id": "space-mining-stage",
     "ownership": "owned",
     "projectType": "game",
-    "repository": "https://github.com/re8ch/space-mining-stage.git"
+    "repository": "https://github.com/re8ch/space-mining-stage.git",
+    "source": "catalogs/space-mining-stage/modules/space-mining-stage/source"
   },
   {
     "catalog": "thiking-machine",
+    "commit": "bf6a4968d66ef5f2067851defa7e3e0d69265b1e",
     "id": "thiking-machine",
     "ownership": "owned",
     "projectType": "ai-research",
-    "repository": "https://github.com/re8ch/thiking-machine.git"
+    "repository": "https://github.com/re8ch/thiking-machine.git",
+    "source": "catalogs/thiking-machine/modules/thiking-machine/source"
   }
 ]

@@ -30,7 +30,8 @@ def test_collaboration_modules_never_use_owned_write_policy():
 def test_lock_covers_every_published_module():
     registry = workspace.Registry(ROOT)
     lock = yaml.safe_load((ROOT / "workspace/workspace.lock.yaml").read_text())
-    assert set(lock["modules"]) == set(registry.modules)
+    expected = {name for name, module in registry.modules.items() if module.source_kind == "submodule"}
+    assert set(lock["modules"]) == expected
     assert all(len(item["commit"]) == 40 for item in lock["modules"].values())
 
 
@@ -40,15 +41,27 @@ def test_generated_indexes_are_current():
         assert json.loads((ROOT / "indexes" / f"{name}.json").read_text()) == content
 
 
-def test_materialize_defaults_to_dry_run_and_preserves_existing(tmp_path):
+def test_every_non_root_module_is_a_real_gitlink():
     controller = workspace.Controller(ROOT)
-    controller.sources["macWorkspaceRoot"] = str(tmp_path)
-    existing = tmp_path / controller.registry.modules["cloud-functions"].mac_path
-    existing.mkdir(parents=True)
-    result = controller.materialize({"platform"}, dry_run=True)["result"]
-    action = next(item for item in result["actions"] if item["module"] == "cloud-functions")
-    assert action["action"] == "preserve-existing"
-    assert result["dryRun"] is True
+    for module in controller.registry.modules.values():
+        if module.source_kind == "root":
+            assert module.name == "service-backend"
+            continue
+        source = controller._module_source(module)
+        entry = workspace.git(ROOT, "ls-files", "--stage", source)
+        assert entry.startswith("160000 "), source
+
+
+def test_every_owned_module_has_one_account_and_workspace():
+    registry = workspace.Registry(ROOT)
+    documents = list(yaml.safe_load_all((ROOT / "platform/git-workspaces/project-accounts.yaml").read_text()))
+    accounts = [item for item in documents if item["kind"] == "GitAccount"]
+    workspaces = [item for item in documents if item["kind"] == "GitWorkspace"]
+    owned = {module.name for module in registry.modules.values() if module.ownership == "owned"}
+    assert {item["spec"]["project"] for item in accounts} == owned
+    assert {item["spec"]["projectRef"] for item in workspaces} == owned
+    assert len(accounts) == len(workspaces) == len(owned)
+    assert len({item["spec"]["accountRef"] for item in workspaces}) == len(owned)
 
 
 def test_repository_key_normalizes_ssh_and_https():

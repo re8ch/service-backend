@@ -1,0 +1,935 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: 2woodblog-maintain
+  namespace: git-workspaces
+spec:
+  email: 2woodblog-maintain@phonaid.com
+  provider: github
+  project: 2woodblog
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: 2woodblog-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: 2woodblog-maintain
+  projectRef: 2woodblog
+  repository: https://github.com/Woomou/2woodblog.git
+  folder: catalogs/2woodblog/modules/2woodblog/source
+  branchPrefix: workspace/2woodblog-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: aesthete-maintain
+  namespace: git-workspaces
+spec:
+  email: aesthete-maintain@phonaid.com
+  provider: github
+  project: aesthete
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: aesthete-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: aesthete-maintain
+  projectRef: aesthete
+  repository: https://github.com/re8ch/aesthete.git
+  folder: catalogs/aesthete/modules/aesthete/source
+  branchPrefix: workspace/aesthete-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: anycam-maintain
+  namespace: git-workspaces
+spec:
+  email: anycam-maintain@phonaid.com
+  provider: github
+  project: anycam
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: anycam-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: anycam-maintain
+  projectRef: anycam
+  repository: https://github.com/re8ch/Anycam.git
+  folder: catalogs/anycam/modules/anycam/source
+  branchPrefix: workspace/anycam-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: anycam-backend-maintain
+  namespace: git-workspaces
+spec:
+  email: anycam-backend-maintain@phonaid.com
+  provider: github
+  project: anycam-backend
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: anycam-backend-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: anycam-backend-maintain
+  projectRef: anycam-backend
+  repository: https://github.com/re8ch/anycam-backend.git
+  folder: catalogs/anycam/modules/anycam-backend/source
+  branchPrefix: workspace/anycam-backend-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: anycam-ios-maintain
+  namespace: git-workspaces
+spec:
+  email: anycam-ios-maintain@phonaid.com
+  provider: github
+  project: anycam-ios
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: anycam-ios-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: anycam-ios-maintain
+  projectRef: anycam-ios
+  repository: https://github.com/re8ch/AnycamIOS.git
+  folder: catalogs/anycam/modules/anycam-ios/source
+  branchPrefix: workspace/anycam-ios-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: anycam-website-maintain
+  namespace: git-workspaces
+spec:
+  email: anycam-website-maintain@phonaid.com
+  provider: github
+  project: anycam-website
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: anycam-website-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: anycam-website-maintain
+  projectRef: anycam-website
+  repository: https://github.com/re8ch/anycam-website.git
+  folder: catalogs/anycam/modules/anycam-website/source
+  branchPrefix: workspace/anycam-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: anysiteonearth-maintain
+  namespace: git-workspaces
+spec:
+  email: anysiteonearth-maintain@phonaid.com
+  provider: github
+  project: anysiteonearth
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: anysiteonearth-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: anysiteonearth-maintain
+  projectRef: anysiteonearth
+  repository: https://github.com/re8ch/anysiteonearth.git
+  folder: catalogs/anysiteonearth/modules/anysiteonearth/source
+  branchPrefix: workspace/anysiteonearth-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: anysiteonearth-website-maintain
+  namespace: git-workspaces
+spec:
+  email: anysiteonearth-website-maintain@phonaid.com
+  provider: github
+  project: anysiteonearth-website
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: anysiteonearth-website-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: anysiteonearth-website-maintain
+  projectRef: anysiteonearth-website
+  repository: https://github.com/re8ch/anysiteonearth-website.git
+  folder: catalogs/anysiteonearth/modules/anysiteonearth-website/source
+  branchPrefix: workspace/anysiteonearth-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: baozou-ppt-studio-maintain
+  namespace: git-workspaces
+spec:
+  email: baozou-ppt-studio-maintain@phonaid.com
+  provider: github
+  project: baozou-ppt-studio
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: baozou-ppt-studio-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: baozou-ppt-studio-maintain
+  projectRef: baozou-ppt-studio
+  repository: https://github.com/re8ch/baozou-ppt-studio.git
+  folder: catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source
+  branchPrefix: workspace/baozou-ppt-studio-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: director-engines-maintain
+  namespace: git-workspaces
+spec:
+  email: director-engines-maintain@phonaid.com
+  provider: github
+  project: director-engines
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: director-engines-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: director-engines-maintain
+  projectRef: director-engines
+  repository: https://github.com/re8ch/director-engines.git
+  folder: catalogs/baozou-ppt-studio/modules/director-engines/source
+  branchPrefix: workspace/director-engines-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: career-ops-maintain
+  namespace: git-workspaces
+spec:
+  email: career-ops-maintain@phonaid.com
+  provider: github
+  project: career-ops
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: career-ops-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: career-ops-maintain
+  projectRef: career-ops
+  repository: https://github.com/Woomou/career-ops.git
+  folder: catalogs/career-ops/modules/career-ops/source
+  branchPrefix: workspace/career-ops-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: compocv-maintain
+  namespace: git-workspaces
+spec:
+  email: compocv-maintain@phonaid.com
+  provider: github
+  project: compocv
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: compocv-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: compocv-maintain
+  projectRef: compocv
+  repository: https://github.com/re8ch/compocv.git
+  folder: catalogs/compocv/modules/compocv/source
+  branchPrefix: workspace/compocv-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: garageband-mcp-maintain
+  namespace: git-workspaces
+spec:
+  email: garageband-mcp-maintain@phonaid.com
+  provider: github
+  project: garageband-mcp
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: garageband-mcp-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: garageband-mcp-maintain
+  projectRef: garageband-mcp
+  repository: https://github.com/re8ch/garageband-mcp.git
+  folder: catalogs/garageband/modules/garageband-mcp/source
+  branchPrefix: workspace/garageband-mcp-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: garageband-mcp-site-maintain
+  namespace: git-workspaces
+spec:
+  email: garageband-mcp-site-maintain@phonaid.com
+  provider: github
+  project: garageband-mcp-site
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: garageband-mcp-site-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: garageband-mcp-site-maintain
+  projectRef: garageband-mcp-site
+  repository: https://github.com/re8ch/garageband-mcp-site.git
+  folder: catalogs/garageband/modules/garageband-mcp-site/source
+  branchPrefix: workspace/garageband-mcp-site-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: jjklive-maintain
+  namespace: git-workspaces
+spec:
+  email: jjklive-maintain@phonaid.com
+  provider: github
+  project: jjklive
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: jjklive-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: jjklive-maintain
+  projectRef: jjklive
+  repository: https://github.com/re8ch/jjklive.git
+  folder: catalogs/jjklive/modules/jjklive/source
+  branchPrefix: workspace/jjklive-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: ledger-maintain
+  namespace: git-workspaces
+spec:
+  email: ledger-maintain@phonaid.com
+  provider: github
+  project: ledger
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: ledger-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: ledger-maintain
+  projectRef: ledger
+  repository: https://github.com/re8ch/ledger.git
+  folder: catalogs/ledger/modules/ledger/source
+  branchPrefix: workspace/ledger-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: ledger-dashboard-maintain
+  namespace: git-workspaces
+spec:
+  email: ledger-dashboard-maintain@phonaid.com
+  provider: github
+  project: ledger-dashboard
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: ledger-dashboard-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: ledger-dashboard-maintain
+  projectRef: ledger-dashboard
+  repository: https://github.com/re8ch/ledger-dashboard.git
+  folder: catalogs/ledger/modules/ledger-dashboard/source
+  branchPrefix: workspace/ledger-dashboard-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: ledger-site-maintain
+  namespace: git-workspaces
+spec:
+  email: ledger-site-maintain@phonaid.com
+  provider: github
+  project: ledger-site
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: ledger-site-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: ledger-site-maintain
+  projectRef: ledger-site
+  repository: https://github.com/re8ch/ledger-website.git
+  folder: catalogs/ledger/modules/ledger-site/source
+  branchPrefix: workspace/ledger-site-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: motor-muscle-sim-maintain
+  namespace: git-workspaces
+spec:
+  email: motor-muscle-sim-maintain@phonaid.com
+  provider: github
+  project: motor-muscle-sim
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: motor-muscle-sim-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: motor-muscle-sim-maintain
+  projectRef: motor-muscle-sim
+  repository: https://github.com/re8ch/motor-muscle-sim.git
+  folder: catalogs/motor-muscle-sim/modules/motor-muscle-sim/source
+  branchPrefix: workspace/motor-muscle-sim-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: network-decomplexer-ios-maintain
+  namespace: git-workspaces
+spec:
+  email: network-decomplexer-ios-maintain@phonaid.com
+  provider: github
+  project: network-decomplexer-ios
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: network-decomplexer-ios-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: network-decomplexer-ios-maintain
+  projectRef: network-decomplexer-ios
+  repository: https://github.com/Woomou/network-decomplexer-ios.git
+  folder: catalogs/network-decomplexer/modules/network-decomplexer-ios/source
+  branchPrefix: workspace/network-decomplexer-ios-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: phonaid-android-maintain
+  namespace: git-workspaces
+spec:
+  email: phonaid-android-maintain@phonaid.com
+  provider: github
+  project: phonaid-android
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: phonaid-android-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: phonaid-android-maintain
+  projectRef: phonaid-android
+  repository: https://github.com/re8ch/phonaid-android.git
+  folder: catalogs/phonaid/modules/phonaid-android/source
+  branchPrefix: workspace/phonaid-android-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: phonaid-service-maintain
+  namespace: git-workspaces
+spec:
+  email: phonaid-service-maintain@phonaid.com
+  provider: github
+  project: phonaid-service
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: phonaid-service-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: phonaid-service-maintain
+  projectRef: phonaid-service
+  repository: https://github.com/re8ch/phonaid-service.git
+  folder: catalogs/phonaid/modules/phonaid-service/source
+  branchPrefix: workspace/phonaid-service-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: phonaid-website-maintain
+  namespace: git-workspaces
+spec:
+  email: phonaid-website-maintain@phonaid.com
+  provider: github
+  project: phonaid-website
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: phonaid-website-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: phonaid-website-maintain
+  projectRef: phonaid-website
+  repository: https://github.com/re8ch/phonaid-website.git
+  folder: catalogs/phonaid/modules/phonaid-website/source
+  branchPrefix: workspace/phonaid-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: advanced-fabric-maintain
+  namespace: git-workspaces
+spec:
+  email: advanced-fabric-maintain@phonaid.com
+  provider: github
+  project: advanced-fabric
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: advanced-fabric-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: advanced-fabric-maintain
+  projectRef: advanced-fabric
+  repository: https://github.com/re8ch/advanced-fabric.git
+  folder: catalogs/platform/modules/advanced-fabric/source
+  branchPrefix: workspace/advanced-fabric-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: brand-assets-maintain
+  namespace: git-workspaces
+spec:
+  email: brand-assets-maintain@phonaid.com
+  provider: github
+  project: brand-assets
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: brand-assets-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: brand-assets-maintain
+  projectRef: brand-assets
+  repository: https://github.com/re8ch/brand-assets.git
+  folder: catalogs/platform/modules/brand-assets/source
+  branchPrefix: workspace/brand-assets-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: cloud-functions-maintain
+  namespace: git-workspaces
+spec:
+  email: cloud-functions-maintain@phonaid.com
+  provider: github
+  project: cloud-functions
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: cloud-functions-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: cloud-functions-maintain
+  projectRef: cloud-functions
+  repository: https://github.com/re8ch/cloud-functions.git
+  folder: catalogs/platform/modules/cloud-functions/source
+  branchPrefix: workspace/cloud-functions-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: cluster-website-maintain
+  namespace: git-workspaces
+spec:
+  email: cluster-website-maintain@phonaid.com
+  provider: github
+  project: cluster-website
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: cluster-website-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: cluster-website-maintain
+  projectRef: cluster-website
+  repository: https://github.com/re8ch/cluster-website.git
+  folder: catalogs/platform/modules/cluster-website/source
+  branchPrefix: workspace/cluster-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: codex-admin-plugins-maintain
+  namespace: git-workspaces
+spec:
+  email: codex-admin-plugins-maintain@phonaid.com
+  provider: github
+  project: codex-admin-plugins
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: codex-admin-plugins-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: codex-admin-plugins-maintain
+  projectRef: codex-admin-plugins
+  repository: https://github.com/re8ch/codex-admin-plugins.git
+  folder: catalogs/platform/modules/codex-admin-plugins/source
+  branchPrefix: workspace/codex-admin-plugins-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: headlamp-advanced-fabric-maintain
+  namespace: git-workspaces
+spec:
+  email: headlamp-advanced-fabric-maintain@phonaid.com
+  provider: github
+  project: headlamp-advanced-fabric
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: headlamp-advanced-fabric-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: headlamp-advanced-fabric-maintain
+  projectRef: headlamp-advanced-fabric
+  repository: https://github.com/re8ch/headlamp-advanced-fabric.git
+  folder: catalogs/platform/modules/headlamp-advanced-fabric/source
+  branchPrefix: workspace/headlamp-advanced-fabric-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: image-website-maintain
+  namespace: git-workspaces
+spec:
+  email: image-website-maintain@phonaid.com
+  provider: github
+  project: image-website
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: image-website-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: image-website-maintain
+  projectRef: image-website
+  repository: https://github.com/re8ch/image-website.git
+  folder: catalogs/platform/modules/image-website/source
+  branchPrefix: workspace/image-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: mihomos-cluster-maintain
+  namespace: git-workspaces
+spec:
+  email: mihomos-cluster-maintain@phonaid.com
+  provider: github
+  project: mihomos-cluster
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: mihomos-cluster-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: mihomos-cluster-maintain
+  projectRef: mihomos-cluster
+  repository: https://github.com/re8ch/mihomos-cluster.git
+  folder: catalogs/platform/modules/mihomos-cluster/source
+  branchPrefix: workspace/mihomos-cluster-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: observable-website-maintain
+  namespace: git-workspaces
+spec:
+  email: observable-website-maintain@phonaid.com
+  provider: github
+  project: observable-website
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: observable-website-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: observable-website-maintain
+  projectRef: observable-website
+  repository: https://github.com/re8ch/observable-website.git
+  folder: catalogs/platform/modules/observable-website/source
+  branchPrefix: workspace/observable-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: product-public-data-maintain
+  namespace: git-workspaces
+spec:
+  email: product-public-data-maintain@phonaid.com
+  provider: github
+  project: product-public-data
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: product-public-data-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: product-public-data-maintain
+  projectRef: product-public-data
+  repository: https://github.com/re8ch/product-public-data.git
+  folder: catalogs/platform/modules/product-public-data/source
+  branchPrefix: workspace/product-public-data-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: re8ch-core-maintain
+  namespace: git-workspaces
+spec:
+  email: re8ch-core-maintain@phonaid.com
+  provider: github
+  project: re8ch-core
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: re8ch-core-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: re8ch-core-maintain
+  projectRef: re8ch-core
+  repository: https://github.com/re8ch/re8ch.git
+  folder: catalogs/platform/modules/re8ch-core/source
+  branchPrefix: workspace/re8ch-core-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: registry-product-site-maintain
+  namespace: git-workspaces
+spec:
+  email: registry-product-site-maintain@phonaid.com
+  provider: github
+  project: registry-product-site
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: registry-product-site-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: registry-product-site-maintain
+  projectRef: registry-product-site
+  repository: https://github.com/re8ch/registry-website.git
+  folder: catalogs/platform/modules/registry-product-site/source
+  branchPrefix: workspace/registry-product-site-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: service-backend-maintain
+  namespace: git-workspaces
+spec:
+  email: service-backend-maintain@phonaid.com
+  provider: gitlab
+  project: service-backend
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: service-backend-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: service-backend-maintain
+  projectRef: service-backend
+  repository: git@gitlab.com:reachievellc/service-backend.git
+  folder: .
+  branchPrefix: workspace/service-backend-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: tool-distribution-maintain
+  namespace: git-workspaces
+spec:
+  email: tool-distribution-maintain@phonaid.com
+  provider: github
+  project: tool-distribution
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: tool-distribution-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: tool-distribution-maintain
+  projectRef: tool-distribution
+  repository: https://github.com/re8ch/tool-distribution.git
+  folder: catalogs/platform/modules/tool-distribution/source
+  branchPrefix: workspace/tool-distribution-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: space-mining-stage-maintain
+  namespace: git-workspaces
+spec:
+  email: space-mining-stage-maintain@phonaid.com
+  provider: github
+  project: space-mining-stage
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: space-mining-stage-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: space-mining-stage-maintain
+  projectRef: space-mining-stage
+  repository: https://github.com/re8ch/space-mining-stage.git
+  folder: catalogs/space-mining-stage/modules/space-mining-stage/source
+  branchPrefix: workspace/space-mining-stage-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: thiking-machine-maintain
+  namespace: git-workspaces
+spec:
+  email: thiking-machine-maintain@phonaid.com
+  provider: github
+  project: thiking-machine
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: thiking-machine-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: thiking-machine-maintain
+  projectRef: thiking-machine
+  repository: https://github.com/re8ch/thiking-machine.git
+  folder: catalogs/thiking-machine/modules/thiking-machine/source
+  branchPrefix: workspace/thiking-machine-maintain/

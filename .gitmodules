@@ -1,0 +1,208 @@
+[submodule "2woodblog/2woodblog"]
+	path = catalogs/2woodblog/modules/2woodblog/source
+	url = https://github.com/Woomou/2woodblog.git
+	branch = main
+[submodule "aesthete/aesthete"]
+	path = catalogs/aesthete/modules/aesthete/source
+	url = https://github.com/re8ch/aesthete.git
+	branch = main
+[submodule "aesthete/z-anatomy-models"]
+	path = catalogs/aesthete/modules/z-anatomy-models/source
+	url = https://github.com/Z-Anatomy/Models-of-human-anatomy.git
+	branch = master
+[submodule "anycam/anycam-backend"]
+	path = catalogs/anycam/modules/anycam-backend/source
+	url = https://github.com/re8ch/anycam-backend.git
+	branch = main
+[submodule "anycam/anycam-ios"]
+	path = catalogs/anycam/modules/anycam-ios/source
+	url = https://github.com/re8ch/AnycamIOS.git
+	branch = main
+[submodule "anycam/anycam-website"]
+	path = catalogs/anycam/modules/anycam-website/source
+	url = https://github.com/re8ch/anycam-website.git
+	branch = main
+[submodule "anycam/anycam"]
+	path = catalogs/anycam/modules/anycam/source
+	url = https://github.com/re8ch/Anycam.git
+	branch = main
+[submodule "anysiteonearth/anysiteonearth-website"]
+	path = catalogs/anysiteonearth/modules/anysiteonearth-website/source
+	url = https://github.com/re8ch/anysiteonearth-website.git
+	branch = main
+[submodule "anysiteonearth/anysiteonearth"]
+	path = catalogs/anysiteonearth/modules/anysiteonearth/source
+	url = https://github.com/re8ch/anysiteonearth.git
+	branch = main
+[submodule "artchais/artchais-microservices"]
+	path = catalogs/artchais/modules/artchais-microservices/source
+	url = https://github.com/XProfessorJ/Artchais-MicroServices.git
+	branch = main
+[submodule "artchais/artchais-web"]
+	path = catalogs/artchais/modules/artchais-web/source
+	url = https://github.com/XProfessorJ/ArtChais-Web.git
+	branch = main
+[submodule "artchais/arthandler-artchais-web"]
+	path = catalogs/artchais/modules/arthandler-artchais-web/source
+	url = https://github.com/re8ch/arthandler-artchais-web.git
+	branch = main
+[submodule "artchais/arthandler-gallery-robot"]
+	path = catalogs/artchais/modules/arthandler-gallery-robot/source
+	url = https://github.com/Woomou/ArtHandler-Gallery-Robot.git
+	branch = main
+[submodule "baozou-ppt-studio/baozou-ppt-studio"]
+	path = catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source
+	url = https://github.com/re8ch/baozou-ppt-studio.git
+	branch = main
+[submodule "baozou-ppt-studio/director-engines"]
+	path = catalogs/baozou-ppt-studio/modules/director-engines/source
+	url = https://github.com/re8ch/director-engines.git
+	branch = main
+[submodule "career-ops/career-ops"]
+	path = catalogs/career-ops/modules/career-ops/source
+	url = https://github.com/Woomou/career-ops.git
+	branch = main
+[submodule "compocv/compocv"]
+	path = catalogs/compocv/modules/compocv/source
+	url = https://github.com/re8ch/compocv.git
+	branch = main
+[submodule "garageband/garageband-mcp-site"]
+	path = catalogs/garageband/modules/garageband-mcp-site/source
+	url = https://github.com/re8ch/garageband-mcp-site.git
+	branch = main
+[submodule "garageband/garageband-mcp"]
+	path = catalogs/garageband/modules/garageband-mcp/source
+	url = https://github.com/re8ch/garageband-mcp.git
+	branch = main
+[submodule "jjklive/jjklive"]
+	path = catalogs/jjklive/modules/jjklive/source
+	url = https://github.com/re8ch/jjklive.git
+	branch = main
+[submodule "ledger/ledger-dashboard"]
+	path = catalogs/ledger/modules/ledger-dashboard/source
+	url = https://github.com/re8ch/ledger-dashboard.git
+	branch = main
+[submodule "ledger/ledger-site"]
+	path = catalogs/ledger/modules/ledger-site/source
+	url = https://github.com/re8ch/ledger-website.git
+	branch = main
+[submodule "ledger/ledger"]
+	path = catalogs/ledger/modules/ledger/source
+	url = https://github.com/re8ch/ledger.git
+	branch = main
+[submodule "motor-muscle-sim/motor-muscle-sim"]
+	path = catalogs/motor-muscle-sim/modules/motor-muscle-sim/source
+	url = https://github.com/re8ch/motor-muscle-sim.git
+	branch = main
+[submodule "network-decomplexer/netbird-core"]
+	path = catalogs/network-decomplexer/modules/netbird-core/source
+	url = https://github.com/netbirdio/netbird.git
+	branch = main
+[submodule "network-decomplexer/network-decomplexer-ios"]
+	path = catalogs/network-decomplexer/modules/network-decomplexer-ios/source
+	url = https://github.com/Woomou/network-decomplexer-ios.git
+	branch = main
+[submodule "phonaid/phonaid-android"]
+	path = catalogs/phonaid/modules/phonaid-android/source
+	url = https://github.com/re8ch/phonaid-android.git
+	branch = main
+[submodule "phonaid/phonaid-service"]
+	path = catalogs/phonaid/modules/phonaid-service/source
+	url = https://github.com/re8ch/phonaid-service.git
+	branch = main
+[submodule "phonaid/phonaid-website"]
+	path = catalogs/phonaid/modules/phonaid-website/source
+	url = https://github.com/re8ch/phonaid-website.git
+	branch = main
+[submodule "platform/advanced-fabric"]
+	path = catalogs/platform/modules/advanced-fabric/source
+	url = https://github.com/re8ch/advanced-fabric.git
+	branch = main
+[submodule "platform/brand-assets"]
+	path = catalogs/platform/modules/brand-assets/source
+	url = https://github.com/re8ch/brand-assets.git
+	branch = main
+[submodule "platform/cloud-functions"]
+	path = catalogs/platform/modules/cloud-functions/source
+	url = https://github.com/re8ch/cloud-functions.git
+	branch = master
+[submodule "platform/cluster-website"]
+	path = catalogs/platform/modules/cluster-website/source
+	url = https://github.com/re8ch/cluster-website.git
+	branch = main
+[submodule "platform/codex-admin-plugins"]
+	path = catalogs/platform/modules/codex-admin-plugins/source
+	url = https://github.com/re8ch/codex-admin-plugins.git
+	branch = main
+[submodule "platform/headlamp-advanced-fabric"]
+	path = catalogs/platform/modules/headlamp-advanced-fabric/source
+	url = https://github.com/re8ch/headlamp-advanced-fabric.git
+	branch = main
+[submodule "platform/image-website"]
+	path = catalogs/platform/modules/image-website/source
+	url = https://github.com/re8ch/image-website.git
+	branch = main
+[submodule "platform/mcp-registry"]
+	path = catalogs/platform/modules/mcp-registry/source
+	url = https://github.com/modelcontextprotocol/registry.git
+	branch = main
+[submodule "platform/mihomos-cluster"]
+	path = catalogs/platform/modules/mihomos-cluster/source
+	url = https://github.com/re8ch/mihomos-cluster.git
+	branch = main
+[submodule "platform/observable-website"]
+	path = catalogs/platform/modules/observable-website/source
+	url = https://github.com/re8ch/observable-website.git
+	branch = main
+[submodule "platform/product-public-data"]
+	path = catalogs/platform/modules/product-public-data/source
+	url = https://github.com/re8ch/product-public-data.git
+	branch = main
+[submodule "platform/re8ch-core"]
+	path = catalogs/platform/modules/re8ch-core/source
+	url = https://github.com/re8ch/re8ch.git
+	branch = main
+[submodule "platform/registry-product-site"]
+	path = catalogs/platform/modules/registry-product-site/source
+	url = https://github.com/re8ch/registry-website.git
+	branch = main
+[submodule "platform/tool-distribution"]
+	path = catalogs/platform/modules/tool-distribution/source
+	url = https://github.com/re8ch/tool-distribution.git
+	branch = main
+[submodule "qianwen/qianwen-app"]
+	path = catalogs/qianwen/modules/qianwen-app/source
+	url = https://github.com/OCGS-with-pattern/Qianwen-app.git
+	branch = master
+[submodule "qianwen/qianwen-brand"]
+	path = catalogs/qianwen/modules/qianwen-brand/source
+	url = https://github.com/OCGS-with-pattern/Qianwen-brand.git
+	branch = master
+[submodule "qianwen/qianwen-capture-helper"]
+	path = catalogs/qianwen/modules/qianwen-capture-helper/source
+	url = https://github.com/OCGS-with-pattern/Qianwen-capture-helper.git
+	branch = master
+[submodule "qianwen/qianwen-extension"]
+	path = catalogs/qianwen/modules/qianwen-extension/source
+	url = https://github.com/OCGS-with-pattern/Qianwen-extension.git
+	branch = main
+[submodule "qianwen/qianwen-ios"]
+	path = catalogs/qianwen/modules/qianwen-ios/source
+	url = https://github.com/OCGS-with-pattern/QianwenIOS.git
+	branch = master
+[submodule "qianwen/qianwen-web"]
+	path = catalogs/qianwen/modules/qianwen-web/source
+	url = https://github.com/OCGS-with-pattern/Qianwen-web.git
+	branch = master
+[submodule "qianwen/qianwen-wechat"]
+	path = catalogs/qianwen/modules/qianwen-wechat/source
+	url = https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git
+	branch = master
+[submodule "space-mining-stage/space-mining-stage"]
+	path = catalogs/space-mining-stage/modules/space-mining-stage/source
+	url = https://github.com/re8ch/space-mining-stage.git
+	branch = main
+[submodule "thiking-machine/thiking-machine"]
+	path = catalogs/thiking-machine/modules/thiking-machine/source
+	url = https://github.com/re8ch/thiking-machine.git
+	branch = main

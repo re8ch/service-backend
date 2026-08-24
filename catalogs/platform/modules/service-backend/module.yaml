@@ -1,13 +1,21 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: service-backend, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: gitlab, url: git@gitlab.com:reachievellc/service-backend.git, defaultBranch: main, owner: reachievellc}
-  workspace: {macPath: platform/service-backend, r640Path: platform/service-backend}
+  repository: {provider: gitlab, url: 'git@gitlab.com:reachievellc/service-backend.git', defaultBranch: main, owner: reachievellc}
   projectType: gitops-control-plane
   writePolicy: github-pr
   knowledge: [README.md, runbooks/, clusters/, operations/]
   tools: [glab, flux, re8ch-workspace, kubectl, helm]
   deployments: [gitlab.com/reachievellc/service-backend, k3s/re8ch]
+  source:
+    kind: root
+    path: .
+    metadataPolicy: in-repository
+  identity:
+    maintainerAddress: service-backend-maintain@phonaid.com
+    accountClass: platform-root
+  clusterIndex:
+    path: .re8ch/cluster-resources.yaml

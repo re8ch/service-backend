@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: service-backend
+spec:
+  parent:
+    catalog: platform
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/platform/modules/service-backend
+    submodulePath: .
+  identity:
+    maintainerAddress: service-backend-maintain@phonaid.com
+    accountClass: platform-root
+    googleWorkspacePolicy: eligible
+  workspace:
+    name: service-backend-maintain
+    oneActivePerAccount: true
+    branchPrefix: workspace/service-backend-maintain/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

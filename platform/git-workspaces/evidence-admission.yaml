@@ -1,0 +1,29 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: work-evidence-producer
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [governance.re8ch.com]
+        apiVersions: [v1alpha1]
+        operations: [CREATE]
+        resources: [workevidences]
+  validations:
+    - expression: "object.spec.producerServiceAccount == object.spec.plane + '-evidence'"
+      message: The evidence plane must match its dedicated producer service account.
+    - expression: "request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':' + object.spec.producerServiceAccount"
+      message: WorkEvidence may only be created by its declared Kubernetes service account.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: work-evidence-producer
+spec:
+  policyName: work-evidence-producer
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: git-workspaces

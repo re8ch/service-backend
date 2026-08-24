@@ -1,0 +1,21 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ClusterResourceIndex
+metadata:
+  name: service-backend
+spec:
+  controlPlane:
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    revision: main
+    indexPath: indexes/deployments.json
+  lookup:
+    module: service-backend
+    catalog: platform
+    declaredDeployments:
+    - gitlab.com/reachievellc/service-backend
+    - k3s/re8ch
+  evidence:
+    authority: kubernetes
+    requiredPlanes:
+    - monitoring
+    - deploying
+    - planning

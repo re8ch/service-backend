@@ -1,13 +1,21 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: tool-distribution, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: github, url: https://github.com/re8ch/tool-distribution.git, defaultBranch: main, owner: re8ch}
-  workspace: {macPath: platform/tool-distribution, r640Path: platform/tool-distribution}
+  repository: {provider: github, url: 'https://github.com/re8ch/tool-distribution.git', defaultBranch: main, owner: re8ch}
   projectType: tool-distribution
   writePolicy: github-pr
   knowledge: [README.md]
   tools: [toolhive]
   deployments: [toolhive-system]
+  source:
+    kind: submodule
+    path: source
+    metadataPolicy: in-repository
+  identity:
+    maintainerAddress: tool-distribution-maintain@phonaid.com
+    accountClass: project-maintainer
+  clusterIndex:
+    path: .re8ch/cluster-resources.yaml

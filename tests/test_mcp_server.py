@@ -27,7 +27,7 @@ def test_admin_catalog_has_mutating_tools():
     by_name = {tool["name"]: tool for tool in server.tool_list(Identity("admin", (server.ADMIN_GROUP,)))}
     assert by_name["node.ssh.exec"]["inputSchema"]["required"] == ["name", "argv"]
     assert "workspace.sync" in names
-    assert "workspace.materialize" in names
+    assert "workspace.status" in names
 
 
 def test_dispatch_rechecks_authorization():
@@ -36,8 +36,8 @@ def test_dispatch_rechecks_authorization():
     assert caught.value.code == "AUTHORIZATION_DENIED"
 
 
-def test_observer_can_see_workspace_status_but_not_materialize():
+def test_observer_can_see_workspace_status_but_not_mutating_sync():
     names = {tool["name"] for tool in server.tool_list(Identity("observer", ())) }
     assert "workspace.status" in names
-    assert "workspace.materialize" not in names
+    assert "workspace.sync" not in names
     assert {"workspace.context", "workspace.memory-audit"} <= names

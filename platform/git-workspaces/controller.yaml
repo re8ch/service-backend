@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: git-workspace-controller, namespace: git-workspaces}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: git-workspace-controller, namespace: git-workspaces}
+rules:
+  - apiGroups: [governance.re8ch.com]
+    resources: [gitaccounts, gitworkspaces, workcontracts, workevidences]
+    verbs: [get, list, watch]
+  - apiGroups: [governance.re8ch.com]
+    resources: [gitworkspaces/status, workcontracts/status]
+    verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: git-workspace-controller, namespace: git-workspaces}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: git-workspace-controller}
+subjects: [{kind: ServiceAccount, name: git-workspace-controller, namespace: git-workspaces}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: git-workspace-controller, namespace: git-workspaces}
+data:
+  controller.py: |
+    import json
+    import ssl
+    import time
+    import urllib.request
+
+    BASE = "https://kubernetes.default.svc"
+    NS = "git-workspaces"
+    GROUP = "governance.re8ch.com"
+    VERSION = "v1alpha1"
+    TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    CONTEXT = ssl.create_default_context(cafile=CA)
+
+    def request(path, method="GET", body=None, content_type="application/json"):
+        with open(TOKEN, encoding="utf-8") as handle:
+            token = handle.read().strip()
+        data = None if body is None else json.dumps(body).encode()
+        req = urllib.request.Request(
+            BASE + path,
+            data=data,
+            method=method,
+            headers={"Authorization": "Bearer " + token, "Content-Type": content_type},
+        )
+        with urllib.request.urlopen(req, context=CONTEXT, timeout=10) as response:
+            return json.load(response)
+
+    def collection(plural):
+        return f"/apis/{GROUP}/{VERSION}/namespaces/{NS}/{plural}"
+
+    def items(plural):
+        return request(collection(plural)).get("items", [])
+
+    def patch_status(plural, item, status):
+        name = item["metadata"]["name"]
+        if item.get("status") == status:
+            return
+        request(
+            f"{collection(plural)}/{name}/status",
+            method="PATCH",
+            body={"status": status},
+            content_type="application/merge-patch+json",
+        )
+
+    def reconcile():
+        accounts = {item["metadata"]["name"]: item for item in items("gitaccounts")}
+        workspaces = items("gitworkspaces")
+        by_account = {}
+        for workspace in workspaces:
+            by_account.setdefault(workspace["spec"]["accountRef"], []).append(workspace)
+        for account, group in by_account.items():
+            conflict = len(group) != 1
+            for workspace in group:
+                account_valid = account in accounts and accounts[account]["spec"]["project"] == workspace["spec"]["projectRef"]
+                phase = "Conflict" if conflict else ("Active" if account_valid else "Invalid")
+                patch_status("gitworkspaces", workspace, {
+                    "phase": phase,
+                    "accountRef": account,
+                    "reason": "OneActiveWorkspacePerAccount" if conflict else ("UniqueAccountWorkspace" if account_valid else "AccountProjectMismatch"),
+                    "observedGeneration": workspace["metadata"].get("generation", 1),
+                })
+
+        evidence = items("workevidences")
+        by_contract = {}
+        for item in evidence:
+            by_contract.setdefault(item["spec"]["contractRef"], []).append(item["spec"])
+        for contract in items("workcontracts"):
+            name = contract["metadata"]["name"]
+            spec = contract["spec"]
+            matching = [
+                item for item in by_contract.get(name, [])
+                if item["commit"] == spec["commit"] and item["repository"] == spec["repository"]
+            ]
+            rejected = {item["plane"] for item in matching if item["result"] == "Rejected"}
+            verified = {item["plane"] for item in matching if item["result"] == "Verified"} - rejected
+            required = set(spec["requiredEvidence"])
+            evidence_ready = required <= verified
+            pr = spec["pullRequest"]
+            if pr["state"] == "closed":
+                phase = "Completed" if pr["merged"] and evidence_ready else "EndedWithoutRuntimeVerification"
+            elif rejected:
+                phase = "Rejected"
+            else:
+                phase = "Verified" if evidence_ready else "Active"
+            patch_status("workcontracts", contract, {
+                "phase": phase,
+                "verifiedCommit": spec["commit"] if evidence_ready else "",
+                "verifiedPlanes": sorted(verified),
+                "rejectedPlanes": sorted(rejected),
+                "missingPlanes": sorted(required - verified),
+                "observedGeneration": contract["metadata"].get("generation", 1),
+            })
+
+    while True:
+        try:
+            reconcile()
+        except Exception as error:
+            print(json.dumps({"event": "git-workspace-reconcile-error", "error": str(error)}), flush=True)
+        time.sleep(15)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: git-workspace-controller, namespace: git-workspaces}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: git-workspace-controller}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: git-workspace-controller}}
+    spec:
+      serviceAccountName: git-workspace-controller
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: controller
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: [python3, /runtime/controller.py]
+          env: [{name: PYTHONDONTWRITEBYTECODE, value: "1"}]
+          resources:
+            requests: {cpu: 5m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 96Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: git-workspace-controller}}]

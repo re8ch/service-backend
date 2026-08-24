@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-phonaid-domain-plan
+  namespace: mail-system
+  labels: {governance.re8ch.com/evidence-plane: planning}
+data:
+  domain: phonaid.com
+  authority: staged
+  currentMX: mx1.feishu.cn,mx2.feishu.cn,mx3.feishu.cn
+  dnsMutationAllowed: "false"
+  cutoverRequirements: monitoring,deploying,planning,inbound,outbound,dkim,spf,dmarc,mta-sts,rollback
+  accountSource: git-workspaces/GitAccount

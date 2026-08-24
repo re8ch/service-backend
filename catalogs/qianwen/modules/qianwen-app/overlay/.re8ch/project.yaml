@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: qianwen-app
+spec:
+  parent:
+    catalog: qianwen
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/qianwen/modules/qianwen-app
+    submodulePath: catalogs/qianwen/modules/qianwen-app/source
+  identity:
+    maintainerAddress: qianwen-app-collab@phonaid.com
+    accountClass: collaboration
+    googleWorkspacePolicy: external
+  workspace:
+    name: qianwen-app-collab
+    oneActivePerAccount: true
+    branchPrefix: workspace/qianwen-app-collab/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes
