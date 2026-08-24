@@ -28,3 +28,11 @@ def test_public_edge_candidate_algorithm_is_denied():
 def test_every_plugin_has_independent_identity():
     identities = [doc["spec"]["identityRef"] for doc in definitions()]
     assert len(identities) == len(set(identities))
+
+
+def test_headlamp_rollout_does_not_deadlock_on_two_eligible_nodes():
+    deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
+    rolling_update = deployment["spec"]["strategy"]["rollingUpdate"]
+
+    assert deployment["spec"]["replicas"] == 2
+    assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
