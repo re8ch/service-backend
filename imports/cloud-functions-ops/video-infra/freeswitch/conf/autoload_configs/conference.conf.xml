@@ -1,0 +1,9 @@
+<configuration name="conference.conf" description="PCMA voice conferences">
+  <profiles><profile name="voice">
+    <param name="rate" value="8000"/><param name="interval" value="20"/>
+    <param name="energy-level" value="200"/><param name="auto-record" value="false"/>
+    <param name="max-members" value="6"/><param name="endconf-grace-time" value="3"/>
+    <param name="caller-controls" value="none"/><param name="moderator-controls" value="none"/>
+    <param name="comfort-noise" value="false"/><param name="suppress-events" value="play-file,play-file-done"/>
+  </profile></profiles>
+</configuration>

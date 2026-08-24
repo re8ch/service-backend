@@ -1,0 +1,228 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: netbird-data
+  namespace: netbird-access
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-server
+  namespace: netbird-access
+  labels: &serverLabels
+    app.kubernetes.io/name: netbird-server
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: *serverLabels
+  template:
+    metadata:
+      labels: *serverLabels
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      # Keep the combined server's relay self-check on the in-cluster Traefik
+      # path; public DNS can otherwise be held by an upstream negative cache.
+      hostAliases:
+        - ip: "192.0.2.97"
+          hostnames: ["access.re8ch.com"]
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: server
+          image: netbirdio/netbird-server:0.76.3
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/etc/netbird/config.yaml"]
+          ports:
+            - {name: http, containerPort: 80, protocol: TCP}
+            - {name: stun, containerPort: 3478, protocol: UDP}
+            - {name: metrics, containerPort: 9090, protocol: TCP}
+            - {name: health, containerPort: 9000, protocol: TCP}
+          startupProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 3
+            timeoutSeconds: 2
+            failureThreshold: 40
+          readinessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: config, mountPath: /etc/netbird, readOnly: true}
+            - {name: data, mountPath: /var/lib/netbird}
+      volumes:
+        - name: config
+          secret:
+            secretName: netbird-server-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: netbird-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-server
+  namespace: netbird-access
+spec:
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: netbird-server
+    app.kubernetes.io/part-of: re8ch-access
+  ports:
+    - {name: http, port: 80, targetPort: http, protocol: TCP}
+    - {name: metrics, port: 9090, targetPort: metrics, protocol: TCP}
+    - {name: health, port: 9000, targetPort: health, protocol: TCP}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-stun
+  namespace: netbird-access
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: netbird-server
+    app.kubernetes.io/part-of: re8ch-access
+  ports:
+    - name: stun
+      port: 3478
+      targetPort: stun
+      nodePort: 30478
+      protocol: UDP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-dashboard
+  namespace: netbird-access
+  labels: &dashboardLabels
+    app.kubernetes.io/name: netbird-dashboard
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  replicas: 0
+  selector:
+    matchLabels: *dashboardLabels
+  template:
+    metadata:
+      labels: *dashboardLabels
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 101
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+        - name: prepare-nginx-state
+          image: netbirdio/dashboard:v2.90.8
+          imagePullPolicy: IfNotPresent
+          command: [sh, -c, "mkdir -p /var/lib/nginx/tmp/client_body /var/lib/nginx/tmp/proxy /var/lib/nginx/tmp/fastcgi /var/lib/nginx/tmp/uwsgi /var/lib/nginx/tmp/scgi /var/lib/nginx/logs /run/nginx && chmod -R 2775 /var/lib/nginx /run/nginx && chown -R 100:101 /var/lib/nginx /run/nginx"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN]
+          volumeMounts:
+            - {name: nginx-state, mountPath: /var/lib/nginx}
+            - {name: nginx-run, mountPath: /run}
+      containers:
+        - name: dashboard
+          image: netbirdio/dashboard:v2.90.8
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: netbird-dashboard-env
+          ports:
+            - {name: http, containerPort: 80, protocol: TCP}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN, NET_BIND_SERVICE, SETGID, SETUID]
+          volumeMounts:
+            - {name: nginx-state, mountPath: /var/lib/nginx}
+            - {name: nginx-run, mountPath: /run}
+      volumes:
+        - name: nginx-state
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbird-dashboard-env
+  namespace: netbird-access
+data:
+  NETBIRD_MGMT_API_ENDPOINT: https://access.re8ch.com:8443
+  NETBIRD_MGMT_GRPC_API_ENDPOINT: https://access.re8ch.com:8443
+  AUTH_AUDIENCE: netbird-dashboard
+  AUTH_CLIENT_ID: netbird-dashboard
+  AUTH_CLIENT_SECRET: ""
+  AUTH_AUTHORITY: https://access.re8ch.com:8443/oauth2
+  USE_AUTH0: "false"
+  AUTH_SUPPORTED_SCOPES: openid profile email groups
+  AUTH_REDIRECT_URI: /nb-auth
+  AUTH_SILENT_REDIRECT_URI: /nb-silent-auth
+  NETBIRD_TOKEN_SOURCE: accessToken
+  NGINX_SSL_PORT: "443"
+  LETSENCRYPT_DOMAIN: none
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-dashboard
+  namespace: netbird-access
+spec:
+  selector:
+    app.kubernetes.io/name: netbird-dashboard
+    app.kubernetes.io/part-of: re8ch-access
+  ports:
+    - {name: http, port: 80, targetPort: http, protocol: TCP}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: netbird-server
+  namespace: netbird-access
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: netbird-server
+      app.kubernetes.io/part-of: re8ch-access

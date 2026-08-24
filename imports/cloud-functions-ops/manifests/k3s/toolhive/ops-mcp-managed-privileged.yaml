@@ -1,0 +1,278 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ops-mcp-operate
+  namespace: toolhive-system
+  labels:
+    re8ch.com/access-level: operate
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:ops-mcp-operate-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-observe
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-operate
+    namespace: toolhive-system
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: ops-operate-managed
+  namespace: toolhive-system
+  labels:
+    re8ch.com/risk: controlled-write
+    re8ch.com/publication-stage: canary
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-url: http://mcp-ops-operate-managed-proxy.toolhive-system.svc.cluster.local:8080
+    toolhive.stacklok.dev/registry-description: ToolHive-managed tenant operations with allowlisted deployment restart.
+    toolhive.stacklok.dev/registry-title: RE8CH Platform Operate (Managed Canary)
+    toolhive.stacklok.dev/registry-category: operations,controlled-write,internal,canary
+    toolhive.stacklok.dev/authz-claims: '{"access_level":"operate","audience":"agent"}'
+spec:
+  image: registry.re8ch.com/proxy-dockerhub/library/python:3.12-alpine
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8088
+  serviceAccount: ops-mcp-operate
+  groupRef: {name: platform-operate}
+  toolConfigRef: {name: ops-operate-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-operate}
+  audit: {enabled: true}
+  oidcConfigRef:
+    name: operate-workload-identity
+    audience: re8ch-toolhive-ops-operate-managed
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: TRUST_PROXY_CIDRS, value: 192.0.2.224/16}
+    - {name: OPS_TOOL_PROFILE, value: operate}
+    - {name: TENANT_NAMESPACE, value: qwen}
+    - {name: TENANT_NAMESPACES, value: qwen}
+    - {name: TENANT_DB_NAMES, value: qianwen_prod,qianwen_test,cardcat}
+    - {name: KUBE_SERVER_PUBLIC, value: "https://192.0.2.18:6443"}
+    - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
+    - {name: REGISTRY_ALT, value: "https://registry.ynzs.com"}
+    - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
+    - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
+    - {name: METRICS_URL, value: "http://192.0.2.183:30428"}
+    - {name: TENANT_METRICS_TENANT, value: qianwen}
+  podTemplateSpec:
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: panel, effect: NoSchedule}
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mcp
+          command: ["python", "/app/app.py"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: app-code, mountPath: /app, readOnly: true}
+      volumes:
+        - name: app-code
+          configMap: {name: ops-mcp-server-code}
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ops-operate-managed-backend
+  namespace: toolhive-system
+spec:
+  podSelector:
+    matchLabels: {app: ops-operate-managed, toolhive: "true"}
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mcpserver
+              app.kubernetes.io/instance: ops-operate-managed
+              toolhive: "true"
+      ports: [{protocol: TCP, port: 8088}]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ops-mcp-admin
+  namespace: toolhive-system
+  labels:
+    re8ch.com/access-level: admin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:toolhive-tenancy-admin
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts", "secrets"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "create", "update", "patch", "bind", "escalate"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "clusterrolebindings"]
+    verbs: ["get", "list", "create", "update", "patch", "bind", "escalate"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:ops-mcp-admin-tenancy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:toolhive-tenancy-admin
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-admin
+    namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:ops-mcp-admin-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-observe
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-admin
+    namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: re8ch:ops-mcp-admin-tool-publication
+  namespace: toolhive-system
+rules:
+  - apiGroups: ["toolhive.stacklok.dev"]
+    resources: ["mcpservers"]
+    resourceNames:
+      - ops-observe-managed
+      - ops-operate-managed
+      - ops-admin-managed
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: re8ch:ops-mcp-admin-tool-publication
+  namespace: toolhive-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: re8ch:ops-mcp-admin-tool-publication
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-admin
+    namespace: toolhive-system
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: ops-admin-managed
+  namespace: toolhive-system
+  labels:
+    re8ch.com/risk: privileged
+    re8ch.com/publication-stage: canary
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-url: http://mcp-ops-admin-managed-proxy.toolhive-system.svc.cluster.local:8080
+    toolhive.stacklok.dev/registry-description: ToolHive-managed approval-gated tenant provisioning and administration.
+    toolhive.stacklok.dev/registry-title: RE8CH Platform Admin (Managed Canary)
+    toolhive.stacklok.dev/registry-category: operations,privileged,internal,canary
+    toolhive.stacklok.dev/authz-claims: '{"access_level":"admin","audience":"agent"}'
+spec:
+  image: registry.re8ch.com/proxy-dockerhub/library/python:3.12-alpine
+  transport: streamable-http
+  proxyPort: 8080
+  mcpPort: 8088
+  serviceAccount: ops-mcp-admin
+  groupRef: {name: platform-admin}
+  toolConfigRef: {name: ops-admin-tools}
+  telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-admin}
+  audit: {enabled: true}
+  oidcConfigRef:
+    name: admin-workload-identity
+    audience: re8ch-toolhive-ops-admin-managed
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: TRUST_PROXY_CIDRS, value: 192.0.2.224/16}
+    - {name: OPS_TOOL_PROFILE, value: admin}
+    - {name: TENANT_NAMESPACE, value: qwen}
+    - {name: TENANT_NAMESPACES, value: qwen}
+    - {name: TENANT_DB_NAMES, value: qianwen_prod,qianwen_test,cardcat}
+    - {name: KUBE_SERVER_PUBLIC, value: "https://192.0.2.18:6443"}
+    - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
+    - {name: REGISTRY_ALT, value: "https://registry.ynzs.com"}
+    - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
+    - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
+    - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
+    - {name: HARBOR_API_URL, value: "https://registry.re8ch.com"}
+    - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
+    - {name: TENANT_HARBOR_PROJECT, value: qianwen}
+    - {name: METRICS_URL, value: "http://192.0.2.183:30428"}
+    - {name: TENANT_METRICS_TENANT, value: qianwen}
+  podTemplateSpec:
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: panel, effect: NoSchedule}
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mcp
+          command: ["python", "/app/app.py"]
+          env:
+            - name: AUTHENTIK_API_URL
+              value: http://authentik-server.auth.svc.cluster.local/api/v3
+            - name: AUTHENTIK_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: toolhive-authentik-admin-api, key: token}
+            - name: HARBOR_USERNAME
+              valueFrom:
+                secretKeyRef: {name: ops-mcp-harbor-auth, key: username}
+            - name: HARBOR_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: ops-mcp-harbor-auth, key: password}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: app-code, mountPath: /app, readOnly: true}
+      volumes:
+        - name: app-code
+          configMap: {name: ops-mcp-server-code}
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ops-admin-managed-backend
+  namespace: toolhive-system
+spec:
+  podSelector:
+    matchLabels: {app: ops-admin-managed, toolhive: "true"}
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mcpserver
+              app.kubernetes.io/instance: ops-admin-managed
+              toolhive: "true"
+      ports: [{protocol: TCP, port: 8088}]

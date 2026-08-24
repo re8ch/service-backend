@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Namespace
+metadata: {name: dataspace}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dataspace-files
+  namespace: dataspace
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-r640
+  resources: {requests: {storage: 100Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: dataspace-gateway, namespace: dataspace}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: dataspace-gateway}}
+  template:
+    metadata: {labels: {app: dataspace-gateway}}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        storage.re8ch.com/ceph-client: "true"
+      securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
+      containers:
+        - name: gateway
+          image: ghcr.io/woomou/storage-collaborator-gateway:0.2.0-oidc
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: DATASPACE_STORAGE_ROOT, value: /data}
+            - {name: DATASPACE_OIDC_ISSUER, value: "https://dex.re8ch.com"}
+            - {name: DATASPACE_OIDC_AUDIENCE, value: "storage-collaborator"}
+            - name: DATASPACE_DEVICE_TOKEN
+              valueFrom: {secretKeyRef: {name: dataspace-gateway, key: device-token}}
+            - {name: DATASPACE_POSTGREST_RO_URL, value: "https://db-ro.re8ch.com/dataspace"}
+            - {name: DATASPACE_POSTGREST_RW_URL, value: "https://db-rw.re8ch.com/dataspace"}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: files, mountPath: /data}]
+      volumes: [{name: files, persistentVolumeClaim: {claimName: dataspace-files}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: dataspace-gateway, namespace: dataspace}
+spec:
+  selector: {app: dataspace-gateway}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: storage-collaborator
+  namespace: dataspace
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: storage.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [storage.re8ch.com]
+      secretName: re8ch-wildcard-tls
+  rules:
+    - host: storage.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: dataspace-gateway, port: {number: 8080}}}

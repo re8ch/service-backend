@@ -1,0 +1,235 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: re8ch-auth-gateway
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: re8ch-auth-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: re8ch-auth
+    saas.re8ch.com/tenant: auth
+    saas.re8ch.com/product: re8ch-auth
+    saas.re8ch.com/layer: prod
+    saas.re8ch.com/function: gateway
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: re8ch-auth-gateway
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: re8ch-auth-gateway
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/part-of: re8ch-auth
+        saas.re8ch.com/tenant: auth
+        saas.re8ch.com/product: re8ch-auth
+        saas.re8ch.com/layer: prod
+        saas.re8ch.com/function: gateway
+    spec:
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: anchor
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      imagePullSecrets:
+        - name: harbor-auth-admin
+      containers:
+        - name: gateway
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-return-2026062701
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: NODE_ENV
+              value: prod
+            - name: API_BASE_URL
+              value: https://api.re8ch.com/auth
+            - name: PUBLIC_API_BASE_URL
+              value: https://api.re8ch.com/auth
+            - name: MGR_RPC_RW_BASE_URL
+              value: http://192.0.2.33:3017
+            - name: MGR_RPC_RO_BASE_URL
+              value: http://192.0.2.33:3017
+            - name: AUTH_SERVICE_ROLE
+              value: auth_app_rw
+            - name: AUTH_GATEWAY_COOKIE_NAME
+              value: re8ch_sso
+            - name: AUTH_GATEWAY_STATE_COOKIE_NAME
+              value: re8ch_login_state
+            - name: AUTH_GATEWAY_COOKIE_DOMAIN
+              value: .re8ch.com
+            - name: AUTH_GATEWAY_SESSION_TTL
+              value: 720h
+            - name: AUTH_EMAIL_OTP_EXPOSE_CODE
+              value: "false"
+            - name: AUTH_EMAIL_DELIVERY
+              value: smtp
+            - name: AUTH_PHONE_OTP_EXPOSE_CODE
+              value: "false"
+            - name: AUTH_PHONE_SMS_DELIVERY
+              value: aliyun
+            - name: PHONE_SMS_MOCK
+              value: "false"
+            - name: AUTH_SMTP_HOST
+              value: smtp.feishu.cn
+            - name: AUTH_SMTP_PORT
+              value: "465"
+            - name: AUTH_SMTP_TLS_MODE
+              value: ssl
+            - name: AUTH_SMTP_TIMEOUT
+              value: 15s
+            - name: AUTH_SMTP_USERNAME
+              value: image@re8ch.com
+            - name: AUTH_SMTP_FROM
+              value: image@re8ch.com
+            - name: AUTH_SMTP_FROM_NAME
+              value: RE8CH Image Registry
+            - name: AUTH_GATEWAY_DEFAULT_RETURN_URL
+              value: https://re8ch.com
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: PGRST_JWT_SECRET
+            - name: GOOGLE_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: GOOGLE_OIDC_CLIENT_ID
+                  optional: true
+            - name: GOOGLE_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: GOOGLE_OIDC_CLIENT_SECRET
+                  optional: true
+            - name: AUTHENTIK_OIDC_ISSUER
+              value: https://auth.re8ch.com/application/o/re8ch-business/
+            - name: AUTHENTIK_OIDC_SCOPES
+              value: openid email profile groups
+            - name: AUTHENTIK_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTHENTIK_OIDC_CLIENT_ID
+                  optional: true
+            - name: AUTHENTIK_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTHENTIK_OIDC_CLIENT_SECRET
+                  optional: true
+            - name: DEX_OIDC_ISSUER
+              value: https://dex.re8ch.com
+            - name: DEX_OIDC_SCOPES
+              value: openid email profile groups
+            - name: DEX_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: DEX_OIDC_CLIENT_ID
+                  optional: true
+            - name: DEX_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: DEX_OIDC_CLIENT_SECRET
+                  optional: true
+            - name: AUTH_GATEWAY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTH_GATEWAY_COOKIE_SECRET
+            - name: AUTH_GATEWAY_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTH_GATEWAY_INTERNAL_TOKEN
+            - name: AUTH_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: AUTH_SMTP_PASSWORD
+            - name: ALIYUN_SMS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: ALIYUN_SMS_ACCESS_KEY_ID
+                  optional: true
+            - name: ALIYUN_SMS_ACCESS_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: ALIYUN_SMS_ACCESS_KEY_SECRET
+                  optional: true
+            - name: ALIYUN_SMS_SIGN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: ALIYUN_SMS_SIGN_NAME
+                  optional: true
+            - name: ALIYUN_SMS_TEMPLATE_CODE_LOGIN
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: ALIYUN_SMS_TEMPLATE_CODE_LOGIN
+                  optional: true
+            - name: ALIYUN_SMS_TEMPLATE_CODE
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: ALIYUN_SMS_TEMPLATE_CODE
+                  optional: true
+            - name: ALIYUN_SMS_REGION_ID
+              value: cn-hangzhou
+            - name: ALIYUN_SMS_ENDPOINT
+              value: dysmsapi.aliyuncs.com
+            - name: FOSSBILLING_API_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: FOSSBILLING_API_BASE_URL
+                  optional: true
+            - name: FOSSBILLING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: re8ch-auth-gateway-secrets
+                  key: FOSSBILLING_API_KEY
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /auth/healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /auth/healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

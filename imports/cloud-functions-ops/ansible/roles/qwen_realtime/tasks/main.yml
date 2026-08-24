@@ -1,0 +1,208 @@
+---
+- name: Assert required Realtime secrets are provided
+  ansible.builtin.assert:
+    that:
+      - qwen_realtime_db_password is defined
+      - qwen_realtime_db_password | length > 0
+      - qwen_realtime_api_jwt_secret is defined
+      - qwen_realtime_api_jwt_secret | length > 0
+      - qwen_realtime_db_enc_key is defined
+      - qwen_realtime_db_enc_key | length == 16
+      - qwen_realtime_secret_key_base is defined
+      - qwen_realtime_secret_key_base | length > 0
+    fail_msg: >-
+      qwen_realtime_db_password, qwen_realtime_api_jwt_secret,
+      qwen_realtime_db_enc_key (16 chars), and qwen_realtime_secret_key_base
+      must be supplied from vault or inventory.
+  run_once: true
+
+- name: Check local Patroni/Postgres recovery role
+  ansible.builtin.command:
+    cmd: sudo -iu postgres psql -X -qAt -d {{ qwen_realtime_db_name | quote }} -c "select pg_is_in_recovery()"
+  register: qwen_realtime_recovery
+  changed_when: false
+
+- name: Add current primary to transient group
+  ansible.builtin.add_host:
+    name: "{{ inventory_hostname }}"
+    groups: qwen_realtime_primary
+  when: qwen_realtime_recovery.stdout == "f"
+  changed_when: false
+
+- name: Fail if no primary was detected
+  ansible.builtin.assert:
+    that:
+      - groups.qwen_realtime_primary is defined
+      - groups.qwen_realtime_primary | length == 1
+    fail_msg: "Expected exactly one qwen_realtime primary host from pg_is_in_recovery()."
+  run_once: true
+
+- name: Install Realtime state directory
+  ansible.builtin.file:
+    path: "{{ qwen_realtime_state_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Bootstrap database roles, grants, and Realtime tenant settings
+  ansible.builtin.template:
+    src: bootstrap.sql.j2
+    dest: "{{ qwen_realtime_state_dir }}/bootstrap.sql"
+    owner: root
+    group: root
+    mode: "0600"
+  delegate_to: "{{ groups.qwen_realtime_primary[0] }}"
+  run_once: true
+  no_log: true
+
+- name: Apply database bootstrap SQL
+  ansible.builtin.command:
+    cmd: sudo -iu postgres psql -X -v ON_ERROR_STOP=1 -d {{ qwen_realtime_db_name | quote }} -f {{ qwen_realtime_state_dir }}/bootstrap.sql
+  delegate_to: "{{ groups.qwen_realtime_primary[0] }}"
+  run_once: true
+  changed_when: true
+  no_log: true
+
+- name: Install Realtime environment
+  ansible.builtin.template:
+    src: qwen-realtime.env.j2
+    dest: "{{ qwen_realtime_env_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Run qwen realtime role sync
+
+- name: Install role-sync script
+  ansible.builtin.template:
+    src: qwen-realtime-role-sync.j2
+    dest: "{{ qwen_realtime_role_sync_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Run qwen realtime role sync
+
+- name: Install role-sync systemd service
+  ansible.builtin.template:
+    src: qwen-realtime-role-sync.service.j2
+    dest: /etc/systemd/system/qwen-realtime-role-sync.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Run qwen realtime role sync
+
+- name: Install role-sync systemd timer
+  ansible.builtin.template:
+    src: qwen-realtime-role-sync.timer.j2
+    dest: /etc/systemd/system/qwen-realtime-role-sync.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Run qwen realtime role sync
+
+- name: Install Patroni callback script
+  ansible.builtin.template:
+    src: qwen-realtime-patroni-callback.j2
+    dest: "{{ qwen_realtime_patroni_callback_path }}"
+    owner: root
+    group: root
+    mode: "0755"
+  when: qwen_realtime_manage_patroni_callbacks | bool
+
+- name: Install Patroni callback patcher
+  ansible.builtin.template:
+    src: patch-patroni-callbacks.py.j2
+    dest: "{{ qwen_realtime_state_dir }}/patch-patroni-callbacks.py"
+    owner: root
+    group: root
+    mode: "0755"
+  when: qwen_realtime_manage_patroni_callbacks | bool
+
+- name: Enable Realtime role-sync timer
+  ansible.builtin.systemd:
+    name: qwen-realtime-role-sync.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Check Patroni config path
+  ansible.builtin.stat:
+    path: "{{ qwen_realtime_patroni_config_path }}"
+  register: qwen_realtime_patroni_config
+  when: qwen_realtime_manage_patroni_callbacks | bool
+
+- name: Fail if Patroni config is missing
+  ansible.builtin.assert:
+    that:
+      - qwen_realtime_patroni_config.stat.exists
+    fail_msg: "Patroni config not found at {{ qwen_realtime_patroni_config_path }}."
+  when: qwen_realtime_manage_patroni_callbacks | bool
+
+- name: Patch Patroni callbacks for Realtime role sync
+  ansible.builtin.command:
+    argv: "{{ [qwen_realtime_state_dir ~ '/patch-patroni-callbacks.py', qwen_realtime_patroni_config_path, qwen_realtime_patroni_callback_path] + qwen_realtime_patroni_callback_events }}"
+  register: qwen_realtime_patroni_patch
+  changed_when: "'changed' in qwen_realtime_patroni_patch.stdout"
+  when: qwen_realtime_manage_patroni_callbacks | bool
+  notify: Reload patroni
+
+- name: Stop primary Realtime container before tenant seed
+  ansible.builtin.command:
+    cmd: docker stop {{ qwen_realtime_container_name | quote }}
+  delegate_to: "{{ groups.qwen_realtime_primary[0] }}"
+  run_once: true
+  when: qwen_realtime_seed_tenant | bool
+  failed_when: false
+  changed_when: true
+
+- name: Seed self-host Realtime tenant if requested
+  ansible.builtin.command:
+    cmd: >-
+      docker run --rm --network host --env-file {{ qwen_realtime_env_file }}
+      -e SELF_HOST_TENANT_NAME={{ qwen_realtime_tenant_id | quote }}
+      -e SEED_SELF_HOST=true
+      {{ qwen_realtime_image | quote }}
+      /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)'
+  delegate_to: "{{ groups.qwen_realtime_primary[0] }}"
+  run_once: true
+  when: qwen_realtime_seed_tenant | bool
+  changed_when: true
+  no_log: true
+
+- name: Re-apply tenant publication and slot after seed
+  ansible.builtin.command:
+    cmd: sudo -iu postgres psql -X -v ON_ERROR_STOP=1 -d {{ qwen_realtime_db_name | quote }} -f {{ qwen_realtime_state_dir }}/bootstrap.sql
+  delegate_to: "{{ groups.qwen_realtime_primary[0] }}"
+  run_once: true
+  when: qwen_realtime_seed_tenant | bool
+  changed_when: true
+  no_log: true
+
+- name: Run role-sync after optional seed
+  ansible.builtin.systemd:
+    name: qwen-realtime-role-sync.service
+    state: started
+
+- name: Flush handlers before validation
+  ansible.builtin.meta: flush_handlers
+
+- name: Validate role-sync result
+  ansible.builtin.command:
+    cmd: >-
+      bash -lc 'echo recovery=$(sudo -iu postgres psql -X -qAt -d {{ qwen_realtime_db_name | quote }} -c "select pg_is_in_recovery()");
+      echo running=$(docker inspect -f "{{ "{{" }}.State.Running{{ "}}" }}" {{ qwen_realtime_container_name | quote }} 2>/dev/null || echo absent)'
+  register: qwen_realtime_status
+  changed_when: false
+  failed_when: >-
+    (qwen_realtime_recovery.stdout == "f" and "running=true" not in qwen_realtime_status.stdout)
+    or
+    (qwen_realtime_recovery.stdout == "t" and "running=true" in qwen_realtime_status.stdout)
+
+- name: Show Realtime role-sync status
+  ansible.builtin.debug:
+    var: qwen_realtime_status.stdout_lines

@@ -1,0 +1,219 @@
+diff --git a/registry/storage/driver/oss/oss.go b/registry/storage/driver/oss/oss.go
+index dfe6fd9..6be0955 100644
+--- a/registry/storage/driver/oss/oss.go
++++ b/registry/storage/driver/oss/oss.go
+@@ -18,6 +18,7 @@ import (
+ 	"io"
+ 	"io/ioutil"
+ 	"net/http"
++	"net/url"
+ 	"reflect"
+ 	"strconv"
+ 	"strings"
+@@ -43,16 +44,17 @@ const listMax = 1000
+ 
+ // DriverParameters A struct that encapsulates all of the driver parameters after all values have been set
+ type DriverParameters struct {
+-	AccessKeyID     string
+-	AccessKeySecret string
+-	Bucket          string
+-	Region          oss.Region
+-	Internal        bool
+-	Encrypt         bool
+-	Secure          bool
+-	ChunkSize       int64
+-	RootDirectory   string
+-	Endpoint        string
++	AccessKeyID      string
++	AccessKeySecret  string
++	Bucket           string
++	Region           oss.Region
++	Internal         bool
++	Encrypt          bool
++	Secure           bool
++	ChunkSize        int64
++	RootDirectory    string
++	Endpoint         string
++	RedirectEndpoint string
+ }
+ 
+ func init() {
+@@ -69,11 +71,12 @@ func (factory *ossDriverFactory) Create(parameters map[string]interface{}) (stor
+ var _ storagedriver.StorageDriver = &driver{}
+ 
+ type driver struct {
+-	Client        *oss.Client
+-	Bucket        *oss.Bucket
+-	ChunkSize     int64
+-	Encrypt       bool
+-	RootDirectory string
++	Client           *oss.Client
++	Bucket           *oss.Bucket
++	ChunkSize        int64
++	Encrypt          bool
++	RootDirectory    string
++	RedirectEndpoint *url.URL
+ }
+ 
+ type baseEmbed struct {
+@@ -175,17 +178,23 @@ func FromParameters(parameters map[string]interface{}) (*Driver, error) {
+ 		endpoint = ""
+ 	}
+ 
++	redirectEndpoint, ok := parameters["redirectendpoint"]
++	if !ok {
++		redirectEndpoint = ""
++	}
++
+ 	params := DriverParameters{
+-		AccessKeyID:     fmt.Sprint(accessKey),
+-		AccessKeySecret: fmt.Sprint(secretKey),
+-		Bucket:          fmt.Sprint(bucket),
+-		Region:          oss.Region(fmt.Sprint(regionName)),
+-		ChunkSize:       chunkSize,
+-		RootDirectory:   fmt.Sprint(rootDirectory),
+-		Encrypt:         encryptBool,
+-		Secure:          secureBool,
+-		Internal:        internalBool,
+-		Endpoint:        fmt.Sprint(endpoint),
++		AccessKeyID:      fmt.Sprint(accessKey),
++		AccessKeySecret:  fmt.Sprint(secretKey),
++		Bucket:           fmt.Sprint(bucket),
++		Region:           oss.Region(fmt.Sprint(regionName)),
++		ChunkSize:        chunkSize,
++		RootDirectory:    fmt.Sprint(rootDirectory),
++		Encrypt:          encryptBool,
++		Secure:           secureBool,
++		Internal:         internalBool,
++		Endpoint:         fmt.Sprint(endpoint),
++		RedirectEndpoint: fmt.Sprint(redirectEndpoint),
+ 	}
+ 
+ 	return New(params)
+@@ -209,12 +218,28 @@ func New(params DriverParameters) (*Driver, error) {
+ 	// TODO(tg123): Currently multipart uploads have no timestamps, so this would be unwise
+ 	// if you initiated a new OSS client while another one is running on the same bucket.
+ 
++	var redirectEndpoint *url.URL
++	if params.RedirectEndpoint != "" {
++		u, err := url.Parse(params.RedirectEndpoint)
++		if err != nil {
++			return nil, fmt.Errorf("invalid redirectendpoint %q: %w", params.RedirectEndpoint, err)
++		}
++		if u.Scheme == "" || u.Host == "" {
++			return nil, fmt.Errorf("redirectendpoint must be an absolute URL with scheme and host")
++		}
++		if (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" {
++			return nil, fmt.Errorf("redirectendpoint must not include path, query, or fragment")
++		}
++		redirectEndpoint = u
++	}
++
+ 	d := &driver{
+-		Client:        client,
+-		Bucket:        bucket,
+-		ChunkSize:     params.ChunkSize,
+-		Encrypt:       params.Encrypt,
+-		RootDirectory: params.RootDirectory,
++		Client:           client,
++		Bucket:           bucket,
++		ChunkSize:        params.ChunkSize,
++		Encrypt:          params.Encrypt,
++		RootDirectory:    params.RootDirectory,
++		RedirectEndpoint: redirectEndpoint,
+ 	}
+ 
+ 	return &Driver{
+@@ -476,8 +501,25 @@ func (d *driver) URLFor(ctx context.Context, path string, options map[string]int
+ 	}
+ 	logrus.Infof("methodString: %s, expiresTime: %v", methodString, expiresTime)
+ 	signedURL := d.Bucket.SignedURLWithMethod(methodString, d.ossPath(path), expiresTime, nil, nil)
+-	logrus.Infof("signed URL: %s", signedURL)
+-	return signedURL, nil
++	redirectURL, err := d.rewriteSignedURLHost(signedURL)
++	if err != nil {
++		return "", err
++	}
++	return redirectURL, nil
++}
++
++func (d *driver) rewriteSignedURLHost(signedURL string) (string, error) {
++	if d.RedirectEndpoint == nil {
++		return signedURL, nil
++	}
++
++	u, err := url.Parse(signedURL)
++	if err != nil {
++		return "", fmt.Errorf("failed to parse signed OSS URL: %w", err)
++	}
++	u.Scheme = d.RedirectEndpoint.Scheme
++	u.Host = d.RedirectEndpoint.Host
++	return u.String(), nil
+ }
+ 
+ // Walk traverses a filesystem defined within driver, starting
+diff --git a/registry/storage/driver/oss/oss_redirect_test.go b/registry/storage/driver/oss/oss_redirect_test.go
+new file mode 100644
+index 0000000..552e2b7
+--- /dev/null
++++ b/registry/storage/driver/oss/oss_redirect_test.go
+@@ -0,0 +1,59 @@
++//go:build include_oss
++// +build include_oss
++
++package oss
++
++import (
++	"net/url"
++	"testing"
++)
++
++func TestRewriteSignedURLHost(t *testing.T) {
++	redirectEndpoint, err := url.Parse("https://registry-blob.re8ch.com")
++	if err != nil {
++		t.Fatalf("unexpected redirect endpoint parse error: %v", err)
++	}
++
++	driver := &driver{RedirectEndpoint: redirectEndpoint}
++	signedURL := "https://regitry.oss-cn-hangzhou.aliyuncs.com/harbor-registry/registry/docker/registry/v2/blobs/sha256/58/blob/data?Expires=123&OSSAccessKeyId=ak&Signature=sig"
++
++	rewritten, err := driver.rewriteSignedURLHost(signedURL)
++	if err != nil {
++		t.Fatalf("unexpected rewrite error: %v", err)
++	}
++
++	u, err := url.Parse(rewritten)
++	if err != nil {
++		t.Fatalf("unexpected rewritten URL parse error: %v", err)
++	}
++
++	if u.Scheme != "https" {
++		t.Fatalf("scheme = %q, want https", u.Scheme)
++	}
++	if u.Host != "registry-blob.re8ch.com" {
++		t.Fatalf("host = %q, want registry-blob.re8ch.com", u.Host)
++	}
++	if u.Path != "/harbor-registry/registry/docker/registry/v2/blobs/sha256/58/blob/data" {
++		t.Fatalf("path = %q", u.Path)
++	}
++
++	query := u.Query()
++	for _, key := range []string{"Expires", "OSSAccessKeyId", "Signature"} {
++		if query.Get(key) == "" {
++			t.Fatalf("signed query key %q was not preserved in %q", key, rewritten)
++		}
++	}
++}
++
++func TestRewriteSignedURLHostNoRedirectEndpoint(t *testing.T) {
++	driver := &driver{}
++	signedURL := "https://regitry.oss-cn-hangzhou.aliyuncs.com/object?Expires=123&Signature=sig"
++
++	rewritten, err := driver.rewriteSignedURLHost(signedURL)
++	if err != nil {
++		t.Fatalf("unexpected rewrite error: %v", err)
++	}
++	if rewritten != signedURL {
++		t.Fatalf("rewritten = %q, want original %q", rewritten, signedURL)
++	}
++}

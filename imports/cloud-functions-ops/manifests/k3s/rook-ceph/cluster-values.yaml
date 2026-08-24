@@ -1,0 +1,263 @@
+operatorNamespace: rook-ceph
+clusterName: rook-ceph
+
+cephImage:
+  repository: quay.io/ceph/ceph
+  tag: v20.2.2
+  allowUnsupported: false
+
+toolbox:
+  enabled: true
+
+monitoring:
+  enabled: false
+  metricsDisabled: false
+
+cephClusterSpec:
+  dataDirHostPath: /var/lib/rook-ceph-pilot
+  skipUpgradeChecks: false
+  continueUpgradeAfterChecksEvenIfNotHealthy: false
+  mon:
+    count: 3
+    allowMultiplePerNode: false
+  mgr:
+    # Keep a standby manager on a different storage host so a scheduled
+    # control-plane restart does not remove the only manager daemon.
+    count: 2
+    allowMultiplePerNode: false
+  dashboard:
+    enabled: false
+  network:
+    provider: host
+    addressRanges:
+      # Stable daemon/client identity. Node InternalIP authority remains here.
+      public:
+        - 192.0.2.253/24
+      # OSD replication, recovery, backfill, and heartbeat data plane.
+      cluster:
+        - 192.0.2.106/24
+    connections:
+      encryption:
+        enabled: false
+      compression:
+        enabled: false
+      requireMsgr2: true
+  crashCollector:
+    disable: false
+  logCollector:
+    enabled: true
+    periodicity: daily
+    maxLogSize: 100M
+  cleanupPolicy:
+    confirmation: ""
+    sanitizeDisks:
+      method: quick
+      dataSource: zero
+      iteration: 1
+    allowUninstallWithVolumes: false
+  placement:
+    all:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: storage.re8ch.com/ceph-pilot
+                  operator: In
+                  values: ["true"]
+    mgr:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values: [rook-ceph-mgr]
+            topologyKey: kubernetes.io/hostname
+  resources:
+    mon:
+      limits:
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 512Mi
+    mgr:
+      limits:
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 512Mi
+    osd:
+      limits:
+        memory: 2300Mi
+      requests:
+        cpu: 250m
+        memory: 2Gi
+    prepareosd:
+      requests:
+        cpu: 100m
+        memory: 50Mi
+    mgr-sidecar:
+      limits:
+        memory: 100Mi
+      requests:
+        cpu: 50m
+        memory: 40Mi
+    crashcollector:
+      limits:
+        memory: 60Mi
+      requests:
+        cpu: 20m
+        memory: 60Mi
+    logcollector:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 20m
+        memory: 50Mi
+    exporter:
+      limits:
+        memory: 128Mi
+      requests:
+        cpu: 20m
+        memory: 50Mi
+  removeOSDsIfOutAndSafeToRemove: false
+  priorityClassNames:
+    mon: system-node-critical
+    osd: system-node-critical
+    mgr: system-cluster-critical
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    config:
+      osdsPerDevice: "1"
+    nodes:
+      - name: restricted-node-6dc3f140f9
+        devices:
+          - name: /dev/ubuntu-vg/ceph_pilot_osd
+      - name: restricted-node-1eb0570f74
+        devices:
+          - name: /dev/disk/by-id/scsi-360022480b66b60a8f0c873bb147edef8
+      - name: restricted-node-296f36f2fb
+        devices:
+          - name: /dev/disk/by-id/scsi-36002248092fe886403f06a91bb13700e
+  disruptionManagement:
+    managePodBudgets: true
+    osdMaintenanceTimeout: 30
+  healthCheck:
+    daemonHealth:
+      mon:
+        disabled: false
+        interval: 45s
+      osd:
+        disabled: false
+        interval: 60s
+      status:
+        disabled: false
+        interval: 60s
+
+cephBlockPools:
+  - name: r640-rbd
+    spec:
+      failureDomain: host
+      deviceClass: r640-hdd
+      replicated:
+        size: 1
+        requireSafeReplicaSize: false
+    storageClass:
+      enabled: true
+      name: rbd-r640
+      # rook-ceph-cluster v1.20.3 renders block-pool StorageClass labels with
+      # nindent directly, so this field must be a YAML fragment string.
+      labels: |
+        storage.re8ch.com/availability-class: single-node
+        storage.re8ch.com/failure-domain: restricted-node-6dc3f140f9
+        storage.re8ch.com/replication: "1"
+      annotations:
+        storage.re8ch.com/ha: "false"
+        storage.re8ch.com/usage-policy: >-
+          R640-local non-HA storage; use only for workloads that intentionally
+          accept the restricted-node-6dc3f140f9 failure domain.
+      isDefault: false
+      reclaimPolicy: Retain
+      allowVolumeExpansion: true
+      volumeBindingMode: WaitForFirstConsumer
+      parameters:
+        imageFormat: "2"
+        imageFeatures: layering
+        csi.storage.k8s.io/fstype: xfs
+        csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+        csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+        csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
+        csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+        csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+        csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+
+cephFileSystems:
+  - name: re8ch-files
+    spec:
+      metadataPool:
+        failureDomain: host
+        replicated:
+          size: 3
+          requireSafeReplicaSize: true
+      dataPools:
+        - name: data0
+          failureDomain: host
+          replicated:
+            size: 3
+            requireSafeReplicaSize: true
+        - name: restricted-node-6dc3f140f9
+          failureDomain: host
+          deviceClass: r640-hdd
+          replicated:
+            size: 1
+            requireSafeReplicaSize: false
+      metadataServer:
+        activeCount: 1
+        activeStandby: true
+        placement:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: In
+                      values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [rook-ceph-mds]
+                topologyKey: kubernetes.io/hostname
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 512Mi
+        priorityClassName: system-cluster-critical
+    storageClass:
+      enabled: true
+      isDefault: false
+      name: cephfs-pilot
+      pool: data0
+      reclaimPolicy: Retain
+      allowVolumeExpansion: true
+      volumeBindingMode: Immediate
+      mountOptions:
+        - noatime
+      parameters:
+        csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+        csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+        csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+        csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+        csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+        csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+
+cephObjectStores: []
+cephFileSystemVolumeSnapshotClass:
+  enabled: false
+cephBlockPoolsVolumeSnapshotClass:
+  enabled: false

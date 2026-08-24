@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: harbor-registry
+  namespace: harbor
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    networking.re8ch.com/dns-authority: public-edge-manager
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: harbor-tls
+  hostnames:
+    - registry.re8ch.com
+  rules:
+    - backendRefs:
+        - name: harbor-registry
+          port: 443

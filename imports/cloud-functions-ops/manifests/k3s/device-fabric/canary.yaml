@@ -1,0 +1,87 @@
+apiVersion: devices.re8ch.com/v1alpha1
+kind: EdgeDevice
+metadata:
+  name: grandstream-gxw4108-canary
+  namespace: edge-devices
+spec:
+  identity:
+    vendor: Grandstream
+    model: GXW4108
+    firmwareVersion: 192.0.2.232
+  placement:
+    site: restricted-node-6dc3f140f9
+  connections:
+    - name: lan
+      type: Network
+      network:
+        addresses: [192.0.2.208]
+  capabilities: [WebGUI, SIP, RTP, FXO, VoiceControl]
+  management:
+    protocols: [HTTP]
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: DeviceService
+metadata:
+  name: grandstream-gui-canary
+  namespace: edge-devices
+spec:
+  deviceRef: {name: grandstream-gxw4108-canary}
+  connectionName: lan
+  protocol: HTTP
+  port: 80
+  authentication:
+    # GXW4108 provides the login challenge; Gateway does not terminate auth.
+    mode: Upstream
+  exposure:
+    mode: Gateway
+    hostname: grandstream-canary.re8ch.internal
+    visibility: Authenticated
+    gatewayRef:
+      name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  healthCheck: {protocol: HTTP, path: /, intervalSeconds: 30}
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: EdgeDevice
+metadata:
+  name: r640-voice-host-canary
+  namespace: edge-devices
+spec:
+  identity: {vendor: Dell, model: PowerEdge restricted-node-6dc3f140f9}
+  placement: {site: restricted-node-6dc3f140f9, nodeName: restricted-node-6dc3f140f9}
+  connections:
+    - name: lan
+      type: Network
+      network: {addresses: [192.0.2.97]}
+  capabilities: [VoiceControl]
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: DeviceService
+metadata:
+  name: r640-voice-control-canary
+  namespace: edge-devices
+spec:
+  deviceRef: {name: r640-voice-host-canary}
+  connectionName: lan
+  protocol: HTTP
+  port: 18092
+  exposure: {mode: ClusterIP, visibility: Private}
+  healthCheck: {protocol: HTTP, path: /healthz, intervalSeconds: 15}
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: VoiceGateway
+metadata:
+  name: grandstream-line01-canary
+  namespace: edge-devices
+spec:
+  provider: Grandstream
+  deviceRef: {name: grandstream-gxw4108-canary}
+  signaling: {transport: UDP, port: 5160}
+  media:
+    rtpPortRange: {start: 20000, end: 20255}
+    codecs: [PCMA]
+    dtmfMode: RFC2833
+  lines:
+    - {name: line01, physicalPort: FXO-1, direction: Bidirectional, enabled: true}
+  controlServiceRef: {name: r640-voice-control-canary}

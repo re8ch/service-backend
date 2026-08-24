@@ -1,0 +1,5 @@
+.asc/
+.build/
+DerivedData/
+*.xcarchive
+*.ipa

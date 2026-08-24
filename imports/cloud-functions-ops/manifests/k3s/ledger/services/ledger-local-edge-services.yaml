@@ -1,0 +1,64 @@
+# R640-owned Ledger services for api.re8ch.com.
+# Select the canonical functions only; regional partner replicas use suffixed names.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-api-gateway-local
+  namespace: ledger
+  labels:
+    ledger.re8ch.com/routing: local-edge
+    saas.re8ch.com/product: ledger
+    saas.re8ch.com/tenant: ledger
+  annotations:
+    service.kubernetes.io/topology-mode: Auto
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Local
+  selector:
+    nuclio.io/function-name: ledger-api-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-wechat-auth-local
+  namespace: ledger
+  labels:
+    ledger.re8ch.com/routing: local-edge
+    saas.re8ch.com/product: ledger
+    saas.re8ch.com/tenant: ledger
+  annotations:
+    service.kubernetes.io/topology-mode: Auto
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Local
+  selector:
+    nuclio.io/function-name: ledger-wechat-auth
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-gnucash-report-runner-local
+  namespace: ledger
+  labels:
+    ledger.re8ch.com/routing: local-edge
+    saas.re8ch.com/product: ledger
+    saas.re8ch.com/tenant: ledger
+  annotations:
+    service.kubernetes.io/topology-mode: Auto
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Local
+  selector:
+    nuclio.io/function-name: ledger-gnucash-report-runner
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

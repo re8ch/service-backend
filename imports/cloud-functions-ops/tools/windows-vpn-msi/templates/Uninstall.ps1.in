@@ -1,0 +1,21 @@
+#Requires -RunAsAdministrator
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Continue"
+$VpnName = "@@VPN_NAME@@"
+$ClientSubject = "CN=@@CERT_COMMON_NAME@@"
+
+@@WATCHDOG_REMOVE@@
+
+Get-VpnConnection -Name $VpnName -AllUserConnection -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        Remove-VpnConnection -Name $VpnName -AllUserConnection -Force
+    }
+
+Get-ChildItem "Cert:\LocalMachine\My" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Subject -eq $ClientSubject } |
+    Remove-Item -Force
+
+# The shared RE8CH root CA is intentionally retained because another
+# device-purpose profile may still use it.

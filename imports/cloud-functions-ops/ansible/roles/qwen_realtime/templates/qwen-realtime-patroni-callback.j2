@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ACTION="${1:-unknown}"
+ROLE="${2:-unknown}"
+CLUSTER="${3:-unknown}"
+LOG_FILE="{{ qwen_realtime_state_dir }}/patroni-callback.log"
+
+{
+  printf '%s action=%s role=%s cluster=%s\n' "$(date -Is)" "$ACTION" "$ROLE" "$CLUSTER"
+} >> "$LOG_FILE" 2>/dev/null || true
+
+# Keep Patroni callbacks fast. The oneshot service performs the actual sync.
+systemctl --no-block start qwen-realtime-role-sync.service

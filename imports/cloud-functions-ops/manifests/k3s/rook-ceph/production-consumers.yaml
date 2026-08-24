@@ -1,0 +1,94 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cephfs-re8ch
+  labels:
+    storage.re8ch.com/availability-class: replicated-whitelist
+    storage.re8ch.com/replication: "3"
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+    storage.re8ch.com/usage-policy: >-
+      Replicated CephFS is deny-by-default. New claims require the
+      storage.re8ch.com/replicated-approved=true label.
+provisioner: rook-ceph.cephfs.csi.ceph.com
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+mountOptions:
+  - noatime
+  - ms_mode=secure
+parameters:
+  clusterID: rook-ceph
+  fsName: re8ch-files
+  pool: re8ch-files-data0
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+  csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+  csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: headlamp-plugins
+  namespace: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    storage.re8ch.com/consumer: cephfs-re8ch
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: headlamp-plugins-v2
+  namespace: headlamp
+  labels:
+    app.kubernetes.io/name: headlamp
+    storage.re8ch.com/consumer: cephfs-re8ch
+    storage.re8ch.com/generation: "v2"
+    storage.re8ch.com/replicated-approved: "true"
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-grafana-cephfs-data
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    app.kubernetes.io/part-of: panel-observability
+    storage.re8ch.com/consumer: cephfs-re8ch
+    storage.re8ch.com/purpose: backup-export
+    storage.re8ch.com/replicated-approved: "true"
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: panel-grafana-plugins
+  namespace: qianwen-ops
+  labels:
+    app.kubernetes.io/name: panel-grafana
+    storage.re8ch.com/consumer: cephfs-re8ch
+    storage.re8ch.com/purpose: plugin-artifacts
+    storage.re8ch.com/replicated-approved: "true"
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-re8ch
+  resources: {requests: {storage: 2Gi}}

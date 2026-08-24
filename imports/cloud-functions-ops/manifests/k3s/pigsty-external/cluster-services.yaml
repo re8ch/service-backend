@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Service
+metadata: {name: pg-re8ch-primary, namespace: pigsty-external, labels: {re8ch.com/cluster: pg-re8ch, re8ch.com/data-role: primary}}
+spec:
+  ports: [{name: postgres, port: 5432, targetPort: 5432}, {name: pgbouncer, port: 6432, targetPort: 6432}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: pg-re8ch-primary, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-re8ch-primary, re8ch.com/cluster: pg-re8ch, re8ch.com/data-role: primary}}
+addressType: IPv4
+ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
+# Bootstrap value only. The Patroni role reconciler owns this address at runtime.
+endpoints: [{addresses: [192.0.2.183], conditions: {ready: true}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: pg-re8ch-replicas, namespace: pigsty-external, labels: {re8ch.com/cluster: pg-re8ch, re8ch.com/data-role: replica}}
+spec:
+  ports: [{name: postgres, port: 5432, targetPort: 5432}, {name: pgbouncer, port: 6432, targetPort: 6432}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: pg-re8ch-replicas, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-re8ch-replicas, re8ch.com/cluster: pg-re8ch, re8ch.com/data-role: replica}}
+addressType: IPv4
+ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
+endpoints:
+  - {addresses: [192.0.2.79], conditions: {ready: true}}
+  - {addresses: [192.0.2.172], conditions: {ready: true}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: pg-meta-primary, namespace: pigsty-external, labels: {re8ch.com/cluster: pg-meta, re8ch.com/data-role: primary}}
+spec:
+  ports: [{name: postgres, port: 5432, targetPort: 5432}, {name: pgbouncer, port: 6432, targetPort: 6432}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: pg-meta-primary, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-meta-primary, re8ch.com/cluster: pg-meta, re8ch.com/data-role: primary}}
+addressType: IPv4
+ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
+endpoints: [{addresses: [192.0.2.91], conditions: {ready: true}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: pg-meta-replicas, namespace: pigsty-external, labels: {re8ch.com/cluster: pg-meta, re8ch.com/data-role: replica}}
+spec:
+  ports: [{name: postgres, port: 5432, targetPort: 5432}, {name: pgbouncer, port: 6432, targetPort: 6432}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: pg-meta-replicas, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-meta-replicas, re8ch.com/cluster: pg-meta, re8ch.com/data-role: replica}}
+addressType: IPv4
+ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
+endpoints:
+  - {addresses: [192.0.2.115], conditions: {ready: true}}
+  - {addresses: [192.0.2.33], conditions: {ready: true}}

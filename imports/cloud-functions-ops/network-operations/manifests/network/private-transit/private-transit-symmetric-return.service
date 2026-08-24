@@ -1,0 +1,13 @@
+[Unit]
+Description=RE8CH private-transit symmetric service return policy
+After=wg-quick@wg-pt-a1.service wg-quick@wg-pt-b1.service
+Wants=wg-quick@wg-pt-a1.service wg-quick@wg-pt-b1.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/private-transit-symmetric-return start
+ExecStop=/usr/local/sbin/private-transit-symmetric-return stop
+
+[Install]
+WantedBy=multi-user.target

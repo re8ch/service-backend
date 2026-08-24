@@ -1,0 +1,459 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podcidr-fabric-reconciler
+  namespace: kube-system
+data:
+  reconcile.sh: |
+    #!/bin/sh
+    set -eu
+
+    node="$(jq -c --arg name "${NODE_NAME}" '.nodes[] | select(.name == $name)' /config/inventory.json)"
+    route_server="$(jq -c --arg name "${NODE_NAME}" '.routeServers[] | select(.name == $name)' /config/inventory.json)"
+    test -n "${node}${route_server}"
+
+    host() {
+      nsenter -t 1 -n chroot /host "$@"
+    }
+
+    wait_for_bgp() {
+      attempts=0
+      while [ "${attempts}" -lt 30 ]; do
+        if host vtysh -c 'show bgp ipv4 unicast summary json' 2>/dev/null |
+          jq -e --argjson asn "${asn}" '.as == $asn and ([.peers[]? | select(.state == "Established")] | length >= 1)' >/dev/null; then
+          return 0
+        fi
+        attempts=$((attempts + 1))
+        sleep 2
+      done
+      echo "${NODE_NAME}: local BGP ASN ${asn} is absent or has no Established peer" >&2
+      return 1
+    }
+
+    if ! host systemctl is-active --quiet frr; then
+      host vtysh -C -f /etc/frr/frr.conf
+      host systemctl enable --now frr
+    fi
+
+    cleanup_cilium_direct_routes() {
+      jq -e '.removeCiliumDirectRoutes == true' /config/inventory.json >/dev/null || return 0
+      jq -r '.routeServers[], .nodes[] | .podCIDR' /config/inventory.json | while read -r prefix; do
+        [ "${prefix}" = "${pod_cidr}" ] && continue
+        host vtysh -c "show bgp ipv4 unicast ${prefix} json" 2>/dev/null |
+          jq -e '[.paths[]? | select(.valid == true)] | length > 0' >/dev/null || {
+            # A missing replacement path is a per-prefix safety condition, not
+            # a fatal controller error. Keep the kernel route and continue
+            # reconciling BGP sessions and every other prefix.
+            echo "${NODE_NAME}: retaining ${prefix}; no valid FRR replacement path" >&2
+            continue
+          }
+        while host ip route show "${prefix}" proto kernel | grep -q "^${prefix}"; do
+          host ip route del "${prefix}" proto kernel
+        done
+      done
+    }
+
+    reconcile_wireguard_allowed_ips() {
+      if [ -n "${route_server}" ]; then
+        # The A1/B1 interconnect also carries return traffic for the opposite
+        # route server's transport spokes.  Without this explicit transport
+        # CIDR, a reflected route can be reachable in the forward direction
+        # while replies escape through WSL's default gateway.
+        if host ip link show wg-wsl-lan >/dev/null 2>&1; then
+          jq -c --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own)' /config/inventory.json | while read -r other_rr; do
+            other_interconnect="$(printf '%s' "${other_rr}" | jq -r .rrInterconnectIp)"
+            other_transport_octet="$(printf '%s' "${other_rr}" | jq -r '.transportIp | split(".")[2]')"
+            other_transport_cidr="172.31.${other_transport_octet}.0/24"
+            peer_key="$(host wg show wg-wsl-lan allowed-ips | awk -v needle="${other_interconnect}/32" '$0 ~ needle {print $1; exit}')"
+            [ -n "${peer_key}" ] || continue
+            allowed="$(host wg show wg-wsl-lan allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+            case ",${allowed}," in *",${other_transport_cidr},"*) : ;; *) host wg set wg-wsl-lan peer "${peer_key}" allowed-ips "${allowed},${other_transport_cidr}" ;; esac
+            host vtysh -c 'configure terminal' -c "ip route ${other_transport_cidr} ${other_interconnect} wg-wsl-lan 5" -c end
+          done
+        fi
+        if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
+        host ip link show "${iface}" >/dev/null 2>&1 || return 0
+        jq -c '.nodes[] | select(.peerMode == "transport")' /config/inventory.json | while read -r spoke; do
+          last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
+          prefix="$(printf '%s' "${spoke}" | jq -r .podCIDR)"
+          peer_key="$(host wg show "${iface}" allowed-ips | awk -v needle="172.31.${fabric_octet}.${last}/32" '$0 ~ needle {print $1; exit}')"
+          [ -n "${peer_key}" ] || continue
+          allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+          case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
+        done
+        return 0
+      fi
+
+      for iface in wg-pt-a1 wg-pt-b1; do
+        host ip link show "${iface}" >/dev/null 2>&1 || continue
+        peer_key="$(host wg show "${iface}" peers | awk 'NR == 1 {print; exit}')"
+        [ -n "${peer_key}" ] || continue
+        allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+        remote_pods="$(jq -r --arg own "${pod_cidr}" '.routeServers[], .nodes[] | .podCIDR | select(. != $own)' /config/inventory.json | paste -sd, -)"
+        host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${remote_pods}"
+      done
+    }
+
+    reconcile_r640_identity_transit_nat() {
+      [ "${NODE_NAME}" = restricted-node-1eb0570f74 ] || return 0
+      host ip link show wg-pt-a1 >/dev/null 2>&1 || return 0
+      host nft list table ip re8ch_fabric >/dev/null 2>&1 || host nft add table ip re8ch_fabric
+      host nft list chain ip re8ch_fabric postrouting >/dev/null 2>&1 ||
+        host nft 'add chain ip re8ch_fabric postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+      jq -r '.nodes[] | select(.peerMode == "identity") | .podCIDR' /config/inventory.json | while read -r peer_pods; do
+        host nft list chain ip re8ch_fabric postrouting | grep -Fq "ip daddr ${peer_pods}" ||
+          host nft add rule ip re8ch_fabric postrouting ip saddr 192.0.2.231/32 ip daddr "${peer_pods}" masquerade
+      done
+    }
+
+    reconcile_public_mesh_allowed_ips() {
+      iface=wg-public-mesh
+      host ip link show "${iface}" >/dev/null 2>&1 || return 0
+      jq -c --arg own "${NODE_NAME}" '.routeServers[], .nodes[] | select(.name != $own)' /config/inventory.json | while read -r remote; do
+        last="$(printf '%s' "${remote}" | jq -r '.internalIp | split(".")[3]')"
+        accelerated="$(printf '%s' "${remote}" | jq -r .acceleratedIp)"
+        prefix="$(printf '%s' "${remote}" | jq -r .podCIDR)"
+        peer_key="$(host wg show "${iface}" allowed-ips | awk -v accel="${accelerated}/32" -v mesh="172.31.92.${last}/32" '
+          { for (i=2; i<=NF; i++) if ($i == accel || $i == mesh) { print $1; exit } }
+        ')"
+        [ -n "${peer_key}" ] || continue
+        allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+        case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
+      done
+    }
+
+    reconcile_control_plane_identity_routes() {
+      # A host may be joined to several ZeroTier networks. Select the interface
+      # which actually owns this Kubernetes InternalIP; interface enumeration
+      # order is not routing authority.
+      identity_iface="$(host ip -o -4 addr show | awk -v own="${internal_ip}" '$4 ~ ("^" own "/") {print $2; exit}')"
+      # Control-plane identities are certificate and etcd authorities, not a
+      # generic optimization domain. restricted-node-6dc3f140f9 has no ordinary Linux ZeroTier L2
+      # endpoint: B1 reaches it directly through wg-pt-b1, while A1 reaches it
+      # directly through wg-pt-a1 over the public underlay. Never overwrite those paths with a
+      # 192.0.2.183/32 route via the ZeroTier interface.
+      # Identity-mode BGP speakers preserve their Kubernetes InternalIP as the
+      # next hop. Pin those /32 identities to the interface which owns this
+      # node's InternalIP so a broad underlay/default route cannot capture
+      # recursive BGP next-hop resolution. This must run before the restricted-node-6dc3f140f9/B1
+      # control-plane exception below.
+      if [ -n "${identity_iface}" ]; then
+        jq -r --arg own "${NODE_NAME}" '.nodes[] | select(.name != $own and .peerMode == "identity") | .internalIp' /config/inventory.json | while read -r peer_ip; do
+          host vtysh -c 'configure terminal' -c "ip route ${peer_ip}/32 ${identity_iface} 5" -c end
+        done
+      fi
+      # restricted-node-6dc3f140f9's ZeroTier membership cannot currently reach the Qwen identity
+      # peers directly, while its private A1 transit is healthy and already
+      # authorizes every remote PodCIDR. Resolve identity-mode leaf PodCIDRs
+      # through that transit so the public edge can reach their workloads.
+      if [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] && host ip link show wg-pt-a1 >/dev/null 2>&1; then
+        jq -r --arg own "${NODE_NAME}" '.nodes[] | select(.name != $own and .peerMode == "identity") | .podCIDR' /config/inventory.json | while read -r peer_pods; do
+          host vtysh -c 'configure terminal' -c "ip route ${peer_pods} wg-pt-a1 5" -c end
+        done
+      fi
+      if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then
+        host vtysh -c 'configure terminal' \
+          -c "no ip route 192.0.2.183/32 ${identity_iface} 5" \
+          -c 'ip route 192.0.2.183/32 wg-pt-a1 5' \
+          -c end
+        return 0
+      fi
+      if [ "${NODE_NAME}" = restricted-node-296f36f2fb ] || [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ]; then
+        return 0
+      fi
+      [ -n "${identity_iface}" ] || return 0
+      jq -r --arg own "${NODE_NAME}" '. as $root | .controlPlaneNodes[] | select(. != $own) as $name | ($root.routeServers[], $root.nodes[]) | select(.name == $name) | .internalIp' /config/inventory.json | while read -r api_ip; do
+        host ip -o link show | awk -F': ' -v selected="${identity_iface}" '$2 != selected && ($2 ~ /^zt/ || $2 ~ /^re8chzt/) {print $2}' | while read -r stale_iface; do
+          host vtysh -c 'configure terminal' -c "no ip route ${api_ip}/32 ${stale_iface} 5" -c end
+        done
+        host vtysh -c 'configure terminal' -c "ip route ${api_ip}/32 ${identity_iface} 5" -c end
+      done
+    }
+
+    if [ -n "${route_server}" ]; then
+      asn="$(printf '%s' "${route_server}" | jq -r .asn)"
+      pod_cidr="$(printf '%s' "${route_server}" | jq -r .podCIDR)"
+      accelerated_ip="$(printf '%s' "${route_server}" | jq -r .acceleratedIp)"
+      internal_ip="$(printf '%s' "${route_server}" | jq -r .internalIp)"
+      transport_ip="$(printf '%s' "${route_server}" | jq -r .transportIp)"
+      rr_interconnect_ip="$(printf '%s' "${route_server}" | jq -r .rrInterconnectIp)"
+      transport_octet="$(printf '%s' "${route_server}" | jq -r '.transportIp | split(".")[2]')"
+      commands="$(mktemp)"
+      {
+        echo 'configure terminal'
+        echo 'no ip prefix-list POD-FABRIC-OUT'
+        jq -r '.routeServers[], .nodes[] | .podCIDR' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " NR * 10 " permit " $0}'
+        jq -r '.routeServers[], .nodes[] | .acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 300 + NR * 10 " permit " $0}'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 192.0.2.215/24 ge 32 le 32'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 1000 deny any'
+        echo 'no ip prefix-list POD-FABRIC-RR-SELF'
+        echo "ip prefix-list POD-FABRIC-RR-SELF seq 10 permit ${pod_cidr}"
+        echo "ip prefix-list POD-FABRIC-RR-SELF seq 20 permit ${accelerated_ip}/32"
+        echo 'ip prefix-list POD-FABRIC-RR-SELF seq 1000 deny any'
+        # Route reflectors are control-plane only. Never attract reflected
+        # traffic by rewriting its next hop to the RR identity/transit IP.
+        # Do not delete route-maps while bgpd is using them. FRR 8.4 can drop
+        # bgpd during that transaction; redefine the desired clauses in place.
+        echo 'route-map POD-FABRIC-RR-OUT permit 10'
+        echo 'match ip address prefix-list POD-FABRIC-RR-SELF'
+        echo "set ip next-hop ${internal_ip}"
+        echo 'exit'
+        echo 'route-map POD-FABRIC-RR-OUT permit 20'
+        echo 'match ip address prefix-list POD-FABRIC-OUT'
+        echo 'exit'
+        echo 'no ip route 192.0.2.52/24 Null0 254'
+        echo "ip route ${pod_cidr} Null0 254"
+        echo "router bgp ${asn}"
+        jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
+          spoke_asn="$(printf '%s' "${spoke}" | jq -r .asn)"
+          mode="$(printf '%s' "${spoke}" | jq -r .peerMode)"
+          internal_peer="$(printf '%s' "${spoke}" | jq -r .internalIp)"
+          last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
+          transport_peer="172.31.${transport_octet}.${last}"
+          if [ "${mode}" = identity ]; then
+            peer="${internal_peer}"
+            stale_peer="${transport_peer}"
+            update_source="${internal_ip}"
+          else
+            peer="${transport_peer}"
+            stale_peer="${internal_peer}"
+            update_source="${transport_ip}"
+          fi
+          echo "no neighbor ${stale_peer}"
+          echo "neighbor ${peer} remote-as ${spoke_asn}"
+          echo "neighbor ${peer} update-source ${update_source}"
+          echo "neighbor ${peer} disable-connected-check"
+        done
+        jq -c --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own)' /config/inventory.json | while read -r other_rr; do
+          peer="$(printf '%s' "${other_rr}" | jq -r .rrInterconnectIp)"
+          peer_asn="$(printf '%s' "${other_rr}" | jq -r .asn)"
+          echo "neighbor ${peer} remote-as ${peer_asn}"
+          echo "neighbor ${peer} update-source ${rr_interconnect_ip}"
+          echo "neighbor ${peer} disable-connected-check"
+        done
+        echo 'address-family ipv4 unicast'
+        echo 'no network 192.0.2.52/24'
+        echo "network ${pod_cidr}"
+        echo "network ${accelerated_ip}/32"
+        jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
+          mode="$(printf '%s' "${spoke}" | jq -r .peerMode)"
+          if [ "${mode}" = identity ]; then
+            peer="$(printf '%s' "${spoke}" | jq -r .internalIp)"
+          else
+            last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
+            peer="172.31.${transport_octet}.${last}"
+          fi
+          echo "neighbor ${peer} activate"
+          echo "neighbor ${peer} prefix-list POD-FABRIC-OUT in"
+          echo "neighbor ${peer} prefix-list POD-FABRIC-OUT out"
+          echo "neighbor ${peer} maximum-prefix 64 90 restart 5"
+          echo "no neighbor ${peer} route-map POD-FABRIC-IDENTITY-OUT out"
+          echo "no neighbor ${peer} route-map POD-FABRIC-TRANSPORT-OUT out"
+          if [ "${mode}" = transport ]; then
+            # A transport spoke cannot resolve a route-server interconnect
+            # next hop learned from the other control-plane route server.
+            # Re-anchor reflected routes on this directly attached WG peer.
+            echo "no neighbor ${peer} attribute-unchanged next-hop"
+            echo "neighbor ${peer} next-hop-self force"
+          else
+            echo "no neighbor ${peer} next-hop-self force"
+            echo "neighbor ${peer} attribute-unchanged next-hop"
+          fi
+          echo "neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
+          if [ "${mode}" = transport ]; then
+            echo "no neighbor ${peer} route-map POD-NH-${last} in"
+          fi
+        done
+        jq -c --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own)' /config/inventory.json | while read -r other_rr; do
+          peer="$(printf '%s' "${other_rr}" | jq -r .rrInterconnectIp)"
+          echo "neighbor ${peer} activate"
+          echo "neighbor ${peer} prefix-list POD-FABRIC-OUT in"
+          echo "neighbor ${peer} prefix-list POD-FABRIC-OUT out"
+          echo "neighbor ${peer} maximum-prefix 64 90 restart 5"
+          echo "neighbor ${peer} attribute-unchanged next-hop"
+          echo "neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
+        done
+        echo 'exit-address-family'
+        echo 'end'
+        echo 'write memory'
+        echo 'clear bgp * soft out'
+      } >"${commands}"
+      host vtysh <"${commands}"
+      rm -f "${commands}"
+      reconcile_wireguard_allowed_ips
+      reconcile_public_mesh_allowed_ips
+      reconcile_r640_identity_transit_nat
+      reconcile_control_plane_identity_routes
+      cleanup_cilium_direct_routes
+      wait_for_bgp
+      touch /run/podcidr-fabric-ready
+      echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
+      while sleep 60; do host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || exit 1; done
+      exit 0
+    fi
+
+    asn="$(printf '%s' "${node}" | jq -r .asn)"
+    pod_cidr="$(printf '%s' "${node}" | jq -r .podCIDR)"
+    accelerated_ip="$(printf '%s' "${node}" | jq -r .acceleratedIp)"
+    internal_ip="$(printf '%s' "${node}" | jq -r .internalIp)"
+    peer_mode="$(printf '%s' "${node}" | jq -r .peerMode)"
+    if [ "${peer_mode}" = transport ]; then
+      a1_peer=192.0.2.183
+      b1_peer=192.0.2.20
+      stale_a1_peer=192.0.2.18
+      stale_b1_peer=192.0.2.208
+      last="$(printf '%s' "${internal_ip}" | awk -F. '{print $4}')"
+      a1_update_source="172.31.93.${last}"
+      b1_update_source="172.31.94.${last}"
+    else
+      a1_peer=192.0.2.18
+      b1_peer=192.0.2.208
+      stale_a1_peer=192.0.2.183
+      stale_b1_peer=192.0.2.20
+      a1_update_source="${internal_ip}"
+      b1_update_source="${internal_ip}"
+    fi
+    a1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-1eb0570f74") | .asn' /config/inventory.json)"
+    b1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .asn' /config/inventory.json)"
+
+    apply_fabric() {
+      host vtysh <<EOF
+    configure terminal
+    no ip prefix-list POD-FABRIC-IN
+    ip prefix-list POD-FABRIC-IN seq 10 permit 192.0.2.224/16 ge 24 le 24
+    ip prefix-list POD-FABRIC-IN seq 20 permit 192.0.2.106/24 ge 32 le 32
+    ip prefix-list POD-FABRIC-IN seq 30 permit 192.0.2.215/24 ge 32 le 32
+    ip prefix-list POD-FABRIC-IN seq 1000 deny any
+    no ip prefix-list POD-FABRIC-SELF
+    ip prefix-list POD-FABRIC-SELF seq 10 permit ${pod_cidr}
+    ip prefix-list POD-FABRIC-SELF seq 20 permit ${accelerated_ip}/32
+    ip prefix-list POD-FABRIC-SELF seq 1000 deny any
+    route-map POD-FABRIC-SELF-NH permit 10
+    match ip address prefix-list POD-FABRIC-SELF
+    set ip next-hop ${internal_ip}
+    exit
+    ip route ${pod_cidr} Null0 254
+    router bgp ${asn}
+    bgp ebgp-requires-policy
+    bgp bestpath as-path multipath-relax
+    no bgp default ipv4-unicast
+    no neighbor ${stale_a1_peer}
+    no neighbor ${stale_b1_peer}
+    neighbor ${a1_peer} remote-as ${a1_asn}
+    neighbor ${a1_peer} update-source ${a1_update_source}
+    neighbor ${a1_peer} disable-connected-check
+    neighbor ${b1_peer} remote-as ${b1_asn}
+    neighbor ${b1_peer} update-source ${b1_update_source}
+    neighbor ${b1_peer} disable-connected-check
+    address-family ipv4 unicast
+    network ${pod_cidr}
+    network ${accelerated_ip}/32
+    neighbor ${a1_peer} activate
+    neighbor ${a1_peer} prefix-list POD-FABRIC-IN in
+    neighbor ${a1_peer} prefix-list POD-FABRIC-SELF out
+    neighbor ${a1_peer} route-map POD-FABRIC-SELF-NH out
+    neighbor ${a1_peer} maximum-prefix 64 90 restart 5
+    neighbor ${b1_peer} activate
+    neighbor ${b1_peer} prefix-list POD-FABRIC-IN in
+    neighbor ${b1_peer} prefix-list POD-FABRIC-SELF out
+    neighbor ${b1_peer} route-map POD-FABRIC-SELF-NH out
+    neighbor ${b1_peer} maximum-prefix 64 90 restart 5
+    maximum-paths 2
+    exit-address-family
+    end
+    write memory
+    clear bgp ${a1_peer} soft
+    clear bgp ${b1_peer} soft
+    EOF
+    }
+
+    reconcile_routeros_boundary() {
+      routeros_peer="$(printf '%s' "${node}" | jq -r '.routerOsPeer // empty')"
+      [ -n "${routeros_peer}" ] || return 0
+      commands="$(mktemp)"
+      {
+        echo 'configure terminal'
+        echo 'no ip prefix-list ROS-R640-SERVICE-OUT'
+        echo "ip prefix-list ROS-R640-SERVICE-OUT seq 5 permit ${pod_cidr}"
+        printf '%s\n' "${node}" | jq -r '.serviceVipExports[]?' | awk '{print "ip prefix-list ROS-R640-SERVICE-OUT seq " NR * 10 " permit " $0}'
+        echo 'ip prefix-list ROS-R640-SERVICE-OUT seq 1000 deny any'
+        printf '%s\n' "${node}" | jq -r '.serviceVipExports[]?' | while read -r vip; do
+          echo "ip route ${vip} Null0 254"
+        done
+        echo "router bgp ${asn}"
+        echo 'address-family ipv4 unicast'
+        printf '%s\n' "${node}" | jq -r '.serviceVipExports[]?' | while read -r vip; do
+          echo "network ${vip}"
+        done
+        echo "neighbor ${routeros_peer} prefix-list ROS-R640-SERVICE-OUT out"
+        echo 'end'
+        echo 'write memory'
+        echo "clear bgp ${routeros_peer} soft out"
+      } >"${commands}"
+      host vtysh <"${commands}"
+      rm -f "${commands}"
+    }
+
+    apply_fabric
+    reconcile_routeros_boundary
+    reconcile_wireguard_allowed_ips
+    reconcile_public_mesh_allowed_ips
+    reconcile_r640_identity_transit_nat
+    reconcile_control_plane_identity_routes
+    cleanup_cilium_direct_routes
+    wait_for_bgp
+    touch /run/podcidr-fabric-ready
+    echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
+    while sleep 60; do
+      host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || {
+        rm -f /run/podcidr-fabric-ready
+        exit 1
+      }
+    done
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: podcidr-fabric-reconciler
+  namespace: kube-system
+  labels: {app.kubernetes.io/name: podcidr-fabric-reconciler}
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: podcidr-fabric-reconciler}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: podcidr-fabric-reconciler}
+    spec:
+      hostPID: true
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      tolerations: [{operator: Exists}]
+      nodeSelector:
+        networking.re8ch.com/podcidr-fabric: enabled
+      containers:
+        - name: reconciler
+          image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+          imagePullPolicy: IfNotPresent
+          command: [/usr/bin/sh, /config/reconcile.sh]
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          securityContext: {privileged: true}
+          readinessProbe:
+            exec: {command: [/usr/bin/test, -f, /run/podcidr-fabric-ready]}
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: host-root, mountPath: /host, readOnly: false}
+      volumes:
+        - name: config
+          projected:
+            sources:
+              - configMap: {name: podcidr-fabric-reconciler, items: [{key: reconcile.sh, path: reconcile.sh}]}
+              - configMap: {name: podcidr-fabric-inventory, items: [{key: inventory.json, path: inventory.json}]}
+        - name: host-root
+          hostPath: {path: /, type: Directory}

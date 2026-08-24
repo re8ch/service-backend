@@ -1,0 +1,700 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opensandbox-system
+  labels:
+    app.kubernetes.io/part-of: opensandbox
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: opensandbox-control
+value: 100000
+globalDefault: false
+preemptionPolicy: Never
+description: OpenSandbox control services; never preempt database workloads.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: opensandbox-workload-low
+value: -1000
+globalDefault: false
+preemptionPolicy: Never
+description: Untrusted sandbox workloads on the shared restricted-node-6dc3f140f9 bootstrap node.
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: opensandbox-server-data-r640
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-r640
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [restricted-node-6dc3f140f9]
+  hostPath:
+    path: /var/lib/re8ch/opensandbox-server
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opensandbox-server-data-r640
+  namespace: opensandbox-system
+  labels:
+    app.kubernetes.io/name: opensandbox-server
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual-r640
+  volumeName: opensandbox-server-data-r640
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opensandbox-server
+  namespace: opensandbox-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opensandbox-server
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/status", "pods/log", "events", "services", "configmaps"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "delete", "get"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "delete", "get", "list", "patch"]
+  - apiGroups: ["node.k8s.io"]
+    resources: ["runtimeclasses"]
+    verbs: ["get", "list"]
+  - apiGroups: ["sandbox.opensandbox.io"]
+    resources:
+      - batchsandboxes
+      - batchsandboxes/status
+      - batchsandboxes/finalizers
+      - pools
+      - pools/status
+      - pools/finalizers
+      - sandboxsnapshots
+      - sandboxsnapshots/status
+      - sandboxsnapshots/finalizers
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: opensandbox-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opensandbox-server
+subjects:
+  - kind: ServiceAccount
+    name: opensandbox-server
+    namespace: opensandbox-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opensandbox-server-config
+  namespace: opensandbox-system
+data:
+  config.toml: |
+    [server]
+    host = "0.0.0.0"
+    port = 8080
+    max_sandbox_timeout_seconds = 3600
+    limit_concurrency = 64
+
+    [log]
+    level = "INFO"
+
+    [runtime]
+    type = "kubernetes"
+    execd_image = "opensandbox/execd:v1.0.21"
+
+    [kubernetes]
+    namespace = "opensandbox-system"
+    workload_provider = "batchsandbox"
+    batchsandbox_template_file = "/etc/opensandbox/batchsandbox-template.yaml"
+    image_pull_policy = "IfNotPresent"
+    sandbox_create_timeout_seconds = 300
+    informer_enabled = true
+    informer_resync_seconds = 300
+    informer_watch_timeout_seconds = 60
+    execd_init_resources = { requests = { cpu = "25m", memory = "32Mi" }, limits = { cpu = "100m", memory = "128Mi" } }
+
+    [ingress]
+    mode = "direct"
+
+    [egress]
+    image = "opensandbox/egress:v1.1.5"
+    mode = "dns+nft"
+    disable_ipv6 = true
+
+    [storage]
+    allowed_host_paths = []
+    volume_default_size = "1Gi"
+
+    [store]
+    type = "sqlite"
+    path = "/var/lib/opensandbox/opensandbox.db"
+  batchsandbox-template.yaml: |
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: opensandbox
+        opensandbox.re8ch.com/untrusted: "true"
+    spec:
+      replicas: 1
+      template:
+        spec:
+          restartPolicy: Never
+          terminationGracePeriodSeconds: 10
+          priorityClassName: opensandbox-workload-low
+          nodeSelector:
+            kubernetes.io/hostname: restricted-node-6dc3f140f9
+            opensandbox.re8ch.com/workload: "true"
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: pg-re8ch
+              effect: NoSchedule
+          containers:
+            - name: main
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensandbox-server
+  namespace: opensandbox-system
+  labels:
+    app.kubernetes.io/name: opensandbox-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opensandbox-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opensandbox-server
+        app.kubernetes.io/part-of: opensandbox
+    spec:
+      serviceAccountName: opensandbox-server
+      priorityClassName: opensandbox-control
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        opensandbox.re8ch.com/control-plane: "true"
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: opensandbox/server@sha256:8f8762af7565ed9c6f9dbcf009dd56727aa1fef8ce58a17f2b007b88cfe542bb
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/etc/opensandbox/config.toml"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: OPENSANDBOX_SERVER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opensandbox-api-key
+                  key: api-key
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 250m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/opensandbox/config.toml
+              subPath: config.toml
+              readOnly: true
+            - name: config
+              mountPath: /etc/opensandbox/batchsandbox-template.yaml
+              subPath: batchsandbox-template.yaml
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/opensandbox
+      volumes:
+        - name: config
+          configMap:
+            name: opensandbox-server-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: opensandbox-server-data-r640
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensandbox-server
+  namespace: opensandbox-system
+spec:
+  type: NodePort
+  # Keep the legacy NodePort during migration, but allow Cilium Gateway
+  # instances on other nodes to select the restricted-node-6dc3f140f9 endpoint.
+  externalTrafficPolicy: Cluster
+  selector:
+    app.kubernetes.io/name: opensandbox-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30401
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: teable-infra-compat-app
+  namespace: opensandbox-system
+data:
+  server.py: |
+    import hashlib
+    import http.client
+    import json
+    import os
+    import re
+    import ssl
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    API_KEY = os.environ["TEABLE_INFRA_API_KEY"]
+    UPSTREAM_KEY = os.environ["OPENSANDBOX_API_KEY"]
+    UPSTREAM_HOST = os.environ.get("UPSTREAM_HOST", "opensandbox-server")
+    UPSTREAM_PORT = int(os.environ.get("UPSTREAM_PORT", "80"))
+    KUBE_HOST = os.environ["KUBERNETES_SERVICE_HOST"]
+    KUBE_PORT = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    KUBE_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    KUBE_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    NAMESPACE = os.environ.get("POD_NAMESPACE", "opensandbox-system")
+    MINIO_HOST = os.environ.get("MINIO_HOST", "teable-infra-minio")
+    MINIO_PORT = int(os.environ.get("MINIO_PORT", "9000"))
+    GIT_HOST = os.environ.get("GIT_HOST", "teable-infra-git")
+    GIT_PORT = int(os.environ.get("GIT_PORT", "8080"))
+
+    def kube_request(path, method="GET", payload=None, content_type="application/json"):
+        with open(KUBE_TOKEN_PATH) as handle:
+            token = handle.read().strip()
+        body = json.dumps(payload).encode() if payload is not None else None
+        request = urllib.request.Request(
+            f"https://{KUBE_HOST}:{KUBE_PORT}{path}",
+            data=body,
+            method=method,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": content_type},
+        )
+        context = ssl.create_default_context(cafile=KUBE_CA_PATH)
+        with urllib.request.urlopen(request, context=context, timeout=15) as response:
+            data = response.read()
+            return response.status, json.loads(data) if data else {}
+
+    def preheat_name(image):
+        digest = hashlib.sha256(image.encode()).hexdigest()[:16]
+        return f"teable-image-preheat-{digest}"
+
+    def create_preheat(image):
+        name = preheat_name(image)
+        manifest = {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": name,
+                "namespace": NAMESPACE,
+                "labels": {
+                    "app.kubernetes.io/name": "teable-image-preheat",
+                    "app.kubernetes.io/managed-by": "teable-infra-compat",
+                },
+                "annotations": {"teable.io/preheat-image": image},
+            },
+            "spec": {
+                "restartPolicy": "Never",
+                "priorityClassName": "opensandbox-workload-low",
+                "nodeSelector": {
+                    "kubernetes.io/hostname": "restricted-node-6dc3f140f9",
+                    "opensandbox.re8ch.com/workload": "true",
+                },
+                "tolerations": [{
+                    "key": "dedicated", "operator": "Equal",
+                    "value": "pg-re8ch", "effect": "NoSchedule",
+                }],
+                "containers": [{
+                    "name": "preheat",
+                    "image": image,
+                    "imagePullPolicy": "IfNotPresent",
+                    "command": ["/bin/sh", "-c", "exit 0"],
+                    "resources": {
+                        "requests": {"cpu": "5m", "memory": "8Mi"},
+                        "limits": {"cpu": "50m", "memory": "64Mi"},
+                    },
+                }],
+            },
+        }
+        path = f"/api/v1/namespaces/{NAMESPACE}/pods"
+        try:
+            return kube_request(path, "POST", manifest)
+        except urllib.error.HTTPError as error:
+            if error.code == 409:
+                return 200, {"name": name, "alreadyExists": True}
+            raise
+
+    def get_preheat():
+        label = urllib.parse.quote("app.kubernetes.io/name=teable-image-preheat")
+        _, result = kube_request(f"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector={label}")
+        items = sorted(
+            result.get("items", []),
+            key=lambda item: item.get("metadata", {}).get("creationTimestamp", ""),
+            reverse=True,
+        )
+        if not items:
+            return {"current": None}
+        pod = items[0]
+        metadata = pod.get("metadata", {})
+        status = pod.get("status", {})
+        image = metadata.get("annotations", {}).get("teable.io/preheat-image")
+        container_statuses = status.get("containerStatuses", [])
+        pulled = any(item.get("imageID") for item in container_statuses)
+        waiting_reasons = [
+            item.get("state", {}).get("waiting", {}).get("reason", "")
+            for item in container_statuses
+        ]
+        failed = any(reason in {"ErrImagePull", "ImagePullBackOff", "InvalidImageName"}
+                     for reason in waiting_reasons)
+        current = {
+            "image": image,
+            "images": [image] if image else [],
+            "desiredNodes": 1,
+            "readyNodes": 1 if pulled else 0,
+            "failedNodes": 1 if failed else 0,
+            "status": "ready" if pulled else ("failed" if failed else "pending"),
+        }
+        return {"current": current}
+
+    def update_sandbox_metadata(sandbox_id, metadata):
+        if not re.fullmatch(r"[a-zA-Z0-9-]+", sandbox_id):
+            raise ValueError("invalid sandbox id")
+        scalar = {
+            key: value for key, value in metadata.items()
+            if value is None or isinstance(value, (str, int, float, bool))
+        }
+        patch = {"metadata": {"annotations": {
+            "teable.io/sandbox-metadata": json.dumps(scalar, separators=(",", ":")),
+        }}}
+        path = (f"/apis/sandbox.opensandbox.io/v1alpha1/namespaces/{NAMESPACE}"
+                f"/batchsandboxes/{sandbox_id}")
+        return kube_request(path, "PATCH", patch, "application/merge-patch+json")
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def authorized(self):
+            bearer = self.headers.get("Authorization", "")
+            native = self.headers.get("OPEN-SANDBOX-API-KEY", "")
+            return bearer == f"Bearer {API_KEY}" or native == UPSTREAM_KEY
+
+        def send_json(self, status, payload):
+            body = json.dumps(payload, separators=(",", ":")).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def handle_request(self):
+            if self.path == "/health":
+                return self.send_json(200, {"status": "ok"})
+            if not self.authorized():
+                return self.send_json(401, {"error": "unauthorized"})
+            if self.path == "/api/meta":
+                return self.send_json(200, {
+                    "name": "re8ch-teable-opensandbox-compat",
+                    "version": "0.2.0",
+                    "capabilities": [
+                        "opensandbox.v1",
+                        "image-preheat.v1",
+                        "sandbox-metadata.v1",
+                        "git-registry.smart-http.v1",
+                        "s3-compat.v1",
+                    ],
+                    "components": {"opensandboxServer": {"version": "v0.2.2"}},
+                })
+            if self.path == "/api/image-preheats" and self.command == "POST":
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length) or b"{}")
+                image = payload.get("image")
+                if not isinstance(image, str) or not image.strip():
+                    return self.send_json(400, {"error": "image is required"})
+                status, result = create_preheat(image.strip())
+                return self.send_json(202 if status in {200, 201} else status, result)
+            if self.path == "/api/image-preheats" and self.command == "GET":
+                return self.send_json(200, get_preheat())
+            metadata_match = re.fullmatch(
+                r"/api/internal/sandboxes/([a-zA-Z0-9-]+)/metadata", self.path
+            )
+            if metadata_match and self.command == "PUT":
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length) or b"{}")
+                try:
+                    status, result = update_sandbox_metadata(metadata_match.group(1), payload)
+                    return self.send_json(status, result)
+                except urllib.error.HTTPError as error:
+                    return self.send_json(error.code, {"error": error.reason})
+            if self.path.startswith("/api/git/"):
+                return self.proxy(GIT_HOST, GIT_PORT, self.path, {"Authorization": f"Bearer {API_KEY}"})
+            if self.path.startswith("/s3/"):
+                # MinIO remains ClusterIP-only. Authentication terminates here;
+                # the bootstrap job grants access only to the dedicated bucket.
+                return self.proxy(MINIO_HOST, MINIO_PORT, self.path[3:], {})
+            if not self.path.startswith("/v1/") and self.path != "/v1":
+                return self.send_json(404, {"error": "not_found"})
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length else None
+            connection = http.client.HTTPConnection(UPSTREAM_HOST, UPSTREAM_PORT, timeout=310)
+            headers = {"OPEN-SANDBOX-API-KEY": UPSTREAM_KEY}
+            if self.headers.get("Content-Type"):
+                headers["Content-Type"] = self.headers["Content-Type"]
+            connection.request(self.command, self.path, body=body, headers=headers)
+            response = connection.getresponse()
+            data = response.read()
+            self.send_response(response.status)
+            for key, value in response.getheaders():
+                if key.lower() not in {"connection", "transfer-encoding", "content-length"}:
+                    self.send_header(key, value)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            connection.close()
+
+        def proxy(self, host, port, path, extra_headers):
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length else None
+            headers = dict(extra_headers)
+            for key in ("Content-Type", "Accept", "Range"):
+                if self.headers.get(key):
+                    headers[key] = self.headers[key]
+            connection = http.client.HTTPConnection(host, port, timeout=310)
+            connection.request(self.command, path, body=body, headers=headers)
+            response = connection.getresponse()
+            data = response.read()
+            self.send_response(response.status)
+            for key, value in response.getheaders():
+                if key.lower() not in {"connection", "transfer-encoding", "content-length"}:
+                    self.send_header(key, value)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            connection.close()
+
+        do_GET = handle_request
+        do_POST = handle_request
+        do_PUT = handle_request
+        do_PATCH = handle_request
+        do_DELETE = handle_request
+
+        def log_message(self, fmt, *args):
+            print(fmt % args, flush=True)
+
+    ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teable-infra-compat
+  namespace: opensandbox-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: teable-infra-compat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: teable-infra-compat
+        app.kubernetes.io/part-of: opensandbox
+    spec:
+      serviceAccountName: opensandbox-server
+      priorityClassName: opensandbox-control
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      containers:
+        - name: compat
+          image: python:3.12-alpine
+          command: ["python", "/app/server.py"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TEABLE_INFRA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opensandbox-api-key
+                  key: teable-api-key
+            - name: OPENSANDBOX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opensandbox-api-key
+                  key: api-key
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: teable-infra-compat-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: teable-infra
+  namespace: opensandbox-system
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: teable-infra-compat
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opensandbox-server-ingress
+  namespace: opensandbox-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: opensandbox-server
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: teable-infra-compat
+        # Hubble observes ICP NodePort traffic after underlay routing as this
+        # exact source. Do not broaden this to the surrounding cloud CIDR.
+        - ipBlock:
+            cidr: 192.0.2.248/32
+        # Public edge Traefik instances reach this Service through Cilium using
+        # their truthful node transport identities. Keep the list explicit: the
+        # OpenSandbox lifecycle API must never become generally public.
+        - ipBlock:
+            cidr: 192.0.2.143/32
+        - ipBlock:
+            cidr: 192.0.2.172/32
+        - ipBlock:
+            cidr: 192.0.2.79/32
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: opensandbox-server-from-gateway
+  namespace: opensandbox-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: opensandbox-server
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: teable-infra-ingress
+  namespace: opensandbox-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: teable-infra-compat
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-collab
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: opensandbox-system
+      ports:
+        - protocol: TCP
+          port: 8080

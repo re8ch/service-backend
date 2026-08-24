@@ -1,0 +1,158 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: terminaldevices.workspace.re8ch.com}
+spec:
+  group: workspace.re8ch.com
+  scope: Namespaced
+  names: {plural: terminaldevices, singular: terminaldevice, kind: TerminalDevice, shortNames: [tdev]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [identityRef, providerRef, durableStateRef]
+              properties:
+                identityRef: {type: string}
+                providerRef: {type: string}
+                durableStateRef: {type: string}
+                credentialRefs: {type: array, items: {type: string}}
+                image: {type: string}
+                memoryMiB: {type: integer, minimum: 512}
+                region: {type: string}
+            status:
+              type: object
+              properties:
+                phase: {type: string, enum: [Pending, Active, Standby, Recreating, Failed]}
+                providerInstanceRef: {type: string}
+                providerVolumeRef: {type: string}
+                lastActivityAt: {type: string, format: date-time}
+                observedGeneration: {type: integer, format: int64}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: browserprofiles.workspace.re8ch.com}
+spec:
+  group: workspace.re8ch.com
+  scope: Namespaced
+  names: {plural: browserprofiles, singular: browserprofile, kind: BrowserProfile, shortNames: [bprof]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [identityRef, storageRef]
+              properties:
+                identityRef: {type: string}
+                storageRef: {type: string}
+                browserFamily: {type: string, enum: [chromium]}
+                credentialRefs: {type: array, items: {type: string}}
+            status:
+              type: object
+              properties:
+                phase: {type: string, enum: [Detached, Attaching, Attached, Repairing, Failed]}
+                attachedSessionRef: {type: string}
+                revision: {type: integer, format: int64}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: browserdevices.workspace.re8ch.com}
+spec:
+  group: workspace.re8ch.com
+  scope: Namespaced
+  names: {plural: browserdevices, singular: browserdevice, kind: BrowserDevice, shortNames: [bdev]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [providerRef, profileRef]
+              properties:
+                providerRef: {type: string}
+                profileRef: {type: string}
+                mode: {type: string, enum: [headless, live-view]}
+                sideEffectPolicy: {type: string, enum: [exclusive, read-only], default: exclusive}
+            status:
+              type: object
+              properties:
+                phase: {type: string, enum: [Pending, Ready, Leased, Draining, Failed]}
+                providerSessionRef: {type: string}
+                runtimeWorkerRef: {type: string}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: agentsessions.workspace.re8ch.com}
+spec:
+  group: workspace.re8ch.com
+  scope: Namespaced
+  names: {plural: agentsessions, singular: agentsession, kind: AgentSession, shortNames: [asess]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [identityRef]
+              properties:
+                identityRef: {type: string}
+                terminalDeviceRef: {type: string}
+                browserDeviceRefs: {type: array, items: {type: string}}
+            status:
+              type: object
+              properties:
+                phase: {type: string, enum: [Pending, Ready, Closing, Closed, Failed]}
+                traceId: {type: string}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: deviceleases.workspace.re8ch.com}
+spec:
+  group: workspace.re8ch.com
+  scope: Namespaced
+  names: {plural: deviceleases, singular: devicelease, kind: DeviceLease, shortNames: [dlease]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [holderIdentityRef, deviceRef, mode, expiresAt]
+              properties:
+                holderIdentityRef: {type: string}
+                agentSessionRef: {type: string}
+                deviceRef: {type: string}
+                mode: {type: string, enum: [exclusive-write, shared-read]}
+                expiresAt: {type: string, format: date-time}
+            status:
+              type: object
+              properties:
+                phase: {type: string, enum: [Pending, Active, Revoked, Expired]}
+                capabilityId: {type: string}
+                revision: {type: integer, format: int64}

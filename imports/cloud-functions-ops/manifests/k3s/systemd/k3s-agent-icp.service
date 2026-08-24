@@ -1,0 +1,38 @@
+[Unit]
+Description=Lightweight Kubernetes Agent
+Documentation=https://k3s.io
+Wants=network-online.target
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=notify
+KillMode=process
+Delegate=yes
+User=root
+LimitNOFILE=1048576
+LimitNPROC=infinity
+LimitCORE=infinity
+TasksMax=infinity
+TimeoutStartSec=0
+Restart=always
+RestartSec=5s
+ExecStartPre=-/sbin/modprobe br_netfilter
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/local/bin/k3s agent \
+  --server https://192.0.2.183:6443 \
+  --token-file /etc/rancher/k3s/agent-token \
+  --node-name vm-20-12-ubuntu \
+  --node-ip 192.0.2.67 \
+  --node-external-ip 192.0.2.99 \
+  --node-label qianwen.cc/dns-controller=true \
+  --node-label re8ch.com/cilium-migrate=true \
+  --node-label re8ch.com/control-route=zt-primary \
+  --node-label re8ch.com/external-ip-mode=static \
+  --node-label re8ch.com/network-level=1 \
+  --node-label re8ch.com/public-control=unmanaged \
+  --node-label re8ch.com/public-ip=192.0.2.99 \
+  --node-label re8ch.com/zt-dns=zt.re8ch.com \
+  --node-taint anchor=true:NoSchedule

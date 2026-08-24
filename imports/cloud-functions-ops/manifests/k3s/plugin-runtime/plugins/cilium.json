@@ -1,0 +1,21 @@
+{
+  "apiVersion": "plugins.re8ch.com/v1alpha1",
+  "kind": "PluginDefinition",
+  "metadata": {"name": "cilium"},
+  "spec": {
+    "source": {"type": "kubernetes"},
+    "discovery": {"mode": "api-discovery", "helmRelease": {"namespace": "kube-system", "name": "cilium"}},
+    "identityRef": "plugin-cilium",
+    "healthCheck": {"type": "kubernetes", "resource": "ciliumendpoints.cilium.io"},
+    "policy": {
+      "allowedOperations": ["get", "list", "patch"],
+      "deniedFields": ["secret", "password", "token", "privateKey", "clientSecret", "apiKey"],
+      "resourceScopes": [
+        {"group": "cilium.io", "version": "v2", "resource": "ciliumnetworkpolicies", "namespaced": true, "namespaces": ["kube-system"], "verbs": ["get", "list", "patch"]},
+        {"group": "cilium.io", "version": "v2", "resource": "ciliumendpoints", "namespaced": true, "namespaces": ["kube-system"], "verbs": ["get", "list"]},
+        {"group": "cilium.io", "version": "v2alpha1", "resource": "ciliumbgpclusterconfigs", "namespaced": false, "verbs": ["get", "list"]}
+      ]
+    },
+    "publication": {"enabled": true, "toolPrefix": "cilium"}
+  }
+}

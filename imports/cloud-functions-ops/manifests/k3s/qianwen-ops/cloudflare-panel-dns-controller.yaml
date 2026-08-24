@@ -1,0 +1,303 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflare-panel-dns-controller-config
+  namespace: qianwen-ops
+data:
+  # Retired in favor of qianwen-ops/external-dns-cloudflare.
+  APPLY: "0"
+  CF_ZONE_NAME: re8ch.com
+  CF_TTL: "60"
+  CF_PROXIED: "false"
+  DNS_COMMENT: managed by qianwen-ops/cloudflare-panel-dns-controller
+  RUN_INTERVAL_SECONDS: "300"
+  DNS_RECORDS: |
+    portainer.re8ch.com=192.0.2.67
+    grafana.re8ch.com=192.0.2.67
+    hubble.re8ch.com=192.0.2.67
+    cost.re8ch.com=192.0.2.67
+    bgp.re8ch.com=192.0.2.67
+    dbgui.re8ch.com=192.0.2.67
+    teable.re8ch.com=192.0.2.79
+    files.re8ch.com=192.0.2.79
+    phonycenter.re8ch.com=192.0.2.67
+    feishu-agent.re8ch.com=192.0.2.99
+    registry.re8ch.com=192.0.2.67
+    # Nuclio runtime identities. nuc-1 remains a compatibility alias for nuc-2.
+    nuc-1.re8ch.com=192.0.2.110
+    nuc-2.re8ch.com=192.0.2.110
+    nuc-3.re8ch.com=192.0.2.210
+    # pg-meta physical node identities; role-aware clients still use db-rw/db-ro.
+    pg-1.re8ch.com=192.0.2.183
+    pg-2.re8ch.com=192.0.2.122
+    pg-3.re8ch.com=192.0.2.92
+    # Temporary TXT ownership handoff to ExternalDNS. Values are base64 because
+    # ExternalDNS ownership payloads contain commas used by this parser.
+    _re8ch-externaldns.a-portainer.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-grafana.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-hubble.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-cost.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-bgp.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-dbgui.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-fleet.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-files.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-phonycenter.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-registry.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-neo4j.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-tools.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-feishu-agent.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaWNwLXNlcnZpY2VzLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-auth.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaGFuZ3pob3Utc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-operate.tools.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaGFuZ3pob3Utc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-nuc-3.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtaGFuZ3pob3Utc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-nuc-1.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtbnVjbGlvLXNoYW5naGFpLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-nuc-2.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtbnVjbGlvLXNoYW5naGFpLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-pg-1.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGcxLWlkZW50aXR5LWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-pg-2.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGcyLXNlcnZpY2VzLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-ledger-decisions.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGcyLXNlcnZpY2VzLWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-pg-3.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGczLWlkZW50aXR5LWRucw==,type=TXT,content-base64=true,ttl=1,proxied=false
+    _re8ch-externaldns.a-teable.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9hZ2VudC1jb2xsYWIvdGVhYmxl,type=TXT,content-base64=true,ttl=1,proxied=false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflare-panel-dns-controller-script
+  namespace: qianwen-ops
+data:
+  controller.py: |
+    #!/usr/bin/env python3
+    import base64
+    import json
+    import os
+    import sys
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    API_BASE = "https://api.cloudflare.com/client/v4"
+
+    TOKEN = os.environ["CF_API_TOKEN"]
+    ZONE_ID = os.environ.get("CF_ZONE_ID", "").strip()
+    ZONE_NAME = os.environ.get("CF_ZONE_NAME", "re8ch.com").strip()
+    APPLY = os.environ.get("APPLY", "1").lower() in {"1", "true", "yes", "on"}
+    DEFAULT_TTL = int(os.environ.get("CF_TTL", "60"))
+    DEFAULT_PROXIED = os.environ.get("CF_PROXIED", "false").lower() in {"1", "true", "yes", "on"}
+    COMMENT = os.environ.get("DNS_COMMENT", "managed by qianwen-ops/cloudflare-panel-dns-controller")
+    RUN_INTERVAL_SECONDS = int(os.environ.get("RUN_INTERVAL_SECONDS", "300"))
+
+
+    def log(message):
+        print(message, flush=True)
+
+
+    def cf_request(method, path, payload=None, params=None):
+        url = f"{API_BASE}{path}"
+        if params:
+            url = f"{url}?{urllib.parse.urlencode(params)}"
+        body = None
+        headers = {
+            "Authorization": f"Bearer {TOKEN}",
+            "Content-Type": "application/json",
+        }
+        if payload is not None:
+            body = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(url, data=body, method=method, headers=headers)
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Cloudflare {method} {path} failed: HTTP {exc.code}: {detail}") from exc
+        if not data.get("success"):
+            raise RuntimeError(f"Cloudflare {method} {path} failed: {data}")
+        return data
+
+
+    def discover_zone_id():
+        if ZONE_ID:
+            return ZONE_ID
+        data = cf_request("GET", "/zones", params={"name": ZONE_NAME, "status": "active", "per_page": 1})
+        results = data.get("result", [])
+        if not results:
+            raise RuntimeError(f"no active Cloudflare zone found for {ZONE_NAME}")
+        return results[0]["id"]
+
+
+    def parse_bool(value, default):
+        if value is None:
+            return default
+        return value.lower() in {"1", "true", "yes", "on"}
+
+
+    def parse_records():
+        records = []
+        raw_records = os.environ.get("DNS_RECORDS", "")
+        for line in raw_records.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            chunks = [chunk.strip() for chunk in line.split(",") if chunk.strip()]
+            name, content = chunks[0].split("=", 1)
+            record = {
+                "type": "A",
+                "name": name.strip().rstrip("."),
+                "content": content.strip(),
+                "ttl": DEFAULT_TTL,
+                "proxied": DEFAULT_PROXIED,
+            }
+            for option in chunks[1:]:
+                key, value = option.split("=", 1)
+                key = key.strip().lower()
+                value = value.strip()
+                if key == "ttl":
+                    record["ttl"] = int(value)
+                elif key == "proxied":
+                    record["proxied"] = parse_bool(value, DEFAULT_PROXIED)
+                elif key == "type":
+                    record["type"] = value.upper()
+                elif key == "content-base64":
+                    if parse_bool(value, False):
+                        record["content"] = base64.b64decode(record["content"]).decode("utf-8")
+                else:
+                    raise ValueError(f"unknown DNS_RECORDS option {key!r} in {line!r}")
+            records.append(record)
+        if not records:
+            raise RuntimeError("DNS_RECORDS is empty")
+        return records
+
+
+    def list_records(zone_id, name):
+        data = cf_request("GET", f"/zones/{zone_id}/dns_records", params={"name": name, "per_page": 100})
+        return data.get("result", [])
+
+
+    def same_record(existing, desired):
+        return (
+            existing.get("type") == desired["type"]
+            and existing.get("content") == desired["content"]
+            and int(existing.get("ttl") or 1) == desired["ttl"]
+            and bool(existing.get("proxied")) == desired["proxied"]
+        )
+
+
+    def sync_record(zone_id, desired):
+        existing = list_records(zone_id, desired["name"])
+        wanted = [record for record in existing if record.get("type") == desired["type"]]
+        conflicts = [record for record in existing if record.get("type") != desired["type"]]
+
+        for record in conflicts:
+            log(f"delete conflicting {record['type']} {record['name']} -> {record.get('content')}")
+            if APPLY:
+                cf_request("DELETE", f"/zones/{zone_id}/dns_records/{record['id']}")
+
+        payload = {
+            "type": desired["type"],
+            "name": desired["name"],
+            "content": desired["content"],
+            "ttl": desired["ttl"],
+            "proxied": desired["proxied"],
+            "comment": COMMENT,
+        }
+
+        if not wanted:
+            log(f"create {desired['type']} {desired['name']} -> {desired['content']} ttl={desired['ttl']} proxied={desired['proxied']}")
+            if APPLY:
+                cf_request("POST", f"/zones/{zone_id}/dns_records", payload)
+            return
+
+        primary = wanted[0]
+        duplicates = wanted[1:]
+        if same_record(primary, desired):
+            log(f"ok {desired['type']} {desired['name']} -> {desired['content']}")
+        else:
+            log(f"update {desired['type']} {desired['name']} {primary.get('content')} -> {desired['content']}")
+            if APPLY:
+                cf_request("PUT", f"/zones/{zone_id}/dns_records/{primary['id']}", payload)
+
+        for record in duplicates:
+            log(f"delete duplicate {record['type']} {record['name']} -> {record.get('content')}")
+            if APPLY:
+                cf_request("DELETE", f"/zones/{zone_id}/dns_records/{record['id']}")
+
+
+    def run_once(zone_id, records):
+        for record in records:
+            sync_record(zone_id, record)
+
+
+    def main():
+        records = parse_records()
+        zone_id = discover_zone_id()
+        log(f"syncing {len(records)} records in zone {ZONE_NAME}; apply={APPLY}")
+        while True:
+            try:
+                run_once(zone_id, records)
+            except Exception as exc:
+                log(f"error: {exc}")
+                time.sleep(min(RUN_INTERVAL_SECONDS, 30))
+                continue
+            time.sleep(RUN_INTERVAL_SECONDS)
+
+
+    if __name__ == "__main__":
+        try:
+            main()
+        except Exception as exc:
+            log(f"fatal: {exc}")
+            sys.exit(1)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflare-panel-dns-controller
+  namespace: qianwen-ops
+spec:
+  # Deprecated after the TXT ownership handoff to cluster ExternalDNS.
+  # Keep the deployment and handoff data for rollback only.
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflare-panel-dns-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflare-panel-dns-controller
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: rancher-panel
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: controller
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python3
+            - /scripts/controller.py
+          envFrom:
+            - configMapRef:
+                name: cloudflare-panel-dns-controller-config
+            - secretRef:
+                name: cloudflare-pg-dns-controller-secret
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: cloudflare-panel-dns-controller-script
+            defaultMode: 0555

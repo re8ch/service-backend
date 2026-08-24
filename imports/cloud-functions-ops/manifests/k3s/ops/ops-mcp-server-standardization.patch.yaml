@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ops-mcp-server
+  namespace: ops
+  labels:
+    re8ch.com/managed-by: platform-ops
+    re8ch.com/tool-publication: toolhive
+spec:
+  template:
+    metadata:
+      labels:
+        re8ch.com/managed-by: platform-ops
+        re8ch.com/tool-publication: toolhive
+    spec:
+      containers:
+        - name: ops-mcp-server
+          env:
+            - name: KUBE_SERVER_PUBLIC
+              value: https://192.0.2.18:6443
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault

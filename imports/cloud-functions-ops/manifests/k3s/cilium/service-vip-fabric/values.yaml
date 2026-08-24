@@ -1,0 +1,179 @@
+fabric:
+  enabled: false
+stage: 0
+pool:
+  name: network-service-vip
+  cidr: ""
+  enabled: false
+canary:
+  enabled: false
+  namespace: kube-system
+  address: ""
+advertisement:
+  labels:
+    network-fabric.example/lb-pool: service-vip
+    network-fabric.example/bgp-advertise: enabled
+peer:
+  timers: {connectRetry: 3, hold: 9, keepAlive: 3}
+  gracefulRestartSeconds: 30
+nodes: {}
+
+advancedFabric:
+  enabled: true
+  mode: guarded-apply
+  applyEnabled: true
+  observeDays: 7
+  emergencyDisable: false
+  timezone: Asia/Shanghai
+  nativeRoutingCIDR: 192.0.2.224/16
+  acceleratedCIDR: 192.0.2.106/24
+  serviceCIDR: 192.0.2.215/24
+  controlPlaneApi:
+    enabled: true
+    vip: 192.0.2.220/32
+    port: 6443
+    mode: healthy-ecmp
+    eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    guardedNodes: [restricted-node-1eb0570f74]
+    nodeOperations:
+      - name: restricted-node-6dc3f140f9
+        localAsn: 4200000128
+        vipInterface: lo
+        frrExportPrefixLists: [POD-FABRIC-SELF]
+        frrImportPrefixLists: [SELF]
+        frrNeighborPolicies:
+          - {neighbor: 192.0.2.208, maximumPrefixes: 8}
+        frrPrefixEntries:
+          - {list: POD-FABRIC-SELF, sequence: 30, prefix: 192.0.2.208/32}
+        frrNetworks: [192.0.2.208/32]
+        forwardRules:
+          - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 192.0.2.208/32, destination: 192.0.2.220/32, protocol: tcp, port: 6443}
+        wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
+        wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+        fallbackRoutes:
+          - {destination: 192.0.2.18/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
+          - {destination: 192.0.2.208/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
+      - name: restricted-node-1eb0570f74
+        localAsn: 4200010147
+        vipInterface: lo
+        frrExportPrefixLists: [POD-FABRIC-OUT]
+        # A1 is the first-wave origin; remote ingress peers own the VIP
+        # AllowedIPs, not A1's multi-peer outbound fabric.
+        wireguardInterfaces: []
+        frrPrefixEntries:
+          - {list: POD-FABRIC-OUT, sequence: 500, prefix: 192.0.2.208/32}
+        wireguardPeerPolicies:
+          - interface: wg-pt-a1
+            peer: pEho3VmmtSBsMbUglwD3/NDi8Vw2sFvRVEvToqWypx8=
+            allowedPrefixes: [192.0.2.208/32]
+        wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+      - name: restricted-node-296f36f2fb
+        localAsn: 4200010125
+        vipInterface: lo
+        frrExportPrefixLists: [POD-FABRIC-OUT]
+        # This exact list is attached inbound to the A1/B1 WG BGP peer.
+        # The agent adds only the health-owned API VIP /32 at sequence 30.
+        frrImportPrefixLists: [POD-FABRIC-OUT]
+        # Sequence 30 is the restricted-node-6dc3f140f9 PodCIDR. Keep the API VIP in a dedicated slot.
+        frrImportPrefixSequence: 305
+        frrPrefixEntries:
+          - {list: POD-FABRIC-OUT, sequence: 30, prefix: 192.0.2.18/24}
+        # Only the single-peer A1/B1 LAN tunnel is needed in the A1 wave.
+        wireguardInterfaces: [wg-wsl-lan]
+        wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+      # Online worker/edge nodes with a verified single-peer A1 tunnel.
+      # Keep this exact: accelerated identities may use other peers, while the
+      # health-owned API VIP must always encrypt toward A1 in this canary wave.
+      - {name: domain-ex, localAsn: 4200000186, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - {name: zan, localAsn: 4200000016, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - {name: muaya-lightweight, localAsn: 4200000079, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - {name: muaya-ecs, localAsn: 4200000095, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - {name: suxunji, localAsn: 4200000077, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - {name: vm-20-12-ubuntu, localAsn: 4200000073, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - name: overseas-edge-50
+        localAsn: 4200000050
+        vipInterface: lo
+        frrExportPrefixLists: []
+        frrImportPrefixLists: [FROM-128]
+        frrNeighborPolicies:
+          - {neighbor: 192.0.2.145, maximumPrefixes: 8, routeMap: WG-R640-IN, matchPrefixList: FROM-128, localPreference: 300}
+        wireguardInterfaces: []
+        wireguardAllowedPrefixes: [192.0.2.220/32]
+        wireguardPeerPolicies:
+          - interface: wg-public-mesh
+            peer: kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=
+            allowedPrefixes: [192.0.2.220/32]
+      - {name: overseas-kl, localAsn: 4200000089, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - name: overseas-la
+        localAsn: 4200000104
+        vipInterface: lo
+        frrExportPrefixLists: []
+        wireguardInterfaces: []
+        wireguardAllowedPrefixes: [192.0.2.220/32]
+        # A1 UDP/51889 is currently unreachable; preserve the ZT fallback
+        # without shadowing overseas-la's healthy B1 WireGuard path.
+        fallbackRoutes:
+          - {destination: 192.0.2.18/32, dev: zto5uhdriy, src: 192.0.2.55, metric: 500}
+    primaryTransport: wireguard
+    fallbackTransport: zerotier
+    healthCheck:
+      address: 127.0.0.1
+      path: /readyz
+      intervalSeconds: 5
+      timeoutSeconds: 2
+      successThreshold: 3
+      failureThreshold: 3
+      withdrawDelaySeconds: 0
+  weightedEcmp:
+    enabled: false
+  policyRouting:
+    tables: {fastest: 201, balanced: 202, greedy: 203}
+    marks: {fastest: 42241, balanced: 42242, greedy: 42243}
+  nodes:
+    - {name: restricted-node-6dc3f140f9, class: A, role: spine, asn: 65001, legacyASN: 4200000128, internalIP: 192.0.2.183, acceleratedIP: 192.0.2.205, podCIDR: 192.0.2.18/24, provider: onprem, region: cn-hunan, failureDomain: r640-idc, uplinkMbps: 200, publicAuthority: true, inventoryComplete: true}
+    - {name: overseas-la, class: A, role: spine, asn: 65002, legacyASN: 4200000104, internalIP: 192.0.2.55, acceleratedIP: 192.0.2.29, podCIDR: 192.0.2.15/24, provider: overseas, region: us-ca, failureDomain: overseas-la, uplinkMbps: 1000, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
+    - {name: overseas-kl, class: A, role: spine, asn: 65003, legacyASN: 4200000089, internalIP: 192.0.2.50, acceleratedIP: 192.0.2.42, podCIDR: 192.0.2.55/24, provider: overseas, region: my-kul, failureDomain: overseas-kl, uplinkMbps: 1000, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+    - {name: overseas-edge-50, class: A, role: spine, asn: 65004, legacyASN: 4200000050, internalIP: 192.0.2.122, acceleratedIP: 192.0.2.225, podCIDR: 192.0.2.208/24, provider: overseas, region: us-ca, failureDomain: overseas-edge-50, uplinkMbps: 1000, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: false}
+    - {name: restricted-node-1eb0570f74, class: B, role: spine, asn: 65101, legacyASN: 4200010147, internalIP: 192.0.2.18, acceleratedIP: 192.0.2.173, podCIDR: 192.0.2.109/24, provider: local-wsl, region: cn-hunan, failureDomain: a1, uplinkMbps: 200, publicAuthority: false, inventoryComplete: true}
+    - {name: restricted-node-296f36f2fb, class: B, role: spine, asn: 65102, legacyASN: 4200010125, internalIP: 192.0.2.208, acceleratedIP: 192.0.2.213, podCIDR: 192.0.2.26/24, provider: local-wsl, region: cn-hunan, failureDomain: b1, uplinkMbps: 200, publicAuthority: false, inventoryComplete: true}
+    - {name: amdwsl-zt, class: B, role: spine, asn: 65103, legacyASN: 4200010038, internalIP: 192.0.2.249, acceleratedIP: 192.0.2.93, podCIDR: 192.0.2.238/24, provider: local-wsl, region: cn-hubei, failureDomain: amdwsl, uplinkMbps: 100, publicAuthority: false, inventoryComplete: false}
+    - {name: vm-20-12-ubuntu, class: C, role: leaf, asn: 4200000073, internalIP: 192.0.2.67, acceleratedIP: 192.0.2.114, podCIDR: 192.0.2.224/24, provider: tencent, region: cn-guangzhou, failureDomain: tencent-gz-73, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+    - {name: qwen-1, class: C, role: leaf, asn: 4200010024, internalIP: 192.0.2.115, acceleratedIP: 192.0.2.29, podCIDR: 192.0.2.75/24, provider: aliyun, region: cn-guangzhou, failureDomain: aliyun-gz-24, uplinkMbps: 3, publicAuthority: true, inventoryComplete: false}
+    - {name: qwen-2, class: C, role: leaf, asn: 4200010217, internalIP: 192.0.2.91, acceleratedIP: 192.0.2.5, podCIDR: 192.0.2.8/24, provider: aliyun, region: cn-shanghai, failureDomain: aliyun-sh-217, uplinkMbps: 3, publicAuthority: true, inventoryComplete: true}
+    - {name: qwen-3, class: C, role: leaf, asn: 4200010047, internalIP: 192.0.2.33, acceleratedIP: 192.0.2.16, podCIDR: 192.0.2.52/24, provider: aliyun, region: cn-shanghai, failureDomain: aliyun-sh-47, uplinkMbps: 3, publicAuthority: true, inventoryComplete: true}
+    - {name: suxunji, class: C, role: leaf, asn: 4200000077, internalIP: 192.0.2.143, acceleratedIP: 192.0.2.145, podCIDR: 192.0.2.122/24, provider: tencent, region: cn-shanghai, failureDomain: tencent-sh-77, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+    - {name: muaya-lightweight, class: C, role: leaf, asn: 4200000079, internalIP: 192.0.2.141, acceleratedIP: 192.0.2.24, podCIDR: 192.0.2.172/24, provider: aliyun, region: cn-shanghai, failureDomain: aliyun-sh-79, uplinkMbps: 3, publicAuthority: true, inventoryComplete: true}
+    - {name: muaya-ecs, class: C, role: leaf, asn: 4200000095, internalIP: 192.0.2.203, acceleratedIP: 192.0.2.46, podCIDR: 192.0.2.99/24, provider: aliyun, region: cn-hangzhou, failureDomain: aliyun-hz-95, uplinkMbps: 3, publicAuthority: true, inventoryComplete: true}
+    - {name: zan, class: C, role: leaf, asn: 4200000016, internalIP: 192.0.2.79, acceleratedIP: 192.0.2.63, podCIDR: 192.0.2.186/24, provider: tencent, region: cn-guangzhou, failureDomain: tencent-gz-16, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+    - {name: domain-ex, class: C, role: leaf, asn: 4200000186, internalIP: 192.0.2.172, acceleratedIP: 192.0.2.31, podCIDR: 192.0.2.26/24, provider: tencent, region: cn-shanghai, failureDomain: tencent-sh-186, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+
+# Optional regional egress. This does not proxy cluster, Ceph, etcd or private
+# traffic. Supply an existing Secret containing paths.yaml with encrypted
+# proxy-provider transports; the chart never packages provider credentials.
+mihomoGateway:
+  enabled: false
+  image:
+    repository: metacubex/mihomo
+    tag: v1.19.29
+    pullPolicy: IfNotPresent
+  capabilityLabel: networking.re8ch.com/mihomo-node
+  capabilityValue: enabled
+  existingPathsSecret: ""
+  service:
+    type: ClusterIP
+    requestedLoadBalancerIP: ""
+    externalTrafficPolicy: Local
+    advertise: false
+  controller:
+    enabled: true
+  rules:
+    overseasDomains:
+      - github.com
+      - githubusercontent.com
+      - ghcr.io
+      - quay.io
+      - registry.k8s.io
+      - pkg.dev
+      - docker.io
+      - docker.com
+      - amazonaws.com

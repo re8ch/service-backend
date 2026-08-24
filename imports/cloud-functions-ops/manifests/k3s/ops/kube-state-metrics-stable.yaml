@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/part-of: qianwen-observability
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  strategy: {type: RollingUpdate, rollingUpdate: {maxSurge: 1, maxUnavailable: 0}}
+  selector:
+    matchLabels: {app.kubernetes.io/name: kube-state-metrics}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kube-state-metrics
+        app.kubernetes.io/part-of: qianwen-observability
+    spec:
+      serviceAccountName: kube-state-metrics
+      nodeSelector: {kubernetes.io/hostname: suxunji, kubernetes.io/os: linux}
+      imagePullSecrets: [{name: registry-re8ch}]
+      containers:
+        - name: kube-state-metrics
+          image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.18.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --host=0.0.0.0
+            - --port=8080
+            - --telemetry-host=0.0.0.0
+            - --telemetry-port=8081
+            - --resources=pods,nodes,namespaces,deployments,replicasets,statefulsets,daemonsets,jobs,cronjobs,services,persistentvolumeclaims
+            - --metric-labels-allowlist=pods=[app.kubernetes.io/name,nuclio.io/function-name,qianwen.env],deployments=[app.kubernetes.io/name,nuclio.io/function-name,qianwen.env]
+          ports:
+            - {name: http-metrics, containerPort: 8080}
+            - {name: telemetry, containerPort: 8081}
+          # /livez contacts the apiserver and returned 503 during brief network
+          # stalls. A liveness probe must test the process, not an upstream.
+          livenessProbe:
+            tcpSocket: {port: http-metrics}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 5
+          readinessProbe:
+            httpGet: {path: /readyz, port: telemetry}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 300m, memory: 160Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities: {drop: [ALL]}

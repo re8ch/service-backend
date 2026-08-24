@@ -1,0 +1,40 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: native-routing-canary
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      networking.re8ch.com/native-routing-canary: enabled
+  defaults:
+    routing-mode: native
+    ipv4-native-routing-cidr: 192.0.2.224/16
+    # FRR owns remote PodCIDR selection; Cilium owns the native-routing eBPF
+    # service, policy and Gateway dataplane without installing competing routes.
+    auto-direct-node-routes: "false"
+    direct-routing-skip-unreachable: "false"
+---
+# Promotion is label-driven and gated by two Established route-server sessions
+# plus a complete retained-node PodCIDR RIB on every selected node.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: native-routing-rollout-order
+  namespace: kube-system
+data:
+  order: dual-FRR/full-RIB -> workers -> restricted-node-6dc3f140f9 -> restricted-node-1eb0570f74,restricted-node-296f36f2fb
+  forbidden-advertisement: 192.0.2.253/24
+  pod-cidr: 192.0.2.224/16
+---
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: domain-api-bootstrap
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: domain-ex
+  defaults:
+    k8s-api-server: https://192.0.2.18:6443

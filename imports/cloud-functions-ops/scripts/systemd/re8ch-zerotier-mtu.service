@@ -1,0 +1,12 @@
+[Unit]
+Description=RE8CH ZeroTier underlay MTU guard
+After=zerotier-one.service
+Wants=zerotier-one.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for i in $(seq 1 30); do iface=$(find /sys/class/net -maxdepth 1 -name "zt*" -printf "%%f\n" | head -1); if [ -n "$iface" ]; then ip link set dev "$iface" mtu 1280; exit 0; fi; sleep 1; done; exit 1'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

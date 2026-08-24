@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "name": "com.re8ch/plugin-runtime",
+      "description": "Git-governed hot-pluggable RE8CH infrastructure tool runtime",
+      "version": "0.1.2",
+      "remotes": [{"type": "streamable-http", "url": "https://tools.re8ch.com:8443/mcp"}]
+    }
+  ]
+}

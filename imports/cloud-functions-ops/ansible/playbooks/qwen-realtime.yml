@@ -1,0 +1,8 @@
+---
+- name: Deploy Qwen Supabase Realtime on Pigsty nodes
+  hosts: qwen_realtime
+  become: true
+  gather_facts: false
+  roles:
+    - role: qwen_realtime
+

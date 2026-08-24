@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: re8ch-network-audit-a1
+  namespace: kube-system
+spec:
+  nodeName: restricted-node-1eb0570f74
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: audit
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sleep, "900"]
+      securityContext: {privileged: true}
+      volumeMounts: [{name: host-root, mountPath: /host}]
+  volumes: [{name: host-root, hostPath: {path: /, type: Directory}}]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: re8ch-network-audit-b1
+  namespace: kube-system
+spec:
+  nodeName: restricted-node-296f36f2fb
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: audit
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sleep, "900"]
+      securityContext: {privileged: true}
+      volumeMounts: [{name: host-root, mountPath: /host}]
+  volumes: [{name: host-root, hostPath: {path: /, type: Directory}}]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: re8ch-network-audit-r640
+  namespace: kube-system
+spec:
+  nodeName: restricted-node-6dc3f140f9
+  hostNetwork: true
+  hostPID: true
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: audit
+      image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      imagePullPolicy: Never
+      command: [sleep, "900"]
+      securityContext: {privileged: true}
+      volumeMounts: [{name: host-root, mountPath: /host}]
+  volumes: [{name: host-root, hostPath: {path: /, type: Directory}}]

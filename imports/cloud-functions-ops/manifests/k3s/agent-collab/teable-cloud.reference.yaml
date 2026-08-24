@@ -1,0 +1,272 @@
+# Reference only. This file records the Teable K3S shape attempted on
+# 2026-07-02. Do not apply it blindly: runtime secrets are intentionally omitted,
+# node placement should be revisited, and public routing was not enabled.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: teable-config
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable
+    app.kubernetes.io/part-of: agent-collab
+data:
+  PUBLIC_ORIGIN: "https://teable.re8ch.com"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  NEXT_ENV_IMAGES_ALL_REMOTE: "true"
+  PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: "1"
+  BACKEND_CACHE_PROVIDER: "redis"
+  BACKEND_STORAGE_PROVIDER: "s3"
+  BACKEND_STORAGE_S3_REGION: "cn-hangzhou"
+  BACKEND_STORAGE_S3_ENDPOINT: "https://oss-cn-hangzhou.aliyuncs.com"
+  BACKEND_STORAGE_PUBLIC_BUCKET: "re8ch-teable-agent-public"
+  BACKEND_STORAGE_PRIVATE_BUCKET: "re8ch-teable-agent-private"
+  STORAGE_PREFIX: "https://re8ch-teable-agent-public.oss-cn-hangzhou.aliyuncs.com"
+  BACKEND_SESSION_COOKIE_SECURE: "true"
+  TELEMETRY_REPORT_DISABLED: "true"
+  TIMEZONE: "Asia/Shanghai"
+  TZ: "Asia/Shanghai"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: teable-redis-data
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable-redis
+    app.kubernetes.io/part-of: agent-collab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: teable-redis
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable-redis
+    app.kubernetes.io/part-of: agent-collab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: teable-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teable-redis
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable-redis
+    app.kubernetes.io/part-of: agent-collab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: teable-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: teable-redis
+        app.kubernetes.io/part-of: agent-collab
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - harbor-registry
+                      - artchais-nuclio-1
+                      - qianwen-prod-nuclio-3
+                      - qianwen-test-nuclio-2
+      containers:
+        - name: redis
+          image: redis:7.2.4
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
+            - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+          ports:
+            - name: redis
+              containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: teable-runtime-secret
+                  key: REDIS_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -ec
+                - redis-cli -a "$REDIS_PASSWORD" --raw ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -ec
+                - redis-cli -a "$REDIS_PASSWORD" --raw ping | grep -q PONG
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: teable-redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: teable
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable
+    app.kubernetes.io/part-of: agent-collab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: teable
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teable
+  namespace: agent-collab
+  labels:
+    app.kubernetes.io/name: teable
+    app.kubernetes.io/part-of: agent-collab
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: teable
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: teable
+        app.kubernetes.io/part-of: agent-collab
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - harbor-registry
+                      - artchais-nuclio-1
+                      - qianwen-prod-nuclio-3
+                      - qianwen-test-nuclio-2
+      initContainers:
+        - name: db-migrate
+          image: ghcr.io/teableio/teable:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - migrate-only
+          envFrom:
+            - configMapRef:
+                name: teable-config
+            - secretRef:
+                name: teable-runtime-secret
+          env:
+            - name: PRISMA_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: teable-db-credentials
+                  key: DATABASE_URL_MIGRATOR
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+      containers:
+        - name: teable
+          image: ghcr.io/teableio/teable:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - skip-migrate
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: teable-config
+            - secretRef:
+                name: teable-runtime-secret
+          env:
+            - name: PRISMA_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: teable-db-credentials
+                  key: DATABASE_URL_MIGRATOR
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: "2"
+              memory: 1024Mi

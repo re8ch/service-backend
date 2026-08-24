@@ -1,0 +1,87 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: coredns-availability.re8ch.com
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+        resourceNames: ["coredns"]
+  matchConditions:
+    - name: is-k3s-coredns
+      expression: >-
+        object.metadata.namespace == 'kube-system' &&
+        object.metadata.labels['k8s-app'] == 'kube-dns'
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          [
+            JSONPatch{op: 'add', path: '/spec/replicas', value: 2},
+            JSONPatch{
+              op: 'add',
+              path: '/spec/template/metadata/labels/' + jsonpatch.escapeKey('re8ch.com/availability-workaround'),
+              value: 'cached-system-image'
+            },
+            JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/affinity',
+              value: Object.spec.template.spec.affinity{
+                nodeAffinity: Object.spec.template.spec.affinity.nodeAffinity{
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution{
+                      nodeSelectorTerms: [
+                        Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms{
+                          matchExpressions: [
+                            Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions{
+                              key: 'kubernetes.io/hostname',
+                              operator: 'In',
+                              values: ['restricted-node-1eb0570f74', 'restricted-node-296f36f2fb']
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                }
+              }
+            },
+            JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/tolerations',
+              value:
+                object.spec.template.spec.tolerations.filter(t, t.key != 'anchor') +
+                [Object.spec.template.spec.tolerations{
+                  key: 'anchor',
+                  operator: 'Equal',
+                  value: 'true',
+                  effect: 'NoSchedule'
+                }]
+            }
+          ]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: coredns-availability.re8ch.com
+spec:
+  policyName: coredns-availability.re8ch.com
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-dns

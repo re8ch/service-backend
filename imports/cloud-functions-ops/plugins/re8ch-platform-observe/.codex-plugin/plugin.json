@@ -1,0 +1,19 @@
+{
+  "name": "re8ch-platform-observe",
+  "version": "0.1.0",
+  "description": "Read-only RE8CH platform inventory, health, metrics, logs, registry and security posture.",
+  "author": {
+    "name": "RE8CH"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Re8ch Platform Observe",
+    "shortDescription": "Inspect RE8CH platform resources safely.",
+    "longDescription": "OAuth-protected, read-only access to RE8CH node and workload status, fixed metrics, log summaries, registry metadata, service health and security posture. It cannot read Secret values, kubeconfig, arbitrary SQL, or mutate Kubernetes resources.",
+    "developerName": "RE8CH",
+    "category": "Developer Tools",
+    "capabilities": ["Read-only", "OAuth", "MCP"],
+    "defaultPrompt": "Inventory RE8CH platform health and summarize anything requiring attention."
+  },
+  "mcpServers": "./.mcp.json"
+}

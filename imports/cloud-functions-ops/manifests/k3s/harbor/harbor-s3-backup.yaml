@@ -1,0 +1,112 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: harbor-s3-registry-backup
+  namespace: harbor
+  labels:
+    app.kubernetes.io/name: harbor-s3-registry-backup
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "17 * * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: harbor-s3-registry-backup
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: restricted-node-6dc3f140f9
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: observability
+              effect: NoSchedule
+            - key: harbor.re8ch.com/standalone
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+          enableServiceLinks: false
+          containers:
+            - name: awscli
+              image: amazon/aws-cli:2.17.60
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: harbor-s3-backend
+              env:
+                - name: AWS_EC2_METADATA_DISABLED
+                  value: "true"
+                - name: AWS_RETRY_MODE
+                  value: standard
+                - name: AWS_MAX_ATTEMPTS
+                  value: "5"
+                - name: TZ
+                  value: Asia/Shanghai
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  endpoint="${S3_ENDPOINT_URL:?missing S3_ENDPOINT_URL}"
+                  bucket="${S3_BUCKET:?missing S3_BUCKET}"
+                  prefix="${S3_PREFIX:-harbor-registry}"
+                  threshold="${DISK_USAGE_THRESHOLD:-80}"
+                  daily_hour="${DAILY_BACKUP_HOUR:-3}"
+                  now_hour="$(date +%H | sed 's/^0//')"
+                  [ -n "${now_hour}" ] || now_hour=0
+                  mkdir -p /tmp/aws
+                  cat > /tmp/aws/config <<'CFG'
+                  [default]
+                  s3 =
+                      signature_version = s3v4
+                      addressing_style = virtual
+                  CFG
+                  export AWS_CONFIG_FILE=/tmp/aws/config
+
+                  usage="$(df -P /source/registry | awk 'NR==2 {gsub("%", "", $5); print $5}')"
+                  reason=""
+                  if [ "${usage}" -ge "${threshold}" ]; then
+                    reason="disk-threshold"
+                  elif [ "${now_hour}" -eq "${daily_hour}" ]; then
+                    reason="daily"
+                  else
+                    echo "harbor_s3_backup_skip usage=${usage}% threshold=${threshold}% hour=${now_hour} daily_hour=${daily_hour}"
+                    exit 0
+                  fi
+
+                  echo "harbor_s3_backup_start reason=${reason} usage=${usage}% bucket=${bucket} prefix=${prefix}"
+                  aws --endpoint-url "${endpoint}" s3api head-bucket --bucket "${bucket}"
+                  aws --endpoint-url "${endpoint}" s3 sync /source/registry "s3://${bucket}/${prefix}/registry" --only-show-errors
+                  aws --endpoint-url "${endpoint}" s3 sync /source/config "s3://${bucket}/${prefix}/config" --only-show-errors --exclude "registry/passwd"
+                  echo "harbor_s3_backup_done reason=${reason} usage=${usage}%"
+              volumeMounts:
+                - name: harbor-registry-data
+                  mountPath: /source/registry
+                  readOnly: true
+                - name: harbor-config-root
+                  mountPath: /source/config
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: harbor-registry-data
+              hostPath:
+                path: /var/lib/rancher/harbor/data/registry
+                type: Directory
+            - name: harbor-config-root
+              hostPath:
+                path: /var/lib/rancher/harbor/config
+                type: Directory

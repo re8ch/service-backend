@@ -1,0 +1,202 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-resource-catalog
+  namespace: ops
+data:
+  tenants.yaml: |
+    tenants:
+      qwen:
+        canonicalTenant: qwen
+        displayName: Qianwen / Qwen
+        notes: K3s/Dex namespace and Grafana org are qwen; Harbor/metrics/Observable tenant label and main databases use qianwen.
+        kubernetes:
+          namespace: qwen
+          dexGroup: re8ch:qwen-operators
+          serviceAccount: qwen-kubectl-operator
+          tokenSecret: qwen-kubectl-operator-permanent-token
+        harbor:
+          project: qianwen
+          webUsername: zhangrh
+          robotSecret: harbor-qianwen-admin
+          buildSecret: harbor-qianwen-build
+          pullSecret: harbor-qianwen-pull
+          sharedBuilderPullSecret: harbor-functions-shared-pull
+          imagePath: registry.re8ch.com/qianwen/<image>:<tag>
+          altImagePath: registry.ynzs.com/qianwen/<image>:<tag>
+          buildNotes: functions-shared is Harbor public-pull for platform builder/base images; build credentials still need push access to qianwen processor images.
+        grafana:
+          org: qwen
+          orgId: "2"
+          dashboardUid: tenant-qianwen-overview
+          serviceAccount: qianwen-ai-agent-viewer
+          tokenSecret: grafana-qianwen-viewer
+          metricsDatasourceUid: tenant-metrics
+          logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
+          tenantLabel: qianwen
+        pigsty:
+          databases:
+            - qianwen_prod
+            - qianwen_test
+            - cardcat
+          defaultWriteDatabase: qianwen_prod
+          rolePattern: <db>_{owner,admin,migrator,app_rw,app_ro,pgrst}
+          recommendedRoutes:
+            writeService: pgwrite.zt.re8ch.com:5433
+            readServiceShanghai: pgread-sh.zt.re8ch.com:5434
+            readServiceGuangzhou: pgread-gz.zt.re8ch.com:5434
+            poolRw: pgwrite.zt.re8ch.com:6432
+            instancePort: pgwrite.zt.re8ch.com:5432
+            instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
+            postgrestGateway:
+              shanghaiWrite: http://192.0.2.172:3080
+              shanghaiRead: http://192.0.2.141:3080
+              guangzhouRead: http://192.0.2.33:3080
+          credentialSecrets:
+            qianwen_prod:
+              namespace: qwen
+              name: qianwen-prod-db-credentials
+              status: pending-source
+              note: No trusted server-side password source has been confirmed yet.
+            qianwen_test:
+              namespace: qwen
+              name: qianwen-test-db-credentials
+              status: complete
+            cardcat:
+              namespace: qwen
+              name: cardcat-db-credentials
+              status: complete
+              compatibilityCopyOf: cardcat/cardcat-db-credentials
+        cloudbeaver:
+          url: https://dbgui.re8ch.com
+          webUsername: qwen
+          team: tenant-qwen
+          loginSecret:
+            namespace: qwen
+            name: cloudbeaver-login
+          preconfiguredConnections:
+            - qianwen-prod-write
+            - qianwen-prod-read-sh
+            - qianwen-test-write
+            - cardcat-write
+          recommendedDbRoles:
+            readOnly: <db>_app_ro
+            migrations: <db>_migrator
+            tenantAdmin: <db>_admin
+      ledger:
+        canonicalTenant: ledger
+        displayName: Ledger
+        kubernetes:
+          namespace: ledger
+          dexGroup: re8ch:ledger-operators
+          serviceAccount: ledger-kubectl-operator
+          tokenSecret: ledger-kubectl-operator-permanent-token
+        harbor:
+          project: ledger
+          webUsername: ledger
+          robotSecret: harbor-ledger-admin
+          imagePath: registry.re8ch.com/ledger/<image>:<tag>
+          altImagePath: registry.ynzs.com/ledger/<image>:<tag>
+        grafana:
+          org: Tenant ledger
+          orgId: "3"
+          webUsername: ledger
+          webLoginSecret:
+            namespace: ledger
+            name: grafana-ledger-web-login
+          dashboardUid: tenant-ledger-overview
+          serviceAccount: ledger-ai-agent-viewer
+          tokenSecret: grafana-ledger-viewer
+          metricsDatasourceUid: tenant-metrics
+          logsDatasourceUid: tenant-vlogs
+          observableEventsDatasourceUid: observable-events
+          tenantLabel: ledger
+        pigsty:
+          databases:
+            - ledger
+          defaultWriteDatabase: ledger
+          rolePattern: <db>_{owner,admin,migrator,app_rw,app_ro,pgrst}
+          recommendedRoutes:
+            writeService: pgwrite.zt.re8ch.com:5433
+            readServiceShanghai: pgread-sh.zt.re8ch.com:5434
+            readServiceGuangzhou: pgread-gz.zt.re8ch.com:5434
+            poolRw: pgwrite.zt.re8ch.com:6432
+            instancePort: pgwrite.zt.re8ch.com:5432
+            instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
+            postgrestGateway:
+              shanghaiWrite: http://192.0.2.172:3080
+              shanghaiRead: http://192.0.2.141:3080
+              guangzhouRead: http://192.0.2.33:3080
+          credentialSecrets:
+            ledger:
+              namespace: ledger
+              name: ledger-db-credentials
+              status: complete
+        cloudbeaver:
+          url: https://dbgui.re8ch.com
+          webUsername: ledger
+          team: tenant-ledger
+          loginSecret:
+            namespace: ledger
+            name: cloudbeaver-login
+          preconfiguredConnections:
+            - ledger-write
+            - ledger-read-gz
+          recommendedDbRoles:
+            readOnly: ledger_app_ro
+            migrations: ledger_migrator
+            tenantAdmin: ledger_admin
+      anycam:
+        canonicalTenant: anycam
+        displayName: Anycam
+        notes: Partial tenant. Grafana tenant org is still deferred; K3s, Harbor, CloudBeaver, and PostgreSQL tenant credentials are active.
+        kubernetes:
+          namespace: anycam
+          dexGroup: re8ch:anycam-operators
+          serviceAccount: anycam-kubectl-operator
+          tokenSecret: anycam-kubectl-operator-permanent-token
+        harbor:
+          project: anycam
+          webUsername: anycam
+          robotSecret: harbor-anycam-admin
+          pullSecret: harbor-anycam-pull
+          imagePath: registry.re8ch.com/anycam/<image>:<tag>
+          altImagePath: registry.ynzs.com/anycam/<image>:<tag>
+        pigsty:
+          databases:
+            - anycam_prod
+            - anycam_test
+          defaultWriteDatabase: anycam_prod
+          rolePattern: <db>_{owner,admin,migrator,app_rw,app_ro,pgrst}
+          recommendedRoutes:
+            writeService: pgwrite.zt.re8ch.com:5433
+            readServiceShanghai: pgread-sh.zt.re8ch.com:5434
+            readServiceGuangzhou: pgread-gz.zt.re8ch.com:5434
+            poolRw: pgwrite.zt.re8ch.com:6432
+            instancePort: pgwrite.zt.re8ch.com:5432
+            instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
+            postgrestGateway:
+              shanghaiWrite: http://192.0.2.172:3080
+              shanghaiRead: http://192.0.2.141:3080
+              guangzhouRead: http://192.0.2.33:3080
+          credentialSecrets:
+            anycam_prod:
+              namespace: anycam
+              name: anycam-prod-db-credentials
+              status: complete
+            anycam_test:
+              namespace: anycam
+              name: anycam-test-db-credentials
+              status: complete
+        cloudbeaver:
+          url: https://dbgui.re8ch.com
+          webUsername: anycam
+          team: tenant-anycam
+          loginSecret:
+            namespace: anycam
+            name: cloudbeaver-login
+          preconfiguredConnections:
+            - anycam-prod-write
+            - anycam-prod-read-gz
+            - anycam-test-write

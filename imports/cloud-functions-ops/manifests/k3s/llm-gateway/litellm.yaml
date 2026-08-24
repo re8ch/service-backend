@@ -1,0 +1,290 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-gateway
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config
+  namespace: llm-gateway
+data:
+  config.yaml: |
+    model_list:
+      - model_name: deepseek-v4-flash
+        litellm_params:
+          model: deepseek/deepseek-v4-flash
+          api_key: os.environ/DEEPSEEK_API_KEY
+          api_base: https://api.deepseek.com
+          timeout: 120
+      - model_name: kimi-k2-5
+        litellm_params:
+          model: openai/kimi-k2.5
+          api_key: os.environ/KIMI_API_KEY
+          api_base: https://api.moonshot.cn/v1
+          timeout: 120
+    router_settings:
+      routing_strategy: simple-shuffle
+      num_retries: 2
+      retry_after: 1
+      timeout: 120
+    litellm_settings:
+      telemetry: false
+      success_callback: [prometheus]
+      failure_callback: [prometheus]
+      drop_params: true
+    mcp_servers:
+      re8ch_toolhive:
+        transport: http
+        url: http://vmcp-re8ch-tools-vmcp.toolhive-system.svc.cluster.local:4483/mcp
+        auth_type: none
+        extra_headers: [Authorization]
+        oauth_passthrough: true
+        allow_all_keys: false
+        description: RE8CH ToolHive unified hot-pluggable tool catalog
+    general_settings:
+      master_key: os.environ/LITELLM_MASTER_KEY
+      database_url: os.environ/DATABASE_URL
+      store_model_in_db: true
+      ui_access_mode: admin_only
+      store_prompts_in_spend_logs: false
+      maximum_spend_logs_retention_period: 30d
+      maximum_spend_logs_retention_interval: 1d
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-postgresql
+  namespace: llm-gateway
+spec:
+  selector:
+    app.kubernetes.io/name: litellm-postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm-postgresql
+  namespace: llm-gateway
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: litellm-postgresql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: litellm-postgresql
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      initContainers:
+        - name: prepare-data
+          image: busybox:1.37
+          command: [sh, -ec, "chown -R 999:999 /var/lib/postgresql/data"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      containers:
+        - name: postgresql
+          image: postgres:16.9-alpine
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: litellm
+            - name: POSTGRES_USER
+              value: litellm
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-runtime
+                  key: POSTGRES_PASSWORD
+          readinessProbe:
+            exec:
+              command: [sh, -ec, "pg_isready -U litellm -d litellm"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [sh, -ec, "pg_isready -U litellm -d litellm"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/lib/re8ch/litellm-postgresql
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  namespace: llm-gateway
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  selector:
+    app.kubernetes.io/name: litellm
+  ports:
+    - name: http
+      port: 4000
+      targetPort: http
+      nodePort: 30400
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: llm-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: litellm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: litellm
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm@sha256:28b10a635296730007097390939b55f8696ece548530d4ddda3e31c708b4dc81
+          args: [--config, /etc/litellm/config.yaml, --port, "4000"]
+          ports:
+            - name: http
+              containerPort: 4000
+          env:
+            - name: LITELLM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-runtime
+                  key: LITELLM_MASTER_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-runtime
+                  key: DATABASE_URL
+            - name: DEEPSEEK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-provider-credentials
+                  key: DEEPSEEK_API_KEY
+            - name: KIMI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-provider-credentials
+                  key: KIMI_API_KEY
+            - name: UI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-ui-auth
+                  key: UI_USERNAME
+            - name: UI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-ui-auth
+                  key: UI_PASSWORD
+            - name: PROXY_BASE_URL
+              value: https://litellm.re8ch.com
+            - name: GENERIC_CLIENT_ID
+              valueFrom:
+                secretKeyRef: {name: litellm-dex-sso, key: client-id}
+            - name: GENERIC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: litellm-dex-sso, key: client-secret}
+            - name: GENERIC_AUTHORIZATION_ENDPOINT
+              value: https://dex.re8ch.com/auth
+            - name: GENERIC_TOKEN_ENDPOINT
+              value: https://dex.re8ch.com/token
+            - name: GENERIC_USERINFO_ENDPOINT
+              value: https://dex.re8ch.com/userinfo
+            - name: GENERIC_SCOPE
+              value: openid email profile groups
+            - name: DOCS_URL
+              value: /docs
+            - name: ROOT_REDIRECT_URL
+              value: /ui/
+          readinessProbe:
+            httpGet: {path: /health/readiness, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet: {path: /health/liveliness, port: http}
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/litellm
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: litellm-config
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm-admin
+  namespace: llm-gateway
+  labels:
+    app.kubernetes.io/name: litellm
+  annotations:
+    external-dns.alpha.kubernetes.io/target: 192.0.2.67
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: litellm.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - litellm.re8ch.com
+      secretName: re8ch-wildcard-tls
+
+# Provision llm-gateway/litellm-ui-auth out of band with UI_USERNAME and
+# UI_PASSWORD. The Admin UI is available inside the restricted-node-6dc3f140f9 LAN at
+# http://192.0.2.97:30400/ui/. The dedicated HTTPS ingress is ready for the
+# edge DNS/proxy controller to publish as https://litellm.re8ch.com/ui/.

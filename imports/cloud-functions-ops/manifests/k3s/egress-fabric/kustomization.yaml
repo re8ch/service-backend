@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - config.yaml
+  - workloads.yaml
+  - regional-policy-workloads.yaml
+  - node-egress-labels.yaml
+  - network-policy.yaml
+  - mobile-policy-api.yaml
+configMapGenerator:
+  - name: route-path-controller-code
+    namespace: egress-fabric
+    files:
+      - path-controller.py=controller/path_controller.py
+  - name: re8ch-geodb-snapshot
+    namespace: egress-fabric
+    files:
+      - geodb.json.gz=geodb/geodb.json.gz
+  - name: mihomo-cn-ip-rules
+    namespace: egress-fabric
+    files:
+      - cn-ip-rules.yaml=geodb/cn-ip-rules.yaml
+generatorOptions:
+  disableNameSuffixHash: true

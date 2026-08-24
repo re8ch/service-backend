@@ -1,0 +1,326 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudbeaver-datasources
+  namespace: ops
+data:
+  data-sources.json: |
+    {
+      "folders": {},
+      "connections": {
+        "qianwen-prod-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Qianwen Prod - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "qianwen_prod",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/qianwen_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "qianwen-prod-read-sh": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Qianwen Prod - Read SH",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgread-sh.zt.re8ch.com",
+            "port": "5432",
+            "database": "qianwen_prod",
+            "url": "jdbc:postgresql://pgread-sh.zt.re8ch.com:5432/qianwen_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "qianwen-test-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Qianwen Test - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "qianwen_test",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/qianwen_test",
+            "configurationType": "MANUAL",
+            "type": "dev",
+            "closeIdleConnection": true
+          }
+        },
+        "cardcat-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Cardcat - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "cardcat",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/cardcat",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "compocv-labor-r640": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "CompoCV Labor - restricted-node-6dc3f140f9",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "192.0.2.67",
+            "port": "15432",
+            "database": "compocv_labor",
+            "url": "jdbc:postgresql://192.0.2.67:15432/compocv_labor",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "anycam-prod-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Anycam Prod - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "anycam_prod",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/anycam_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "anycam-prod-read-gz": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Anycam Prod - Read GZ",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgread-gz.zt.re8ch.com",
+            "port": "5432",
+            "database": "anycam_prod",
+            "url": "jdbc:postgresql://pgread-gz.zt.re8ch.com:5432/anycam_prod",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "anycam-test-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Anycam Test - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "anycam_test",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/anycam_test",
+            "configurationType": "MANUAL",
+            "type": "dev",
+            "closeIdleConnection": true
+          }
+        },
+        "ledger-write": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Ledger - Write",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgwrite.zt.re8ch.com",
+            "port": "5432",
+            "database": "ledger",
+            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/ledger",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        },
+        "ledger-read-gz": {
+          "provider": "postgresql",
+          "driver": "postgres-jdbc",
+          "name": "Ledger - Read GZ",
+          "show-system-objects": false,
+          "configuration": {
+            "host": "pgread-gz.zt.re8ch.com",
+            "port": "5432",
+            "database": "ledger",
+            "url": "jdbc:postgresql://pgread-gz.zt.re8ch.com:5432/ledger",
+            "configurationType": "MANUAL",
+            "type": "prod",
+            "closeIdleConnection": true
+          }
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloudbeaver-workspace
+  namespace: ops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudbeaver
+  namespace: ops
+  labels:
+    app: cloudbeaver
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloudbeaver
+  template:
+    metadata:
+      labels:
+        app: cloudbeaver
+    spec:
+      serviceAccountName: default
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        # The former rancher-panel node is now registered as zan.
+        kubernetes.io/hostname: zan
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: panel
+          effect: NoSchedule
+      securityContext:
+        fsGroup: 8978
+      initContainers:
+        - name: seed-config
+          # Cached on zan; mirror this digest into registry.re8ch.com before upgrading.
+          image: dbeaver/cloudbeaver:24.3.5
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              mkdir -p /workspace/GlobalConfiguration/.dbeaver
+              cp /seed/data-sources.json /workspace/GlobalConfiguration/.dbeaver/data-sources.json
+              chown -R 8978:8978 /workspace || true
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+            - name: datasource-config
+              mountPath: /seed
+              readOnly: true
+      containers:
+        - name: cloudbeaver
+          image: dbeaver/cloudbeaver:24.3.5
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLOUDBEAVER_WEB_SERVER_PORT
+              value: "8978"
+            - name: JAVA_OPTS
+              value: -Xms128m -Xmx768m
+          ports:
+            - name: http
+              containerPort: 8978
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8978
+            initialDelaySeconds: 40
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8978
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: workspace
+              mountPath: /opt/cloudbeaver/workspace
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: cloudbeaver-workspace
+        - name: datasource-config
+          configMap:
+            name: cloudbeaver-datasources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudbeaver
+  namespace: ops
+spec:
+  selector:
+    app: cloudbeaver
+  ports:
+    - name: http
+      port: 8978
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cloudbeaver-public
+  namespace: ops
+  annotations:
+    networking.re8ch.com/dns-authority: ops/cloudbeaver-dns-authority
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: dbgui-https
+  hostnames: [dbgui.re8ch.com]
+  rules:
+    - backendRefs:
+        - name: cloudbeaver
+          port: 8978
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudbeaver-dns-authority
+  namespace: ops
+  labels:
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: dbgui.re8ch.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: dbgui.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cloudbeaver
+                port:
+                  number: 8978
