@@ -57,7 +57,9 @@ advancedFabric:
         localAsn: 4200010125
         vipInterface: lo
         frrExportPrefixLists: [POD-FABRIC-OUT]
-        frrImportPrefixLists: [PT-WG-A1-IN]
+        # This exact list is attached inbound to the A1/B1 WG BGP peer.
+        # The agent adds only the health-owned API VIP /32 at sequence 30.
+        frrImportPrefixLists: [POD-FABRIC-OUT]
         # Only the single-peer A1/B1 LAN tunnel is needed in the A1 wave.
         wireguardInterfaces: [wg-wsl-lan]
         wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
