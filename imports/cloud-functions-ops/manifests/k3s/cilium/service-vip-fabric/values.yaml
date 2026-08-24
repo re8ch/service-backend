@@ -43,6 +43,11 @@ advancedFabric:
         frrImportPrefixLists: [SELF]
         frrNeighborPolicies:
           - {neighbor: 192.0.2.4, maximumPrefixes: 8}
+        frrPrefixEntries:
+          - {list: POD-FABRIC-SELF, sequence: 30, prefix: 192.0.2.4/32}
+        frrNetworks: [192.0.2.4/32]
+        forwardRules:
+          - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 192.0.2.4/32, destination: 192.0.2.116/32, protocol: tcp, port: 6443}
         wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
         wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
         fallbackRoutes:
@@ -55,6 +60,12 @@ advancedFabric:
         # A1 is the first-wave origin; remote ingress peers own the VIP
         # AllowedIPs, not A1's multi-peer outbound fabric.
         wireguardInterfaces: []
+        frrPrefixEntries:
+          - {list: POD-FABRIC-OUT, sequence: 500, prefix: 192.0.2.4/32}
+        wireguardPeerPolicies:
+          - interface: wg-pt-a1
+            peer: pEho3VmmtSBsMbUglwD3/NDi8Vw2sFvRVEvToqWypx8=
+            allowedPrefixes: [192.0.2.4/32]
         wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
       - name: restricted-node-296f36f2fb
         localAsn: 4200010125
@@ -82,8 +93,12 @@ advancedFabric:
         frrImportPrefixLists: [FROM-128]
         frrNeighborPolicies:
           - {neighbor: 192.0.2.125, maximumPrefixes: 8, routeMap: WG-R640-IN, matchPrefixList: FROM-128, localPreference: 300}
-        wireguardInterfaces: [wg-pt-a1]
+        wireguardInterfaces: []
         wireguardAllowedPrefixes: [192.0.2.116/32]
+        wireguardPeerPolicies:
+          - interface: wg-public-mesh
+            peer: kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=
+            allowedPrefixes: [192.0.2.116/32]
       - {name: overseas-kl, localAsn: 4200000089, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.116/32]}
       - name: overseas-la
         localAsn: 4200000104
