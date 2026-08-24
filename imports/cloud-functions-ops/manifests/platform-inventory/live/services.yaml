@@ -21,7 +21,7 @@
         "app.kubernetes.io/part-of": "agent-collab"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -147,7 +147,7 @@
       "name": "cloud-platform-tool",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -155,7 +155,7 @@
       "name": "cluster-infra-tool",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -171,7 +171,7 @@
       "name": "re8ch-cloud-platform",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -179,6 +179,17 @@
       "name": "steel-browser",
       "labels": {
         "app.kubernetes.io/name": "steel-browser",
+        "app.kubernetes.io/part-of": "agent-workspace"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
+      "name": "steel-browser-artus",
+      "labels": {
+        "app.kubernetes.io/name": "steel-browser-artus",
         "app.kubernetes.io/part-of": "agent-workspace"
       },
       "desired": 1,
@@ -206,6 +217,14 @@
       "kind": "Deployment",
       "namespace": "ai-operations",
       "name": "steel-browser-ui",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "ai-operations",
+      "name": "steel-browser-ui-artus",
       "labels": {},
       "desired": 1,
       "ready": 1
@@ -290,6 +309,22 @@
       "type": "ClusterIP",
       "ports": [
         3000,
+        8977,
+        9223
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "steel-browser-artus",
+      "labels": {
+        "app.kubernetes.io/name": "steel-browser-artus",
+        "app.kubernetes.io/part-of": "agent-workspace"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        3000,
+        8977,
         9223
       ]
     },
@@ -318,6 +353,16 @@
       "kind": "Service",
       "namespace": "ai-operations",
       "name": "steel-browser-ui",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        80
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "ai-operations",
+      "name": "steel-browser-ui-artus",
       "labels": {},
       "type": "ClusterIP",
       "ports": [
@@ -453,7 +498,7 @@
         "app.kubernetes.io/part-of": "re8ch-auth"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -737,7 +782,7 @@
       "name": "comfyui-amd",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Service",
@@ -846,7 +891,7 @@
       "name": "cosyvoice",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Service",
@@ -1169,7 +1214,7 @@
         "app.kubernetes.io/name": "dex"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Ingress",
@@ -1234,7 +1279,7 @@
       "name": "mihomos-cn-exit",
       "labels": {},
       "desired": 7,
-      "ready": 7
+      "ready": 5
     },
     {
       "kind": "DaemonSet",
@@ -1242,7 +1287,7 @@
       "name": "mihomos-global-exit",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
@@ -1253,15 +1298,15 @@
         "app.kubernetes.io/part-of": "mihomos-cluster"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
       "namespace": "egress-fabric",
       "name": "mihomos-node-cn",
       "labels": {},
-      "desired": 13,
-      "ready": 13
+      "desired": 10,
+      "ready": 6
     },
     {
       "kind": "DaemonSet",
@@ -1276,8 +1321,8 @@
       "namespace": "egress-fabric",
       "name": "mihomos-status-agent",
       "labels": {},
-      "desired": 16,
-      "ready": 15
+      "desired": 13,
+      "ready": 8
     },
     {
       "kind": "Deployment",
@@ -1353,6 +1398,18 @@
     {
       "kind": "Service",
       "namespace": "egress-fabric",
+      "name": "mihomos-node-cn-local",
+      "labels": {
+        "app.kubernetes.io/name": "mihomos-node-cn-local"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        17891
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "egress-fabric",
       "name": "mobile-egress-mobile-egress-control",
       "labels": {},
       "type": "ClusterIP",
@@ -1388,7 +1445,7 @@
         "app.kubernetes.io/name": "fleet"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -1398,7 +1455,7 @@
         "app.kubernetes.io/name": "fleet-egress-proxy"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -1408,7 +1465,7 @@
         "app.kubernetes.io/name": "fleet-redis"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -1535,7 +1592,7 @@
         "app.kubernetes.io/part-of": "flux"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Service",
@@ -1568,6 +1625,40 @@
       "labels": {
         "app.kubernetes.io/part-of": "flux"
       },
+      "type": "ClusterIP",
+      "ports": [
+        80
+      ]
+    },
+    {
+      "kind": "DaemonSet",
+      "namespace": "function-routing",
+      "name": "function-gateway-edge",
+      "labels": {},
+      "desired": 2,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "function-routing",
+      "name": "function-gateway-anchor",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "function-routing",
+      "name": "function-placement-controller",
+      "labels": {},
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Service",
+      "namespace": "function-routing",
+      "name": "function-gateway-anchor",
+      "labels": {},
       "type": "ClusterIP",
       "ports": [
         80
@@ -1784,7 +1875,7 @@
         "app.kubernetes.io/name": "headlamp"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -2118,8 +2209,8 @@
         "app.kubernetes.io/name": "cilium-agent",
         "app.kubernetes.io/part-of": "cilium"
       },
-      "desired": 16,
-      "ready": 15
+      "desired": 13,
+      "ready": 8
     },
     {
       "kind": "DaemonSet",
@@ -2128,24 +2219,24 @@
       "labels": {
         "app.kubernetes.io/name": "podcidr-fabric-reconciler"
       },
-      "desired": 16,
-      "ready": 15
+      "desired": 13,
+      "ready": 8
     },
     {
       "kind": "DaemonSet",
       "namespace": "kube-system",
       "name": "re8ch-advanced-fabric-agent",
       "labels": {},
-      "desired": 16,
-      "ready": 15
+      "desired": 13,
+      "ready": 8
     },
     {
       "kind": "DaemonSet",
       "namespace": "kube-system",
       "name": "re8ch-node-external-ip-agent",
       "labels": {},
-      "desired": 13,
-      "ready": 12
+      "desired": 10,
+      "ready": 6
     },
     {
       "kind": "DaemonSet",
@@ -2155,7 +2246,7 @@
         "app.kubernetes.io/name": "regional-origin-dnat"
       },
       "desired": 3,
-      "ready": 3
+      "ready": 2
     },
     {
       "kind": "DaemonSet",
@@ -2197,7 +2288,7 @@
         "app.kubernetes.io/part-of": "cilium"
       },
       "desired": 3,
-      "ready": 3
+      "ready": 2
     },
     {
       "kind": "Deployment",
@@ -2205,7 +2296,7 @@
       "name": "coredns",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2227,7 +2318,7 @@
         "app.kubernetes.io/part-of": "cilium"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -2257,7 +2348,7 @@
       "name": "local-path-provisioner",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -2273,7 +2364,7 @@
       "name": "metrics-server-ha",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -2290,6 +2381,61 @@
       "labels": {},
       "desired": 1,
       "ready": 1
+    },
+    {
+      "kind": "Service",
+      "namespace": "kube-system",
+      "name": "cilium-gateway-re8ch-db-internal-guangzhou",
+      "labels": {},
+      "type": "LoadBalancer",
+      "ports": [
+        5432,
+        5433
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "kube-system",
+      "name": "cilium-gateway-re8ch-db-internal-hangzhou",
+      "labels": {},
+      "type": "LoadBalancer",
+      "ports": [
+        5432,
+        5433
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "kube-system",
+      "name": "cilium-gateway-re8ch-db-internal-loudi",
+      "labels": {},
+      "type": "LoadBalancer",
+      "ports": [
+        5432,
+        5433
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "kube-system",
+      "name": "cilium-gateway-re8ch-db-internal-shanghai",
+      "labels": {},
+      "type": "LoadBalancer",
+      "ports": [
+        5432,
+        5433
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "kube-system",
+      "name": "cilium-gateway-re8ch-db-internal-shanghai-nuclio",
+      "labels": {},
+      "type": "LoadBalancer",
+      "ports": [
+        5432,
+        5433
+      ]
     },
     {
       "kind": "Service",
@@ -3105,7 +3251,7 @@
         "app.kubernetes.io/part-of": "ledger"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -3159,7 +3305,7 @@
         "app.kubernetes.io/part-of": "nuclio"
       },
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Ingress",
@@ -3484,7 +3630,7 @@
         "app.kubernetes.io/part-of": "observable"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Service",
@@ -3515,7 +3661,7 @@
         "app.kubernetes.io/part-of": "opencost"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Service",
@@ -3672,7 +3818,7 @@
         "app": "cloudbeaver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -3882,8 +4028,8 @@
         "app.kubernetes.io/name": "panel-node-exporter",
         "app.kubernetes.io/part-of": "panel-observability"
       },
-      "desired": 9,
-      "ready": 9
+      "desired": 7,
+      "ready": 3
     },
     {
       "kind": "DaemonSet",
@@ -3894,7 +4040,7 @@
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
@@ -3905,7 +4051,7 @@
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -3960,7 +4106,7 @@
       "name": "oauth2-proxy-hubble",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -3968,7 +4114,7 @@
       "name": "oauth2-proxy-hyperglass",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -3976,7 +4122,7 @@
       "name": "oauth2-proxy-opencost",
       "labels": {},
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -4006,6 +4152,17 @@
       "name": "panel-grafana-renderer",
       "labels": {
         "app.kubernetes.io/name": "panel-grafana-renderer",
+        "app.kubernetes.io/part-of": "panel-observability"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "qianwen-ops",
+      "name": "panel-pg-re8ch-primary-vmagent",
+      "labels": {
+        "app.kubernetes.io/name": "panel-pg-re8ch-primary-vmagent",
         "app.kubernetes.io/part-of": "panel-observability"
       },
       "desired": 1,
@@ -4080,13 +4237,24 @@
     {
       "kind": "Deployment",
       "namespace": "qianwen-ops",
+      "name": "re8ch-grafana-cloud-vmagent",
+      "labels": {
+        "app.kubernetes.io/name": "re8ch-grafana-cloud-vmagent",
+        "app.kubernetes.io/part-of": "panel-observability"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "qianwen-ops",
       "name": "re8ch-routing-advisor",
       "labels": {
         "app.kubernetes.io/name": "re8ch-routing-advisor",
         "app.kubernetes.io/part-of": "network-economics"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -4468,6 +4636,36 @@
     {
       "kind": "Service",
       "namespace": "qianwen-ops",
+      "name": "pigsty-pg-re8ch-exporters",
+      "labels": {
+        "app.kubernetes.io/name": "pigsty-pg-re8ch-exporters",
+        "app.kubernetes.io/part-of": "panel-observability"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        8008,
+        9101,
+        9630,
+        9631,
+        9854
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "qianwen-ops",
+      "name": "re8ch-grafana-cloud-vmagent",
+      "labels": {
+        "app.kubernetes.io/name": "re8ch-grafana-cloud-vmagent",
+        "app.kubernetes.io/part-of": "panel-observability"
+      },
+      "type": "ClusterIP",
+      "ports": [
+        8429
+      ]
+    },
+    {
+      "kind": "Service",
+      "namespace": "qianwen-ops",
       "name": "re8ch-routing-advisor",
       "labels": {
         "app.kubernetes.io/name": "re8ch-routing-advisor",
@@ -4493,16 +4691,16 @@
       "namespace": "qwen",
       "name": "nuclio-qianwen-agent-api",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
       "namespace": "qwen",
       "name": "nuclio-qianwen-mcp-gateway",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4557,8 +4755,8 @@
       "namespace": "qwen",
       "name": "nuclio-qianwen-prod-integrations-api",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4581,8 +4779,8 @@
       "namespace": "qwen",
       "name": "nuclio-qianwen-prod-script-api",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4613,8 +4811,8 @@
       "namespace": "qwen",
       "name": "nuclio-qianwen-prod-video-api",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4629,8 +4827,8 @@
       "namespace": "qwen",
       "name": "nuclio-qianwen-prod-workflow-api",
       "labels": {},
-      "desired": 1,
-      "ready": 1
+      "desired": 0,
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -4650,7 +4848,7 @@
         "app.kubernetes.io/name": "qwen-edge-redirects"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -5273,7 +5471,7 @@
       "name": "public-edge-manager",
       "labels": {},
       "desired": 3,
-      "ready": 3
+      "ready": 1
     },
     {
       "kind": "DaemonSet",
@@ -5281,7 +5479,7 @@
       "name": "regional-edge-tls-proxy",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
@@ -5307,16 +5505,16 @@
       "namespace": "rook-ceph",
       "name": "rook-ceph.cephfs.csi.ceph.com-nodeplugin",
       "labels": {},
-      "desired": 15,
-      "ready": 15
+      "desired": 8,
+      "ready": 8
     },
     {
       "kind": "DaemonSet",
       "namespace": "rook-ceph",
       "name": "rook-ceph.rbd.csi.ceph.com-nodeplugin",
       "labels": {},
-      "desired": 15,
-      "ready": 15
+      "desired": 8,
+      "ready": 8
     },
     {
       "kind": "Deployment",
@@ -5324,16 +5522,6 @@
       "name": "ceph-csi-controller-manager",
       "labels": {
         "app.kubernetes.io/name": "ceph-csi"
-      },
-      "desired": 1,
-      "ready": 1
-    },
-    {
-      "kind": "Deployment",
-      "namespace": "rook-ceph",
-      "name": "rook-ceph-crashcollector-a1-wsl-zt",
-      "labels": {
-        "app": "rook-ceph-crashcollector"
       },
       "desired": 1,
       "ready": 1
@@ -5354,16 +5542,6 @@
       "name": "rook-ceph-crashcollector-r640",
       "labels": {
         "app": "rook-ceph-crashcollector"
-      },
-      "desired": 1,
-      "ready": 1
-    },
-    {
-      "kind": "Deployment",
-      "namespace": "rook-ceph",
-      "name": "rook-ceph-exporter-a1-wsl-zt",
-      "labels": {
-        "app": "rook-ceph-exporter"
       },
       "desired": 1,
       "ready": 1
@@ -5458,7 +5636,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5517,7 +5695,7 @@
         "app.kubernetes.io/part-of": "rook-ceph"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5647,7 +5825,7 @@
       "name": "supabase-rest",
       "labels": {},
       "desired": 1,
-      "ready": 0
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -5766,6 +5944,37 @@
     },
     {
       "kind": "Deployment",
+      "namespace": "symphony-trial",
+      "name": "symphony",
+      "labels": {
+        "app.kubernetes.io/name": "symphony"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Service",
+      "namespace": "symphony-trial",
+      "name": "symphony",
+      "labels": {},
+      "type": "ClusterIP",
+      "ports": [
+        4000
+      ]
+    },
+    {
+      "kind": "Deployment",
+      "namespace": "synthetic-monitoring",
+      "name": "re8ch-k3s-apac-sm-agent",
+      "labels": {
+        "app.kubernetes.io/name": "re8ch-k3s-apac-sm-agent",
+        "app.kubernetes.io/part-of": "cloud-observability"
+      },
+      "desired": 1,
+      "ready": 1
+    },
+    {
+      "kind": "Deployment",
       "namespace": "toolhive-system",
       "name": "cluster-infra-plugins-runtime",
       "labels": {
@@ -5784,7 +5993,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5795,7 +6004,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5806,7 +6015,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5817,7 +6026,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5828,7 +6037,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5839,7 +6048,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5850,7 +6059,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5861,7 +6070,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5872,7 +6081,7 @@
         "app.kubernetes.io/name": "mcpserver"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Deployment",
@@ -5883,7 +6092,7 @@
         "app.kubernetes.io/name": "virtualmcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -5894,7 +6103,7 @@
         "app.kubernetes.io/part-of": "toolhive"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -5905,7 +6114,7 @@
         "app.kubernetes.io/name": "virtualmcpserver"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -5916,7 +6125,7 @@
         "app.kubernetes.io/part-of": "toolhive"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -5927,7 +6136,7 @@
         "app.kubernetes.io/part-of": "toolhive-operator"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Deployment",
@@ -5937,7 +6146,7 @@
         "app.kubernetes.io/name": "toolhive-registry-server"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 1
     },
     {
       "kind": "Ingress",
@@ -6440,7 +6649,7 @@
         "app": "ops-admin-external"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6450,7 +6659,7 @@
         "app": "ops-admin-managed"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6460,7 +6669,7 @@
         "app": "ops-admin-vmcp-internal"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6470,7 +6679,7 @@
         "app": "ops-observe-external"
       },
       "desired": 2,
-      "ready": 2
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6480,7 +6689,7 @@
         "app": "ops-observe-managed"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6490,7 +6699,7 @@
         "app": "ops-observe-vmcp-internal"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6510,7 +6719,7 @@
         "app": "ops-operate-managed"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6520,7 +6729,7 @@
         "app": "ops-operate-vmcp-internal"
       },
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "StatefulSet",
@@ -6536,7 +6745,7 @@
       "name": "toolhive-auth-redis-ab",
       "labels": {},
       "desired": 1,
-      "ready": 1
+      "ready": 0
     },
     {
       "kind": "Ingress",
