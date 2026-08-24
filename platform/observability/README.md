@@ -41,3 +41,11 @@ Current Ceph evidence and the recovery boundary are recorded in
 
 See `runbooks/observability/application-observability-contract.md` and
 `inventory/observability-services.yaml` for the ownership and coverage model.
+
+## Grafana preview
+
+The six dashboards are also mounted read-only into the existing production
+Grafana file provider so they can be reviewed before the suspended metrics and
+trace storage stage is enabled. Preview lifecycle, verification evidence and
+rollback are recorded in
+`runbooks/observability/grafana-preview-2026-08-25.md`.
