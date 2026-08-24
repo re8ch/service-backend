@@ -74,6 +74,10 @@ advancedFabric:
         # This exact list is attached inbound to the A1/B1 WG BGP peer.
         # The agent adds only the health-owned API VIP /32 at sequence 30.
         frrImportPrefixLists: [POD-FABRIC-OUT]
+        # Sequence 30 is the restricted-node-6dc3f140f9 PodCIDR. Keep the API VIP in a dedicated slot.
+        frrImportPrefixSequence: 305
+        frrPrefixEntries:
+          - {list: POD-FABRIC-OUT, sequence: 30, prefix: 192.0.2.140/24}
         # Only the single-peer A1/B1 LAN tunnel is needed in the A1 wave.
         wireguardInterfaces: [wg-wsl-lan]
         wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
