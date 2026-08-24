@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: qianwen-wechat
+spec:
+  parent:
+    catalog: qianwen
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/qianwen/modules/qianwen-wechat
+    submodulePath: catalogs/qianwen/modules/qianwen-wechat/source
+  identity:
+    maintainerAddress: qianwen-wechat-collab@phonaid.com
+    accountClass: collaboration
+    googleWorkspacePolicy: external
+  workspace:
+    name: qianwen-wechat-collab
+    oneActivePerAccount: true
+    branchPrefix: workspace/qianwen-wechat-collab/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

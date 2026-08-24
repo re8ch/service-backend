@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: arthandler-artchais-web
+spec:
+  parent:
+    catalog: artchais
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/artchais/modules/arthandler-artchais-web
+    submodulePath: catalogs/artchais/modules/arthandler-artchais-web/source
+  identity:
+    maintainerAddress: arthandler-artchais-web-collab@phonaid.com
+    accountClass: collaboration
+    googleWorkspacePolicy: external
+  workspace:
+    name: arthandler-artchais-web-collab
+    oneActivePerAccount: true
+    branchPrefix: workspace/arthandler-artchais-web-collab/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

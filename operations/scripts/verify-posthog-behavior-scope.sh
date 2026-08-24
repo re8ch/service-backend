@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CLOUD_FUNCTIONS_DIR="${CLOUD_FUNCTIONS_DIR:-${ROOT}/workspace/modules/cloud-functions}"
+CLOUD_FUNCTIONS_DIR="${CLOUD_FUNCTIONS_DIR:-${ROOT}/catalogs/platform/modules/cloud-functions/source}"
 semantic_sql="$CLOUD_FUNCTIONS_DIR/sql/004_qwen_posthog_semantic_export.sql"
 analytics_go="$CLOUD_FUNCTIONS_DIR/functions/analytics/main.go"
 if [[ ! -f "$semantic_sql" || ! -f "$analytics_go" ]]; then

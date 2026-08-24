@@ -1,10 +1,10 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspacePolicies
 spec:
   branches: {agentPrefix: codex/}
   discovery: {requireGitHistory: true, autoPublish: false, ignoreDirty: false}
   lock: {updateMode: merge-request, trackDefaultBranch: true}
-  materialize: {overwriteExisting: false, taskWorktrees: true, cleanupOnCompletion: true}
+  checkout: {source: catalog-submodule, taskWorktrees: true, cleanupOnCompletion: true}
   writes:
     owned: github-pr
     collaboration: authorized-upstream-pr

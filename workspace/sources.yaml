@@ -11,7 +11,6 @@ spec:
     - /Volumes/A1/ledger
     - /Volumes/A1/JJKLive
   codexCatalog: /Users/harryneo/.codex/sqlite/codex-dev.db
-  macWorkspaceRoot: /Volumes/A1/RE8CHWorkspace
   r640MirrorRoot: /var/lib/re8ch/workspace-mirrors
   r640WorktreeRoot: /var/lib/re8ch/agent-workspaces
   r640ArtifactRoot: /srv/re8ch/agent-artifacts

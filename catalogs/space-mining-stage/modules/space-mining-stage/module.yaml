@@ -1,4 +1,4 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: space-mining-stage, catalog: space-mining-stage}
-spec: {ownership: owned, lifecycle: incubating, repository: {provider: github, url: https://github.com/re8ch/space-mining-stage.git, defaultBranch: main, owner: re8ch}, workspace: {macPath: products/space-mining-stage/core, r640Path: products/space-mining-stage/core}, projectType: game, writePolicy: github-pr, knowledge: [README.md], tools: [npm]}
+spec: {ownership: owned, lifecycle: incubating, repository: {provider: github, url: 'https://github.com/re8ch/space-mining-stage.git', defaultBranch: main, owner: re8ch}, projectType: game, writePolicy: github-pr, knowledge: [README.md], tools: [npm], source: {kind: submodule, path: source, metadataPolicy: in-repository}, identity: {maintainerAddress: space-mining-stage-maintain@phonaid.com, accountClass: project-maintainer}, clusterIndex: {path: .re8ch/cluster-resources.yaml}}

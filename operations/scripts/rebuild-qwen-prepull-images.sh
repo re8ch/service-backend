@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CLOUD_FUNCTIONS_DIR="${CLOUD_FUNCTIONS_DIR:-${ROOT_DIR}/workspace/modules/cloud-functions}"
+CLOUD_FUNCTIONS_DIR="${CLOUD_FUNCTIONS_DIR:-${ROOT_DIR}/catalogs/platform/modules/cloud-functions/source}"
 PREPULL_MANIFEST="${PREPULL_MANIFEST:-${ROOT_DIR}/clusters/re8ch/components/qwen/qwen-image-prepull.yaml}"
 RUN_ID="${RUN_ID:-$(date +%Y%m%d%H%M%S)}"
 TAG_PREFIX="${TAG_PREFIX:-security-go1264}"
