@@ -18,3 +18,4 @@ resources:
   - ../../platform/agent-onboarding-runtime
   - ../../platform/stalwart
   - ../../platform/apps/access-subscription
+  - ../../platform/observability-source
