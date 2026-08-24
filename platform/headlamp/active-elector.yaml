@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: headlamp-active-elector
+  namespace: headlamp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: headlamp-active-elector
+  namespace: headlamp
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: headlamp-active-elector
+  namespace: headlamp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: headlamp-active-elector
+subjects:
+  - kind: ServiceAccount
+    name: headlamp-active-elector
+    namespace: headlamp
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: headlamp-active-elector
+  namespace: headlamp
+data:
+  elector.py: |
+    import json
+    import os
+    import ssl
+    import time
+    import urllib.parse
+    import urllib.request
+
+    namespace = os.environ.get("POD_NAMESPACE", "headlamp")
+    token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    base = "https://kubernetes.default.svc"
+    selector = urllib.parse.quote("app.kubernetes.io/name=headlamp")
+    context = ssl.create_default_context(cafile=ca_path)
+
+    def request(path, method="GET", body=None):
+        with open(token_path, encoding="utf-8") as token_file:
+            token = token_file.read().strip()
+        data = None if body is None else json.dumps(body).encode()
+        req = urllib.request.Request(
+            base + path,
+            data=data,
+            method=method,
+            headers={
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/merge-patch+json",
+            },
+        )
+        with urllib.request.urlopen(req, context=context, timeout=5) as response:
+            return json.load(response)
+
+    def ready(pod):
+        if pod["metadata"].get("deletionTimestamp"):
+            return False
+        if pod.get("status", {}).get("phase") != "Running":
+            return False
+        return any(
+            condition.get("type") == "Ready" and condition.get("status") == "True"
+            for condition in pod.get("status", {}).get("conditions", [])
+        )
+
+    def set_active(pod, active):
+        name = pod["metadata"]["name"]
+        value = "true" if active else "false"
+        labels = pod["metadata"].get("labels", {})
+        if labels.get("traffic.re8ch.com/headlamp-active") == value:
+            return
+        request(
+            f"/api/v1/namespaces/{namespace}/pods/{name}",
+            method="PATCH",
+            body={"metadata": {"labels": {"traffic.re8ch.com/headlamp-active": value}}},
+        )
+        print(json.dumps({"event": "headlamp-active-label", "pod": name, "active": active}), flush=True)
+
+    while True:
+        try:
+            pods = request(f"/api/v1/namespaces/{namespace}/pods?labelSelector={selector}")["items"]
+            healthy = sorted((pod for pod in pods if ready(pod)), key=lambda pod: pod["metadata"]["name"])
+            current = [
+                pod for pod in healthy
+                if pod["metadata"].get("labels", {}).get("traffic.re8ch.com/headlamp-active") == "true"
+            ]
+            selected = current[0] if current else (healthy[0] if healthy else None)
+            for pod in pods:
+                set_active(pod, selected is not None and pod["metadata"]["uid"] == selected["metadata"]["uid"])
+        except Exception as error:
+            print(json.dumps({"event": "headlamp-active-elector-error", "error": str(error)}), flush=True)
+        time.sleep(5)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp-active-elector
+  namespace: headlamp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: headlamp-active-elector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headlamp-active-elector
+    spec:
+      serviceAccountName: headlamp-active-elector
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      priorityClassName: system-cluster-critical
+      containers:
+        - name: elector
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: ["python3", "/runtime/elector.py"]
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: runtime
+              mountPath: /runtime
+              readOnly: true
+      volumes:
+        - name: runtime
+          configMap:
+            name: headlamp-active-elector
