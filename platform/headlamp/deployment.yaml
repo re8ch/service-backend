@@ -7,6 +7,12 @@ metadata:
     app.kubernetes.io/name: headlamp
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Two eligible nodes plus required anti-affinity cannot accommodate a surge pod.
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: headlamp
