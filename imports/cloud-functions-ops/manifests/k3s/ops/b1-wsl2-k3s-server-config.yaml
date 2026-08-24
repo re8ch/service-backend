@@ -3,8 +3,10 @@ token-file: /etc/rancher/k3s/server-token
 data-dir: /var/lib/rancher/k3s-server-b1-wsl-zt
 node-name: restricted-node-296f36f2fb
 node-ip: 192.0.2.4
-advertise-address: 192.0.2.4
+advertise-address: 192.0.2.1
 tls-san:
+  - 192.0.2.116
+  - 192.0.2.1
   - 192.0.2.178
   - 192.0.2.176
   - 192.0.2.4
@@ -24,7 +26,7 @@ node-label:
   - "pigsty.cc/workload=control-plane"
   - "pigsty.cc/zt-ip=192.0.2.4"
   - "re8ch.com/cilium-migrate=true"
-  - "re8ch.com/control-route=zerotier-primary"
+  - "re8ch.com/control-route=wireguard-primary-zerotier-fallback"
   - "re8ch.com/external-ip-mode=none"
   - "re8ch.com/network-level=4"
   - "re8ch.com/public-control=none"
