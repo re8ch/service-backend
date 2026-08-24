@@ -70,6 +70,30 @@ manage_frr_import_prefixes() {
   done
 }
 
+manage_frr_neighbor_policies() {
+  asn=$(transaction | jq -r '.localAsn')
+  transaction | jq -c '.frrNeighborPolicies[]?' | while read -r policy; do
+    neighbor=$(printf '%s' "${policy}" | jq -r '.neighbor')
+    maximum=$(printf '%s' "${policy}" | jq -r '.maximumPrefixes')
+    map=$(printf '%s' "${policy}" | jq -r '.routeMap // empty')
+    list=$(printf '%s' "${policy}" | jq -r '.matchPrefixList // empty')
+    preference=$(printf '%s' "${policy}" | jq -r '.localPreference // empty')
+    running=$(host vtysh -c 'show running-config'); changed=false
+    if ! printf '%s\n' "${running}" | grep -Fq "neighbor ${neighbor} maximum-prefix ${maximum} 90 restart 5"; then
+      host vtysh -c 'configure terminal' -c "router bgp ${asn}" -c 'address-family ipv4 unicast' \
+        -c "no neighbor ${neighbor} maximum-prefix" -c "neighbor ${neighbor} maximum-prefix ${maximum} 90 restart 5" -c end >/dev/null
+      changed=true
+    fi
+    if [ -n "${map}" ] && ! printf '%s\n' "${running}" | grep -Fq "neighbor ${neighbor} route-map ${map} in"; then
+      host vtysh -c 'configure terminal' -c "route-map ${map} permit 10" \
+        -c "match ip address prefix-list ${list}" -c "set local-preference ${preference}" -c exit \
+        -c "router bgp ${asn}" -c 'address-family ipv4 unicast' -c "neighbor ${neighbor} route-map ${map} in" -c end >/dev/null
+      changed=true
+    fi
+    [ "${changed}" = false ] || host vtysh -c "clear bgp ipv4 unicast ${neighbor} soft" >/dev/null
+  done
+}
+
 frr_vip() {
   action=$1
   vip=$(transaction | jq -r '.vip')
@@ -116,6 +140,7 @@ while :; do
     manage_fallback_routes apply
     manage_wireguard_allowed_ips apply
     manage_frr_import_prefixes
+    manage_frr_neighbor_policies
     if [ "${guarded}" != true ]; then
       withdraw_vip; successes=0; failures=0; announced=false
     elif api_healthy; then
