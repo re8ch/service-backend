@@ -1,0 +1,33 @@
+To: bingxin@baka.pub
+Subject: DN42 peering request — RE8CH AS4242421837 — Shanghai
+
+Hello Bingxin,
+
+I would like to request a DN42 WireGuard and BGP peering with Bingxin Network
+(AS4242423374), preferably at the Shanghai mainland node. Guangzhou would also
+work as a fallback.
+
+ASN: 4242421837
+Network: RE8CH
+MNTNER: RE8CH-MNT
+Public IP: 223.159.210.222
+WireGuard Listen Port: 21837
+WireGuard Public Key: N8LljOuXRWNyeIkA717xbriAuRJao2ngd6OFlQ3M5CE=
+DN42 IPv4: None
+DN42 IPv6 Prefix: fd7f:2110:b3a4::/48
+IPv6 Link-local: fe80::1837
+Server: Shanghai (Guangzhou fallback)
+Transmit Routes: both
+Multi-Protocol BGP: true
+Extended Next Hop: true
+Tunnel MTU: 1420
+Contact: harry@re8ch.com
+
+Our registry objects were merged in dn42/registry PR #7105:
+https://git.dn42.dev/dn42/registry/pulls/7105
+
+Please provide the private mainland endpoint and confirm the peer parameters.
+
+Thank you,
+Harry / RE8CH
+

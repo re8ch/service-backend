@@ -333,7 +333,7 @@
     "kind": "agent-memory",
     "module": "cloud-functions",
     "ref": "catalogs/platform/modules/cloud-functions/MEMORY.md",
-    "sha256": "1d1c7b8b7256e415d17ad41b6db0e071d93cfc5569155985305ac8662842bfd8"
+    "sha256": "ce094b24278aaa4950195ddc033da0ccb446273787c7c2fe5ef86b1881d3c675"
   },
   {
     "module": "cluster-website",
@@ -444,10 +444,18 @@
     "ref": "runbooks/"
   },
   {
+    "module": "service-backend",
+    "ref": "clusters/"
+  },
+  {
+    "module": "service-backend",
+    "ref": "operations/"
+  },
+  {
     "kind": "agent-memory",
     "module": "service-backend",
     "ref": "catalogs/platform/modules/service-backend/MEMORY.md",
-    "sha256": "ef81bd30c5fea66fe16d0eef45c7c0bbf5a757dd26733b262f65650e1c04253e"
+    "sha256": "7fd1907d75ccd89f4f3d11bd80eaaddda16a9f0ee4a73c9cb017e368ab07567e"
   },
   {
     "module": "tool-distribution",

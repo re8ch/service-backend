@@ -1,0 +1,72 @@
+snapshot_date: "2026-07-30"
+timezone: Asia/Shanghai
+
+subnets:
+  office_lan:
+    cidr: 192.168.88.0/24
+    gateway: 192.168.88.1
+    owner: MikroTik RB4011
+  huawei_management:
+    cidr: 192.168.90.0/24
+    known_macmini_address: 192.168.90.100
+  a8_management:
+    cidr: 192.168.1.0/24
+    gateway: 192.168.1.1
+    router_address: 192.168.1.2
+    note: A8-C LAN/management segment; not the China Telecom Voice VLAN.
+  china_telecom_voice:
+    a8_address: 172.224.95.127/21
+    gateway: 172.224.88.1
+    primary_outbound_proxy: 172.226.0.17:5060/udp
+    backup_outbound_proxy: 172.227.0.17:5060/udp
+    note: Carrier-managed Voice_R_43 interface inside A8-C.
+
+nodes:
+  mikrotik:
+    model: RB4011iGS+
+    address: 192.168.88.1
+    routeros: 7.23.2
+    links:
+      ether6:
+        peer: a8_c_lan1
+        local_address: 192.168.1.2/24
+      ether10:
+        peer: gxw4108_lan
+        observed_link: 100Mbps full-duplex
+  macmini:
+    addresses:
+      en0: 192.168.88.254
+      en1: 192.168.90.100
+  r640:
+    address: 192.168.88.251
+    interface: eno2np1
+    sip_ports:
+      kamailio_poc: 5060/udp
+      direct_gxw_test: 5160/udp
+  a8_c:
+    management_address: 192.168.1.1
+    proxied_web_url: http://192.168.88.1:18081/
+    lan_port: LAN1
+    voice_interface: Voice_R_43
+    analog_ports: 8x FXS
+  gxw4108:
+    address: 192.168.88.249
+    mac: "00:0B:82:3F:63:03"
+    web_url: http://192.168.88.249/
+    sip_port: 5060/udp
+    analog_ports: 8x FXO
+
+physical_paths:
+  management_and_sip:
+    - Mac mini or R640
+    - 192.168.88.0/24
+    - MikroTik
+    - GXW4108 LAN
+  carrier_call:
+    - R640 SIP
+    - MikroTik switched LAN
+    - GXW4108 FXO
+    - RJ11 analog pair
+    - A8-C FXS
+    - A8-C Voice_R_43
+    - China Telecom IMS

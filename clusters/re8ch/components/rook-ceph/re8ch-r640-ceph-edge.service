@@ -1,0 +1,15 @@
+[Unit]
+Description=RE8CH R640 Ceph ports behind MikroTik ZeroTier identity
+Wants=network-online.target
+After=network-online.target re8ch-zt128-dummy.service
+Before=k3s.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/nft delete table ip re8ch_ceph_edge
+ExecStart=/usr/sbin/nft -f /etc/rook-ceph/r640-ceph-edge.nft
+ExecStop=-/usr/sbin/nft delete table ip re8ch_ceph_edge
+
+[Install]
+WantedBy=multi-user.target

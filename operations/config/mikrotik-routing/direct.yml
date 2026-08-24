@@ -1,0 +1,21 @@
+# RE8CH MikroTik direct-route address lists.
+#
+# Keep this file intentionally small and human-owned. The generator accepts a
+# simple subset of YAML:
+#
+# list_name:
+#   - address: 1.2.3.0/24
+#     comment: optional text
+#
+# Generated dynamic sources such as APNIC CN prefixes are configured in the
+# generator itself.
+
+re8ch-direct-ip:
+  - address: 192.168.0.0/16
+    comment: RFC1918 private LAN direct
+  - address: 10.0.0.0/8
+    comment: RFC1918 private LAN direct
+  - address: 172.16.0.0/12
+    comment: RFC1918 private LAN direct
+
+re8ch-apple-direct-ip: []

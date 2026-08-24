@@ -1,0 +1,95 @@
+global:
+  image:
+    repository: ghcr.io/goauthentik/server
+    tag: "2026.5.3"
+    pullPolicy: IfNotPresent
+  nodeSelector:
+    # Identity secrets and verification workloads must remain on the
+    # organization-owned R640 trust boundary. MikroTik continues to manage
+    # the R640 network plane independently of this workload placement.
+    kubernetes.io/hostname: r640
+  tolerations: []
+  env:
+    - name: AUTHENTIK_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secrets
+          key: AUTHENTIK_SECRET_KEY
+    - name: AUTHENTIK_POSTGRESQL__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secrets
+          key: AUTHENTIK_POSTGRESQL__PASSWORD
+    - name: AUTHENTIK_REDIS__HOST
+      value: authentik-redis.auth.svc.cluster.local
+    - name: AUTHENTIK_REDIS__PORT
+      value: "6379"
+    - name: AUTHENTIK_REDIS__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-redis
+          key: password
+    - name: AUTHENTIK_BOOTSTRAP_EMAIL
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: AUTHENTIK_BOOTSTRAP_EMAIL
+    - name: AUTHENTIK_BOOTSTRAP_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: AUTHENTIK_BOOTSTRAP_PASSWORD
+    - name: AUTHENTIK_BOOTSTRAP_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: AUTHENTIK_BOOTSTRAP_TOKEN
+
+authentik:
+  log_level: info
+  secret_key: env://AUTHENTIK_SECRET_KEY
+  outposts:
+    container_image_base: ghcr.io/goauthentik/%(type)s:%(version)s
+  # Authentik is pinned to the organization-owned R640 trust boundary, so use
+  # the designated pg-re8ch primary directly. The private pgwrite hostname has
+  # previously drifted to a replica and must not be trusted for identity writes.
+  postgresql:
+    host: authentik-postgres-primary.auth.svc.cluster.local
+    port: 5432
+    name: auth
+    user: authentik
+    password: env://AUTHENTIK_POSTGRESQL__PASSWORD
+
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false
+
+server:
+  # Keep the normal release fail-closed until the one-replica canary passes.
+  replicas: 0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - auth.re8ch.com
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+
+worker:
+  replicas: 0
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1536Mi

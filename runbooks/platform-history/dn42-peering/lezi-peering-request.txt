@@ -1,0 +1,39 @@
+To: dn42@leziblog.com
+Subject: DN42 peering request — RE8CH AS4242421837 — CN2 (PVG)
+
+Hello LeZi,
+
+I would like to request a DN42 WireGuard and BGP peering with LeZi Network
+(AS4242423377) at CN2 (PVG). Our router and public endpoint are located in
+Mainland China, and the expected RTT is within your 50 ms policy subject to a
+final endpoint test.
+
+Node: CN2 (PVG)
+Our node location: Mainland China
+ASN: 4242421837
+Network: RE8CH
+MNTNER: RE8CH-MNT
+WireGuard Endpoint: 223.159.210.222
+WireGuard Port: 21839
+WireGuard Public Key: gRn4k2jkYleqWgNcfyJwHiNVVLicLRb7F87w/TnBYmI=
+DN42 IPv4: None
+DN42 IPv6 Prefix: fd7f:2110:b3a4::/48
+IPv6 LLA: fe80::1837
+MP-BGP: Yes
+Extended Next Hop: Yes
+Tunnel MTU: 1420
+Contact: harry@re8ch.com
+
+Our registry objects were merged in dn42/registry PR #7105:
+https://git.dn42.dev/dn42/registry/pulls/7105
+
+This request is signed with the SSH Ed25519 key published in RE8CH-MNT. The
+original request, detached signature, and public key are attached. The SSH
+signature namespace is "dn42".
+
+Please provide the hidden CN2 endpoint and pre-shared key, and confirm the peer
+parameters.
+
+Thank you,
+Harry / RE8CH
+

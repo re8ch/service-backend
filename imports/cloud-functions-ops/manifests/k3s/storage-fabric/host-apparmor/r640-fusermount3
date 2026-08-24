@@ -1,4 +1,0 @@
-# restricted-node-6dc3f140f9: permit only rclone CSI PV mountpoints managed by kubelet.
-# Installed as /etc/apparmor.d/local/fusermount3; keep the distro profile active.
-mount fstype=fuse.rclone options=(nosuid,nodev) options in (ro,rw) -> /var/lib/kubelet/pods/**/volumes/**/mount/,
-umount /var/lib/kubelet/pods/**/volumes/**/mount/,

@@ -1,0 +1,15 @@
+[Unit]
+Description=RE8CH split DNS for ZeroTier names
+After=systemd-resolved.service network-online.target
+Wants=systemd-resolved.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/resolvectl dns eno2np1 1.1.1.1 8.8.8.8
+ExecStart=/usr/bin/resolvectl dns re8chzt128 10.181.22.73
+ExecStart=/usr/bin/resolvectl domain re8chzt128 ~zt.re8ch.com
+ExecStart=/usr/bin/resolvectl default-route re8chzt128 no
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

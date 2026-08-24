@@ -1,0 +1,80 @@
+# Post-cutover Hubble observability overlay.
+#
+# Keep the Cilium datapath unchanged (VXLAN with kube-proxy retained). Hubble
+# Relay runs on the dedicated observability node and the lightweight UI runs on
+# ICP. Images are pinned to the digests already staged from the accepted
+# 1.21.0-dev migration bundle.
+
+# Helm 4 validates the vendored chart schema more strictly than the Helm
+# version used for the original cutover. The live release retains a null here;
+# normalize it to an equivalent empty object so --reuse-values can validate.
+operator:
+  affinity: {}
+
+hubble:
+  enabled: true
+
+  relay:
+    enabled: true
+    replicas: 1
+    image:
+      repository: quay.io/cilium/hubble-relay-ci
+      tag: latest
+      digest: sha256:424b1228033d34fae4f204a418fc66b5b6826b389ba03c4b08d9a6021e4d7285
+      useDigest: true
+      pullPolicy: IfNotPresent
+    nodeSelector:
+      kubernetes.io/hostname: a1-wsl-zt
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: observability
+        effect: NoSchedule
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  ui:
+    enabled: true
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: b1-wsl-zt
+    tolerations:
+      - key: anchor
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+    backend:
+      image:
+        repository: quay.io/cilium/hubble-ui-backend
+        tag: v0.13.5
+        digest: sha256:fac0c300ae119274edca11fd89b1ad23c788792d8bc4ea2ba631c709e8d3c688
+        useDigest: true
+        pullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 20m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+    frontend:
+      image:
+        repository: quay.io/cilium/hubble-ui
+        tag: v0.13.5
+        digest: sha256:f7d514fc54d784ed6df9d58cf0e97648b143f92b766dd1780ed3fc845bd4c516
+        useDigest: true
+        pullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+    service:
+      type: ClusterIP

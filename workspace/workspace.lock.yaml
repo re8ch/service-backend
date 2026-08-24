@@ -90,7 +90,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/career-ops.git
   cloud-functions:
-    commit: f2da95fdaa076256cc17df54b4ea13f643434bfd
+    commit: bd00c4ada735f5f0ba6d6d10955a72c0f00159bb
     defaultBranch: master
     dependencies: []
     repository: https://github.com/re8ch/cloud-functions.git
@@ -282,4 +282,3 @@ modules:
     defaultBranch: master
     dependencies: []
     repository: https://github.com/Z-Anatomy/Models-of-human-anatomy.git
-

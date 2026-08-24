@@ -1,0 +1,12 @@
+replicaCount: 1
+gatewayApi:
+  enabled: true
+  gatewayName: akash-gateway
+  gatewayNamespace: akash-gateway
+  implementation: nginx
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 250m, memory: 256Mi}
+nodeSelector: {kubernetes.io/hostname: r640}
+tolerations:
+  - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}

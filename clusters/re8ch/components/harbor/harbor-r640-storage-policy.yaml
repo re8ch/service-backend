@@ -1,0 +1,38 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: harbor-r640-storage.re8ch.com
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+  matchConditions:
+    - name: harbor-namespace
+      expression: object.metadata.namespace == 'harbor'
+  validations:
+    - expression: >-
+        has(object.spec.template.spec.nodeSelector) &&
+        object.spec.template.spec.nodeSelector['kubernetes.io/hostname'] == 'r640'
+      message: Harbor deployments must be pinned to r640.
+    - expression: >-
+        !has(object.spec.template.spec.volumes) ||
+        object.spec.template.spec.volumes.all(v, !has(v.persistentVolumeClaim))
+      message: Harbor uses the R640 local DataStore, not Kubernetes PVCs.
+    - expression: >-
+        !has(object.spec.template.spec.volumes) ||
+        object.spec.template.spec.volumes.all(v,
+          !has(v.hostPath) ||
+          v.hostPath.path.startsWith('/var/lib/rancher/harbor/'))
+      message: Harbor hostPath storage must remain under /var/lib/rancher/harbor/.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: harbor-r640-storage.re8ch.com
+spec:
+  policyName: harbor-r640-storage.re8ch.com
+  validationActions: [Deny]

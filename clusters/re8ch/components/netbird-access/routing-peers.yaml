@@ -1,0 +1,293 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-router-cn
+  namespace: netbird-access
+  labels: &cnLabels
+    app.kubernetes.io/name: netbird-router
+    app.kubernetes.io/instance: cn
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  # R640 canary for the NetBird -> Mihomo transparent gateway.
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: *cnLabels
+  template:
+    metadata:
+      labels: *cnLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      automountServiceAccountToken: false
+      initContainers:
+        - name: compile-geodb-rules
+          image: python:3.13-alpine
+          command: [python, /opt/re8ch/geodb-to-mihomo.py]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: mihomo-config, mountPath: /opt/re8ch, readOnly: true}
+            - {name: geodb, mountPath: /etc/re8ch-geodb, readOnly: true}
+            - {name: compiled-rules, mountPath: /etc/mihomo/rules}
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:0.74.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: wireguard, containerPort: 51820, hostPort: 51820, protocol: UDP}
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom:
+                secretKeyRef: {name: netbird-routing-peer-cn, key: NB_SETUP_KEY}
+            - {name: NB_MANAGEMENT_URL, value: "https://access.re8ch.com:8443"}
+            - {name: NB_HOSTNAME, value: re8ch-router-cn-r640}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          startupProbe: &startupProbe
+            exec: {command: [netbird, status, --check, startup]}
+            periodSeconds: 3
+            timeoutSeconds: 10
+            failureThreshold: 40
+          readinessProbe: &readinessProbe
+            exec: {command: [netbird, status, --check, ready]}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe: &livenessProbe
+            exec: {command: [netbird, status, --check, live]}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts: &peerMounts
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: state, mountPath: /var/lib/netbird}
+        - name: egress-shaper
+          image: nicolaka/netshoot:v0.13
+          command: [sh, -ec]
+          args:
+            - |
+              tc qdisc replace dev eth0 root tbf rate 200mbit burst 4mb latency 100ms
+              trap 'exit 0' TERM INT
+              while true; do
+                if ip link show wt0 >/dev/null 2>&1; then
+                  ip link set dev wt0 mtu 1200
+                  while iptables -t mangle -D NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1240 \
+                    2>/dev/null; do :; done
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -o wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -i wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -i wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                fi
+                sleep 10
+              done
+          securityContext:
+            capabilities: {add: [NET_ADMIN]}
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 64Mi}
+        - name: mihomo-gateway
+          image: metacubex/mihomo:v1.19.29
+          args: [-d, /etc/mihomo]
+          ports:
+            - {name: mihomo-api, containerPort: 9091, protocol: TCP}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities: {add: [NET_ADMIN, NET_RAW]}
+          resources:
+            requests: {cpu: 100m, memory: 96Mi}
+            limits: {cpu: "2", memory: 768Mi}
+          startupProbe:
+            httpGet: {path: /version, port: mihomo-api}
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe: {httpGet: {path: /version, port: mihomo-api}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /version, port: mihomo-api}, periodSeconds: 15}
+          volumeMounts:
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: mihomo-config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: mihomo-paths, mountPath: /etc/mihomo/paths.yaml, subPath: paths.yaml, readOnly: true}
+            - {name: loudi-direct, mountPath: /etc/mihomo/loudi-direct.yaml, subPath: loudi-direct.yaml, readOnly: true}
+            - {name: compiled-rules, mountPath: /etc/mihomo/rules, readOnly: true}
+        - name: usage-meter
+          image: prom/node-exporter:v1.9.1
+          args: ["--collector.disable-defaults", "--collector.netdev", "--web.listen-address=:9100"]
+          ports: [{name: metrics, containerPort: 9100, protocol: TCP}]
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes: &peerVolumes
+        - name: tun
+          hostPath: {path: /dev/net/tun, type: CharDevice}
+        - name: state
+          hostPath: {path: /var/lib/rancher/netbird/cn, type: DirectoryOrCreate}
+        - name: mihomo-config
+          configMap: {name: netbird-mihomo-gateway-config}
+        - name: mihomo-paths
+          secret: {secretName: netbird-mihomo-paths}
+        - name: loudi-direct
+          secret: {secretName: netbird-mihomo-loudi-path}
+        - name: geodb
+          configMap: {name: re8ch-geodb-snapshot}
+        - name: compiled-rules
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-router-la
+  namespace: netbird-access
+  labels: &laLabels
+    app.kubernetes.io/name: netbird-router
+    app.kubernetes.io/instance: la
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: *laLabels
+  template:
+    metadata:
+      labels: *laLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: overseas-edge-50
+      # Domain resources must be resolved at the overseas routing peer. Using
+      # cluster DNS here can return domestically poisoned answers for Google
+      # and YouTube before NetBird installs its local forwarding resolver.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: [1.1.1.1, 8.8.8.8]
+        options:
+          - {name: ndots, value: "1"}
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: overseas-edge
+          effect: NoSchedule
+      automountServiceAccountToken: false
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:0.74.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: wireguard, containerPort: 51820, hostPort: 51820, protocol: UDP}
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom:
+                secretKeyRef: {name: netbird-routing-peer-la, key: NB_SETUP_KEY}
+            - {name: NB_MANAGEMENT_URL, value: "https://access.re8ch.com:8443"}
+            - {name: NB_HOSTNAME, value: re8ch-router-la-edge-50}
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+          resources:
+            # overseas-edge-50 is intentionally a small 1C/2G edge node. The
+            # WireGuard dataplane is kernel backed, so reserve modest control
+            # plane resources and let measurements determine its safe ceiling.
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 800m, memory: 768Mi}
+          startupProbe:
+            exec: {command: [netbird, status, --check, startup]}
+            periodSeconds: 3
+            timeoutSeconds: 10
+            failureThreshold: 40
+          readinessProbe:
+            exec: {command: [netbird, status, --check, ready]}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec: {command: [netbird, status, --check, live]}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - {name: tun, mountPath: /dev/net/tun}
+            - {name: state, mountPath: /var/lib/netbird}
+        - name: egress-shaper
+          image: nicolaka/netshoot:v0.13
+          command: [sh, -ec]
+          args:
+            - |
+              tc qdisc replace dev eth0 root tbf rate 150mbit burst 2mb latency 100ms
+              trap 'exit 0' TERM INT
+              while true; do
+                if ip link show wt0 >/dev/null 2>&1; then
+                  ip link set dev wt0 mtu 1200
+                  # NetBird creates a fixed 1240 MSS rule for its default 1280
+                  # MTU. Keep both directions below the measured mobile-relay
+                  # safe size after lowering wt0, otherwise forwarded HTTPS can
+                  # connect and then black-hole on full-sized TCP segments.
+                  while iptables -t mangle -D NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1240 \
+                    2>/dev/null; do :; done
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -o wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -o wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                  iptables -t mangle -C NETBIRD-RT-MSSCLAMP -i wt0 \
+                    -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160 \
+                    2>/dev/null || iptables -t mangle -A NETBIRD-RT-MSSCLAMP \
+                    -i wt0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1160
+                fi
+                sleep 10
+              done
+          securityContext:
+            capabilities: {add: [NET_ADMIN]}
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 50m, memory: 64Mi}
+        - name: usage-meter
+          image: prom/node-exporter:v1.9.1
+          args: ["--collector.disable-defaults", "--collector.netdev", "--web.listen-address=:9100"]
+          ports: [{name: metrics, containerPort: 9100, protocol: TCP}]
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: tun
+          hostPath: {path: /dev/net/tun, type: CharDevice}
+        - name: state
+          hostPath: {path: /var/lib/rancher/netbird/la, type: DirectoryOrCreate}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-routing-peer-metrics
+  namespace: netbird-access
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+spec:
+  selector:
+    app.kubernetes.io/name: netbird-router
+  ports:
+    - {name: metrics, port: 9100, targetPort: metrics, protocol: TCP}
