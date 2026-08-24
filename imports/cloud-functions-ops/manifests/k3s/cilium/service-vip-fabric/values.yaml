@@ -41,6 +41,7 @@ advancedFabric:
         vipInterface: lo
         frrExportPrefixLists: [POD-FABRIC-SELF]
         wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
+        wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
         fallbackRoutes:
           - {destination: 192.0.2.18/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
           - {destination: 192.0.2.208/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
@@ -51,12 +52,14 @@ advancedFabric:
         # A1 is the first-wave origin; remote ingress peers own the VIP
         # AllowedIPs, not A1's multi-peer outbound fabric.
         wireguardInterfaces: []
+        wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
       - name: restricted-node-296f36f2fb
         localAsn: 4200010125
         vipInterface: lo
         frrExportPrefixLists: [POD-FABRIC-OUT]
         # Only the single-peer A1/B1 LAN tunnel is needed in the A1 wave.
         wireguardInterfaces: [wg-wsl-lan]
+        wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
     primaryTransport: wireguard
     fallbackTransport: zerotier
     healthCheck:
