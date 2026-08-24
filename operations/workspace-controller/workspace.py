@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RE8CH federated workspace scanner, reconciler and materializer."""
+"""RE8CH catalog, submodule lock and project-context controller."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import subprocess
 import sys
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -77,8 +76,9 @@ class Module:
     ownership: str
     repository: str
     branch: str
-    mac_path: str
-    r640_path: str
+    source_kind: str
+    source_path: str
+    metadata_policy: str
     write_policy: str
     dependencies: tuple[str, ...]
     source: Path
@@ -94,23 +94,47 @@ class Registry:
         for path in sorted(self.root.glob("catalogs/*/modules/*/module.yaml")):
             doc = yaml.safe_load(path.read_text())
             meta, spec = doc["metadata"], doc["spec"]
-            module = Module(meta["name"], meta["catalog"], spec["ownership"], spec["repository"]["url"], spec["repository"]["defaultBranch"], spec["workspace"]["macPath"], spec["workspace"]["r640Path"], spec["writePolicy"], tuple(spec.get("dependencies", [])), path)
+            source = spec["source"]
+            module = Module(
+                meta["name"], meta["catalog"], spec["ownership"],
+                spec["repository"]["url"], spec["repository"]["defaultBranch"],
+                source["kind"], source["path"], source["metadataPolicy"],
+                spec["writePolicy"], tuple(spec.get("dependencies", [])), path,
+            )
             if module.name in modules:
                 raise WorkspaceError(f"duplicate module: {module.name}")
             modules[module.name] = module
         return modules
 
     def validate(self) -> None:
-        paths: dict[tuple[str, str], str] = {}
+        root_modules = []
         for module in self.modules.values():
-            for host, location in (("mac", module.mac_path), ("restricted-node-6dc3f140f9", module.r640_path)):
-                key = (host, location)
-                if key in paths:
-                    raise WorkspaceError(f"path collision: {host}:{location}: {paths[key]} and {module.name}")
-                paths[key] = module.name
             missing = set(module.dependencies) - self.modules.keys()
             if missing:
                 raise WorkspaceError(f"{module.name}: missing dependencies {sorted(missing)}")
+            if module.source_kind == "root":
+                root_modules.append(module.name)
+                if module.name != "service-backend" or module.source_path != ".":
+                    raise WorkspaceError(f"{module.name}: only service-backend may use the root source")
+                continue
+            relative = module.source.parent.relative_to(self.root) / module.source_path
+            entry = git(self.root, "ls-files", "--stage", str(relative), check=False)
+            if not entry.startswith("160000 "):
+                raise WorkspaceError(f"{module.name}: {relative} is not a git submodule entry")
+            configured_path = git(
+                self.root, "config", "-f", ".gitmodules", "--get",
+                f"submodule.{module.catalog}/{module.name}.path", check=False,
+            )
+            configured_url = git(
+                self.root, "config", "-f", ".gitmodules", "--get",
+                f"submodule.{module.catalog}/{module.name}.url", check=False,
+            )
+            if configured_path != str(relative):
+                raise WorkspaceError(f"{module.name}: .gitmodules path mismatch")
+            if repository_key(configured_url) != repository_key(module.repository):
+                raise WorkspaceError(f"{module.name}: .gitmodules URL mismatch")
+        if root_modules != ["service-backend"]:
+            raise WorkspaceError(f"expected only service-backend as root module, got {root_modules}")
 
 
 class Controller:
@@ -138,23 +162,20 @@ class Controller:
 
     def status(self) -> dict[str, Any]:
         rows = []
-        mac_root = Path(self.sources["macWorkspaceRoot"])
         lock = self._read_lock()
         for module in self.registry.modules.values():
-            path = mac_root / module.mac_path
-            observed = self._observe(path) if repo_root(path) else None
             locked = lock.get("modules", {}).get(module.name)
             drift = []
-            if observed is None:
-                drift.append("missing")
-            else:
-                if observed["dirty"]:
-                    drift.append("dirty")
-                if observed["repository"] != module.repository:
-                    drift.append("remote_changed")
-                if locked and observed["commit"] != locked["commit"]:
-                    drift.append("commit_drift")
-            rows.append({"module": module.name, "path": str(path), "locked": locked, "observed": observed, "drift": drift})
+            commit = self._module_commit(module)
+            if locked and commit != locked["commit"]:
+                drift.append("gitlink_lock_drift")
+            rows.append({
+                "module": module.name,
+                "source": self._module_source(module),
+                "commit": commit,
+                "locked": locked,
+                "drift": drift,
+            })
         return operation("workspace.status", rows)
 
     def discovery(self) -> dict[str, Any]:
@@ -169,50 +190,32 @@ class Controller:
 
     def resolve_lock(self) -> dict[str, Any]:
         modules = {}
-        def resolve(module: Module) -> tuple[Module, str]:
-            out = subprocess.run(["git", "ls-remote", module.repository, f"refs/heads/{module.branch}"], text=True, capture_output=True, check=False, timeout=30)
-            if out.returncode or not out.stdout.strip():
-                raise WorkspaceError(f"cannot resolve {module.name}: {out.stderr.strip()}")
-            return module, out.stdout.split()[0]
-
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            futures = [pool.submit(resolve, module) for module in self.registry.modules.values()]
-            for future in as_completed(futures):
-                module, commit = future.result()
-                modules[module.name] = {"repository": module.repository, "defaultBranch": module.branch, "commit": commit, "dependencies": list(module.dependencies)}
+        for module in self.registry.modules.values():
+            if module.source_kind == "root":
+                continue
+            modules[module.name] = {
+                "repository": module.repository,
+                "defaultBranch": module.branch,
+                "commit": self._module_commit(module),
+                "dependencies": list(module.dependencies),
+            }
         schema_hash = hashlib.sha256((self.root / "schemas/workspace-module.schema.json").read_bytes()).hexdigest()
         return {"apiVersion": "workspace.re8ch.com/v1alpha1", "kind": "WorkspaceLock", "metadata": {"generation": int(time.time()), "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "schemaHash": schema_hash}, "modules": modules}
-
-    def materialize(self, catalogs: set[str], *, dry_run: bool) -> dict[str, Any]:
-        lock = self._read_lock()
-        target_root = Path(self.sources["macWorkspaceRoot"])
-        actions = []
-        for module in self.registry.modules.values():
-            if catalogs and module.catalog not in catalogs:
-                continue
-            target = target_root / module.mac_path
-            locked = lock.get("modules", {}).get(module.name)
-            if not locked:
-                raise WorkspaceError(f"{module.name} is not locked")
-            if target.exists():
-                actions.append({"module": module.name, "action": "preserve-existing", "path": str(target)})
-                continue
-            actions.append({"module": module.name, "action": "clone", "path": str(target), "commit": locked["commit"]})
-            if dry_run:
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(["git", "clone", "--filter=blob:none", module.repository, str(target)], check=True)
-            subprocess.run(["git", "-C", str(target), "checkout", "--detach", locked["commit"]], check=True)
-            memory_path = module.source.parent / "MEMORY.md"
-            self._inject_agent_context(target, memory_path.read_text(errors="replace") if memory_path.exists() else "")
-        return operation("workspace.materialize", {"dryRun": dry_run, "actions": actions}, target=str(target_root))
 
     def build_indexes(self) -> dict[str, Any]:
         projects, knowledge, tools, deployments = [], [], [], []
         for module in self.registry.modules.values():
             doc = yaml.safe_load(module.source.read_text())
             spec = doc["spec"]
-            projects.append({"id": module.name, "catalog": module.catalog, "ownership": module.ownership, "repository": module.repository, "projectType": spec["projectType"]})
+            projects.append({
+                "id": module.name,
+                "catalog": module.catalog,
+                "ownership": module.ownership,
+                "repository": module.repository,
+                "projectType": spec["projectType"],
+                "source": self._module_source(module),
+                "commit": self._module_commit(module),
+            })
             knowledge.extend({"module": module.name, "ref": ref} for ref in spec.get("knowledge", []))
             memory_path = module.source.parent / "MEMORY.md"
             if memory_path.exists():
@@ -233,7 +236,8 @@ class Controller:
                 "module": module.name, "catalog": module.catalog,
                 "ownership": module.ownership, "writePolicy": module.write_policy,
                 "repository": module.repository, "defaultBranch": module.branch,
-                "workspace": {"mac": module.mac_path, "restricted-node-6dc3f140f9": module.r640_path},
+                "source": self._module_source(module),
+                "commit": self._module_commit(module),
                 "knowledge": spec.get("knowledge", []), "tools": spec.get("tools", []),
                 "deployments": spec.get("deployments", []), "dependencies": list(module.dependencies),
                 "memory": memory_path.read_text(errors="replace") if memory_path.exists() else "",
@@ -252,63 +256,6 @@ class Controller:
             path = module.source.parent / "MEMORY.md"
             rows.append({"module": module.name, "catalog": module.catalog, "memory": str(path.relative_to(self.root)), "available": path.exists(), "bytes": path.stat().st_size if path.exists() else 0})
         return operation("workspace.memory-audit", {"modules": rows, "complete": all(row["available"] for row in rows)})
-
-    def link_modules(self, *, apply: bool) -> dict[str, Any]:
-        found: dict[str, Path] = {}
-        excluded = {".git", "node_modules", ".venv", "DerivedData", ".cache", ".Trash", "RE8CHWorkspace"}
-        for root_value in self.sources["localRoots"]:
-            root = Path(root_value)
-            if not root.exists():
-                continue
-            for current, dirs, _files in os.walk(root):
-                dirs[:] = [name for name in dirs if name not in excluded and not name.startswith(".Trash")]
-                path = Path(current)
-                if ".git" not in dirs and not (path / ".git").exists():
-                    continue
-                if ".git" in dirs:
-                    dirs.remove(".git")
-                remote = git(path, "remote", "get-url", "origin", check=False)
-                if remote:
-                    key = repository_key(remote)
-                    candidate = path.resolve()
-                    if key not in found or len(candidate.parts) < len(found[key].parts):
-                        found[key] = candidate
-        link_root = self.root / "workspace/modules"
-        actions = []
-        for module in self.registry.modules.values():
-            source = found.get(repository_key(module.repository))
-            link = link_root / module.catalog / module.name
-            if not source:
-                actions.append({"module": module.name, "action": "missing-local", "link": str(link)})
-                continue
-            relative = os.path.relpath(source, link.parent)
-            if link.is_symlink():
-                if os.readlink(link) == relative:
-                    actions.append({"module": module.name, "action": "preserve-existing", "link": str(link), "target": relative})
-                else:
-                    actions.append({"module": module.name, "action": "relink", "link": str(link), "target": relative})
-                    if apply:
-                        link.unlink()
-                        link.symlink_to(relative, target_is_directory=True)
-                continue
-            if link.exists():
-                actions.append({"module": module.name, "action": "blocked-existing", "link": str(link), "target": str(source)})
-                continue
-            actions.append({"module": module.name, "action": "link", "link": str(link), "target": relative})
-            if apply:
-                link.parent.mkdir(parents=True, exist_ok=True)
-                link.symlink_to(relative, target_is_directory=True)
-        return operation("workspace.link", {"apply": apply, "root": str(link_root), "actions": actions})
-
-    @staticmethod
-    def _inject_agent_context(target: Path, memory: str) -> None:
-        if not memory or (target / "AGENTS.md").exists():
-            return
-        (target / "AGENTS.md").write_text("# RE8CH workspace context (generated; do not commit)\n\n" + memory)
-        exclude = target / ".git/info/exclude"
-        if exclude.exists() and "/AGENTS.md" not in exclude.read_text(errors="replace").splitlines():
-            with exclude.open("a") as handle:
-                handle.write("\n/AGENTS.md\n")
 
     def sync(self, *, write: bool) -> dict[str, Any]:
         desired = self.resolve_lock()
@@ -335,6 +282,19 @@ class Controller:
     def _read_lock(self) -> dict[str, Any]:
         path = self.root / "workspace/workspace.lock.yaml"
         return yaml.safe_load(path.read_text()) if path.exists() else {"modules": {}}
+
+    def _module_source(self, module: Module) -> str:
+        if module.source_kind == "root":
+            return "."
+        return str(module.source.parent.relative_to(self.root) / module.source_path)
+
+    def _module_commit(self, module: Module) -> str:
+        if module.source_kind == "root":
+            return "self"
+        entry = git(self.root, "ls-files", "--stage", self._module_source(module), check=False)
+        if not entry.startswith("160000 "):
+            raise WorkspaceError(f"{module.name}: missing submodule gitlink")
+        return entry.split()[1]
 
     @staticmethod
     def _observe(path: Path) -> dict[str, Any]:
@@ -364,11 +324,6 @@ def main() -> None:
     index.add_argument("--write", action="store_true")
     sync = sub.add_parser("sync")
     sync.add_argument("--write", action="store_true")
-    materialize = sub.add_parser("materialize")
-    materialize.add_argument("--catalog", action="append", default=[])
-    materialize.add_argument("--apply", action="store_true")
-    link = sub.add_parser("link")
-    link.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     controller = Controller(args.root)
     if args.command == "doctor":
@@ -376,10 +331,8 @@ def main() -> None:
     elif args.command == "index": result = controller.write_indexes() if args.write else operation("workspace.index", controller.build_indexes())
     elif args.command == "sync": result = controller.sync(write=args.write)
     elif args.command == "resolve-lock": result = operation("workspace.resolve-lock", controller.resolve_lock())
-    elif args.command == "materialize": result = controller.materialize(set(args.catalog), dry_run=not args.apply)
     elif args.command == "context": result = controller.context(args.module, args.query)
     elif args.command == "memory-audit": result = controller.memory_audit()
-    elif args.command == "link": result = controller.link_modules(apply=args.apply)
     else: result = getattr(controller, args.command)()
     json.dump(result, sys.stdout, indent=2, default=str); print()
 

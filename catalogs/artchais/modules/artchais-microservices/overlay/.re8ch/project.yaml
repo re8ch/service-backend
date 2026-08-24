@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: artchais-microservices
+spec:
+  parent:
+    catalog: artchais
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/artchais/modules/artchais-microservices
+    submodulePath: catalogs/artchais/modules/artchais-microservices/source
+  identity:
+    maintainerAddress: artchais-microservices-collab@phonaid.com
+    accountClass: collaboration
+    googleWorkspacePolicy: external
+  workspace:
+    name: artchais-microservices-collab
+    oneActivePerAccount: true
+    branchPrefix: workspace/artchais-microservices-collab/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

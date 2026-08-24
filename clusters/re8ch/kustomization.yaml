@@ -7,5 +7,8 @@ resources:
   - flux-system/sops-canary.sops.yaml
   - flux-system/gotk-sync.yaml
   - gitlab-agent/agent.yaml
+  - secrets/stalwart-recovery-admin.sops.yaml
   - ../../platform/headlamp
   - ../../platform/cloud-platform
+  - ../../platform/git-workspaces
+  - ../../platform/stalwart

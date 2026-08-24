@@ -1,4 +1,4 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: anycam-ios, catalog: anycam}
-spec: {ownership: owned, lifecycle: active, repository: {provider: github, url: https://github.com/re8ch/AnycamIOS.git, defaultBranch: main, owner: re8ch}, workspace: {macPath: products/anycam/ios, r640Path: products/anycam/ios}, projectType: ios, writePolicy: github-pr, knowledge: [README.md], tools: [xcodebuild], dependencies: [anycam-backend]}
+spec: {ownership: owned, lifecycle: active, repository: {provider: github, url: 'https://github.com/re8ch/AnycamIOS.git', defaultBranch: main, owner: re8ch}, projectType: ios, writePolicy: github-pr, knowledge: [README.md], tools: [xcodebuild], dependencies: [anycam-backend], source: {kind: submodule, path: source, metadataPolicy: in-repository}, identity: {maintainerAddress: anycam-ios-maintain@phonaid.com, accountClass: project-maintainer}, clusterIndex: {path: .re8ch/cluster-resources.yaml}}

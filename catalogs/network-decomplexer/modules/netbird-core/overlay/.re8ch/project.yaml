@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: netbird-core
+spec:
+  parent:
+    catalog: network-decomplexer
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/network-decomplexer/modules/netbird-core
+    submodulePath: catalogs/network-decomplexer/modules/netbird-core/source
+  identity:
+    maintainerAddress: netbird-core-readonly@phonaid.com
+    accountClass: external-readonly
+    googleWorkspacePolicy: external
+  workspace:
+    name: netbird-core-readonly
+    oneActivePerAccount: true
+    branchPrefix: workspace/netbird-core-readonly/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

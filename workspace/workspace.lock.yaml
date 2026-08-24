@@ -1,53 +1,53 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-08-22T16:00:54Z'
-  generation: 1787414454
-  schemaHash: 5d783beee9ec746ad36400ea00b60eb901479576fc81f47062923892236bfe23
+  generatedAt: '2026-08-24T18:59:56Z'
+  generation: 1787597996
+  schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
-    commit: 265367d21e23442d3100f7f3970dc3d63f8359bc
+    commit: 019c2b9c2a21f93bf371ecb3e01eec3ed605f38c
     defaultBranch: main
     dependencies: []
     repository: https://github.com/Woomou/2woodblog.git
   advanced-fabric:
-    commit: 27ed1e0a4dac64810dfdaf6fce02460a4525dae0
+    commit: e7936165d55e23b0b6ff417197eecb378caa31f9
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/advanced-fabric.git
   aesthete:
-    commit: 1f09ddb56645fb8c1dcb624f5f00b60ef84f2f7b
+    commit: 1e06ed1aebca1067a1b1c07bc24833bfb70a2ef3
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/aesthete.git
   anycam:
-    commit: 0451d68f9d4b5a92046fbeb6a553fdf711f2577a
+    commit: 51151cc9d7d4395d47fcdf27b32c015ac2d34e31
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/Anycam.git
   anycam-backend:
-    commit: b64b3d2558812882848e4fd22ece1b7dd067ee41
+    commit: 7b0a7fce25661632fed83184105c97612268e308
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/anycam-backend.git
   anycam-ios:
-    commit: 48e48d1eb6bd9008ee97b5f1ab2cf4a31d3b8cc3
+    commit: f5d3cc7eae370f48e31612d8dfa8a65e899709a2
     defaultBranch: main
     dependencies:
     - anycam-backend
     repository: https://github.com/re8ch/AnycamIOS.git
   anycam-website:
-    commit: 325d3c0565d6609fe554618f95673a83b05aca40
+    commit: 37df7b97a36cf52e8afaa96cfc7699600e0d1e1d
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/anycam-website.git
   anysiteonearth:
-    commit: 60882aec884a277b2e0dc0bf3a232d84e2ab25c7
+    commit: 4902b906dec60aca6265ad5bed0ba0973491d995
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/anysiteonearth.git
   anysiteonearth-website:
-    commit: 14761865d16dc5f8d3ba9bc4fa88cbb30d63892a
+    commit: 43532c9d1bcf77a7389bb3a12b74817b388ee939
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/anysiteonearth-website.git
@@ -75,85 +75,85 @@ modules:
     - artchais-web
     repository: https://github.com/Woomou/ArtHandler-Gallery-Robot.git
   baozou-ppt-studio:
-    commit: 36badbd631c0c0cc48241a3ca029a00ac7a5f782
+    commit: 6638d35c72443dad258c2f248076f751e0a337c0
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/baozou-ppt-studio.git
   brand-assets:
-    commit: ede3e0d11c92b08b0973a1946282283224ff2378
+    commit: e1fd190fefd8e8535dfd1410327e901afde873c2
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/brand-assets.git
   career-ops:
-    commit: 996e181b1e4362b062931c206091a812fbb6aee5
+    commit: 99cb01e7cc7c47061a2cdbd48097b6ecd553470b
     defaultBranch: main
     dependencies: []
     repository: https://github.com/Woomou/career-ops.git
   cloud-functions:
-    commit: bd00c4ada735f5f0ba6d6d10955a72c0f00159bb
+    commit: 14fe4fc855e1eb65f519d1b5882ab02661199ecb
     defaultBranch: master
     dependencies: []
     repository: https://github.com/re8ch/cloud-functions.git
   cluster-website:
-    commit: 18d18b4ba07f4c8afac3572ee9401d20bdfe6c82
+    commit: b23a0185ca251ec7148f2b64c55301b9bee8e084
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/cluster-website.git
   codex-admin-plugins:
-    commit: eed495c27a05f0686f107514bf1fff24981129cb
+    commit: 89a5342e9d04ee14e97d3cd6ad5e7f241f16e3ed
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/codex-admin-plugins.git
   compocv:
-    commit: d43c17fa0ec5768f6817d252e29cba5c27058062
+    commit: bc4c867a44047b0fd0e016d47d2798b6570b6b7b
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/compocv.git
   director-engines:
-    commit: 2dd4402951ad35c18bfbfcc8af77fea5887657ae
+    commit: 012ebfd676464b062e986758548c3215d2f12b24
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/director-engines.git
   garageband-mcp:
-    commit: 5ada07239e582e824d06ce6a44e68ec14991cb14
+    commit: d430c62fdbb14edaddba5ebadd47ca24ee669aef
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/garageband-mcp.git
   garageband-mcp-site:
-    commit: d6e3a713924101d30b6992b2753376e8e484e2e1
+    commit: 33f05b518e06c1f5fc86ee4cad000c1fb6c94bb7
     defaultBranch: main
     dependencies:
     - garageband-mcp
     repository: https://github.com/re8ch/garageband-mcp-site.git
   headlamp-advanced-fabric:
-    commit: b7d2847a39b4af1971e09db199193805635f37f3
+    commit: d7cdacfca52425341e49181a3a10924fc43bf263
     defaultBranch: main
     dependencies:
     - advanced-fabric
     repository: https://github.com/re8ch/headlamp-advanced-fabric.git
   image-website:
-    commit: ee99adcdd9bf7cfd7c2500f5a753d12d068c7a4c
+    commit: 2b178d3664e6a0d63f8bf886dcad79ae8c18470a
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/image-website.git
   jjklive:
-    commit: eeece7297c6cf2a3359ef98f3e2416ee268a665e
+    commit: 232dabf876406a0d47bf22ebb7388d39cf39e6c2
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/jjklive.git
   ledger:
-    commit: 70b08985c332deb48d10f436a449ef4949f504fe
+    commit: 20966b88af0df626e2b4f9de5bd4686f6e9f7b64
     defaultBranch: main
     dependencies:
     - ledger-dashboard
     repository: https://github.com/re8ch/ledger.git
   ledger-dashboard:
-    commit: d509cb094d697a23d755a988ba3c7f15f11afd72
+    commit: 67b4ee074621d1e19e86503ab01844fb6cdf3631
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/ledger-dashboard.git
   ledger-site:
-    commit: 83ca7276494a13bf6f757d7c0ab4e0329f0a6551
+    commit: 5c76495e98c8a81c2b735846546d8ee5bf15d57a
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/ledger-website.git
@@ -163,12 +163,12 @@ modules:
     dependencies: []
     repository: https://github.com/modelcontextprotocol/registry.git
   mihomos-cluster:
-    commit: 9df614280166dec3e858b98bf44dee011093b996
+    commit: 59eb7bf217e769facb0db6868d13031e518642a1
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/mihomos-cluster.git
   motor-muscle-sim:
-    commit: a047bd9ea3ce87d212fcdf61f25ebdccd9adffb6
+    commit: ba37d6cf9b82c71e1bda20e291382f1dc72c14d1
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/motor-muscle-sim.git
@@ -178,34 +178,34 @@ modules:
     dependencies: []
     repository: https://github.com/netbirdio/netbird.git
   network-decomplexer-ios:
-    commit: 5e68621e51c6522160533442a91caf9f29bf7605
+    commit: 363988906641ebaa9c6081b792023ec8eb724c6a
     defaultBranch: main
     dependencies: []
     repository: https://github.com/Woomou/network-decomplexer-ios.git
   observable-website:
-    commit: 99046ee81c6c0c2c561b17eabcfaa17eb6edbfcb
+    commit: 78ddb592dff46e62307e46ca3b0fca8d5071550d
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/observable-website.git
   phonaid-android:
-    commit: d27d4c4fd370e4f717e796b6adbd7f772cac3ca4
+    commit: 26f58f18b66fb0e51a65af3a33ef92ab16607012
     defaultBranch: main
     dependencies:
     - phonaid-service
-    repository: https://github.com/Woomou/phonaid-android.git
+    repository: https://github.com/re8ch/phonaid-android.git
   phonaid-service:
-    commit: 79120a01a695122e0361532672469f24e4915abb
+    commit: a76b242c4ef107393ca94f731708a34237448e27
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/phonaid-service.git
   phonaid-website:
-    commit: c3dcf4adae41646c3ef4cae322b98d94f8d265ca
+    commit: 7b7d3e8ff0a7e6dfebb6b6b1b49dba3be307c2fa
     defaultBranch: main
     dependencies:
     - phonaid-service
     repository: https://github.com/re8ch/phonaid-website.git
   product-public-data:
-    commit: 09be04795a084fcc69dad2507b81c68244ce1284
+    commit: f694be0bc4b7d01b499c03b20c1198c0112b7dbf
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/product-public-data.git
@@ -248,32 +248,27 @@ modules:
     - qianwen-app
     repository: https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git
   re8ch-core:
-    commit: 31676ef891e20ef8b2b1a76604435d1e9c73108b
+    commit: 9c0dd75c583b4ea96b3ec5445c868d75419067e1
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/re8ch.git
   registry-product-site:
-    commit: af3b8d8fc66b6e5ad87864e2fb87385f3bd5a17c
+    commit: 80cc8e0fd1f0b4d85a70e930e0d35a2505ff935b
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/registry-website.git
-  service-backend:
-    commit: 5fdacc9442f497d69838d9665f3d8c9a4a9f3633
-    defaultBranch: main
-    dependencies: []
-    repository: git@gitlab.com:reachievellc/service-backend.git
   space-mining-stage:
-    commit: 8157a66a8e88ddc414a8a01d92e0b5be3cef72f1
+    commit: 34d3befceffe587fcbd926d00e88bdf733447392
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/space-mining-stage.git
   thiking-machine:
-    commit: 706d9e71a2951a14b4aa2420535b4eadf6b97ad3
+    commit: bf6a4968d66ef5f2067851defa7e3e0d69265b1e
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/thiking-machine.git
   tool-distribution:
-    commit: 042d4aeab711c516af18ab3cb68d88bc38e20700
+    commit: 21f3df9ac8d9d046537ba5f395e3ca44672b27d3
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git

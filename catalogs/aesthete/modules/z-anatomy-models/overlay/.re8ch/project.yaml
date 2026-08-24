@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: z-anatomy-models
+spec:
+  parent:
+    catalog: aesthete
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/aesthete/modules/z-anatomy-models
+    submodulePath: catalogs/aesthete/modules/z-anatomy-models/source
+  identity:
+    maintainerAddress: z-anatomy-models-readonly@phonaid.com
+    accountClass: external-readonly
+    googleWorkspacePolicy: external
+  workspace:
+    name: z-anatomy-models-readonly
+    oneActivePerAccount: true
+    branchPrefix: workspace/z-anatomy-models-readonly/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-config, namespace: mail-system}
+data:
+  config.json: |
+    {"@type":"RocksDb","path":"/var/lib/stalwart"}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: stalwart-headless, namespace: mail-system}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: false
+  selector: {app.kubernetes.io/name: stalwart}
+  ports: [{name: management, port: 8080, targetPort: management}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart
+  namespace: mail-system
+  annotations:
+    governance.re8ch.com/exposure: staged-internal-only
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: stalwart}
+  ports:
+    - {name: smtp, port: 25, targetPort: smtp}
+    - {name: smtps, port: 465, targetPort: smtps}
+    - {name: submission, port: 587, targetPort: submission}
+    - {name: imap, port: 143, targetPort: imap}
+    - {name: imaps, port: 993, targetPort: imaps}
+    - {name: pop3, port: 110, targetPort: pop3}
+    - {name: pop3s, port: 995, targetPort: pop3s}
+    - {name: sieve, port: 4190, targetPort: sieve}
+    - {name: http, port: 80, targetPort: http}
+    - {name: https, port: 443, targetPort: https}
+    - {name: management, port: 8080, targetPort: management}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: stalwart, namespace: mail-system}
+spec:
+  serviceName: stalwart-headless
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy: {type: RollingUpdate}
+  selector: {matchLabels: {app.kubernetes.io/name: stalwart}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: stalwart}
+      annotations:
+        governance.re8ch.com/mail-authority: staged
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: stalwart
+          image: ghcr.io/stalwartlabs/stalwart:v0.16.18@sha256:9ed1d343243b7aa72969e372a7240b7ddea07730781d4b68a0dc3d8d51c418bb
+          imagePullPolicy: IfNotPresent
+          args: [--config, /etc/stalwart/config.json]
+          envFrom: [{secretRef: {name: stalwart-recovery-admin}}]
+          ports:
+            - {name: smtp, containerPort: 25}
+            - {name: smtps, containerPort: 465}
+            - {name: submission, containerPort: 587}
+            - {name: imap, containerPort: 143}
+            - {name: imaps, containerPort: 993}
+            - {name: pop3, containerPort: 110}
+            - {name: pop3s, containerPort: 995}
+            - {name: sieve, containerPort: 4190}
+            - {name: http, containerPort: 80}
+            - {name: https, containerPort: 443}
+            - {name: management, containerPort: 8080}
+          livenessProbe:
+            httpGet: {path: /healthz/live, port: management}
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: {path: /healthz/ready, port: management}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL], add: [NET_BIND_SERVICE]}
+          volumeMounts:
+            - {name: config, mountPath: /etc/stalwart, readOnly: true}
+            - {name: data, mountPath: /var/lib/stalwart}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: config, configMap: {name: stalwart-config}}
+        - {name: tmp, emptyDir: {}}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: rbd-r640
+        resources: {requests: {storage: 20Gi}}

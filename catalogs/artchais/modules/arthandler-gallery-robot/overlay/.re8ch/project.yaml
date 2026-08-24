@@ -1,0 +1,22 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ProjectBinding
+metadata:
+  name: arthandler-gallery-robot
+spec:
+  parent:
+    catalog: artchais
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    catalogPath: catalogs/artchais/modules/arthandler-gallery-robot
+    submodulePath: catalogs/artchais/modules/arthandler-gallery-robot/source
+  identity:
+    maintainerAddress: arthandler-gallery-robot-collab@phonaid.com
+    accountClass: collaboration
+    googleWorkspacePolicy: external
+  workspace:
+    name: arthandler-gallery-robot-collab
+    oneActivePerAccount: true
+    branchPrefix: workspace/arthandler-gallery-robot-collab/
+  contract:
+    transport: branch-pull-request
+    completion: pull-request-closed
+    evidenceAuthority: kubernetes

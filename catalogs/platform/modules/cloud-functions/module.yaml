@@ -1,13 +1,21 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: cloud-functions, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: github, url: https://github.com/re8ch/cloud-functions.git, defaultBranch: master, owner: re8ch}
-  workspace: {macPath: platform/cloud-functions, r640Path: platform/cloud-functions}
+  repository: {provider: github, url: 'https://github.com/re8ch/cloud-functions.git', defaultBranch: master, owner: re8ch}
   projectType: nuclio-functions
   writePolicy: github-pr
   knowledge: [README.md, AGENTS.md, docs/]
   tools: [go, docker, nuclio]
   deployments: [nuclio/re8ch-functions]
+  source:
+    kind: submodule
+    path: source
+    metadataPolicy: in-repository
+  identity:
+    maintainerAddress: cloud-functions-maintain@phonaid.com
+    accountClass: project-maintainer
+  clusterIndex:
+    path: .re8ch/cluster-resources.yaml

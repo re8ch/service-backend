@@ -1,20 +1,64 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.re8ch.com/workspace-module.v1.json",
+  "$id": "https://schemas.re8ch.com/workspace-module.v2.json",
   "type": "object",
+  "additionalProperties": false,
   "required": ["apiVersion", "kind", "metadata", "spec"],
   "properties": {
-    "apiVersion": {"const": "workspace.re8ch.com/v1alpha1"},
+    "apiVersion": {"const": "workspace.re8ch.com/v1alpha2"},
     "kind": {"const": "WorkspaceModule"},
-    "metadata": {"type": "object", "required": ["name", "catalog"]},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "catalog"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "catalog": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
+      }
+    },
     "spec": {
       "type": "object",
-      "required": ["ownership", "lifecycle", "repository", "workspace", "projectType", "writePolicy"],
+      "additionalProperties": false,
+      "required": ["ownership", "lifecycle", "repository", "source", "projectType", "writePolicy"],
       "properties": {
         "ownership": {"enum": ["owned", "collaboration", "external", "archive"]},
         "lifecycle": {"enum": ["active", "maintenance", "incubating", "archived"]},
-        "repository": {"type": "object", "required": ["provider", "url", "defaultBranch"], "properties": {"provider": {"enum": ["github", "gitlab"]}, "url": {"type": "string", "pattern": "^(https://|ssh://|git@)"}, "defaultBranch": {"type": "string"}, "owner": {"type": "string"}}},
-        "workspace": {"type": "object", "required": ["macPath", "r640Path"], "properties": {"macPath": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._/-]+$"}, "r640Path": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._/-]+$"}}},
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "url", "defaultBranch"],
+          "properties": {
+            "provider": {"enum": ["github", "gitlab"]},
+            "url": {"type": "string", "pattern": "^(https://|ssh://|git@)"},
+            "defaultBranch": {"type": "string", "minLength": 1},
+            "owner": {"type": "string"}
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "path", "metadataPolicy"],
+          "properties": {
+            "kind": {"enum": ["submodule", "root"]},
+            "path": {"type": "string", "pattern": "^(source|\\.)$"},
+            "metadataPolicy": {"enum": ["in-repository", "control-plane-overlay"]}
+          }
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maintainerAddress", "accountClass"],
+          "properties": {
+            "maintainerAddress": {"type": "string", "format": "email"},
+            "accountClass": {"enum": ["project-maintainer", "collaboration", "external-readonly", "platform-root"]}
+          }
+        },
+        "clusterIndex": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {"path": {"const": ".re8ch/cluster-resources.yaml"}}
+        },
         "projectType": {"type": "string"},
         "writePolicy": {"enum": ["github-pr", "authorized-upstream-pr", "patch-only", "read-only"]},
         "knowledge": {"type": "array", "items": {"type": "string"}},

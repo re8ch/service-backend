@@ -1,0 +1,19 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: ClusterResourceIndex
+metadata:
+  name: qianwen-web
+spec:
+  controlPlane:
+    repository: git@gitlab.com:reachievellc/service-backend.git
+    revision: main
+    indexPath: indexes/deployments.json
+  lookup:
+    module: qianwen-web
+    catalog: qianwen
+    declaredDeployments: []
+  evidence:
+    authority: kubernetes
+    requiredPlanes:
+    - monitoring
+    - deploying
+    - planning

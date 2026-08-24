@@ -1,4 +1,4 @@
-apiVersion: workspace.re8ch.com/v1alpha1
+apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: arthandler-gallery-robot, catalog: artchais}
-spec: {ownership: collaboration, lifecycle: active, repository: {provider: github, url: https://github.com/Woomou/ArtHandler-Gallery-Robot.git, defaultBranch: main, owner: Woomou}, workspace: {macPath: collaborations/artchais/gallery-robot, r640Path: collaborations/artchais/gallery-robot}, projectType: automation, writePolicy: authorized-upstream-pr, knowledge: [README.md], tools: [python], dependencies: [artchais-web]}
+spec: {ownership: collaboration, lifecycle: active, repository: {provider: github, url: 'https://github.com/Woomou/ArtHandler-Gallery-Robot.git', defaultBranch: main, owner: Woomou}, projectType: automation, writePolicy: authorized-upstream-pr, knowledge: [README.md], tools: [python], dependencies: [artchais-web], source: {kind: submodule, path: source, metadataPolicy: control-plane-overlay}, identity: {maintainerAddress: arthandler-gallery-robot-collab@phonaid.com, accountClass: collaboration}}
