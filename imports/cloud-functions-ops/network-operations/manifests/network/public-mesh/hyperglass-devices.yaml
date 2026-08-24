@@ -1,8 +1,0 @@
-devices:
-  - {name: vm-20-12-ubuntu, address: 192.0.2.192, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-  - {name: pg-re8ch-replica-186, address: 192.0.2.89, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-  - {name: artchais-nuclio-1, address: 192.0.2.182, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-  - {name: qianwen-nuclio-79, address: 192.0.2.112, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-  - {name: rancher-panel, address: 192.0.2.138, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-  - {name: harbor-registry, address: 192.0.2.74, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-  - {name: restricted-node-6dc3f140f9, address: 192.0.2.178, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}

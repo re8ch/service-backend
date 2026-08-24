@@ -1,0 +1,18 @@
+inventoryConfig:
+  cluster_storage: [default, ram]
+  exclude:
+    nodes:
+      - a1-wsl-zt
+      - amdwsl-zt
+      - artchais-nuclio-1
+      - b1-wsl-zt
+      - harbor-registry
+      - qianwen-nuclio-79
+      - qianwen-prod-nuclio-3
+      - qianwen-test-nuclio-2
+      - rancher-panel
+      - vm-20-12-ubuntu
+    node_storage: []
+nodeSelector: {kubernetes.io/hostname: r640}
+tolerations:
+  - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}

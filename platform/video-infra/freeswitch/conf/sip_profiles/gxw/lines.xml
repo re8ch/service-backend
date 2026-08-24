@@ -1,0 +1,10 @@
+<include>
+  <gateway name="line01"><param name="proxy" value="192.168.88.249:5060"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line01"/></gateway>
+  <gateway name="line02"><param name="proxy" value="192.168.88.249:5061"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line02"/></gateway>
+  <gateway name="line03"><param name="proxy" value="192.168.88.249:5062"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line03"/></gateway>
+  <gateway name="line04"><param name="proxy" value="192.168.88.249:5063"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line04"/></gateway>
+  <gateway name="line05"><param name="proxy" value="192.168.88.249:5064"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line05"/></gateway>
+  <gateway name="line06"><param name="proxy" value="192.168.88.249:5065"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line06"/></gateway>
+  <gateway name="line07"><param name="proxy" value="192.168.88.249:5066"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line07"/></gateway>
+  <gateway name="line08"><param name="proxy" value="192.168.88.249:5067"/><param name="register" value="false"/><param name="codec-prefs" value="PCMA"/><param name="extension" value="line08"/></gateway>
+</include>

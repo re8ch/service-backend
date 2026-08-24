@@ -1,0 +1,15 @@
+[Unit]
+Description=Expose Patroni REST health on the R640 ZeroTier address
+After=network-online.target patroni.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat TCP-LISTEN:8008,bind=10.181.22.128,reuseaddr,fork TCP:192.168.88.251:8008
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

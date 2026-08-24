@@ -1,0 +1,56 @@
+namespace:
+  name: mitos-trial
+  create: false
+
+global:
+  imageTag: v1.43.0
+
+controller:
+  replicas: 1
+  orgTenancy:
+    enabled: false
+  usage:
+    collector: false
+
+forkd:
+  # Ubuntu 26.04's runtime AppArmor profile blocks the jailer's bind mount.
+  # This is an isolated single-node trial; replace with the reviewed Localhost
+  # profile from MitOS before any multi-tenant use.
+  appArmorProfile:
+    type: Unconfined
+  seccompProfile:
+    type: Unconfined
+  extraCapabilities:
+    - FOWNER
+  nodeSelector:
+    kubernetes.io/hostname: r640
+    mitos.run/kvm: "true"
+  tolerations: []
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+console:
+  enabled: false
+gateway:
+  enabled: false
+expose:
+  enabled: false
+dex:
+  enabled: false
+frontdoor:
+  enabled: false
+edge:
+  enabled: false
+marketing:
+  enabled: false
+monitoring:
+  enabled: false
+canary:
+  enabled: false
+telemetry:
+  enabled: false

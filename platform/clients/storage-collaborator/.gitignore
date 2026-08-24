@@ -1,0 +1,6 @@
+.asc/
+.build/
+DerivedData/
+*.xcarchive
+*.ipa
+App/GoogleService-Info.plist

@@ -1,0 +1,26 @@
+[Unit]
+Description=FreeSWITCH R640 voice gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=freeswitch
+Group=freeswitch
+ExecStart=/opt/freeswitch/bin/freeswitch -nf -nonat -rp
+KillSignal=SIGTERM
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65536
+LimitRTPRIO=99
+LimitRTTIME=infinity
+CPUAffinity=4-19
+Nice=-5
+AmbientCapabilities=CAP_SYS_NICE
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/freeswitch/var
+
+[Install]
+WantedBy=multi-user.target

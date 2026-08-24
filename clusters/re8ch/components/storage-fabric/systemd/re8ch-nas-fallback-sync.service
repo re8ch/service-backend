@@ -1,0 +1,15 @@
+[Unit]
+Description=Mirror CephFS NAS working set to r640 SSD fallback
+Requires=re8ch-nas-fallback-bind.service
+After=re8ch-nas-fallback-bind.service srv-nas-shared.mount
+ConditionPathIsMountPoint=/srv/nas/shared
+ConditionPathIsMountPoint=/srv/nas-local-fallback
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cp -a /srv/nas/shared/. /srv/nas-local-fallback/
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

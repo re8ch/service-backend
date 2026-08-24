@@ -1,0 +1,19 @@
+# RE8CH MikroTik split-routing policy metadata.
+
+policy:
+  source_pool: 192.168.90.0/24
+  canary_source: 192.168.90.254/32
+  proxy_routing_mark: re8ch-malaysia-egress
+  managed_lists:
+    - re8ch-cn-ip
+    - re8ch-direct-ip
+    - re8ch-proxy-ip
+    - re8ch-apple-direct-ip
+    - re8ch-ai-ip
+    - re8ch-block-ip
+
+sources:
+  apnic_delegated:
+    url: https://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest
+    country: CN
+    list: re8ch-cn-ip

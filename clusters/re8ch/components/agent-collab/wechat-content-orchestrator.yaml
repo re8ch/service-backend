@@ -1,0 +1,366 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wechat-content-orchestrator-code
+  namespace: agent-collab
+data:
+  server.mjs: |
+    import http from 'node:http';
+    import net from 'node:net';
+    import crypto from 'node:crypto';
+    const {
+      TEABLE_URL, TEABLE_API_TOKEN, TEABLE_CONTENT_TASK_TABLE_ID,
+      TEABLE_ARTIFACT_TABLE_ID, TEABLE_AGENT_RUN_TABLE_ID,
+      CODEX_MODEL_READY = 'false', CODEX_APP_SERVER_HOST, CODEX_APP_SERVER_PORT = '4500',
+      CODEX_APP_SERVER_TOKEN, CODEX_MODEL = 'deepseek-v4-flash',
+    } = process.env;
+    const configured = Boolean(TEABLE_URL && TEABLE_API_TOKEN && TEABLE_CONTENT_TASK_TABLE_ID && TEABLE_ARTIFACT_TABLE_ID && TEABLE_AGENT_RUN_TABLE_ID);
+    const inputSchema = {
+      type:'object',
+      properties:{
+        taskId:{type:'string',description:'Teable record ID 或任务编号；领取任务时可省略'},
+        note:{type:'string'},
+        artifactPath:{type:'string'},
+      },
+      additionalProperties:false,
+    };
+    const tools = [
+      ['claim_content_task', '领取一条状态为“待处理”或“待领取”的微信公众号内容任务'],
+      ['start_codex_stage', '向 Codex app-server 提交真实 thread/turn，并返回生成结果、threadId 与 artifactPath'],
+      ['get_codex_stage', '查询 Codex 生成阶段、threadId 和生成结果'],
+      ['complete_content_stage', '登记图文产物并将任务转入人工审核'],
+      ['fail_content_stage', '记录阶段失败或阻塞原因'],
+    ].map(([name, description]) => ({name, description, inputSchema}));
+    const reply = (res, body, status=200) => {res.writeHead(status, {'content-type':'application/json'});res.end(JSON.stringify(body));};
+    const toolResult = (value, isError=false) => ({content:[{type:'text',text:JSON.stringify(value)}],isError});
+    const teable = async (path, init={}) => {
+      if (!configured) throw new Error('Teable API configuration is incomplete');
+      const response = await fetch(`${TEABLE_URL}${path}`, {
+        ...init,
+        headers:{authorization:`Bearer ${TEABLE_API_TOKEN}`,'content-type':'application/json',...(init.headers||{})},
+      });
+      const text = await response.text();
+      const body = text ? JSON.parse(text) : {};
+      if (!response.ok) throw new Error(`Teable ${response.status}: ${text.slice(0,500)}`);
+      return body;
+    };
+    const listRecords = (tableId) => teable(`/api/table/${tableId}/record?take=1000&fieldKeyType=name`);
+    const findTask = async (taskId) => {
+      const {records=[]} = await listRecords(TEABLE_CONTENT_TASK_TABLE_ID);
+      return taskId
+        ? records.find((record) => record.id === taskId || record.fields?.['任务编号'] === taskId)
+        : records.find((record) => ['待处理','待领取'].includes(record.fields?.['状态']));
+    };
+    const updateRecord = (tableId, recordId, fields) => teable(`/api/table/${tableId}/record/${recordId}`, {
+      method:'PATCH',
+      body:JSON.stringify({fieldKeyType:'name',typecast:true,record:{fields}}),
+    });
+    const createRecord = (tableId, fields) => teable(`/api/table/${tableId}/record`, {
+      method:'POST',
+      body:JSON.stringify({fieldKeyType:'name',typecast:true,records:[{fields}]}),
+    });
+    const createRun = (task, stage, status, summary='', error='') => {
+      const now = new Date().toISOString();
+      const taskNo = task.fields?.['任务编号'] || task.id;
+      return createRecord(TEABLE_AGENT_RUN_TABLE_ID, {
+        '运行名称':`${taskNo} / ${stage}`,
+        '运行编号':`RUN-${taskNo}-${Date.now()}`,
+        '任务编号':taskNo,
+        'Agent':'Kagent/Codex',
+        '阶段':stage,
+        '状态':status,
+        '开始时间':now,
+        '结束时间':status === '运行中' ? null : now,
+        '结果摘要':summary,
+        '错误':error,
+      });
+    };
+    const finishRun = (created, status, summary='', error='') => {
+      const recordId = created?.records?.[0]?.id || created?.id;
+      if (!recordId) throw new Error('Teable did not return the created Agent run record ID');
+      return updateRecord(TEABLE_AGENT_RUN_TABLE_ID, recordId, {
+        '状态':status,
+        '结束时间':new Date().toISOString(),
+        '结果摘要':summary,
+        '错误':error,
+      });
+    };
+    const codexRuns = new Map();
+    const encodeFrame = (text, opcode=1) => {
+      const payload = Buffer.from(text);
+      const mask = crypto.randomBytes(4);
+      let header;
+      if (payload.length < 126) header = Buffer.from([0x80 | opcode, 0x80 | payload.length]);
+      else if (payload.length < 65536) { header = Buffer.alloc(4); header[0]=0x80|opcode; header[1]=0xfe; header.writeUInt16BE(payload.length,2); }
+      else { header = Buffer.alloc(10); header[0]=0x80|opcode; header[1]=0xff; header.writeBigUInt64BE(BigInt(payload.length),2); }
+      const masked = Buffer.alloc(payload.length);
+      for (let i=0;i<payload.length;i++) masked[i]=payload[i]^mask[i%4];
+      return Buffer.concat([header,mask,masked]);
+    };
+    class CodexSocket {
+      constructor(){ this.buffer=Buffer.alloc(0); this.messages=[]; this.waiters=[]; this.handshake=false; }
+      async connect(){
+        this.socket=net.createConnection({host:CODEX_APP_SERVER_HOST,port:Number(CODEX_APP_SERVER_PORT)});
+        this.socket.on('data',(chunk)=>this.onData(chunk));
+        this.socket.on('error',(error)=>this.rejectAll(error));
+        const key=crypto.randomBytes(16).toString('base64');
+        this.socket.write([
+          'GET / HTTP/1.1',`Host: ${CODEX_APP_SERVER_HOST}:${CODEX_APP_SERVER_PORT}`,'Upgrade: websocket','Connection: Upgrade',
+          `Sec-WebSocket-Key: ${key}`,'Sec-WebSocket-Version: 13',`Authorization: Bearer ${CODEX_APP_SERVER_TOKEN}`,'\r\n',
+        ].join('\r\n'));
+        await this.waitFor((m)=>m?.handshake===true,10000);
+      }
+      onData(chunk){
+        this.buffer=Buffer.concat([this.buffer,chunk]);
+        if (!this.handshake) {
+          const end=this.buffer.indexOf('\r\n\r\n'); if (end<0) return;
+          const head=this.buffer.subarray(0,end).toString(); this.buffer=this.buffer.subarray(end+4);
+          if (!head.startsWith('HTTP/1.1 101')) return this.rejectAll(new Error(`Codex WebSocket handshake failed: ${head.split('\r\n')[0]}`));
+          this.handshake=true; this.push({handshake:true});
+        }
+        while (this.buffer.length>=2) {
+          const opcode=this.buffer[0]&0x0f; let length=this.buffer[1]&0x7f, offset=2;
+          if (length===126) { if(this.buffer.length<4)return; length=this.buffer.readUInt16BE(2); offset=4; }
+          else if (length===127) { if(this.buffer.length<10)return; length=Number(this.buffer.readBigUInt64BE(2)); offset=10; }
+          const masked=Boolean(this.buffer[1]&0x80); const need=offset+(masked?4:0)+length; if(this.buffer.length<need)return;
+          let mask; if(masked){mask=this.buffer.subarray(offset,offset+4);offset+=4;}
+          const payload=Buffer.from(this.buffer.subarray(offset,offset+length)); this.buffer=this.buffer.subarray(need);
+          if(masked)for(let i=0;i<payload.length;i++)payload[i]^=mask[i%4];
+          if(opcode===9){this.socket.write(encodeFrame(payload.toString(),10));continue;}
+          if(opcode===8){this.rejectAll(new Error('Codex WebSocket closed'));return;}
+          if(opcode===1){try{this.push(JSON.parse(payload.toString()))}catch{}}
+        }
+      }
+      push(message){ const i=this.waiters.findIndex((w)=>w.predicate(message)); if(i>=0){const [w]=this.waiters.splice(i,1);clearTimeout(w.timer);w.resolve(message);}else this.messages.push(message); }
+      waitFor(predicate,timeout=180000){ const i=this.messages.findIndex(predicate); if(i>=0)return Promise.resolve(this.messages.splice(i,1)[0]); return new Promise((resolve,reject)=>{const waiter={predicate,resolve,reject};waiter.timer=setTimeout(()=>{this.waiters=this.waiters.filter(w=>w!==waiter);reject(new Error('Codex app-server response timeout'));},timeout);this.waiters.push(waiter);}); }
+      rejectAll(error){ for(const w of this.waiters){clearTimeout(w.timer);w.reject(error)} this.waiters=[]; }
+      send(method,id,params){const message={method};if(id!==undefined)message.id=id;if(params!==undefined)message.params=params;this.socket.write(encodeFrame(JSON.stringify(message)));}
+      close(){this.socket?.end(encodeFrame('',8));}
+    }
+    const runCodex = async (task) => {
+      if (!CODEX_APP_SERVER_HOST || !CODEX_APP_SERVER_TOKEN) throw new Error('Codex app-server connection configuration is incomplete');
+      const client=new CodexSocket();
+      try {
+        await client.connect();
+        client.send('initialize',0,{clientInfo:{name:'re8ch_teable_orchestrator',title:'RE8CH Teable Orchestrator',version:'0.3.0'}});
+        const initialized=await client.waitFor((m)=>m.id===0,15000); if(initialized.error)throw new Error(initialized.error.message);
+        client.send('initialized',undefined,{});
+        client.send('thread/start',1,{cwd:'/workspace',model:CODEX_MODEL,approvalPolicy:'never',sandbox:'read-only'});
+        const started=await client.waitFor((m)=>m.id===1,30000); if(started.error)throw new Error(started.error.message);
+        const threadId=started.result.thread.id;
+        const f=task.fields||{};
+        const prompt=`你是微信公众号内容编辑。请根据以下任务生成一份可供人工审核的中文图文稿。不要调用 shell、文件或网络工具，不要发布内容。输出 500-800 字 Markdown，包含标题、摘要、正文分节、验收检查清单和 3 条配图提示词。\n任务名称：${f['任务名称']||''}\n栏目：${f['栏目']||''}\n目标读者：${f['目标读者']||''}\n主题：${f['主题']||''}\nAgent策略：${f['Agent策略']||''}\n验收标准：${f['验收标准']||''}`;
+        client.send('turn/start',2,{threadId,input:[{type:'text',text:prompt}]});
+        let output='';
+        for (;;) {
+          const message=await client.waitFor(()=>true,240000);
+          if(message.id===2&&message.error)throw new Error(message.error.message);
+          if(message.method==='item/agentMessage/delta')output+=message.params?.delta||'';
+          if(message.method==='turn/completed'){
+            const status=message.params?.turn?.status;
+            if(status!=='completed')throw new Error(`Codex turn ended with status ${status||'unknown'}`);
+            break;
+          }
+        }
+        if(!output.trim())throw new Error('Codex completed without an agent message');
+        return {threadId,output:output.trim(),artifactPath:`codex://thread/${threadId}`};
+      } finally { client.close(); }
+    };
+    const handlers = {
+      claim_content_task: async ({taskId}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'idle',reason:taskId ? '未找到可领取任务' : '没有待处理任务'};
+        if (!['待处理','待领取'].includes(task.fields?.['状态'])) {
+          return {status:'blocked',reason:`任务当前状态为 ${task.fields?.['状态'] || '未知'}，不可领取`,task};
+        }
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'状态':'处理中','当前阶段':'Agent 已领取','阻塞原因':''});
+        await createRun(task,'任务领取','已完成','Kagent 已领取任务');
+        return {status:'claimed',taskId:task.id,taskNumber:task.fields?.['任务编号'],task:task.fields};
+      },
+      start_codex_stage: async ({taskId}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'blocked',reason:'任务不存在'};
+        if (CODEX_MODEL_READY !== 'true') {
+          await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'当前阶段':'等待 Codex 模型登录','阻塞原因':'Codex app server 已运行，但模型登录/凭据尚未配置'});
+          await createRun(task,'Codex 图文生成','阻塞','','Codex 模型登录/凭据未配置');
+          return {status:'blocked',reason:'Codex app server 已运行，但模型登录/凭据尚未配置'};
+        }
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID,task.id,{'当前阶段':'Codex 生成中','阻塞原因':''});
+        const run = await createRun(task,'Codex 图文生成','运行中','已提交 Codex app-server');
+        codexRuns.set(task.id,{status:'running'});
+        try {
+          const generated=await runCodex(task);
+          const result={status:'completed',taskId:task.id,taskNumber:task.fields?.['任务编号'],...generated,note:generated.output.slice(0,12000)};
+          codexRuns.set(task.id,result);
+          await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID,task.id,{'当前阶段':'Codex 生成完成','产物目录':generated.artifactPath,'阻塞原因':''});
+          await finishRun(run,'已完成',`Codex thread ${generated.threadId} 已完成`);
+          return result;
+        } catch(error) {
+          codexRuns.set(task.id,{status:'failed',reason:error.message});
+          await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID,task.id,{'状态':'阻塞','当前阶段':'Codex 生成失败','阻塞原因':error.message.slice(0,1000)});
+          await finishRun(run,'失败','',error.message.slice(0,1000));
+          throw error;
+        }
+      },
+      get_codex_stage: async ({taskId}={}) => codexRuns.get((await findTask(taskId))?.id) || ({status:CODEX_MODEL_READY === 'true'?'ready':'blocked',taskId,appServer:'running',modelReady:CODEX_MODEL_READY === 'true'}),
+      complete_content_stage: async ({taskId,note='',artifactPath=''}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'blocked',reason:'任务不存在'};
+        const taskNo = task.fields?.['任务编号'] || task.id;
+        await createRecord(TEABLE_ARTIFACT_TABLE_ID, {
+          '产物名称':`${taskNo} 图文包`,
+          '任务编号':taskNo,
+          '产物类型':'微信公众号图文包',
+          '状态':'待人工审核',
+          '本地路径':artifactPath,
+          '版本':'v1',
+          '说明':note,
+        });
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'状态':'待人工审核','当前阶段':'人工审核','产物目录':artifactPath,'阻塞原因':''});
+        await createRun(task,'图文生成','已完成',note);
+        return {status:'completed',next:'人工审核',taskId:task.id};
+      },
+      fail_content_stage: async ({taskId,note='未提供错误信息'}={}) => {
+        const task = await findTask(taskId);
+        if (!task) return {status:'blocked',reason:'任务不存在'};
+        await updateRecord(TEABLE_CONTENT_TASK_TABLE_ID, task.id, {'状态':'阻塞','当前阶段':'异常处理','阻塞原因':note});
+        await createRun(task,'异常处理','失败','',note);
+        return {status:'failed',taskId:task.id,reason:note};
+      },
+    };
+    http.createServer(async (req,res) => {
+      if (req.method === 'GET' && req.url === '/healthz') return reply(res,{ok:true,mode:'teable-active',teableSchema:configured,kagentModel:false,codexModel:CODEX_MODEL_READY === 'true'});
+      if (req.method !== 'POST' || req.url !== '/mcp') return reply(res,{error:'not found'},404);
+      let raw=''; for await (const chunk of req) raw += chunk; let msg; try {msg=JSON.parse(raw)} catch {return reply(res,{error:'invalid json'},400)}
+      let result = {};
+      try {
+        result = msg.method === 'initialize' ? {protocolVersion:'2025-03-26',capabilities:{tools:{}},serverInfo:{name:'wechat-content-orchestrator',version:'0.2.0'}}
+          : msg.method === 'tools/list' ? {tools}
+          : msg.method === 'tools/call' ? toolResult(await (handlers[msg.params?.name] ?? (() => ({status:'error',reason:'unknown tool'})))(msg.params?.arguments))
+          : {};
+      } catch (error) {
+        result = toolResult({status:'error',reason:error.message},true);
+      }
+      reply(res,{jsonrpc:'2.0',id:msg.id ?? null,result});
+    }).listen(8080,'0.0.0.0');
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: teable-content-schema
+  namespace: agent-collab
+data:
+  TEABLE_URL: http://teable.agent-collab.svc.cluster.local:3000
+  TEABLE_BASE_ID: bseJ5dSJjfl6aRavwRB
+  TEABLE_CONTENT_TASK_TABLE_ID: tblRKH7tBXHxjiSslIi
+  TEABLE_ARTIFACT_TABLE_ID: tblxTj99rbvmY5DRWin
+  TEABLE_AGENT_RUN_TABLE_ID: tblfgh5PqoTtTYcvvLt
+  CODEX_MODEL_READY: "true"
+  CODEX_APP_SERVER_HOST: codex-app-server.codex-app-server.svc.cluster.local
+  CODEX_APP_SERVER_PORT: "4500"
+  CODEX_MODEL: deepseek-v4-flash
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wechat-content-orchestrator
+  namespace: agent-collab
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: wechat-content-orchestrator}
+  template:
+    metadata:
+      labels: {app: wechat-content-orchestrator}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      containers:
+      - name: orchestrator
+        # Reuse the pre-pulled Teable Node runtime on R640; no in-cluster build or private pull is needed.
+        image: ghcr.io/teableio/teable:latest
+        imagePullPolicy: IfNotPresent
+        command: [node, /app/server.mjs]
+        ports: [{name: http, containerPort: 8080}]
+        readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 10}
+        livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 20}
+        resources:
+          requests: {cpu: 20m, memory: 32Mi}
+          limits: {cpu: 200m, memory: 128Mi}
+        envFrom:
+        - configMapRef: {name: teable-content-schema}
+        - secretRef: {name: teable-content-api-token}
+        - secretRef: {name: codex-app-server-client-token}
+        volumeMounts: [{name: code, mountPath: /app, readOnly: true}]
+      volumes:
+      - name: code
+        configMap: {name: wechat-content-orchestrator-code}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wechat-content-orchestrator
+  namespace: agent-collab
+spec:
+  selector: {app: wechat-content-orchestrator}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: wechat-content-orchestrator
+  namespace: kagent
+spec:
+  description: Teable、Kagent 与 Codex 的微信公众号内容调度接口
+  protocol: STREAMABLE_HTTP
+  timeout: 5m0s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true
+  url: http://wechat-content-orchestrator.agent-collab.svc.cluster.local:8080/mcp
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: wechat-content-operations-agent
+  namespace: kagent
+spec:
+  description: 领取 Teable 内容任务并调度 Codex 生成待审图文包
+  type: Declarative
+  declarative:
+    runtime: python
+    stream: true
+    modelConfig: deepseek-v4-flash
+    context:
+      compaction:
+        compactionInterval: 5
+        eventRetentionSize: 20
+        overlapSize: 2
+        tokenThreshold: 24000
+        summarizer:
+          modelConfig: deepseek-v4-flash
+    a2aConfig:
+      skills:
+      - id: teable-codex-content-closure
+        name: Teable 到 Codex 的待审内容闭环
+        description: 领取指定 Teable 内容任务，提交真实 Codex thread/turn，登记产物并停在人工审核；绝不自动发布。
+        tags: [teable, codex, content-operations, human-review]
+        examples:
+        - 处理任务 WX-CODEX-TEST-20260802-002，并在生成后转人工审核。
+    deployment:
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      env:
+      - name: OTEL_TRACING_ENABLED
+        value: "false"
+    systemMessage: |
+      你是微信公众号内容运营调度 Agent。只处理 Teable 中明确标记为待处理的任务。
+      使用 MCP 工具按“领取任务、启动 Codex、查询状态、登记产物、转人工审核”的顺序工作。
+      不得自动发布文章；缺少凭据、表结构或人工审批时必须停止并记录阻塞原因。
+    tools:
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: wechat-content-orchestrator
+        namespace: kagent
+        toolNames: [claim_content_task, start_codex_stage, get_codex_stage, complete_content_stage, fail_content_stage]

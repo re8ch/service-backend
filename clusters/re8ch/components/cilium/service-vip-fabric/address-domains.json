@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "networking.re8ch.com/v1alpha1",
+  "stage": 0,
+  "applyEnabled": false,
+  "domains": {
+    "nodeIdentity": {
+      "prefix": "10.181.22.0/24",
+      "authority": "k3s-zerotier",
+      "frrOptimizationAllowed": false
+    },
+    "pod": {
+      "prefix": "10.42.0.0/16",
+      "authority": "cilium-kubernetes-ipam",
+      "frrOptimizationAllowed": false
+    },
+    "acceleratedTransit": {
+      "prefix": "10.250.0.0/24",
+      "authority": "host-loopback-frr",
+      "frrOptimizationAllowed": true
+    },
+    "serviceVip": {
+      "prefix": "10.251.0.0/24",
+      "authority": "cilium-lb-ipam",
+      "frrOptimizationAllowed": true,
+      "advertisementPrefixLength": 32
+    }
+  },
+  "controlPlane": {
+    "nodes": [
+      {"name": "a1-wsl-zt", "internalIp": "10.181.22.147", "transitIp": "10.250.0.147", "capacityMbps": 200},
+      {"name": "b1-wsl-zt", "internalIp": "10.181.22.125", "transitIp": "10.250.0.125", "capacityMbps": 200},
+      {"name": "r640", "internalIp": "10.181.22.128", "transitIp": "10.250.0.128", "capacityMbps": 200}
+    ],
+    "protectedTcpPorts": [2379, 2380, 6443, 9345, 10250]
+  },
+  "serviceOptInLabels": {
+    "networking.re8ch.com/lb-pool": "service-vip",
+    "networking.re8ch.com/bgp-advertise": "enabled"
+  }
+}

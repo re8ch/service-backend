@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbird-mihomo-gateway-config
+  namespace: netbird-access
+data:
+  geodb-to-mihomo.py: |
+    #!/usr/bin/env python3
+    """Render the pinned RE8CH GeoDB snapshot as local Mihomo rule providers."""
+    import gzip
+    import hashlib
+    import json
+    import pathlib
+
+    source = pathlib.Path("/etc/re8ch-geodb/geodb.json.gz")
+    output = pathlib.Path("/etc/mihomo/rules")
+    raw = source.read_bytes()
+    snapshot = json.loads(gzip.decompress(raw))
+    output.mkdir(parents=True, exist_ok=True)
+
+    def write(name, values, prefix=""):
+        target = output / name
+        with target.open("w") as stream:
+            stream.write("payload:\n")
+            for value in values:
+                stream.write("  - '")
+                stream.write(prefix)
+                stream.write(value.replace("'", "''"))
+                stream.write("'\n")
+
+    # Mihomo domain providers treat a bare value as an exact match. GeoSite CN
+    # entries are suffix authorities, so retain that intent with `+.`.
+    write("geosite-cn.yaml", snapshot["cn_domains"], "+.")
+    write("geoip-cn.yaml", snapshot["cn_cidrs"])
+    metadata = {
+        "schema_version": snapshot["schema_version"],
+        "source_revision": snapshot["version"],
+        "artifact_sha256": hashlib.sha256(raw).hexdigest(),
+        "cn_domains": len(snapshot["cn_domains"]),
+        "cn_cidrs": len(snapshot["cn_cidrs"]),
+    }
+    (output / "metadata.json").write_text(json.dumps(metadata, sort_keys=True) + "\n")
+  config.yaml: |
+    mixed-port: 7890
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:9091
+    secret: ""
+    unified-delay: true
+    tcp-concurrent: true
+    find-process-mode: "off"
+    dns:
+      enable: true
+      listen: 0.0.0.0:1053
+      ipv6: false
+      enhanced-mode: redir-host
+      use-system-hosts: true
+      default-nameserver: [1.1.1.1, 8.8.8.8]
+      nameserver:
+        - "https://1.1.1.1/dns-query#stable-egress"
+        - "https://8.8.8.8/dns-query#stable-egress"
+      proxy-server-nameserver: [10.43.0.10]
+    tun:
+      enable: true
+      device: mihomo-nb
+      stack: system
+      auto-route: true
+      auto-redirect: true
+      auto-detect-interface: true
+      strict-route: true
+      include-interface: [wt0]
+      dns-hijack: ["any:53", "tcp://any:53"]
+      mtu: 1200
+      gso: true
+      gso-max-size: 65536
+      endpoint-independent-nat: false
+      route-exclude-address:
+        - 10.0.0.0/8
+        - 100.64.0.0/10
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    proxies:
+      - name: LA-FABRIC
+        type: socks5
+        server: mihomo-egress-la.egress-fabric.svc.cluster.local
+        port: 1080
+        udp: true
+    proxy-providers:
+      loudi-direct-path:
+        type: file
+        path: /etc/mihomo/loudi-direct.yaml
+        health-check:
+          enable: true
+          url: https://www.baidu.com/
+          interval: 30
+          timeout: 5000
+          lazy: false
+      external-paths:
+        type: file
+        path: /etc/mihomo/paths.yaml
+        health-check:
+          enable: true
+          url: https://www.gstatic.com/generate_204
+          interval: 15
+          timeout: 5000
+          lazy: false
+    proxy-groups:
+      - name: LOUDI-DIRECT
+        type: fallback
+        use: [loudi-direct-path]
+        url: https://www.baidu.com/
+        interval: 30
+        timeout: 5000
+        lazy: false
+      - name: stable-egress
+        type: fallback
+        proxies: [LA-FABRIC]
+        use: [external-paths]
+        url: https://www.gstatic.com/generate_204
+        interval: 15
+        timeout: 5000
+        lazy: false
+    rule-providers:
+      geosite-cn:
+        type: file
+        behavior: domain
+        format: yaml
+        path: /etc/mihomo/rules/geosite-cn.yaml
+      geoip-cn:
+        type: file
+        behavior: ipcidr
+        format: yaml
+        path: /etc/mihomo/rules/geoip-cn.yaml
+    rules:
+      # Control and development reachability never follows a customer exit.
+      - DOMAIN,access.re8ch.com,DIRECT
+      - IP-CIDR,223.159.210.222/32,DIRECT,no-resolve
+      - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+      - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+      - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+      - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+      # A domestic exit consumes the complete centrally compiled CN snapshot.
+      # CN leaves through R640/MikroTik; non-CN falls through to the selected
+      # overseas path. No peer fetches rule data at startup.
+      - RULE-SET,geosite-cn,LOUDI-DIRECT
+      - RULE-SET,geoip-cn,LOUDI-DIRECT,no-resolve
+      - MATCH,stable-egress

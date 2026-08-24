@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: codex-app-server-config
+  namespace: codex-app-server
+data:
+  config.toml: |
+    model = "deepseek-v4-flash"
+    model_provider = "litellm"
+    approval_policy = "never"
+    sandbox_mode = "read-only"
+    disable_response_storage = true
+
+    [model_providers.litellm]
+    name = "LiteLLM"
+    base_url = "http://litellm.llm-gateway.svc.cluster.local:4000/v1"
+    env_key = "LITELLM_API_KEY"
+    wire_api = "responses"
+    requires_openai_auth = false
+    request_max_retries = 2
+    stream_max_retries = 2
+    stream_idle_timeout_ms = 120000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codex-app-server
+  namespace: codex-app-server
+  labels:
+    app.kubernetes.io/name: codex-app-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: codex-app-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: codex-app-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      imagePullSecrets:
+      - name: codex-app-server-registry
+      containers:
+      - name: app-server
+        image: registry.re8ch.com/compocv/node:22-alpine-amd64
+        imagePullPolicy: IfNotPresent
+        command: [sh, -lc]
+        args:
+        - |
+          set -eu
+          apk add --no-cache ca-certificates git openssh-client bash
+          npm install -g @openai/codex@0.144.1
+          exec codex app-server \
+            --listen ws://0.0.0.0:4500 \
+            --ws-auth capability-token \
+            --ws-token-file /var/run/codex-app-server/token
+        env:
+        - name: LITELLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: codex-litellm
+              key: LITELLM_API_KEY
+        ports:
+        - {name: http-ws, containerPort: 4500}
+        startupProbe:
+          httpGet: {path: /readyz, port: http-ws}
+          failureThreshold: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet: {path: /readyz, port: http-ws}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: {path: /healthz, port: http-ws}
+          initialDelaySeconds: 180
+          periodSeconds: 20
+        resources:
+          requests: {cpu: 100m, memory: 256Mi}
+          limits: {cpu: "1", memory: 1Gi}
+        volumeMounts:
+        - {name: config, mountPath: /root/.codex/config.toml, subPath: config.toml, readOnly: true}
+        - {name: workspace, mountPath: /workspace}
+        - {name: token, mountPath: /var/run/codex-app-server, readOnly: true}
+      volumes:
+      - name: config
+        configMap: {name: codex-app-server-config}
+      - name: workspace
+        emptyDir: {}
+      - name: token
+        secret: {secretName: codex-app-server-token, defaultMode: 256}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codex-app-server
+  namespace: codex-app-server
+  labels:
+    app.kubernetes.io/name: codex-app-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: codex-app-server
+  ports:
+  - {name: http-ws, port: 4500, targetPort: http-ws}
+
+# Provision these secrets out of band; never commit their values:
+# - codex-app-server/codex-app-server-token (key: token)
+# - codex-app-server/codex-litellm (key: LITELLM_API_KEY)
+# - codex-app-server/codex-app-server-registry (registry credentials)

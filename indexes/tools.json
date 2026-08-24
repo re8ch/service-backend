@@ -189,19 +189,15 @@
   },
   {
     "module": "cloud-functions",
-    "ref": "re8ch-cloud-platform-tool"
+    "ref": "go"
   },
   {
     "module": "cloud-functions",
-    "ref": "re8ch-cluster-infra-tool"
+    "ref": "docker"
   },
   {
     "module": "cloud-functions",
-    "ref": "kubectl"
-  },
-  {
-    "module": "cloud-functions",
-    "ref": "helm"
+    "ref": "nuclio"
   },
   {
     "module": "cluster-website",
@@ -266,6 +262,14 @@
   {
     "module": "service-backend",
     "ref": "re8ch-workspace"
+  },
+  {
+    "module": "service-backend",
+    "ref": "kubectl"
+  },
+  {
+    "module": "service-backend",
+    "ref": "helm"
   },
   {
     "module": "tool-distribution",

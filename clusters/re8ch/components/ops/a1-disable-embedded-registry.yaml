@@ -1,0 +1,4 @@
+# A1 recovery override. Spegel's image-state tracker enters a tight retry loop
+# on malformed legacy ToolHive image metadata and prevents kubelet convergence.
+# R640 and B1 retain embedded-registry service while A1 is repaired.
+embedded-registry: false

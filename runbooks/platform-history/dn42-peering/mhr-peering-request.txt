@@ -1,0 +1,31 @@
+To: moohric@moohric.com
+Subject: DN42 peering request — RE8CH AS4242421837 — CN-SZX1
+
+Hello MHR,
+
+I would like to request a DN42 WireGuard and BGP peering with MHR
+(AS4242422279) at CN-SZX1. Our router and public endpoint are located in
+Mainland China.
+
+ASN: 4242421837
+Preferred Name: RE8CH
+MNTNER: RE8CH-MNT
+Node: CN-SZX1
+Clearnet Endpoint: 223.159.210.222:21838/UDP
+WireGuard Public Key: 4nIN83yMaKf8qtoN1eqAO0i6SntyV0uOzMu25+vf7j8=
+DN42 IPv4: None
+DN42 IPv6 Prefix: fd7f:2110:b3a4::/48
+IPv6 Link-local: fe80::1837
+Session: IPv4 and IPv6 using MP-BGP over IPv6 link-local
+Extended Next Hop: true
+Tunnel MTU: 1420
+Contact: harry@re8ch.com
+
+Our registry objects were merged in dn42/registry PR #7105:
+https://git.dn42.dev/dn42/registry/pulls/7105
+
+Please provide the private CN-SZX1 endpoint and confirm the peer parameters.
+
+Thank you,
+Harry / RE8CH
+

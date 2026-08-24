@@ -1,0 +1,16 @@
+# RE8CH MikroTik proxy-route address lists.
+#
+# Put explicit destinations here when they should route through the current
+# cross-border egress even if another list might classify them as direct.
+
+re8ch-proxy-ip:
+  - address: 1.1.1.1/32
+    comment: Cloudflare DNS test/proxy
+  - address: 1.0.0.1/32
+    comment: Cloudflare DNS test/proxy
+  - address: 8.8.8.8/32
+    comment: Google DNS test/proxy
+  - address: 8.8.4.4/32
+    comment: Google DNS test/proxy
+
+re8ch-ai-ip: []
