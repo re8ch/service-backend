@@ -19,6 +19,11 @@ once. Execute the following gates in order:
 4. Enable a checksum-bound guarded transaction on one follower. Add the VIP to
    loopback and advertise only `192.0.2.220/32`; verify TLS and withdrawal before
    enabling the other two origins.
+
+For the A1 network/TLS canary, install `a1-api-vip-tls-canary.yaml` as the
+documented host drop-in before restarting that follower. It changes only TLS
+SAN coverage; it must not be used as a substitute for the later advertise or
+etcd migration.
 5. Roll the K3s server configs one follower at a time and the leader last.
    Confirm the Kubernetes EndpointSlice changes to the corresponding
    `10.250.0.x` after every restart.
