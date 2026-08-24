@@ -74,7 +74,8 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata: {name: re8ch-advanced-fabric-agent, namespace: kube-system}
 spec:
-  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1}}
+  # Retained offline nodes must not pin rollout of the healthy fabric agents.
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 25%}}
   selector: {matchLabels: {app.kubernetes.io/name: re8ch-advanced-fabric-agent}}
   template:
     metadata:
