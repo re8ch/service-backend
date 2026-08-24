@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: panel-grafana
+  namespace: qianwen-ops
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          volumeMounts:
+            - name: re8ch-observability-dashboards
+              mountPath: /var/lib/grafana/dashboards/qianwen
+              readOnly: true
+      volumes:
+        - name: re8ch-observability-dashboards
+          configMap:
+            name: re8ch-observability-dashboards
