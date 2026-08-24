@@ -22,6 +22,20 @@
         "nativeRoutingCIDR": {"type": "string", "const": "192.0.2.224/16"},
         "acceleratedCIDR": {"type": "string", "const": "192.0.2.106/24"},
         "serviceCIDR": {"type": "string", "const": "192.0.2.215/24"},
+        "controlPlaneApi": {
+          "type": "object",
+          "required": ["enabled", "vip", "port", "mode", "eligibleNodes", "primaryTransport", "fallbackTransport", "healthCheck"],
+          "properties": {
+            "enabled": {"const": true},
+            "vip": {"const": "192.0.2.220/32"},
+            "port": {"const": 6443},
+            "mode": {"const": "healthy-ecmp"},
+            "eligibleNodes": {"type": "array", "minItems": 3, "uniqueItems": true, "items": {"enum": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}},
+            "primaryTransport": {"const": "wireguard"},
+            "fallbackTransport": {"const": "zerotier"},
+            "healthCheck": {"type": "object"}
+          }
+        },
         "nodes": {"type": "array", "minItems": 8, "items": {"type": "object"}}
       }
     },

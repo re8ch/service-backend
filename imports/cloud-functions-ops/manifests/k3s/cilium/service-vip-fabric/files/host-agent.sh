@@ -20,6 +20,14 @@ fi
 
 host systemctl is-active --quiet frr
 host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null
+if jq -e '.controlPlaneApi.enabled == true and .controlPlaneApi.eligible == true' "${NODE_FILE}" >/dev/null; then
+  api_address=$(jq -r '.controlPlaneApi.healthCheck.address' "${NODE_FILE}")
+  api_port=$(jq -r '.controlPlaneApi.port' "${NODE_FILE}")
+  api_path=$(jq -r '.controlPlaneApi.healthCheck.path' "${NODE_FILE}")
+  api_timeout=$(jq -r '.controlPlaneApi.healthCheck.timeoutSeconds' "${NODE_FILE}")
+  host curl --fail --silent --max-time "${api_timeout}" --insecure \
+    "https://${api_address}:${api_port}${api_path}" >/dev/null
+fi
 touch "${READY}"
 echo "${NODE_NAME}: Advanced Fabric observe-only host validation ready"
 while sleep 30; do
