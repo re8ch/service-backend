@@ -43,6 +43,13 @@ high-cost MikroTik/ZT fallback route for each control-plane identity and include
 the VIP in the eligible WG peers' AllowedIPs. The guarded transaction must bind
 and advertise the VIP only while the local authenticated API health check is
 passing; observe-only must leave no VIP state behind.
+
+The first guarded wave enables `restricted-node-1eb0570f74` only. It installs restricted-node-6dc3f140f9's metric-500
+fallback routes for A1/B1 through `192.0.2.131` and adds the VIP to the
+declared single-peer WireGuard interfaces. Every node verifies the controller's
+canonical SHA-256 transaction before mutation. A1 requires three authenticated
+local `/readyz` successes to bind/advertise and withdraws after three failures;
+restricted-node-6dc3f140f9 and B1 remain ineligible for VIP ownership in this wave.
 5. Roll the K3s server configs one follower at a time and the leader last.
    Confirm the Kubernetes EndpointSlice changes to the corresponding
    `10.250.0.x` after every restart.
