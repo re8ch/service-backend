@@ -1,0 +1,10 @@
+# Host-managed A1-only canary drop-in. Install as
+# /etc/rancher/k3s/config.yaml.d/96-control-plane-api-vip-tls-canary.yaml.
+# This extends certificate coverage without changing advertise-address or etcd.
+tls-san:
+  - 192.0.2.178
+  - 192.0.2.176
+  - 192.0.2.4
+  - 192.0.2.116
+  - 192.0.2.242
+  - k3s-api.internal.re8ch.com
