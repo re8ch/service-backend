@@ -1,0 +1,14 @@
+{
+  "physical": {
+    "10.42.0.0/16": {
+      "blacklist": true
+    }
+  },
+  "settings": {
+    "interfacePrefixBlacklist": [
+      "cilium",
+      "lxc",
+      "veth"
+    ]
+  }
+}

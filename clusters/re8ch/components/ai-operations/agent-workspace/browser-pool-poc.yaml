@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: browser-profile-pool-poc, namespace: ai-operations}
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-r640
+  resources: {requests: {storage: 10Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: browser-runtime-pool-poc, namespace: ai-operations}
+spec:
+  # Kept dormant until the R640 containerd sandbox reservation fault is repaired.
+  replicas: 0
+  selector: {matchLabels: {app: browser-runtime-pool-poc}}
+  template:
+    metadata: {labels: {app: browser-runtime-pool-poc}}
+    spec:
+      serviceAccountName: ai-operations
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: r640}
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+      containers:
+        - name: browserless
+          image: ghcr.io/browserless/chromium:latest@sha256:5d94dce37b5c6bf7733fa200cbc99c67a961a0be12ac1171da5467270e21cffb
+          env:
+            - name: TOKEN
+              valueFrom: {secretKeyRef: {name: browser-runtime-pool-poc, key: token}}
+            - {name: CONCURRENT, value: "4"}
+            - {name: QUEUED, value: "20"}
+            - {name: DATA_DIR, value: /profiles}
+            - {name: DOWNLOAD_DIR, value: /downloads}
+          ports: [{name: cdp, containerPort: 3000}]
+          readinessProbe: {tcpSocket: {port: cdp}, periodSeconds: 5, failureThreshold: 18}
+          resources:
+            requests: {cpu: 250m, memory: 1Gi}
+            limits: {cpu: "4", memory: 6Gi}
+          volumeMounts:
+            - {name: profiles, mountPath: /profiles}
+            - {name: downloads, mountPath: /downloads}
+            - {name: shm, mountPath: /dev/shm}
+      volumes:
+        - {name: profiles, persistentVolumeClaim: {claimName: browser-profile-pool-poc}}
+        - {name: downloads, emptyDir: {}}
+        - {name: shm, emptyDir: {medium: Memory, sizeLimit: 1Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: browser-runtime-pool-poc, namespace: ai-operations}
+spec:
+  type: ClusterIP
+  selector: {app: browser-runtime-pool-poc}
+  ports: [{name: cdp, port: 3000, targetPort: cdp}]

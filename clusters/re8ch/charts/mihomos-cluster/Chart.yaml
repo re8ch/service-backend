@@ -1,0 +1,18 @@
+apiVersion: v2
+name: mihomos-cluster
+description: Bidirectional CN/global Mihomo egress fabric with per-node consumers and telemetry.
+type: application
+version: 0.1.1
+appVersion: "1.19.29"
+home: https://github.com/re8ch/mihomos-cluster
+icon: https://raw.githubusercontent.com/MetaCubeX/mihomo/Meta/docs/logo.png
+sources: [https://github.com/re8ch/mihomos-cluster, https://github.com/MetaCubeX/mihomo]
+keywords: [mihomo, egress, geo-routing, kubernetes, headlamp]
+maintainers:
+  - {name: RE8CH Platform}
+annotations:
+  artifacthub.io/category: networking
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/changes: |
+    - kind: added
+      description: Per-node CN/global consumers, healthy exit providers and Headlamp telemetry.

@@ -1,0 +1,57 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    deployment:
+      kind: DaemonSet
+    hostNetwork: true
+    dnsPolicy: ClusterFirstWithHostNet
+    nodeSelector:
+      kubernetes.io/hostname: muaya-lightweight
+    podSecurityContext:
+      runAsNonRoot: false
+      runAsUser: 0
+    securityContext:
+      capabilities:
+        add:
+          - NET_BIND_SERVICE
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+        maxSurge: 0
+    ports:
+      web:
+        port: 80
+        hostPort: 80
+        expose:
+          default: true
+        exposedPort: 80
+        protocol: TCP
+      websecure:
+        port: 443
+        hostPort: 443
+        expose:
+          default: true
+        exposedPort: 443
+        protocol: TCP
+        tls:
+          enabled: true
+      traefik:
+        port: 8080
+        expose:
+          default: false
+      metrics:
+        # Exporters already own 9100 on .79 and 19100 on .95. Traefik is
+        # hostNetwork, so use a port that is free on both Nuclio nodes.
+        port: 19101
+        expose:
+          default: false
+    service:
+      enabled: true
+      type: ClusterIP
+    additionalArguments:
+      - --providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik

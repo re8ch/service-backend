@@ -1,0 +1,97 @@
+#Requires -RunAsAdministrator
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+$VpnName = "@@VPN_NAME@@"
+$ServerAddress = "vpn.re8ch.com"
+$ClientSubject = "CN=@@CERT_COMMON_NAME@@"
+$InstallDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+$CaPath = Join-Path $InstallDirectory "re8ch-ikev2-ca.crt"
+$PfxPath = Join-Path $InstallDirectory "device-identity.p12"
+$PfxPassword = ConvertTo-SecureString "@@PFX_PASSWORD@@" -AsPlainText -Force
+$Routes = @(
+@@ROUTES@@
+)
+
+function Remove-Re8chVpnState {
+    Get-VpnConnection -Name $VpnName -AllUserConnection -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Remove-VpnConnection -Name $VpnName -AllUserConnection -Force
+        }
+
+    Get-ChildItem "Cert:\LocalMachine\My" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Subject -eq $ClientSubject } |
+        Remove-Item -Force
+}
+
+try {
+    if (-not (Test-Path $CaPath) -or -not (Test-Path $PfxPath)) {
+        throw "Required certificate payloads are missing."
+    }
+
+    Import-Certificate `
+        -FilePath $CaPath `
+        -CertStoreLocation "Cert:\LocalMachine\Root" | Out-Null
+
+    Import-PfxCertificate `
+        -FilePath $PfxPath `
+        -CertStoreLocation "Cert:\LocalMachine\My" `
+        -Password $PfxPassword `
+        -Exportable:$false | Out-Null
+
+    $ClientCertificate = Get-ChildItem "Cert:\LocalMachine\My" |
+        Where-Object { $_.Subject -eq $ClientSubject -and $_.HasPrivateKey } |
+        Sort-Object NotAfter -Descending |
+        Select-Object -First 1
+
+    if (-not $ClientCertificate) {
+        throw "The device certificate was not installed with its private key."
+    }
+
+    Get-VpnConnection -Name $VpnName -AllUserConnection -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Remove-VpnConnection -Name $VpnName -AllUserConnection -Force
+        }
+
+    Add-VpnConnection `
+        -Name $VpnName `
+        -ServerAddress $ServerAddress `
+        -TunnelType Ikev2 `
+        -AuthenticationMethod MachineCertificate `
+        -EncryptionLevel Maximum `
+        -AllUserConnection `
+        @@SPLIT_TUNNEL_ARGUMENT@@-Force | Out-Null
+
+    Set-VpnConnectionIPsecConfiguration `
+        -ConnectionName $VpnName `
+        -AuthenticationTransformConstants SHA256128 `
+        -CipherTransformConstants AES256 `
+        -DHGroup Group14 `
+        -EncryptionMethod AES256 `
+        -IntegrityCheckMethod SHA256 `
+        -PfsGroup None `
+        -AllUserConnection `
+        -Force | Out-Null
+
+    foreach ($Route in $Routes) {
+        Add-VpnConnectionRoute `
+            -ConnectionName $VpnName `
+            -DestinationPrefix $Route `
+            -AllUserConnection | Out-Null
+    }
+
+@@WATCHDOG_INSTALL@@
+
+    Write-EventLog `
+        -LogName Application `
+        -Source "MsiInstaller" `
+        -EventId 1033 `
+        -EntryType Information `
+        -Message "Installed $VpnName VPN for @@DEVICE_DISPLAY_NAME@@." `
+        -ErrorAction SilentlyContinue
+}
+catch {
+    Remove-Re8chVpnState
+    throw
+}

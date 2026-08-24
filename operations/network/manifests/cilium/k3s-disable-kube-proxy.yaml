@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k3s-disable-kube-proxy
+  namespace: kube-system
+data:
+  90-disable-kube-proxy.yaml: |
+    disable-kube-proxy: true
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k3s-disable-kube-proxy-b1
+  namespace: kube-system
+spec:
+  nodeName: b1-wsl-zt
+  hostPID: true
+  hostNetwork: true
+  restartPolicy: Never
+  containers:
+    - name: apply
+      image: busybox:1.36
+      command: [sh, -ec]
+      args:
+        - |
+          mkdir -p /host/etc/rancher/k3s/config.yaml.d
+          cp /config/90-disable-kube-proxy.yaml /host/etc/rancher/k3s/config.yaml.d/90-disable-kube-proxy.yaml
+          nsenter -t 1 -m -- systemctl restart k3s
+      securityContext: {privileged: true}
+      volumeMounts:
+        - {name: host-root, mountPath: /host}
+        - {name: config, mountPath: /config, readOnly: true}
+  volumes:
+    - {name: host-root, hostPath: {path: /, type: Directory}}
+    - {name: config, configMap: {name: k3s-disable-kube-proxy}}

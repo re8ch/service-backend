@@ -1,0 +1,24 @@
+annotations:
+  category: Storage
+  org.opencontainers.image.description: CSI Rclone Driver for Kubernetes - Mount cloud
+    storage as persistent volumes
+  org.opencontainers.image.licenses: Apache-2.0
+  org.opencontainers.image.source: https://github.com/veloxpack/csi-driver-rclone
+apiVersion: v2
+appVersion: 0.5.0
+description: CSI Rclone Driver for Kubernetes - Mount cloud storage as persistent
+  volumes
+home: https://github.com/veloxpack/csi-driver-rclone
+keywords:
+- csi
+- rclone
+- storage
+- cloud
+- persistent-volume
+maintainers:
+- email: support@veloxpack.io
+  name: VeloxPack
+name: csi-driver-rclone
+sources:
+- https://github.com/veloxpack/csi-driver-rclone
+version: 0.5.0

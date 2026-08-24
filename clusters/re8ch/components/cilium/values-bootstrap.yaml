@@ -1,0 +1,33 @@
+# Low-concurrency bootstrap overlay for the 2 GiB K3s control node.
+# Apply after values-migration.yaml and remove incrementally as nodes migrate.
+
+nodeSelector:
+  kubernetes.io/hostname: vm-20-12-ubuntu
+
+envoy:
+  enabled: false
+
+operator:
+  replicas: 1
+  skipCRDCreation: true
+  affinity: null
+  nodeSelector:
+    kubernetes.io/hostname: r640
+  tolerations:
+    - key: anchor
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+
+hubble:
+  enabled: false
+  relay:
+    enabled: false
+  ui:
+    enabled: false

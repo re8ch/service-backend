@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-registry-cephfs
+  namespace: harbor
+  labels: {app.kubernetes.io/part-of: harbor, re8ch.com/migration-stage: cluster-native}
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-r640
+  resources: {requests: {storage: 100Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-jobservice-cephfs
+  namespace: harbor
+  labels: {app.kubernetes.io/part-of: harbor, re8ch.com/migration-stage: cluster-native}
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-r640
+  resources: {requests: {storage: 5Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-trivy-cephfs
+  namespace: harbor
+  labels: {app.kubernetes.io/part-of: harbor, re8ch.com/migration-stage: cluster-native}
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: cephfs-r640
+  resources: {requests: {storage: 20Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-database-rbd
+  namespace: harbor
+  labels: {app.kubernetes.io/part-of: harbor, re8ch.com/migration-stage: cluster-native}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  resources: {requests: {storage: 10Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-redis-rbd
+  namespace: harbor
+  labels: {app.kubernetes.io/part-of: harbor, re8ch.com/migration-stage: cluster-native}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  resources: {requests: {storage: 5Gi}}

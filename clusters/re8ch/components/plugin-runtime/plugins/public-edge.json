@@ -1,0 +1,20 @@
+{
+  "apiVersion": "plugins.re8ch.com/v1alpha1",
+  "kind": "PluginDefinition",
+  "metadata": {"name": "public-edge"},
+  "spec": {
+    "source": {"type": "kubernetes"},
+    "discovery": {"mode": "api-discovery", "preserveCandidateSelection": true},
+    "identityRef": "plugin-public-edge",
+    "healthCheck": {"type": "kubernetes", "resource": "publicedges.networking.re8ch.com"},
+    "policy": {
+      "allowedOperations": ["get", "list", "patch"],
+      "deniedFields": ["secret", "password", "token", "privateKey", "clientSecret", "apiKey"],
+      "resourceScopes": [
+        {"group": "networking.re8ch.com", "version": "v1alpha1", "resource": "publicedges", "namespaced": false, "verbs": ["get", "list", "patch"]},
+        {"group": "gateway.networking.k8s.io", "version": "v1", "resource": "httproutes", "namespaced": true, "namespaces": ["qwen", "toolhive-system", "ai-operations"], "verbs": ["get", "list", "patch"]}
+      ]
+    },
+    "publication": {"enabled": true, "toolPrefix": "public-edge"}
+  }
+}

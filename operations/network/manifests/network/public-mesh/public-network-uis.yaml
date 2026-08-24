@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hyperglass-config
+  namespace: qianwen-ops
+data:
+  devices.yaml: |
+    devices:
+      - {name: vm-20-12-ubuntu, address: 192.0.2.192, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: pg-re8ch-replica-186, address: 192.0.2.89, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: artchais-nuclio-1, address: 192.0.2.182, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: qianwen-nuclio-79, address: 192.0.2.112, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: rancher-panel, address: 192.0.2.138, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: harbor-registry, address: 192.0.2.74, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: restricted-node-6dc3f140f9, address: 192.0.2.178, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hyperglass-redis
+  namespace: qianwen-ops
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: hyperglass-redis}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: hyperglass-redis}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      containers:
+        - name: redis
+          image: redis:7.4.2-alpine
+          args: ["--save", "", "--appendonly", "no"]
+          ports: [{name: redis, containerPort: 6379}]
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 64Mi}}
+          securityContext: {allowPrivilegeEscalation: false, runAsUser: 999, runAsGroup: 1000, capabilities: {drop: ["ALL"]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: hyperglass-redis, namespace: qianwen-ops}
+spec:
+  selector: {app.kubernetes.io/name: hyperglass-redis}
+  ports: [{name: redis, port: 6379, targetPort: redis}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hyperglass
+  namespace: qianwen-ops
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: hyperglass}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: hyperglass}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      imagePullSecrets: [{name: harbor-qianwen-admin}]
+      initContainers:
+        - name: prepare-config
+          image: registry.re8ch.com/qianwen/hyperglass:2.0.4-re8ch5
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "cp -a /etc/hyperglass/. /config/ && cp /config-source/devices.yaml /config/devices.yaml"]
+          securityContext: {allowPrivilegeEscalation: false, runAsUser: 0, runAsGroup: 0, capabilities: {drop: ["ALL"]}}
+          volumeMounts:
+            - {name: config-source, mountPath: /config-source, readOnly: true}
+            - {name: config, mountPath: /config}
+      containers:
+        - name: hyperglass
+          image: registry.re8ch.com/qianwen/hyperglass:2.0.4-re8ch5
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "-m", "hyperglass.console"]
+          args: ["start", "--workers", "1"]
+          env:
+            - {name: HYPERGLASS_REDIS_HOST, value: hyperglass-redis.qianwen-ops.svc.cluster.local}
+            - {name: HYPERGLASS_USE_PREBUILT_UI, value: "true"}
+            - {name: HYPERGLASS_HOST, value: 0.0.0.0}
+            - {name: HYPERGLASS_PORT, value: "8001"}
+            - {name: NODE_OPTIONS, value: "--max-old-space-size=768"}
+          ports: [{name: http, containerPort: 8001}]
+          readinessProbe: {httpGet: {path: /, port: http}, initialDelaySeconds: 15, periodSeconds: 10}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: "1", memory: 1Gi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: ["ALL"]}}
+          volumeMounts:
+            - {name: config, mountPath: /etc/hyperglass}
+            - {name: ssh, mountPath: /run/hyperglass-ssh, readOnly: true}
+      volumes:
+        - {name: config-source, configMap: {name: hyperglass-config}}
+        - {name: config, emptyDir: {}}
+        - {name: ssh, secret: {secretName: hyperglass-ssh, defaultMode: 256}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: hyperglass, namespace: qianwen-ops}
+spec:
+  selector: {app.kubernetes.io/name: hyperglass}
+  ports: [{name: http, port: 8001, targetPort: http}]
+---
+# Three isolated oauth2-proxy instances. Secret keys required per app:
+# OAUTH2_PROXY_CLIENT_ID, OAUTH2_PROXY_CLIENT_SECRET, OAUTH2_PROXY_COOKIE_SECRET.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: oauth2-proxy-hubble, namespace: qianwen-ops}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-hubble}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-hubble}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
+          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.re8ch.com", "--redirect-url=https://hubble.re8ch.com/oauth2/callback", "--upstream=http://hubble-ui.kube-system.svc.cluster.local:80", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
+          envFrom: [{secretRef: {name: oauth2-proxy-hubble}}]
+          ports: [{name: http, containerPort: 4180}]
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: oauth2-proxy-opencost, namespace: qianwen-ops}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-opencost}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-opencost}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
+          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.re8ch.com", "--redirect-url=https://cost.re8ch.com/oauth2/callback", "--upstream=http://opencost.opencost.svc.cluster.local:9090", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
+          envFrom: [{secretRef: {name: oauth2-proxy-opencost}}]
+          ports: [{name: http, containerPort: 4180}]
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: oauth2-proxy-hyperglass, namespace: qianwen-ops}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-hyperglass}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-hyperglass}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations: [{key: dedicated, operator: Equal, value: panel, effect: NoSchedule}]
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
+          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.re8ch.com", "--redirect-url=https://bgp.re8ch.com/oauth2/callback", "--upstream=http://hyperglass.qianwen-ops.svc.cluster.local:8001", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
+          envFrom: [{secretRef: {name: oauth2-proxy-hyperglass}}]
+          ports: [{name: http, containerPort: 4180}]
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: oauth2-proxy-hubble, namespace: qianwen-ops}
+spec: {type: NodePort, selector: {app.kubernetes.io/name: oauth2-proxy-hubble}, ports: [{name: http, port: 4180, targetPort: http, nodePort: 32180}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: oauth2-proxy-opencost, namespace: qianwen-ops}
+spec: {type: NodePort, selector: {app.kubernetes.io/name: oauth2-proxy-opencost}, ports: [{name: http, port: 4180, targetPort: http, nodePort: 32181}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: oauth2-proxy-hyperglass, namespace: qianwen-ops}
+spec: {type: NodePort, selector: {app.kubernetes.io/name: oauth2-proxy-hyperglass}, ports: [{name: http, port: 4180, targetPort: http, nodePort: 32182}]}

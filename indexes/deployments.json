@@ -21,7 +21,7 @@
   },
   {
     "module": "cloud-functions",
-    "ref": "k3s/re8ch"
+    "ref": "nuclio/re8ch-functions"
   },
   {
     "module": "cluster-website",
@@ -38,6 +38,10 @@
   {
     "module": "service-backend",
     "ref": "gitlab.com/reachievellc/service-backend"
+  },
+  {
+    "module": "service-backend",
+    "ref": "k3s/re8ch"
   },
   {
     "module": "tool-distribution",

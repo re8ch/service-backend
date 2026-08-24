@@ -1,0 +1,33 @@
+{
+  "version": "2.0",
+  "statement": [
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:GetService",
+        "name/cos:GetBucket",
+        "name/cos:GetBucketLocation",
+        "name/cos:ListMultipartUploads",
+        "name/cos:GetObject",
+        "name/cos:HeadObject"
+      ],
+      "resource": [
+        "*"
+      ]
+    },
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:PutObject",
+        "name/cos:DeleteObject",
+        "name/cos:InitiateMultipartUpload",
+        "name/cos:ListParts",
+        "name/cos:CompleteMultipartUpload",
+        "name/cos:AbortMultipartUpload"
+      ],
+      "resource": [
+        "qcs::cos:ap-guangzhou:uid/1301339749:general-1301339749/_re8ch-csi-probe/*"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+Host restricted-node-6dc3f140f9
+  HostName 192.0.2.178
+  User re8ch-ai
+Host restricted-node-1eb0570f74
+  HostName 192.0.2.176
+  User re8ch-ai
+Host restricted-node-296f36f2fb
+  HostName 192.0.2.4
+  User re8ch-ai
+Host amdwsl-zt
+  HostName 192.0.2.10
+  User re8ch-ai
+Host domain-ex
+  HostName 192.0.2.89
+  User re8ch-ai
+Host harbor
+  HostName 192.0.2.74
+  User re8ch-ai
+Host ali
+  HostName 192.0.2.112
+  User re8ch-ai
+Host overseas-edge-50
+  HostName 192.0.2.79
+  User re8ch-ai
+Host qwen-1
+  HostName 192.0.2.154
+  User re8ch-ai
+Host qwen-2
+  HostName 192.0.2.111
+  User re8ch-ai
+Host qwen-3
+  HostName 192.0.2.251
+  User re8ch-ai
+Host rancher
+  HostName 192.0.2.138
+  User re8ch-ai
+Host *
+  BatchMode yes
+  IdentitiesOnly yes
+  IdentityFile /etc/re8ch-ai-operations/id_ed25519
+  StrictHostKeyChecking accept-new
+  UserKnownHostsFile /var/lib/re8ch-ai-operations/known_hosts
+  ConnectTimeout 10
+  ServerAliveInterval 20
+  ServerAliveCountMax 3

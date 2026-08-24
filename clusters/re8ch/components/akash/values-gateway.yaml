@@ -1,0 +1,26 @@
+domain: provider-sandbox.akash.re8ch.com
+gateway:
+  name: akash-gateway
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes: {namespaces: {from: All}}
+    - name: tcp-8443
+      port: 8443
+      protocol: TCP
+      allowedRoutes:
+        namespaces: {from: All}
+        kinds: [{group: gateway.networking.k8s.io, kind: TCPRoute}]
+    - name: tcp-8444
+      port: 8444
+      protocol: TCP
+      allowedRoutes:
+        namespaces: {from: All}
+        kinds: [{group: gateway.networking.k8s.io, kind: TCPRoute}]
+  https:
+    enabled: true
+    wildcardHostname: "*.ingress.provider-sandbox.akash.re8ch.com"
+    wildcardCertificateSecret: wildcard-ingress-tls
+    defaultCertificateSecret: akash-default-tls

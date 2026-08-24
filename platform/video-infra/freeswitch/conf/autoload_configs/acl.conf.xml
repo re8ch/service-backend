@@ -1,0 +1,8 @@
+<configuration name="acl.conf" description="Voice ACLs">
+  <network-lists>
+    <list name="gxw" default="deny"><node type="allow" cidr="192.168.88.249/32"/></list>
+    <list name="agent-networks" default="deny">
+      <node type="allow" cidr="192.168.88.0/24"/><node type="allow" cidr="10.0.0.0/8"/>
+    </list>
+  </network-lists>
+</configuration>

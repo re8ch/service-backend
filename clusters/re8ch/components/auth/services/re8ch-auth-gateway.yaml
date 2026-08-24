@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: re8ch-auth-gateway
+  namespace: auth
+  labels:
+    app.kubernetes.io/name: re8ch-auth-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: re8ch-auth
+    saas.re8ch.com/tenant: auth
+    saas.re8ch.com/product: re8ch-auth
+    saas.re8ch.com/function: gateway
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: re8ch-auth-gateway
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: http

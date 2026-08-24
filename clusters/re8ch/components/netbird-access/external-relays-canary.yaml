@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-relay-gz-1
+  namespace: netbird-access
+  labels: &gzLabels
+    app.kubernetes.io/name: netbird-external-relay
+    app.kubernetes.io/instance: gz-1
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector: {matchLabels: *gzLabels}
+  template:
+    metadata:
+      labels: *gzLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      # This exception is limited to the external relay. The live Cilium
+      # installation has both NodePort and HostPort disabled, so bind only the
+      # explicitly authorized relay/STUN ports on the selected edge node.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector: {kubernetes.io/hostname: rancher-panel}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: panel, effect: NoSchedule}
+        - {key: node.kubernetes.io/not-ready, operator: Exists, effect: NoExecute}
+        - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: relay
+          image: netbirdio/relay:0.74.6
+          env:
+            - {name: NB_LOG_LEVEL, value: info}
+            - {name: NB_LISTEN_ADDRESS, value: ":31080"}
+            - {name: NB_EXPOSED_ADDRESS, value: "rels://relay-gz-1.re8ch.com:31080"}
+            - name: NB_AUTH_SECRET
+              valueFrom: {secretKeyRef: {name: netbird-external-relay-auth, key: NB_AUTH_SECRET}}
+            - {name: NB_TLS_CERT_FILE, value: /certs/tls.crt}
+            - {name: NB_TLS_KEY_FILE, value: /certs/tls.key}
+            - {name: NB_ENABLE_STUN, value: "true"}
+            - {name: NB_STUN_PORTS, value: "31081"}
+            - {name: NB_METRICS_PORT, value: "9090"}
+            - {name: NB_HEALTH_LISTEN_ADDRESS, value: ":9091"}
+          ports:
+            - {name: relay, containerPort: 31080, protocol: TCP}
+            - {name: relay-quic, containerPort: 31080, protocol: UDP}
+            - {name: stun, containerPort: 31081, protocol: UDP}
+            - {name: metrics, containerPort: 9090, protocol: TCP}
+            - {name: health, containerPort: 9091, protocol: TCP}
+          readinessProbe:
+            exec: {command: [sh, -c, 'grep -qi ":7968 " /proc/net/tcp /proc/net/tcp6']}
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            exec: {command: [sh, -c, 'grep -qi ":7968 " /proc/net/tcp /proc/net/tcp6']}
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: tls, mountPath: /certs, readOnly: true}
+      volumes:
+        - name: tls
+          secret: {secretName: netbird-external-relay-tls}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-relay-gz-1-dns
+  namespace: netbird-access
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: relay-gz-1.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 1.14.174.244
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: netbird-external-relay, app.kubernetes.io/instance: gz-1}
+  ports:
+    - {name: relay, port: 31080, targetPort: relay, protocol: TCP}
+    - {name: relay-quic, port: 31081, targetPort: relay-quic, protocol: UDP}
+    - {name: stun, port: 3478, targetPort: stun, protocol: UDP}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: netbird-relay-gz-1-dns
+  namespace: netbird-access
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/target: 1.14.174.244
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: relay-gz-1.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: netbird-relay-gz-1-dns, port: {name: relay}}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird-relay-hz-1
+  namespace: netbird-access
+  labels: &hzLabels
+    app.kubernetes.io/name: netbird-external-relay
+    app.kubernetes.io/instance: hz-1
+    app.kubernetes.io/part-of: re8ch-access
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector: {matchLabels: *hzLabels}
+  template:
+    metadata:
+      labels: *hzLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector: {kubernetes.io/hostname: harbor-registry}
+      tolerations:
+        - {key: node.kubernetes.io/not-ready, operator: Exists, effect: NoExecute}
+        - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: relay
+          image: netbirdio/relay:0.74.6
+          env:
+            - {name: NB_LOG_LEVEL, value: info}
+            - {name: NB_LISTEN_ADDRESS, value: ":31080"}
+            - {name: NB_EXPOSED_ADDRESS, value: "rels://relay-hz-1.re8ch.com:31080"}
+            - name: NB_AUTH_SECRET
+              valueFrom: {secretKeyRef: {name: netbird-external-relay-auth, key: NB_AUTH_SECRET}}
+            - {name: NB_TLS_CERT_FILE, value: /certs/tls.crt}
+            - {name: NB_TLS_KEY_FILE, value: /certs/tls.key}
+            - {name: NB_ENABLE_STUN, value: "true"}
+            - {name: NB_STUN_PORTS, value: "3478"}
+            - {name: NB_METRICS_PORT, value: "9090"}
+            - {name: NB_HEALTH_LISTEN_ADDRESS, value: ":9091"}
+          ports:
+            - {name: relay, containerPort: 31080, protocol: TCP}
+            - {name: relay-quic, containerPort: 31080, protocol: UDP}
+            - {name: stun, containerPort: 3478, protocol: UDP}
+            - {name: metrics, containerPort: 9090, protocol: TCP}
+            - {name: health, containerPort: 9091, protocol: TCP}
+          readinessProbe:
+            exec: {command: [sh, -c, 'grep -qi ":7968 " /proc/net/tcp /proc/net/tcp6']}
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            exec: {command: [sh, -c, 'grep -qi ":7968 " /proc/net/tcp /proc/net/tcp6']}
+            periodSeconds: 15
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: tls, mountPath: /certs, readOnly: true}
+      volumes:
+        - name: tls
+          secret: {secretName: netbird-external-relay-tls}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbird-relay-hz-1-dns
+  namespace: netbird-access
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: relay-hz-1.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 8.136.187.255
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: netbird-external-relay, app.kubernetes.io/instance: hz-1}
+  ports:
+    - {name: relay, port: 31080, targetPort: relay, protocol: TCP}
+    - {name: relay-quic, port: 31081, targetPort: relay-quic, protocol: UDP}
+    - {name: stun, port: 3478, targetPort: stun, protocol: UDP}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: netbird-relay-hz-1-dns
+  namespace: netbird-access
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/target: 8.136.187.255
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: relay-hz-1.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: netbird-relay-hz-1-dns, port: {name: relay}}}

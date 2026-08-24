@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "name": "harry",
+      "email": "harry@example.com",
+      "serial": "M7D5J3KV9H",
+      "state": "present",
+      "vpn_state": "present",
+      "invite_token": "harry-202607",
+      "invite_expires_at": 1798761600,
+      "local_id": "re8ch-ikev2-client-harry",
+      "certificate_name": "re8ch-ikev2-client-harry-v2",
+      "fleet_host_serials": ["M7D5J3KV9H"],
+      "vpn_profile_path": "/profiles/re8ch-enterprise-vpn-harry.mobileconfig",
+      "vpn_profile_identifier": "com.re8ch.fleet.vpn.ikev2.harry.profile"
+    },
+    {
+      "name": "hedy",
+      "email": "hedy@example.com",
+      "serial": "REPLACE_WITH_IPHONE_SERIAL",
+      "state": "present",
+      "vpn_state": "present",
+      "invite_token": "hedy-202607",
+      "invite_expires_at": 1798761600,
+      "local_id": "re8ch-ikev2-client-hedy",
+      "certificate_name": "re8ch-ikev2-client-hedy-v1",
+      "fleet_host_serials": [],
+      "vpn_profile_path": "/profiles/re8ch-enterprise-vpn-hedy.mobileconfig",
+      "vpn_profile_identifier": "com.re8ch.fleet.vpn.ikev2.hedy.profile"
+    }
+  ]
+}

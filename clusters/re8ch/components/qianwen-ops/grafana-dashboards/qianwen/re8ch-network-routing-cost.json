@@ -1,0 +1,65 @@
+{
+  "annotations":{"list":[]},
+  "editable":true,
+  "graphTooltip":1,
+  "id":null,
+  "links":[
+    {"title":"Hubble UI","url":"https://hubble.re8ch.com","targetBlank":true},
+    {"title":"OpenCost","url":"https://cost.re8ch.com","targetBlank":true},
+    {"title":"BGP Looking Glass","url":"https://bgp.re8ch.com","targetBlank":true}
+  ],
+  "panels":[
+    {
+      "id":1,"type":"nodeGraph","title":"Live network topology — selected and fallback paths","gridPos":{"h":15,"w":16,"x":0,"y":0},
+      "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
+      "targets":[
+        {"refId":"nodes","type":"json","source":"url","format":"node-graph-nodes","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/nodes","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"},
+        {"refId":"edges","type":"json","source":"url","format":"node-graph-edges","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/edges","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}
+      ],
+      "options":{"nodes":{"mainStatUnit":"short","secondaryStatUnit":"short"},"edges":{"mainStatUnit":"ms","secondaryStatUnit":"short"},"zoomMode":"cooperative"},
+      "fieldConfig":{"defaults":{"color":{"mode":"continuous-GrYlRd"}},"overrides":[]}
+    },
+    {
+      "id":2,"type":"geomap","title":"Provider and regional path map","gridPos":{"h":15,"w":8,"x":16,"y":0},
+      "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
+      "targets":[
+        {"refId":"nodes","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/nodes","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"},
+        {"refId":"edges","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/topology/edges","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}
+      ],
+      "options":{"view":{"id":"coords","lat":29.0,"lon":116.0,"zoom":4.5},"controls":{"showZoom":true,"showAttribution":true,"showScale":true},"layers":[
+        {"type":"markers","name":"Nodes","config":{"showLegend":true,"style":{"size":{"fixed":9},"color":{"fixed":"dark-green"},"symbol":{"fixed":"img/icons/marker/circle.svg"}},"location":{"mode":"coords","latitude":"latitude","longitude":"longitude"}},"filterData":{"id":"byRefId","options":"nodes"}},
+        {"type":"route","name":"Paths","config":{"showLegend":true,"style":{"lineWidth":2,"color":{"field":"selected","fixed":"semi-dark-blue"}},"location":{"mode":"coords","latitude":"sourceLatitude","longitude":"sourceLongitude"},"target":{"mode":"coords","latitude":"targetLatitude","longitude":"targetLongitude"}},"filterData":{"id":"byRefId","options":"edges"}}
+      ]},"fieldConfig":{"defaults":{},"overrides":[]}
+    },
+    {
+      "id":3,"type":"timeseries","title":"RTT and packet loss history","gridPos":{"h":8,"w":12,"x":0,"y":15},"datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "targets":[
+        {"refId":"A","expr":"re8ch_path_probe_rtt_milliseconds{node=~\"$node\",peer=~\"$peer\"}","legendFormat":"RTT {{node}} → {{peer}} / {{path}}","range":true},
+        {"refId":"B","expr":"re8ch_path_probe_packet_loss_ratio{node=~\"$node\",peer=~\"$peer\"} * 100","legendFormat":"Loss% {{node}} → {{peer}} / {{path}}","range":true}
+      ],"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","mean","max"]},"tooltip":{"mode":"multi","sort":"desc"}},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"drawStyle":"line","lineWidth":1,"fillOpacity":5,"showPoints":"never"}},"overrides":[]}
+    },
+    {
+      "id":4,"type":"timeseries","title":"Throughput and estimated network cost","gridPos":{"h":8,"w":12,"x":12,"y":15},"datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "targets":[
+        {"refId":"A","expr":"rate(re8ch_wireguard_peer_transmit_bytes_total{node=~\"$node\",peer=~\"$peer\"}[5m])","legendFormat":"TX {{node}} → {{peer}}","range":true},
+        {"refId":"B","expr":"re8ch_network_path_monthly_cost{node=~\"$node\",peer=~\"$peer\"}","legendFormat":"Cost {{node}} → {{peer}} / {{path}}","range":true}
+      ],"options":{"legend":{"displayMode":"table","placement":"bottom","calcs":["lastNotNull","mean","max"]},"tooltip":{"mode":"multi"}},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"drawStyle":"line","lineWidth":1,"fillOpacity":8,"showPoints":"never"}},"overrides":[]}
+    },
+    {
+      "id":5,"type":"table","title":"Node cost facts — pending values never count as free","gridPos":{"h":10,"w":12,"x":0,"y":23},
+      "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
+      "targets":[{"refId":"A","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/costs/nodes","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}],
+      "options":{"showHeader":true,"cellHeight":"sm"},"fieldConfig":{"defaults":{"custom":{"align":"auto","inspect":false}},"overrides":[]}
+    },
+    {
+      "id":6,"type":"table","title":"Directed path costs, quotas and budgets","gridPos":{"h":10,"w":12,"x":12,"y":23},
+      "datasource":{"type":"yesoreyeram-infinity-datasource","uid":"re8ch-network-topology"},
+      "targets":[{"refId":"A","type":"json","source":"url","format":"table","parser":"backend","url":"http://re8ch-routing-advisor.qianwen-ops.svc.cluster.local:9790/api/v1/costs/paths","url_options":{"method":"GET","data":"","body_type":"raw","body_content_type":"application/json"},"root_selector":"items"}],
+      "options":{"showHeader":true,"cellHeight":"sm"},"fieldConfig":{"defaults":{"custom":{"align":"auto","inspect":false}},"overrides":[]}
+    }
+  ],
+  "refresh":"30s","schemaVersion":41,"tags":["network","cilium","bgp","frr","cost"],"templating":{"list":[
+    {"name":"node","type":"query","datasource":{"type":"prometheus","uid":"ds-prometheus"},"query":{"query":"label_values(re8ch_path_probe_rtt_milliseconds, node)","refId":"node"},"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"},"refresh":1},
+    {"name":"peer","type":"query","datasource":{"type":"prometheus","uid":"ds-prometheus"},"query":{"query":"label_values(re8ch_path_probe_rtt_milliseconds, peer)","refId":"peer"},"includeAll":true,"allValue":".*","current":{"text":"All","value":"$__all"},"refresh":1}
+  ]},"time":{"from":"now-12h","to":"now"},"timezone":"browser","title":"RE8CH Network Topology & Cost Ledger","uid":"re8ch-network-routing-cost","version":2
+}

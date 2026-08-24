@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: node-dns-installer, namespace: registry-authority}
+data:
+  install.sh: |
+    #!/bin/sh
+    set -eu
+    host=/host
+    mkdir -p "$host/etc/systemd/resolved.conf.d"
+    cat >"$host/etc/systemd/resolved.conf.d/10-re8ch-public-dns.conf" <<'EOF'
+    [Resolve]
+    DNS=1.1.1.1 192.0.2.58
+    FallbackDNS=8.8.8.8 192.0.2.216
+    DNSSEC=no
+    DNSOverTLS=no
+    LLMNR=no
+    MulticastDNS=no
+    EOF
+    cat >"$host/etc/systemd/system/re8ch-split-dns.service" <<'EOF'
+    [Unit]
+    Description=RE8CH split DNS for ZeroTier names
+    After=systemd-resolved.service network-online.target
+    Wants=systemd-resolved.service network-online.target
+    [Service]
+    Type=oneshot
+    ExecStart=/bin/sh -ec 'iface=$(/usr/sbin/ip -o -4 addr show scope global | while read -r _ name _ addr _; do case "$addr" in 10.181.22.*) echo "$name"; break;; esac; done); test -n "$iface"; /usr/bin/resolvectl dns "$iface" 192.0.2.192 192.0.2.138; /usr/bin/resolvectl domain "$iface" ~zt.re8ch.com; /usr/bin/resolvectl default-route "$iface" no'
+    RemainAfterExit=yes
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    if chroot "$host" systemctl list-unit-files systemd-resolved.service >/dev/null 2>&1; then
+      chroot "$host" systemctl daemon-reload
+      chroot "$host" systemctl enable --now systemd-resolved.service re8ch-split-dns.service
+      if [ ! -e "$host/etc/resolv.conf.re8ch-backup" ]; then
+        cp -a "$host/etc/resolv.conf" "$host/etc/resolv.conf.re8ch-backup"
+      fi
+      ln -sfn /run/systemd/resolve/stub-resolv.conf "$host/etc/resolv.conf"
+      chroot "$host" resolvectl flush-caches
+    else
+      echo "systemd-resolved is not installed; leaving this node's resolver unchanged"
+    fi

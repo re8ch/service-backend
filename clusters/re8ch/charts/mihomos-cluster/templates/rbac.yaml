@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: mihomos-status, namespace: {{ .Release.Namespace }}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: {{ include "mihomos-cluster.name" . }}-status}
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list, create, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: {{ include "mihomos-cluster.name" . }}-status}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: {{ include "mihomos-cluster.name" . }}-status}
+subjects: [{kind: ServiceAccount, name: mihomos-status, namespace: {{ .Release.Namespace }}}]
+{{- range $index, $reader := .Values.statusReaders }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: mihomos-status-reader-{{ $index }}, namespace: {{ $.Release.Namespace }}}
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: mihomos-status-reader-{{ $index }}, namespace: {{ $.Release.Namespace }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: mihomos-status-reader-{{ $index }}}
+subjects: [{kind: ServiceAccount, name: {{ $reader.serviceAccount }}, namespace: {{ $reader.namespace }}}]
+{{- end }}

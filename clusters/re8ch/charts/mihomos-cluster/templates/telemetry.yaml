@@ -1,0 +1,47 @@
+{{- if .Values.telemetry.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: mihomos-status-agent, namespace: {{ .Release.Namespace }}}
+data:
+  collector.py: |
+{{ .Files.Get "files/collector.py" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomos-status-agent, namespace: {{ .Release.Namespace }}}
+spec:
+  selector: {matchLabels: {app.kubernetes.io/name: mihomos-status-agent}}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 100%, maxSurge: 0}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mihomos-status-agent}
+      annotations:
+        checksum/collector: {{ .Files.Get "files/collector.py" | sha256sum | quote }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: mihomos-status
+      tolerations: [{operator: Exists}]
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: collector
+          image: {{ .Values.telemetry.image | quote }}
+          command: [python, /opt/mihomos/collector.py]
+          env:
+            - {name: NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}
+            - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
+            - {name: DECLARED_GEO, valueFrom: {fieldRef: {fieldPath: "metadata.labels['networking.re8ch.com/geo']"}}}
+            - {name: NODE_REGION, valueFrom: {fieldRef: {fieldPath: "metadata.labels['topology.kubernetes.io/region']"}}}
+            - {name: CN_EXIT, valueFrom: {fieldRef: {fieldPath: "metadata.labels['networking.re8ch.com/mihomo-exit-cn']"}}}
+            - {name: GLOBAL_EXIT, valueFrom: {fieldRef: {fieldPath: "metadata.labels['networking.re8ch.com/mihomo-exit']"}}}
+            - {name: INTERVAL_SECONDS, value: {{ .Values.telemetry.intervalSeconds | quote }}}
+            - {name: IP_LOOKUP_URL, value: {{ .Values.telemetry.ipLookupUrl | quote }}}
+            - {name: LOCAL_PROXY, value: "http://127.0.0.1:{{ .Values.nodeProxy.port }}"}
+            - {name: LOCAL_CONTROLLER, value: "http://127.0.0.1:{{ .Values.nodeProxy.controllerPort }}/version"}
+            - {name: PROBES_JSON, value: {{ dict "cn" .Values.telemetry.probes.cn "global" .Values.telemetry.probes.global | toJson | quote }}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: code, mountPath: /opt/mihomos, readOnly: true}]
+      volumes: [{name: code, configMap: {name: mihomos-status-agent}}]
+{{- end }}

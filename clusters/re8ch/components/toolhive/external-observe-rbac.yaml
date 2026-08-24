@@ -1,0 +1,51 @@
+# Deliberately narrower than re8ch:ops-mcp-observe. The public backend needs
+# enough metadata to build sanitized health and inventory responses, but it
+# must never receive Secret, pod/log, exec, metrics, PV/PVC, Job or RBAC access.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:ops-mcp-public-observe
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "nodes", "pods", "services", "endpoints", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["nuclio.io"]
+    resources: ["nucliofunctions", "nucliofunctions/status", "nuclioapigateways", "nuclioprojects"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["toolhive.stacklok.dev"]
+    resources: ["mcpservers", "mcpservers/status", "mcpremoteproxies", "mcpremoteproxies/status", "mcpgroups", "mcptoolconfigs", "mcpoidcconfigs", "virtualmcpservers", "virtualmcpservers/status"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["kagent.dev"]
+    resources: ["remotemcpservers", "remotemcpservers/status"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["sandbox.opensandbox.io"]
+    resources: ["batchsandboxes", "batchsandboxes/status", "pools", "pools/status", "sandboxsnapshots", "sandboxsnapshots/status"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:ops-mcp-public-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-public-observe
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-public
+    namespace: toolhive-system

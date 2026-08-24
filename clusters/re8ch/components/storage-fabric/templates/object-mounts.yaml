@@ -1,0 +1,47 @@
+{{- range .Values.mounts }}
+{{- $provider := index $.Values.providers .provider }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: object-{{ .provider }}-{{ .name }}
+  labels:
+    storage.re8ch.com/provider: {{ .provider | quote }}
+    storage.re8ch.com/bucket: {{ .bucket | quote }}
+spec:
+  capacity:
+    storage: {{ .capacity | default "1Ti" }}
+  accessModes:
+{{ toYaml (.accessModes | default (list "ReadOnlyMany")) | indent 4 }}
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  mountOptions:
+{{ toYaml (.mountOptions | default (list "vfs-cache-mode=full")) | indent 4 }}
+  csi:
+    driver: rclone.csi.veloxpack.io
+    volumeHandle: {{ printf "%s-%s-%s-%s" .provider .bucket .prefix .name | sha256sum | trunc 63 | quote }}
+    nodePublishSecretRef:
+      name: {{ $provider.existingSecret }}
+      namespace: {{ $provider.secretNamespace }}
+    volumeAttributes:
+      remote: {{ $provider.remote | quote }}
+      remotePath: {{ printf "%s/%s" .bucket (.prefix | default "") | trimSuffix "/" | quote }}
+      # mount2 can perform a direct privileged mount and avoids Ubuntu's
+      # host-side fusermount3 AppArmor denial on r640.
+      mount_type: {{ .mountType | default "mount2" | quote }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+spec:
+  accessModes:
+{{ toYaml (.accessModes | default (list "ReadOnlyMany")) | indent 4 }}
+  resources:
+    requests:
+      storage: {{ .capacity | default "1Ti" }}
+  volumeMode: Filesystem
+  volumeName: object-{{ .provider }}-{{ .name }}
+  storageClassName: ""
+{{- end }}

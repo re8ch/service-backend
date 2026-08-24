@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-node-external-ip-config
+  namespace: kube-system
+data:
+  nodes.tsv: |
+    restricted-node-1eb0570f74 none none
+    amdwsl-zt none none
+    artchais-nuclio-1 static 192.0.2.86
+    restricted-node-296f36f2fb none none
+    harbor-registry static 192.0.2.185
+    overseas-edge-50 static 192.0.2.189
+    qianwen-nuclio-79 static 192.0.2.197
+    qianwen-prod-nuclio-3 none none
+    qianwen-test-nuclio-2 none none
+    rancher-panel static 192.0.2.192
+    restricted-node-6dc3f140f9 static 192.0.2.138
+    vm-20-12-ubuntu static 192.0.2.122

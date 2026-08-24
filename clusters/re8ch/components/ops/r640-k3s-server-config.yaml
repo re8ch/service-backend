@@ -1,0 +1,40 @@
+node-name: restricted-node-6dc3f140f9
+node-ip: 192.0.2.178
+node-external-ip: 192.0.2.138
+advertise-address: 192.0.2.179
+tls-san:
+  - 192.0.2.116
+  - 192.0.2.179
+  - 192.0.2.178
+  - 192.0.2.169
+  - k3s-api.internal.re8ch.com
+flannel-backend: none
+disable-network-policy: true
+write-kubeconfig-mode: "0644"
+node-label:
+  - "pigsty.cc/workload=pg-re8ch"
+  - "pigsty.cc/node-class=database"
+  - "pigsty.cc/provider=onprem"
+  - "pigsty.cc/region=r640-lan"
+  - "pigsty.cc/zt-ip=192.0.2.178"
+  - "re8ch.com/external-ip-mode=mikrotik-proxy"
+  - "re8ch.com/public-ip=none"
+  - "re8ch.com/numa-nodes=2"
+  - "re8ch.com/cilium-migrate=true"
+disable:
+  - servicelb
+kubelet-arg:
+  - "max-pods=1024"
+kube-apiserver-arg:
+  - "event-ttl=1h"
+  - "oidc-issuer-url=https://dex.re8ch.com"
+  - "oidc-client-id=headlamp"
+  - "oidc-username-claim=email"
+  - "oidc-username-prefix=oidc:"
+  - "oidc-groups-claim=groups"
+  - "oidc-groups-prefix=oidc:"
+embedded-registry: true
+cluster-init: true
+etcd-arg:
+  - "listen-client-urls=https://192.0.2.179:2379,https://192.0.2.178:2379,https://127.0.0.1:2379,https://192.0.2.169:2379"
+  - "listen-peer-urls=https://192.0.2.179:2380,https://192.0.2.178:2380,https://127.0.0.1:2380,https://192.0.2.169:2380"

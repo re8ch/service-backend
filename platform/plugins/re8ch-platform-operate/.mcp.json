@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "re8ch-platform-operate": {
+      "type": "http",
+      "url": "https://operate.tools.re8ch.com/mcp"
+    }
+  }
+}

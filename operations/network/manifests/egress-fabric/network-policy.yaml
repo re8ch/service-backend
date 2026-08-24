@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-fabric
+  namespace: egress-fabric
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - {port: 7890, protocol: TCP}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: mihomo-node}}
+      ports:
+        - {port: 1080, protocol: TCP}
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: netbird-access}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: netbird-router
+              app.kubernetes.io/instance: cn
+      ports:
+        - {port: 1080, protocol: TCP}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: path-controller}}
+      ports:
+        - {port: 9090, protocol: TCP}
+    # Decision/telemetry API is namespace-local. External clients submit
+    # evidence through an explicitly deployed collector, never a public port.
+    - from:
+        - podSelector: {}
+      ports:
+        - {port: 8080, protocol: TCP}
+  egress:
+    - {}

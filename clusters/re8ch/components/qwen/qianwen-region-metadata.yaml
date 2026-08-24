@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qianwen-region-metadata-nginx
+  namespace: qwen
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+
+      location = /_region {
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Accept, Authorization, Content-Length, Content-Type, X-Requested-With, X-Trace-Id, X-Client-Trace-Id, X-Request-Id, X-Error-Id, X-Client-Region, X-Preferred-Api, X-Region-Cache-Version, X-Client-Event-Id, X-Client-Interaction-Id, X-Client-Interaction-Name, X-Client-Visitor-Id, X-Client-Visitor-Token, X-Visitor-Id, X-Visitor-Token, X-PostHog-Distinct-Id, X-PostHog-Session-Id, X-PostHog-Window-Id, X-PostHog-Replay-Id, X-PostHog-Person-Properties, X-PostHog-Groups, X-PostHog-Group-Properties, X-Qianwen-Visitor-Id, X-Qianwen-Visitor-Token, X-Qianwen-Trace-Id" always;
+        add_header Access-Control-Max-Age "86400" always;
+        add_header Cache-Control "public, max-age=60, stale-while-revalidate=300" always;
+        add_header X-Region-Cache-Version "20260731-re8ch-api-v7" always;
+
+        if ($request_method = OPTIONS) {
+          return 204;
+        }
+
+        default_type application/json;
+
+        if ($host ~* (^|\.)ynzs\.com$) {
+          return 200 '{"clientRegion":"global","regionFamily":"re8ch","preferredApi":"https://api.re8ch.com","preferredApiName":"re8ch-api","readApi":"https://api.re8ch.com","writeApi":"https://api.re8ch.com","fallbackApis":[],"reason":"tencent_requires_re8ch_api_domain","routeSource":"qwen_re8ch_region_metadata","selectedRegion":"shanghai","ttlSeconds":60,"version":7}';
+        }
+
+        return 200 '{"clientRegion":"global","regionFamily":"re8ch","preferredApi":"https://api.re8ch.com","preferredApiName":"re8ch-api","readApi":"https://api.re8ch.com","writeApi":"https://api.re8ch.com","fallbackApis":[],"reason":"controller_managed_re8ch_api","routeSource":"qwen_re8ch_region_metadata","selectedRegion":"global","ttlSeconds":60,"version":7}';
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qianwen-region-metadata
+  namespace: qwen
+  labels:
+    app.kubernetes.io/name: qianwen-region-metadata
+    saas.re8ch.com/tenant: qianwen
+    saas.re8ch.com/layer: prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qianwen-region-metadata
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qianwen-region-metadata
+        saas.re8ch.com/tenant: qianwen
+        saas.re8ch.com/layer: prod
+    spec:
+      nodeSelector:
+        pigsty.cc/workload: nuclio
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: qianwen-region-metadata
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /_region
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: qianwen-region-metadata-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qianwen-region-metadata
+  namespace: qwen
+  annotations:
+    traefik.ingress.kubernetes.io/service.nativelb: "true"
+  labels:
+    app.kubernetes.io/name: qianwen-region-metadata
+    saas.re8ch.com/tenant: qianwen
+    saas.re8ch.com/layer: prod
+spec:
+  selector:
+    app.kubernetes.io/name: qianwen-region-metadata
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

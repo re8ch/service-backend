@@ -1,0 +1,8 @@
+otel:
+  tracing:
+    enabled: false
+
+kagent-tools:
+  otel:
+    tracing:
+      enabled: false

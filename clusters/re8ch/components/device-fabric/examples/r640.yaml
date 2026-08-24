@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge-devices
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: EdgeDevice
+metadata:
+  name: r640-mikrotik
+  namespace: edge-devices
+spec:
+  identity:
+    vendor: MikroTik
+    model: unknown
+    assetTag: r640-edge-router
+  placement:
+    site: r640
+  connections:
+    - name: lan
+      type: Network
+      network:
+        addresses: [192.168.88.1]
+  capabilities: [WebGUI, SNMP]
+  management:
+    protocols: [HTTPS, SSH, SNMP]
+    credentialSecretRef:
+      name: r640-mikrotik-management
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: EdgeDevice
+metadata:
+  name: r640-voice-host
+  namespace: edge-devices
+spec:
+  identity:
+    vendor: Dell
+    model: PowerEdge R640
+    assetTag: r640-voice-host
+  placement:
+    site: r640
+    nodeName: r640
+    upstreamDeviceRef:
+      name: r640-mikrotik
+  connections:
+    - name: lan
+      type: Network
+      network:
+        addresses: [192.168.88.251]
+  capabilities: [VoiceControl]
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: EdgeDevice
+metadata:
+  name: grandstream-gxw
+  namespace: edge-devices
+spec:
+  identity:
+    vendor: Grandstream
+    model: GXW
+  placement:
+    site: r640
+    upstreamDeviceRef:
+      name: r640-mikrotik
+  connections:
+    - name: lan
+      type: Network
+      network:
+        # Replace with the reserved address before reconciliation.
+        addresses: [192.0.2.10]
+  capabilities: [WebGUI, SIP, RTP, FXO, VoiceControl]
+  management:
+    protocols: [HTTPS]
+    credentialSecretRef:
+      name: grandstream-gxw-management
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: DeviceService
+metadata:
+  name: grandstream-gui
+  namespace: edge-devices
+spec:
+  deviceRef:
+    name: grandstream-gxw
+  connectionName: lan
+  protocol: HTTPS
+  port: 443
+  backendTLS:
+    serverName: grandstream-gxw.edge.internal
+    caCertificateRefs:
+      - name: grandstream-device-ca
+  authentication:
+    mode: Upstream
+  exposure:
+    mode: Gateway
+    hostname: grandstream.r640.re8ch.com
+    visibility: Authenticated
+    gatewayRef:
+      name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  healthCheck:
+    protocol: HTTPS
+    path: /
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: DeviceService
+metadata:
+  name: r640-voice-control
+  namespace: edge-devices
+spec:
+  deviceRef:
+    name: r640-voice-host
+  connectionName: lan
+  protocol: HTTP
+  port: 8088
+  exposure:
+    mode: ClusterIP
+    visibility: Private
+  healthCheck:
+    protocol: HTTP
+    path: /healthz
+---
+apiVersion: devices.re8ch.com/v1alpha1
+kind: VoiceGateway
+metadata:
+  name: grandstream-gxw
+  namespace: edge-devices
+spec:
+  provider: Grandstream
+  deviceRef:
+    name: grandstream-gxw
+  signaling:
+    transport: UDP
+    port: 5160
+  media:
+    rtpPortRange: {start: 20000, end: 20199}
+    codecs: [PCMA]
+    dtmfMode: RFC2833
+  lines:
+    - {name: line01, physicalPort: FXO-1, direction: Bidirectional}
+    - {name: line02, physicalPort: FXO-2, direction: Bidirectional}
+    - {name: line03, physicalPort: FXO-3, direction: Bidirectional}
+    - {name: line04, physicalPort: FXO-4, direction: Bidirectional}
+    - {name: line05, physicalPort: FXO-5, direction: Bidirectional}
+    - {name: line06, physicalPort: FXO-6, direction: Bidirectional}
+    - {name: line07, physicalPort: FXO-7, direction: Bidirectional}
+    - {name: line08, physicalPort: FXO-8, direction: Bidirectional}
+  controlServiceRef:
+    name: r640-voice-control
+---
+# USB scheduling is deliberately represented with the Kubernetes DRA API.
+# A node-local RE8CH DRA driver, not a user, owns ResourceSlice objects.
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: re8ch-usb
+spec:
+  selectors:
+    - cel:
+        expression: device.driver == "usb.devices.re8ch.com"
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: r640-usb-example
+  namespace: edge-devices
+spec:
+  devices:
+    requests:
+      - name: usb
+        exactly:
+          deviceClassName: re8ch-usb
+          selectors:
+            - cel:
+                # Replace with the selected inventory attributes.
+                expression: device.attributes["usb.devices.re8ch.com"].site == "r640"

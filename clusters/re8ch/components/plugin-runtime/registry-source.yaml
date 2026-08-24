@@ -1,0 +1,18 @@
+# Merge these entries into config.sources/config.registries in the Registry
+# Server Helm values. Git precedes Kubernetes and managed sources so reviewed
+# enable/disable and metadata overrides remain authoritative.
+config:
+  sources:
+    - name: re8ch-plugin-definitions
+      git:
+        repository: https://github.com/re8ch/cloud-functions.git
+        branch: master
+        path: manifests/k3s/plugin-runtime/registry.json
+      syncPolicy: {interval: 30s}
+    - name: managed-workloads
+      kubernetes: {namespaces: [toolhive-system]}
+    - name: re8ch-managed
+      managed: {}
+  registries:
+    - name: cluster-infra-plugins
+      sources: [re8ch-plugin-definitions, managed-workloads, re8ch-managed]

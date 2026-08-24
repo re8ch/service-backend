@@ -8,6 +8,6 @@ spec:
   workspace: {macPath: platform/service-backend, r640Path: platform/service-backend}
   projectType: gitops-control-plane
   writePolicy: github-pr
-  knowledge: [README.md, runbooks/]
-  tools: [glab, flux, re8ch-workspace]
-  deployments: [gitlab.com/reachievellc/service-backend]
+  knowledge: [README.md, runbooks/, clusters/, operations/]
+  tools: [glab, flux, re8ch-workspace, kubectl, helm]
+  deployments: [gitlab.com/reachievellc/service-backend, k3s/re8ch]

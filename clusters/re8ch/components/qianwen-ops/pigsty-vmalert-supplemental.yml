@@ -1,0 +1,39 @@
+groups:
+  - name: pigsty-k3s-supplemental-rules
+    rules:
+      - record: pg:cls:cpu_usage
+        expr: sum by (job, cls, source) (pg:ins:cpu_usage * pg:ins:cpu_count) / pg:cls:cpu_count
+      - record: pg:cls:cpu_usage_1m
+        expr: sum by (job, cls, source) (pg:ins:cpu_usage_1m * pg:ins:cpu_count) / pg:cls:cpu_count
+      - record: pg:cls:cpu_usage_5m
+        expr: sum by (job, cls, source) (pg:ins:cpu_usage_5m * pg:ins:cpu_count) / pg:cls:cpu_count
+      - record: pg:cls:cpu_usage_15m
+        expr: sum by (job, cls, source) (pg:ins:cpu_usage_15m * pg:ins:cpu_count) / pg:cls:cpu_count
+      - record: pg:env:cpu_usage
+        expr: sum by (job, source) (pg:cls:cpu_usage * pg:cls:cpu_count) / sum by (job, source) (pg:cls:cpu_count)
+      - record: pg:env:cpu_usage_1m
+        expr: sum by (job, source) (pg:cls:cpu_usage_1m * pg:cls:cpu_count) / sum by (job, source) (pg:cls:cpu_count)
+      - record: pg:env:cpu_usage_5m
+        expr: sum by (job, source) (pg:cls:cpu_usage_5m * pg:cls:cpu_count) / sum by (job, source) (pg:cls:cpu_count)
+      - record: pg:env:cpu_usage_15m
+        expr: sum by (job, source) (pg:cls:cpu_usage_15m * pg:cls:cpu_count) / sum by (job, source) (pg:cls:cpu_count)
+      - record: pg_bgwriter_buffers_backend
+        expr: pg_bgwriter_buffers_backend or (0 * pg_bgwriter_buffers_alloc)
+      - record: pg_bgwriter_buffers_checkpoint
+        expr: pg_bgwriter_buffers_checkpoint or pg_checkpointer_buffers_written or (0 * pg_bgwriter_buffers_alloc)
+      - record: pg_archiver_last_finish_time
+        expr: pg_archiver_last_finish_time or pg_archiver_finish_time
+      - record: pg_archiver_last_failed_time
+        expr: pg_archiver_last_failed_time or pg_archiver_failed_time
+      - record: pg_io_op_bytes
+        expr: pg_io_op_bytes or (0 * pg_io_reads + 8192)
+      - record: pg_table_toast_blks_hit
+        expr: pg_table_toast_blks_hit or (0 * pg_table_heap_blks_hit)
+      - record: pg_table_toast_blks_read
+        expr: pg_table_toast_blks_read or (0 * pg_table_heap_blks_read)
+      - record: pg_table_tidx_blks_hit
+        expr: pg_table_tidx_blks_hit or (0 * pg_table_idx_blks_hit)
+      - record: pg_table_tidx_blks_read
+        expr: pg_table_tidx_blks_read or (0 * pg_table_idx_blks_read)
+      - record: pg:table:scan
+        expr: pg:table:scan or pg_table_tbl_scan

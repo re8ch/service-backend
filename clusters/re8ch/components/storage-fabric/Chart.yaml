@@ -1,0 +1,12 @@
+apiVersion: v2
+name: re8ch-storage-fabric
+description: RE8CH storage inventory, object-store mounts, and placement policy
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: csi-driver-rclone
+    alias: rcloneCsi
+    version: 0.5.0
+    repository: file://vendor/csi-driver-rclone
+    condition: rcloneCsi.enabled

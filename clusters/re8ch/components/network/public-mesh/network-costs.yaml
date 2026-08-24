@@ -1,0 +1,80 @@
+{
+  "apiVersion": "networking.re8ch.com/v1alpha1",
+  "kind": "NetworkCostCatalog",
+  "metadata": {
+    "name": "re8ch-network-costs",
+    "currency": "CNY",
+    "effectiveFrom": "2026-08-02T00:00:00+08:00",
+    "owner": "platform-networking"
+  },
+  "providers": {
+    "public-internet": {
+      "pricingSource": "manual",
+      "apiAdapter": null,
+      "notes": "Enter contracted bandwidth, included traffic and overage rates per node."
+    },
+    "zerotier": {
+      "pricingSource": "manual",
+      "apiAdapter": null,
+      "notes": "Record controller, relay and self-hosted planet costs when known."
+    },
+    "aliyun": {
+      "pricingSource": "provider-api-preferred",
+      "apiAdapter": "aliyun-bssopenapi",
+      "credentialSecretRef": "network-cost-provider-credentials",
+      "notes": "Provider API enrichment is disabled until a least-privilege RAM role is approved."
+    }
+  },
+  "paths": [
+    {
+      "id": "public-wg-default",
+      "source": "*",
+      "destination": "*",
+      "pathType": "public_wg",
+      "providerPath": "public-internet-wireguard",
+      "billingDirection": "source-egress",
+      "billingModel": "per_gib_egress",
+      "pricePerGiB": null,
+      "monthlyIncludedGiB": null,
+      "monthlyFixedCost": null,
+      "tiers": [],
+      "monthlyBudget": null,
+      "effectiveFrom": "2026-08-03",
+      "sourceOfTruth": "manual-contract",
+      "status": "pending"
+    },
+    {
+      "id": "zerotier-default",
+      "source": "*",
+      "destination": "*",
+      "pathType": "zerotier",
+      "providerPath": "zerotier-overlay",
+      "billingDirection": "none",
+      "billingModel": "allocated-overhead",
+      "pricePerGiB": null,
+      "monthlyFixedCost": null,
+      "monthlyBudget": null,
+      "tiers": [],
+      "effectiveFrom": "2026-08-03",
+      "sourceOfTruth": "manual-contract",
+      "status": "pending"
+    },
+    {
+      "id": "aliyun-vpc-placeholder",
+      "source": "qianwen-nuclio-79",
+      "destination": "harbor-registry",
+      "pathType": "aliyun_vpc",
+      "providerPath": "aliyun-vpc-peer-shanghai-hangzhou",
+      "billingDirection": "source-egress",
+      "billingModel": "per_gib_egress",
+      "pricePerGiB": null,
+      "monthlyIncludedGiB": null,
+      "monthlyFixedCost": null,
+      "tiers": [],
+      "monthlyBudget": null,
+      "effectiveFrom": "2026-08-03",
+      "sourceOfTruth": "aliyun-console",
+      "status": "inactive"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+<profile name="agents">
+  <gateways/>
+  <domains><domain name="all" alias="true" parse="true"/></domains>
+  <settings>
+    <param name="sip-ip" value="192.168.88.251"/><param name="sip-port" value="5080"/>
+    <param name="rtp-ip" value="192.168.88.251"/><param name="context" value="from-agents"/>
+    <param name="apply-inbound-acl" value="agent-networks"/><param name="auth-calls" value="true"/>
+    <param name="inbound-codec-prefs" value="PCMA"/><param name="outbound-codec-prefs" value="PCMA"/>
+    <param name="disable-transcoding" value="true"/><param name="challenge-realm" value="voice.internal"/>
+    <param name="multiple-registrations" value="false"/><param name="max-proceeding" value="32"/>
+    <param name="dtmf-type" value="rfc2833"/><param name="rtp-timeout-sec" value="30"/>
+  </settings>
+</profile>

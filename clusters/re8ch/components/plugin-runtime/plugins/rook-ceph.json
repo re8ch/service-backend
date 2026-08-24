@@ -1,0 +1,21 @@
+{
+  "apiVersion": "plugins.re8ch.com/v1alpha1",
+  "kind": "PluginDefinition",
+  "metadata": {"name": "rook-ceph"},
+  "spec": {
+    "source": {"type": "kubernetes"},
+    "discovery": {"mode": "api-discovery", "helmRelease": {"namespace": "rook-ceph", "name": "rook-ceph"}},
+    "identityRef": "plugin-rook-ceph",
+    "healthCheck": {"type": "kubernetes", "resource": "cephclusters.ceph.rook.io"},
+    "policy": {
+      "allowedOperations": ["get", "list", "patch"],
+      "deniedFields": ["secret", "password", "token", "privateKey", "clientSecret", "apiKey"],
+      "resourceScopes": [
+        {"group": "ceph.rook.io", "version": "v1", "resource": "cephclusters", "namespaced": true, "namespaces": ["rook-ceph"], "verbs": ["get", "list"]},
+        {"group": "ceph.rook.io", "version": "v1", "resource": "cephfilesystems", "namespaced": true, "namespaces": ["rook-ceph"], "verbs": ["get", "list", "patch"]},
+        {"group": "storage.k8s.io", "version": "v1", "resource": "csidrivers", "namespaced": false, "verbs": ["get", "list"]}
+      ]
+    },
+    "publication": {"enabled": true, "toolPrefix": "rook-ceph"}
+  }
+}

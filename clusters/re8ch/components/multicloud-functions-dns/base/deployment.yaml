@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multicloud-functions-dns-controller
+spec:
+  # Retired: public DNS is exclusively managed by
+  # qianwen-ops/external-dns-cloudflare. Keep this at zero so an old overlay
+  # cannot resurrect a second Cloudflare writer.
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: multicloud-functions-dns-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: multicloud-functions-dns-controller
+    spec:
+      nodeSelector:
+        qianwen.cc/dns-controller: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: controller
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/scripts/controller.py"]
+          envFrom:
+            - configMapRef:
+                name: multicloud-functions-dns-controller-config
+            - secretRef:
+                name: multicloud-functions-dns-cloudflare
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: multicloud-functions-dns-controller-script
+            defaultMode: 0555

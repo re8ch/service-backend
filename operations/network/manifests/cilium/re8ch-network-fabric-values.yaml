@@ -1,0 +1,45 @@
+fabric:
+  enabled: true
+stage: 1
+pool:
+  name: re8ch-service-vip
+  cidr: 10.251.0.0/24
+  enabled: true
+canary:
+  enabled: true
+  namespace: kube-system
+  address: 10.251.0.1
+advertisement:
+  labels:
+    networking.re8ch.com/lb-pool: service-vip
+    networking.re8ch.com/bgp-advertise: enabled
+nodes:
+  a1:
+    hostname: a1-wsl-zt
+    localASN: 4250010147
+    routerID: 10.250.0.147
+    localAddress: 10.181.22.147
+    peers:
+      - {name: icp-frr, asn: 4200000073, address: 10.181.22.73}
+  b1:
+    hostname: b1-wsl-zt
+    localASN: 4250010125
+    routerID: 10.250.0.125
+    localAddress: 10.181.22.125
+    peers:
+      - {name: icp-frr, asn: 4200000073, address: 10.181.22.73}
+  r640:
+    hostname: r640
+    localASN: 4250000128
+    routerID: 10.250.0.128
+    localAddress: 10.250.0.128
+    peers:
+      - {name: frr-a1, asn: 4200010147, address: 10.250.0.147}
+      - {name: frr-b1, asn: 4200010125, address: 10.250.0.125}
+mihomoGateway:
+  enabled: false
+  existingPathsSecret: egress-fabric-paths
+  service:
+    type: ClusterIP
+    requestedLoadBalancerIP: ""
+    advertise: false

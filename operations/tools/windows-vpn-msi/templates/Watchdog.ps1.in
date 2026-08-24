@@ -1,0 +1,37 @@
+#Requires -RunAsAdministrator
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "SilentlyContinue"
+$VpnName = "@@VPN_NAME@@"
+$StateDirectory = Join-Path $env:ProgramData "RE8CH\Watchdog"
+$FailureStatePath = Join-Path $StateDirectory "egress-fleet-failures.txt"
+New-Item -ItemType Directory -Path $StateDirectory -Force | Out-Null
+
+$Vpn = Get-VpnConnection -Name $VpnName -AllUserConnection -ErrorAction SilentlyContinue
+if (-not $Vpn -or $Vpn.ConnectionStatus -ne "Connected") {
+    Set-Content -LiteralPath $FailureStatePath -Value "0" -Encoding ASCII -Force
+    exit 0
+}
+
+$FleetHealthy = Test-NetConnection `
+    -ComputerName "fleet.re8ch.com" `
+    -Port 443 `
+    -InformationLevel Quiet
+
+if ($FleetHealthy) {
+    Set-Content -LiteralPath $FailureStatePath -Value "0" -Encoding ASCII -Force
+    exit 0
+}
+
+$Failures = 0
+if (Test-Path -LiteralPath $FailureStatePath) {
+    $Failures = [int](Get-Content -LiteralPath $FailureStatePath -ErrorAction SilentlyContinue)
+}
+$Failures++
+Set-Content -LiteralPath $FailureStatePath -Value $Failures -Encoding ASCII -Force
+
+if ($Failures -ge 2) {
+    & rasdial.exe $VpnName /disconnect | Out-Null
+    Set-Content -LiteralPath $FailureStatePath -Value "0" -Encoding ASCII -Force
+}

@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-dual-route-server-inventory
+  namespace: kube-system
+  labels:
+    networking.re8ch.com/fabric: podcidr
+data:
+  fabric.yaml: |
+    routerOS:
+      address: 10.181.22.128
+      asn: 4200064001
+      export: [10.42.6.0/24]
+      import: 10.42.0.0/16 exact-/24
+      reject: [0.0.0.0/0, 10.181.22.0/24]
+    routeServers:
+      - {name: a1-wsl-zt, address: 10.181.22.147, asn: 4200010147}
+      - {name: b1-wsl-zt, address: 10.181.22.125, asn: 4200010125}
+    currentPodCIDRs:
+      vm-20-12-ubuntu: 10.42.0.0/24
+      r640: 10.42.6.0/24
+      amdwsl-zt: 10.42.7.0/24
+      qwen-3: 10.42.9.0/24
+      a1-wsl-zt: 10.42.10.0/24
+      overseas-edge-50: 10.42.11.0/24
+      qwen-1: 10.42.12.0/24
+      b1-wsl-zt: 10.42.13.0/24
+      qwen-2: 10.42.14.0/24
+      suxunji: 10.42.16.0/24
+      muaya-ecs: 10.42.17.0/24
+      muaya-lightweight: 10.42.19.0/24
+      zan: 10.42.20.0/24
+      domain-ex: 10.42.21.0/24
+    # Temporary advertisements while pre-reassignment Pods remain alive.
+    legacyActivePodCIDRs:
+      qwen-2: 10.42.2.0/24
+      qwen-1: 10.42.3.0/24
+      zan: 10.42.5.0/24

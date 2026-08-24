@@ -1,0 +1,49 @@
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = '{{ qwen_realtime_db_user }}') then
+    create role {{ qwen_realtime_db_user }} login replication;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    create role service_role nologin bypassrls;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'supabase_realtime_admin') then
+    create role supabase_realtime_admin noinherit nologin noreplication;
+  end if;
+end
+$$;
+
+alter role {{ qwen_realtime_db_user }} with login replication password '{{ qwen_realtime_db_password | replace("'", "''") }}';
+grant dbrole_readonly to {{ qwen_realtime_db_user }};
+grant set on parameter log_min_messages to {{ qwen_realtime_db_user }};
+grant supabase_realtime_admin to {{ qwen_realtime_db_user }} with admin option;
+grant anon, authenticated, service_role to {{ qwen_realtime_db_user }};
+grant web_user to {{ qwen_realtime_db_user }};
+grant connect, create on database {{ qwen_realtime_db_name }} to {{ qwen_realtime_db_user }};
+
+create schema if not exists _realtime authorization {{ qwen_realtime_db_user }};
+create schema if not exists realtime authorization {{ qwen_realtime_db_user }};
+alter role {{ qwen_realtime_db_user }} in database {{ qwen_realtime_db_name }} set search_path to _realtime;
+
+grant usage, create on schema realtime to supabase_realtime_admin;
+grant usage on schema api to {{ qwen_realtime_db_user }};
+grant select on api.task_event_outbox to {{ qwen_realtime_db_user }};
+grant select on api.task_event_outbox_event_id_seq to {{ qwen_realtime_db_user }};
+grant usage on schema api to authenticated;
+grant usage on schema realtime to anon, authenticated, service_role;
+grant select on api.task_event_outbox to authenticated;
+grant usage, select on sequence api.task_event_outbox_event_id_seq to authenticated;
+
+update _realtime.extensions
+set settings = jsonb_set(
+  jsonb_set(settings, '{publication}', '"{{ qwen_realtime_publication }}"'::jsonb),
+  '{slot_name}', '"{{ qwen_realtime_slot_name }}"'::jsonb
+)
+where tenant_external_id = '{{ qwen_realtime_tenant_id }}'
+  and type = 'postgres_cdc_rls';
+

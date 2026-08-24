@@ -1,0 +1,11 @@
+# RE8CH MikroTik domain rule helper placeholder.
+#
+# This file is intentionally not consumed by the current IP-only generator.
+# A future helper may resolve selected domain groups into MikroTik address
+# lists, but it must not become part of the management path.
+
+domain_groups:
+  cn_direct: []
+  apple_direct: []
+  ai_proxy: []
+  explicit_proxy: []

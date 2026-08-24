@@ -220,7 +220,7 @@
     "catalog": "platform",
     "id": "cloud-functions",
     "ownership": "owned",
-    "projectType": "kubernetes-platform",
+    "projectType": "nuclio-functions",
     "repository": "https://github.com/re8ch/cloud-functions.git"
   },
   {

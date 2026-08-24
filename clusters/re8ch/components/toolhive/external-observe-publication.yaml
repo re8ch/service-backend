@@ -1,0 +1,279 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ops-mcp-public
+  namespace: toolhive-system
+  labels:
+    re8ch.com/risk: public-read
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: external-observe-oidc
+  namespace: toolhive-system
+spec:
+  type: inline
+  inline:
+    issuer: https://auth.re8ch.com/application/o/toolhive-platform-observe/
+    clientId: re8ch-platform-observe
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPToolConfig
+metadata:
+  name: ops-public-read-tools
+  namespace: toolhive-system
+spec:
+  toolsFilter:
+    - get_usage_guide
+    - get_tenant_context
+    - list_k8s_resources
+    - get_registry_info
+    - get_tenant_resource_catalog
+    - get_grafana_links
+    - get_tenant_metrics_summary
+    - get_platform_service_health
+    - get_platform_service_catalog
+    - get_platform_permission_coverage
+    - get_platform_access_posture
+    - get_managed_platform_operation_status
+    - get_nuclio_function_status
+    - diagnose_nuclio_function
+    - get_nuclio_capacity_status
+    - get_litellm_gateway_status
+    - get_fleet_control_status
+    - get_supabase_platform_status
+    - get_neo4j_platform_status
+    - get_identity_platform_status
+    - get_agent_runtime_status
+    - get_observability_platform_status
+    - get_artifact_platform_status
+    - get_database_routing_status
+    - get_external_publication_readiness
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: ops-observe-external
+  namespace: toolhive-system
+  labels:
+    re8ch.com/risk: public-read
+    re8ch.com/publication-stage: canary
+  annotations:
+    re8ch.com/architecture-revision: scalable-vmcp-v2
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-title: RE8CH External Tools
+    toolhive.stacklok.dev/registry-description: OAuth-protected public read-only RE8CH tools.
+    toolhive.stacklok.dev/registry-category: operations,read-only,external,oauth
+    toolhive.stacklok.dev/registry-url: https://tools.re8ch.com/mcp
+spec:
+  groupRef: {name: platform-observe}
+  image: docker.1ms.run/library/python:3.12-alpine
+  backendReplicas: 2
+  replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 6
+    keyPrefix: "thv:mcp:observe-external:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-public
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: TRUST_LOOPBACK_PROXY, value: "true"}
+    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
+    - {name: OPS_TOOL_PROFILE, value: observe}
+    - {name: TENANT_NAMESPACE, value: platform}
+    - {name: TENANT_NAMESPACES, value: ""}
+    - {name: TENANT_DB_NAMES, value: ""}
+    - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
+    - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
+    - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
+    - {name: METRICS_URL, value: "http://192.0.2.178:30428"}
+    - {name: TENANT_METRICS_TENANT, value: platform}
+  toolConfigRef: {name: ops-public-read-tools}
+  telemetryConfigRef:
+    name: platform-tools-telemetry
+    serviceName: re8ch-ops-observe-external
+  audit: {enabled: true}
+  oidcConfigRef:
+    name: external-observe-oidc
+    audience: https://tools.re8ch.com/mcp
+    resourceUrl: https://tools.re8ch.com/mcp
+    scopes: [openid, profile, email, "platform:observe"]
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 250m, memory: 256Mi}
+  podTemplateSpec:
+    metadata:
+      annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/instance: ops-observe-external}}
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: mcp
+          command: [python, /app/app.py]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: app-code, mountPath: /app, readOnly: true}
+      volumes:
+        - name: app-code
+          configMap: {name: ops-mcp-server-code}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toolhive-cloud-ui
+  namespace: toolhive-system
+  labels:
+    app.kubernetes.io/name: toolhive-cloud-ui
+    app.kubernetes.io/part-of: toolhive
+spec:
+  replicas: 2
+  selector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: toolhive-cloud-ui
+        app.kubernetes.io/part-of: toolhive
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets: [{name: ghcr-re8ch}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+        - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
+      containers:
+        - name: cloud-ui
+          image: ghcr.io/re8ch/toolhive-cloud-ui@sha256:8f4a01e811e64bd2f76102f5b9e2736145b1c44f6325c8b8474a8b8c9c714488
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - {name: NODE_ENV, value: production}
+            - {name: OIDC_ISSUER_URL, value: "https://auth.re8ch.com/application/o/toolhive-cloud-ui"}
+            - {name: OIDC_CLIENT_ID, value: re8ch-toolhive-cloud-ui}
+            - {name: BETTER_AUTH_URL, value: "https://tools.re8ch.com"}
+            - {name: TRUSTED_ORIGINS, value: "https://tools.re8ch.com"}
+            - {name: API_BASE_URL, value: "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080"}
+            - {name: PUBLIC_CATALOG, value: "true"}
+            - {name: OIDC_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: oidc-client-secret}}}
+            - {name: BETTER_AUTH_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: better-auth-secret}}}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          startupProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 30}
+          readinessProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 3}
+          livenessProbe: {httpGet: {path: /, port: http}, periodSeconds: 10, failureThreshold: 3}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities: {drop: [ALL]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: toolhive-cloud-ui
+  namespace: toolhive-system
+spec:
+  selector: {app.kubernetes.io/name: toolhive-cloud-ui}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: toolhive-cloud-ui
+  namespace: toolhive-system
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: http
+  hostnames: [tools.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      backendRefs: [{name: toolhive-cloud-ui, port: 80}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tools-re8ch-com
+  namespace: toolhive-system
+  labels: {public.re8ch.com/external-dns: migrated-to-gateway-route}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [tools.re8ch.com]
+      secretName: re8ch-wildcard-tls
+  rules:
+    - host: tools.re8ch.com
+      http:
+        paths:
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: vmcp-re8ch-tools-vmcp
+                port: {number: 4483}
+          - path: /.well-known
+            pathType: Prefix
+            backend:
+              service:
+                name: vmcp-re8ch-tools-vmcp
+                port: {number: 4483}
+          - path: /oauth
+            pathType: Prefix
+            backend:
+              service:
+                name: vmcp-re8ch-tools-vmcp
+                port: {number: 4483}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: toolhive-cloud-ui
+  namespace: toolhive-system
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: tools.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: toolhive-cloud-ui
+                port: {number: 80}

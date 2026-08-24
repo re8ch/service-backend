@@ -1,0 +1,44 @@
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata: {name: cluster-infra-plugins, namespace: toolhive-system}
+spec: {description: "Git-governed, dynamically derived RE8CH infrastructure plugins."}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: cluster-infra-plugins-runtime
+  namespace: toolhive-system
+  annotations:
+    toolhive.stacklok.dev/registry-export: "true"
+    toolhive.stacklok.dev/registry-title: RE8CH Plugin Runtime
+    toolhive.stacklok.dev/registry-description: Dynamically derived Kubernetes, OpenAPI and reviewed CLI tools.
+    toolhive.stacklok.dev/authz-claims: '{"groups":["re8ch:k8s-admins","re8ch:infra-operators"]}'
+spec:
+  # vMCP only resolves explicitly aggregated workloads from its own group.
+  # Registry catalog identity remains cluster-infra-plugins via annotations/source.
+  groupRef: {name: platform-tools-public}
+  image: registry.re8ch.com/functions-shared/re8ch-plugin-runtime:0.1.2@sha256:0bea8e03f713181d4f497283941d232607c6377f175c7cd1f2ad16613b5d0c54
+  replicas: 1
+  # ToolHive v0.41 proxy-runner currently self-probes localhost:proxyPort when
+  # backendReplicas > 1. Keep this adapter at one backend; the independently
+  # deployed runtime remains two replicas and is the HA execution surface.
+  backendReplicas: 1
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: re8ch-plugin-runtime
+  env:
+    - {name: LISTEN_PORT, value: "8088"}
+    - {name: PLUGIN_DEFINITIONS_DIR, value: /etc/re8ch-plugins/definitions}
+    - {name: PLUGIN_SYNC_INTERVAL_SECONDS, value: "30"}
+  audit: {enabled: true}
+  podTemplateSpec:
+    spec:
+      containers:
+        - name: mcp
+          volumeMounts:
+            - {name: definitions, mountPath: /etc/re8ch-plugins/definitions, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: definitions, configMap: {name: re8ch-plugin-definitions}}
+        - {name: tmp, emptyDir: {sizeLimit: 64Mi}}

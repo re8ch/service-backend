@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-public-dns-authority
+  namespace: regional-routing
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: api.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  # DNS authority only. Public TLS terminates on the Cilium Gateway.
+  ingressClassName: external-dns-only
+  rules:
+    - host: api.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: public-edge-manager, port: {number: 8080}}}
