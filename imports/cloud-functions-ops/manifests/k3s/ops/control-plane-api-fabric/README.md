@@ -24,6 +24,25 @@ For the A1 network/TLS canary, install `a1-api-vip-tls-canary.yaml` as the
 documented host drop-in before restarting that follower. It changes only TLS
 SAN coverage; it must not be used as a substitute for the later advertise or
 etcd migration.
+
+### 2026-08-24 A1 canary result
+
+- With restricted-node-6dc3f140f9's `192.0.2.18/32` WG route withdrawn, a temporary route through
+  `192.0.2.131` (the MikroTik-managed ZT transport) carried ICMP and TCP
+  22/2379/2380/6443 successfully. The API and three-member control plane stayed
+  healthy, and restoration selected `wg-pt-a1` again.
+- A1 originated `192.0.2.220/32` over its WG BGP session. restricted-node-6dc3f140f9 installed the
+  exact route through `192.0.2.183`, and an authenticated kubectl request to
+  the VIP returned `/readyz` successfully with normal CA verification.
+- Withdrawal removed the VIP from restricted-node-6dc3f140f9's BGP RIB and kernel FIB. The canary VIP,
+  FRR network statement and temporary WG AllowedIPs entry were then removed.
+
+The experiment proves both transports and the VIP datapath, but does not make
+failover automatic. Before leaving the canary enabled, GitOps must persist a
+high-cost MikroTik/ZT fallback route for each control-plane identity and include
+the VIP in the eligible WG peers' AllowedIPs. The guarded transaction must bind
+and advertise the VIP only while the local authenticated API health check is
+passing; observe-only must leave no VIP state behind.
 5. Roll the K3s server configs one follower at a time and the leader last.
    Confirm the Kubernetes EndpointSlice changes to the corresponding
    `10.250.0.x` after every restart.
