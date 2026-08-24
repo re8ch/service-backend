@@ -74,6 +74,16 @@ advancedFabric:
       - {name: vm-20-12-ubuntu, localAsn: 4200000073, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
       - {name: overseas-edge-50, localAsn: 4200000050, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
       - {name: overseas-kl, localAsn: 4200000089, vipInterface: lo, frrExportPrefixLists: [], wireguardInterfaces: [wg-pt-a1], wireguardAllowedPrefixes: [192.0.2.220/32]}
+      - name: overseas-la
+        localAsn: 4200000104
+        vipInterface: lo
+        frrExportPrefixLists: []
+        wireguardInterfaces: []
+        wireguardAllowedPrefixes: [192.0.2.220/32]
+        # A1 UDP/51889 is currently unreachable; preserve the ZT fallback
+        # without shadowing overseas-la's healthy B1 WireGuard path.
+        fallbackRoutes:
+          - {destination: 192.0.2.18/32, dev: zto5uhdriy, src: 192.0.2.55, metric: 500}
     primaryTransport: wireguard
     fallbackTransport: zerotier
     healthCheck:
