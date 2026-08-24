@@ -152,6 +152,11 @@ def reconcile():
     advisor_edges = advisor_items("/api/v1/topology/edges")
     advisor_costs = advisor_items("/api/v1/costs/paths")
     node_index = {node["name"]: node for node in spec["nodes"]}
+    control_plane_api = spec.get("controlPlaneApi", {"enabled": False})
+    eligible_api_nodes = set(control_plane_api.get("eligibleNodes", []))
+    unknown_api_nodes = sorted(eligible_api_nodes - set(node_index))
+    if control_plane_api.get("enabled") and unknown_api_nodes:
+        raise ValueError(f"controlPlaneApi references unknown nodes: {','.join(unknown_api_nodes)}")
     rankings = {name: {profile: rank_paths(profile, node, advisor_edges, advisor_costs, ready)
                 for profile in ("fastest", "balanced", "greedy")} for name, node in node_index.items()}
     resolved = {node["name"]: {"fastest": [], "balanced": [], "greedy": []} for node in spec["nodes"]}
@@ -180,6 +185,7 @@ def reconcile():
                      "labels": {"app.kubernetes.io/name": "re8ch-advanced-fabric"}},
         "data": {name + ".json": json.dumps({"node": name, "mode": spec["mode"],
                   "applyEnabled": bool(spec.get("applyEnabled")) and not bool(spec.get("emergencyDisable")),
+                  "controlPlaneApi": dict(control_plane_api, eligible=name in eligible_api_nodes),
                   "podProfiles": profiles, "pathRankings": rankings.get(name, {}),
                   "weightedEcmp": bool(spec.get("weightedEcmp", {}).get("enabled"))}, sort_keys=True)
                  for name, profiles in resolved.items()}}
@@ -194,9 +200,14 @@ def reconcile():
     incomplete = [node["name"] for node in spec["nodes"] if not node.get("inventoryComplete")]
     unavailable = [node["name"] for node in spec["nodes"] if node["role"] == "spine" and
                    (not node.get("inventoryComplete") or not ready.get(node["name"], False))]
+    api_ready_nodes = sorted(name for name in eligible_api_nodes if ready.get(name, False))
     status = {"observedGeneration": fabric["metadata"].get("generation", 0),
               "mode": spec["mode"], "applyEnabled": bool(spec.get("applyEnabled")),
               "inventoryIncomplete": incomplete, "ineligibleSpines": unavailable,
+              "controlPlaneApi": {"enabled": bool(control_plane_api.get("enabled")),
+                                  "vip": control_plane_api.get("vip", ""),
+                                  "eligibleNodes": sorted(eligible_api_nodes),
+                                  "kubernetesReadyNodes": api_ready_nodes},
               "conditions": [condition("InventoryReady", not incomplete, "InventoryEvaluated", ",".join(incomplete) or "complete"),
                              condition("ApplySafe", not unavailable and not spec.get("emergencyDisable"), "SpinesEvaluated", ",".join(unavailable) or "all eligible"),
                              condition("DatabaseRoleAuthorityReady", True, "PatroniObserved", "leader=" + role_authority["leader"]["name"])],

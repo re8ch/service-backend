@@ -1,8 +1,10 @@
 node-name: restricted-node-6dc3f140f9
 node-ip: 192.0.2.183
 node-external-ip: 192.0.2.79
-advertise-address: 192.0.2.183
+advertise-address: 192.0.2.205
 tls-san:
+  - 192.0.2.220
+  - 192.0.2.205
   - 192.0.2.183
   - 192.0.2.97
   - k3s-api.internal.re8ch.com
@@ -34,5 +36,5 @@ kube-apiserver-arg:
 embedded-registry: true
 cluster-init: true
 etcd-arg:
-  - "listen-client-urls=https://192.0.2.183:2379,https://127.0.0.1:2379,https://192.0.2.97:2379"
-  - "listen-peer-urls=https://192.0.2.183:2380,https://127.0.0.1:2380,https://192.0.2.97:2380"
+  - "listen-client-urls=https://192.0.2.205:2379,https://192.0.2.183:2379,https://127.0.0.1:2379,https://192.0.2.97:2379"
+  - "listen-peer-urls=https://192.0.2.205:2380,https://192.0.2.183:2380,https://127.0.0.1:2380,https://192.0.2.97:2380"
