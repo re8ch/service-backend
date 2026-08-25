@@ -284,6 +284,8 @@ spec:
   publicVIPs:
     - {cidr: 192.0.2.209/32, owner: restricted-node-6dc3f140f9, fallbackDistance: 250, healthAuthority: GatewayServiceProbe}
   peers:
-    - {name: re8ch-r640-public-origin-v2, role: r640-public-origin, address: 192.0.2.97/32, remoteASN: 4200000128, localAddress: 192.0.2.131, acceptedPrefixes: [192.0.2.18/24, 192.0.2.209/32], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: true, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
+    # BFD remains disabled until the matching 192.0.2.131 peer is configured
+    # and verified in restricted-node-6dc3f140f9 FRR. The 10/30 BGP timers are the active failure gate.
+    - {name: re8ch-r640-public-origin-v2, role: r640-public-origin, address: 192.0.2.97/32, remoteASN: 4200000128, localAddress: 192.0.2.131, acceptedPrefixes: [192.0.2.18/24, 192.0.2.209/32], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
     - {name: re8ch-pod-rs-a1-v2, role: cluster-route-server, address: 192.0.2.18/32, remoteASN: 4200010147, localAddress: 192.0.2.183, acceptedPrefixes: &remotePodCIDRs [192.0.2.224/24, 192.0.2.238/24, 192.0.2.52/24, 192.0.2.109/24, 192.0.2.208/24, 192.0.2.75/24, 192.0.2.26/24, 192.0.2.8/24, 192.0.2.122/24, 192.0.2.99/24, 192.0.2.172/24, 192.0.2.186/24, 192.0.2.26/24], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
     - {name: re8ch-pod-rs-b1-v2, role: cluster-route-server, address: 192.0.2.208/32, remoteASN: 4200010125, localAddress: 192.0.2.183, acceptedPrefixes: *remotePodCIDRs, maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
