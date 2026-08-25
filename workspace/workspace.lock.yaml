@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-08-22T16:00:54Z'
-  generation: 1787414454
+  generatedAt: '2026-08-25T05:35:45Z'
+  generation: 1787636145
   schemaHash: 5d783beee9ec746ad36400ea00b60eb901479576fc81f47062923892236bfe23
 modules:
   2woodblog:
@@ -11,7 +11,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/2woodblog.git
   advanced-fabric:
-    commit: 27ed1e0a4dac64810dfdaf6fce02460a4525dae0
+    commit: 95d1bd2d0bb75b02b3e192e3382ad97524dfea57
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/advanced-fabric.git
@@ -90,7 +90,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/career-ops.git
   cloud-functions:
-    commit: f2da95fdaa076256cc17df54b4ea13f643434bfd
+    commit: 1d1f8473d7910c350ca79d1f35b8e7936c08eb32
     defaultBranch: master
     dependencies: []
     repository: https://github.com/re8ch/cloud-functions.git
@@ -282,4 +282,3 @@ modules:
     defaultBranch: master
     dependencies: []
     repository: https://github.com/Z-Anatomy/Models-of-human-anatomy.git
-
