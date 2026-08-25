@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - stalwart.yaml
   - desired-mail-domain.yaml
+  - bootstrap-plan.yaml

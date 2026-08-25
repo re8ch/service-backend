@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-bootstrap-plan
+  namespace: mail-system
+data:
+  plan.ndjson: |
+    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}
+    {"@type":"upsert","object":"NetworkListener","matchOn":["name"],"value":{"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"tlsImplicit":false},"imap":{"name":"imap","protocol":"imap","bind":{"[::]:143":true},"tlsImplicit":false}}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-bootstrap-reconciler-v5
+  namespace: mail-system
+  labels:
+    governance.re8ch.com/change-plane: deploying
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: stalwart-bootstrap-reconciler}
+    spec:
+      restartPolicy: Never
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: reconcile
+          image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+          command: [/bin/sh, -ceu]
+          args:
+            - |
+              export STALWART_URL=http://stalwart.mail-system.svc.cluster.local:8080
+              export STALWART_USER="${STALWART_RECOVERY_ADMIN%%:*}"
+              export STALWART_PASSWORD="${STALWART_RECOVERY_ADMIN#*:}"
+              unset STALWART_RECOVERY_ADMIN
+              cli=/cli/usr/local/bin/stalwart-cli
+              "${cli}" apply --file /plan/plan.ndjson --dry-run
+              "${cli}" apply --file /plan/plan.ndjson --json
+          envFrom:
+            - secretRef: {name: stalwart-recovery-admin}
+          env:
+            - {name: XDG_CACHE_HOME, value: /cache}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: plan, mountPath: /plan, readOnly: true}
+            - {name: cli, mountPath: /cli, readOnly: true}
+            - {name: cache, mountPath: /cache}
+      volumes:
+        - {name: plan, configMap: {name: stalwart-bootstrap-plan}}
+        - name: cli
+          image:
+            reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+            pullPolicy: IfNotPresent
+        - {name: cache, emptyDir: {}}
