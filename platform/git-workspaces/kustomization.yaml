@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - crds.yaml
   - evidence-admission.yaml
+  - owner-approval-admission.yaml
   - evidence-rbac.yaml
   - controller.yaml
   - project-accounts.yaml
