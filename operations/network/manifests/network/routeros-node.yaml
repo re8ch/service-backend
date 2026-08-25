@@ -71,6 +71,16 @@ spec:
         - name: Safety
           type: string
           jsonPath: .status.safety
+    - name: v1alpha2
+      served: true
+      storage: false
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -217,7 +227,9 @@ metadata:
   name: routeros-node-controller
   namespace: kube-system
 spec:
-  replicas: 1
+  # Superseded by the advanced-fabric 0.8 RouterOS v2 observer. Preserve this
+  # object for rollback while ensuring there is only one status writer.
+  replicas: 0
   selector:
     matchLabels: {app: routeros-node-controller}
   template:
@@ -247,7 +259,7 @@ spec:
         - name: code
           configMap: {name: routeros-node-controller}
 ---
-apiVersion: networking.re8ch.com/v1alpha1
+apiVersion: networking.re8ch.com/v1alpha2
 kind: RouterOSNode
 metadata:
   name: r640-boundary
@@ -255,34 +267,23 @@ spec:
   nodeRef: restricted-node-6dc3f140f9
   routerAddress: 192.0.2.131
   mode: Observe
-  localPodCIDR: 192.0.2.18/24
+  routerASN: 4200064001
+  continuity:
+    operatorWitness: macmini
+    mainDefaultGateway: 192.0.2.88
+    mainDefaultInterface: ether4
+    requireExternalProbe: true
   credentialsSecretRef:
     namespace: ops
     name: mikrotik-routeros-admin
-  # RouterOS owns the public address and boundary policy. restricted-node-6dc3f140f9 is a LAN/BGP
-  # backend, not the holder of the WAN address. PublicEdge health must include
-  # RouterOS forwarding counters for every advertised listener.
-  publicEdge:
-    publicIP: 192.0.2.79
-    authority: RouterOS
-    deliveryMode: EBGPTransitAndDNAT
-    lanBackend: 192.0.2.97
-    requiredForwardPorts: [80, 443]
-  bgp:
-    routerASN: 4200064001
-    peerASN: 4200000128
-    peerAddress: 192.0.2.97
-  remotePodCIDRs:
-    - {cidr: 192.0.2.224/24, nextHop: 192.0.2.67}
-    - {cidr: 192.0.2.238/24, nextHop: 192.0.2.249}
-    - {cidr: 192.0.2.52/24, nextHop: 192.0.2.33}
-    - {cidr: 192.0.2.109/24, nextHop: 192.0.2.18}
-    - {cidr: 192.0.2.208/24, nextHop: 192.0.2.122}
-    - {cidr: 192.0.2.75/24, nextHop: 192.0.2.115}
-    - {cidr: 192.0.2.26/24, nextHop: 192.0.2.208}
-    - {cidr: 192.0.2.8/24, nextHop: 192.0.2.91}
-    - {cidr: 192.0.2.122/24, nextHop: 192.0.2.143}
-    - {cidr: 192.0.2.99/24, nextHop: 192.0.2.203}
-    - {cidr: 192.0.2.172/24, nextHop: 192.0.2.141}
-    - {cidr: 192.0.2.186/24, nextHop: 192.0.2.79}
-    - {cidr: 192.0.2.26/24, nextHop: 192.0.2.172}
+  apply: {enabled: false, checksum: ""}
+  routeDomains:
+    - {name: re8ch-service-fast, fib: true, prefixes: [192.0.2.224/16, 192.0.2.215/24], fallbackTable: main}
+  protectedPrefixes: [0.0.0.0/0, 192.0.2.253/24, 192.0.2.146/24, 192.0.2.139/24, 192.0.2.136/23, 192.0.2.16/24, 192.0.2.101/24, 192.0.2.170/24, 192.0.2.246/24, 192.0.2.5/30]
+  fallbackNextHop: 192.0.2.97
+  publicVIPs:
+    - {cidr: 192.0.2.209/32, owner: restricted-node-6dc3f140f9, fallbackDistance: 250, healthAuthority: GatewayServiceProbe}
+  peers:
+    - {name: re8ch-r640-public-origin-v2, role: r640-public-origin, address: 192.0.2.97/32, remoteASN: 4200000128, localAddress: 192.0.2.131, acceptedPrefixes: [192.0.2.18/24, 192.0.2.209/32], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: true, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
+    - {name: re8ch-pod-rs-a1-v2, role: cluster-route-server, address: 192.0.2.18/32, remoteASN: 4200010147, localAddress: 192.0.2.183, acceptedPrefixes: &remotePodCIDRs [192.0.2.224/24, 192.0.2.238/24, 192.0.2.52/24, 192.0.2.109/24, 192.0.2.208/24, 192.0.2.75/24, 192.0.2.26/24, 192.0.2.8/24, 192.0.2.122/24, 192.0.2.99/24, 192.0.2.172/24, 192.0.2.186/24, 192.0.2.26/24], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
+    - {name: re8ch-pod-rs-b1-v2, role: cluster-route-server, address: 192.0.2.208/32, remoteASN: 4200010125, localAddress: 192.0.2.183, acceptedPrefixes: *remotePodCIDRs, maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
