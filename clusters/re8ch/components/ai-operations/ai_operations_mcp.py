@@ -70,7 +70,7 @@ CREDENTIAL_CATALOG = {
     "harbor-api": {"kind": "environment", "env": "HARBOR_API_TOKEN", "actions": ["harbor-api"]},
     "grafana-api": {"kind": "environment", "env": "GRAFANA_API_TOKEN", "actions": ["grafana-api"]},
     "litellm-api": {"kind": "environment", "env": "LITELLM_API_TOKEN", "actions": ["litellm-read"]},
-    "github-native": {"kind": "native-connection", "actions": ["github-api"]},
+    "github-native": {"kind": "environment", "env": "GH_TOKEN", "actions": ["github-api"]},
 }
 
 
@@ -868,6 +868,12 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 result = command_result(commands[domain], None, 120)
             elif domain in {"harbor", "grafana", "litellm"}:
                 result = command_result(commands[domain], None, 120)
+            elif domain == "github":
+                token = os.getenv("GH_TOKEN")
+                if not token:
+                    raise RuntimeError("credential reference is unavailable: github-native")
+                remote = "GH_TOKEN=$(cat) " + shlex.join(commands[domain])
+                result = command_result(ssh_argv(exec_node, remote), token, 120)
             else:
                 result = command_result(ssh_argv(exec_node, shlex.join(commands[domain])), None, 120)
             return {"domain": domain, "interface_mode": interface_mode, "transport": transport, **result}
@@ -876,6 +882,12 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             argv = args["argv"]
             if not argv or argv[0] != prefix[0]:
                 raise ValueError(f"{domain} command must start with {prefix[0]}")
+            if domain == "github":
+                token = os.getenv("GH_TOKEN")
+                if not token:
+                    raise RuntimeError("credential reference is unavailable: github-native")
+                remote = "GH_TOKEN=$(cat) " + shlex.join(argv)
+                return command_result(ssh_argv(exec_node, remote), token, int(args.get("timeout_seconds", 600)))
             return command_result(ssh_argv(exec_node, shlex.join(argv)), args.get("stdin"), int(args.get("timeout_seconds", 600)))
 
     if PROFILE in {"orchestra", "all"}:
@@ -893,7 +905,10 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         headers = {"Accept": "application/json"}
         token = os.getenv(f"{service.upper()}_API_TOKEN")
         if token:
-            headers["Authorization"] = f"Bearer {token}"
+            if service == "opensandbox":
+                headers["OPEN-SANDBOX-API-KEY"] = token
+            else:
+                headers["Authorization"] = f"Bearer {token}"
         request = urllib.request.Request(base + path, data=body, method=method, headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=30) as response:

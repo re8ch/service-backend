@@ -7,11 +7,14 @@ kind: Role
 metadata: {name: git-workspace-controller, namespace: git-workspaces}
 rules:
   - apiGroups: [governance.re8ch.com]
-    resources: [gitaccounts, gitworkspaces, workcontracts, workevidences]
+    resources: [gitaccounts, gitworkspaces, workcontracts, workevidences, ownerapprovals, projectcapabilities]
     verbs: [get, list, watch]
   - apiGroups: [governance.re8ch.com]
-    resources: [gitworkspaces/status, workcontracts/status]
+    resources: [gitaccounts/status, gitworkspaces/status, workcontracts/status, projectcapabilities/status]
     verbs: [get, patch, update]
+  - apiGroups: [governance.re8ch.com]
+    resources: [projectcapabilities]
+    verbs: [create, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -69,6 +72,42 @@ data:
 
     def reconcile():
         accounts = {item["metadata"]["name"]: item for item in items("gitaccounts")}
+        approvals = {}
+        for item in items("ownerapprovals"):
+            approvals.setdefault(item["spec"]["accountRef"], []).append(item)
+        capabilities = {item["spec"]["accountRef"]: item for item in items("projectcapabilities")}
+        for name, account in accounts.items():
+            mailbox = (account.get("status") or {}).get("mailbox") or {}
+            account_approvals = approvals.get(name, [])
+            approval = account_approvals[0] if len(account_approvals) == 1 else None
+            approved = bool(approval and approval["spec"]["pullRequest"]["merged"])
+            ready = mailbox.get("phase") == "Ready" and approved
+            ownership = {
+                "phase": "Ready" if ready else "AwaitingOwnerReview" if mailbox.get("phase") == "Ready" else "AwaitingMailbox",
+                "identityCommit": approval["spec"]["identityCommit"] if approved else "",
+                "approvalRef": approval["metadata"]["name"] if approved else "",
+            }
+            if (account.get("status") or {}).get("ownership") != ownership:
+                request(
+                    f"{collection('gitaccounts')}/{name}/status",
+                    method="PATCH",
+                    body={"status": {"ownership": ownership}},
+                    content_type="application/merge-patch+json",
+                )
+            capability = capabilities.get(name)
+            if ready and capability is None:
+                request(collection("projectcapabilities"), method="POST", body={
+                    "apiVersion": f"{GROUP}/{VERSION}",
+                    "kind": "ProjectCapability",
+                    "metadata": {"name": name, "namespace": NS},
+                    "spec": {
+                        "accountRef": name,
+                        "projectRef": account["spec"]["project"],
+                        "capabilities": ["project-write", "edgeone-deploy"],
+                    },
+                })
+            elif not ready and capability is not None:
+                request(f"{collection('projectcapabilities')}/{capability['metadata']['name']}", method="DELETE")
         workspaces = items("gitworkspaces")
         by_account = {}
         for workspace in workspaces:

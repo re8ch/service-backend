@@ -111,7 +111,8 @@ spec:
             - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
             - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
-            - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-server.opensandbox-system.svc.cluster.local:8080"}
+            - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-orchestra-proxy.opensandbox-system.svc.cluster.local:8080"}
+            - {name: GH_TOKEN, valueFrom: {secretKeyRef: {name: github-native-auth, key: token, optional: true}}}
             - {name: KAGENT_BASE_URL, value: "http://kagent-controller.kagent.svc.cluster.local:8083"}
             - {name: CODEX_BASE_URL, value: "http://codex-app-server.codex-app-server.svc.cluster.local:4500"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
@@ -246,7 +247,8 @@ spec:
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
             - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
-            - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-server.opensandbox-system.svc.cluster.local:8080"}
+            - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-orchestra-proxy.opensandbox-system.svc.cluster.local:8080"}
+            - {name: GH_TOKEN, valueFrom: {secretKeyRef: {name: github-native-auth, key: token, optional: true}}}
             - {name: KAGENT_BASE_URL, value: "http://kagent-controller.kagent.svc.cluster.local:8083"}
             - {name: CODEX_BASE_URL, value: "http://codex-app-server.codex-app-server.svc.cluster.local:4500"}
           ports: [{name: http, containerPort: 19443}]

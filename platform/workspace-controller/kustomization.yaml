@@ -1,3 +1,3 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: [r640-mirror.yaml]
+resources: [r640-mirror.yaml, re8ch-owner-pilot.yaml]

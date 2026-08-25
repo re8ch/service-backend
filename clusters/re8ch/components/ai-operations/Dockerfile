@@ -1,6 +1,6 @@
 FROM alpine:3.22
 
-RUN apk add --no-cache python3 kubectl openssh-client ca-certificates curl
+RUN apk add --no-cache python3 kubectl openssh-client ca-certificates curl github-cli
 COPY ai_operations_mcp.py /app/ai_operations_mcp.py
 RUN addgroup -S re8ch && adduser -S -G re8ch -h /var/lib/re8ch-ai-operations re8ch \
     && mkdir -p /etc/re8ch-ai-operations/kubeconfigs /var/lib/re8ch-ai-operations \

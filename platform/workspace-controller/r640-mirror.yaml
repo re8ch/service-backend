@@ -20,6 +20,7 @@ spec:
           restartPolicy: Never
           nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
           serviceAccountName: workspace-controller
+          securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
           containers:
             - name: mirror
               image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
@@ -32,8 +33,8 @@ spec:
                 - {name: credentials, mountPath: /credentials, readOnly: true}
                 - {name: artifacts, mountPath: /srv/re8ch/agent-artifacts}
           volumes:
-            - {name: mirrors, hostPath: {path: /var/lib/re8ch/workspace-mirrors, type: Directory}}
-            - {name: worktrees, hostPath: {path: /var/lib/re8ch/agent-workspaces, type: Directory}}
+            - {name: mirrors, hostPath: {path: /var/lib/re8ch/workspace-mirrors, type: DirectoryOrCreate}}
+            - {name: worktrees, hostPath: {path: /var/lib/re8ch/agent-workspaces, type: DirectoryOrCreate}}
             - {name: credentials, secret: {secretName: workspace-git-credentials, defaultMode: 256}}
             - {name: artifacts, persistentVolumeClaim: {claimName: workspace-agent-artifacts}}
 ---

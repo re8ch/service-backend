@@ -11,4 +11,6 @@ resources:
   - ../../platform/headlamp
   - ../../platform/cloud-platform
   - ../../platform/git-workspaces
+  - ../../platform/workspace-controller
+  - ../../platform/agent-onboarding-runtime
   - ../../platform/stalwart
