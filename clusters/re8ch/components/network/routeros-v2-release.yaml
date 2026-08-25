@@ -1,0 +1,15 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata: {name: re8ch-routeros-v2, namespace: kube-system}
+spec:
+  chart: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
+  version: 0.8.0
+  targetNamespace: kube-system
+  valuesContent: |-
+    routerOS:
+      enabled: true
+      namespace: kube-system
+      credentialsSecret: {namespace: ops, name: mikrotik-routeros-admin}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    advancedFabric:
+      enabled: false
