@@ -29,15 +29,17 @@ nodes:
       r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 192.0.2.79, hubBackend: 192.0.2.97}
   - id: restricted-node-296f36f2fb
     roles: [control-plane, etcd]
-    sshTarget: null
+    sshTarget: restricted-node-296f36f2fb
     operationPolicy: control-plane-two-person
-    managementState: unverified
+    managementState: cloud-platform-managed
     firewall: cn
     egressPolicy: auto
     cephStorage: true
     cephClient: true
     host:
       platform: Windows Server 2022 / WSL2 NAT
+      cloudPlatformNode: b1-windows
+      sshTarget: Administrator@192.0.2.253
       windowsLanIp: 192.0.2.253
       wslNatCidr: 192.0.2.216/20
       peerHost: restricted-node-1eb0570f74

@@ -36,3 +36,17 @@ def test_stalwart_is_internal_and_digest_pinned():
     image = stateful_set["spec"]["template"]["spec"]["containers"][0]["image"]
     assert service["spec"]["type"] == "ClusterIP"
     assert "@sha256:" in image
+
+
+def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
+    resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
+    plan = next(item for item in resources if item["kind"] == "ConfigMap")
+    job = next(item for item in resources if item["kind"] == "Job")
+    lines = [yaml.safe_load(line) for line in plan["data"]["plan.ndjson"].splitlines()]
+    assert lines and all(line["@type"] == "upsert" for line in lines)
+    pod = job["spec"]["template"]["spec"]
+    assert pod["securityContext"]["runAsNonRoot"] is True
+    assert pod["automountServiceAccountToken"] is False
+    assert "@sha256:" in pod["containers"][0]["image"]
+    cli_volume = next(volume for volume in pod["volumes"] if volume["name"] == "cli")
+    assert "@sha256:" in cli_volume["image"]["reference"]
