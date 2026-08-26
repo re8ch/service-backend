@@ -65,3 +65,12 @@ def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     assert "@sha256:" in pod["containers"][0]["image"]
     cli_volume = next(volume for volume in pod["volumes"] if volume["name"] == "cli")
     assert "@sha256:" in cli_volume["image"]["reference"]
+
+
+def test_opensandbox_proxy_health_is_local_and_embedded_python_compiles():
+    resources = documents(ROOT / "platform/agent-onboarding-runtime/opensandbox-orchestra-proxy.yaml")
+    config = next(item for item in resources if item["kind"] == "ConfigMap")
+    source = config["data"]["proxy.py"]
+    compile(source, "proxy.py", "exec")
+    assert 'self.path == "/health"' in source
+    assert 'payload = b\'{"status":"ok"}\'' in source
