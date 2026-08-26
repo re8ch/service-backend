@@ -279,6 +279,15 @@ spec: {ingressClassName: external-dns-only, rules: [{host: dns.access.re8ch.com}
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
+metadata: {name: access-mosdns, namespace: egress-fabric}
+spec:
+  endpointSelector: {matchLabels: {app.kubernetes.io/name: mosdns}}
+  ingress:
+    - fromEndpoints: [{matchLabels: {app.kubernetes.io/name: access-adguard}}]
+      toPorts: [{ports: [{port: "5353", protocol: UDP}, {port: "5353", protocol: TCP}]}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
 metadata: {name: access-dns, namespace: egress-fabric}
 spec:
   endpointSelector: {matchLabels: {app.kubernetes.io/name: access-adguard}}
