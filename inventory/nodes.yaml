@@ -1,20 +1,258 @@
 apiVersion: operations.re8ch.com/v1alpha1
 kind: InfrastructureTargetList
 items:
-  - {metadata: {name: macmini-a1}, spec: {transport: ssh, address: 192.0.2.127, credentialRef: node-ssh, capabilities: [devops-primary, project-worktrees, docker-build, ci-runner], commands: {read: [hostname, uptime, workspace-context], write: [project-worktree-create, ci-build], rollback: [project-worktree-cleanup]}}}
-  - {metadata: {name: restricted-node-6dc3f140f9}, spec: {transport: ssh, address: restricted-node-6dc3f140f9, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd, harbor, pigsty], commands: {read: [hostname, uptime, systemctl-status], write: [systemctl-restart], rollback: [systemctl-restart]}}}
-  - {metadata: {name: restricted-node-1eb0570f74}, spec: {transport: ssh, address: restricted-node-1eb0570f74, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: restricted-node-296f36f2fb}, spec: {transport: ssh, address: restricted-node-296f36f2fb, credentialRef: node-ssh, capabilities: [k3s-control-plane, etcd], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: amdwsl-zt}, spec: {transport: ssh, address: amdwsl-zt, credentialRef: node-ssh, capabilities: [k3s-worker], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: domain-ex}, spec: {transport: ssh, address: domain-ex, credentialRef: node-ssh, capabilities: [k3s-worker, pigsty], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: zan}, spec: {transport: ssh, address: zan, credentialRef: node-ssh, capabilities: [k3s-worker, pigsty], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: muaya-ecs}, spec: {transport: ssh, address: muaya-ecs, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: muaya-lightweight}, spec: {transport: ssh, address: muaya-lightweight, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: overseas-edge-50}, spec: {transport: ssh, address: overseas-edge-50, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: overseas-kl}, spec: {transport: ssh, address: overseas-kl, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: overseas-la}, spec: {transport: ssh, address: overseas-la, credentialRef: node-ssh, capabilities: [k3s-worker, public-edge], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: qwen-1}, spec: {transport: ssh, address: qwen-1, credentialRef: node-ssh, capabilities: [k3s-worker, inference], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: qwen-2}, spec: {transport: ssh, address: qwen-2, credentialRef: node-ssh, capabilities: [k3s-worker, inference], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: qwen-3}, spec: {transport: ssh, address: qwen-3, credentialRef: node-ssh, capabilities: [k3s-worker, inference], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: suxunji}, spec: {transport: ssh, address: suxunji, credentialRef: node-ssh, capabilities: [k3s-worker], commands: {read: [hostname, uptime], write: [], rollback: []}}}
-  - {metadata: {name: vm-20-12-ubuntu}, spec: {transport: ssh, address: vm-20-12-ubuntu, credentialRef: node-ssh, capabilities: [k3s-worker], commands: {read: [hostname, uptime], write: [], rollback: []}}}
+  - metadata: {name: macmini-a1}
+    spec:
+      transport: ssh
+      address: 192.0.2.127
+      credentialRef: node-ssh
+      capabilities: [devops-primary, a1-workspace, docker-build, ci-runner]
+      commands: {read: [hostname, uptime, workspace-context], write: [workspace-materialize, ci-build], rollback: [workspace-cleanup]}
+
+  - metadata: {name: restricted-node-6dc3f140f9}
+    spec:
+      transport: ssh
+      address: restricted-node-6dc3f140f9
+      credentialRef: node-ssh
+      capabilities: [k3s-control-plane, etcd, harbor, pigsty]
+      cluster:
+        membership: active
+        roles: [control-plane, etcd, nuclio, pg-re8ch]
+        services: [k3s-server, etcd, nuclio, pigsty, toolhive-primary, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi, rclone-csi]
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/nuclio: "true", node-role.kubernetes.io/pg-re8ch: "true", re8ch.com/toolhive-plane: primary, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true", storage.re8ch.com/object-client: "true"}
+        taints: []
+        parameters: {cpu: 80, memoryKi: 259312228, ephemeralStorageKi: 309043584, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
+        network: {region: cn-hunan, zone: hunan, controlRoute: public-primary, externalIPMode: mikrotik-proxy, networkLevel: 3}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com, rclone.csi.veloxpack.io], profiles: [ceph-client, ceph-pilot, object-client, ceph-osd]}
+      commands: {read: [hostname, uptime, systemctl-status], write: [systemctl-restart], rollback: [systemctl-restart]}
+
+  - metadata: {name: restricted-node-1eb0570f74}
+    spec:
+      transport: ssh
+      address: restricted-node-1eb0570f74
+      credentialRef: node-ssh
+      capabilities: [k3s-control-plane, etcd]
+      cluster:
+        membership: active
+        roles: [control-plane, etcd, observe]
+        services: [k3s-server, etcd, observability, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi]
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
+        taints: []
+        parameters: {cpu: 8, memoryKi: 12247672, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.141-microsoft-standard-WSL2}
+        network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-pilot, ceph-osd]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: restricted-node-296f36f2fb}
+    spec:
+      transport: ssh
+      address: restricted-node-296f36f2fb
+      credentialRef: node-ssh
+      capabilities: [k3s-control-plane, etcd]
+      cluster:
+        membership: active
+        roles: [control-plane, etcd, observe]
+        services: [k3s-server, etcd, observability, ceph-mon, ceph-mds, ceph-osd, ceph-csi]
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
+        taints: []
+        parameters: {cpu: 8, memoryKi: 12247680, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.141-microsoft-standard-WSL2}
+        network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-pilot, ceph-osd]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: amdwsl-zt}
+    spec:
+      transport: ssh
+      address: amdwsl-zt
+      credentialRef: node-ssh
+      capabilities: [k3s-worker]
+      cluster:
+        membership: active
+        roles: [gpu]
+        services: [k3s-agent, amd-rocm-workloads, ceph-csi]
+        labels: {node-role.kubernetes.io/gpu: "true", re8ch.com/gpu-runtime: rocm-wsl, re8ch.com/gpu-vendor: amd, storage.re8ch.com/ceph-client: "true"}
+        taints: []
+        parameters: {cpu: 8, memoryKi: 24610916, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04.1 LTS, kernelVersion: 192.0.2.145-microsoft-standard-WSL2}
+        network: {region: cn-hubei, zone: hubei, controlRoute: zt-primary, externalIPMode: none, networkLevel: 4}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: domain-ex}
+    spec:
+      transport: ssh
+      address: domain-ex
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, pigsty]
+      cluster:
+        membership: active
+        roles: [pg-re8ch]
+        services: [k3s-agent, pigsty, ceph-csi]
+        labels: {node-role.kubernetes.io/pg-re8ch: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 4, memoryKi: 3481048, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
+        network: {region: cn-shanghai, zone: shanghai, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: zan}
+    spec:
+      transport: ssh
+      address: zan
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, pigsty]
+      cluster:
+        membership: active
+        roles: [pg-re8ch]
+        services: [k3s-agent, pigsty, ceph-csi]
+        labels: {node-role.kubernetes.io/pg-re8ch: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 4, memoryKi: 3481048, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
+        network: {region: cn-guangdong, zone: guangdong, controlRoute: public-primary, externalIPMode: static, networkLevel: 2}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: muaya-ecs}
+    spec:
+      transport: ssh
+      address: muaya-ecs
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [nuclio]
+        services: [k3s-agent, nuclio, public-edge, ceph-csi]
+        labels: {node-role.kubernetes.io/nuclio: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only, storage.re8ch.com/local-path-policy: runtime-cache-only}
+        taints: []
+        parameters: {cpu: 2, memoryKi: 1646400, ephemeralStorageKi: 40901312, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
+        network: {region: cn-zhejiang, zone: zhejiang, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only, runtime-cache-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: muaya-lightweight}
+    spec:
+      transport: ssh
+      address: muaya-lightweight
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [nuclio]
+        services: [k3s-agent, nuclio, public-edge, ceph-csi]
+        labels: {node-role.kubernetes.io/nuclio: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 2, memoryKi: 1651808, ephemeralStorageKi: 40901312, osImage: Ubuntu 24.04.2 LTS, kernelVersion: 6.8.0-63-generic}
+        network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: overseas-edge-50}
+    spec:
+      transport: ssh
+      address: overseas-edge-50
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [egress]
+        services: [k3s-agent, overseas-egress, ceph-csi]
+        labels: {node-role.kubernetes.io/egress: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 1, memoryKi: 2015236, ephemeralStorageKi: 19221248, osImage: Ubuntu 24.04.3 LTS, kernelVersion: 6.8.0-90-generic}
+        network: {region: us-ca, zone: us-ca, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: overseas-kl}
+    spec:
+      transport: ssh
+      address: overseas-kl
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [egress]
+        services: [k3s-agent, overseas-egress, ceph-csi]
+        labels: {node-role.kubernetes.io/egress: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 1, memoryKi: 2015396, ephemeralStorageKi: 20529812, osImage: Ubuntu 24.04 LTS, kernelVersion: 6.8.0-31-generic}
+        network: {region: my-kul, zone: malaysia}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: overseas-la}
+    spec:
+      transport: ssh
+      address: overseas-la
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [egress]
+        services: [k3s-agent, overseas-egress, ceph-csi]
+        labels: {node-role.kubernetes.io/egress: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 1, memoryKi: 2009924, ephemeralStorageKi: 20553408, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-27-generic}
+        network: {region: us-ca, zone: us-ca}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: suxunji}
+    spec:
+      transport: ssh
+      address: suxunji
+      credentialRef: node-ssh
+      capabilities: [k3s-worker]
+      cluster:
+        membership: active
+        roles: [observe]
+        services: [k3s-agent, observability, ceph-csi]
+        labels: {node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true"}
+        taints: []
+        parameters: {cpu: 4, memoryKi: 3481044, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
+        network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: vm-20-12-ubuntu}
+    spec:
+      transport: ssh
+      address: vm-20-12-ubuntu
+      credentialRef: node-ssh
+      capabilities: [k3s-worker]
+      cluster:
+        membership: active
+        roles: [observe]
+        services: [k3s-agent, observability, ceph-csi]
+        labels: {node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        taints: []
+        parameters: {cpu: 2, memoryKi: 1978068, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
+        network: {region: cn-unverified, zone: cn-unverified, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
+        storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: qwen-1}
+    spec:
+      transport: ssh
+      address: qwen-1
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, inference]
+      cluster: {membership: not-observed, roles: [inference], services: [k3s-agent, qwen-inference]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: qwen-2}
+    spec:
+      transport: ssh
+      address: qwen-2
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, inference]
+      cluster: {membership: not-observed, roles: [inference], services: [k3s-agent, qwen-inference]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: qwen-3}
+    spec:
+      transport: ssh
+      address: qwen-3
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, inference]
+      cluster: {membership: not-observed, roles: [inference], services: [k3s-agent, qwen-inference]}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
