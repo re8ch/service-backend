@@ -2,7 +2,7 @@ import base64
 import unittest
 from datetime import datetime, timezone
 
-from core import DEFAULT_NODES, MONTHLY_SOFT_LIMIT, issue_token, node_uri, proxy_password, subscription_body, subscription_headers, verify_token
+from core import DEFAULT_NODES, MONTHLY_SOFT_LIMIT, canonical_subject, issue_token, node_uri, proxy_password, subscription_body, subscription_headers, verify_token
 
 
 class SubscriptionTests(unittest.TestCase):
@@ -39,6 +39,17 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_proxy_password_is_device_scoped(self):
         self.assertNotEqual(proxy_password(self.secret, "a"), proxy_password(self.secret, "b"))
+
+    def test_identity_aliases_merge_github_and_local_login(self):
+        aliases = {
+            "hliu74@apple.com": "hliu74",
+            "admin@re8ch.com": "hliu74",
+            "github-subject": "hliu74",
+        }
+        self.assertEqual(canonical_subject("github-subject", "hliu74@apple.com", aliases), "hliu74")
+        self.assertEqual(canonical_subject("local-subject", "admin@re8ch.com", aliases), "hliu74")
+        self.assertEqual(canonical_subject("github-subject", None, aliases), "hliu74")
+        self.assertEqual(canonical_subject("someone-else", "other@example.com", aliases), "someone-else")
 
 
 if __name__ == "__main__":
