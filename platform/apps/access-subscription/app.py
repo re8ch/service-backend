@@ -1,76 +1,115 @@
 #!/usr/bin/env python3
-"""Dex-fronted device portal and standard proxy subscription endpoint."""
+"""Dex-fronted Store, admin API and device-scoped subscription service."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
 import os
 import ssl
+import time
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import quote
 
-from core import DEFAULT_NODES, canonical_subject, issue_token, proxy_password, subscription_body, subscription_headers, verify_token
-
+from core import (DEFAULT_NODES, authorization, canonical_subject, issue_token, mihomo_config, proxy_password,
+                  public_node, shadowrocket_config, subscription_body, subscription_headers, verify_token)
 
 NAMESPACE = os.getenv("POD_NAMESPACE", "egress-fabric")
 STATE_NAME = os.getenv("STATE_CONFIGMAP", "access-subscription-devices")
-USERS_SECRET = os.getenv("USERS_SECRET", "personal-access-users")
+AUTH_NAME = os.getenv("AUTH_CONFIGMAP", "access-members-cache")
+USAGE_NAME = os.getenv("USAGE_CONFIGMAP", "access-device-usage")
+RULES_ROOT = Path(os.getenv("RULES_ROOT", "/rules"))
+BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://sub.access.re8ch.com").rstrip("/")
 HMAC_SECRET = Path(os.getenv("HMAC_SECRET_PATH", "/secrets/hmac-key")).read_bytes().strip()
 IDENTITY_ALIASES = json.loads(os.getenv("IDENTITY_ALIASES_JSON", "{}"))
 
-
 PORTAL = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
-<title>access re8ch com</title><style>body{font:16px system-ui;margin:0;background:#101114;color:#eee}main{max-width:720px;margin:auto;padding:32px}button,input{font:inherit;padding:10px;margin:4px;border-radius:8px}article{background:#1d1f24;padding:16px;margin:12px 0;border-radius:12px}code{overflow-wrap:anywhere;color:#9ee6a8}</style>
-<main><h1>access re8ch com</h1><p>AnyTLS 主线路 · Hysteria2 备用 · 每月 300 GB 软提醒</p><p id=a></p><form id=f><input id=n maxlength=64 placeholder='设备名称，例如 iPhone'><button>创建设备</button></form><div id=o></div><p>订阅地址只显示一次。复制到 Shadowrocket 后请妥善保存。</p></main>
-<script>const o=document.querySelector('#o'),a=document.querySelector('#a');async function load(){let r=await fetch('/api/devices'),j=await r.json();a.textContent=j.account?'账号：'+j.account:'';o.innerHTML=(j.devices||[]).map(x=>`<article><b>${esc(x.name)}</b> · ${x.enabled?'启用':'已撤销'} <button onclick="revoke('${x.id}')">撤销</button></article>`).join('')||'<article>尚无设备</article>'}function esc(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML}async function revoke(id){await fetch('/api/devices/'+id,{method:'DELETE'});load()}f.onsubmit=async e=>{e.preventDefault();let r=await fetch('/api/devices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:n.value||'device'})}),j=await r.json();if(j.subscriptionURL)o.innerHTML=`<article><b>请立即复制：</b><br><code>${esc(j.subscriptionURL)}</code></article>`+o.innerHTML;else alert(j.error||'创建失败')};load()</script></html>"""
+<title>access re8ch com</title><style>body{font:16px system-ui;margin:0;background:#101114;color:#eee}main{max-width:860px;margin:auto;padding:32px}button,input,a{font:inherit;padding:10px;margin:4px;border-radius:8px}a{color:#9ee6a8}article{background:#1d1f24;padding:16px;margin:12px 0;border-radius:12px}code{overflow-wrap:anywhere;color:#9ee6a8}.muted{color:#aaa}.row{display:flex;gap:8px;flex-wrap:wrap}</style>
+<main><h1>access re8ch com</h1><p>AnyTLS 主线路 · Hysteria2 备用 · 每月 300 GB 软提醒</p><p id=a></p><form id=f><input id=n maxlength=64 placeholder='设备名称，例如 iPhone'><button>创建设备</button></form><div id=new></div><div id=o></div><p class=muted>设备订阅地址只显示一次；Shadowrocket 需要先添加节点订阅，再安装分流配置。</p></main>
+<script>const o=document.querySelector('#o'),a=document.querySelector('#a'),nn=document.querySelector('#new');function esc(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML}function size(n){return (n/1073741824).toFixed(2)+' GB'}function when(n){return n?new Date(n*1000).toLocaleString():'尚无'}async function load(){let r=await fetch('/api/me'),j=await r.json();if(!r.ok){a.textContent=j.error||'未授权';return}a.textContent='账号：'+j.account+(j.admin?' · 管理员':'');o.innerHTML=(j.devices||[]).map(x=>`<article><b>${esc(x.name)}</b> · ${x.enabled?'启用':'已撤销'}<br><span class=muted>${x.activeConnections||0} 个连接 · 本月 ${size((x.upload||0)+(x.download||0))} · 最后在线 ${when(x.lastSeenAt)}</span><div class=row><button onclick="rotate('${x.id}')">轮换</button><button onclick="revoke('${x.id}')">撤销</button></div></article>`).join('')||'<article>尚无设备</article>'}async function revoke(id){await fetch('/api/devices/'+id,{method:'DELETE'});load()}async function rotate(id){let r=await fetch('/api/devices/'+id+'/rotate',{method:'POST'}),j=await r.json();show(j)}function show(j){if(!j.subscriptionURL)return alert(j.error||'创建失败');nn.innerHTML=`<article><b>请立即保存：</b><br><code>${esc(j.subscriptionURL)}</code><div><a href="${esc(j.subscriptionURL)}">Shadowrocket 节点订阅</a><a href="${esc(j.mihomoURL)}">Mihomo 配置</a><a href="shadowrocket://config/add/${encodeURIComponent(j.shadowrocketURL)}">安装 Shadowrocket 分流</a></div></article>`}f.onsubmit=async e=>{e.preventDefault();let r=await fetch('/api/devices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:n.value||'device'})}),j=await r.json();show(j);load()};load()</script></html>"""
+
+ADMIN = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Access Admin</title><style>body{font:15px system-ui;background:#101114;color:#eee;margin:30px}article{background:#1d1f24;padding:14px;margin:10px;border-radius:10px}button{padding:7px}</style><h1>Access Admin</h1><div id=o></div><script>function esc(s){let d=document.createElement('div');d.textContent=String(s);return d.innerHTML}async function load(){let r=await fetch('/api/admin/users'),j=await r.json();o.innerHTML=Object.entries(j.members||{}).map(([u,m])=>`<article><b>${esc(u)}</b> · ${esc(m.permission||'')}${m.admin?' · admin':''}<div>${(j.devices[u]||[]).map(d=>`${esc(d.name)} · ${d.enabled?'启用':'撤销'} · ${d.activeConnections||0} 连接 <button onclick="revoke('${d.id}')">撤销</button>`).join('<br>')||'无设备'}</div></article>`).join('')}async function revoke(id){await fetch('/api/admin/devices/'+id,{method:'DELETE'});load()}load()</script></html>"""
 
 
-def kube_request(method: str, path: str, body: dict | None = None) -> dict:
-    host = os.environ["KUBERNETES_SERVICE_HOST"]
-    port = os.environ["KUBERNETES_SERVICE_PORT_HTTPS"]
+def kube_request(method: str, path: str, body: dict | None = None, content_type: str = "application/json") -> dict:
+    host, port = os.environ["KUBERNETES_SERVICE_HOST"], os.environ["KUBERNETES_SERVICE_PORT_HTTPS"]
     token = Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
     raw = json.dumps(body).encode() if body is not None else None
-    request = urllib.request.Request(
-        f"https://{host}:{port}{path}", data=raw, method=method,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/merge-patch+json"},
-    )
+    request = urllib.request.Request(f"https://{host}:{port}{path}", data=raw, method=method,
+                                     headers={"Authorization": f"Bearer {token}", "Content-Type": content_type})
     context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
     with urllib.request.urlopen(request, context=context, timeout=5) as response:
-        return json.load(response)
+        return json.load(response) if response.length != 0 else {}
 
 
-def state() -> dict:
-    item = kube_request("GET", f"/api/v1/namespaces/{NAMESPACE}/configmaps/{STATE_NAME}")
-    return json.loads(item.get("data", {}).get("devices.json", "{}"))
+def configmap(name: str) -> tuple[dict, dict]:
+    item = kube_request("GET", f"/api/v1/namespaces/{NAMESPACE}/configmaps/{name}")
+    return item, item.get("data", {})
 
 
-def save(devices: dict) -> None:
-    kube_request("PATCH", f"/api/v1/namespaces/{NAMESPACE}/configmaps/{STATE_NAME}",
-                 {"data": {"devices.json": json.dumps(devices, separators=(",", ":"), sort_keys=True)}})
-    users = []
-    for item in devices.values():
-        if item.get("enabled"):
-            users.append(f"          {item['jti']}: {proxy_password(HMAC_SECRET, item['jti'])}")
-    if not users:
-        users.append("          disabled-bootstrap: disabled")
-    kube_request("PATCH", f"/api/v1/namespaces/{NAMESPACE}/secrets/{USERS_SECRET}",
-                 {"stringData": {"users.yaml": "\n".join(users) + "\n"}})
-    for deployment in ("personal-access-us-ca", "personal-access-my-kul"):
-        kube_request("PATCH", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{deployment}",
-                     {"spec": {"template": {"metadata": {"annotations": {
-                         "access.re8ch.com/users-revision": hashlib.sha256(json.dumps(devices, sort_keys=True).encode()).hexdigest()
-                     }}}}})
+def json_state(name: str, key: str) -> dict:
+    _item, data = configmap(name)
+    return json.loads(data.get(key, "{}"))
+
+
+def devices_state() -> dict:
+    return json_state(STATE_NAME, "devices.json")
+
+
+def auth_state() -> dict:
+    return json_state(AUTH_NAME, "members.json")
+
+
+def usage_state() -> dict:
+    try:
+        _item, data = configmap(USAGE_NAME)
+        merged = {}
+        for key, raw in data.items():
+            if not key.startswith("usage-"):
+                continue
+            for device, stats in json.loads(raw).get("devices", {}).items():
+                item = merged.setdefault(device, {"upload": 0, "download": 0, "activeConnections": 0})
+                item["upload"] += int(stats.get("upload", 0))
+                item["download"] += int(stats.get("download", 0))
+                item["activeConnections"] += int(stats.get("activeConnections", 0))
+                if int(stats.get("lastSeenAt", 0)) > int(item.get("lastSeenAt", 0) or 0):
+                    item["lastSeenAt"] = stats.get("lastSeenAt")
+        return merged
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return {}
+        raise
+
+
+def update_devices(mutator, attempts: int = 5) -> dict:
+    for _ in range(attempts):
+        item, data = configmap(STATE_NAME)
+        devices = json.loads(data.get("devices.json", "{}"))
+        result = mutator(devices)
+        item["data"] = {**data, "devices.json": json.dumps(devices, separators=(",", ":"), sort_keys=True)}
+        item.pop("status", None)
+        try:
+            kube_request("PUT", f"/api/v1/namespaces/{NAMESPACE}/configmaps/{STATE_NAME}", item)
+            return result
+        except urllib.error.HTTPError as exc:
+            if exc.code != 409:
+                raise
+    raise RuntimeError("device state update conflict")
 
 
 def identity(headers) -> str:
-    subject = headers.get("X-Auth-Request-User") or headers.get("X-Forwarded-User")
+    preferred = headers.get("X-Auth-Request-Preferred-Username") or headers.get("X-Forwarded-Preferred-Username")
+    subject = preferred or headers.get("X-Auth-Request-User") or headers.get("X-Forwarded-User")
     email = headers.get("X-Auth-Request-Email") or headers.get("X-Forwarded-Email")
-    try:
-        return canonical_subject(subject, email, IDENTITY_ALIASES)
-    except ValueError as exc:
-        raise PermissionError(str(exc)) from exc
+    return canonical_subject(subject, email, IDENTITY_ALIASES)
+
+
+def member_for(user: str) -> dict:
+    return authorization(auth_state(), user)
 
 
 def owned_by(record: dict, user: str) -> bool:
@@ -80,11 +119,41 @@ def owned_by(record: dict, user: str) -> bool:
         return False
 
 
+def checked_subscription(path: str) -> tuple[str, dict, dict, str]:
+    relative = path.removeprefix("/s/").split("?", 1)[0]
+    suffix = ""
+    for candidate in ("/mihomo.yaml", "/shadowrocket.conf"):
+        if relative.endswith(candidate):
+            relative, suffix = relative[:-len(candidate)], candidate
+            break
+    token = relative.strip("/")
+    payload = verify_token(HMAC_SECRET, token)
+    record = devices_state().get(payload["jti"])
+    if not record or not record.get("enabled") or record.get("tokenHash") != hashlib.sha256(token.encode()).hexdigest():
+        raise PermissionError("subscription revoked")
+    member_for(canonical_subject(record.get("subject"), None, IDENTITY_ALIASES))
+    return token, payload, record, suffix
+
+
+def checked_rule(path: str) -> tuple[str, Path]:
+    relative = path.removeprefix("/r/").split("?", 1)[0]
+    token, marker, filename = relative.partition("/current/")
+    if not marker or not filename or Path(filename).name != filename:
+        raise ValueError("invalid rule path")
+    payload = verify_token(HMAC_SECRET, token)
+    record = devices_state().get(payload["jti"])
+    if not record or not record.get("enabled") or record.get("tokenHash") != hashlib.sha256(token.encode()).hexdigest():
+        raise PermissionError("subscription revoked")
+    member_for(canonical_subject(record.get("subject"), None, IDENTITY_ALIASES))
+    return token, RULES_ROOT / "current" / filename
+
+
 class Handler(BaseHTTPRequestHandler):
-    def send(self, status: int, raw: bytes, content_type: str, headers: dict[str, str] | None = None) -> None:
+    def send(self, status: int, raw: bytes, content_type: str, headers: dict[str, str] | None = None, cache: str = "no-store") -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache)
+        self.send_header("X-Content-Type-Options", "nosniff")
         for key, value in (headers or {}).items():
             self.send_header(key, value)
         self.send_header("Content-Length", str(len(raw)))
@@ -92,37 +161,71 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def json(self, status: int, value: object) -> None:
-        self.send(status, (json.dumps(value, separators=(",", ":")) + "\n").encode(), "application/json")
+        self.send(status, (json.dumps(value, separators=(",", ":"), ensure_ascii=False) + "\n").encode(), "application/json")
 
     def body(self) -> dict:
         length = min(int(self.headers.get("Content-Length", "0")), 65536)
         return json.loads(self.rfile.read(length) or b"{}")
 
+    def device_view(self, key: str, value: dict, usage: dict) -> dict:
+        stats = usage.get(key, {})
+        return {"id": key, "name": value.get("name", "device"), "enabled": bool(value.get("enabled")),
+                "expiresAt": value.get("expiresAt"), "lastSubscriptionAt": value.get("lastSubscriptionAt"),
+                "lastSeenAt": stats.get("lastSeenAt"), "activeConnections": int(stats.get("activeConnections", 0)),
+                "upload": int(stats.get("upload", 0)), "download": int(stats.get("download", 0))}
+
     def do_GET(self) -> None:
         try:
-            if self.path == "/healthz":
+            path = self.path.split("?", 1)[0]
+            if path == "/healthz":
                 return self.json(200, {"ok": True})
-            if self.path.startswith("/s/"):
-                token = self.path.split("?", 1)[0].removeprefix("/s/")
-                payload = verify_token(HMAC_SECRET, token)
-                record = state().get(payload["jti"])
-                if not record or not record.get("enabled") or record.get("tokenHash") != hashlib.sha256(token.encode()).hexdigest():
-                    raise PermissionError("subscription revoked")
+            if path.startswith("/s/"):
+                token, payload, record, suffix = checked_subscription(self.path)
+                now = int(time.time())
+                update_devices(lambda devices: devices[payload["jti"]].update({"lastSubscriptionAt": now}))
                 password = proxy_password(HMAC_SECRET, payload["jti"])
-                return self.send(200, subscription_body(password), "text/plain; charset=utf-8", subscription_headers())
+                stats = usage_state().get(payload["jti"], {})
+                headers = subscription_headers(int(stats.get("upload", 0)), int(stats.get("download", 0)))
+                if suffix == "/mihomo.yaml":
+                    return self.send(200, mihomo_config(password, token, BASE_URL), "text/yaml; charset=utf-8", headers)
+                if suffix == "/shadowrocket.conf":
+                    return self.send(200, shadowrocket_config(token, BASE_URL), "text/plain; charset=utf-8", headers)
+                return self.send(200, subscription_body(password), "text/plain; charset=utf-8", headers)
+            if path.startswith("/r/"):
+                _token, file_path = checked_rule(self.path)
+                raw = file_path.read_bytes()
+                etag = hashlib.sha256(raw).hexdigest()
+                if self.headers.get("If-None-Match", "").strip('"') == etag:
+                    return self.send(304, b"", "application/octet-stream", {"ETag": f'"{etag}"'}, "private, max-age=3600")
+                return self.send(200, raw, mimetypes.guess_type(file_path.name)[0] or "application/octet-stream",
+                                 {"ETag": f'"{etag}"'}, "private, max-age=3600")
             user = identity(self.headers)
-            records = [
-                {"id": key, "name": value.get("name", "device"), "enabled": bool(value.get("enabled")),
-                 "expiresAt": value.get("expiresAt")}
-                for key, value in state().items() if owned_by(value, user)
-            ]
-            if self.path.split("?", 1)[0] == "/api/devices":
-                return self.json(200, {"profile": "access re8ch com", "account": user, "devices": records})
-            if self.path.split("?", 1)[0] == "/api/status":
-                return self.json(200, {"profile": "access re8ch com", "quota": "300 GB soft", "nodes": len(DEFAULT_NODES)})
-            if self.path.split("?", 1)[0] == "/":
+            member = member_for(user)
+            devices, usage = devices_state(), usage_state()
+            records = [self.device_view(key, value, usage) for key, value in devices.items() if owned_by(value, user)]
+            if path in ("/api/me", "/api/devices"):
+                return self.json(200, {"profile": "access re8ch com", "account": user, "admin": bool(member.get("admin")), "devices": records})
+            if path == "/api/status":
+                cache = auth_state()
+                manifest = json.loads((RULES_ROOT / "current" / "manifest.json").read_text()) if (RULES_ROOT / "current" / "manifest.json").exists() else {}
+                return self.json(200, {"profile": "access re8ch com", "quota": "300 GB soft", "nodes": [public_node(n) for n in DEFAULT_NODES],
+                                       "rulesVersion": manifest.get("version"), "authorizationLastSuccess": cache.get("lastSuccess")})
+            if path == "/api/admin/users":
+                if not member.get("admin"):
+                    raise PermissionError("administrator required")
+                by_user = {}
+                for key, value in devices.items():
+                    by_user.setdefault(value.get("subject", "unknown"), []).append(self.device_view(key, value, usage))
+                return self.json(200, {"members": auth_state().get("members", {}), "devices": by_user})
+            if path == "/admin":
+                if not member.get("admin"):
+                    raise PermissionError("administrator required")
+                return self.send(200, ADMIN.encode(), "text/html; charset=utf-8")
+            if path == "/":
                 return self.send(200, PORTAL.encode(), "text/html; charset=utf-8")
             return self.json(404, {"error": "not found"})
+        except FileNotFoundError:
+            self.json(503, {"error": "rule snapshot unavailable"})
         except (PermissionError, ValueError) as exc:
             self.json(401, {"error": str(exc)})
         except Exception as exc:
@@ -131,28 +234,29 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         try:
             user = identity(self.headers)
+            member_for(user)
             path = self.path.split("?", 1)[0]
             if path != "/api/devices" and not (path.startswith("/api/devices/") and path.endswith("/rotate")):
                 return self.json(404, {"error": "not found"})
             body = self.body()
-            devices = state()
-            if path.endswith("/rotate"):
-                old_id = path.removeprefix("/api/devices/").removesuffix("/rotate").strip("/")
-                old = devices.get(old_id)
-                if not old or not owned_by(old, user):
-                    raise PermissionError("device not found")
-                old["enabled"] = False
-                name = old.get("name", "device")
-            else:
-                name = str(body.get("name", "device")).strip()[:64] or "device"
+            old_id = path.removeprefix("/api/devices/").removesuffix("/rotate").strip("/") if path.endswith("/rotate") else ""
+            current = devices_state().get(old_id) if old_id else None
+            if old_id and (not current or not owned_by(current, user)):
+                raise PermissionError("device not found")
+            name = (current or {}).get("name") or str(body.get("name", "device")).strip()[:64] or "device"
             token = issue_token(HMAC_SECRET, user, name)
             payload = verify_token(HMAC_SECRET, token)
-            devices[payload["jti"]] = {
-                "subject": user, "name": name, "jti": payload["jti"], "enabled": True,
-                "expiresAt": payload["exp"], "tokenHash": hashlib.sha256(token.encode()).hexdigest(),
-            }
-            save(devices)
-            return self.json(201, {"id": payload["jti"], "subscriptionURL": f"https://sub.access.re8ch.com/s/{token}"})
+            def mutate(devices):
+                if old_id:
+                    if old_id not in devices or not owned_by(devices[old_id], user):
+                        raise PermissionError("device not found")
+                    devices[old_id]["enabled"] = False
+                devices[payload["jti"]] = {"subject": user, "name": name, "jti": payload["jti"], "enabled": True,
+                                             "expiresAt": payload["exp"], "tokenHash": hashlib.sha256(token.encode()).hexdigest()}
+            update_devices(mutate)
+            root = f"{BASE_URL}/s/{token}"
+            return self.json(201, {"id": payload["jti"], "subscriptionURL": root, "mihomoURL": root + "/mihomo.yaml",
+                                   "shadowrocketURL": root + "/shadowrocket.conf"})
         except (PermissionError, ValueError) as exc:
             self.json(400, {"error": str(exc)})
         except Exception as exc:
@@ -161,15 +265,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self) -> None:
         try:
             user = identity(self.headers)
-            if not self.path.startswith("/api/devices/"):
+            member = member_for(user)
+            admin_path = self.path.startswith("/api/admin/devices/")
+            if not self.path.startswith("/api/devices/") and not admin_path:
                 return self.json(404, {"error": "not found"})
-            device_id = self.path.removeprefix("/api/devices/").split("/", 1)[0]
-            devices = state()
-            record = devices.get(device_id)
-            if not record or not owned_by(record, user):
-                raise PermissionError("device not found")
-            record["enabled"] = False
-            save(devices)
+            if admin_path and not member.get("admin"):
+                raise PermissionError("administrator required")
+            prefix = "/api/admin/devices/" if admin_path else "/api/devices/"
+            device_id = self.path.removeprefix(prefix).split("/", 1)[0]
+            def mutate(devices):
+                record = devices.get(device_id)
+                if not record or (not admin_path and not owned_by(record, user)):
+                    raise PermissionError("device not found")
+                record["enabled"] = False
+            update_devices(mutate)
             self.send(204, b"", "application/json")
         except PermissionError as exc:
             self.json(404, {"error": str(exc)})

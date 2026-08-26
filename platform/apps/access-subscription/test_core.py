@@ -2,7 +2,9 @@ import base64
 import unittest
 from datetime import datetime, timezone
 
-from core import DEFAULT_NODES, MONTHLY_SOFT_LIMIT, canonical_subject, issue_token, node_uri, proxy_password, subscription_body, subscription_headers, verify_token
+from core import (DEFAULT_NODES, MONTHLY_SOFT_LIMIT, authorization, canonical_subject, issue_token, mihomo_config,
+                  node_uri, proxy_password, public_node, shadowrocket_config, subscription_body, subscription_headers,
+                  verify_token)
 
 
 class SubscriptionTests(unittest.TestCase):
@@ -10,21 +12,25 @@ class SubscriptionTests(unittest.TestCase):
         self.secret = b"x" * 32
 
     def test_token_round_trip_and_expiry(self):
-        token = issue_token(self.secret, "woomou", "iphone", now=100)
+        token = issue_token(self.secret, "hliu74", "iphone", now=100)
         self.assertEqual(verify_token(self.secret, token, now=101)["device"], "iphone")
         with self.assertRaises(ValueError):
             verify_token(self.secret, token, now=100 + 91 * 86400)
 
     def test_tampered_token_is_rejected(self):
-        token = issue_token(self.secret, "woomou", "iphone", now=100)
+        token = issue_token(self.secret, "hliu74", "iphone", now=100)
         with self.assertRaises(ValueError):
             verify_token(self.secret, token + "x", now=101)
 
-    def test_subscription_contains_real_nodes(self):
+    def test_subscription_uses_publication_not_runtime_target(self):
         raw = base64.b64decode(subscription_body("credential")).decode()
         self.assertEqual(len(raw.strip().splitlines()), 3)
         self.assertIn("anytls://credential@us-ca.access.re8ch.com:443", raw)
-        self.assertIn("hysteria2://credential@backup.access.re8ch.com:443", raw)
+        self.assertNotIn("personal-access-us-ca", raw)
+        status = public_node(DEFAULT_NODES[1])
+        self.assertEqual(status["server"], "us-ca.access.re8ch.com")
+        self.assertNotIn("runtime", status)
+        self.assertNotIn("service", status)
 
     def test_uri_uses_secure_tls(self):
         uri = node_uri(DEFAULT_NODES[0], "credential")
@@ -41,15 +47,31 @@ class SubscriptionTests(unittest.TestCase):
         self.assertNotEqual(proxy_password(self.secret, "a"), proxy_password(self.secret, "b"))
 
     def test_identity_aliases_merge_github_and_local_login(self):
-        aliases = {
-            "hliu74@apple.com": "hliu74",
-            "admin@re8ch.com": "hliu74",
-            "github-subject": "hliu74",
-        }
-        self.assertEqual(canonical_subject("github-subject", "hliu74@apple.com", aliases), "hliu74")
+        aliases = {"hliu74@apple.com": "hliu74", "admin@re8ch.com": "hliu74", "woomou": "hliu74"}
+        self.assertEqual(canonical_subject("woomou", "hliu74@apple.com", aliases), "hliu74")
         self.assertEqual(canonical_subject("local-subject", "admin@re8ch.com", aliases), "hliu74")
-        self.assertEqual(canonical_subject("github-subject", None, aliases), "hliu74")
-        self.assertEqual(canonical_subject("someone-else", "other@example.com", aliases), "someone-else")
+
+    def test_authorization_cache_and_fail_closed(self):
+        cache = {"lastSuccess": 100, "members": {"hliu74": {"authorized": True, "admin": True}}}
+        self.assertTrue(authorization(cache, "hliu74", now=101)["admin"])
+        with self.assertRaises(PermissionError):
+            authorization(cache, "other", now=101)
+        with self.assertRaises(PermissionError):
+            authorization(cache, "hliu74", now=100 + 86401)
+
+    def test_mihomo_config_has_split_dns_and_mrs(self):
+        config = mihomo_config("credential", "token", "https://sub.access.re8ch.com").decode()
+        self.assertIn("enhanced-mode: fake-ip", config)
+        self.assertIn("nameserver-policy:", config)
+        self.assertIn("format: mrs", config)
+        self.assertIn("RULE-SET,cn-ip,DIRECT,no-resolve", config)
+        self.assertNotIn("fallback:", config)
+
+    def test_shadowrocket_config_defaults_to_proxy(self):
+        config = shadowrocket_config("token", "https://sub.access.re8ch.com").decode()
+        self.assertIn("[Proxy Group]", config)
+        self.assertIn("FINAL,PROXY", config)
+        self.assertIn("/current/cn.list,DIRECT", config)
 
 
 if __name__ == "__main__":

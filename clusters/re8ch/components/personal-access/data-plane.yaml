@@ -7,6 +7,23 @@ spec:
   dnsNames: [access.re8ch.com, us-ca.access.re8ch.com, my-kul.access.re8ch.com, backup.access.re8ch.com]
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata: {name: access-telemetry, namespace: egress-fabric}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: access-telemetry, namespace: egress-fabric}
+rules:
+  - {apiGroups: [""], resources: [configmaps], resourceNames: [access-device-usage], verbs: [get, update]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: access-telemetry, namespace: egress-fabric}
+subjects: [{kind: ServiceAccount, name: access-telemetry}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: access-telemetry}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata: {name: personal-access-mihomo, namespace: egress-fabric}
 data:
@@ -14,6 +31,8 @@ data:
     allow-lan: false
     mode: rule
     log-level: warning
+    external-controller: 127.0.0.1:9090
+    secret: __CONTROLLER_SECRET__
     proxies:
       - {name: NODE-SMART-EGRESS, type: socks5, server: 127.0.0.1, port: 17891, udp: true}
     listeners:
@@ -57,20 +76,22 @@ spec:
       priorityClassName: system-node-critical
       nodeSelector: {kubernetes.io/hostname: overseas-edge-50}
       tolerations: [{operator: Exists}]
+      serviceAccountName: access-telemetry
       automountServiceAccountToken: false
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: render-users
-          image: alpine:3.22
+          image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
           command: [/bin/sh, -ec]
           args:
             - |
-              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml > /work/config.yaml
+              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml | sed "s/__CONTROLLER_SECRET__/$(cat /controller/secret)/" > /work/config.yaml
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: base, mountPath: /base, readOnly: true}
             - {name: credentials, mountPath: /credentials, readOnly: true}
             - {name: work, mountPath: /work}
+            - {name: controller, mountPath: /controller, readOnly: true}
       containers:
         - name: mihomo
           image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
@@ -83,11 +104,30 @@ spec:
           volumeMounts:
             - {name: work, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
             - {name: tls, mountPath: /etc/mihomo/tls, readOnly: true}
+        - name: telemetry
+          image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+          command: [python, /app/telemetry.py]
+          env:
+            - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
+            - {name: ACCESS_REGION, value: us-ca}
+          resources: {requests: {cpu: 10m, memory: 24Mi}, limits: {cpu: 100m, memory: 64Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}
+          volumeMounts:
+            - {name: app-code, mountPath: /app, readOnly: true}
+            - {name: controller, mountPath: /controller, readOnly: true}
+            - {name: kube-api-access, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
       volumes:
         - {name: base, configMap: {name: personal-access-mihomo}}
         - {name: credentials, secret: {secretName: personal-access-users}}
         - {name: tls, secret: {secretName: access-re8ch-com-tls}}
         - {name: work, emptyDir: {}}
+        - {name: app-code, configMap: {name: access-subscription-code}}
+        - {name: controller, secret: {secretName: access-controller-api, items: [{key: controller-secret, path: secret}]}}
+        - name: kube-api-access
+          projected:
+            sources:
+              - {serviceAccountToken: {path: token, expirationSeconds: 3600}}
+              - {configMap: {name: kube-root-ca.crt, items: [{key: ca.crt, path: ca.crt}]}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -105,20 +145,22 @@ spec:
       priorityClassName: system-node-critical
       nodeSelector: {kubernetes.io/hostname: overseas-kl}
       tolerations: [{operator: Exists}]
+      serviceAccountName: access-telemetry
       automountServiceAccountToken: false
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: render-users
-          image: alpine:3.22
+          image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
           command: [/bin/sh, -ec]
           args:
             - |
-              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml > /work/config.yaml
+              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml | sed "s/__CONTROLLER_SECRET__/$(cat /controller/secret)/" > /work/config.yaml
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: base, mountPath: /base, readOnly: true}
             - {name: credentials, mountPath: /credentials, readOnly: true}
             - {name: work, mountPath: /work}
+            - {name: controller, mountPath: /controller, readOnly: true}
       containers:
         - name: mihomo
           image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
@@ -131,11 +173,30 @@ spec:
           volumeMounts:
             - {name: work, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
             - {name: tls, mountPath: /etc/mihomo/tls, readOnly: true}
+        - name: telemetry
+          image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+          command: [python, /app/telemetry.py]
+          env:
+            - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
+            - {name: ACCESS_REGION, value: my-kul}
+          resources: {requests: {cpu: 10m, memory: 24Mi}, limits: {cpu: 100m, memory: 64Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}
+          volumeMounts:
+            - {name: app-code, mountPath: /app, readOnly: true}
+            - {name: controller, mountPath: /controller, readOnly: true}
+            - {name: kube-api-access, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
       volumes:
         - {name: base, configMap: {name: personal-access-mihomo}}
         - {name: credentials, secret: {secretName: personal-access-users}}
         - {name: tls, secret: {secretName: access-re8ch-com-tls}}
         - {name: work, emptyDir: {}}
+        - {name: app-code, configMap: {name: access-subscription-code}}
+        - {name: controller, secret: {secretName: access-controller-api, items: [{key: controller-secret, path: secret}]}}
+        - name: kube-api-access
+          projected:
+            sources:
+              - {serviceAccountToken: {path: token, expirationSeconds: 3600}}
+              - {configMap: {name: kube-root-ca.crt, items: [{key: ca.crt, path: ca.crt}]}}
 ---
 apiVersion: v1
 kind: Service
