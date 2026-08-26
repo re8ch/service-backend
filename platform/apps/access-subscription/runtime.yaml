@@ -105,3 +105,14 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-sub-https}]
   hostnames: [sub.access.re8ch.com]
   rules: [{backendRefs: [{name: oauth2-proxy-access-subscription, port: 4180}]}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: access-subscription-gateway}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+      ports: [{port: 4180, protocol: TCP}]
