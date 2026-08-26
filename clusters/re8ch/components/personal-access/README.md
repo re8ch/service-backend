@@ -25,20 +25,24 @@ The scripts generate values in temporary files with mode `0700`, do not print
 them, and never write them into Git. The Dex script creates a timestamped backup
 Secret and reports its name.
 
-## Canary and cutover
+## Qualification and publication
 
-Keep the published `access.re8ch.com` A record on `192.0.2.67` until all of the
-following pass against RouterOS `192.0.2.79` using local DNS overrides:
+The production names publish RouterOS `192.0.2.79` with TTL 60. Keep a
+regional node in the subscription only after it sustains at least 100 Mbps in a
+four-stream qualification test. The Kuala Lumpur listener remains an
+unpublished candidate because it did not meet that gate.
 
-1. Each AnyTLS SNI presents a valid certificate and transfers at least 100 Mbps.
+The release checks are:
+
+1. The published AnyTLS SNI presents a valid certificate and its regional node
+   sustains at least 100 Mbps.
 2. UDP/443 completes a Hysteria2 transfer through `192.0.2.75`.
 3. `sub.access.re8ch.com` completes Dex login and creates, imports, rotates and
    revokes a Shadowrocket subscription.
 4. Existing HTTPS listeners sharing TCP/443 remain healthy.
 
-The final DNS-only change adds external-dns ownership to the new names and moves
-the access target to `192.0.2.79` with TTL 60. The old public edge remains
-the rollback target until a full observation window completes.
+The old public edge remains the rollback target until a full observation window
+completes.
 
 ## Rollback
 
