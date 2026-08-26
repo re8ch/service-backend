@@ -1,0 +1,215 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: access-re8ch-com, namespace: egress-fabric}
+spec:
+  secretName: access-re8ch-com-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
+  dnsNames: [access.re8ch.com, us-ca.access.re8ch.com, my-kul.access.re8ch.com, backup.access.re8ch.com]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: personal-access-mihomo, namespace: egress-fabric}
+data:
+  config.yaml: |
+    allow-lan: false
+    mode: rule
+    log-level: warning
+    proxies:
+      - {name: NODE-SMART-EGRESS, type: socks5, server: 127.0.0.1, port: 17891, udp: true}
+    listeners:
+      - name: access-anytls
+        type: anytls
+        listen: 0.0.0.0
+        port: 24443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: NODE-SMART-EGRESS
+      - name: access-hysteria2
+        type: hysteria2
+        listen: 0.0.0.0
+        port: 24443
+        users:
+    __HYSTERIA2_USERS__
+        up: 1000 Mbps
+        down: 1000 Mbps
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: NODE-SMART-EGRESS
+    rules: ["MATCH,NODE-SMART-EGRESS"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: personal-access-us-ca, namespace: egress-fabric}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: us-ca}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: personal-access, app.kubernetes.io/component: public-ingress, access.re8ch.com/region: us-ca}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector: {kubernetes.io/hostname: overseas-edge-50}
+      tolerations: [{operator: Exists}]
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: render-users
+          image: alpine:3.22
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml > /work/config.yaml
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: base, mountPath: /base, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: work, mountPath: /work}
+      containers:
+        - name: mihomo
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          args: [-d, /etc/mihomo]
+          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 24443, protocol: UDP}]
+          readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
+          resources: {requests: {cpu: 50m, memory: 96Mi}, limits: {cpu: "2", memory: 1Gi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: work, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: tls, mountPath: /etc/mihomo/tls, readOnly: true}
+      volumes:
+        - {name: base, configMap: {name: personal-access-mihomo}}
+        - {name: credentials, secret: {secretName: personal-access-users}}
+        - {name: tls, secret: {secretName: access-re8ch-com-tls}}
+        - {name: work, emptyDir: {}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: personal-access-my-kul, namespace: egress-fabric}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: my-kul}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: personal-access, app.kubernetes.io/component: public-ingress, access.re8ch.com/region: my-kul}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector: {kubernetes.io/hostname: overseas-kl}
+      tolerations: [{operator: Exists}]
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: render-users
+          image: alpine:3.22
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml > /work/config.yaml
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: base, mountPath: /base, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: work, mountPath: /work}
+      containers:
+        - name: mihomo
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          args: [-d, /etc/mihomo]
+          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 24443, protocol: UDP}]
+          readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
+          resources: {requests: {cpu: 50m, memory: 96Mi}, limits: {cpu: "2", memory: 1Gi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: work, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: tls, mountPath: /etc/mihomo/tls, readOnly: true}
+      volumes:
+        - {name: base, configMap: {name: personal-access-mihomo}}
+        - {name: credentials, secret: {secretName: personal-access-users}}
+        - {name: tls, secret: {secretName: access-re8ch-com-tls}}
+        - {name: work, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: personal-access-auto, namespace: egress-fabric}
+spec:
+  selector: {app.kubernetes.io/name: personal-access}
+  ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: personal-access-us-ca, namespace: egress-fabric}
+spec:
+  selector: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: us-ca}
+  ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: personal-access-my-kul, namespace: egress-fabric}
+spec:
+  selector: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: my-kul}
+  ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: personal-access-hysteria2
+  namespace: egress-fabric
+  annotations: {lbipam.cilium.io/ips: 192.0.2.224}
+spec:
+  type: LoadBalancer
+  loadBalancerClass: io.cilium/bgp-control-plane
+  externalTrafficPolicy: Cluster
+  selector: {app.kubernetes.io/name: personal-access}
+  ports: [{name: hysteria2, port: 443, targetPort: hysteria2, protocol: UDP}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: access-anytls
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    external-dns.alpha.kubernetes.io/hostname: access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-tls}]
+  hostnames: [access.re8ch.com]
+  rules: [{backendRefs: [{name: personal-access-auto, port: 24443}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata: {name: access-anytls-us-ca, namespace: egress-fabric}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-us-ca-tls}]
+  hostnames: [us-ca.access.re8ch.com]
+  rules: [{backendRefs: [{name: personal-access-us-ca, port: 24443}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata: {name: access-anytls-my-kul, namespace: egress-fabric}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-my-kul-tls}]
+  hostnames: [my-kul.access.re8ch.com]
+  rules: [{backendRefs: [{name: personal-access-my-kul, port: 24443}]}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: access-hysteria2-dns
+  namespace: egress-fabric
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: backup.access.re8ch.com
+    networking.re8ch.com/dns-state: canary-not-published
+spec:
+  ingressClassName: external-dns-only
+  rules: [{host: backup.access.re8ch.com}]
