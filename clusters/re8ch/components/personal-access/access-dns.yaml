@@ -285,6 +285,15 @@ spec: {ingressClassName: external-dns-only, rules: [{host: dns.access.re8ch.com}
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
+metadata: {name: access-dns-gateway, namespace: egress-fabric}
+spec:
+  endpointSelector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-dns}}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts: [{ports: [{port: "4180", protocol: TCP}]}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
 metadata: {name: access-mosdns, namespace: egress-fabric}
 spec:
   endpointSelector: {matchLabels: {app.kubernetes.io/name: mosdns}}
