@@ -11,7 +11,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from core import issue_token, proxy_password, subscription_body, subscription_headers, verify_token
+from core import DEFAULT_NODES, issue_token, proxy_password, subscription_body, subscription_headers, verify_token
 
 
 NAMESPACE = os.getenv("POD_NAMESPACE", "egress-fabric")
@@ -109,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path.split("?", 1)[0] == "/api/devices":
                 return self.json(200, {"profile": "access re8ch com", "devices": records})
             if self.path.split("?", 1)[0] == "/api/status":
-                return self.json(200, {"profile": "access re8ch com", "quota": "300 GB soft", "nodes": 4})
+                return self.json(200, {"profile": "access re8ch com", "quota": "300 GB soft", "nodes": len(DEFAULT_NODES)})
             if self.path.split("?", 1)[0] == "/":
                 return self.send(200, PORTAL.encode(), "text/html; charset=utf-8")
             return self.json(404, {"error": "not found"})
