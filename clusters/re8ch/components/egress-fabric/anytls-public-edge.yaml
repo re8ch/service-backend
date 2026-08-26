@@ -25,7 +25,7 @@ data:
         private-key:
           /etc/mihomo/tls/tls.key
         proxy: NODE-SMART-EGRESS
-    rules: [MATCH,NODE-SMART-EGRESS]
+    rules: ["MATCH,NODE-SMART-EGRESS"]
 ---
 apiVersion: apps/v1
 kind: DaemonSet
