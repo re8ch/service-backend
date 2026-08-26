@@ -1,6 +1,9 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: workspace-agent-artifacts, namespace: ai-operations}
+metadata:
+  name: workspace-agent-artifacts
+  namespace: ai-operations
+  labels: {storage.re8ch.com/replicated-approved: "true"}
 spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-re8ch, resources: {requests: {storage: 20Gi}}}
 ---
 apiVersion: batch/v1
