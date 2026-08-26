@@ -162,6 +162,7 @@ metadata:
   name: personal-access-hysteria2
   namespace: egress-fabric
   annotations: {lbipam.cilium.io/ips: 192.0.2.224}
+  labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
 spec:
   type: LoadBalancer
   loadBalancerClass: io.cilium/bgp-control-plane
@@ -213,3 +214,14 @@ metadata:
 spec:
   ingressClassName: external-dns-only
   rules: [{host: backup.access.re8ch.com}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: personal-access-public-ingress, namespace: egress-fabric}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: personal-access}}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - {port: 24443, protocol: TCP}
+        - {port: 24443, protocol: UDP}
