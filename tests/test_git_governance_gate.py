@@ -38,4 +38,23 @@ def test_pilot_workspace_uses_locked_controller_and_owner_gate_capabilities():
     assert pod["containers"][0]["args"][-2:] == ["re8ch-owner-pilot-20260825", "re8ch-core"]
     controller = (ROOT / "platform/git-workspaces/controller.yaml").read_text()
     assert 'mailbox.get("phase") == "Ready" and approved' in controller
-    assert '["project-write", "edgeone-deploy"]' in controller
+    assert '["project-write", "origin-branch", "collaboration-read-write"]' in controller
+
+
+def test_bot_employee_requires_provider_and_collaboration_identity():
+    crds = {item["metadata"]["name"]: item for item in documents("platform/git-workspaces/crds.yaml")}
+    schema = crds["gitaccounts.governance.re8ch.com"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
+    spec = schema["properties"]["spec"]
+    assert any("Bot employees require" in rule["message"] for rule in spec["x-kubernetes-validations"])
+    capabilities = crds["projectcapabilities.governance.re8ch.com"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
+    values = capabilities["properties"]["spec"]["properties"]["capabilities"]["items"]["enum"]
+    assert {"origin-branch", "collaboration-read-write"} <= set(values)
+
+
+def test_pilot_waits_for_human_owner_and_provider_account():
+    resources = documents("platform/git-workspaces/repo-pilot-bot.yaml")
+    account = next(item for item in resources if item["kind"] == "GitAccount")
+    assert account["spec"]["email"] == "repo-pilot-bot@phonaid.com"
+    assert account["spec"]["providerIdentity"]["username"] == "re8ch-repo-pilot-bot"
+    assert account["metadata"]["annotations"]["governance.re8ch.com/onboarding-state"] == "awaiting-provider-account-and-owner-pr"
+    assert not any(item["kind"] == "OwnerApproval" for item in resources)

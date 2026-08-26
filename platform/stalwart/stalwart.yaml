@@ -20,7 +20,7 @@ metadata:
   name: stalwart
   namespace: mail-system
   annotations:
-    governance.re8ch.com/exposure: staged-internal-only
+    governance.re8ch.com/exposure: collaboration-https-public-management-internal
 spec:
   type: ClusterIP
   selector: {app.kubernetes.io/name: stalwart}

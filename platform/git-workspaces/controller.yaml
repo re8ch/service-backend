@@ -80,7 +80,14 @@ data:
             mailbox = (account.get("status") or {}).get("mailbox") or {}
             account_approvals = approvals.get(name, [])
             approval = account_approvals[0] if len(account_approvals) == 1 else None
-            approved = bool(approval and approval["spec"]["pullRequest"]["merged"])
+            requested_username = ((account["spec"].get("providerIdentity") or {}).get("username") or "").lstrip("@")
+            approved_username = (((approval or {}).get("spec") or {}).get("codeOwner") or {}).get("providerUsername", "").lstrip("@")
+            approved = bool(
+                approval
+                and approval["spec"]["pullRequest"]["merged"]
+                and requested_username
+                and approved_username == requested_username
+            )
             ready = mailbox.get("phase") == "Ready" and approved
             ownership = {
                 "phase": "Ready" if ready else "AwaitingOwnerReview" if mailbox.get("phase") == "Ready" else "AwaitingMailbox",
@@ -94,6 +101,20 @@ data:
                     body={"status": {"ownership": ownership}},
                     content_type="application/merge-patch+json",
                 )
+            provider_identity = {"phase": "Pending"}
+            if approved:
+                provider_identity = {
+                    "phase": "Verified",
+                    "verifiedUsername": approved_username,
+                    "verifiedAt": approval["spec"]["reviewedAt"],
+                }
+            if (account.get("status") or {}).get("providerIdentity") != provider_identity:
+                request(
+                    f"{collection('gitaccounts')}/{name}/status",
+                    method="PATCH",
+                    body={"status": {"providerIdentity": provider_identity}},
+                    content_type="application/merge-patch+json",
+                )
             capability = capabilities.get(name)
             if ready and capability is None:
                 request(collection("projectcapabilities"), method="POST", body={
@@ -103,7 +124,7 @@ data:
                     "spec": {
                         "accountRef": name,
                         "projectRef": account["spec"]["project"],
-                        "capabilities": ["project-write", "edgeone-deploy"],
+                        "capabilities": ["project-write", "origin-branch", "collaboration-read-write"],
                     },
                 })
             elif not ready and capability is not None:
@@ -172,7 +193,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: git-workspace-controller}}
     spec:
       serviceAccountName: git-workspace-controller
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

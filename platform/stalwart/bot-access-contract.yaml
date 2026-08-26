@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-bot-access-contract
+  namespace: mail-system
+  labels: {governance.re8ch.com/evidence-plane: planning}
+data:
+  baseUrl: https://collab.tools.re8ch.com
+  jmapSession: https://collab.tools.re8ch.com/.well-known/jmap
+  caldav: https://collab.tools.re8ch.com/dav/cal/{email-local-part}
+  carddav: https://collab.tools.re8ch.com/dav/card/{email-local-part}
+  webdav: https://collab.tools.re8ch.com/dav/file/{email-local-part}
+  credentialContract: Kubernetes Secret reference only; never inject a primary password into an image or Git workspace.
+  sandboxContract: Mount one revocable Stalwart application-password Secret per bot and expose only the protocol endpoints listed here.
+  managementContract: stalwart-cli remains cluster-internal and authenticates through mail-system/stalwart-recovery-admin.
