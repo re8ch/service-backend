@@ -5,5 +5,5 @@ resources:
   - runtime.yaml
 configMapGenerator:
   - name: access-subscription-code
-    files: [app.py, core.py]
+    files: [app.py, controller.py, core.py, rule_sync.py, telemetry.py]
 generatorOptions: {disableNameSuffixHash: true}
