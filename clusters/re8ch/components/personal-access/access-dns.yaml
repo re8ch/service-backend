@@ -58,7 +58,9 @@ data:
       port: 5353
       ratelimit: 200
       refuse_any: true
-      upstream_dns: [mosdns.egress-fabric.svc.cluster.local:5353]
+      # AdGuard's upstream bootstrap resolver cannot resolve cluster.local.
+      # This Service IP is explicitly reserved below and verified by GitOps.
+      upstream_dns: [192.0.2.146:5353]
       bootstrap_dns: [192.0.2.131, 192.0.2.148]
       cache_size: 4194304
       cache_ttl_min: 60
@@ -142,6 +144,7 @@ spec:
   # AdGuard and one preferred MosDNS replica share restricted-node-6dc3f140f9.  Local routing keeps
   # DNS independent of the currently degraded WSL cross-node Pod path.
   internalTrafficPolicy: Local
+  clusterIP: 192.0.2.146
   selector: {app.kubernetes.io/name: mosdns}
   ports:
     - {name: dns-udp, port: 5353, targetPort: dns-udp, protocol: UDP}
@@ -185,7 +188,7 @@ spec:
         - name: initialize
           image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
           command: [python, -c]
-          args: ["from pathlib import Path; (Path('/data/work')).mkdir(parents=True,exist_ok=True); (Path('/data/conf')).mkdir(parents=True,exist_ok=True); p=Path('/data/conf/AdGuardHome.yaml'); p.write_bytes(Path('/template/AdGuardHome.yaml').read_bytes()) if not p.exists() else None"]
+          args: ["from pathlib import Path; (Path('/data/work')).mkdir(parents=True,exist_ok=True); (Path('/data/conf')).mkdir(parents=True,exist_ok=True); Path('/data/conf/AdGuardHome.yaml').write_bytes(Path('/template/AdGuardHome.yaml').read_bytes())"]
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}
           volumeMounts: [{name: data, mountPath: /data}, {name: config, mountPath: /template, readOnly: true}]
       containers:
