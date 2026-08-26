@@ -22,7 +22,7 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_subscription_contains_real_nodes(self):
         raw = base64.b64decode(subscription_body("credential")).decode()
-        self.assertEqual(len(raw.strip().splitlines()), 4)
+        self.assertEqual(len(raw.strip().splitlines()), 3)
         self.assertIn("anytls://credential@us-ca.access.re8ch.com:443", raw)
         self.assertIn("hysteria2://credential@backup.access.re8ch.com:443", raw)
 

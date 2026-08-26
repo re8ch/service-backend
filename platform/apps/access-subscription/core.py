@@ -27,7 +27,6 @@ class Node:
 DEFAULT_NODES = (
     Node("♻️ Auto · Smart Select", "anytls", "access.re8ch.com"),
     Node("🇺🇸 US · California · AnyTLS", "anytls", "us-ca.access.re8ch.com"),
-    Node("🇲🇾 MY · Kuala Lumpur · AnyTLS", "anytls", "my-kul.access.re8ch.com"),
     Node("🛟 Backup · Hysteria2", "hysteria2", "backup.access.re8ch.com"),
 )
 
