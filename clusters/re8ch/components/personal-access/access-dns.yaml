@@ -163,7 +163,9 @@ spec:
   strategy: {type: Recreate}
   selector: {matchLabels: {app.kubernetes.io/name: access-adguard}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: access-adguard, app.kubernetes.io/part-of: access-dns}}
+    metadata:
+      labels: {app.kubernetes.io/name: access-adguard, app.kubernetes.io/part-of: access-dns}
+      annotations: {access.re8ch.com/config-revision: "20260827-1"}
     spec:
       automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
