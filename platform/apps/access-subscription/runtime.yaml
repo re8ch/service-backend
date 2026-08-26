@@ -76,6 +76,7 @@ spec:
             - --scope=openid profile email
             - --cookie-secure=true
             - --cookie-samesite=lax
+            - --cookie-csrf-per-request=true
             - --cookie-expire=12h
             - --cookie-refresh=1h
             - --reverse-proxy=true
@@ -84,6 +85,9 @@ spec:
             - --skip-provider-button=true
             - --skip-auth-route=^/s/
             - --skip-auth-route=^/healthz$
+            - --skip-auth-route=^/favicon\.ico$
+            - --skip-auth-route=^/apple-touch-icon\.png$
+            - --skip-auth-route=^/apple-touch-icon-precomposed\.png$
           envFrom: [{secretRef: {name: oauth2-proxy-access-subscription}}]
           ports: [{name: http, containerPort: 4180}]
           readinessProbe: {httpGet: {path: /ping, port: http}, periodSeconds: 5}
