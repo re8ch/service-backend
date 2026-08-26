@@ -157,8 +157,9 @@ def subscription_body(password: str, nodes: tuple[Node, ...] = DEFAULT_NODES) ->
 
 def mihomo_proxy(node: Node, password: str) -> list[str]:
     p = node.publication
+    credential_field = "password"
     return [f"  - name: {json.dumps(node.name, ensure_ascii=False)}", f"    type: {p.protocol}",
-            f"    server: {p.server}", f"    port: {p.port}", f"    password: {json.dumps(password)}",
+            f"    server: {p.server}", f"    port: {p.port}", f"    {credential_field}: {json.dumps(password)}",
             f"    sni: {p.sni}", "    skip-cert-verify: false", "    udp: true"]
 
 
