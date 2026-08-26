@@ -107,6 +107,11 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, amdwsl-zt]
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -134,6 +139,9 @@ apiVersion: v1
 kind: Service
 metadata: {name: mosdns, namespace: egress-fabric}
 spec:
+  # AdGuard and one preferred MosDNS replica share restricted-node-6dc3f140f9.  Local routing keeps
+  # DNS independent of the currently degraded WSL cross-node Pod path.
+  internalTrafficPolicy: Local
   selector: {app.kubernetes.io/name: mosdns}
   ports:
     - {name: dns-udp, port: 5353, targetPort: dns-udp, protocol: UDP}
@@ -158,6 +166,22 @@ spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       initContainers:
+        - name: wait-mosdns
+          image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+          command: [python, -c]
+          args:
+            - |
+              import socket, time
+              target = ("mosdns.egress-fabric.svc.cluster.local", 5353)
+              for attempt in range(60):
+                  try:
+                      socket.create_connection(target, 2).close()
+                      break
+                  except OSError:
+                      if attempt == 59:
+                          raise
+                      time.sleep(2)
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}
         - name: initialize
           image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
           command: [python, -c]
@@ -260,6 +284,8 @@ spec:
   endpointSelector: {matchLabels: {app.kubernetes.io/name: access-adguard}}
   ingress:
     - fromCIDR: [192.0.2.18/24, 192.0.2.57/16]
+      toPorts: [{ports: [{port: "5353", protocol: UDP}, {port: "5353", protocol: TCP}]}]
+    - fromEntities: [cluster]
       toPorts: [{ports: [{port: "5353", protocol: UDP}, {port: "5353", protocol: TCP}]}]
     - fromEndpoints: [{matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-dns}}]
       toPorts: [{ports: [{port: "3000", protocol: TCP}]}]
