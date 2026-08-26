@@ -139,21 +139,18 @@ apiVersion: v1
 kind: Service
 metadata: {name: personal-access-auto, namespace: egress-fabric}
 spec:
-  selector: {app.kubernetes.io/name: personal-access}
   ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: personal-access-us-ca, namespace: egress-fabric}
 spec:
-  selector: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: us-ca}
   ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: personal-access-my-kul, namespace: egress-fabric}
 spec:
-  selector: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: my-kul}
   ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
 ---
 apiVersion: v1
@@ -167,8 +164,39 @@ spec:
   type: LoadBalancer
   loadBalancerClass: io.cilium/bgp-control-plane
   externalTrafficPolicy: Cluster
-  selector: {app.kubernetes.io/name: personal-access}
   ports: [{name: hysteria2, port: 443, targetPort: hysteria2, protocol: UDP}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: personal-access-auto-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-auto}}
+addressType: IPv4
+ports: [{name: anytls, port: 24443, protocol: TCP}]
+endpoints:
+  - {addresses: [192.0.2.189], conditions: {ready: true}, zone: us-ca}
+  - {addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: personal-access-us-ca-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-us-ca}}
+addressType: IPv4
+ports: [{name: anytls, port: 24443, protocol: TCP}]
+endpoints: [{addresses: [192.0.2.189], conditions: {ready: true}, zone: us-ca}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: personal-access-my-kul-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-my-kul}}
+addressType: IPv4
+ports: [{name: anytls, port: 24443, protocol: TCP}]
+endpoints: [{addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}]
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata: {name: personal-access-hysteria2-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-hysteria2}}
+addressType: IPv4
+ports: [{name: hysteria2, port: 24443, protocol: UDP}]
+endpoints:
+  - {addresses: [192.0.2.189], conditions: {ready: true}, zone: us-ca}
+  - {addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: TLSRoute
@@ -215,13 +243,14 @@ spec:
   ingressClassName: external-dns-only
   rules: [{host: backup.access.re8ch.com}]
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
 metadata: {name: personal-access-public-ingress, namespace: egress-fabric}
 spec:
-  podSelector: {matchLabels: {app.kubernetes.io/name: personal-access}}
-  policyTypes: [Ingress]
+  endpointSelector: {matchLabels: {app.kubernetes.io/name: personal-access}}
   ingress:
-    - ports:
-        - {port: 24443, protocol: TCP}
-        - {port: 24443, protocol: UDP}
+    - fromEntities: [ingress, world]
+      toPorts:
+        - ports:
+            - {port: "24443", protocol: TCP}
+            - {port: "24443", protocol: UDP}
