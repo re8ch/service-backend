@@ -10,7 +10,7 @@ rules:
     resources: [ownerapprovals]
     verbs: [create, get, list, watch]
   - apiGroups: [governance.re8ch.com]
-    resources: [gitaccounts/status]
+    resources: [gitaccounts, gitaccounts/status]
     verbs: [get, patch, update]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -56,6 +56,8 @@ spec:
       message: OwnerApproval may only be published by the Git provider review verifier.
     - expression: "object.spec.pullRequest.merged == true"
       message: OwnerApproval requires a merged identity pull request.
+    - expression: "object.spec.reviewedBy != object.spec.codeOwner.providerUsername"
+      message: The bot identity being added cannot approve itself.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
@@ -108,6 +110,8 @@ spec:
       message: Only mailbox-provisioner may change mailbox readiness.
     - expression: "(has(object.status.ownership) == has(oldObject.status.ownership) && (!has(object.status.ownership) || object.status.ownership == oldObject.status.ownership)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
       message: Only git-workspace-controller may reconcile ownership readiness.
+    - expression: "(has(object.status.providerIdentity) == has(oldObject.status.providerIdentity) && (!has(object.status.providerIdentity) || object.status.providerIdentity == oldObject.status.providerIdentity)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
+      message: Only git-workspace-controller may verify provider identity.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
