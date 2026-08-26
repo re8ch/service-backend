@@ -245,6 +245,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-access-dns}}
     spec:
       automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: oauth2-proxy

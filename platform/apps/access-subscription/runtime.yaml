@@ -52,6 +52,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: access-subscription, app.kubernetes.io/component: portal}}
     spec:
       serviceAccountName: access-subscription
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -92,6 +93,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: access-controller, app.kubernetes.io/component: authorization}}
     spec:
       serviceAccountName: access-controller
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: controller
@@ -163,6 +165,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}
     spec:
       automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
