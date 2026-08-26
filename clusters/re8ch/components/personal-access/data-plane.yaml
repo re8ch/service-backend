@@ -209,7 +209,7 @@ metadata:
   annotations:
     networking.re8ch.com/tls-mode: passthrough
     external-dns.alpha.kubernetes.io/hostname: access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.67
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
@@ -238,12 +238,18 @@ kind: Ingress
 metadata:
   name: access-hysteria2-dns
   namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: backup.access.re8ch.com
-    networking.re8ch.com/dns-state: canary-not-published
+    external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com,sub.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   ingressClassName: external-dns-only
-  rules: [{host: backup.access.re8ch.com}]
+  rules:
+    - {host: us-ca.access.re8ch.com}
+    - {host: backup.access.re8ch.com}
+    - {host: sub.access.re8ch.com}
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
