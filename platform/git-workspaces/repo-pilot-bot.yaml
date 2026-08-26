@@ -1,0 +1,61 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: repo-pilot-bot
+  namespace: git-workspaces
+  annotations:
+    governance.re8ch.com/onboarding-state: awaiting-provider-account-and-owner-pr
+spec:
+  email: repo-pilot-bot@phonaid.com
+  displayName: Repository Pilot Bot
+  employeeType: bot
+  provider: github
+  providerIdentity:
+    username: re8ch-repo-pilot-bot
+    installationRef: github-app/re8ch-bot-employees
+  project: advanced-fabric
+  mailbox: stalwart
+  googleWorkspace: disabled
+  collaboration:
+    endpoint: https://collab.tools.re8ch.com
+    protocols: [email, calendar, contacts, webdav]
+    credentialSecretRef: {namespace: mail-system, name: repo-pilot-bot-app-password}
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata: {name: repo-pilot-bot, namespace: git-workspaces}
+spec:
+  accountRef: repo-pilot-bot
+  projectRef: advanced-fabric
+  repository: https://github.com/re8ch/advanced-fabric.git
+  folder: catalogs/platform/modules/advanced-fabric/source
+  branchPrefix: workspace/repo-pilot-bot/
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: repo-pilot-bot-dex-grant-request
+  namespace: git-workspaces
+  labels: {governance.re8ch.com/approval: required}
+data:
+  email: repo-pilot-bot@phonaid.com
+  dexGroups: re8ch:bot-employees,re8ch:advanced-fabric-bots
+  kubernetesUsername: oidc:repo-pilot-bot@phonaid.com
+  state: awaiting-platform-admin-mcp
+  credentialPolicy: Password hash or external OIDC subject must be supplied through platform-admin; never store plaintext here.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: repo-pilot-bot-governance-reader, namespace: git-workspaces}
+rules:
+  - apiGroups: [governance.re8ch.com]
+    resources: [gitaccounts, gitworkspaces, projectcapabilities, ownerapprovals, workcontracts, workevidences]
+    resourceNames: [repo-pilot-bot]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: repo-pilot-bot-governance-reader, namespace: git-workspaces}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: repo-pilot-bot-governance-reader}
+subjects:
+  - {apiGroup: rbac.authorization.k8s.io, kind: Group, name: "oidc:re8ch:advanced-fabric-bots"}

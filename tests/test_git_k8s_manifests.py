@@ -29,7 +29,7 @@ def test_work_evidence_requires_kubernetes_producer_identity():
     assert {"producerServiceAccount", "observedAt", "plane", "commit", "repository"} <= set(required)
 
 
-def test_stalwart_is_internal_and_digest_pinned():
+def test_stalwart_management_is_internal_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/stalwart.yaml")
     service = next(item for item in resources if item["kind"] == "Service" and item["metadata"]["name"] == "stalwart")
     stateful_set = next(item for item in resources if item["kind"] == "StatefulSet")
@@ -38,12 +38,27 @@ def test_stalwart_is_internal_and_digest_pinned():
     assert "@sha256:" in image
 
 
+def test_stalwart_public_route_only_exposes_collaboration_paths():
+    resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
+    route = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public")
+    assert route["spec"]["hostnames"] == ["collab.tools.re8ch.com"]
+    paths = {
+        match["path"]["value"]
+        for rule in route["spec"]["rules"]
+        for match in rule.get("matches", [])
+    }
+    assert {"/jmap", "/dav", "/.well-known", "/account", "/auth"} == paths
+    assert "/api" not in paths
+    assert route["spec"]["rules"][0]["backendRefs"][0]["port"] == 8080
+
+
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
     plan = next(item for item in resources if item["kind"] == "ConfigMap")
     job = next(item for item in resources if item["kind"] == "Job")
     lines = [yaml.safe_load(line) for line in plan["data"]["plan.ndjson"].splitlines()]
-    assert lines and all(line["@type"] == "upsert" for line in lines)
+    assert lines and {line["@type"] for line in lines} <= {"upsert", "update"}
+    assert any(line["object"] == "Sharing" for line in lines)
     pod = job["spec"]["template"]["spec"]
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert pod["automountServiceAccountToken"] is False

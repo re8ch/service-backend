@@ -19,12 +19,39 @@ spec:
             spec:
               type: object
               required: [email, provider, project, mailbox]
+              x-kubernetes-validations:
+                - rule: "!has(self.employeeType) || self.employeeType != 'bot' || (has(self.displayName) && has(self.providerIdentity) && has(self.collaboration))"
+                  message: Bot employees require displayName, providerIdentity and collaboration access.
               properties:
                 email: {type: string, pattern: '^[^@]+@phonaid\.com$'}
+                displayName: {type: string, minLength: 1}
+                employeeType: {type: string, enum: [human, bot]}
                 provider: {type: string, enum: [github, gitlab]}
+                providerIdentity:
+                  type: object
+                  required: [username]
+                  properties:
+                    username: {type: string, pattern: '^[A-Za-z0-9_.-]+$'}
+                    installationRef: {type: string}
                 project: {type: string}
                 mailbox: {type: string, enum: [stalwart]}
                 googleWorkspace: {type: string, enum: [eligible, requested, disabled]}
+                collaboration:
+                  type: object
+                  required: [endpoint, protocols, credentialSecretRef]
+                  properties:
+                    endpoint: {type: string, pattern: '^https://'}
+                    protocols:
+                      type: array
+                      minItems: 4
+                      x-kubernetes-list-type: set
+                      items: {type: string, enum: [email, calendar, contacts, webdav]}
+                    credentialSecretRef:
+                      type: object
+                      required: [namespace, name]
+                      properties:
+                        namespace: {type: string}
+                        name: {type: string}
             status:
               type: object
               properties:
@@ -42,6 +69,12 @@ spec:
                     phase: {type: string, enum: [AwaitingMailbox, AwaitingOwnerReview, Ready]}
                     identityCommit: {type: string}
                     approvalRef: {type: string}
+                providerIdentity:
+                  type: object
+                  properties:
+                    phase: {type: string, enum: [Pending, Verified, Rejected]}
+                    verifiedUsername: {type: string}
+                    verifiedAt: {type: string, format: date-time}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -62,13 +95,19 @@ spec:
           properties:
             spec:
               type: object
-              required: [accountRef, repository, identityCommit, pullRequest, reviewedBy, reviewedAt]
+              required: [accountRef, repository, identityCommit, pullRequest, codeOwner, reviewedBy, reviewedAt]
               x-kubernetes-validations:
                 - rule: 'self == oldSelf'
                   message: OwnerApproval is immutable; publish a new verifier result.
               properties:
                 accountRef: {type: string}
                 repository: {type: string}
+                codeOwner:
+                  type: object
+                  required: [providerUsername, pattern]
+                  properties:
+                    providerUsername: {type: string, pattern: '^@?[A-Za-z0-9_.\/-]+$'}
+                    pattern: {type: string, minLength: 1}
                 identityCommit: {type: string, pattern: '^[0-9a-f]{40}$'}
                 pullRequest:
                   type: object
@@ -109,7 +148,7 @@ spec:
                   type: array
                   minItems: 1
                   x-kubernetes-list-type: set
-                  items: {type: string, enum: [project-write, edgeone-deploy]}
+                  items: {type: string, enum: [project-write, origin-branch, collaboration-read-write, edgeone-deploy]}
             status: {type: object, x-kubernetes-preserve-unknown-fields: true}
 ---
 apiVersion: apiextensions.k8s.io/v1
