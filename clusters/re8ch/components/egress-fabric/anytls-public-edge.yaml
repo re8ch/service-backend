@@ -1,0 +1,100 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: access-re8ch-com, namespace: egress-fabric}
+spec:
+  secretName: access-re8ch-com-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
+  dnsNames: [access.re8ch.com]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: mihomos-anytls-public-edge, namespace: egress-fabric}
+data:
+  config.yaml: |
+    allow-lan: false
+    mode: rule
+    proxies:
+      - {name: NODE-SMART-EGRESS, type: socks5, server: 127.0.0.1, port: 17891, udp: true}
+    listeners:
+      - name: access-re8ch-com
+        type: anytls
+        listen: 0.0.0.0
+        port: 24443
+        users: {access: __ANYTLS_PASSWORD__}
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: NODE-SMART-EGRESS
+    rules: [MATCH,NODE-SMART-EGRESS]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: mihomos-anytls-public-edge, namespace: egress-fabric}
+spec:
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxSurge: 0, maxUnavailable: 1}}
+  selector: {matchLabels: {app.kubernetes.io/name: mihomos-anytls-public-edge}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: mihomos-anytls-public-edge, app.kubernetes.io/component: public-ingress}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector: {networking.re8ch.com/anytls-public-edge: enabled}
+      tolerations: [{operator: Exists}]
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: render-password
+          image: alpine:3.22
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              password=$(cat /credentials/password)
+              case "$password" in *[!A-Za-z0-9._~-]*) echo "unsupported password characters" >&2; exit 1;; esac
+              sed "s/__ANYTLS_PASSWORD__/$password/" /base/config.yaml > /work/config.yaml
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: base, mountPath: /base, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: work, mountPath: /work}
+      containers:
+        - name: mihomo
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          args: [-d, /etc/mihomo]
+          ports: [{name: anytls, containerPort: 24443, protocol: TCP}]
+          readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
+          livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 800m, memory: 512Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: work, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+            - {name: tls, mountPath: /etc/mihomo/tls, readOnly: true}
+      volumes:
+        - {name: base, configMap: {name: mihomos-anytls-public-edge}}
+        - {name: credentials, secret: {secretName: mihomos-anytls-users}}
+        - {name: tls, secret: {secretName: access-re8ch-com-tls}}
+        - {name: work, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: mihomos-anytls-public-edge, namespace: egress-fabric}
+spec:
+  selector: {app.kubernetes.io/name: mihomos-anytls-public-edge}
+  ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: access-anytls
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    external-dns.alpha.kubernetes.io/hostname: access.re8ch.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-tls}]
+  hostnames: [access.re8ch.com]
+  rules: [{backendRefs: [{name: mihomos-anytls-public-edge, port: 24443}]}]

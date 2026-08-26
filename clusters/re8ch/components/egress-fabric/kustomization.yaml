@@ -9,6 +9,7 @@ resources:
   - node-egress-labels.yaml
   - network-policy.yaml
   - mobile-policy-api.yaml
+  - anytls-public-edge.yaml
 configMapGenerator:
   - name: route-path-controller-code
     namespace: egress-fabric
