@@ -23,6 +23,14 @@ spec:
     name: re8ch-service-vip
     namespace: kube-system
 ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: access-subdomains, namespace: kube-system}
+spec:
+  secretName: access-subdomains-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
+  dnsNames: [sub.access.re8ch.com]
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -53,6 +61,9 @@ spec:
     - {name: agent-https, hostname: agent.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     # access.re8ch.com is SNI-routed as raw TLS; Mihomo terminates AnyTLS.
     - {name: access-tls, hostname: access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-us-ca-tls, hostname: us-ca.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-my-kul-tls, hostname: my-kul.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-sub-https, hostname: sub.access.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: access-subdomains-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: opensandbox-https, hostname: opensandbox.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: admin-https, hostname: admin.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - name: tools-wildcard-https

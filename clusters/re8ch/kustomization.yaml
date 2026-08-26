@@ -8,9 +8,12 @@ resources:
   - flux-system/gotk-sync.yaml
   - gitlab-agent/agent.yaml
   - secrets/stalwart-recovery-admin.sops.yaml
+  - components/cilium/gateway-api-canary.yaml
+  - components/personal-access
   - ../../platform/headlamp
   - ../../platform/cloud-platform
   - ../../platform/git-workspaces
   - ../../platform/workspace-controller
   - ../../platform/agent-onboarding-runtime
   - ../../platform/stalwart
+  - ../../platform/apps/access-subscription
