@@ -30,11 +30,11 @@ data:
       - name: access-hysteria2
         type: hysteria2
         listen: 0.0.0.0
-        port: 24443
+        port: 443
         users:
     __HYSTERIA2_USERS__
-        up: 1000 Mbps
-        down: 1000 Mbps
+        up: 1000
+        down: 1000
         certificate: /etc/mihomo/tls/tls.crt
         private-key:
           /etc/mihomo/tls/tls.key
@@ -46,6 +46,7 @@ kind: Deployment
 metadata: {name: personal-access-us-ca, namespace: egress-fabric}
 spec:
   replicas: 1
+  strategy: {type: Recreate}
   selector: {matchLabels: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: us-ca}}
   template:
     metadata:
@@ -74,7 +75,7 @@ spec:
         - name: mihomo
           image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
           args: [-d, /etc/mihomo]
-          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 24443, protocol: UDP}]
+          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 443, protocol: UDP}]
           readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
           livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
           resources: {requests: {cpu: 50m, memory: 96Mi}, limits: {cpu: "2", memory: 1Gi}}
@@ -93,6 +94,7 @@ kind: Deployment
 metadata: {name: personal-access-my-kul, namespace: egress-fabric}
 spec:
   replicas: 1
+  strategy: {type: Recreate}
   selector: {matchLabels: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: my-kul}}
   template:
     metadata:
@@ -121,7 +123,7 @@ spec:
         - name: mihomo
           image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
           args: [-d, /etc/mihomo]
-          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 24443, protocol: UDP}]
+          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 443, protocol: UDP}]
           readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
           livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
           resources: {requests: {cpu: 50m, memory: 96Mi}, limits: {cpu: "2", memory: 1Gi}}
@@ -193,7 +195,7 @@ apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
 metadata: {name: personal-access-hysteria2-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-hysteria2}}
 addressType: IPv4
-ports: [{name: hysteria2, port: 24443, protocol: UDP}]
+ports: [{name: hysteria2, port: 443, protocol: UDP}]
 endpoints:
   - {addresses: [192.0.2.189], conditions: {ready: true}, zone: us-ca}
   - {addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}
@@ -253,4 +255,4 @@ spec:
       toPorts:
         - ports:
             - {port: "24443", protocol: TCP}
-            - {port: "24443", protocol: UDP}
+            - {port: "443", protocol: UDP}
