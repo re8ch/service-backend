@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: egress-fabric
+resources:
+  - runtime.yaml
+configMapGenerator:
+  - name: access-subscription-code
+    files: [app.py, core.py]
+generatorOptions: {disableNameSuffixHash: true}
