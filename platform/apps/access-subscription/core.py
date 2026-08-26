@@ -31,6 +31,18 @@ DEFAULT_NODES = (
 )
 
 
+def canonical_subject(user: str | None, email: str | None, aliases: dict[str, str]) -> str:
+    normalized_aliases = {str(key).strip().casefold(): str(value).strip() for key, value in aliases.items()}
+    for candidate in (email, user):
+        value = str(candidate or "").strip()
+        if value and value.casefold() in normalized_aliases:
+            return normalized_aliases[value.casefold()]
+    subject = str(user or email or "").strip()
+    if not subject:
+        raise ValueError("Dex identity required")
+    return subject
+
+
 def b64url(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 

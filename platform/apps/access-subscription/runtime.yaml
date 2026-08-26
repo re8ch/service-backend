@@ -36,7 +36,10 @@ spec:
           livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 20m, memory: 32Mi}, limits: {cpu: 300m, memory: 128Mi}}
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true}
-          env: [{name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}]
+          env:
+            - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
+            - name: IDENTITY_ALIASES_JSON
+              value: '{"hliu74@apple.com":"hliu74","admin@re8ch.com":"hliu74","woomou":"hliu74","Cgg2MTY5MDcxORIGZ2l0aHVi":"hliu74"}'
           volumeMounts:
             - {name: code, mountPath: /app, readOnly: true}
             - {name: hmac, mountPath: /secrets, readOnly: true}
