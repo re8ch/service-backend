@@ -55,6 +55,18 @@ class AuthorityTests(unittest.TestCase):
         response = authority.dns_response(query)
         self.assertEqual(struct.unpack("!H", response[6:8])[0], 0)
 
+    def test_explicit_statuses_reject_redirect_loop(self):
+        authority.SERVICE_DEFINITIONS = {
+            "dex.re8ch.com.": {
+                "service": "dex",
+                "class": "web",
+                "probePath": "/.well-known/openid-configuration",
+                "acceptedStatuses": [200],
+            }
+        }
+        self.assertTrue(authority.accepted_probe_status("dex", 200))
+        self.assertFalse(authority.accepted_probe_status("dex", 308))
+
     def test_cn_prefers_high_capacity_r640(self):
         original_area = authority.AREA
         authority.AREA = "CN"
