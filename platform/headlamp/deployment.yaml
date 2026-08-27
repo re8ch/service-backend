@@ -22,6 +22,12 @@ spec:
         app.kubernetes.io/name: headlamp
     spec:
       serviceAccountName: headlamp
+      # Keep the OIDC backchannel on the in-cluster Cilium Gateway. The public
+      # edge currently redirects explicit :443 requests to itself indefinitely.
+      hostAliases:
+        - ip: "192.0.2.201"
+          hostnames:
+            - dex.re8ch.com
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
