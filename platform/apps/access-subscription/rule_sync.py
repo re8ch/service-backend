@@ -66,10 +66,16 @@ def github_api_raw_url(url: str) -> str | None:
 
 def fetch(url: str) -> bytes:
     last_error = None
-    candidates = [(url, {})]
+    raw_candidate = (url, {})
     api_url = github_api_raw_url(url)
-    if api_url:
-        candidates.append((api_url, {"Accept": "application/vnd.github.raw+json"}))
+    api_candidate = (api_url, {"Accept": "application/vnd.github.raw+json"}) if api_url else None
+    # Binary MRS downloads are where the current path exhibits truncated raw
+    # responses. Prefer GitHub's official API for those ~24 files while keeping
+    # the many small text lists on raw GitHub to stay below API rate limits.
+    if api_candidate and url.endswith(".mrs"):
+        candidates = [api_candidate, raw_candidate]
+    else:
+        candidates = [raw_candidate] + ([api_candidate] if api_candidate else [])
     for candidate, extra_headers in candidates:
         for attempt in range(3):
             headers = {"User-Agent": "re8ch-rule-sync/1", **extra_headers}
