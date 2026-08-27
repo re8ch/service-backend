@@ -202,11 +202,27 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
     return "\n".join(out).encode()
 
 
-def shadowrocket_config(token: str, base_url: str) -> bytes:
+def shadowrocket_proxy(node: Node, password: str) -> str:
+    publication = node.publication
+    common = f"{node.name} = {publication.protocol}, {publication.server}, {publication.port}"
+    if publication.protocol == "anytls":
+        return f"{common}, password={password}, peer={publication.sni}, udp=1"
+    if publication.protocol == "hysteria2":
+        return f"{common}, auth={password}, peer={publication.sni}, udp=1"
+    raise ValueError(f"unsupported Shadowrocket protocol: {publication.protocol}")
+
+
+def shadowrocket_config(password: str, token: str, base_url: str,
+                        nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
+    active = published_nodes(nodes)
+    names = [node.name for node in active]
     lines = ["[General]", "bypass-system = true", "ipv6 = false",
              "dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query",
-             "udp-policy-not-supported-behaviour = REJECT", "", "[Proxy]", "", "[Proxy Group]",
-             "AUTO = url-test, policy-regex-filter=.*, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"]
+             "udp-policy-not-supported-behaviour = REJECT", "", "[Proxy]"]
+    lines.extend(shadowrocket_proxy(node, password) for node in active)
+    lines.extend(["", "[Proxy Group]",
+                  f"PROXY = select, AUTO, {', '.join(names)}",
+                  f"AUTO = url-test, {', '.join(names)}, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"])
     for _rule_id, label in SERVICE_RULESETS:
         lines.append(f"{label} = select, PROXY, AUTO, DIRECT")
     mapping = (("private", "DIRECT"), ("apple", "🍎 Apple"), ("microsoft", "🪟 Microsoft"), ("ai", "🤖 AI"),
@@ -218,6 +234,10 @@ def shadowrocket_config(token: str, base_url: str) -> bytes:
         lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}")
     lines.extend(["GEOIP,CN,DIRECT", "FINAL,PROXY", ""])
     return "\n".join(lines).encode()
+
+
+def shadowrocket_import_url(config_url: str) -> str:
+    return "shadowrocket://config/add/" + quote(config_url, safe="")
 
 
 def month_end_epoch(now: datetime | None = None) -> int:
