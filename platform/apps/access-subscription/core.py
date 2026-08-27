@@ -304,6 +304,11 @@ def v2box_config_import_url(config_url: str) -> str:
     return "v2box://install-config?" + urlencode({"url": config_url})
 
 
+def clash_meta_import_url(config_url: str) -> str:
+    """Build the URL scheme understood by ClashX and Clash Meta clients."""
+    return "clash://install-config?url=" + quote(config_url, safe="")
+
+
 def month_end_epoch(now: datetime | None = None) -> int:
     current = now or datetime.now(timezone.utc)
     boundary = datetime(current.year + (current.month == 12), 1 if current.month == 12 else current.month + 1, 1, tzinfo=timezone.utc)
