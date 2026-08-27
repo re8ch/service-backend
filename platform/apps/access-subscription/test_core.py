@@ -3,8 +3,8 @@ import unittest
 from datetime import datetime, timezone
 
 from core import (DEFAULT_NODES, MONTHLY_SOFT_LIMIT, authorization, canonical_subject, issue_token, mihomo_config,
-                  node_uri, proxy_password, public_node, shadowrocket_config, subscription_body, subscription_headers,
-                  verify_token)
+                  node_uri, proxy_password, public_node, shadowrocket_config, shadowrocket_import_url,
+                  subscription_body, subscription_headers, verify_token)
 
 
 class SubscriptionTests(unittest.TestCase):
@@ -68,10 +68,20 @@ class SubscriptionTests(unittest.TestCase):
         self.assertNotIn("fallback:", config)
 
     def test_shadowrocket_config_defaults_to_proxy(self):
-        config = shadowrocket_config("token", "https://sub.access.re8ch.com").decode()
+        config = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com").decode()
+        self.assertIn("[Proxy]", config)
+        self.assertIn("♻️ Auto · Smart Select = anytls, access.re8ch.com, 443, password=credential, peer=access.re8ch.com, udp=1", config)
+        self.assertIn("🛟 Backup · Hysteria2 = hysteria2, backup.access.re8ch.com, 443, auth=credential, peer=backup.access.re8ch.com, udp=1", config)
         self.assertIn("[Proxy Group]", config)
+        self.assertIn("PROXY = select, AUTO, ♻️ Auto · Smart Select", config)
+        self.assertIn("AUTO = url-test, ♻️ Auto · Smart Select", config)
         self.assertIn("FINAL,PROXY", config)
         self.assertIn("/current/cn.list,DIRECT", config)
+        self.assertNotIn("personal-access-us-ca", config)
+
+    def test_shadowrocket_import_url_encodes_complete_config_endpoint(self):
+        url = shadowrocket_import_url("https://sub.access.re8ch.com/s/a.b/shadowrocket.conf")
+        self.assertEqual(url, "shadowrocket://config/add/https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fshadowrocket.conf")
 
 
 if __name__ == "__main__":
