@@ -36,6 +36,11 @@ def test_pilot_workspace_uses_locked_controller_and_owner_gate_capabilities():
     pod = pilot["spec"]["template"]["spec"]
     assert pod["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
     assert pod["containers"][0]["args"][-2:] == ["re8ch-owner-pilot-20260825", "re8ch-core"]
+    assert all(volume["name"] != "credentials" for volume in pod["volumes"])
+    assert all("GIT_SSH_COMMAND" not in {item["name"] for item in container.get("env", [])} for container in [*pod["initContainers"], *pod["containers"]])
+    mirror = documents("platform/workspace-controller/r640-mirror.yaml")[1]
+    assert mirror["kind"] == "CronJob"
+    assert mirror["spec"]["suspend"] is True
     controller = (ROOT / "platform/git-workspaces/controller.yaml").read_text()
     assert 'mailbox.get("phase") == "Ready" and approved' in controller
     assert '["project-write", "origin-branch", "collaboration-read-write"]' in controller
