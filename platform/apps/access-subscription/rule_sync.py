@@ -12,6 +12,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(os.getenv("RULES_ROOT", "/rules"))
 META = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo"
@@ -51,17 +52,35 @@ LIST_SOURCES = {
 }
 
 
+def github_api_raw_url(url: str) -> str | None:
+    prefix = "https://raw.githubusercontent.com/"
+    if not url.startswith(prefix):
+        return None
+    parts = url.removeprefix(prefix).split("/", 3)
+    if len(parts) != 4:
+        return None
+    owner, repository, ref, path = parts
+    return (f"https://api.github.com/repos/{quote(owner, safe='')}/{quote(repository, safe='')}/contents/"
+            f"{quote(path, safe='/')}?ref={quote(ref, safe='')}")
+
+
 def fetch(url: str) -> bytes:
     last_error = None
-    for attempt in range(3):
-        request = urllib.request.Request(url, headers={"User-Agent": "re8ch-rule-sync/1"})
-        try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                return response.read()
-        except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead) as exc:
-            last_error = exc
-            if attempt < 2:
-                time.sleep(2 ** attempt)
+    candidates = [(url, {})]
+    api_url = github_api_raw_url(url)
+    if api_url:
+        candidates.append((api_url, {"Accept": "application/vnd.github.raw+json"}))
+    for candidate, extra_headers in candidates:
+        for attempt in range(3):
+            headers = {"User-Agent": "re8ch-rule-sync/1", **extra_headers}
+            request = urllib.request.Request(candidate, headers=headers)
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    return response.read()
+            except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead) as exc:
+                last_error = exc
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
     raise RuntimeError(f"failed to fetch rules after retries: {url}") from last_error
 
 
