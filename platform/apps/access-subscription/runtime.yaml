@@ -242,4 +242,4 @@ spec:
   endpointSelector: {matchLabels: {app.kubernetes.io/name: access-subscription}}
   ingress:
     - fromEndpoints: [{matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}]
-      toPorts: [{ports: [{port: "8080", protocol: TCP}]}]
+      toPorts: [{ports: [{port: "8080", protocol: TCP}, {port: "18080", protocol: TCP}]}]
