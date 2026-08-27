@@ -27,6 +27,14 @@ spec:
           nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
           serviceAccountName: workspace-controller
           securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
+          initContainers:
+            - name: prepare-directories
+              image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
+              command: [sh, -c, "chown 65532:65532 /var/lib/re8ch/workspace-mirrors /var/lib/re8ch/agent-workspaces"]
+              securityContext: {runAsUser: 0, allowPrivilegeEscalation: false, capabilities: {drop: [ALL], add: [CHOWN]}}
+              volumeMounts:
+                - {name: mirrors, mountPath: /var/lib/re8ch/workspace-mirrors}
+                - {name: worktrees, mountPath: /var/lib/re8ch/agent-workspaces}
           containers:
             - name: mirror
               image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
