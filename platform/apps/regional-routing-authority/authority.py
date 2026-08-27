@@ -17,6 +17,7 @@ NODE = os.getenv("NODE_NAME", "unknown")
 PROBE_CONNECT_TIMEOUT = float(os.getenv("PROBE_CONNECT_TIMEOUT_SECONDS", "5"))
 PROBE_RESPONSE_TIMEOUT = float(os.getenv("PROBE_RESPONSE_TIMEOUT_SECONDS", "12"))
 PROBE_INTERVAL_SECONDS = max(1, int(os.getenv("PROBE_INTERVAL_SECONDS", "3")))
+HTTP_PORT = int(os.getenv("HTTP_PORT", "8080"))
 NAMESERVERS = os.getenv("NAMESERVERS", "ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.").split()
 CANDIDATES = json.loads(os.getenv("CANDIDATES_JSON", "[]"))
 SERVICE_DEFINITIONS = json.loads(os.getenv("SERVICES_JSON", '''{
@@ -433,6 +434,8 @@ class HTTPHandler(BaseHTTPRequestHandler):
 def main():
     if not CANDIDATES and not KUBERNETES_API:
         raise RuntimeError("no PublicEdge API or CANDIDATES_JSON configured")
+    http = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), HTTPHandler)
+    threading.Thread(target=http.serve_forever, daemon=True).start()
     probe_all()
     publish_default_area()
     threading.Thread(target=probe_loop, daemon=True).start()
@@ -441,8 +444,8 @@ def main():
     tcp = ReusableTCPServer((dns_bind, 53), TCPHandler)
     threading.Thread(target=udp.serve_forever, daemon=True).start()
     threading.Thread(target=tcp.serve_forever, daemon=True).start()
-    print(f"node={NODE} area={AREA} region={REGION} dns={dns_bind}:53 http=:8080", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", 8080), HTTPHandler).serve_forever()
+    print(f"node={NODE} area={AREA} region={REGION} dns={dns_bind}:53 http=:{HTTP_PORT}", flush=True)
+    threading.Event().wait()
 
 
 if __name__ == "__main__":
