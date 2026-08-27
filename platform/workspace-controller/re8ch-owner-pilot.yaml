@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: re8ch-owner-pilot-workspace-v2
+  name: re8ch-owner-pilot-workspace-v3
   namespace: ai-operations
   labels: {governance.re8ch.com/task-id: re8ch-owner-pilot-20260825}
 spec:
@@ -15,6 +15,13 @@ spec:
       serviceAccountName: workspace-controller
       securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
       initContainers:
+        - name: prepare-directories
+          image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
+          command: [sh, -c, "chown 65532:65532 /var/lib/re8ch/workspace-mirrors /var/lib/re8ch/agent-workspaces"]
+          securityContext: {runAsUser: 0, allowPrivilegeEscalation: false, capabilities: {drop: [ALL], add: [CHOWN]}}
+          volumeMounts:
+            - {name: mirrors, mountPath: /var/lib/re8ch/workspace-mirrors}
+            - {name: worktrees, mountPath: /var/lib/re8ch/agent-workspaces}
         - name: sync-lock
           image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
           args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, --memory-root, /srv/service-backend/catalogs, sync, re8ch-core]
