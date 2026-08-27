@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: re8ch-owner-pilot-workspace
+  name: re8ch-owner-pilot-workspace-v2
   namespace: ai-operations
   labels: {governance.re8ch.com/task-id: re8ch-owner-pilot-20260825}
 spec:
@@ -18,20 +18,16 @@ spec:
         - name: sync-lock
           image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
           args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, --memory-root, /srv/service-backend/catalogs, sync, re8ch-core]
-          env: [{name: GIT_SSH_COMMAND, value: "ssh -F /credentials/ssh-config -o BatchMode=yes"}]
           volumeMounts: &workspaceMounts
             - {name: mirrors, mountPath: /var/lib/re8ch/workspace-mirrors}
             - {name: worktrees, mountPath: /var/lib/re8ch/agent-workspaces}
-            - {name: credentials, mountPath: /credentials, readOnly: true}
             - {name: artifacts, mountPath: /srv/re8ch/agent-artifacts}
       containers:
         - name: materialize
           image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
           args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, --memory-root, /srv/service-backend/catalogs, create, re8ch-owner-pilot-20260825, re8ch-core]
-          env: [{name: GIT_SSH_COMMAND, value: "ssh -F /credentials/ssh-config -o BatchMode=yes"}]
           volumeMounts: *workspaceMounts
       volumes:
         - {name: mirrors, hostPath: {path: /var/lib/re8ch/workspace-mirrors, type: DirectoryOrCreate}}
         - {name: worktrees, hostPath: {path: /var/lib/re8ch/agent-workspaces, type: DirectoryOrCreate}}
-        - {name: credentials, secret: {secretName: workspace-git-credentials, defaultMode: 256}}
         - {name: artifacts, persistentVolumeClaim: {claimName: workspace-agent-artifacts}}

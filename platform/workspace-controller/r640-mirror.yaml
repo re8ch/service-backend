@@ -11,6 +11,9 @@ kind: CronJob
 metadata: {name: workspace-mirror-sync, namespace: ai-operations}
 spec:
   schedule: "17 */2 * * *"
+  # The complete catalog includes private repositories. Keep this suspended
+  # until the platform identity path provisions workspace-git-credentials.
+  suspend: true
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
