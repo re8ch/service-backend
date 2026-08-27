@@ -58,6 +58,21 @@ DEFAULT_NODES = (
     Node("auto", "♻️ Auto · Smart Select", Publication("anytls", "access.re8ch.com", 443, "access.re8ch.com"), RuntimeTarget("personal-access-auto", "access-anytls", "auto", 100)),
     Node("us-ca", "🇺🇸 US · California · AnyTLS", Publication("anytls", "us-ca.access.re8ch.com", 443, "us-ca.access.re8ch.com"), RuntimeTarget("personal-access-us-ca", "access-anytls", "us-ca", 100)),
     Node("backup", "🛟 Backup · Hysteria2", Publication("hysteria2", "backup.access.re8ch.com", 443, "backup.access.re8ch.com"), RuntimeTarget("personal-access-hysteria2", "access-hysteria2", "auto", 100)),
+    # The first three entries above are immutable compatibility publications.
+    # New topology-aware publications use distinct IDs and DNS names so an
+    # existing Shadowrocket profile can refresh without losing a selected node.
+    Node("route-auto-anytls", "♻️ RouteOS · Auto 决策 · AnyTLS", Publication("anytls", "access.re8ch.com", 443, "access.re8ch.com"), RuntimeTarget("personal-access-auto", "access-anytls", "routeos-auto", 100)),
+    Node("route-auto-hysteria2", "♻️ RouteOS · Auto 决策 · Hysteria2", Publication("hysteria2", "backup.access.re8ch.com", 443, "backup.access.re8ch.com"), RuntimeTarget("personal-access-hysteria2", "access-hysteria2", "routeos-auto", 100)),
+    Node("route-la-anytls", "🇺🇸 RouteOS · 洛杉矶 · AnyTLS", Publication("anytls", "route-la.access.re8ch.com", 443, "route-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-anytls", "us-la", 100)),
+    Node("route-la-hysteria2", "🇺🇸 RouteOS · 洛杉矶 · Hysteria2", Publication("hysteria2", "route-la.access.re8ch.com", 4443, "route-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la", 100)),
+    Node("route-kl-anytls", "🇲🇾 RouteOS · 吉隆坡 · AnyTLS", Publication("anytls", "my-kul.access.re8ch.com", 443, "my-kul.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul", 100)),
+    Node("route-kl-hysteria2", "🇲🇾 RouteOS · 吉隆坡 · Hysteria2", Publication("hysteria2", "route-kl.access.re8ch.com", 4444, "route-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul", 100)),
+    Node("direct-la-anytls", "🇺🇸 Edge Direct · 洛杉矶 · AnyTLS", Publication("anytls", "direct-la.access.re8ch.com", 24443, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-anytls", "us-la-direct", 100)),
+    Node("direct-la-hysteria2", "🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", Publication("hysteria2", "direct-la.access.re8ch.com", 24444, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la-direct", 100)),
+    Node("direct-kl-anytls", "🇲🇾 Edge Direct · 吉隆坡 · AnyTLS", Publication("anytls", "direct-kl.access.re8ch.com", 24443, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul-direct", 100)),
+    Node("direct-kl-hysteria2", "🇲🇾 Edge Direct · 吉隆坡 · Hysteria2", Publication("hysteria2", "direct-kl.access.re8ch.com", 24444, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul-direct", 100)),
+    Node("direct-cn-anytls", "🇨🇳 Edge Direct · 娄底 · AnyTLS", Publication("anytls", "direct-cn.access.re8ch.com", 24443, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-anytls", "cn-loudi-direct", 100)),
+    Node("direct-cn-hysteria2", "🇨🇳 Edge Direct · 娄底 · Hysteria2", Publication("hysteria2", "direct-cn.access.re8ch.com", 24444, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-hysteria2", "cn-loudi-direct", 100)),
 )
 
 SERVICE_RULESETS = (
