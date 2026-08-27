@@ -139,6 +139,30 @@ def previous_manifest() -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
+def verified_previous_artifact(name: str, sources: list[str], previous: dict) -> bytes | None:
+    metadata = previous.get("artifacts", {}).get(name, {})
+    if metadata.get("sources") != sources:
+        return None
+    path = ROOT / "current" / name
+    if not path.exists():
+        return None
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != metadata.get("sha256"):
+        return None
+    return raw
+
+
+def incremental_list_parts(name: str, urls: list[str], previous: dict) -> tuple[list[bytes], list[str]]:
+    if int(previous.get("recipeRevision", 1)) == RECIPE_REVISION:
+        return [], urls
+    filename = f"{name}.list"
+    old_sources = previous.get("artifacts", {}).get(filename, {}).get("sources", [])
+    if not old_sources or urls[:len(old_sources)] != old_sources:
+        return [], urls
+    raw = verified_previous_artifact(filename, old_sources, previous)
+    return ([raw], urls[len(old_sources):]) if raw is not None else ([], urls)
+
+
 def validate_change(name: str, value: int, previous: dict) -> None:
     if int(previous.get("recipeRevision", 1)) != RECIPE_REVISION:
         return
@@ -156,16 +180,20 @@ def sync(now: int | None = None) -> str:
     artifacts = {}
     try:
         for name, url in MRS_SOURCES.items():
-            raw = fetch(url)
+            filename = f"{name}.mrs"
+            raw = None
+            if int(previous.get("recipeRevision", 1)) != RECIPE_REVISION:
+                raw = verified_previous_artifact(filename, [url], previous)
+            raw = raw if raw is not None else fetch(url)
             if len(raw) < 128:
                 raise ValueError(f"invalid MRS: {name}")
-            filename = f"{name}.mrs"
             value = metric(filename, raw)
             validate_change(filename, value, previous)
             (stage / filename).write_bytes(raw)
             artifacts[filename] = {"sha256": hashlib.sha256(raw).hexdigest(), "metric": value, "sources": [url]}
         for name, urls in LIST_SOURCES.items():
-            raw = clean_list([fetch(url) for url in urls])
+            prior_parts, remaining_urls = incremental_list_parts(name, urls, previous)
+            raw = clean_list(prior_parts + [fetch(url) for url in remaining_urls])
             filename = f"{name}.list"
             value = metric(filename, raw)
             validate_change(filename, value, previous)
