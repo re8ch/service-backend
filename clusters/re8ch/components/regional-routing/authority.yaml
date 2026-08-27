@@ -25,7 +25,7 @@ data:
       "db-rw.re8ch.com.": {"service":"db-rw","class":"db-rw","probePath":"/auth/","paths":["postgrest"]},
       "headlamp.re8ch.com.": {"service":"headlamp","class":"web","probePath":"/"},
       "grafana.re8ch.com.": {"service":"grafana","class":"web","probePath":"/grafana/api/health"},
-      "dex.re8ch.com.": {"service":"dex","class":"web","probePath":"/.well-known/openid-configuration"},
+      "dex.re8ch.com.": {"service":"dex","class":"web","probePath":"/.well-known/openid-configuration","acceptedStatuses":[200]},
       "tools.re8ch.com.": {"service":"tools","class":"web","probePath":"/"},
       "registry.re8ch.com.": {"service":"registry","class":"registry","probePath":"/v2/"},
       "litellm.re8ch.com.": {"service":"litellm","class":"web","probePath":"/health/readiness"},

@@ -147,6 +147,17 @@ def bind_address():
         sock.close()
 
 
+def accepted_probe_status(service, status):
+    definition = next(
+        (item for item in SERVICE_DEFINITIONS.values() if item["service"] == service),
+        {},
+    )
+    accepted_statuses = definition.get("acceptedStatuses")
+    if accepted_statuses is not None:
+        return status in accepted_statuses
+    return 200 <= status < 400 or status in (401, 403)
+
+
 def probe(candidate, service, url):
     parsed = urllib.parse.urlparse(url)
     started = time.monotonic()
@@ -172,7 +183,7 @@ def probe(candidate, service, url):
     latency = int((time.monotonic() - started) * 1000)
     with LOCK:
         previous = HEALTH[service].get(candidate["id"], {})
-        if 200 <= status < 400 or status in (401, 403):
+        if accepted_probe_status(service, status):
             successes = previous.get("successes", 0) + 1
             failures = 0
             ready = previous.get("ready", False) or successes >= 2

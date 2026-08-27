@@ -20,7 +20,7 @@ services:
   registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
   headlamp.re8ch.com.: {service: headlamp, class: web, probePath: /}
   grafana.re8ch.com.: {service: grafana, class: web, probePath: /grafana/api/health}
-  dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration}
+  dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
   litellm.re8ch.com.: {service: litellm, class: web, probePath: /health/readiness}
   cube.re8ch.com.: {service: cube, class: web, probePath: /}
   dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
