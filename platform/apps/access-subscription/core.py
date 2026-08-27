@@ -182,17 +182,25 @@ def mihomo_proxy(node: Node, password: str) -> list[str]:
 def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [json.dumps(node.name, ensure_ascii=False) for node in active]
+    stable_ids = ("direct-kl-anytls", "direct-la-anytls", "route-kl-anytls", "route-la-anytls", "us-ca")
+    stable = [node for node_id in stable_ids for node in active if node.node_id == node_id]
+    stable_names = [json.dumps(node.name, ensure_ascii=False) for node in stable]
     out = ["mixed-port: 7890", "allow-lan: false", "mode: rule", "log-level: warning", "ipv6: false",
            "unified-delay: true", "tcp-concurrent: true", "proxies:"]
     for node in active:
         out.extend(mihomo_proxy(node, password))
-    out.extend(["proxy-groups:", "  - name: PROXY", "    type: select", "    proxies:"])
+    out.extend(["proxy-groups:", "  - name: PROXY", "    type: select", "    proxies:", "      - CODEX-STABLE", "      - AUTO"])
     out.extend(f"      - {name}" for name in names)
+    out.extend(["      - DIRECT", "  - name: CODEX-STABLE", "    type: select", "    proxies:"])
+    out.extend(f"      - {name}" for name in stable_names)
     out.extend(["      - DIRECT", "  - name: AUTO", "    type: url-test", "    url: https://www.gstatic.com/generate_204",
                 "    interval: 600", "    tolerance: 80", "    proxies:"])
-    out.extend(f"      - {name}" for name in names)
+    out.extend(f"      - {name}" for name in stable_names)
     for _rule_id, label in SERVICE_RULESETS:
-        choices = ("DIRECT", "AUTO", "PROXY") if _rule_id in {"apple", "microsoft", "speedtest"} else ("PROXY", "AUTO", "DIRECT")
+        if _rule_id == "ai":
+            choices = ("CODEX-STABLE", "PROXY", "AUTO", "DIRECT")
+        else:
+            choices = ("DIRECT", "AUTO", "PROXY") if _rule_id in {"apple", "microsoft", "speedtest"} else ("PROXY", "AUTO", "DIRECT")
         out.extend([f"  - name: {label}", "    type: select", "    proxies:"])
         out.extend(f"      - {choice}" for choice in choices)
     rule_names = ("private", "cn", "geolocation-!cn", "cn-ip", "private-ip", "openai", "anthropic", "google",
@@ -215,7 +223,7 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
                 "  - RULE-SET,telegram,✈️ Telegram", "  - RULE-SET,netflix,🎬 Streaming", "  - RULE-SET,disney,🎬 Streaming",
                 "  - RULE-SET,hbo,🎬 Streaming", "  - RULE-SET,spotify,🎬 Streaming", "  - RULE-SET,tiktok,💬 Social",
                 "  - RULE-SET,twitter,💬 Social", "  - RULE-SET,github,🧑‍💻 Developer", "  - RULE-SET,gitlab,🧑‍💻 Developer",
-                "  - RULE-SET,steam,🎮 Games", "  - RULE-SET,category-games,🎮 Games", "  - RULE-SET,cn,DIRECT", "  - RULE-SET,cn-ip,DIRECT,no-resolve",
+                "  - RULE-SET,steam,🎮 Games", "  - RULE-SET,category-games,🎮 Games", "  - DOMAIN-SUFFIX,cn,DIRECT", "  - RULE-SET,cn,DIRECT", "  - RULE-SET,cn-ip,DIRECT,no-resolve",
                 "  - RULE-SET,geolocation-!cn,PROXY", "  - MATCH,PROXY", ""])
     return "\n".join(out).encode()
 
@@ -234,6 +242,8 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                         nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [node.name for node in active]
+    stable_ids = ("direct-kl-anytls", "direct-la-anytls", "route-kl-anytls", "route-la-anytls", "us-ca")
+    stable_names = [node.name for node_id in stable_ids for node in active if node.node_id == node_id]
     config_url = f"{base_url}/s/{token}/shadowrocket.conf"
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
              "skip-proxy = 192.0.2.148/16, 192.0.2.203/8, 192.0.2.179/12, 127.0.0.0/8, localhost, *.local",
@@ -245,10 +255,14 @@ def shadowrocket_config(password: str, token: str, base_url: str,
              "udp-policy-not-supported-behaviour = REJECT", "", "[Proxy]"]
     lines.extend(shadowrocket_proxy(node, password) for node in active)
     lines.extend(["", "[Proxy Group]",
-                  f"PROXY = select, AUTO, {', '.join(names)}",
-                  f"AUTO = url-test, {', '.join(names)}, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"])
+                  f"PROXY = select, CODEX-STABLE, AUTO, {', '.join(names)}",
+                  f"CODEX-STABLE = select, {', '.join(stable_names)}",
+                  f"AUTO = url-test, {', '.join(stable_names)}, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"])
     for _rule_id, label in SERVICE_RULESETS:
-        choices = "DIRECT, AUTO, PROXY" if _rule_id in {"apple", "microsoft", "speedtest"} else "PROXY, AUTO, DIRECT"
+        if _rule_id == "ai":
+            choices = "CODEX-STABLE, PROXY, AUTO, DIRECT"
+        else:
+            choices = "DIRECT, AUTO, PROXY" if _rule_id in {"apple", "microsoft", "speedtest"} else "PROXY, AUTO, DIRECT"
         lines.append(f"{label} = select, {choices}")
     lines.append("🛡️ Ad Blocking = select, REJECT, DIRECT")
     mapping = (("private", "DIRECT", ""), ("adblock", "🛡️ Ad Blocking", ""),
@@ -262,7 +276,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     lines.extend(["", "[Rule]"])
     for rule_id, policy, option in mapping:
         lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}{option}")
-    lines.extend(["GEOIP,CN,DIRECT,no-resolve", "FINAL,PROXY", ""])
+    lines.extend(["DOMAIN-SUFFIX,cn,DIRECT", "GEOIP,CN,DIRECT,no-resolve", "FINAL,PROXY", ""])
     return "\n".join(lines).encode()
 
 
