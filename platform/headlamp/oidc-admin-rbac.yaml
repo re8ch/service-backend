@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-oidc-admin-github-woomou
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: re8ch-platform
+    re8ch.com/access-level: cluster-admin
+    re8ch.com/principal-type: human-oidc-user
+  annotations:
+    re8ch.com/identity-source: dex-github
+    re8ch.com/equivalent-principal: oidc:admin@re8ch.com
+    re8ch.com/identity-evidence: "Dex GitHub connector reports username Woomou and email hliu74@apple.com"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  # Kubernetes uses the OIDC email claim as the username. Retain the GitHub
+  # login as a compatibility subject if the API-server claim mapping changes.
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: oidc:hliu74@apple.com
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: oidc:Woomou
