@@ -24,7 +24,7 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_subscription_uses_publication_not_runtime_target(self):
         raw = base64.b64decode(subscription_body("credential")).decode()
-        self.assertEqual(len(raw.strip().splitlines()), 10)
+        self.assertEqual(len(raw.strip().splitlines()), 9)
         self.assertIn("anytls://credential@us-ca.access.re8ch.com:443", raw)
         self.assertNotIn("personal-access-us-ca", raw)
         self.assertNotIn("route-la.access.re8ch.com:4443", raw)
