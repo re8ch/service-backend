@@ -6,3 +6,8 @@ resources:
   - availability-policy.yaml
   - qwen-kubeconfig.yaml
   - artc-kubeconfig.yaml
+configMapGenerator:
+  - name: headlamp-penrose-plugin-v080
+    namespace: headlamp
+    files:
+      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.8.0.tar.gz

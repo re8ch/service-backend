@@ -1,0 +1,212 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: nodeprofiles.scheduling.re8ch.com}
+spec:
+  group: scheduling.re8ch.com
+  scope: Cluster
+  names: {plural: nodeprofiles, singular: nodeprofile, kind: NodeProfile, shortNames: [npf]}
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - {name: Node, type: string, jsonPath: .spec.nodeName}
+    - {name: Provider, type: string, jsonPath: .spec.background.provider}
+    - {name: Reliability, type: string, jsonPath: .spec.reliability.class}
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [nodeName, background, failureDomains, reliability, capabilities]
+            properties:
+              nodeName: {type: string, minLength: 1}
+              aliases: {type: array, items: {type: string}}
+              background:
+                type: object
+                required: [provider, ownership, environment]
+                properties:
+                  provider: {type: string, enum: [tencent, aliyun, overseas, onprem, wsl]}
+                  region: {type: string}
+                  ownership: {type: string, enum: [owned, rented, local]}
+                  environment: {type: string, enum: [cloud, cross-border, datacenter, workstation]}
+                  account: {type: string}
+                  costClass: {type: string}
+                  notes: {type: string}
+              failureDomains:
+                type: object
+                required: [site, power, network, host]
+                properties: {site: {type: string}, power: {type: string}, network: {type: string}, host: {type: string}}
+              reliability:
+                type: object
+                required: [class, disruptionRisk]
+                properties:
+                  class: {type: string, enum: [anchor, stable, variable, opportunistic]}
+                  disruptionRisk: {type: integer, minimum: 0, maximum: 100}
+                  maintenanceMode: {type: boolean, default: false}
+              capabilities: {type: object, x-kubernetes-preserve-unknown-fields: true}
+              sources:
+                type: array
+                items:
+                  type: object
+                  required: [kind, ref]
+                  properties: {kind: {type: string}, ref: {type: string}, observedAt: {type: string, format: date-time}}
+          status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+    subresources: {status: {}}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: schedulerprofiles.scheduling.re8ch.com}
+spec:
+  group: scheduling.re8ch.com
+  scope: Cluster
+  names: {plural: schedulerprofiles, singular: schedulerprofile, kind: SchedulerProfile, shortNames: [schedprofile]}
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - {name: Scheduler, type: string, jsonPath: .spec.schedulerName}
+    - {name: Mode, type: string, jsonPath: .spec.managementMode}
+    - {name: Coverage, type: number, jsonPath: .status.metricsCoverage}
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [schedulerName, managementMode, plugins]
+            properties:
+              schedulerName: {type: string, minLength: 1}
+              managementMode: {type: string, enum: [ReadOnly, Managed]}
+              eligibleNodeSelector: {type: object, additionalProperties: {type: string}}
+              minimumMetricsCoverage: {type: number, minimum: 0, maximum: 1, default: 1}
+              plugins:
+                type: array
+                x-kubernetes-list-type: map
+                x-kubernetes-list-map-keys: [name]
+                items:
+                  type: object
+                  required: [name, enabled, weight, bounds]
+                  properties:
+                    name: {type: string}
+                    enabled: {type: boolean}
+                    weight: {type: integer, minimum: 0, maximum: 100}
+                    bounds:
+                      type: object
+                      required: [minimum, maximum]
+                      properties: {minimum: {type: integer, minimum: 0, maximum: 100}, maximum: {type: integer, minimum: 0, maximum: 100}}
+                    args: {type: object, x-kubernetes-preserve-unknown-fields: true}
+              metricsDependencies: {type: array, items: {type: string}}
+          status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+    subresources: {status: {}}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: serviceoutcomepolicies.scheduling.re8ch.com}
+spec:
+  group: scheduling.re8ch.com
+  scope: Namespaced
+  names: {plural: serviceoutcomepolicies, singular: serviceoutcomepolicy, kind: ServiceOutcomePolicy, shortNames: [sop]}
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - {name: Service, type: string, jsonPath: .spec.serviceRef.name}
+    - {name: Cohort, type: string, jsonPath: .status.cohort}
+    - {name: Completeness, type: number, jsonPath: .status.observation.completeness}
+    - {name: Pareto, type: boolean, jsonPath: .status.observation.pareto}
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [serviceRef, enrollment, desired, observation]
+            properties:
+              serviceRef:
+                type: object
+                required: [name]
+                properties:
+                  name: {type: string}
+                  workloadRef: {type: object, x-kubernetes-preserve-unknown-fields: true}
+              enrollment: {type: string, enum: [Auto, Explicit, Disabled]}
+              comparisonGroup: {type: string}
+              desired:
+                type: object
+                required: [resilience, efficiency, stability]
+                properties:
+                  resilience: {type: integer, minimum: 0, maximum: 100}
+                  efficiency: {type: integer, minimum: 0, maximum: 100}
+                  stability: {type: integer, minimum: 0, maximum: 100}
+              constraints: {type: object, x-kubernetes-preserve-unknown-fields: true}
+              observation:
+                type: object
+                required: [currentWindow, baselineWindow, minimumCompleteness]
+                properties:
+                  currentWindow: {type: string, default: 15m}
+                  baselineWindow: {type: string, default: 24h}
+                  minimumCompleteness: {type: number, minimum: 0, maximum: 1, default: 0.8}
+          status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+    subresources: {status: {}}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: disturbancewindows.scheduling.re8ch.com}
+spec:
+  group: scheduling.re8ch.com
+  scope: Namespaced
+  names: {plural: disturbancewindows, singular: disturbancewindow, kind: DisturbanceWindow, shortNames: [disturbance]}
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [source, startedAt]
+            properties:
+              source: {type: string, enum: [Manual, NodeNotReady, PodEviction, StorageFailure, IngressFailure]}
+              startedAt: {type: string, format: date-time}
+              endedAt: {type: string, format: date-time}
+              summary: {type: string}
+              serviceSelector: {type: object, x-kubernetes-preserve-unknown-fields: true}
+          status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+    subresources: {status: {}}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: penroseoperations.scheduling.re8ch.com}
+spec:
+  group: scheduling.re8ch.com
+  scope: Namespaced
+  names: {plural: penroseoperations, singular: penroseoperation, kind: PenroseOperation, shortNames: [penop]}
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - {name: Action, type: string, jsonPath: .spec.action}
+    - {name: Approved, type: boolean, jsonPath: .spec.approved}
+    - {name: Phase, type: string, jsonPath: .status.phase}
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [action, targetRef, preview, approved]
+            properties:
+              action: {type: string, enum: [SwitchScheduler, UpdateSchedulerWeights, UpdateNodeProfile, Rollback]}
+              targetRef: {type: object, x-kubernetes-preserve-unknown-fields: true}
+              requestedRevision: {type: string}
+              rollbackRevision: {type: string}
+              preview: {type: object, x-kubernetes-preserve-unknown-fields: true}
+              approved: {type: boolean, default: false}
+          status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+    subresources: {status: {}}

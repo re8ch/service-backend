@@ -1,0 +1,15 @@
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: ServiceOutcomePolicy
+metadata: {name: penrose-canary-default, namespace: default}
+spec:
+  serviceRef: {name: penrose-canary-default, workloadRef: {apiVersion: apps/v1, kind: Deployment, name: penrose-canary-default}}
+  enrollment: Explicit
+  comparisonGroup: penrose-canary
+  desired: {resilience: 80, efficiency: 70, stability: 80}
+  constraints: {minReplicas: 2, minFailureDomains: 2, maxUnavailable: 1}
+  observation: {currentWindow: 15m, baselineWindow: 24h, minimumCompleteness: 0.8}
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: DisturbanceWindow
+metadata: {generateName: penrose-canary-, namespace: default}
+spec: {source: Manual, startedAt: '2026-08-27T00:00:00Z', summary: Human marker only; does not inject failure}
