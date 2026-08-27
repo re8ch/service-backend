@@ -29,9 +29,13 @@ class RuleSyncTests(unittest.TestCase):
                 self.assertIn("0123456789012345678901234567890123456789", (root / "current" / "manifest.json").read_text())
 
     def test_rejects_large_rule_drift(self):
-        previous = {"artifacts": {"cn.list": {"metric": 100}}}
+        previous = {"recipeRevision": rule_sync.RECIPE_REVISION, "artifacts": {"cn.list": {"metric": 100}}}
         with self.assertRaises(ValueError):
             rule_sync.validate_change("cn.list", 130, previous)
+
+    def test_recipe_upgrade_allows_audited_rule_expansion(self):
+        previous = {"recipeRevision": rule_sync.RECIPE_REVISION - 1, "artifacts": {"ai.list": {"metric": 38}}}
+        rule_sync.validate_change("ai.list", 71, previous)
 
 
 if __name__ == "__main__":
