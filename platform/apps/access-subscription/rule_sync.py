@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import os
 import shutil
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -18,6 +20,7 @@ UPSTREAM_REFS = {
     "MetaCubeX/meta-rules-dat": "meta",
     "blackmatrix7/ios_rule_script": "master",
 }
+RECIPE_REVISION = 2
 
 MRS_SOURCES = {
     **{name: f"{META}/geosite/{name}.mrs" for name in (
@@ -31,22 +34,35 @@ LIST_SOURCES = {
     "private": [f"{BM}/Lan/Lan.list"],
     "cn": [f"{BM}/ChinaMax/ChinaMax.list"],
     "cn-ip": [f"{BM}/ChinaIPs/ChinaIPs.list"],
-    "ai": [f"{BM}/OpenAI/OpenAI.list", f"{BM}/Anthropic/Anthropic.list"],
+    "adblock": [f"{BM}/AdvertisingLite/AdvertisingLite.list"],
+    "direct-services": [f"{BM}/{name}/{name}.list" for name in
+                        ("Alibaba", "Baidu", "BiliBili", "ChinaMedia", "Tencent", "Cloudflarecn", "SteamCN")],
+    "ai": [f"{BM}/{name}/{name}.list" for name in ("OpenAI", "Anthropic", "Gemini", "Copilot")],
     "google": [f"{BM}/Google/Google.list", f"{BM}/YouTube/YouTube.list"],
     "telegram": [f"{BM}/Telegram/Telegram.list"],
-    "streaming": [f"{BM}/Netflix/Netflix.list", f"{BM}/Disney/Disney.list", f"{BM}/HBO/HBO.list", f"{BM}/Spotify/Spotify.list"],
-    "social": [f"{BM}/TikTok/TikTok.list", f"{BM}/Twitter/Twitter.list"],
-    "developer": [f"{BM}/GitHub/GitHub.list", f"{BM}/GitLab/GitLab.list"],
+    "streaming": [f"{BM}/{name}/{name}.list" for name in ("Netflix", "Disney", "HBO", "Spotify", "YouTubeMusic", "BiliBiliIntl")],
+    "social": [f"{BM}/{name}/{name}.list" for name in ("TikTok", "Twitter", "Discord", "Reddit", "Whatsapp", "Instagram", "Facebook")],
+    "developer": [f"{BM}/{name}/{name}.list" for name in ("GitHub", "GitLab", "Docker", "Npmjs", "Python", "Jetbrains")],
+    "cloud": [f"{BM}/{name}/{name}.list" for name in ("Dropbox", "GoogleDrive", "OneDrive", "iCloud", "Notion", "Slack")],
+    "speedtest": [f"{BM}/Speedtest/Speedtest.list"],
     "apple": [f"{BM}/Apple/Apple.list"],
     "microsoft": [f"{BM}/Microsoft/Microsoft.list"],
-    "games": [f"{BM}/Steam/Steam.list", f"{BM}/Game/Game.list"],
+    "games": [f"{BM}/Steam/Steam.list", f"{BM}/Game/Game.list", f"{BM}/Epic/Epic.list"],
 }
 
 
 def fetch(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": "re8ch-rule-sync/1"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return response.read()
+    last_error = None
+    for attempt in range(3):
+        request = urllib.request.Request(url, headers={"User-Agent": "re8ch-rule-sync/1"})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return response.read()
+        except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead) as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"failed to fetch rules after retries: {url}") from last_error
 
 
 def upstream_commits() -> dict:
@@ -99,6 +115,8 @@ def previous_manifest() -> dict:
 
 
 def validate_change(name: str, value: int, previous: dict) -> None:
+    if int(previous.get("recipeRevision", 1)) != RECIPE_REVISION:
+        return
     old = int(previous.get("artifacts", {}).get(name, {}).get("metric", 0) or 0)
     if old and abs(value - old) / old > 0.25:
         raise ValueError(f"abnormal rule size change: {name}: {old} -> {value}")
@@ -133,7 +151,8 @@ def sync(now: int | None = None) -> str:
                 dns_name = f"{name}-domains.txt"
                 (stage / dns_name).write_bytes(dns_raw)
                 artifacts[dns_name] = {"sha256": hashlib.sha256(dns_raw).hexdigest(), "metric": len(dns_raw.splitlines()), "sources": urls}
-        manifest = {"version": stamp, "createdAt": int(time.time()), "upstreams": upstream_commits(), "artifacts": artifacts}
+        manifest = {"version": stamp, "createdAt": int(time.time()), "recipeRevision": RECIPE_REVISION,
+                    "upstreams": upstream_commits(), "artifacts": artifacts}
         (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
         destination = versions / stamp
         stage.rename(destination)

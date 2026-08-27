@@ -75,13 +75,19 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("[Proxy Group]", config)
         self.assertIn("PROXY = select, AUTO, ♻️ Auto · Smart Select", config)
         self.assertIn("AUTO = url-test, ♻️ Auto · Smart Select", config)
+        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf", config)
+        self.assertIn("skip-proxy = 192.0.2.136/16", config)
+        self.assertIn("🍎 Apple = select, DIRECT, AUTO, PROXY", config)
+        self.assertIn("🛡️ Ad Blocking = select, REJECT, DIRECT", config)
+        self.assertIn("/current/direct-services.list,DIRECT", config)
+        self.assertIn("/current/cn-ip.list,DIRECT,no-resolve", config)
         self.assertIn("FINAL,PROXY", config)
         self.assertIn("/current/cn.list,DIRECT", config)
         self.assertNotIn("personal-access-us-ca", config)
 
     def test_shadowrocket_import_url_encodes_complete_config_endpoint(self):
         url = shadowrocket_import_url("https://sub.access.re8ch.com/s/a.b/shadowrocket.conf")
-        self.assertEqual(url, "shadowrocket://config/add/https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fshadowrocket.conf")
+        self.assertEqual(url, "shadowrocket://config/add?url=https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fshadowrocket.conf")
 
 
 if __name__ == "__main__":
