@@ -54,8 +54,8 @@ spec:
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
               stage=/headlamp/plugins/.advanced-fabric-0.8.0.new
-              curl --fail --location --silent --show-error --output "$archive" https://github.com/re8ch/headlamp-advanced-fabric/releases/download/v0.8.0/re8ch-headlamp-advanced-fabric-0.8.0.tar.gz
-              echo '5b047ea89b53787793b77e90599f3770edaed794d48027c58bfe71c1b0ec99c3  /tmp/plugin.tar.gz' | sha256sum -c -
+              cp /plugin/plugin.tar.gz "$archive"
+              echo '01df0d11ea74bea3475b9a4f4cdec28a302c2fc6cab59c7d4278b9c1e63b3d0d  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage"
@@ -67,6 +67,9 @@ spec:
           volumeMounts:
             - name: plugins
               mountPath: /headlamp/plugins
+            - name: penrose-plugin
+              mountPath: /plugin
+              readOnly: true
         - name: install-flux-plugin
           image: registry.re8ch.com/functions-shared/headlamp-plugin-flux@sha256:1570eba449f69bbc0d07bfc7fa983abcdc747c1885be4b15ea4792b4d63e5595
           command: [/bin/sh, -c]
@@ -172,6 +175,9 @@ spec:
         - name: plugins
           persistentVolumeClaim:
             claimName: headlamp-plugins-v2
+        - name: penrose-plugin
+          configMap:
+            name: headlamp-penrose-plugin-v080
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template

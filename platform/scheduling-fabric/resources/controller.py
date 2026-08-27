@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+"""Penrose observer/projector. It never binds or evicts Pods."""
+import json, os, ssl, time, urllib.error, urllib.parse, urllib.request
+from datetime import datetime, timezone
+
+API = os.getenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
+PORT = os.getenv("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+BASE = f"https://{API}:{PORT}"
+SA = "/var/run/secrets/kubernetes.io/serviceaccount"
+TOKEN = open(SA + "/token").read().strip() if os.path.exists(SA + "/token") else "test"
+CTX = ssl.create_default_context(cafile=SA + "/ca.crt") if os.path.exists(SA + "/ca.crt") else ssl.create_default_context()
+HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
+GROUP = "/apis/scheduling.re8ch.com/v1alpha1"
+VM = os.getenv("VICTORIA_URL", "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428")
+HOLDER = os.getenv("POD_NAME", "penrose-controller")
+
+def now(): return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+def clamp(v): return max(0, min(100, round(v)))
+def request(path, method="GET", body=None, content_type="application/json"):
+    data = json.dumps(body).encode() if body is not None else None
+    headers = dict(HEADERS)
+    if data is not None: headers["Content-Type"] = content_type
+    req = urllib.request.Request(BASE + path, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, context=CTX, timeout=20) as response:
+            return json.load(response) if response.length != 0 else {}
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404: return None
+        raise RuntimeError(f"{method} {path}: {exc.code} {exc.read().decode()[:500]}")
+
+def items(path):
+    value = request(path)
+    return value.get("items", []) if value else []
+
+def patch(path, body, status=False):
+    return request(path + ("/status" if status else ""), "PATCH", body, "application/merge-patch+json")
+
+def is_leader():
+    path = "/apis/coordination.k8s.io/v1/namespaces/scheduling-system/leases/penrose-controller"
+    lease = request(path)
+    timestamp = now()
+    if lease is None:
+        body = {"apiVersion": "coordination.k8s.io/v1", "kind": "Lease", "metadata": {"name": "penrose-controller"},
+                "spec": {"holderIdentity": HOLDER, "leaseDurationSeconds": 45, "acquireTime": timestamp, "renewTime": timestamp}}
+        try: request("/apis/coordination.k8s.io/v1/namespaces/scheduling-system/leases", "POST", body)
+        except RuntimeError: return False
+        return True
+    spec = lease.get("spec", {})
+    renewal = spec.get("renewTime") or spec.get("acquireTime")
+    expired = not renewal or (datetime.now(timezone.utc) - datetime.fromisoformat(renewal.replace("Z", "+00:00"))).total_seconds() > spec.get("leaseDurationSeconds", 45)
+    if spec.get("holderIdentity") != HOLDER and not expired: return False
+    patch(path, {"spec": {"holderIdentity": HOLDER, "leaseDurationSeconds": 45, "renewTime": timestamp}})
+    return True
+
+def labels_match(labels, selector): return all(labels.get(k) == v for k, v in (selector or {}).items())
+
+def cpu(value="0"):
+    text = str(value)
+    if text.endswith("n"): return float(text[:-1]) / 1_000_000_000
+    if text.endswith("u"): return float(text[:-1]) / 1_000_000
+    if text.endswith("m"): return float(text[:-1]) / 1000
+    return float(text or 0)
+
+def memory(value="0"):
+    text = str(value)
+    units = {"Ki": 1024, "Mi": 1024**2, "Gi": 1024**3, "Ti": 1024**4}
+    for suffix, factor in units.items():
+        if text.endswith(suffix): return float(text[:-len(suffix)]) * factor
+    return float(text or 0)
+
+def trimaran_nodes():
+    series = []
+    for query in ("instance:node_cpu_utilisation:rate:sum", "instance:node_memory_utilisation:ratio"):
+        url = VM + "/api/v1/query?" + urllib.parse.urlencode({"query": query})
+        with urllib.request.urlopen(url, timeout=10) as response:
+            series.append({x.get("metric", {}).get("instance") or x.get("metric", {}).get("node") for x in json.load(response).get("data", {}).get("result", [])})
+    return set.intersection(*series) if series else set()
+
+def owner_workload(pod, replicasets, deployments, statefulsets):
+    owners = pod.get("metadata", {}).get("ownerReferences", [])
+    for owner in owners:
+        if owner.get("kind") == "StatefulSet":
+            return next((x for x in statefulsets if x["metadata"]["name"] == owner["name"]), None)
+        if owner.get("kind") == "ReplicaSet":
+            rs = next((x for x in replicasets if x["metadata"]["name"] == owner["name"]), None)
+            dep_name = next((x["name"] for x in (rs or {}).get("metadata", {}).get("ownerReferences", []) if x.get("kind") == "Deployment"), None)
+            return next((x for x in deployments if x["metadata"]["name"] == dep_name), None)
+    return None
+
+def score_service(service, slices, pods, pod_metrics, nodes, replicasets, deployments, statefulsets):
+    namespace, name = service["metadata"]["namespace"], service["metadata"]["name"]
+    selector = service.get("spec", {}).get("selector") or {}
+    members = [p for p in pods if labels_match(p.get("metadata", {}).get("labels", {}), selector)]
+    workloads = [owner_workload(p, replicasets, deployments, statefulsets) for p in members]
+    workloads = [w for w in workloads if w]
+    desired = max([w.get("spec", {}).get("replicas", 0) for w in workloads] or [0])
+    endpoints = [e for s in slices if s.get("metadata", {}).get("labels", {}).get("kubernetes.io/service-name") == name for e in s.get("endpoints", [])]
+    ready = sum(1 for e in endpoints if e.get("conditions", {}).get("ready") is True)
+    expected = max(desired, len(endpoints), 1)
+    availability = min(1, ready / expected)
+    node_by_name = {n["metadata"]["name"]: n for n in nodes}
+    assigned = [p for p in members if p.get("spec", {}).get("nodeName")]
+    domains = {node_by_name.get(p["spec"]["nodeName"], {}).get("metadata", {}).get("labels", {}).get("scheduling.re8ch.com/failure-domain", p["spec"]["nodeName"]) for p in assigned}
+    domain_target = max(1, min(desired, 3))
+    restarts = sum(s.get("restartCount", 0) for p in members for s in p.get("status", {}).get("containerStatuses", []))
+    pending = sum(1 for p in members if p.get("status", {}).get("phase") == "Pending")
+    schedulers = sorted({p.get("spec", {}).get("schedulerName", "default-scheduler") for p in members})
+    metrics_by_pod = {x["metadata"]["name"]: x for x in pod_metrics}
+    requested_cpu = sum(cpu(c.get("resources", {}).get("requests", {}).get("cpu", "0")) for p in members for c in p.get("spec", {}).get("containers", []))
+    requested_memory = sum(memory(c.get("resources", {}).get("requests", {}).get("memory", "0")) for p in members for c in p.get("spec", {}).get("containers", []))
+    used_cpu = sum(cpu(c.get("usage", {}).get("cpu", "0")) for p in members for c in metrics_by_pod.get(p["metadata"]["name"], {}).get("containers", []))
+    used_memory = sum(memory(c.get("usage", {}).get("memory", "0")) for p in members for c in metrics_by_pod.get(p["metadata"]["name"], {}).get("containers", []))
+    metrics_present = bool(members and all(p["metadata"]["name"] in metrics_by_pod for p in members))
+    cpu_ratio = min(1, used_cpu / requested_cpu) if requested_cpu else 0
+    memory_ratio = min(1, used_memory / requested_memory) if requested_memory else 0
+    efficiency = clamp(100 * ((cpu_ratio + memory_ratio) / 2)) if metrics_present and requested_cpu and requested_memory else None
+    evidence = {"endpointAvailability": availability, "failureDomains": len(domains), "desiredFailureDomains": domain_target,
+                "restarts": restarts, "pending": pending, "readyEndpoints": ready, "expectedEndpoints": expected}
+    resilience = clamp(100 * (0.62 * availability + 0.38 * min(1, len(domains) / domain_target)))
+    stability = clamp(100 * availability - min(35, restarts * 3) - min(25, pending * 8))
+    completeness = round(0.65 + (0.20 if efficiency is not None else 0), 2)
+    missing = ["opencost.unit-cost", "cilium.network-efficiency", "storage-io"]
+    if efficiency is None: missing.insert(0, "metrics.k8s.io.pod-usage")
+    return {"cohort": schedulers[0] if len(schedulers) == 1 else "mixed", "desiredReplicas": desired,
+            "eligible": bool(selector and desired > 0 and endpoints), "observation": {"measuredAt": now(), "window": "15m",
+            "scores": {"resilience": resilience, "efficiency": efficiency, "stability": stability}, "completeness": completeness,
+            "confidence": completeness, "complete": completeness >= 0.8 and efficiency is not None, "pareto": False, "missingEvidence": missing, "evidence": evidence}}
+
+def reconcile_profiles(nodes):
+    node_names = {n["metadata"]["name"] for n in nodes}
+    metric_nodes = trimaran_nodes()
+    for node_name in node_names:
+        patch(f"/api/v1/nodes/{node_name}", {"metadata": {"labels": {"scheduling.re8ch.com/trimaran-ready": "true" if node_name in metric_nodes else "false"}}})
+    for profile in items(GROUP + "/nodeprofiles"):
+        spec, name = profile.get("spec", {}), profile["metadata"]["name"]
+        target = spec.get("nodeName")
+        labels = {"scheduling.re8ch.com/provider": spec.get("background", {}).get("provider", "unknown"),
+                  "scheduling.re8ch.com/environment": spec.get("background", {}).get("environment", "unknown"),
+                  "scheduling.re8ch.com/reliability-class": spec.get("reliability", {}).get("class", "unknown"),
+                  "scheduling.re8ch.com/failure-domain": spec.get("failureDomains", {}).get("host", target)}
+        targets = [x for x in [target] + spec.get("aliases", []) if x in node_names]
+        for node_name in targets:
+            projected = dict(labels)
+            projected["scheduling.re8ch.com/failure-domain"] = spec.get("failureDomains", {}).get("host", node_name)
+            patch(f"/api/v1/nodes/{node_name}", {"metadata": {"labels": projected}})
+        condition = {"type": "Ready", "status": "True" if targets else "False", "reason": "Projected" if targets else "NodeMissing", "lastTransitionTime": now()}
+        patch(f"{GROUP}/nodeprofiles/{name}", {"status": {"observedGeneration": profile["metadata"].get("generation"), "projectedNodes": targets, "projectedLabels": labels, "conditions": [condition]}}, True)
+
+def reconcile_scheduler_profiles(nodes):
+    ready = [n for n in nodes if any(c.get("type") == "Ready" and c.get("status") == "True" for c in n.get("status", {}).get("conditions", []))]
+    trimaran = [n for n in ready if n.get("metadata", {}).get("labels", {}).get("scheduling.re8ch.com/trimaran-ready") == "true"]
+    for profile in items(GROUP + "/schedulerprofiles"):
+        spec, name = profile.get("spec", {}), profile["metadata"]["name"]
+        coverage = 1 if spec.get("schedulerName") == "default-scheduler" else (len(trimaran) / len(ready) if ready else 0)
+        valid = all(p["bounds"]["minimum"] <= p["weight"] <= p["bounds"]["maximum"] for p in spec.get("plugins", []))
+        ready_state = valid and coverage >= spec.get("minimumMetricsCoverage", 1)
+        patch(f"{GROUP}/schedulerprofiles/{name}", {"status": {"observedGeneration": profile["metadata"].get("generation"), "metricsCoverage": round(coverage, 3),
+              "eligibleNodes": len(ready) if spec.get("schedulerName") == "default-scheduler" else len(trimaran), "revision": profile["metadata"].get("resourceVersion"),
+              "conditions": [{"type": "Ready", "status": "True" if ready_state else "False", "reason": "Validated" if ready_state else "CoverageOrBoundsFailed", "lastTransitionTime": now()}]}}, True)
+
+def reconcile_services(nodes):
+    namespaces = items("/api/v1/namespaces")
+    for ns in [x["metadata"]["name"] for x in namespaces]:
+        services = items(f"/api/v1/namespaces/{ns}/services")
+        slices = items(f"/apis/discovery.k8s.io/v1/namespaces/{ns}/endpointslices")
+        pods = items(f"/api/v1/namespaces/{ns}/pods")
+        pod_metrics = items(f"/apis/metrics.k8s.io/v1beta1/namespaces/{ns}/pods")
+        replicasets = items(f"/apis/apps/v1/namespaces/{ns}/replicasets")
+        deployments = items(f"/apis/apps/v1/namespaces/{ns}/deployments")
+        statefulsets = items(f"/apis/apps/v1/namespaces/{ns}/statefulsets")
+        existing = {x.get("spec", {}).get("serviceRef", {}).get("name"): x for x in items(f"{GROUP}/namespaces/{ns}/serviceoutcomepolicies")}
+        for service in services:
+            result = score_service(service, slices, pods, pod_metrics, nodes, replicasets, deployments, statefulsets)
+            name = service["metadata"]["name"]
+            policy = existing.get(name)
+            if not policy and result["eligible"]:
+                body = {"apiVersion": "scheduling.re8ch.com/v1alpha1", "kind": "ServiceOutcomePolicy", "metadata": {"name": name},
+                        "spec": {"serviceRef": {"name": name}, "enrollment": "Auto", "comparisonGroup": name,
+                        "desired": {"resilience": 80, "efficiency": 70, "stability": 80},
+                        "observation": {"currentWindow": "15m", "baselineWindow": "24h", "minimumCompleteness": 0.8}}}
+                policy = request(f"{GROUP}/namespaces/{ns}/serviceoutcomepolicies", "POST", body)
+            if policy and policy.get("spec", {}).get("enrollment") != "Disabled":
+                patch(f"{GROUP}/namespaces/{ns}/serviceoutcomepolicies/{policy['metadata']['name']}", {"status": result}, True)
+
+def reconcile_disturbances(nodes):
+    namespace = "scheduling-system"
+    existing = items(f"{GROUP}/namespaces/{namespace}/disturbancewindows")
+    active = {x.get("spec", {}).get("summary"): x for x in existing if not x.get("spec", {}).get("endedAt")}
+    for node in nodes:
+        ready = any(c.get("type") == "Ready" and c.get("status") == "True" for c in node.get("status", {}).get("conditions", []))
+        summary = f"Node {node['metadata']['name']} NotReady"
+        if not ready and summary not in active:
+            body = {"apiVersion": "scheduling.re8ch.com/v1alpha1", "kind": "DisturbanceWindow", "metadata": {"generateName": "node-not-ready-"},
+                    "spec": {"source": "NodeNotReady", "startedAt": now(), "summary": summary}}
+            request(f"{GROUP}/namespaces/{namespace}/disturbancewindows", "POST", body)
+        if ready and summary in active:
+            patch(f"{GROUP}/namespaces/{namespace}/disturbancewindows/{active[summary]['metadata']['name']}", {"spec": {"endedAt": now()}, "status": {"phase": "settled"}})
+
+def reconcile_operations():
+    scheduler_profiles = {x.get("spec", {}).get("schedulerName"): x for x in items(GROUP + "/schedulerprofiles")}
+    for namespace in [x["metadata"]["name"] for x in items("/api/v1/namespaces")]:
+        for operation in items(f"{GROUP}/namespaces/{namespace}/penroseoperations"):
+            name, spec = operation["metadata"]["name"], operation.get("spec", {})
+            if operation.get("status", {}).get("phase") in ("Applied", "Failed"): continue
+            if not spec.get("approved"):
+                patch(f"{GROUP}/namespaces/{namespace}/penroseoperations/{name}", {"status": {"phase": "AwaitingApproval", "observedAt": now()}}, True)
+                continue
+            if spec.get("action") != "SwitchScheduler":
+                patch(f"{GROUP}/namespaces/{namespace}/penroseoperations/{name}", {"status": {"phase": "Failed", "reason": "UnsupportedAction", "observedAt": now()}}, True)
+                continue
+            target, preview = spec.get("targetRef", {}), spec.get("preview", {})
+            scheduler = next((x.get("value") for x in preview.get("patch", []) if x.get("path") == "/spec/template/spec/schedulerName"), None)
+            profile = scheduler_profiles.get(scheduler)
+            if target.get("kind") != "Deployment" or not profile or profile.get("status", {}).get("conditions", [{}])[0].get("status") != "True":
+                patch(f"{GROUP}/namespaces/{namespace}/penroseoperations/{name}", {"status": {"phase": "Failed", "reason": "TargetOrSchedulerNotReady", "observedAt": now()}}, True)
+                continue
+            node_selector = profile.get("spec", {}).get("eligibleNodeSelector", {})
+            body = {"spec": {"template": {"metadata": {"annotations": {"scheduling.re8ch.com/operation": name}}, "spec": {"schedulerName": scheduler, "nodeSelector": node_selector}}}}
+            result = patch(f"/apis/apps/v1/namespaces/{target.get('namespace', namespace)}/deployments/{target.get('name')}", body)
+            patch(f"{GROUP}/namespaces/{namespace}/penroseoperations/{name}", {"status": {"phase": "Applied", "appliedRevision": result.get("metadata", {}).get("resourceVersion"), "observedAt": now()}}, True)
+
+def run():
+    while True:
+        try:
+            if not is_leader():
+                time.sleep(15)
+                continue
+            nodes = items("/api/v1/nodes")
+            reconcile_profiles(nodes)
+            reconcile_scheduler_profiles(nodes)
+            reconcile_services(nodes)
+            reconcile_disturbances(nodes)
+            reconcile_operations()
+        except Exception as exc: print(f"reconcile failed: {exc}", flush=True)
+        time.sleep(int(os.getenv("RECONCILE_SECONDS", "60")))
+
+if __name__ == "__main__": run()
