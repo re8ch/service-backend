@@ -41,6 +41,9 @@ def test_pilot_workspace_uses_locked_controller_and_owner_gate_capabilities():
     prepare = pod["initContainers"][0]
     assert prepare["name"] == "prepare-directories"
     assert prepare["securityContext"]["capabilities"]["add"] == ["CHOWN"]
+    sanitize = pod["initContainers"][1]
+    assert sanitize["name"] == "remove-invalid-pilot-state"
+    assert "rev-parse --is-bare-repository" in sanitize["command"][-1]
     mirror = documents("platform/workspace-controller/r640-mirror.yaml")[1]
     assert mirror["kind"] == "CronJob"
     assert mirror["spec"]["suspend"] is True
