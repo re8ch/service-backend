@@ -142,8 +142,12 @@ spec:
             - -oidc-client-id=headlamp
             - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
             - -oidc-idp-issuer-url=https://dex.re8ch.com
+            # Headlamp v0.42 represents an unset in-cluster OIDC CA as a
+            # non-nil empty string. Point it at the valid system trust bundle.
+            - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
             - -oidc-callback-url=https://headlamp.re8ch.com/oidc-callback
-            - -oidc-scopes=openid,profile,email,groups
+            # Headlamp adds openid itself when building the authorization URL.
+            - -oidc-scopes=profile,email,groups
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:
