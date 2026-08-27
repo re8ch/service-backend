@@ -16,7 +16,8 @@ from pathlib import Path
 from urllib.parse import quote
 
 from core import (DEFAULT_NODES, authorization, canonical_subject, issue_token, mihomo_config, proxy_password,
-                  public_node, shadowrocket_config, subscription_body, subscription_headers, verify_token)
+                  public_node, shadowrocket_config, shadowrocket_import_url, subscription_body,
+                  subscription_headers, verify_token)
 
 NAMESPACE = os.getenv("POD_NAMESPACE", "egress-fabric")
 STATE_NAME = os.getenv("STATE_CONFIGMAP", "access-subscription-devices")
@@ -29,8 +30,8 @@ IDENTITY_ALIASES = json.loads(os.getenv("IDENTITY_ALIASES_JSON", "{}"))
 
 PORTAL = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
 <title>access re8ch com</title><style>body{font:16px system-ui;margin:0;background:#101114;color:#eee}main{max-width:860px;margin:auto;padding:32px}button,input,a{font:inherit;padding:10px;margin:4px;border-radius:8px}a{color:#9ee6a8}article{background:#1d1f24;padding:16px;margin:12px 0;border-radius:12px}code{overflow-wrap:anywhere;color:#9ee6a8}.muted{color:#aaa}.row{display:flex;gap:8px;flex-wrap:wrap}</style>
-<main><h1>access re8ch com</h1><p>AnyTLS 主线路 · Hysteria2 备用 · 每月 300 GB 软提醒</p><p id=a></p><form id=f><input id=n maxlength=64 placeholder='设备名称，例如 iPhone'><button>创建设备</button></form><div id=new></div><div id=o></div><p class=muted>设备订阅地址只显示一次；Shadowrocket 需要先添加节点订阅，再安装分流配置。</p></main>
-<script>const o=document.querySelector('#o'),a=document.querySelector('#a'),nn=document.querySelector('#new');function esc(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML}function size(n){return (n/1073741824).toFixed(2)+' GB'}function when(n){return n?new Date(n*1000).toLocaleString():'尚无'}async function load(){let r=await fetch('/api/me'),j=await r.json();if(!r.ok){a.textContent=j.error||'未授权';return}a.textContent='账号：'+j.account+(j.admin?' · 管理员':'');o.innerHTML=(j.devices||[]).map(x=>`<article><b>${esc(x.name)}</b> · ${x.enabled?'启用':'已撤销'}<br><span class=muted>${x.activeConnections||0} 个连接 · 本月 ${size((x.upload||0)+(x.download||0))} · 最后在线 ${when(x.lastSeenAt)}</span><div class=row><button onclick="rotate('${x.id}')">轮换</button><button onclick="revoke('${x.id}')">撤销</button></div></article>`).join('')||'<article>尚无设备</article>'}async function revoke(id){await fetch('/api/devices/'+id,{method:'DELETE'});load()}async function rotate(id){let r=await fetch('/api/devices/'+id+'/rotate',{method:'POST'}),j=await r.json();show(j)}function show(j){if(!j.subscriptionURL)return alert(j.error||'创建失败');nn.innerHTML=`<article><b>请立即保存：</b><br><code>${esc(j.subscriptionURL)}</code><div><a href="${esc(j.subscriptionURL)}">Shadowrocket 节点订阅</a><a href="${esc(j.mihomoURL)}">Mihomo 配置</a><a href="shadowrocket://config/add/${encodeURIComponent(j.shadowrocketURL)}">安装 Shadowrocket 分流</a></div></article>`}f.onsubmit=async e=>{e.preventDefault();let r=await fetch('/api/devices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:n.value||'device'})}),j=await r.json();show(j);load()};load()</script></html>"""
+<main><h1>access re8ch com</h1><p>AnyTLS 主线路 · Hysteria2 备用 · 每月 300 GB 软提醒</p><p id=a></p><form id=f><input id=n maxlength=64 placeholder='设备名称，例如 iPhone'><button>创建设备</button></form><div id=new></div><div id=o></div><p class=muted>设备地址只显示一次；Shadowrocket 一键导入会同时安装节点、策略组、分流规则和 DNS。</p></main>
+<script>const o=document.querySelector('#o'),a=document.querySelector('#a'),nn=document.querySelector('#new');function esc(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML}function size(n){return (n/1073741824).toFixed(2)+' GB'}function when(n){return n?new Date(n*1000).toLocaleString():'尚无'}async function load(){let r=await fetch('/api/me'),j=await r.json();if(!r.ok){a.textContent=j.error||'未授权';return}a.textContent='账号：'+j.account+(j.admin?' · 管理员':'');o.innerHTML=(j.devices||[]).map(x=>`<article><b>${esc(x.name)}</b> · ${x.enabled?'启用':'已撤销'}<br><span class=muted>${x.activeConnections||0} 个连接 · 本月 ${size((x.upload||0)+(x.download||0))} · 最后在线 ${when(x.lastSeenAt)}</span><div class=row><button onclick="rotate('${x.id}')">轮换</button><button onclick="revoke('${x.id}')">撤销</button></div></article>`).join('')||'<article>尚无设备</article>'}async function revoke(id){await fetch('/api/devices/'+id,{method:'DELETE'});load()}async function rotate(id){let r=await fetch('/api/devices/'+id+'/rotate',{method:'POST'}),j=await r.json();show(j)}function show(j){if(!j.subscriptionURL)return alert(j.error||'创建失败');nn.innerHTML=`<article><b>请立即完成导入并妥善保存：</b><br><div><a href="${esc(j.shadowrocketImportURL)}">一键导入 Shadowrocket 完整配置</a><a href="${esc(j.mihomoURL)}">导入 Mihomo 完整配置</a></div><details><summary>兼容与手动方式</summary><code>${esc(j.shadowrocketURL)}</code><div><a href="${esc(j.subscriptionURL)}">仅节点订阅（不含分流）</a></div></details></article>`}f.onsubmit=async e=>{e.preventDefault();let r=await fetch('/api/devices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:n.value||'device'})}),j=await r.json();show(j);load()};load()</script></html>"""
 
 ADMIN = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Access Admin</title><style>body{font:15px system-ui;background:#101114;color:#eee;margin:30px}article{background:#1d1f24;padding:14px;margin:10px;border-radius:10px}button{padding:7px}</style><h1>Access Admin</h1><div id=o></div><script>function esc(s){let d=document.createElement('div');d.textContent=String(s);return d.innerHTML}async function load(){let r=await fetch('/api/admin/users'),j=await r.json();o.innerHTML=Object.entries(j.members||{}).map(([u,m])=>`<article><b>${esc(u)}</b> · ${esc(m.permission||'')}${m.admin?' · admin':''}<div>${(j.devices[u]||[]).map(d=>`${esc(d.name)} · ${d.enabled?'启用':'撤销'} · ${d.activeConnections||0} 连接 <button onclick="revoke('${d.id}')">撤销</button>`).join('<br>')||'无设备'}</div></article>`).join('')}async function revoke(id){await fetch('/api/admin/devices/'+id,{method:'DELETE'});load()}load()</script></html>"""
 
@@ -189,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
                 if suffix == "/mihomo.yaml":
                     return self.send(200, mihomo_config(password, token, BASE_URL), "text/yaml; charset=utf-8", headers)
                 if suffix == "/shadowrocket.conf":
-                    return self.send(200, shadowrocket_config(token, BASE_URL), "text/plain; charset=utf-8", headers)
+                    return self.send(200, shadowrocket_config(password, token, BASE_URL), "text/plain; charset=utf-8", headers)
                 return self.send(200, subscription_body(password), "text/plain; charset=utf-8", headers)
             if path.startswith("/r/"):
                 _token, file_path = checked_rule(self.path)
@@ -256,7 +257,8 @@ class Handler(BaseHTTPRequestHandler):
             update_devices(mutate)
             root = f"{BASE_URL}/s/{token}"
             return self.json(201, {"id": payload["jti"], "subscriptionURL": root, "mihomoURL": root + "/mihomo.yaml",
-                                   "shadowrocketURL": root + "/shadowrocket.conf"})
+                                   "shadowrocketURL": root + "/shadowrocket.conf",
+                                   "shadowrocketImportURL": shadowrocket_import_url(root + "/shadowrocket.conf")})
         except (PermissionError, ValueError) as exc:
             self.json(400, {"error": str(exc)})
         except Exception as exc:

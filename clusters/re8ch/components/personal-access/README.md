@@ -47,7 +47,8 @@ The Store exposes these authenticated interfaces:
 
 - `/s/{token}`: compatible base64 node subscription.
 - `/s/{token}/mihomo.yaml`: complete Mihomo configuration.
-- `/s/{token}/shadowrocket.conf`: Shadowrocket routing configuration.
+- `/s/{token}/shadowrocket.conf`: complete Shadowrocket configuration with
+  device-scoped AnyTLS/Hysteria2 nodes, policy groups, routing rules and DNS.
 - `/r/{token}/current/{ruleset}`: authorized, ETag-enabled current rule file.
 - `/api/me`, `/api/status`, `/api/admin/users`: account, health and admin state.
 
@@ -106,7 +107,8 @@ The release checks are:
    sustains at least 100 Mbps.
 2. UDP/443 completes a Hysteria2 transfer through `192.0.2.224`.
 3. `sub.access.re8ch.com` completes Dex login and creates, imports, rotates and
-   revokes a Shadowrocket subscription.
+   revokes a one-click Shadowrocket configuration containing both nodes and
+   routing rules; the legacy node-only subscription remains compatible.
 4. Existing HTTPS listeners sharing TCP/443 remain healthy.
 5. Membership removal is reflected within five minutes, stale authorization
    fails closed at 24 hours, and cross-account device operations return 404.
