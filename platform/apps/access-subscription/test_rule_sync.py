@@ -7,6 +7,12 @@ import rule_sync
 
 
 class RuleSyncTests(unittest.TestCase):
+    def test_builds_official_github_raw_api_fallback(self):
+        self.assertEqual(
+            rule_sync.github_api_raw_url("https://raw.githubusercontent.com/owner/repo/main/a b/rule.list"),
+            "https://api.github.com/repos/owner/repo/contents/a%20b/rule.list?ref=main",
+        )
+
     def test_clean_list_deduplicates_and_drops_comments(self):
         self.assertEqual(rule_sync.clean_list([b"# x\nDOMAIN,a\n", b"DOMAIN,a\nDOMAIN,b\n"]), b"DOMAIN,a\nDOMAIN,b\n")
 
