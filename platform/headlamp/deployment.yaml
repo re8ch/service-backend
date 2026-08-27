@@ -47,6 +47,10 @@ spec:
               target=/headlamp/plugins/advanced-fabric-0.8.0
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
+              # Headlamp currently has one active replica because OAuth state is
+              # process-local. Recover the empty mkdir lock left by a terminated
+              # installer before taking ownership of it.
+              rmdir "$lock" 2>/dev/null || true
               until mkdir "$lock" 2>/dev/null; do
                 if [ -f "$target/package.json" ]; then exit 0; fi
                 sleep 2
