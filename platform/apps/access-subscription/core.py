@@ -63,6 +63,7 @@ DEFAULT_NODES = (
 SERVICE_RULESETS = (
     ("ai", "🤖 AI"), ("google", "🔎 Google / YouTube"), ("telegram", "✈️ Telegram"),
     ("streaming", "🎬 Streaming"), ("social", "💬 Social"), ("developer", "🧑‍💻 Developer"),
+    ("cloud", "☁️ Cloud Storage"), ("speedtest", "📶 Speed Test"),
     ("apple", "🍎 Apple"), ("microsoft", "🪟 Microsoft"), ("games", "🎮 Games"),
 )
 
@@ -176,7 +177,9 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
                 "    interval: 600", "    tolerance: 80", "    proxies:"])
     out.extend(f"      - {name}" for name in names)
     for _rule_id, label in SERVICE_RULESETS:
-        out.extend([f"  - name: {label}", "    type: select", "    proxies:", "      - PROXY", "      - AUTO", "      - DIRECT"])
+        choices = ("DIRECT", "AUTO", "PROXY") if _rule_id in {"apple", "microsoft", "speedtest"} else ("PROXY", "AUTO", "DIRECT")
+        out.extend([f"  - name: {label}", "    type: select", "    proxies:"])
+        out.extend(f"      - {choice}" for choice in choices)
     rule_names = ("private", "cn", "geolocation-!cn", "cn-ip", "private-ip", "openai", "anthropic", "google",
                   "youtube", "telegram", "netflix", "disney", "hbo", "spotify", "tiktok", "twitter",
                   "github", "gitlab", "apple", "microsoft", "steam", "category-games")
@@ -216,23 +219,35 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                         nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [node.name for node in active]
-    lines = ["[General]", "bypass-system = true", "ipv6 = false",
+    config_url = f"{base_url}/s/{token}/shadowrocket.conf"
+    lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
+             "skip-proxy = 192.0.2.136/16, 192.0.2.183/8, 192.0.2.33/12, 127.0.0.0/8, localhost, *.local",
+             "tun-excluded-routes = 192.0.2.183/8, 192.0.2.81/10, 127.0.0.0/8, 192.0.2.95/16, 192.0.2.33/12, 192.0.2.136/16, 224.0.0.0/4",
              "dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query",
+             "fallback-dns-server = system", "dns-direct-system = false", "dns-fallback-system = false",
+             "icmp-auto-reply = true", "private-ip-answer = false",
+             f"update-url = {config_url}",
              "udp-policy-not-supported-behaviour = REJECT", "", "[Proxy]"]
     lines.extend(shadowrocket_proxy(node, password) for node in active)
     lines.extend(["", "[Proxy Group]",
                   f"PROXY = select, AUTO, {', '.join(names)}",
                   f"AUTO = url-test, {', '.join(names)}, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"])
     for _rule_id, label in SERVICE_RULESETS:
-        lines.append(f"{label} = select, PROXY, AUTO, DIRECT")
-    mapping = (("private", "DIRECT"), ("apple", "🍎 Apple"), ("microsoft", "🪟 Microsoft"), ("ai", "🤖 AI"),
-               ("google", "🔎 Google / YouTube"), ("telegram", "✈️ Telegram"), ("streaming", "🎬 Streaming"),
-               ("social", "💬 Social"), ("developer", "🧑‍💻 Developer"), ("games", "🎮 Games"),
-               ("cn", "DIRECT"), ("cn-ip", "DIRECT"))
+        choices = "DIRECT, AUTO, PROXY" if _rule_id in {"apple", "microsoft", "speedtest"} else "PROXY, AUTO, DIRECT"
+        lines.append(f"{label} = select, {choices}")
+    lines.append("🛡️ Ad Blocking = select, REJECT, DIRECT")
+    mapping = (("private", "DIRECT", ""), ("adblock", "🛡️ Ad Blocking", ""),
+               ("direct-services", "DIRECT", ""), ("apple", "🍎 Apple", ""),
+               ("microsoft", "🪟 Microsoft", ""), ("ai", "🤖 AI", ""),
+               ("google", "🔎 Google / YouTube", ""), ("telegram", "✈️ Telegram", ""),
+               ("streaming", "🎬 Streaming", ""), ("social", "💬 Social", ""),
+               ("developer", "🧑‍💻 Developer", ""), ("cloud", "☁️ Cloud Storage", ""),
+               ("speedtest", "📶 Speed Test", ""), ("games", "🎮 Games", ""),
+               ("cn", "DIRECT", ""), ("cn-ip", "DIRECT", ",no-resolve"))
     lines.extend(["", "[Rule]"])
-    for rule_id, policy in mapping:
-        lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}")
-    lines.extend(["GEOIP,CN,DIRECT", "FINAL,PROXY", ""])
+    for rule_id, policy, option in mapping:
+        lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}{option}")
+    lines.extend(["GEOIP,CN,DIRECT,no-resolve", "FINAL,PROXY", ""])
     return "\n".join(lines).encode()
 
 
