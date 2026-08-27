@@ -43,6 +43,8 @@ class SubscriptionTests(unittest.TestCase):
     def test_soft_quota_headers(self):
         headers = subscription_headers(12, 34, datetime(2026, 8, 26, tzinfo=timezone.utc))
         self.assertEqual(headers["Profile-Title"], "access re8ch com")
+        self.assertEqual(headers["Cache-Control"], "no-store, no-cache, must-revalidate")
+        self.assertEqual(headers["Pragma"], "no-cache")
         self.assertIn(f"total={MONTHLY_SOFT_LIMIT}", headers["Subscription-Userinfo"])
         self.assertIn("expire=1788220800", headers["Subscription-Userinfo"])
 
@@ -85,7 +87,7 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("CODEX-STABLE = select, 🇲🇾 Edge Direct · 吉隆坡 · AnyTLS", config)
         self.assertNotIn("AUTO = url-test, ♻️ Auto · Smart Select", config)
         self.assertIn("🤖 AI = select, CODEX-STABLE, PROXY, AUTO, DIRECT", config)
-        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf", config)
+        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20260827-3", config)
         self.assertIn("skip-proxy = 192.0.2.136/16", config)
         self.assertIn("dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query", config)
         self.assertIn("fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query", config)
