@@ -38,6 +38,9 @@ def test_pilot_workspace_uses_locked_controller_and_owner_gate_capabilities():
     assert pod["containers"][0]["args"][-2:] == ["re8ch-owner-pilot-20260825", "re8ch-core"]
     assert all(volume["name"] != "credentials" for volume in pod["volumes"])
     assert all("GIT_SSH_COMMAND" not in {item["name"] for item in container.get("env", [])} for container in [*pod["initContainers"], *pod["containers"]])
+    prepare = pod["initContainers"][0]
+    assert prepare["name"] == "prepare-directories"
+    assert prepare["securityContext"]["capabilities"]["add"] == ["CHOWN"]
     mirror = documents("platform/workspace-controller/r640-mirror.yaml")[1]
     assert mirror["kind"] == "CronJob"
     assert mirror["spec"]["suspend"] is True
