@@ -64,14 +64,14 @@ spec:
         - name: render-users
           image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
           command: [/bin/sh, -ec]
-          args: ['awk ''/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}'' /base/config.yaml | sed "s/__CONTROLLER_SECRET__/$(cat /controller/secret)/" > /work/config.yaml']
+          args: ['awk ''/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}'' /base/config.yaml | sed -e "s/__CONTROLLER_SECRET__/$(cat /controller/secret)/" -e ''s/port: 24443/port: 25443/'' -e ''s/port: 24444/port: 25444/'' > /work/config.yaml']
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: base, mountPath: /base, readOnly: true}, {name: credentials, mountPath: /credentials, readOnly: true}, {name: work, mountPath: /work}, {name: controller, mountPath: /controller, readOnly: true}]
       containers:
         - name: mihomo
           image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
           args: [-d, /etc/mihomo]
-          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 24444, protocol: UDP}]
+          ports: [{name: anytls, containerPort: 25443, protocol: TCP}, {name: hysteria2, containerPort: 25444, protocol: UDP}]
           readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
           livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
           resources: {requests: {cpu: 50m, memory: 96Mi}, limits: {cpu: "2", memory: 1Gi}}
