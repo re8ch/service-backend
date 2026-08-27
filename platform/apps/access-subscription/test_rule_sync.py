@@ -17,7 +17,7 @@ class RuleSyncTests(unittest.TestCase):
         self.assertEqual(rule_sync.clean_list([b"# x\nDOMAIN,a\n", b"DOMAIN,a\nDOMAIN,b\n"]), b"DOMAIN,a\nDOMAIN,b\n")
 
     def test_converts_shadowrocket_domains_for_mosdns(self):
-        raw = b"DOMAIN,a.example\nDOMAIN-SUFFIX,example.com\nIP-CIDR,192.0.2.5/24,no-resolve\n"
+        raw = b"DOMAIN,a.example\nDOMAIN-SUFFIX,example.com\nIP-CIDR,1.1.1.0/24,no-resolve\n"
         self.assertEqual(rule_sync.mosdns_domains(raw), b"full:a.example\ndomain:example.com\n")
 
     def test_sync_promotes_atomic_snapshot(self):
@@ -42,6 +42,19 @@ class RuleSyncTests(unittest.TestCase):
     def test_recipe_upgrade_allows_audited_rule_expansion(self):
         previous = {"recipeRevision": rule_sync.RECIPE_REVISION - 1, "artifacts": {"ai.list": {"metric": 38}}}
         rule_sync.validate_change("ai.list", 71, previous)
+
+    def test_recipe_upgrade_fetches_only_appended_sources(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "current").mkdir()
+            raw = b"DOMAIN,openai.com\n"
+            (root / "current" / "ai.list").write_bytes(raw)
+            previous = {"recipeRevision": rule_sync.RECIPE_REVISION - 1, "artifacts": {"ai.list": {
+                "sources": ["openai"], "sha256": rule_sync.hashlib.sha256(raw).hexdigest()}}}
+            with patch.object(rule_sync, "ROOT", root):
+                parts, remaining = rule_sync.incremental_list_parts("ai", ["openai", "gemini"], previous)
+            self.assertEqual(parts, [raw])
+            self.assertEqual(remaining, ["gemini"])
 
 
 if __name__ == "__main__":
