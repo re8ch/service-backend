@@ -57,12 +57,12 @@ class Node:
 DEFAULT_NODES = (
     Node("auto", "♻️ Auto · Smart Select", Publication("anytls", "access.re8ch.com", 443, "access.re8ch.com"), RuntimeTarget("personal-access-auto", "access-anytls", "auto", 100)),
     Node("us-ca", "🇺🇸 US · California · AnyTLS", Publication("anytls", "us-ca.access.re8ch.com", 443, "us-ca.access.re8ch.com"), RuntimeTarget("personal-access-us-ca", "access-anytls", "us-ca", 100)),
-    Node("backup", "🛟 Backup · Hysteria2", Publication("hysteria2", "backup.access.re8ch.com", 443, "backup.access.re8ch.com"), RuntimeTarget("personal-access-hysteria2", "access-hysteria2", "auto", 100)),
+    Node("backup", "🛟 Backup · Hysteria2", Publication("hysteria2", "backup.access.re8ch.com", 443, "backup.access.re8ch.com"), RuntimeTarget("personal-access-hysteria2", "access-hysteria2", "auto", 100, healthy=False)),
     # The first three entries above are immutable compatibility publications.
     # New topology-aware publications use distinct IDs and DNS names so an
     # existing Shadowrocket profile can refresh without losing a selected node.
     Node("route-auto-anytls", "♻️ RouteOS · Auto 决策 · AnyTLS", Publication("anytls", "access.re8ch.com", 443, "access.re8ch.com"), RuntimeTarget("personal-access-auto", "access-anytls", "routeos-auto", 100)),
-    Node("route-auto-hysteria2", "♻️ RouteOS · Auto 决策 · Hysteria2", Publication("hysteria2", "backup.access.re8ch.com", 443, "backup.access.re8ch.com"), RuntimeTarget("personal-access-hysteria2", "access-hysteria2", "routeos-auto", 100)),
+    Node("route-auto-hysteria2", "♻️ RouteOS · Auto 决策 · Hysteria2", Publication("hysteria2", "backup.access.re8ch.com", 443, "backup.access.re8ch.com"), RuntimeTarget("personal-access-hysteria2", "access-hysteria2", "routeos-auto", 100, healthy=False)),
     Node("route-la-anytls", "🇺🇸 RouteOS · 洛杉矶 · AnyTLS", Publication("anytls", "route-la.access.re8ch.com", 443, "route-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-anytls", "us-la", 100)),
     Node("route-la-hysteria2", "🇺🇸 RouteOS · 洛杉矶 · Hysteria2", Publication("hysteria2", "route-la.access.re8ch.com", 4443, "route-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la", 100, healthy=False)),
     Node("route-kl-anytls", "🇲🇾 RouteOS · 吉隆坡 · AnyTLS", Publication("anytls", "my-kul.access.re8ch.com", 443, "my-kul.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul", 100, healthy=False)),
@@ -248,8 +248,9 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
              "skip-proxy = 192.0.2.136/16, 192.0.2.183/8, 192.0.2.33/12, 127.0.0.0/8, localhost, *.local",
              "tun-excluded-routes = 192.0.2.183/8, 192.0.2.81/10, 127.0.0.0/8, 192.0.2.95/16, 192.0.2.33/12, 192.0.2.136/16, 224.0.0.0/4",
-             "dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query",
-             "fallback-dns-server = system", "dns-direct-system = false", "dns-fallback-system = false",
+             "dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query",
+             "fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query",
+             "dns-direct-system = false", "dns-fallback-system = false",
              "icmp-auto-reply = true", "private-ip-answer = false",
              f"update-url = {config_url}",
              "udp-policy-not-supported-behaviour = REJECT", "", "[Proxy]"]
@@ -273,7 +274,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                ("developer", "🧑‍💻 Developer", ""), ("cloud", "☁️ Cloud Storage", ""),
                ("speedtest", "📶 Speed Test", ""), ("games", "🎮 Games", ""),
                ("cn", "DIRECT", ""), ("cn-ip", "DIRECT", ",no-resolve"))
-    lines.extend(["", "[Rule]"])
+    lines.extend(["", "[Rule]", "DOMAIN,auth.openai.com,🤖 AI", "DOMAIN-SUFFIX,openai.com,🤖 AI", "DOMAIN-SUFFIX,chatgpt.com,🤖 AI"])
     for rule_id, policy, option in mapping:
         lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}{option}")
     lines.extend(["DOMAIN-SUFFIX,cn,DIRECT", "GEOIP,CN,DIRECT,no-resolve", "FINAL,PROXY", ""])
@@ -281,10 +282,9 @@ def shadowrocket_config(password: str, token: str, base_url: str,
 
 
 def shadowrocket_import_url(config_url: str) -> str:
-    # Current Shadowrocket releases on macOS/iOS accept the remote URL through
-    # the `url` query item. The older path form may only launch the app without
-    # downloading the configuration.
-    return "shadowrocket://config/add?url=" + quote(config_url, safe="")
+    # Shadowrocket's config installer takes the percent-encoded remote URL as
+    # the path payload. The query form may open the app without adding a file.
+    return "shadowrocket://config/add/" + quote(config_url, safe="")
 
 
 def month_end_epoch(now: datetime | None = None) -> int:
