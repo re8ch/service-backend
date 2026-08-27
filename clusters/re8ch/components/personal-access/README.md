@@ -107,8 +107,9 @@ The release checks are:
    sustains at least 100 Mbps.
 2. UDP/443 completes a Hysteria2 transfer through `192.0.2.75`.
 3. `sub.access.re8ch.com` completes Dex login and creates, imports, rotates and
-   revokes a one-click Shadowrocket configuration containing both nodes and
-   routing rules; the legacy node-only subscription remains compatible.
+   revokes a one-click Shadowrocket configuration through
+   `shadowrocket://config/add?url=...`, containing both nodes and routing rules;
+   the legacy node-only subscription remains compatible.
 4. Existing HTTPS listeners sharing TCP/443 remain healthy.
 5. Membership removal is reflected within five minutes, stale authorization
    fails closed at 24 hours, and cross-account device operations return 404.
