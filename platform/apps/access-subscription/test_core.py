@@ -81,7 +81,7 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_shadowrocket_import_url_encodes_complete_config_endpoint(self):
         url = shadowrocket_import_url("https://sub.access.re8ch.com/s/a.b/shadowrocket.conf")
-        self.assertEqual(url, "shadowrocket://config/add/https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fshadowrocket.conf")
+        self.assertEqual(url, "shadowrocket://config/add?url=https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fshadowrocket.conf")
 
 
 if __name__ == "__main__":

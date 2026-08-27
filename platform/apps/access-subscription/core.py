@@ -237,7 +237,10 @@ def shadowrocket_config(password: str, token: str, base_url: str,
 
 
 def shadowrocket_import_url(config_url: str) -> str:
-    return "shadowrocket://config/add/" + quote(config_url, safe="")
+    # Current Shadowrocket releases on macOS/iOS accept the remote URL through
+    # the `url` query item. The older path form may only launch the app without
+    # downloading the configuration.
+    return "shadowrocket://config/add?url=" + quote(config_url, safe="")
 
 
 def month_end_epoch(now: datetime | None = None) -> int:
