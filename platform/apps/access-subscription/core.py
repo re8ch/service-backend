@@ -15,6 +15,7 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
+SHADOWROCKET_PROFILE_REVISION = "20260827-3"
 
 
 @dataclass(frozen=True)
@@ -244,7 +245,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     names = [node.name for node in active]
     stable_ids = ("direct-kl-anytls", "direct-la-anytls", "route-kl-anytls", "route-la-anytls", "us-ca")
     stable_names = [node.name for node_id in stable_ids for node in active if node.node_id == node_id]
-    config_url = f"{base_url}/s/{token}/shadowrocket.conf"
+    config_url = f"{base_url}/s/{token}/shadowrocket.conf?v={SHADOWROCKET_PROFILE_REVISION}"
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
              "skip-proxy = 192.0.2.136/16, 192.0.2.183/8, 192.0.2.33/12, 127.0.0.0/8, localhost, *.local",
              "tun-excluded-routes = 192.0.2.183/8, 192.0.2.81/10, 127.0.0.0/8, 192.0.2.95/16, 192.0.2.33/12, 192.0.2.136/16, 224.0.0.0/4",
@@ -295,4 +296,5 @@ def month_end_epoch(now: datetime | None = None) -> int:
 
 def subscription_headers(upload: int = 0, download: int = 0, now: datetime | None = None) -> dict[str, str]:
     return {"Subscription-Userinfo": f"upload={max(0, upload)}; download={max(0, download)}; total={MONTHLY_SOFT_LIMIT}; expire={month_end_epoch(now)}",
-            "Profile-Title": PROFILE_TITLE, "Profile-Update-Interval": "6"}
+            "Profile-Title": PROFILE_TITLE, "Profile-Update-Interval": "6",
+            "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
