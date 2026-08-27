@@ -63,6 +63,7 @@ spec:
     - {name: access-tls, hostname: access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-us-ca-tls, hostname: us-ca.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-my-kul-tls, hostname: my-kul.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-us-la-tls, hostname: route-la.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-sub-https, hostname: sub.access.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: access-subdomains-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-dns-https, hostname: dns.access.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: access-subdomains-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: opensandbox-https, hostname: opensandbox.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
