@@ -2,7 +2,7 @@ import base64
 import unittest
 from datetime import datetime, timezone
 
-from core import (DEFAULT_NODES, MONTHLY_SOFT_LIMIT, authorization, canonical_subject, issue_token, mihomo_config,
+from core import (DEFAULT_NODES, MONTHLY_SOFT_LIMIT, authorization, canonical_subject, clash_meta_import_url, issue_token, mihomo_config,
                   node_uri, proxy_password, public_node, shadowrocket_config, shadowrocket_import_url,
                   subscription_body, subscription_headers, v2box_config_import_url,
                   v2box_subscription_body, v2box_subscription_import_url, verify_token)
@@ -121,6 +121,10 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("hysteria2://credential@direct-cn.access.re8ch.com:24444", raw)
         self.assertNotIn("anytls://", raw)
         self.assertNotIn("route-la.access.re8ch.com:4443", raw)
+
+    def test_clash_meta_import_url_encodes_complete_config_endpoint(self):
+        url = clash_meta_import_url("https://sub.access.re8ch.com/s/a.b/mihomo.yaml")
+        self.assertEqual(url, "clash://install-config?url=https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fmihomo.yaml")
 
 
 if __name__ == "__main__":
