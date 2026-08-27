@@ -1,0 +1,37 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: cloud-functions-scheduling
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: https://github.com/re8ch/cloud-functions.git
+  ref:
+    commit: 2e604be68f0f26e65d4c3f64cc1886cb4ad20006
+  ignore: |
+    /*
+    !/manifests/
+    /manifests/*
+    !/manifests/k3s/
+    /manifests/k3s/*
+    !/manifests/k3s/scheduling-fabric/
+    !/manifests/k3s/scheduling-fabric/**
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: scheduling-fabric
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  prune: false
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: cloud-functions-scheduling
+  path: ./manifests/k3s/scheduling-fabric
+  healthChecks:
+    - {apiVersion: apps/v1, kind: Deployment, name: scheduler-plugins, namespace: scheduler-system}
+    - {apiVersion: apps/v1, kind: Deployment, name: penrose-controller, namespace: scheduling-system}
