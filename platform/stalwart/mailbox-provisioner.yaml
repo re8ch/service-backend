@@ -119,7 +119,29 @@ data:
     if not domain:
         raise RuntimeError("phonaid.com domain is not provisioned")
 
-    plan = []
+    admin_email = "admin@phonaid.com"
+    admin_account = {
+        "metadata": {"name": "stalwart-admin"},
+        "spec": {
+            "email": admin_email,
+            "displayName": "Stalwart Administrator",
+            "collaboration": {"credentialSecretRef": {
+                "name": "stalwart-admin-credentials", "namespace": "mail-system"
+            }},
+        },
+    }
+    admin_password = load_or_create_password(admin_account, admin_email)
+    plan = [{
+        "@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
+        "value": {"account-admin": {
+            "@type": "User", "name": "admin", "domainId": domain["id"],
+            "description": "Stalwart Administrator",
+            "credentials": {"0": {"@type": "Password", "secret": admin_password}},
+            "roles": {"@type": "Admin"}, "permissions": {"@type": "Inherit"},
+            "memberGroupIds": {}, "quotas": {}, "aliases": {},
+            "encryptionAtRest": {"@type": "Disabled"},
+        }},
+    }]
     pending = []
     for index, account in enumerate(accounts):
         try:
@@ -153,7 +175,7 @@ data:
             raise
         for account in pending:
             patch_status(account, "Ready", "PrincipalAndPasswordReady")
-    print(json.dumps({"accounts": len(accounts), "ready": len(pending)}))
+    print(json.dumps({"accounts": len(accounts), "ready": len(pending), "admin": "ready"}))
 ---
 apiVersion: batch/v1
 kind: CronJob
