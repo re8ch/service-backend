@@ -194,7 +194,7 @@ spec:
         spec:
           serviceAccountName: stalwart-mailbox-provisioner
           restartPolicy: Never
-          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
           securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
           containers:
             - name: provision
