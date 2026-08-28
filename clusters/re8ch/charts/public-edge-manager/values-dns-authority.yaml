@@ -10,3 +10,4 @@ publication:
     litellm: {namespace: llm-gateway, name: litellm-dns-authority}
     cube: {namespace: cube-trial, name: cube-dns-authority}
     dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
+    collab: {namespace: mail-system, name: stalwart-collaboration-public}
