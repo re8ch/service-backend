@@ -66,6 +66,9 @@ spec:
     - matches:
         - {path: {type: PathPrefix, value: /admin}}
         - {path: {type: PathPrefix, value: /api}}
+        - {path: {type: Exact, value: /login}}
+        - {path: {type: PathPrefix, value: /auth}}
+        - {path: {type: PathPrefix, value: /.well-known}}
       backendRefs: [{name: stalwart, port: 8080}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
