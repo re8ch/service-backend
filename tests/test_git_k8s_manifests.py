@@ -47,9 +47,31 @@ def test_stalwart_public_route_only_exposes_collaboration_paths():
         for rule in route["spec"]["rules"]
         for match in rule.get("matches", [])
     }
-    assert {"/jmap", "/dav", "/.well-known", "/account", "/auth"} == paths
+    assert {"/", "/jmap", "/dav", "/.well-known", "/account", "/auth"} == paths
     assert "/api" not in paths
-    assert route["spec"]["rules"][0]["backendRefs"][0]["port"] == 8080
+    root = next(rule for rule in route["spec"]["rules"] if rule.get("matches", [{}])[0].get("path", {}).get("value") == "/")
+    assert root["filters"][0]["requestRedirect"]["path"]["replaceFullPath"] == "/account"
+    backend = next(rule for rule in route["spec"]["rules"] if "backendRefs" in rule)
+    assert backend["backendRefs"][0]["port"] == 8080
+
+
+def test_stalwart_collaboration_is_registered_with_public_edge_manager():
+    authority = next(
+        item
+        for item in documents(ROOT / "clusters/re8ch/components/regional-routing/authority.yaml")
+        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "regional-routing-authority"
+    )
+    config = authority["data"]
+    services = yaml.safe_load(config["SERVICES_JSON"])
+    publications = yaml.safe_load(config["PUBLICATION_REFS_JSON"])
+    collab = services["collab.tools.re8ch.com."]
+    assert collab == {
+        "service": "collab",
+        "class": "web",
+        "probePath": "/.well-known/jmap",
+        "acceptedStatuses": [200, 307],
+    }
+    assert publications["collab"] == {"namespace": "mail-system", "name": "stalwart-collaboration-public"}
 
 
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
