@@ -15,6 +15,13 @@ spec:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-wildcard-https}
   rules:
     - matches:
+        - {path: {type: Exact, value: /}}
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            statusCode: 302
+            path: {type: ReplaceFullPath, replaceFullPath: /account}
+    - matches:
         - {path: {type: PathPrefix, value: /jmap}}
         - {path: {type: PathPrefix, value: /dav}}
         - {path: {type: PathPrefix, value: /.well-known}}
