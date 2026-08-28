@@ -55,6 +55,21 @@ def test_stalwart_public_route_only_exposes_collaboration_paths():
     assert backend["backendRefs"][0]["port"] == 8080
 
 
+def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
+    resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
+    route = next(item for item in resources if item["metadata"]["name"] == "stalwart-admin-public")
+    assert route["spec"]["hostnames"] == ["stalwart-admin.tools.re8ch.com"]
+    paths = {
+        match["path"]["value"]
+        for rule in route["spec"]["rules"]
+        for match in rule.get("matches", [])
+    }
+    assert paths == {"/", "/admin", "/api"}
+    assert route["metadata"]["annotations"]["governance.re8ch.com/exposure"] == (
+        "stalwart-admin-authentication-required"
+    )
+
+
 def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     authority = next(
         item
@@ -84,6 +99,19 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     )
     assert dns_values["publication"]["refs"]["collab"] == publications["collab"]
 
+    admin = services["stalwart-admin.tools.re8ch.com."]
+    assert admin == {
+        "service": "stalwart-admin",
+        "class": "web",
+        "probePath": "/admin",
+        "acceptedStatuses": [200, 302],
+    }
+    admin_ref = {"namespace": "mail-system", "name": "stalwart-admin-public"}
+    assert publications["stalwart-admin"] == admin_ref
+    assert chart_values["services"]["stalwart-admin.tools.re8ch.com."] == admin
+    assert chart_values["publication"]["refs"]["stalwart-admin"] == admin_ref
+    assert dns_values["publication"]["refs"]["stalwart-admin"] == admin_ref
+
 
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
@@ -109,6 +137,8 @@ def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_
     assert '\"email\": email, \"username\": email, \"password\": password' in script
     assert '\"@type\": \"User\"' in script
     assert '\"phase\": phase, \"provider\": \"stalwart\"' in script
+    assert '\"name\": \"stalwart-admin-credentials\"' in script
+    assert '\"roles\": {\"@type\": \"Admin\"}' in script
     assert "print(password)" not in script
     container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
     assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]

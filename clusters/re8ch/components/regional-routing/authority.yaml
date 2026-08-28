@@ -17,7 +17,7 @@ data:
   # Publication must be elected by an off-LAN observer. A1 can hairpin through
   # RouterOS and incorrectly classify an externally unreachable restricted-node-6dc3f140f9 as ready.
   PUBLISHER_NODE: vm-20-12-ubuntu
-  PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"qianwen-ops","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"},"litellm":{"namespace":"llm-gateway","name":"litellm-dns-authority"},"cube":{"namespace":"cube-trial","name":"cube-dns-authority"},"dbgui":{"namespace":"ops","name":"cloudbeaver-dns-authority"},"collab":{"namespace":"mail-system","name":"stalwart-collaboration-public"}}'
+  PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"qianwen-ops","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"},"litellm":{"namespace":"llm-gateway","name":"litellm-dns-authority"},"cube":{"namespace":"cube-trial","name":"cube-dns-authority"},"dbgui":{"namespace":"ops","name":"cloudbeaver-dns-authority"},"collab":{"namespace":"mail-system","name":"stalwart-collaboration-public"},"stalwart-admin":{"namespace":"mail-system","name":"stalwart-admin-public"}}'
   SERVICES_JSON: |-
     {
       "api.re8ch.com.": {"service":"api","class":"api","probePath":"/__edge/ready","paths":["auth","nuclio","ledger","image","compocv"]},
@@ -42,7 +42,8 @@ data:
       "opensandbox.re8ch.com.": {"service":"opensandbox","class":"web","probePath":"/healthz"},
       "admin.re8ch.com.": {"service":"admin-tools","class":"web","probePath":"/mcp"},
       "operate.tools.re8ch.com.": {"service":"operate-tools","class":"web","probePath":"/mcp"},
-      "collab.tools.re8ch.com.": {"service":"collab","class":"web","probePath":"/.well-known/jmap","acceptedStatuses":[200,307]}
+      "collab.tools.re8ch.com.": {"service":"collab","class":"web","probePath":"/.well-known/jmap","acceptedStatuses":[200,307]},
+      "stalwart-admin.tools.re8ch.com.": {"service":"stalwart-admin","class":"web","probePath":"/admin","acceptedStatuses":[200,302]}
     }
   CANDIDATES_JSON: |-
     [
