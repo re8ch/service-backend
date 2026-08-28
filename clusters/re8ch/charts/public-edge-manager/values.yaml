@@ -25,6 +25,7 @@ services:
   cube.re8ch.com.: {service: cube, class: web, probePath: /}
   dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
   browser.re8ch.com.: {service: browser, class: web, probePath: /}
+  collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
 
 publicEdges:
   - name: guangzhou-zan
@@ -73,6 +74,7 @@ publication:
     litellm: {namespace: llm-gateway, name: litellm-dns-authority}
     cube: {namespace: cube-trial, name: cube-dns-authority}
     dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
+    collab: {namespace: mail-system, name: stalwart-collaboration-public}
 
 resources:
   requests: {cpu: 20m, memory: 32Mi}

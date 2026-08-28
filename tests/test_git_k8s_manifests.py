@@ -73,6 +73,17 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     }
     assert publications["collab"] == {"namespace": "mail-system", "name": "stalwart-collaboration-public"}
 
+    chart_values = yaml.safe_load(
+        (ROOT / "clusters/re8ch/charts/public-edge-manager/values.yaml").read_text()
+    )
+    assert chart_values["services"]["collab.tools.re8ch.com."] == collab
+    assert chart_values["publication"]["refs"]["collab"] == publications["collab"]
+
+    dns_values = yaml.safe_load(
+        (ROOT / "clusters/re8ch/charts/public-edge-manager/values-dns-authority.yaml").read_text()
+    )
+    assert dns_values["publication"]["refs"]["collab"] == publications["collab"]
+
 
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
