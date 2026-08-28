@@ -29,12 +29,13 @@ def test_capability_and_approval_writers_are_fail_closed():
     status_rules = policies["git-account-status-writers"]["spec"]["validations"]
     assert any("mailbox-provisioner" in rule["expression"] for rule in status_rules)
     assert any("git-workspace-controller" in rule["expression"] for rule in status_rules)
+    assert all("!has(oldObject.status)" in rule["expression"] for rule in status_rules)
 
 
 def test_pilot_workspace_uses_locked_controller_and_owner_gate_capabilities():
     pilot = documents("platform/workspace-controller/re8ch-owner-pilot.yaml")[0]
     pod = pilot["spec"]["template"]["spec"]
-    assert pod["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
+    assert pod["nodeSelector"]["kubernetes.io/hostname"] == "r640"
     assert pod["containers"][0]["args"][-2:] == ["re8ch-owner-pilot-20260825", "re8ch-core"]
     assert all(volume["name"] != "credentials" for volume in pod["volumes"])
     assert all("GIT_SSH_COMMAND" not in {item["name"] for item in container.get("env", [])} for container in [*pod["initContainers"], *pod["containers"]])
