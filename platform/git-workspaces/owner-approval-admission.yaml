@@ -106,7 +106,7 @@ spec:
         operations: [UPDATE]
         resources: [gitaccounts/status]
   validations:
-    - expression: "(has(object.status.mailbox) == has(oldObject.status.mailbox) && (!has(object.status.mailbox) || object.status.mailbox == oldObject.status.mailbox)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':mailbox-provisioner'"
+    - expression: "(has(object.status.mailbox) == has(oldObject.status.mailbox) && (!has(object.status.mailbox) || object.status.mailbox == oldObject.status.mailbox)) || request.userInfo.username == 'system:serviceaccount:mail-system:stalwart-mailbox-provisioner'"
       message: Only mailbox-provisioner may change mailbox readiness.
     - expression: "(has(object.status.ownership) == has(oldObject.status.ownership) && (!has(object.status.ownership) || object.status.ownership == oldObject.status.ownership)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
       message: Only git-workspace-controller may reconcile ownership readiness.
