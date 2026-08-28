@@ -1,0 +1,199 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: stalwart-mailbox-provisioner, namespace: mail-system}
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: stalwart-mailbox-provisioner-secrets, namespace: mail-system}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, create, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: stalwart-mailbox-provisioner-secrets, namespace: mail-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-mailbox-provisioner-secrets}
+subjects: [{kind: ServiceAccount, name: stalwart-mailbox-provisioner, namespace: mail-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: stalwart-mailbox-provisioner, namespace: git-workspaces}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: mailbox-provisioner}
+subjects: [{kind: ServiceAccount, name: stalwart-mailbox-provisioner, namespace: mail-system}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-mailbox-provisioner, namespace: mail-system}
+data:
+  provision.py: |
+    import base64
+    import datetime
+    import json
+    import os
+    import secrets
+    import ssl
+    import subprocess
+    import urllib.error
+    import urllib.request
+
+    API = "https://kubernetes.default.svc"
+    TOKEN = open("/var/run/secrets/kubernetes.io/serviceaccount/token", encoding="utf-8").read().strip()
+    CONTEXT = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+    CLI = "/cli/usr/local/bin/stalwart-cli"
+    ACCOUNTS_PATH = "/apis/governance.re8ch.com/v1alpha1/namespaces/git-workspaces/gitaccounts"
+    recovery_user, separator, recovery_password = os.environ.pop("STALWART_RECOVERY_ADMIN").partition(":")
+    if separator != ":" or not recovery_user or not recovery_password:
+        raise RuntimeError("invalid recovery credential reference")
+    os.environ["STALWART_USER"] = recovery_user
+    os.environ["STALWART_PASSWORD"] = recovery_password
+
+    def kube(method, path, body=None, content_type="application/json"):
+        payload = None if body is None else json.dumps(body, separators=(",", ":")).encode()
+        request = urllib.request.Request(
+            API + path,
+            data=payload,
+            method=method,
+            headers={"Authorization": "Bearer " + TOKEN, "Content-Type": content_type},
+        )
+        try:
+            with urllib.request.urlopen(request, context=CONTEXT, timeout=20) as response:
+                return json.load(response) if response.length != 0 else {}
+        except urllib.error.HTTPError as error:
+            if error.code == 404:
+                return None
+            raise
+
+    def cli(*arguments, stdin=None, env=None):
+        result = subprocess.run(
+            [CLI, *arguments], input=stdin, text=True, capture_output=True,
+            env=env or os.environ, timeout=180, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError("stalwart-cli failed without exposing credential output")
+        return result.stdout
+
+    def secret_name(account):
+        reference = (((account.get("spec") or {}).get("collaboration") or {}).get("credentialSecretRef") or {})
+        if reference.get("namespace") not in (None, "mail-system"):
+            raise RuntimeError("credential Secret must remain in mail-system")
+        return reference.get("name") or account["metadata"]["name"] + "-stalwart-credentials"
+
+    def load_or_create_password(account, email):
+        name = secret_name(account)
+        path = "/api/v1/namespaces/mail-system/secrets/" + name
+        current = kube("GET", path)
+        if current:
+            encoded = (current.get("data") or {}).get("password")
+            if not encoded:
+                raise RuntimeError("credential Secret exists without password")
+            return base64.b64decode(encoded).decode()
+        password = secrets.token_urlsafe(32)
+        values = {"email": email, "username": email, "password": password}
+        kube("POST", "/api/v1/namespaces/mail-system/secrets", {
+            "apiVersion": "v1", "kind": "Secret",
+            "metadata": {
+                "name": name, "namespace": "mail-system",
+                "labels": {"app.kubernetes.io/managed-by": "stalwart-mailbox-provisioner"},
+                "annotations": {"governance.re8ch.com/git-account": account["metadata"]["name"]},
+            },
+            "type": "Opaque",
+            "data": {key: base64.b64encode(value.encode()).decode() for key, value in values.items()},
+        })
+        return password
+
+    def patch_status(account, phase, reason):
+        name = account["metadata"]["name"]
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+        kube("PATCH", ACCOUNTS_PATH + "/" + name + "/status", {
+            "status": {"mailbox": {"phase": phase, "provider": "stalwart", "observedAt": now, "reason": reason}}
+        }, "application/merge-patch+json")
+
+    accounts = [
+        item for item in kube("GET", ACCOUNTS_PATH)["items"]
+        if (item.get("spec") or {}).get("mailbox") == "stalwart"
+    ]
+    domain_rows = [json.loads(line) for line in cli("query", "Domain", "--fields", "id,name", "--json").splitlines()]
+    domain = next((row for row in domain_rows if row.get("name") == "phonaid.com"), None)
+    if not domain:
+        raise RuntimeError("phonaid.com domain is not provisioned")
+
+    plan = []
+    pending = []
+    for index, account in enumerate(accounts):
+        try:
+            email = account["spec"]["email"]
+            local, separator, domain_name = email.partition("@")
+            if separator != "@" or domain_name != "phonaid.com" or not local:
+                raise RuntimeError("invalid canonical mailbox address")
+            password = load_or_create_password(account, email)
+            plan.append({
+                "@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
+                "value": {"account-" + str(index): {
+                    "@type": "User", "name": local, "domainId": domain["id"],
+                    "description": account["spec"].get("displayName") or account["metadata"]["name"],
+                    "credentials": {"0": {"@type": "Password", "secret": password}},
+                    "roles": {"@type": "User"}, "permissions": {"@type": "Inherit"},
+                    "memberGroupIds": {}, "quotas": {}, "aliases": {},
+                    "encryptionAtRest": {"@type": "Disabled"},
+                }},
+            })
+            pending.append(account)
+        except Exception:
+            patch_status(account, "Failed", "CredentialProvisioningFailed")
+
+    if plan:
+        try:
+            cli("apply", "--stdin", "--json", stdin="\n".join(json.dumps(item) for item in plan) + "\n")
+            cli("create", "Action", "--json", '{"@type":"InvalidateCaches"}')
+        except Exception:
+            for account in pending:
+                patch_status(account, "Failed", "StalwartApplyFailed")
+            raise
+        for account in pending:
+            patch_status(account, "Ready", "PrincipalAndPasswordReady")
+    print(json.dumps({"accounts": len(accounts), "ready": len(pending)}))
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: stalwart-mailbox-provisioner, namespace: mail-system}
+spec:
+  schedule: "13 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 604800
+      template:
+        metadata: {labels: {app.kubernetes.io/name: stalwart-mailbox-provisioner}}
+        spec:
+          serviceAccountName: stalwart-mailbox-provisioner
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+          containers:
+            - name: provision
+              image: docker.1ms.run/library/python@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+              command: [python3, /app/provision.py]
+              envFrom: [{secretRef: {name: stalwart-recovery-admin}}]
+              env:
+                - {name: STALWART_URL, value: "http://stalwart.mail-system.svc.cluster.local:8080"}
+                - {name: XDG_CACHE_HOME, value: /cache}
+              resources:
+                requests: {cpu: 25m, memory: 48Mi}
+                limits: {cpu: 500m, memory: 256Mi}
+              securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+              volumeMounts:
+                - {name: app, mountPath: /app, readOnly: true}
+                - {name: cli, mountPath: /cli, readOnly: true}
+                - {name: cache, mountPath: /cache}
+          volumes:
+            - {name: app, configMap: {name: stalwart-mailbox-provisioner}}
+            - name: cli
+              image:
+                reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+                pullPolicy: IfNotPresent
+            - {name: cache, emptyDir: {}}

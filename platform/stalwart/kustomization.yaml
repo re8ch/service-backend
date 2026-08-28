@@ -4,5 +4,6 @@ resources:
   - stalwart.yaml
   - desired-mail-domain.yaml
   - bootstrap-plan.yaml
+  - mailbox-provisioner.yaml
   - public-collaboration.yaml
   - bot-access-contract.yaml

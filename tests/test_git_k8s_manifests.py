@@ -100,6 +100,21 @@ def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     assert "@sha256:" in cli_volume["image"]["reference"]
 
 
+def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_passwords():
+    resources = documents(ROOT / "platform/stalwart/mailbox-provisioner.yaml")
+    config = next(item for item in resources if item["kind"] == "ConfigMap")
+    cronjob = next(item for item in resources if item["kind"] == "CronJob")
+    script = config["data"]["provision.py"]
+    assert "secrets.token_urlsafe(32)" in script
+    assert '\"email\": email, \"username\": email, \"password\": password' in script
+    assert '\"@type\": \"User\"' in script
+    assert '\"phase\": phase, \"provider\": \"stalwart\"' in script
+    assert "print(password)" not in script
+    container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
+    assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]
+    assert "@sha256:" in container["image"]
+
+
 def test_opensandbox_proxy_health_is_local_and_embedded_python_compiles():
     resources = documents(ROOT / "platform/agent-onboarding-runtime/opensandbox-orchestra-proxy.yaml")
     config = next(item for item in resources if item["kind"] == "ConfigMap")
