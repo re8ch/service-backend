@@ -106,11 +106,11 @@ spec:
         operations: [UPDATE]
         resources: [gitaccounts/status]
   validations:
-    - expression: "(has(object.status.mailbox) == has(oldObject.status.mailbox) && (!has(object.status.mailbox) || object.status.mailbox == oldObject.status.mailbox)) || request.userInfo.username == 'system:serviceaccount:mail-system:stalwart-mailbox-provisioner'"
+    - expression: "((!has(object.status) || !has(object.status.mailbox)) == (!has(oldObject.status) || !has(oldObject.status.mailbox)) && ((!has(object.status) || !has(object.status.mailbox)) || object.status.mailbox == oldObject.status.mailbox)) || request.userInfo.username == 'system:serviceaccount:mail-system:stalwart-mailbox-provisioner'"
       message: Only mailbox-provisioner may change mailbox readiness.
-    - expression: "(has(object.status.ownership) == has(oldObject.status.ownership) && (!has(object.status.ownership) || object.status.ownership == oldObject.status.ownership)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
+    - expression: "((!has(object.status) || !has(object.status.ownership)) == (!has(oldObject.status) || !has(oldObject.status.ownership)) && ((!has(object.status) || !has(object.status.ownership)) || object.status.ownership == oldObject.status.ownership)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
       message: Only git-workspace-controller may reconcile ownership readiness.
-    - expression: "(has(object.status.providerIdentity) == has(oldObject.status.providerIdentity) && (!has(object.status.providerIdentity) || object.status.providerIdentity == oldObject.status.providerIdentity)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
+    - expression: "((!has(object.status) || !has(object.status.providerIdentity)) == (!has(oldObject.status) || !has(oldObject.status.providerIdentity)) && ((!has(object.status) || !has(object.status.providerIdentity)) || object.status.providerIdentity == oldObject.status.providerIdentity)) || request.userInfo.username == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'"
       message: Only git-workspace-controller may verify provider identity.
 ---
 apiVersion: admissionregistration.k8s.io/v1
