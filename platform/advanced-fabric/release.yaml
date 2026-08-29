@@ -53,6 +53,14 @@ spec:
       enabled: true
       mode: observe-only
       applyEnabled: false
+      observeDays: 7
+      emergencyDisable: false
+      timezone: Asia/Shanghai
+      nativeRoutingCIDR: 192.0.2.224/16
+      acceleratedCIDR: 192.0.2.106/24
+      serviceCIDR: 192.0.2.215/24
+      controller:
+        nodeSelector: {}
       networkQuality:
         enabled: true
         intervalSeconds: 30
