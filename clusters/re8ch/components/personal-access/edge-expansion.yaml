@@ -171,6 +171,15 @@ spec: {ingressClassName: external-dns-only, rules: [{host: direct-la.access.re8c
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: access-direct-ca-dns
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations: {external-dns.alpha.kubernetes.io/hostname: direct-ca.access.re8ch.com, external-dns.alpha.kubernetes.io/target: 192.0.2.189, external-dns.alpha.kubernetes.io/ttl: "60", external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"}
+spec: {ingressClassName: external-dns-only, rules: [{host: direct-ca.access.re8ch.com}]}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   name: access-direct-kl-dns
   namespace: egress-fabric
   labels: {public.re8ch.com/external-dns: enabled}
