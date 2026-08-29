@@ -157,6 +157,11 @@ def sync_members(previous: dict) -> dict:
     return {"repository": REPOSITORY, "lastSuccess": now, "etag": headers.get("ETag", ""), "members": canonical_members(data)}
 
 
+def has_users_revision(deployment: dict, revision: str) -> bool:
+    annotations = deployment.get("spec", {}).get("template", {}).get("metadata", {}).get("annotations", {}) or {}
+    return annotations.get("access.re8ch.com/users-revision") == revision
+
+
 def reconcile() -> None:
     auth_item = object_get("configmaps", AUTH_NAME)
     previous = json.loads(auth_item.get("data", {}).get("members.json", "{}"))
@@ -188,11 +193,13 @@ def reconcile() -> None:
     revision = hashlib.sha256(users_yaml.encode()).hexdigest()
     secret = object_get("secrets", USERS_SECRET)
     old_revision = secret.get("metadata", {}).get("annotations", {}).get("access.re8ch.com/users-revision")
-    if old_revision == revision:
-        return
-    patch = {"metadata": {"annotations": {"access.re8ch.com/users-revision": revision}}, "stringData": {"users.yaml": users_yaml}}
-    kube_request("PATCH", f"/api/v1/namespaces/{NAMESPACE}/secrets/{USERS_SECRET}", patch, "application/merge-patch+json")
+    if old_revision != revision:
+        patch = {"metadata": {"annotations": {"access.re8ch.com/users-revision": revision}}, "stringData": {"users.yaml": users_yaml}}
+        kube_request("PATCH", f"/api/v1/namespaces/{NAMESPACE}/secrets/{USERS_SECRET}", patch, "application/merge-patch+json")
     for deployment in DEPLOYMENTS:
+        current = kube_request("GET", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{deployment}")
+        if has_users_revision(current, revision):
+            continue
         kube_request("PATCH", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{deployment}",
                      {"spec": {"template": {"metadata": {"annotations": {"access.re8ch.com/users-revision": revision}}}}},
                      "application/merge-patch+json")
