@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from core import (DEFAULT_NODES, MONTHLY_SOFT_LIMIT, authorization, canonical_subject, issue_token, mihomo_config,
                   node_uri, proxy_password, public_node, shadowrocket_config, shadowrocket_import_url,
                   subscription_body, subscription_headers, v2box_config_import_url,
-                  v2box_subscription_import_url, verify_token)
+                  v2box_subscription_body, v2box_subscription_import_url, verify_token)
 
 
 class SubscriptionTests(unittest.TestCase):
@@ -25,12 +25,12 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_subscription_uses_publication_not_runtime_target(self):
         raw = base64.b64decode(subscription_body("credential")).decode()
-        self.assertEqual(len(raw.strip().splitlines()), 7)
+        self.assertEqual(len(raw.strip().splitlines()), 9)
         self.assertIn("anytls://credential@us-ca.access.re8ch.com:443", raw)
         self.assertNotIn("personal-access-us-ca", raw)
         self.assertNotIn("route-la.access.re8ch.com:4443", raw)
         self.assertIn("direct-la.access.re8ch.com:24443", raw)
-        self.assertNotIn("direct-cn.access.re8ch.com:24444", raw)
+        self.assertIn("direct-cn.access.re8ch.com:24444", raw)
         status = public_node(DEFAULT_NODES[1])
         self.assertEqual(status["server"], "us-ca.access.re8ch.com")
         self.assertNotIn("runtime", status)
@@ -111,6 +111,14 @@ class SubscriptionTests(unittest.TestCase):
         self.assertEqual(subscription, "v2box://install-sub?url=https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fv2box.txt&name=access+re8ch+com")
         config = v2box_config_import_url("anytls://secret@example.com:443/?sni=example.com")
         self.assertEqual(config, "v2box://install-config?url=anytls%3A%2F%2Fsecret%40example.com%3A443%2F%3Fsni%3Dexample.com")
+
+    def test_v2box_subscription_contains_only_verified_hysteria2_nodes(self):
+        raw = base64.b64decode(v2box_subscription_body("credential")).decode()
+        self.assertEqual(len(raw.strip().splitlines()), 2)
+        self.assertIn("hysteria2://credential@direct-la.access.re8ch.com:24444", raw)
+        self.assertIn("hysteria2://credential@direct-cn.access.re8ch.com:24444", raw)
+        self.assertNotIn("anytls://", raw)
+        self.assertNotIn("route-la.access.re8ch.com:4443", raw)
 
 
 if __name__ == "__main__":

@@ -69,11 +69,11 @@ DEFAULT_NODES = (
     Node("route-kl-anytls", "🇲🇾 RouteOS · 吉隆坡 · AnyTLS", Publication("anytls", "my-kul.access.re8ch.com", 443, "my-kul.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul", 100, healthy=False)),
     Node("route-kl-hysteria2", "🇲🇾 RouteOS · 吉隆坡 · Hysteria2", Publication("hysteria2", "route-kl.access.re8ch.com", 4444, "route-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul", 100, healthy=False)),
     Node("direct-la-anytls", "🇺🇸 Edge Direct · 洛杉矶 · AnyTLS", Publication("anytls", "direct-la.access.re8ch.com", 24443, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-anytls", "us-la-direct", 100)),
-    Node("direct-la-hysteria2", "🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", Publication("hysteria2", "direct-la.access.re8ch.com", 24444, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la-direct", 100, healthy=False)),
+    Node("direct-la-hysteria2", "🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", Publication("hysteria2", "direct-la.access.re8ch.com", 24444, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la-direct", 100)),
     Node("direct-kl-anytls", "🇲🇾 Edge Direct · 吉隆坡 · AnyTLS", Publication("anytls", "direct-kl.access.re8ch.com", 24443, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul-direct", 100)),
     Node("direct-kl-hysteria2", "🇲🇾 Edge Direct · 吉隆坡 · Hysteria2", Publication("hysteria2", "direct-kl.access.re8ch.com", 24444, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul-direct", 100, healthy=False)),
     Node("direct-cn-anytls", "🇨🇳 Edge Direct · 娄底 · AnyTLS", Publication("anytls", "direct-cn.access.re8ch.com", 24443, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-anytls", "cn-loudi-direct", 100)),
-    Node("direct-cn-hysteria2", "🇨🇳 Edge Direct · 娄底 · Hysteria2", Publication("hysteria2", "direct-cn.access.re8ch.com", 24444, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-hysteria2", "cn-loudi-direct", 100, healthy=False)),
+    Node("direct-cn-hysteria2", "🇨🇳 Edge Direct · 娄底 · Hysteria2", Publication("hysteria2", "direct-cn.access.re8ch.com", 24444, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-hysteria2", "cn-loudi-direct", 100)),
 )
 
 SERVICE_RULESETS = (
@@ -169,6 +169,13 @@ def node_uri(node: Node, password: str) -> str:
 
 def subscription_body(password: str, nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     raw = "\n".join(node_uri(node, password) for node in published_nodes(nodes)) + "\n"
+    return base64.b64encode(raw.encode())
+
+
+def v2box_subscription_body(password: str, nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
+    """Return only protocols V2Box can import from this service."""
+    compatible = tuple(node for node in published_nodes(nodes) if node.protocol == "hysteria2")
+    raw = "\n".join(node_uri(node, password) for node in compatible) + "\n"
     return base64.b64encode(raw.encode())
 
 
