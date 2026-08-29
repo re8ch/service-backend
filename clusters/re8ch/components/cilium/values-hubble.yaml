@@ -10,9 +10,33 @@
 # normalize it to an equivalent empty object so --reuse-values can validate.
 operator:
   affinity: {}
+  prometheus:
+    enabled: true
+    metricsService: true
+    serviceMonitor:
+      enabled: false
+
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+  metricsService: true
 
 hubble:
   enabled: true
+
+  metrics:
+    enableOpenMetrics: true
+    serviceMonitor:
+      enabled: false
+    enabled:
+      - dns:query;ignoreAAAA
+      - drop:sourceContext=workload-name|reserved-identity;destinationContext=workload-name|reserved-identity
+      - tcp
+      - flow
+      - port-distribution
+      - icmp
+      - httpV2:exemplars=true;labelsContext=source_namespace,source_workload,destination_namespace,destination_workload,traffic_direction
 
   relay:
     enabled: true
@@ -24,7 +48,7 @@ hubble:
       useDigest: true
       pullPolicy: IfNotPresent
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-1eb0570f74
+      kubernetes.io/hostname: a1-wsl-zt
     tolerations:
       - key: dedicated
         operator: Equal
@@ -42,7 +66,7 @@ hubble:
     enabled: true
     replicas: 1
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-296f36f2fb
+      kubernetes.io/hostname: b1-wsl-zt
     tolerations:
       - key: anchor
         operator: Equal

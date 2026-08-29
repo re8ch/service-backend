@@ -158,6 +158,45 @@ data:
               source: k3s
               cls: k3s
 
+      # Scrape host-network and overlay-isolated services through the API
+      # server proxy. This follows kube-prometheus' connectivity model and
+      # avoids assuming the central VM node can route to every endpoint IP.
+      - job_name: rook-ceph-manager
+        scrape_interval: 30s
+        scrape_timeout: 20s
+        scheme: https
+        metrics_path: /api/v1/namespaces/rook-ceph/services/http:rook-ceph-mgr:9283/proxy/metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        static_configs:
+          - targets: ["kubernetes.default.svc:443"]
+            labels: {tenant: platform, source: kubernetes-api-proxy, cls: ceph, service: ceph-manager}
+
+      - job_name: rook-ceph-exporter
+        scrape_interval: 60s
+        scrape_timeout: 30s
+        scheme: https
+        metrics_path: /api/v1/namespaces/rook-ceph/services/http:rook-ceph-exporter:9926/proxy/metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        static_configs:
+          - targets: ["kubernetes.default.svc:443"]
+            labels: {tenant: platform, source: kubernetes-api-proxy, cls: ceph, service: ceph-exporter}
+
+      - job_name: kagent-tools-metrics
+        scrape_interval: 30s
+        scrape_timeout: 20s
+        scheme: https
+        metrics_path: /api/v1/namespaces/kagent/services/http:kagent-tools-metrics:8085/proxy/metrics
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        static_configs:
+          - targets: ["kubernetes.default.svc:443"]
+            labels: {tenant: platform, source: kubernetes-api-proxy, cls: application, namespace: kagent, service: kagent-tools}
+
       - job_name: k8s-traefik
         scrape_interval: 60s
         scrape_timeout: 10s
@@ -269,22 +308,24 @@ data:
 
       - job_name: k8s-kubelet
         scrape_interval: 60s
-        scrape_timeout: 20s
+        scrape_timeout: 45s
+        max_scrape_size: 67108864
         scheme: https
-        metrics_path: /metrics
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         tls_config:
-          insecure_skip_verify: true
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         kubernetes_sd_configs:
           - role: node
         relabel_configs:
           - source_labels: [__meta_kubernetes_node_name]
             regex: harbor-registry
             action: drop
-          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
             regex: (.+)
-            target_label: __address__
-            replacement: ${1}:10250
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
           - source_labels: [__meta_kubernetes_node_name]
             target_label: node
           - target_label: source
@@ -296,22 +337,24 @@ data:
 
       - job_name: k8s-cadvisor
         scrape_interval: 120s
-        scrape_timeout: 25s
+        scrape_timeout: 45s
+        max_scrape_size: 67108864
         scheme: https
-        metrics_path: /metrics/cadvisor
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         tls_config:
-          insecure_skip_verify: true
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         kubernetes_sd_configs:
           - role: node
         relabel_configs:
           - source_labels: [__meta_kubernetes_node_name]
             regex: harbor-registry
             action: drop
-          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
             regex: (.+)
-            target_label: __address__
-            replacement: ${1}:10250
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
           - source_labels: [__meta_kubernetes_node_name]
             target_label: node
           - target_label: source
@@ -556,7 +599,7 @@ metadata:
     app.kubernetes.io/part-of: panel-observability
 rules:
   - apiGroups: [""]
-    resources: ["endpoints", "services", "pods", "nodes", "nodes/proxy", "nodes/metrics"]
+    resources: ["endpoints", "services", "services/proxy", "pods", "nodes", "nodes/proxy", "nodes/metrics"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]

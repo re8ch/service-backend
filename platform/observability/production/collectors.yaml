@@ -1,0 +1,75 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  name: re8ch
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  replicaCount: 2
+  externalLabelName: vmagent_ha
+  selectAllByDefault: false
+  serviceScrapeSelector:
+    matchLabels: {observability.re8ch.com/managed: "true"}
+  podScrapeSelector:
+    matchLabels: {observability.re8ch.com/managed: "true"}
+  nodeScrapeSelector:
+    matchLabels: {observability.re8ch.com/managed: "true"}
+  staticScrapeSelector:
+    matchLabels: {observability.re8ch.com/managed: "true"}
+  remoteWrite:
+    - url: http://vminsert-re8ch-metrics.observability-system.svc:8480/insert/0/prometheus/api/v1/write
+  externalLabels:
+    cluster: re8ch
+    environment: production
+  extraArgs:
+    promscrape.streamParse: "true"
+    promscrape.maxScrapeSize: 64MB
+    remoteWrite.maxDiskUsagePerURL: 10GB
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels: {app.kubernetes.io/name: vmagent}
+          topologyKey: kubernetes.io/hostname
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {cpu: "2", memory: 2Gi}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAlert
+metadata:
+  name: re8ch
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  replicaCount: 2
+  datasource:
+    url: http://vmselect-re8ch-metrics.observability-system.svc:8481/select/0/prometheus
+  remoteRead:
+    url: http://vmselect-re8ch-metrics.observability-system.svc:8481/select/0/prometheus
+  remoteWrite:
+    url: http://vmsingle-re8ch-analytics.observability-system.svc:8429/api/v1/write
+  evaluationInterval: 30s
+  ruleSelector:
+    matchLabels: {observability.re8ch.com/managed: "true"}
+  extraArgs:
+    notifier.blackhole: "true"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels: {app.kubernetes.io/name: vmalert}
+          topologyKey: kubernetes.io/hostname
+  resources:
+    requests: {cpu: 250m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
