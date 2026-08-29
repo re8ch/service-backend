@@ -8,10 +8,12 @@ ROOT = Path(__file__).parents[1]
 FORMAT_CHECKER = jsonschema.FormatChecker()
 
 
-def validate(pattern, schema_name):
+def validate(pattern, schema_name, kinds=None):
     schema = json.loads((ROOT / "schemas" / schema_name).read_text())
     for path in ROOT.glob(pattern):
         document = yaml.safe_load(path.read_text())
+        if kinds and document.get("kind") not in kinds:
+            continue
         for item in document.get("items", [document]):
             if "apiVersion" not in item:
                 item = {"apiVersion": document["apiVersion"], "kind": document["kind"].removesuffix("List"), **item}
@@ -19,7 +21,8 @@ def validate(pattern, schema_name):
 
 
 validate("plugins/*.yaml", "plugin-definition.schema.json")
-validate("inventory/*.yaml", "infrastructure-target.schema.json")
+validate("inventory/*.yaml", "infrastructure-target.schema.json",
+         {"InfrastructureTarget", "InfrastructureTargetList"})
 validate("catalogs/*/modules/*/module.yaml", "workspace-module.schema.json")
 validate(".re8ch/project.yaml", "project-binding.schema.json")
 validate(".re8ch/cluster-resources.yaml", "cluster-resource-index.schema.json")
