@@ -25,7 +25,7 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_subscription_uses_publication_not_runtime_target(self):
         raw = base64.b64decode(subscription_body("credential")).decode()
-        self.assertEqual(len(raw.strip().splitlines()), 9)
+        self.assertEqual(len(raw.strip().splitlines()), 11)
         self.assertIn("anytls://credential@us-ca.access.re8ch.com:443", raw)
         self.assertNotIn("personal-access-us-ca", raw)
         self.assertNotIn("route-la.access.re8ch.com:4443", raw)
@@ -114,8 +114,10 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_v2box_subscription_contains_only_verified_hysteria2_nodes(self):
         raw = base64.b64decode(v2box_subscription_body("credential")).decode()
-        self.assertEqual(len(raw.strip().splitlines()), 2)
+        self.assertEqual(len(raw.strip().splitlines()), 4)
         self.assertIn("hysteria2://credential@direct-la.access.re8ch.com:24444", raw)
+        self.assertIn("hysteria2://credential@direct-ca.access.re8ch.com:24444", raw)
+        self.assertIn("hysteria2://credential@direct-kl.access.re8ch.com:24444", raw)
         self.assertIn("hysteria2://credential@direct-cn.access.re8ch.com:24444", raw)
         self.assertNotIn("anytls://", raw)
         self.assertNotIn("route-la.access.re8ch.com:4443", raw)

@@ -70,6 +70,7 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: personal-access, app.kubernetes.io/component: public-ingress, access.re8ch.com/region: us-ca}
+      annotations: {access.re8ch.com/tls-san-revision: "20260829-direct-ca-1"}
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
