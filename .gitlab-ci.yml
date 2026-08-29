@@ -1,7 +1,9 @@
 stages: [validate, test, render, security]
 
 default:
-  image: python:3.12-alpine
+  image:
+    name: python:3.12-alpine
+    pull_policy: if-not-present
 
 before_script:
   - apk add --no-cache git
