@@ -93,7 +93,9 @@ spec:
   strategy: {type: Recreate}
   selector: {matchLabels: {app.kubernetes.io/name: access-controller}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: access-controller, app.kubernetes.io/component: authorization}}
+    metadata:
+      labels: {app.kubernetes.io/name: access-controller, app.kubernetes.io/component: authorization}
+      annotations: {access.re8ch.com/code-revision: "20260829-credential-recovery-1"}
     spec:
       serviceAccountName: access-controller
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
