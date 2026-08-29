@@ -17,7 +17,7 @@ from urllib.parse import quote
 
 from core import (DEFAULT_NODES, authorization, canonical_subject, issue_token, mihomo_config, proxy_password,
                   public_node, shadowrocket_config, shadowrocket_import_url, SHADOWROCKET_PROFILE_REVISION, subscription_body,
-                  subscription_headers, v2box_subscription_import_url, verify_token)
+                  subscription_headers, v2box_subscription_body, v2box_subscription_import_url, verify_token)
 
 NAMESPACE = os.getenv("POD_NAMESPACE", "egress-fabric")
 STATE_NAME = os.getenv("STATE_CONFIGMAP", "access-subscription-devices")
@@ -193,7 +193,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(200, shadowrocket_config(password, token, BASE_URL), "text/plain; charset=utf-8", headers)
                 if suffix == "/v2box.txt":
                     headers["Content-Disposition"] = 'attachment; filename="re8ch-v2box.txt"'
-                    return self.send(200, subscription_body(password), "text/plain; charset=utf-8", headers)
+                    return self.send(200, v2box_subscription_body(password), "text/plain; charset=utf-8", headers)
                 return self.send(200, subscription_body(password), "text/plain; charset=utf-8", headers)
             if path.startswith("/r/"):
                 _token, file_path = checked_rule(self.path)
