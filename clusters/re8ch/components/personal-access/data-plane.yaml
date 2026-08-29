@@ -4,7 +4,7 @@ metadata: {name: access-re8ch-com, namespace: egress-fabric}
 spec:
   secretName: access-re8ch-com-tls
   issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
-  dnsNames: [access.re8ch.com, us-ca.access.re8ch.com, my-kul.access.re8ch.com, backup.access.re8ch.com, route-la.access.re8ch.com, route-kl.access.re8ch.com, direct-la.access.re8ch.com, direct-kl.access.re8ch.com, direct-cn.access.re8ch.com]
+  dnsNames: [access.re8ch.com, us-ca.access.re8ch.com, my-kul.access.re8ch.com, backup.access.re8ch.com, route-la.access.re8ch.com, route-kl.access.re8ch.com, direct-la.access.re8ch.com, direct-ca.access.re8ch.com, direct-kl.access.re8ch.com, direct-cn.access.re8ch.com]
 ---
 apiVersion: v1
 kind: ServiceAccount
