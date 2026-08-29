@@ -51,7 +51,7 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: access-subscription, app.kubernetes.io/component: portal}
-      annotations: {access.re8ch.com/code-revision: "20260829-v2box-1"}
+      annotations: {access.re8ch.com/code-revision: "20260829-v2box-hysteria-1"}
     spec:
       serviceAccountName: access-subscription
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
