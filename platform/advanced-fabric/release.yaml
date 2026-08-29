@@ -1,0 +1,78 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: re8ch-advanced-fabric
+  namespace: flux-system
+spec:
+  interval: 30m
+  provider: generic
+  url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
+  ref:
+    digest: sha256:5859aebd6464f11720331a07763c4c4cda74661d68d36954937ae8bf07897775
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: re8ch-advanced-fabric
+  namespace: flux-system
+spec:
+  interval: 30m
+  releaseName: service-vip-fabric
+  targetNamespace: kube-system
+  storageNamespace: kube-system
+  chartRef:
+    kind: OCIRepository
+    name: re8ch-advanced-fabric
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    preserveValues: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  rollback:
+    cleanupOnFail: true
+  values:
+    advancedFabric:
+      enabled: true
+      mode: observe-only
+      applyEnabled: false
+      networkQuality:
+        enabled: true
+        intervalSeconds: 30
+        timeoutSeconds: 2
+        samples: 20
+        freshnessSeconds: 120
+        minimumCoverageRatio: 1
+        maximumLossRatio: 0
+        maximumRegionalP95Ms: 20
+        maximumCrossRegionP95Ms: 400
+        dns:
+          maximumFailureRatio: 0.001
+          maximumP95Ms: 50
+          requireTcp: true
+          shadowEnabled: true
+          shadowServiceName: advanced-fabric-dns
+        doh:
+          enabled: true
+          url: https://advanced-fabric-doh.kube-system.svc.cluster.local/dns-query
+          caSecretName: advanced-fabric-doh-tls
+          maximumFailureRatio: 0.001
+          maximumP95Ms: 100
+      nodes:
+        - {name: restricted-node-6dc3f140f9, role: spine, class: A, region: cn-hunan, failureDomain: r640-idc, provider: onprem, internalIP: 192.0.2.178, podCIDR: 192.0.2.140/24, acceleratedIP: 192.0.2.179, asn: 65001, legacyASN: 4200000128, uplinkMbps: 200, publicAuthority: true, inventoryComplete: true}
+        - {name: overseas-la, role: spine, class: A, region: us-ca, failureDomain: overseas-la, provider: overseas, internalIP: 192.0.2.110, podCIDR: 192.0.2.114/24, acceleratedIP: 192.0.2.147, asn: 65002, legacyASN: 4200000104, uplinkMbps: 1000, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
+        - {name: overseas-kl, role: spine, class: A, region: my-kul, failureDomain: overseas-kl, provider: overseas, internalIP: 192.0.2.245, podCIDR: 192.0.2.110/24, acceleratedIP: 192.0.2.149, asn: 65003, legacyASN: 4200000089, uplinkMbps: 1000, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+        - {name: overseas-edge-50, role: spine, class: A, region: us-ca, failureDomain: overseas-edge-50, provider: overseas, internalIP: 192.0.2.79, podCIDR: 192.0.2.4/24, acceleratedIP: 192.0.2.81, asn: 65004, legacyASN: 4200000050, uplinkMbps: 1000, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
+        - {name: restricted-node-1eb0570f74, role: spine, class: B, region: cn-hunan, failureDomain: a1, provider: local-wsl, internalIP: 192.0.2.176, podCIDR: 192.0.2.48/24, acceleratedIP: 192.0.2.242, asn: 65101, legacyASN: 4200010147, uplinkMbps: 200, publicAuthority: false, inventoryComplete: true}
+        - {name: restricted-node-296f36f2fb, role: spine, class: B, region: cn-hunan, failureDomain: b1, provider: local-wsl, internalIP: 192.0.2.4, podCIDR: 192.0.2.234/24, acceleratedIP: 192.0.2.1, asn: 65102, legacyASN: 4200010125, uplinkMbps: 200, publicAuthority: false, inventoryComplete: true}
+        - {name: amdwsl-zt, role: spine, class: B, region: cn-hubei, failureDomain: amdwsl, provider: local-wsl, internalIP: 192.0.2.10, podCIDR: 192.0.2.134/24, acceleratedIP: 192.0.2.117, asn: 65103, legacyASN: 4200010038, uplinkMbps: 100, publicAuthority: false, inventoryComplete: true}
+        - {name: vm-20-12-ubuntu, role: leaf, class: C, region: cn-guangzhou, failureDomain: tencent-gz-73, provider: tencent, internalIP: 192.0.2.192, podCIDR: 192.0.2.57/24, acceleratedIP: 192.0.2.223, asn: 4200000073, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+        - {name: suxunji, role: leaf, class: C, region: cn-shanghai, failureDomain: tencent-sh-77, provider: tencent, internalIP: 192.0.2.182, podCIDR: 192.0.2.79/24, acceleratedIP: 192.0.2.246, asn: 4200000077, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+        - {name: muaya-lightweight, role: leaf, class: C, region: cn-shanghai, failureDomain: aliyun-sh-79, provider: aliyun, internalIP: 192.0.2.112, podCIDR: 192.0.2.89/24, acceleratedIP: 192.0.2.160, asn: 4200000079, uplinkMbps: 3, publicAuthority: true, inventoryComplete: true}
+        - {name: muaya-ecs, role: leaf, class: C, region: cn-hangzhou, failureDomain: aliyun-hz-95, provider: aliyun, internalIP: 192.0.2.74, podCIDR: 192.0.2.237/24, acceleratedIP: 192.0.2.32, asn: 4200000095, uplinkMbps: 3, publicAuthority: true, inventoryComplete: true}
+        - {name: zan, role: leaf, class: C, region: cn-guangzhou, failureDomain: tencent-gz-16, provider: tencent, internalIP: 192.0.2.138, podCIDR: 192.0.2.128/24, acceleratedIP: 192.0.2.152, asn: 4200000016, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
+        - {name: domain-ex, role: leaf, class: C, region: cn-shanghai, failureDomain: tencent-sh-186, provider: tencent, internalIP: 192.0.2.89, podCIDR: 192.0.2.94/24, acceleratedIP: 192.0.2.46, asn: 4200000186, uplinkMbps: 3, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
