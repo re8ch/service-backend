@@ -26,6 +26,17 @@ data:
     external-controller: 0.0.0.0:{{ .Values.nodeProxy.controllerPort }}
     allow-lan: true
     mode: rule
+    ipv6: false
+    dns:
+      enable: true
+      ipv6: false
+      enhanced-mode: redir-host
+      default-nameserver: [1.1.1.1, 8.8.8.8]
+      nameserver:
+        - https://1.1.1.1/dns-query#DIRECT
+        - https://dns.google/dns-query#DIRECT
+      nameserver-policy:
+        "+.cn": [https://dns.alidns.com/dns-query#DIRECT, https://doh.pub/dns-query#DIRECT]
     rule-providers:
       cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
     proxies:
