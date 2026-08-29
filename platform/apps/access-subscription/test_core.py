@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 
 from core import (DEFAULT_NODES, MONTHLY_SOFT_LIMIT, authorization, canonical_subject, issue_token, mihomo_config,
                   node_uri, proxy_password, public_node, shadowrocket_config, shadowrocket_import_url,
-                  subscription_body, subscription_headers, verify_token)
+                  subscription_body, subscription_headers, v2box_config_import_url,
+                  v2box_subscription_import_url, verify_token)
 
 
 class SubscriptionTests(unittest.TestCase):
@@ -104,6 +105,12 @@ class SubscriptionTests(unittest.TestCase):
     def test_shadowrocket_import_url_encodes_complete_config_endpoint(self):
         url = shadowrocket_import_url("https://sub.access.re8ch.com/s/a.b/shadowrocket.conf")
         self.assertEqual(url, "shadowrocket://config/add/https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fshadowrocket.conf")
+
+    def test_v2box_import_urls_encode_subscription_and_single_config(self):
+        subscription = v2box_subscription_import_url("https://sub.access.re8ch.com/s/a.b/v2box.txt")
+        self.assertEqual(subscription, "v2box://install-sub?url=https%3A%2F%2Fsub.access.re8ch.com%2Fs%2Fa.b%2Fv2box.txt&name=access+re8ch+com")
+        config = v2box_config_import_url("anytls://secret@example.com:443/?sni=example.com")
+        self.assertEqual(config, "v2box://install-config?url=anytls%3A%2F%2Fsecret%40example.com%3A443%2F%3Fsni%3Dexample.com")
 
 
 if __name__ == "__main__":

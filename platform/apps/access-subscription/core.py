@@ -288,6 +288,14 @@ def shadowrocket_import_url(config_url: str) -> str:
     return "shadowrocket://config/add/" + quote(config_url, safe="")
 
 
+def v2box_subscription_import_url(subscription_url: str, name: str = PROFILE_TITLE) -> str:
+    return "v2box://install-sub?" + urlencode({"url": subscription_url, "name": name})
+
+
+def v2box_config_import_url(config_url: str) -> str:
+    return "v2box://install-config?" + urlencode({"url": config_url})
+
+
 def month_end_epoch(now: datetime | None = None) -> int:
     current = now or datetime.now(timezone.utc)
     boundary = datetime(current.year + (current.month == 12), 1 if current.month == 12 else current.month + 1, 1, tzinfo=timezone.utc)
