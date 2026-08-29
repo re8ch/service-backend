@@ -46,6 +46,8 @@ not Flux-owned because their writes use Kubernetes `resourceVersion` CAS.
 The Store exposes these authenticated interfaces:
 
 - `/s/{token}`: compatible base64 node subscription.
+- `/s/{token}/v2box.txt`: V2Box-compatible base64 node subscription, exposed
+  through a `v2box://install-sub` one-click import URL in the device portal.
 - `/s/{token}/mihomo.yaml`: complete Mihomo configuration.
 - `/s/{token}/shadowrocket.conf`: complete Shadowrocket configuration with
   device-scoped AnyTLS/Hysteria2 nodes, policy groups, routing rules and DNS.
@@ -109,7 +111,8 @@ The release checks are:
 3. `sub.access.re8ch.com` completes Dex login and creates, imports, rotates and
    revokes a one-click Shadowrocket configuration through
    `shadowrocket://config/add?url=...`, containing both nodes and routing rules;
-   the legacy node-only subscription remains compatible.
+   creates a V2Box subscription through `v2box://install-sub?url=...&name=...`;
+   and keeps the legacy node-only subscription compatible.
 4. Existing HTTPS listeners sharing TCP/443 remain healthy.
 5. Membership removal is reflected within five minutes, stale authorization
    fails closed at 24 hours, and cross-account device operations return 404.
