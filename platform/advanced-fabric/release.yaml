@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:3082e6cb735a5aa36be723ae494e72b839fc40f7251e6913218db46ff768cc76
+    digest: sha256:24fe02cad302998b0b90f8c13256ae560ee5d610d49b90cf7e30a175e14faf4c
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -63,6 +63,8 @@ spec:
         nodeSelector: {}
       networkQuality:
         enabled: true
+        enforcementEnabled: false
+        victoriaMetricsServiceScrape: true
         intervalSeconds: 30
         timeoutSeconds: 2
         samples: 20

@@ -50,7 +50,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.8.0
+              target=/headlamp/plugins/advanced-fabric-0.9.0
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               # Headlamp currently has one active replica because OAuth state is
@@ -63,9 +63,9 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.8.0.new
+              stage=/headlamp/plugins/.advanced-fabric-0.9.0.new
               cp /plugin/plugin.tar.gz "$archive"
-              echo '01df0d11ea74bea3475b9a4f4cdec28a302c2fc6cab59c7d4278b9c1e63b3d0d  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'ad4b33427b0d22fdd01cb0c2e0118bd2903f04e87955a694446e38e5b783cab9  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage"
@@ -191,7 +191,7 @@ spec:
             claimName: headlamp-plugins-v2
         - name: penrose-plugin
           configMap:
-            name: headlamp-penrose-plugin-v080
+            name: headlamp-penrose-plugin-v090
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template
