@@ -217,6 +217,16 @@ class Controller:
                 "commit": self._module_commit(module),
             })
             knowledge.extend({"module": module.name, "ref": ref} for ref in spec.get("knowledge", []))
+            knowledge.append({
+                "module": module.name,
+                "ref": f"catalogs/{module.catalog}/knowledge/resources.yaml",
+                "kind": "catalog-context-index",
+            })
+            knowledge.append({
+                "module": module.name,
+                "ref": "catalogs/_shared/backend-platform-context.md",
+                "kind": "shared-platform-context",
+            })
             memory_path = module.source.parent / "MEMORY.md"
             if memory_path.exists():
                 knowledge.append({"module": module.name, "ref": str(memory_path.relative_to(self.root)), "kind": "agent-memory", "sha256": hashlib.sha256(memory_path.read_bytes()).hexdigest()})

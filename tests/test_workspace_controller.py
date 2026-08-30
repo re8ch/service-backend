@@ -76,3 +76,13 @@ def test_every_module_has_agent_memory_and_context_is_queryable():
     context = controller.context("cloud-functions")["result"][0]
     assert context["memoryAvailable"] is True
     assert "Cloud Functions" in context["memory"]
+    assert "Catalog and platform context" in context["memory"]
+    assert "catalogs/platform/knowledge/resources.yaml" in context["memory"]
+
+
+def test_every_catalog_has_a_context_resource_index():
+    controller = workspace.Controller(ROOT)
+    catalogs = {module.catalog for module in controller.registry.modules.values()}
+    for catalog in catalogs:
+        index = ROOT / "catalogs" / catalog / "knowledge" / "resources.yaml"
+        assert index.exists(), f"missing catalog context index: {index}"
