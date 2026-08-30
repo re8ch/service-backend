@@ -497,6 +497,7 @@ INFRA_TOOLS = [
     {"name": "harbor_tenant_reconcile", "description": "Preview or apply one catalog tenant's private project, shared human account and Project Admin membership.", "inputSchema": schema({"tenant": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant"])},
     {"name": "harbor_user_update", "description": "Update a non-admin Harbor user's email and real name.", "inputSchema": schema({"user_id": {"type": "integer", "minimum": 1}, "email": {"type": "string"}, "realname": {"type": "string"}, "apply": {"type": "boolean"}}, ["user_id", "email", "realname"])},
     {"name": "harbor_tenant_password_rotate", "description": "Rotate one catalog tenant's shared user password into the broker and issue a one-time redemption URL.", "inputSchema": schema({"tenant": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant"])},
+    {"name": "harbor_tenant_adoption_create", "description": "Issue a one-time HTTPS form for importing an existing catalog tenant Harbor password without passing it through MCP.", "inputSchema": schema({"tenant": {"type": "string"}}, ["tenant"])},
     {"name": "harbor_tenant_suspend", "description": "Suspend one tenant by removing its shared project membership and disabling project robots without deleting images.", "inputSchema": schema({"tenant": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant"])},
     {"name": "harbor_project_member_remove", "description": "Remove a Harbor project member without deleting the user or project.", "inputSchema": schema({"project": {"type": "string"}, "member_id": {"type": "integer", "minimum": 1}, "apply": {"type": "boolean"}}, ["project", "member_id"])},
     {"name": "harbor_robot_disable", "description": "Disable or enable a Harbor robot account.", "inputSchema": schema({"robot_id": {"type": "integer", "minimum": 1}, "disabled": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["robot_id", "disabled"])},
@@ -791,7 +792,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             if args.get("apply"):
                 harbor_admin_client().update_user(args["user_id"], args["email"], args["realname"])
             return result
-        if name in {"harbor_tenant_password_rotate", "harbor_tenant_suspend"}:
+        if name in {"harbor_tenant_password_rotate", "harbor_tenant_adoption_create", "harbor_tenant_suspend"}:
             catalog = tenant_catalog()
             if args["tenant"] not in catalog:
                 raise ValueError("tenant is not declared in the Harbor catalog")
@@ -800,6 +801,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             user = client.find_user(desired["username"])
             if not user:
                 raise ValueError("tenant Harbor user does not exist")
+            if name == "harbor_tenant_adoption_create":
+                return {"tenant": args["tenant"], "username": desired["username"], **redemption_registry().issue_adoption(args["tenant"]), "credential_material_returned": False}
             if name == "harbor_tenant_password_rotate":
                 result = mutation_preview(f"harbor/user/{desired['username']}/password", "managed-or-external", "rotated-to-broker", bool(args.get("apply")), "rotate again")
                 if args.get("apply"):
@@ -1204,6 +1207,9 @@ class Handler(BaseHTTPRequestHandler):
 <style>body{font:16px system-ui;max-width:680px;margin:64px auto;padding:0 24px}button,pre{box-sizing:border-box;width:100%;padding:14px;border:1px solid #777;border-radius:10px}pre{white-space:pre-wrap;word-break:break-all;background:#eee}</style>
 <h1>一次性凭据交付</h1><p>凭据只显示一次，页面不会缓存。请确认当前设备可信。</p><button id="redeem">显示凭据</button><pre id="output">尚未兑换</pre>
 <script>document.getElementById('redeem').onclick=async()=>{const token=location.hash.slice(1);history.replaceState(null,'',location.pathname);const r=await fetch('/credentials/redeem',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token})});document.getElementById('output').textContent=r.ok?JSON.stringify(await r.json(),null,2):'凭据无效、已使用或已过期';document.getElementById('redeem').disabled=true}</script>'''); return
+        if parsed.path == "/credentials/adopt":
+            self.send_html(200, '''<!doctype html><meta charset="utf-8"><title>Adopt Harbor Credential</title>
+<style>body{font:16px system-ui;max-width:680px;margin:64px auto;padding:0 24px}input,button,pre{box-sizing:border-box;width:100%;padding:12px;margin:6px 0}pre{white-space:pre-wrap;background:#eee}</style><h1>导入现有 Harbor 登录</h1><p>密码通过本次 HTTPS 请求直接进入 Credential Broker，不进入 MCP 或 AI 上下文。</p><input id="username" autocomplete="username" placeholder="Harbor username"><input id="password" type="password" autocomplete="current-password" placeholder="Harbor password"><button id="adopt">验证并导入</button><pre id="output"></pre><script>document.getElementById('adopt').onclick=async()=>{const token=location.hash.slice(1);history.replaceState(null,'',location.pathname);const username=document.getElementById('username').value,password=document.getElementById('password').value;document.getElementById('password').value='';const r=await fetch('/credentials/adopt',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token,username,password})});document.getElementById('output').textContent=JSON.stringify(await r.json(),null,2);document.getElementById('adopt').disabled=true}</script>'''); return
         if parsed.path == "/install":
             self.redirect("https://tools.re8ch.com/catalog"); return
         if parsed.path == "/install/authorize":
@@ -1232,6 +1238,25 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"tenant": tenant, "registry": HARBOR_URL, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
             except Exception:
                 self.send_json(400, {"error": "invalid_redemption"}, {"Cache-Control": "no-store"}); return
+        if urllib.parse.urlparse(self.path).path == "/credentials/adopt":
+            try:
+                length = min(int(self.headers.get("Content-Length", "0")), 16384)
+                payload = json.loads(self.rfile.read(length))
+                tenant = redemption_registry().consume_adoption(str(payload.get("token") or ""))
+                declared = tenant_catalog().get(tenant or "")
+                if not tenant or declared is None:
+                    self.send_json(410, {"error": "expired_or_consumed"}, {"Cache-Control": "no-store"}); return
+                desired = desired_tenant(tenant, declared)
+                username, password = str(payload.get("username") or ""), str(payload.get("password") or "")
+                if username != desired["username"] or not password:
+                    raise PermissionError("credential does not match the declared tenant account")
+                client = HarborClient(HARBOR_URL, username, password)
+                if desired["project"] not in {project.get("name") for project in client.projects()}:
+                    raise PermissionError("credential cannot access the declared tenant project")
+                reference = credential_store().put(tenant, desired["project"], "human", {"username": username, "password": password, "project": desired["project"]})
+                self.send_json(200, {"tenant": tenant, "credential_ref": reference, "credential_material_returned": False}, {"Cache-Control": "no-store"}); return
+            except Exception:
+                self.send_json(400, {"error": "adoption_failed"}, {"Cache-Control": "no-store"}); return
         if not self.path.endswith("/mcp"):
             self.send_json(404, {"error": "not_found"}); return
         identity = self.identity()

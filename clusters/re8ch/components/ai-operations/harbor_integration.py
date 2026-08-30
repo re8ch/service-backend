@@ -234,6 +234,7 @@ class RedemptionRegistry:
         self.ttl_seconds = ttl_seconds
         with sqlite3.connect(path) as db:
             db.execute("CREATE TABLE IF NOT EXISTS credential_redemptions (token_hash TEXT PRIMARY KEY, credential_ref TEXT NOT NULL, tenant TEXT NOT NULL, expires_at INTEGER NOT NULL, consumed_at INTEGER)")
+            db.execute("CREATE TABLE IF NOT EXISTS credential_adoptions (token_hash TEXT PRIMARY KEY, tenant TEXT NOT NULL, expires_at INTEGER NOT NULL, consumed_at INTEGER)")
 
     def issue(self, reference: str, tenant: str) -> dict[str, Any]:
         token = secrets.token_urlsafe(48)
@@ -251,6 +252,23 @@ class RedemptionRegistry:
                 return None
             updated = db.execute("UPDATE credential_redemptions SET consumed_at=? WHERE token_hash=? AND consumed_at IS NULL", (current, digest)).rowcount
             return (row[0], row[1]) if updated == 1 else None
+
+    def issue_adoption(self, tenant: str) -> dict[str, Any]:
+        token = secrets.token_urlsafe(48)
+        expires_at = int(time.time()) + self.ttl_seconds
+        with sqlite3.connect(self.path) as db:
+            db.execute("INSERT INTO credential_adoptions VALUES (?,?,?,NULL)", (hashlib.sha256(token.encode()).hexdigest(), tenant, expires_at))
+        return {"adoption_url": f"{self.public_origin}/credentials/adopt#{token}", "expires_at": expires_at, "single_use": True}
+
+    def consume_adoption(self, token: str) -> str | None:
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        current = int(time.time())
+        with sqlite3.connect(self.path) as db:
+            row = db.execute("SELECT tenant,expires_at,consumed_at FROM credential_adoptions WHERE token_hash=?", (digest,)).fetchone()
+            if not row or row[1] < current or row[2] is not None:
+                return None
+            updated = db.execute("UPDATE credential_adoptions SET consumed_at=? WHERE token_hash=? AND consumed_at IS NULL", (current, digest)).rowcount
+            return row[0] if updated == 1 else None
 
 
 def desired_tenant(catalog: str, declared: dict[str, Any] | None = None) -> dict[str, str]:

@@ -239,7 +239,7 @@ spec:
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.18@sha256:cf8baa9d2874a910fd9e144edba15a09ea263710fb48bfb04c69f4b9b5dd830e
+          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: infra}
@@ -303,7 +303,7 @@ spec:
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: broker
-          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.18@sha256:cf8baa9d2874a910fd9e144edba15a09ea263710fb48bfb04c69f4b9b5dd830e
+          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant}
@@ -342,6 +342,8 @@ spec:
     - matches: [{path: {type: PathPrefix, value: /harbor-tenant}}]
       backendRefs: [{name: harbor-credential-broker, port: 80}]
     - matches: [{path: {type: PathPrefix, value: /credentials/redeem}}]
+      backendRefs: [{name: harbor-credential-broker, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /credentials/adopt}}]
       backendRefs: [{name: harbor-credential-broker, port: 80}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/harbor-tenant}}]
       backendRefs: [{name: harbor-credential-broker, port: 80}]
