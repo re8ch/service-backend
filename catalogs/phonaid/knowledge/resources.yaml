@@ -1,0 +1,20 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: CatalogKnowledgeIndex
+metadata: {name: phonaid}
+spec:
+  catalog: ../catalog.yaml
+  overview: overview.md
+  modules: ../modules
+  tools: ../tools/index.yaml
+  sharedContext: ../../_shared/backend-platform-context.md
+  platformContext:
+    catalog: ../../platform/catalog.yaml
+    gitopsControlPlane: ../../platform/modules/service-backend/module.yaml
+    clusterDesiredState: ../../platform/modules/cloud-functions/module.yaml
+    networkControlPlane:
+      - ../../platform/modules/advanced-fabric/module.yaml
+      - ../../platform/modules/mihomos-cluster/module.yaml
+    toolDistribution:
+      - ../../platform/modules/codex-admin-plugins/module.yaml
+      - ../../platform/modules/tool-distribution/module.yaml
+      - ../../platform/modules/mcp-registry/module.yaml
