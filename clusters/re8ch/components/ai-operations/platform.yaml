@@ -231,7 +231,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {app: cluster-infra-tool}}
@@ -300,7 +300,7 @@ spec:
     spec:
       serviceAccountName: credential-broker
       imagePullSecrets: [{name: harbor-registry-pull}]
-      securityContext: {seccompProfile: {type: RuntimeDefault}}
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: broker
           image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
