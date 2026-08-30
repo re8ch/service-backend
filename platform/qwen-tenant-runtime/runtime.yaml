@@ -55,6 +55,53 @@ roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: qwen-tenant-run
 subjects: [{kind: ServiceAccount, name: qwen-tenant-runtime, namespace: toolhive-system}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: qwen-tenant-runtime, namespace: qwen}
+rules:
+  - {apiGroups: [apps], resources: [deployments, statefulsets], verbs: [get, list, watch, create, patch, update, delete]}
+  - {apiGroups: [batch], resources: [jobs, cronjobs], verbs: [get, list, watch, create, patch, update, delete]}
+  - {apiGroups: [""], resources: [services, persistentvolumeclaims, configmaps], verbs: [get, list, watch, create, patch, update, delete]}
+  - {apiGroups: [""], resources: [pods, events], verbs: [get, list, watch]}
+  - {apiGroups: [""], resources: [pods/log], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: qwen-tenant-runtime, namespace: qwen}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: qwen-tenant-runtime}
+subjects: [{kind: ServiceAccount, name: qwen-tenant-runtime, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: qwen-headlamp-navigation}
+rules:
+  - {apiGroups: [""], resources: [namespaces, nodes], verbs: [get, list, watch]}
+  - {apiGroups: [storage.k8s.io], resources: [storageclasses], verbs: [get, list, watch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: qwen-headlamp-navigation-github-tianruoyou2022}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: qwen-headlamp-navigation}
+subjects:
+  - {apiGroup: rbac.authorization.k8s.io, kind: User, name: "oidc:85153954@qq.com"}
+  - {apiGroup: rbac.authorization.k8s.io, kind: User, name: "oidc:tianruoyou2022"}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: qwen-headlamp-operator-github-tianruoyou2022, namespace: qwen}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: qwen-tenant-runtime}
+subjects:
+  - {apiGroup: rbac.authorization.k8s.io, kind: User, name: "oidc:85153954@qq.com"}
+  - {apiGroup: rbac.authorization.k8s.io, kind: User, name: "oidc:tianruoyou2022"}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: qwen-headlamp-operator-github-tianruoyou2022, namespace: tenant-qwen-runtime}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: qwen-tenant-runtime}
+subjects:
+  - {apiGroup: rbac.authorization.k8s.io, kind: User, name: "oidc:85153954@qq.com"}
+  - {apiGroup: rbac.authorization.k8s.io, kind: User, name: "oidc:tianruoyou2022"}
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata: {name: "re8ch:qwen-tenant-runtime-impersonate"}
 rules:
@@ -108,6 +155,13 @@ metadata: {name: qwen-tenant-vmcp, namespace: toolhive-system}
 spec:
   groupRef: {name: qwen-tenant-public}
   replicas: 2
+  sessionAffinity: None
+  sessionStorage:
+    provider: redis
+    address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+    db: 3
+    keyPrefix: "thv:vmcp:qwen:"
+    passwordRef: {name: toolhive-auth-redis, key: password}
   podTemplateSpec:
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
@@ -128,7 +182,11 @@ spec:
   outgoingAuth: {default: {type: discovered}}
   config:
     aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig: {prefixFormat: "{workload}_"}
       tools: [{workload: qwen-tenant-runtime}]
+    operational:
+      failureHandling: {partialFailureMode: best_effort}
     audit: {enabled: true, component: qwen-tenant-vmcp, includeRequestData: false, includeResponseData: false}
 ---
 apiVersion: gateway.networking.k8s.io/v1
