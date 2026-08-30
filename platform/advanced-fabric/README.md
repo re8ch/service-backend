@@ -9,7 +9,13 @@ chart registered with Artifact Hub:
 deploy its vendored chart. The `OCIRepository` is digest pinned, and the
 `HelmRelease` upgrades chart CRDs with `CreateReplace` before reconciling the
 release. During DNS shadow observation the fabric is forced to `observe-only`
-and `applyEnabled=false`; DNS promotion is a separate reviewed change.
+and `applyEnabled=false`; routing mutation remains separately guarded.
+
+Advanced Fabric DNS is the promoted cluster resolver at `192.0.2.149`.
+`kube-dns-compat.yaml` preserves the standard `192.0.2.240` VIP for Pods created
+before the kubelet rollout while selecting the same Advanced Fabric endpoints.
+All control-plane nodes disable the packaged K3s CoreDNS addon through the
+host-operation configuration under `operations/host-ops/k3s-dns/`.
 
 restricted-node-6dc3f140f9 has a dedicated Advanced Fabric DNS endpoint. Its stable DNS VIP selects
 only that local endpoint, avoiding a recovery dependency on cross-node PodCIDR

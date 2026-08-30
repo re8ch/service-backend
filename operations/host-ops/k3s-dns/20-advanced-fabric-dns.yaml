@@ -1,0 +1,3 @@
+# Install on every K3s server and agent node.
+kubelet-arg+:
+  - cluster-dns=192.0.2.149
