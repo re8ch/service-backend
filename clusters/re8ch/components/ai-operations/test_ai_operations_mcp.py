@@ -3,7 +3,10 @@ import os
 import tempfile
 import unittest
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
 
 
 def load(profile="cloud"):
@@ -51,6 +54,22 @@ class RegistryTests(unittest.TestCase):
             "mihomos_cluster_status", "public_edge_status", "advanced_fabric_status",
             "cilium_helm_app_status", "rook_csi_app_status",
         }.issubset(names))
+
+    def test_infra_exposes_native_harbor_tools(self):
+        m = load("infra")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertTrue({"harbor_users", "harbor_projects", "harbor_tenant_reconcile", "harbor_robot_disable"}.issubset(names))
+        reconcile = next(tool for tool in m.tools() if tool["name"] == "harbor_tenant_reconcile")
+        serialized = json.dumps(reconcile)
+        self.assertNotIn("password", serialized.lower())
+        self.assertNotIn("token", serialized.lower())
+
+    def test_tenant_profile_exposes_only_tenant_harbor_surface(self):
+        m = load("tenant")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertIn("harbor_tenant_robot_create", names)
+        self.assertNotIn("harbor_users", names)
+        self.assertNotIn("infra_execute", names)
 
     def test_litellm_uses_its_real_health_path(self):
         m = load("orchestra")

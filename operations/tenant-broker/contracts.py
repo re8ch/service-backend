@@ -13,6 +13,7 @@ CAPABILITIES: dict[str, dict[str, Any]] = {
     "network.service-binding.v1": {"parameters": ["serviceRef", "ports", "protocol"], "binding": "originRef"},
     "storage.volume.v1": {"parameters": ["sizeGiB", "accessMode", "storageClass"], "binding": "volumeRef"},
     "storage.bucket.v1": {"parameters": ["quotaGiB", "region"], "binding": "credentialRef"},
+    "harbor.registry.v1": {"parameters": ["project", "operation", "repository", "reference", "robotName", "permission", "durationDays"], "binding": "credentialRef"},
 }
 
 FORBIDDEN_PARAMETER_FRAGMENTS = ("password", "token", "secret", "kubeconfig", "privatekey", "private_key", "credential")
@@ -47,7 +48,7 @@ def plan(claim: dict[str, Any], *, authenticated_tenant: str) -> dict[str, Any]:
         "tenantRef": tenant,
         "capability": capability,
         "claimHash": f"sha256:{hashlib.sha256(canonical).hexdigest()}",
-        "requiresApproval": capability in {"database.run.v1", "network.service-binding.v1"},
+        "requiresApproval": capability in {"database.run.v1", "network.service-binding.v1"} or (capability == "harbor.registry.v1" and parameters.get("operation") in {"delete-artifact", "project-admin-robot"}),
         "bindingType": CAPABILITIES[capability]["binding"],
         "credentialMaterialReturned": False,
     }

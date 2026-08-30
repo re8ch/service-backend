@@ -5,9 +5,75 @@ metadata:
   labels: {re8ch.com/domain: tool-control, re8ch.com/plane: control}
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: credential-broker
+  labels: {re8ch.com/domain: credential-control, pod-security.kubernetes.io/enforce: restricted}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: harbor-tenant-catalog, namespace: ai-operations}
+data:
+  harbor-tenants.json: |
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: harbor-tenant-catalog, namespace: credential-broker}
+data:
+  harbor-tenants.json: |
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata: {name: ai-operations, namespace: ai-operations}
 automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: credential-broker, namespace: credential-broker}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: credential-broker, namespace: credential-broker}
+rules:
+  - {apiGroups: [""], resources: [secrets], verbs: [get, list, create, update, patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: credential-broker, namespace: credential-broker}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: credential-broker}
+subjects: [{kind: ServiceAccount, name: credential-broker, namespace: credential-broker}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: credential-broker-secret-injector}
+rules:
+  - {apiGroups: [""], resources: [secrets], verbs: [get, create, update, patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: credential-broker-secret-injector, namespace: qwen}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: credential-broker-secret-injector}
+subjects: [{kind: ServiceAccount, name: credential-broker, namespace: credential-broker}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: credential-broker-secret-injector, namespace: ledger}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: credential-broker-secret-injector}
+subjects: [{kind: ServiceAccount, name: credential-broker, namespace: credential-broker}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: credential-broker-secret-injector, namespace: anycam}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: credential-broker-secret-injector}
+subjects: [{kind: ServiceAccount, name: credential-broker, namespace: credential-broker}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: credential-broker-secret-injector, namespace: bench}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: credential-broker-secret-injector}
+subjects: [{kind: ServiceAccount, name: credential-broker, namespace: credential-broker}]
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -173,7 +239,7 @@ spec:
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.16@sha256:b6f88647c5bdc316822e89cfe894a3f8c865940b8c8c2e89c8af8b7da6244417
+          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.18@sha256:cf8baa9d2874a910fd9e144edba15a09ea263710fb48bfb04c69f4b9b5dd830e
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: infra}
@@ -186,6 +252,10 @@ spec:
             - {name: LITELLM_BASE_URL, value: "http://litellm.llm-gateway.svc.cluster.local:4000"}
             - {name: LITELLM_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-litellm, key: LITELLM_API_TOKEN}}}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
+            - {name: HARBOR_ADMIN_USERNAME, valueFrom: {secretKeyRef: {name: cluster-infra-harbor, key: username, optional: true}}}
+            - {name: HARBOR_ADMIN_PASSWORD, valueFrom: {secretKeyRef: {name: cluster-infra-harbor, key: password, optional: true}}}
+            - {name: HARBOR_TENANTS_PATH, value: /etc/re8ch-ai-operations/harbor-tenants.json}
+            - {name: CREDENTIAL_NAMESPACE, value: credential-broker}
           ports: [{name: http, containerPort: 19443}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5, failureThreshold: 6}
           livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15, failureThreshold: 6}
@@ -197,17 +267,84 @@ spec:
             - {name: runtime, mountPath: /etc/re8ch-ai-operations/kubeconfigs/re8ch.yaml, subPath: kubeconfig-re8ch.yaml, readOnly: true}
             - {name: runtime, mountPath: /etc/re8ch-ai-operations/ssh_config, subPath: ssh-config, readOnly: true}
             - {name: runtime, mountPath: /etc/re8ch-ai-operations/id_ed25519, subPath: id_ed25519, readOnly: true}
+            - {name: harbor-tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
       volumes:
         - {name: registry, persistentVolumeClaim: {claimName: infra-device-registry}}
         - {name: inventory, configMap: {name: ai-operations-inventory}}
+        - {name: harbor-tenants, configMap: {name: harbor-tenant-catalog}}
         - name: runtime
-          secret:
+      secret:
             secretName: cloud-platform-runtime
             defaultMode: 256
             items:
               - {key: kubeconfig-re8ch.yaml, path: kubeconfig-re8ch.yaml}
               - {key: ssh-config, path: ssh-config}
               - {key: id_ed25519, path: id_ed25519}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: credential-broker-registry
+  namespace: credential-broker
+  labels: {storage.re8ch.com/replicated-approved: "true"}
+spec: {accessModes: [ReadWriteOnce], storageClassName: ceph-block-re8ch, resources: {requests: {storage: 1Gi}}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: harbor-credential-broker, namespace: credential-broker}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: harbor-credential-broker}}
+  template:
+    metadata: {labels: {app: harbor-credential-broker}}
+    spec:
+      serviceAccountName: credential-broker
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: broker
+          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.18@sha256:cf8baa9d2874a910fd9e144edba15a09ea263710fb48bfb04c69f4b9b5dd830e
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: tenant}
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-harbor-tenant}
+            - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/harbor-tenant/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/harbor-tenant/mcp"}
+            - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
+            - {name: CREDENTIAL_NAMESPACE, value: credential-broker}
+            - {name: HARBOR_TENANTS_PATH, value: /etc/re8ch-ai-operations/harbor-tenants.json}
+          ports: [{name: http, containerPort: 19443}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: registry, mountPath: /var/lib/re8ch-ai-operations}
+            - {name: harbor-tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
+      volumes:
+        - {name: registry, persistentVolumeClaim: {claimName: credential-broker-registry}}
+        - {name: harbor-tenants, configMap: {name: harbor-tenant-catalog}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: harbor-credential-broker, namespace: credential-broker}
+spec: {selector: {app: harbor-credential-broker}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: harbor-credential-broker, namespace: credential-broker}
+spec:
+  hostnames: [tools.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /harbor-tenant}}]
+      backendRefs: [{name: harbor-credential-broker, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /credentials/redeem}}]
+      backendRefs: [{name: harbor-credential-broker, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/harbor-tenant}}]
+      backendRefs: [{name: harbor-credential-broker, port: 80}]
 ---
 apiVersion: apps/v1
 kind: Deployment
