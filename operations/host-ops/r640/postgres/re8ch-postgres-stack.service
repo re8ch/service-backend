@@ -1,0 +1,10 @@
+[Unit]
+Description=Start the optional RE8CH PostgreSQL stack after boot
+After=network.target patroni-dcs-etcd.service
+Wants=patroni-dcs-etcd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-postgres-stack-start
+TimeoutStartSec=180s
+RemainAfterExit=yes

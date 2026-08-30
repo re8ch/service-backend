@@ -1,0 +1,10 @@
+[Unit]
+Description=Delayed non-blocking startup of the RE8CH PostgreSQL stack
+
+[Timer]
+OnBootSec=2min
+AccuracySec=10s
+Unit=re8ch-postgres-stack.service
+
+[Install]
+WantedBy=timers.target

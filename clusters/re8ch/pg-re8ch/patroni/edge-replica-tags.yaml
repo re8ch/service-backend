@@ -1,0 +1,7 @@
+# Merge this local Patroni configuration into pg-re8ch-2 and pg-re8ch-3.
+# These low-bandwidth nodes serve fresh read-only data but are never HA leaders.
+tags:
+  nofailover: true
+  clonefrom: false
+  noloadbalance: false
+  nosync: true

@@ -1,5 +1,6 @@
 # Install as /etc/rancher/k3s/config.yaml.d/20-r640-local-dns.yaml on restricted-node-6dc3f140f9.
-# This changes only the DNS server injected into newly created restricted-node-6dc3f140f9 Pods.
+# The stable restricted-node-6dc3f140f9 VIP is backed by the local Advanced Fabric DNS endpoint. This
+# replaces the old CoreDNS implementation without rewriting every Pod resolver.
 kubelet-arg:
   - cluster-dns=192.0.2.170
   - max-pods=1024

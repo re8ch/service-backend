@@ -76,7 +76,16 @@ data:
         jq -c '.nodes[] | select(.peerMode == "transport")' /config/inventory.json | while read -r spoke; do
           last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
           prefix="$(printf '%s' "${spoke}" | jq -r .podCIDR)"
-          peer_key="$(host wg show "${iface}" allowed-ips | awk -v needle="172.31.${fabric_octet}.${last}/32" '$0 ~ needle {print $1; exit}')"
+          internal_ip="$(printf '%s' "${spoke}" | jq -r .internalIp)"
+          # Older/private-transit peers may have been provisioned with only
+          # their Kubernetes identity /32 and not the derived transport /32.
+          # Accept either stable identity when locating the peer; otherwise a
+          # valid BGP route can exist while WireGuard silently sends the return
+          # packet to a broad/default peer.
+          peer_key="$(host wg show "${iface}" allowed-ips | awk \
+            -v transport="172.31.${fabric_octet}.${last}/32" \
+            -v identity="${internal_ip}/32" \
+            '{ for (i=2; i<=NF; i++) if ($i == transport || $i == identity) { print $1; exit } }')"
           [ -n "${peer_key}" ] || continue
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
           case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
@@ -158,7 +167,14 @@ data:
           -c end
         return 0
       fi
-      if [ "${NODE_NAME}" = restricted-node-296f36f2fb ] || [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ]; then
+      if [ "${NODE_NAME}" = restricted-node-296f36f2fb ]; then
+        # WSL may retain a broad eth0 route even while FRR has learned restricted-node-6dc3f140f9's
+        # PodCIDR. Pin the encrypted return path so 192.0.2.140/24 cannot escape
+        # through the Windows/default gateway.
+        host vtysh -c 'configure terminal' -c 'ip route 192.0.2.140/24 wg-pt-b1 5' -c end
+        return 0
+      fi
+      if [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ]; then
         return 0
       fi
       [ -n "${identity_iface}" ] || return 0
