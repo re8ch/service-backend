@@ -36,3 +36,11 @@ def test_headlamp_rollout_does_not_deadlock_on_two_eligible_nodes():
 
     assert deployment["spec"]["replicas"] == 2
     assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
+
+
+def test_advanced_fabric_publishes_read_only_network_evidence():
+    advanced = next(doc for doc in definitions() if doc["metadata"]["name"] == "advanced-fabrics")
+    operations = set(advanced["spec"]["policy"]["allowedOperations"])
+    assert {"node-network-status", "kernel-ecmp-routes", "bgp-candidate-paths",
+            "path-decisions", "network-quality-status", "dns-quality-status"} <= operations
+    assert {"data", "stringData", "secret"} <= set(advanced["spec"]["policy"]["deniedFields"])
