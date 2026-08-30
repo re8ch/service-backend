@@ -112,7 +112,9 @@ def test_broker_manifest_is_digest_pinned_and_admin_secret_is_runtime_only():
     deployments = {item["metadata"]["name"]: item for item in documents if item and item.get("kind") == "Deployment"}
     broker = deployments["harbor-credential-broker"]
     assert "@sha256:" in broker["spec"]["template"]["spec"]["containers"][0]["image"]
-    assert broker["spec"]["template"]["spec"]["securityContext"]["runAsNonRoot"] is True
+    broker_security = broker["spec"]["template"]["spec"]["securityContext"]
+    assert broker_security["runAsNonRoot"] is True
+    assert (broker_security["runAsUser"], broker_security["runAsGroup"]) == (100, 101)
     infra_env = deployments["cluster-infra-tool"]["spec"]["template"]["spec"]["containers"][0]["env"]
     password = next(item for item in infra_env if item["name"] == "HARBOR_ADMIN_PASSWORD")
     assert password["valueFrom"]["secretKeyRef"] == {"name": "cluster-infra-harbor", "key": "password", "optional": True}

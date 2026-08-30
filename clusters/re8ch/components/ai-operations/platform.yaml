@@ -300,7 +300,7 @@ spec:
     spec:
       serviceAccountName: credential-broker
       imagePullSecrets: [{name: harbor-registry-pull}]
-      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: broker
           image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
