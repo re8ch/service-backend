@@ -1,0 +1,22 @@
+{
+  "apiVersion": "plugins.re8ch.com/v1alpha1",
+  "kind": "PluginDefinition",
+  "metadata": {"name": "qwen-tenant-runtime"},
+  "spec": {
+    "source": {"type": "kubernetes"},
+    "identityRef": "qwen-tenant-runtime",
+    "healthCheck": {"type": "kubernetes", "resource": "deployments.apps"},
+    "policy": {
+      "allowedOperations": ["get", "list", "create", "patch", "delete"],
+      "deniedFields": ["secret", "password", "token", "privateKey", "clientSecret", "apiKey"],
+      "resourceScopes": [
+        {"group": "apps", "version": "v1", "resource": "deployments", "namespaced": true, "namespaces": ["tenant-qwen-runtime"], "verbs": ["get", "list", "create", "patch", "delete"]},
+        {"group": "apps", "version": "v1", "resource": "statefulsets", "namespaced": true, "namespaces": ["tenant-qwen-runtime"], "verbs": ["get", "list", "create", "patch", "delete"]},
+        {"group": "", "version": "v1", "resource": "services", "namespaced": true, "namespaces": ["tenant-qwen-runtime"], "verbs": ["get", "list", "create", "patch", "delete"]},
+        {"group": "", "version": "v1", "resource": "persistentvolumeclaims", "namespaced": true, "namespaces": ["tenant-qwen-runtime"], "verbs": ["get", "list", "create", "delete"]},
+        {"group": "", "version": "v1", "resource": "pods", "namespaced": true, "namespaces": ["tenant-qwen-runtime"], "verbs": ["get", "list"]}
+      ]
+    },
+    "publication": {"enabled": true, "toolPrefix": "tenant"}
+  }
+}
