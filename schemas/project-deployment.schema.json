@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/project-deployment.v1alpha1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "deployments.re8ch.com/v1alpha1"},
+    "kind": {"const": "ProjectDeployment"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 40}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "environment", "components"],
+      "properties": {
+        "owner": {"type": "string", "minLength": 1, "maxLength": 80},
+        "environment": {"enum": ["development", "staging", "production"]},
+        "gateway": {
+          "type": "object", "additionalProperties": false,
+          "required": ["name", "namespace"],
+          "properties": {"name": {"type": "string", "minLength": 1}, "namespace": {"type": "string", "minLength": 1}}
+        },
+        "components": {
+          "type": "array", "minItems": 1, "maxItems": 8,
+          "items": {"$ref": "#/$defs/component"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "component": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "image", "port"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 30},
+        "type": {"enum": ["frontend", "backend"]},
+        "image": {"type": "string", "minLength": 1, "pattern": "^.+@sha256:[a-f0-9]{64}$"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "replicas": {"type": "integer", "minimum": 1, "maximum": 20, "default": 2},
+        "host": {"type": "string", "format": "hostname"},
+        "pathPrefix": {"type": "string", "pattern": "^/", "default": "/"},
+        "healthPath": {"type": "string", "pattern": "^/", "default": "/healthz"},
+        "secretRefs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"}},
+        "env": {"type": "object", "additionalProperties": {"type": "string"}},
+        "resources": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "requests": {"$ref": "#/$defs/resourcePair"},
+            "limits": {"$ref": "#/$defs/resourcePair"}
+          }
+        }
+      }
+    },
+    "resourcePair": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cpu", "memory"],
+      "properties": {"cpu": {"type": "string", "minLength": 1}, "memory": {"type": "string", "minLength": 1}}
+    }
+  }
+}

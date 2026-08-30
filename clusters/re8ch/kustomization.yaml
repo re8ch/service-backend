@@ -21,3 +21,4 @@ resources:
   - ../../platform/stalwart
   - ../../platform/apps/access-subscription
   - ../../platform/observability-source
+  - ../../platform/external-projects

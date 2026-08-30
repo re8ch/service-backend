@@ -58,11 +58,18 @@ def synopsis(path: Path) -> str:
     return " ".join(lines)[:1000]
 
 
-def render(module, document: dict, checkout: Path | None) -> str:
+def catalog_context(root: Path, catalog: str) -> tuple[str, str]:
+    overview_path = root / "catalogs" / catalog / "knowledge" / "overview.md"
+    shared_path = root / "catalogs" / "_shared" / "backend-platform-context.md"
+    return synopsis(overview_path), synopsis(shared_path)
+
+
+def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     spec = document["spec"]
     existing_agents = checkout / "AGENTS.md" if checkout else None
     readme = checkout / "README.md" if checkout else None
     purpose = synopsis(readme) if readme else ""
+    catalog_overview, shared_context = catalog_context(root, module.catalog)
     return "\n".join([
         f"# {module.name} Agent MEMORY",
         "",
@@ -82,6 +89,12 @@ def render(module, document: dict, checkout: Path | None) -> str:
         "## Working rules",
         "",
         "Read the repository-root AGENTS.md first when present, then README and declared knowledge. Work in a project-local Git worktree and preserve dirty checkouts. Use the module write policy; collaboration/read-only modules must not be pushed as owned code. Never copy credentials into patches, logs, MEMORY, or Git.",
+        "",
+        "## Catalog and platform context",
+        "",
+        f"- Catalog index: catalogs/{module.catalog}/knowledge/resources.yaml",
+        f"- Catalog overview: {catalog_overview or 'No catalog overview is available.'}",
+        f"- Shared backend context: {shared_context or 'No shared backend context is available.'}",
         "",
         "## Repository synopsis",
         "",
@@ -103,7 +116,7 @@ def main() -> None:
     changed = []
     for module in registry.modules.values():
         document = yaml.safe_load(module.source.read_text())
-        content = render(module, document, found.get(repository_key(module.repository)))
+        content = render(module, document, found.get(repository_key(module.repository)), args.root)
         target = module.source.parent / "MEMORY.md"
         if not target.exists() or target.read_text(errors="replace") != content:
             changed.append(str(target.relative_to(args.root)))

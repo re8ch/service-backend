@@ -28,6 +28,8 @@ validate(".re8ch/project.yaml", "project-binding.schema.json")
 validate(".re8ch/cluster-resources.yaml", "cluster-resource-index.schema.json")
 validate("catalogs/*/modules/*/overlay/.re8ch/project.yaml", "project-binding.schema.json")
 validate("catalogs/*/modules/*/overlay/.re8ch/cluster-resources.yaml", "cluster-resource-index.schema.json")
+validate("deployments/*.yaml", "project-deployment.schema.json")
+validate("tenant-claims/*.yaml", "tenant-resource-claim.schema.json")
 
 lock_schema = json.loads((ROOT / "schemas/workspace-lock.schema.json").read_text())
 jsonschema.validate(

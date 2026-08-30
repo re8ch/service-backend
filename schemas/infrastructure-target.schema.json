@@ -15,6 +15,55 @@
         "address": {"type": "string", "minLength": 1},
         "credentialRef": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+$"},
         "capabilities": {"type": "array", "items": {"type": "string"}},
+        "cluster": {
+          "type": "object",
+          "required": ["membership", "roles", "services"],
+          "properties": {
+            "membership": {"enum": ["active", "not-observed", "retired"]},
+            "roles": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "services": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "labels": {"type": "object", "additionalProperties": {"type": "string"}},
+            "taints": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["key", "effect"],
+                "properties": {
+                  "key": {"type": "string"},
+                  "value": {"type": "string"},
+                  "effect": {"enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]}
+                }
+              }
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "cpu": {"type": "integer", "minimum": 1},
+                "memoryKi": {"type": "integer", "minimum": 1},
+                "ephemeralStorageKi": {"type": "integer", "minimum": 1},
+                "osImage": {"type": "string"},
+                "kernelVersion": {"type": "string"}
+              }
+            },
+            "network": {
+              "type": "object",
+              "properties": {
+                "region": {"type": "string"},
+                "zone": {"type": "string"},
+                "controlRoute": {"type": "string"},
+                "externalIPMode": {"type": "string"},
+                "networkLevel": {"type": "integer", "minimum": 1}
+              }
+            },
+            "storage": {
+              "type": "object",
+              "properties": {
+                "csiDrivers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+                "profiles": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+              }
+            }
+          }
+        },
         "commands": {
           "type": "object",
           "properties": {
