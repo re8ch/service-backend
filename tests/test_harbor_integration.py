@@ -115,3 +115,9 @@ def test_broker_manifest_is_digest_pinned_and_admin_secret_is_runtime_only():
     infra_env = deployments["cluster-infra-tool"]["spec"]["template"]["spec"]["containers"][0]["env"]
     password = next(item for item in infra_env if item["name"] == "HARBOR_ADMIN_PASSWORD")
     assert password["valueFrom"]["secretKeyRef"] == {"name": "cluster-infra-harbor", "key": "password", "optional": True}
+    infra_spec = deployments["cluster-infra-tool"]["spec"]["template"]["spec"]
+    assert infra_spec["imagePullSecrets"] == [{"name": "harbor-registry-pull"}]
+    runtime = next(item for item in infra_spec["volumes"] if item["name"] == "runtime")
+    assert runtime["secret"]["secretName"] == "cloud-platform-runtime"
+    pvc = next(item for item in documents if item and item.get("kind") == "PersistentVolumeClaim" and item["metadata"]["name"] == "credential-broker-registry")
+    assert pvc["spec"]["storageClassName"] == "rbd-r640"
