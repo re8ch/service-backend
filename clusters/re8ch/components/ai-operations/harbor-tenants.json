@@ -1,0 +1,22 @@
+{
+  "tenants": {
+    "2woodblog": {},
+    "aesthete": {},
+    "anycam": {"harbor": {"project": "anycam", "webUsername": "anycam"}},
+    "anysiteonearth": {},
+    "artchais": {},
+    "baozou-ppt-studio": {},
+    "career-ops": {},
+    "compocv": {},
+    "garageband": {},
+    "jjklive": {},
+    "ledger": {"harbor": {"project": "ledger", "webUsername": "ledger"}},
+    "motor-muscle-sim": {},
+    "network-decomplexer": {},
+    "phonaid": {},
+    "platform": {},
+    "qwen": {"harbor": {"project": "qianwen", "webUsername": "tianruoyou2022", "accountEmail": "85153954@qq.com"}},
+    "space-mining-stage": {},
+    "thiking-machine": {}
+  }
+}

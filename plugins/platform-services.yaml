@@ -16,6 +16,6 @@ items:
       healthCheck: {type: http, path: /healthz}
       policy:
         resourceScopes: [tenant-self]
-        allowedOperations: [capabilities-list, claim-plan, claim-create, claim-get, claim-list, claim-cancel]
+        allowedOperations: [capabilities-list, claim-plan, claim-create, claim-get, claim-list, claim-cancel, harbor-repositories, harbor-artifacts, harbor-robot-create, harbor-robot-disable, harbor-kubernetes-inject, harbor-browser-launch, harbor-adoption-create]
         deniedFields: [credential, kubeconfig, secret, token, privateKey, candidateSelection, dnsZoneMutation, rawInfrastructureMutation]
       publication: {enabled: true, toolPrefix: tenant}
