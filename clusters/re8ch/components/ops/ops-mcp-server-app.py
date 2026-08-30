@@ -2272,6 +2272,13 @@ TENANT_RESOURCE_CATALOG = {
         "canonicalTenant": "qwen",
         "displayName": "Qianwen / Qwen",
         "notes": "Historical exception: K3s/Dex namespace and Grafana org are qwen, but Harbor/metrics/Observable tenant label and main databases use qianwen.",
+        "identity": {
+            "provider": "github",
+            "login": "tianruoyou2022",
+            "providerID": "99702184",
+            "email": "85153954@qq.com",
+            "dexSubjects": ["oidc:85153954@qq.com", "oidc:tianruoyou2022"],
+        },
         "kubernetes": {
             "namespace": "qwen",
             "dexGroup": "re8ch:qwen-operators",
@@ -2280,7 +2287,8 @@ TENANT_RESOURCE_CATALOG = {
         },
         "harbor": {
             "project": "qianwen",
-            "webUsername": "zhangrh",
+            "webUsername": "tianruoyou2022",
+            "membershipRole": "projectAdmin",
             "robotSecret": "harbor-qianwen-admin",
             "pullSecret": "harbor-qianwen-pull",
             "imagePath": "registry.re8ch.com/qianwen/<image>:<tag>",
