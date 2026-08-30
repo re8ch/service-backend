@@ -16,12 +16,13 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"]}
-                  - {key: kubernetes.io/hostname, operator: NotIn, values: [restricted-node-6dc3f140f9]}
+                  - {key: node-role.kubernetes.io/control-plane, operator: Exists}
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
-              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
           image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:b9c9755165049a55dad9ff96213d21683db0b379a0396100c9407db58e961975
@@ -51,3 +52,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 automountServiceAccountToken: false
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {app: re8ch-cloud-platform}}
