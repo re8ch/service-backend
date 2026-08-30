@@ -294,11 +294,13 @@ kind: Deployment
 metadata: {name: harbor-credential-broker, namespace: credential-broker}
 spec:
   replicas: 1
+  strategy: {type: Recreate}
   selector: {matchLabels: {app: harbor-credential-broker}}
   template:
     metadata: {labels: {app: harbor-credential-broker}}
     spec:
       serviceAccountName: credential-broker
+      nodeSelector: {kubernetes.io/hostname: zan}
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
