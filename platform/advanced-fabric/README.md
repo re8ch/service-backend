@@ -11,6 +11,10 @@ deploy its vendored chart. The `OCIRepository` is digest pinned, and the
 release. During DNS shadow observation the fabric is forced to `observe-only`
 and `applyEnabled=false`; DNS promotion is a separate reviewed change.
 
+restricted-node-6dc3f140f9 has a dedicated Advanced Fabric DNS endpoint. Its stable DNS VIP selects
+only that local endpoint, avoiding a recovery dependency on cross-node PodCIDR
+forwarding. The retired `coredns-r640` Deployment remains scaled to zero.
+
 `upgrade.preserveValues=true` is a one-release adoption safeguard for the
 existing manually managed `service-vip-fabric` Helm release. Remove it after all
 environment-specific values have been migrated into this directory.

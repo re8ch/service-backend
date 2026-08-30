@@ -1,0 +1,29 @@
+#!/bin/bash
+set -euo pipefail
+
+exec 9>/run/re8ch-postgres-stack.lock
+flock -n 9 || exit 0
+
+mountpoint -q /data/pigsty || {
+  if ! rbd showmapped --format json 2>/dev/null | grep -q '"name":"pigsty-r640"'; then
+    timeout --signal=TERM --kill-after=10s 60s \
+      rbd map r640-rbd/pigsty-r640 \
+      --id r640-host-rbd \
+      --keyring /etc/ceph/ceph.client.r640-host-rbd.keyring
+  fi
+  timeout --signal=TERM --kill-after=10s 45s mount /data/pigsty
+}
+
+test -s /data/pigsty/pg-re8ch-18/data/PG_VERSION
+systemctl start patroni.service
+
+for _ in $(seq 1 60); do
+  if /usr/pgsql/bin/pg_isready -q -h /run/postgresql -p 5432; then
+    systemctl start pgbouncer.service
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "PostgreSQL did not become ready within 60 seconds" >&2
+exit 1

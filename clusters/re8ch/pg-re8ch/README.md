@@ -12,3 +12,9 @@ the pg-meta/pg-re8ch responsibility split.
 
 Never commit the rendered PostgREST files from `/etc/postgrest`: they contain
 database passwords and JWT secrets.
+
+`pg-re8ch-1` on restricted-node-6dc3f140f9 is the authoritative primary. `pg-re8ch-2` and
+`pg-re8ch-3` are asynchronous edge read replicas. Apply
+`patroni/edge-replica-tags.yaml` to both replicas: they must never be promoted,
+join synchronous commit, or seed another replica. Read traffic may use them
+only through a Patroni replica health check with an explicit lag threshold.

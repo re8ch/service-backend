@@ -45,7 +45,12 @@ manage_wireguard_allowed_ips() {
   action=$1
   transaction | jq -r '.wireguardInterfaces[]?' | while read -r iface; do
     peers=$(host wg show "${iface}" peers)
-    [ "$(printf '%s\n' "${peers}" | sed '/^$/d' | wc -l)" -eq 1 ]
+    peer_count=$(printf '%s\n' "${peers}" | sed '/^$/d' | wc -l)
+    # A generic interface-level prefix is only unambiguous on a single-peer
+    # tunnel. Multi-peer route-server interfaces must be managed by explicit
+    # wireguardPeerPolicies or the PodCIDR fabric reconciler; failing the whole
+    # agent here also prevents observe-only nodes from becoming Ready.
+    [ "${peer_count}" -eq 1 ] || continue
     transaction | jq -r '.wireguardAllowedPrefixes[]?' | while read -r allowed; do
       current=$(host wg show "${iface}" allowed-ips | awk -v peer="${peers}" '$1 == peer {$1=""; sub(/^[[:space:]]+/, ""); print}')
       updated=""; found=false
@@ -87,11 +92,11 @@ manage_frr_transit_prefixes() {
   transaction | jq -c '.frrPrefixEntries[]?' | while read -r entry; do
     list=$(printf '%s' "${entry}" | jq -r '.list'); sequence=$(printf '%s' "${entry}" | jq -r '.sequence'); prefix=$(printf '%s' "${entry}" | jq -r '.prefix')
     if [ "${action}" = apply ]; then command="ip prefix-list ${list} seq ${sequence} permit ${prefix}"; else command="no ip prefix-list ${list} seq ${sequence}"; fi
-    host vtysh -c 'configure terminal' -c "${command}" -c end >/dev/null
+    host vtysh -c 'configure terminal' -c "${command}" -c end >/dev/null || [ "${action}" = remove ]
   done
   transaction | jq -r '.frrNetworks[]?' | while read -r prefix; do
     if [ "${action}" = apply ]; then command="network ${prefix}"; else command="no network ${prefix}"; fi
-    host vtysh -c 'configure terminal' -c "router bgp ${asn}" -c 'address-family ipv4 unicast' -c "${command}" -c end >/dev/null
+    host vtysh -c 'configure terminal' -c "router bgp ${asn}" -c 'address-family ipv4 unicast' -c "${command}" -c end >/dev/null || [ "${action}" = remove ]
   done
 }
 

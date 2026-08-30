@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: coredns-r640
     app.kubernetes.io/part-of: r640-platform-recovery
 spec:
-  # Retired after the main CoreDNS Deployment moved to A1/B1 HA placement.
+  # Retired after restricted-node-6dc3f140f9 moved to the Advanced Fabric DNS service.
   replicas: 0
   selector:
     matchLabels:
@@ -81,7 +81,9 @@ metadata:
 spec:
   clusterIP: 192.0.2.170
   selector:
-    app.kubernetes.io/name: coredns-r640
+    # Compatibility VIP for restricted-node-6dc3f140f9 Pods created before the kubelet cutover.
+    app.kubernetes.io/name: advanced-fabric-doh
+    app.kubernetes.io/instance: restricted-node-6dc3f140f9
   ports:
     - {name: dns, port: 53, targetPort: dns, protocol: UDP}
     - {name: dns-tcp, port: 53, targetPort: dns-tcp, protocol: TCP}
