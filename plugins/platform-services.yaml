@@ -2,7 +2,7 @@ apiVersion: plugins.re8ch.com/v1alpha1
 kind: PluginDefinitionList
 items:
   - metadata: {name: advanced-fabrics}
-    spec: {source: {type: kubernetes, apiGroups: [networking.re8ch.com]}, identityRef: advanced-fabrics-operator, healthCheck: {type: kubernetes}, policy: {resourceScopes: [advanced-fabric, kube-system], allowedOperations: [get, list, watch, status, node-network-status, kernel-ecmp-routes, bgp-candidate-paths, path-decisions, network-quality-status, dns-quality-status, route-diff, rate-limit-dry-run], deniedFields: [secret, data, stringData]}, publication: {enabled: true, toolPrefix: advanced_fabrics}}
+    spec: {source: {type: kubernetes, apiGroups: [networking.re8ch.com]}, identityRef: advanced-fabrics-operator, healthCheck: {type: kubernetes}, policy: {resourceScopes: [advanced-fabric, kube-system], allowedOperations: [get, list, watch, status, node-network-status, kernel-ecmp-routes, bgp-candidate-paths, path-decisions, network-quality-status, dns-quality-status, network-intelligence-status, route-diff, rate-limit-dry-run], deniedFields: [secret, data, stringData]}, publication: {enabled: true, toolPrefix: advanced_fabrics}}
   - metadata: {name: public-edge}
     spec: {source: {type: kubernetes, apiGroups: [edge.re8ch.com]}, identityRef: public-edge-operator, healthCheck: {type: kubernetes}, policy: {resourceScopes: [public-edge], allowedOperations: [get, list, watch, candidate-status, service-binding, publish-status], deniedFields: [candidateSelection, secret]}, publication: {enabled: true, toolPrefix: public_edge}}
   - metadata: {name: mihomos-cluster}

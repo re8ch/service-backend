@@ -42,5 +42,6 @@ def test_advanced_fabric_publishes_read_only_network_evidence():
     advanced = next(doc for doc in definitions() if doc["metadata"]["name"] == "advanced-fabrics")
     operations = set(advanced["spec"]["policy"]["allowedOperations"])
     assert {"node-network-status", "kernel-ecmp-routes", "bgp-candidate-paths",
-            "path-decisions", "network-quality-status", "dns-quality-status"} <= operations
+            "path-decisions", "network-quality-status", "dns-quality-status",
+            "network-intelligence-status"} <= operations
     assert {"data", "stringData", "secret"} <= set(advanced["spec"]["policy"]["deniedFields"])
