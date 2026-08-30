@@ -8,7 +8,7 @@ resources:
   - artc-kubeconfig.yaml
   - oidc-admin-rbac.yaml
 configMapGenerator:
-  - name: headlamp-penrose-plugin-v080
+  - name: headlamp-penrose-plugin-v090
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.8.0.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.9.0.bundle
