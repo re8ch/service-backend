@@ -115,6 +115,7 @@ def test_broker_manifest_is_digest_pinned_and_admin_secret_is_runtime_only():
     broker_security = broker["spec"]["template"]["spec"]["securityContext"]
     assert broker_security["runAsNonRoot"] is True
     assert (broker_security["runAsUser"], broker_security["runAsGroup"]) == (100, 101)
+    assert (broker_security["fsGroup"], broker_security["fsGroupChangePolicy"]) == (101, "OnRootMismatch")
     infra_env = deployments["cluster-infra-tool"]["spec"]["template"]["spec"]["containers"][0]["env"]
     password = next(item for item in infra_env if item["name"] == "HARBOR_ADMIN_PASSWORD")
     assert password["valueFrom"]["secretKeyRef"] == {"name": "cluster-infra-harbor", "key": "password", "optional": True}
