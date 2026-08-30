@@ -22,6 +22,21 @@ def test_inventory_contains_all_sixteen_k3s_nodes():
     assert {"restricted-node-6dc3f140f9", "overseas-kl", "overseas-la", "suxunji", "vm-20-12-ubuntu"} <= set(inventory.targets)
 
 
+def test_active_cluster_nodes_have_scheduling_inventory():
+    inventory = Inventory([ROOT / "inventory/nodes.yaml"])
+    active = [item for item in inventory.targets.values() if item["spec"].get("cluster", {}).get("membership") == "active"]
+
+    assert len(active) == 13
+    for item in active:
+        cluster = item["spec"]["cluster"]
+        assert cluster["roles"]
+        assert cluster["services"]
+        assert cluster["parameters"]["cpu"] > 0
+        assert cluster["parameters"]["memoryKi"] > 0
+        assert cluster["parameters"]["ephemeralStorageKi"] > 0
+        assert cluster["storage"]["csiDrivers"]
+
+
 def test_redaction_is_recursive():
     assert redact({"nested": {"token": "never", "ok": 1}}) == {"nested": {"token": "[REDACTED]", "ok": 1}}
 
