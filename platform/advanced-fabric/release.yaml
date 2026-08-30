@@ -25,10 +25,14 @@ spec:
     name: re8ch-advanced-fabric
   install:
     crds: CreateReplace
+    # Edge nodes can remain registered while temporarily offline. The
+    # observability plane must still install so their absence is measurable.
+    disableWait: true
     remediation:
       retries: 3
   upgrade:
     crds: CreateReplace
+    disableWait: true
     preserveValues: true
     remediation:
       retries: 3
