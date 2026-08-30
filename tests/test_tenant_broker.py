@@ -38,3 +38,11 @@ def test_inline_credentials_are_denied():
 def test_public_edge_binding_requires_approval():
     value = claim("network.service-binding.v1", {"serviceRef": "job-output", "ports": [443], "protocol": "HTTPS"})
     assert contracts.plan(value, authenticated_tenant="qwen")["requiresApproval"] is True
+
+
+def test_harbor_claim_is_tenant_scoped_and_destructive_operations_require_approval():
+    value = claim("harbor.registry.v1", {"project": "qianwen", "operation": "delete-artifact", "repository": "api", "reference": "sha256:" + "a" * 64})
+    result = contracts.plan(value, authenticated_tenant="qwen")
+    assert result["bindingType"] == "credentialRef"
+    assert result["requiresApproval"] is True
+    assert result["credentialMaterialReturned"] is False

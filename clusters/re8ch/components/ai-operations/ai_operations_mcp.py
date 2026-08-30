@@ -25,6 +25,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from harbor_integration import HarborClient, HarborError, KubernetesCredentialStore, RedemptionRegistry, desired_tenant
+
 PROFILE = os.getenv("RE8CH_TOOL_PROFILE", "cloud").lower()
 AUDIENCE = os.getenv("RE8CH_TOOL_AUDIENCE", f"re8ch-{PROFILE}-tool")
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
@@ -39,12 +41,16 @@ MAX_TIMEOUT = int(os.getenv("MAX_COMMAND_TIMEOUT_SECONDS", "3600"))
 MAX_OUTPUT = int(os.getenv("MAX_OUTPUT_BYTES", str(4 * 1024 * 1024)))
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
+HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
+HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
+CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
     "infra": {ADMIN_GROUP, "re8ch:infra-operators"},
     "orchestra": {ADMIN_GROUP, "re8ch:agent-operators"},
     "all": {ADMIN_GROUP, "re8ch:infra-operators", "re8ch:agent-operators"},
+    "tenant": {ADMIN_GROUP},
 }
 ALLOW_AUTHENTICATED_DEX = os.getenv("ALLOW_AUTHENTICATED_DEX", "false").lower() == "true"
 
@@ -67,7 +73,7 @@ CAPSULE_MAX_FILES_BYTES = int(os.getenv("CAPSULE_MAX_FILES_BYTES", str(8 * 1024 
 CREDENTIAL_CATALOG = {
     "node-ssh": {"kind": "file", "paths": [SSH_CONFIG, SSH_IDENTITY_FILE], "actions": ["shell", "file"]},
     "kubernetes": {"kind": "file", "paths": [str(KUBECONFIG_DIR / "re8ch.yaml")], "actions": ["kubectl"]},
-    "harbor-api": {"kind": "environment", "env": "HARBOR_API_TOKEN", "actions": ["harbor-api"]},
+    "harbor-api": {"kind": "environment", "env": "HARBOR_ADMIN_PASSWORD", "actions": ["harbor-api"]},
     "grafana-api": {"kind": "environment", "env": "GRAFANA_API_TOKEN", "actions": ["grafana-api"]},
     "litellm-api": {"kind": "environment", "env": "LITELLM_API_TOKEN", "actions": ["litellm-read"]},
     "github-native": {"kind": "environment", "env": "GH_TOKEN", "actions": ["github-api"]},
@@ -483,6 +489,19 @@ CLOUD_TOOLS = [
 INFRA_TOOLS = [
     {"name": "infra_observe", "description": "Run the reviewed observation command for an infrastructure domain.", "inputSchema": schema({"domain": {"type": "string", "enum": ["cilium", "ceph", "pigsty", "harbor", "grafana", "github", "litellm"]}}, ["domain"])},
     {"name": "infra_execute", "description": "Run an authorized infrastructure command using server-side credentials.", "inputSchema": schema({"domain": {"type": "string", "enum": ["cilium", "ceph", "pigsty", "harbor", "grafana", "github"]}, "argv": {"type": "array", "items": {"type": "string"}}, "stdin": {"type": "string"}, "timeout_seconds": {"type": "integer"}}, ["domain", "argv"])},
+    {"name": "harbor_users", "description": "List sanitized Harbor users through the native v2 API.", "inputSchema": schema({})},
+    {"name": "harbor_projects", "description": "List sanitized Harbor projects through the native v2 API.", "inputSchema": schema({})},
+    {"name": "harbor_robots", "description": "List sanitized Harbor robot accounts through the native v2 API.", "inputSchema": schema({})},
+    {"name": "harbor_repositories", "description": "List repositories in one Harbor project.", "inputSchema": schema({"project": {"type": "string"}}, ["project"])},
+    {"name": "harbor_artifacts", "description": "List artifacts and scan summaries in one repository.", "inputSchema": schema({"project": {"type": "string"}, "repository": {"type": "string"}}, ["project", "repository"])},
+    {"name": "harbor_tenant_reconcile", "description": "Preview or apply one catalog tenant's private project, shared human account and Project Admin membership.", "inputSchema": schema({"tenant": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant"])},
+    {"name": "harbor_user_update", "description": "Update a non-admin Harbor user's email and real name.", "inputSchema": schema({"user_id": {"type": "integer", "minimum": 1}, "email": {"type": "string"}, "realname": {"type": "string"}, "apply": {"type": "boolean"}}, ["user_id", "email", "realname"])},
+    {"name": "harbor_tenant_password_rotate", "description": "Rotate one catalog tenant's shared user password into the broker and issue a one-time redemption URL.", "inputSchema": schema({"tenant": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant"])},
+    {"name": "harbor_tenant_suspend", "description": "Suspend one tenant by removing its shared project membership and disabling project robots without deleting images.", "inputSchema": schema({"tenant": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant"])},
+    {"name": "harbor_project_member_remove", "description": "Remove a Harbor project member without deleting the user or project.", "inputSchema": schema({"project": {"type": "string"}, "member_id": {"type": "integer", "minimum": 1}, "apply": {"type": "boolean"}}, ["project", "member_id"])},
+    {"name": "harbor_robot_disable", "description": "Disable or enable a Harbor robot account.", "inputSchema": schema({"robot_id": {"type": "integer", "minimum": 1}, "disabled": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["robot_id", "disabled"])},
+    {"name": "harbor_artifact_scan", "description": "Request a Harbor vulnerability scan for one artifact.", "inputSchema": schema({"project": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "apply": {"type": "boolean"}}, ["project", "repository", "reference"])},
+    {"name": "harbor_artifact_delete", "description": "Delete one explicitly selected Harbor artifact.", "inputSchema": schema({"project": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "apply": {"type": "boolean"}}, ["project", "repository", "reference"])},
     {"name": "litellm_gateway_status", "description": "Read the cluster LiteLLM liveness and readiness endpoints without exposing credentials.", "inputSchema": schema({})},
     {"name": "litellm_models", "description": "List models exposed by the cluster LiteLLM gateway using its server-held credential.", "inputSchema": schema({})},
     {"name": "litellm_spend", "description": "Read LiteLLM aggregate spend data using its server-held credential.", "inputSchema": schema({})},
@@ -499,6 +518,15 @@ INFRA_TOOLS = [
     {"name": "public_edge_candidate_policy_configure", "description": "Preview or apply bounded Candidate Selection scoring weights.", "inputSchema": schema({"capacity_weight": {"type": "integer", "minimum": 0, "maximum": 10000}, "local_area_bonus": {"type": "integer", "minimum": 0, "maximum": 10000000}, "priority_weight": {"type": "integer", "minimum": 0, "maximum": 10000}, "latency_divisor_ms": {"type": "integer", "minimum": 1, "maximum": 60000}, "latency_penalty_cap": {"type": "integer", "minimum": 0, "maximum": 100000}, "local_node_bonus": {"type": "integer", "minimum": 0, "maximum": 100000}, "apply": {"type": "boolean"}})},
     {"name": "cilium_helm_app_configure", "description": "Preview or apply a safe Cilium dynamic configuration field; does not change operator replica count.", "inputSchema": schema({"key": {"type": "string", "enum": ["debug", "enable-hubble", "enable-bgp-control-plane-status-report", "bpf-events-drop-enabled", "bpf-events-policy-verdict-enabled", "bpf-events-trace-enabled"]}, "value": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["key", "value"])},
     {"name": "rook_csi_app_configure", "description": "Preview or apply a safe Rook operator configuration field.", "inputSchema": schema({"key": {"type": "string", "enum": ["ROOK_LOG_LEVEL", "ROOK_CEPH_COMMANDS_TIMEOUT_SECONDS", "ROOK_ENABLE_DISCOVERY_DAEMON"]}, "value": {"type": "string"}, "apply": {"type": "boolean"}}, ["key", "value"])},
+]
+
+TENANT_TOOLS = [
+    {"name": "harbor_tenant_repositories", "description": "List repositories using a tenant-bound Harbor credential reference.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}}, ["tenant", "credential_ref"])},
+    {"name": "harbor_tenant_artifacts", "description": "List artifacts in the credential-bound tenant project.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}, "repository": {"type": "string"}}, ["tenant", "credential_ref", "repository"])},
+    {"name": "harbor_tenant_robot_create", "description": "Create a finite-duration project robot and store its secret without returning it.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}, "name": {"type": "string"}, "permission": {"type": "string", "enum": ["pull", "build-push", "project-admin"]}, "duration_days": {"type": "integer", "minimum": 1, "maximum": 365}, "apply": {"type": "boolean"}}, ["tenant", "credential_ref", "name", "permission"])},
+    {"name": "harbor_tenant_robot_disable", "description": "Disable a robot in the credential-bound tenant project.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}, "robot_id": {"type": "integer", "minimum": 1}, "apply": {"type": "boolean"}}, ["tenant", "credential_ref", "robot_id"])},
+    {"name": "harbor_tenant_kubernetes_inject", "description": "Inject a Harbor dockerconfig into the same-named tenant namespace without returning credential material.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}, "secret_name": {"type": "string"}, "apply": {"type": "boolean"}}, ["tenant", "credential_ref", "secret_name"])},
+    {"name": "harbor_tenant_browser_launch", "description": "Issue a short-lived single-use credential URL for a controlled browser login without returning the password through MCP.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}}, ["tenant", "credential_ref"])},
 ]
 
 ORCHESTRA_TOOLS = [
@@ -518,8 +546,33 @@ ORCHESTRA_HEALTH_PATHS = {
 
 def tools() -> list[dict[str, Any]]:
     if PROFILE == "all":
-        return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + ORCHESTRA_TOOLS
-    return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS}.get(PROFILE, [])
+        return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + TENANT_TOOLS + ORCHESTRA_TOOLS
+    return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS}.get(PROFILE, [])
+
+
+def harbor_admin_client() -> HarborClient:
+    return HarborClient(HARBOR_URL, os.getenv("HARBOR_ADMIN_USERNAME", "admin"), os.getenv("HARBOR_ADMIN_PASSWORD", ""))
+
+
+def credential_store() -> KubernetesCredentialStore:
+    kubeconfig = str(KUBECONFIG_DIR / "re8ch.yaml") if (KUBECONFIG_DIR / "re8ch.yaml").exists() else None
+    return KubernetesCredentialStore(CREDENTIAL_NAMESPACE, kubeconfig=kubeconfig)
+
+
+def redemption_registry() -> RedemptionRegistry:
+    return RedemptionRegistry(REGISTRY_PATH, os.getenv("PUBLIC_ORIGIN", "https://tools.re8ch.com"))
+
+
+def tenant_catalog() -> dict[str, dict[str, Any]]:
+    if not HARBOR_TENANTS_PATH.exists():
+        return {}
+    return json.loads(HARBOR_TENANTS_PATH.read_text()).get("tenants", {})
+
+
+def tenant_client(tenant: str, reference: str) -> tuple[HarborClient, str]:
+    material = credential_store().get(reference, tenant)
+    project = material.get("project", tenant)
+    return HarborClient(HARBOR_URL, material.get("username", ""), material.get("password", "")), project
 
 
 def litellm_get(path: str, authenticated: bool = True) -> dict[str, Any]:
@@ -693,6 +746,92 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"session_id": args["session_id"], "status": "terminated"}
 
     if PROFILE in {"infra", "all"}:
+        if name in {"harbor_users", "harbor_projects", "harbor_robots", "harbor_repositories", "harbor_artifacts"}:
+            client = harbor_admin_client()
+            if name == "harbor_users":
+                return {"users": client.users(), "credential_material_returned": False}
+            if name == "harbor_projects":
+                return {"projects": client.projects(), "credential_material_returned": False}
+            if name == "harbor_robots":
+                return {"robots": client.robots(), "credential_material_returned": False}
+            if name == "harbor_repositories":
+                return {"project": args["project"], "repositories": client.repositories(args["project"])}
+            return {"project": args["project"], "repository": args["repository"], "artifacts": client.artifacts(args["project"], args["repository"])}
+        if name == "harbor_tenant_reconcile":
+            catalog = tenant_catalog()
+            if args["tenant"] not in catalog:
+                raise ValueError("tenant is not declared in the Harbor catalog")
+            desired = desired_tenant(args["tenant"], catalog[args["tenant"]])
+            client = harbor_admin_client()
+            user = client.find_user(desired["username"])
+            project = client.find_project(desired["project"])
+            before = {"user": bool(user), "project": bool(project), "membership": "unknown"}
+            after = {**desired, "project_private": True, "credential": "managed" if not user else "external/unmanaged"}
+            result = mutation_preview(f"harbor/tenant/{args['tenant']}", before, after, bool(args.get("apply")), before)
+            if not args.get("apply"):
+                return result
+            password = None
+            if not project:
+                client.create_project(desired["project"])
+            if not user:
+                password = secrets.token_urlsafe(32)
+                client.create_user(desired["username"], desired["email"], password)
+            changed_member = client.ensure_project_admin(desired["project"], desired["username"])
+            result.update({"applied": True, "project_created": not bool(project), "user_created": not bool(user), "membership_changed": changed_member, "credential_material_returned": False})
+            if password:
+                reference = credential_store().put(args["tenant"], desired["project"], "human", {"username": desired["username"], "password": password, "project": desired["project"]})
+                result["credential"] = redemption_registry().issue(reference, args["tenant"])
+            else:
+                result["credential_status"] = "external/unmanaged; use the HTTPS adoption flow"
+            return result
+        if name == "harbor_user_update":
+            if "@" not in args["email"] or len(args["email"]) > 254 or not args["realname"].strip():
+                raise ValueError("invalid Harbor user profile")
+            result = mutation_preview(f"harbor/user/{args['user_id']}", None, {"email": args["email"], "realname": args["realname"]}, bool(args.get("apply")), "restore previous profile from Harbor audit state")
+            if args.get("apply"):
+                harbor_admin_client().update_user(args["user_id"], args["email"], args["realname"])
+            return result
+        if name in {"harbor_tenant_password_rotate", "harbor_tenant_suspend"}:
+            catalog = tenant_catalog()
+            if args["tenant"] not in catalog:
+                raise ValueError("tenant is not declared in the Harbor catalog")
+            desired = desired_tenant(args["tenant"], catalog[args["tenant"]])
+            client = harbor_admin_client()
+            user = client.find_user(desired["username"])
+            if not user:
+                raise ValueError("tenant Harbor user does not exist")
+            if name == "harbor_tenant_password_rotate":
+                result = mutation_preview(f"harbor/user/{desired['username']}/password", "managed-or-external", "rotated-to-broker", bool(args.get("apply")), "rotate again")
+                if args.get("apply"):
+                    password = secrets.token_urlsafe(32)
+                    client.reset_user_password(int(user["user_id"]), password)
+                    reference = credential_store().put(args["tenant"], desired["project"], "human", {"username": desired["username"], "password": password, "project": desired["project"]})
+                    result.update({"applied": True, "credential": redemption_registry().issue(reference, args["tenant"]), "credential_material_returned": False})
+                return result
+            members = [member for member in client.project_members(desired["project"]) if (member.get("entity") or {}).get("entity_name") == desired["username"]]
+            robots = [robot for robot in client.robots() if any(permission.get("namespace") == desired["project"] for permission in robot.get("permissions") or [])]
+            result = mutation_preview(f"harbor/tenant/{args['tenant']}/suspension", {"memberships": len(members), "robots": len(robots)}, {"memberships": 0, "robots_disabled": len(robots), "images_deleted": False}, bool(args.get("apply")), "reconcile tenant membership and explicitly re-enable robots")
+            if args.get("apply"):
+                for member in members:
+                    client.remove_project_member(desired["project"], int(member["id"]))
+                for robot in robots:
+                    client.disable_robot(int(robot["id"]), True)
+            return result
+        if name in {"harbor_project_member_remove", "harbor_robot_disable", "harbor_artifact_scan", "harbor_artifact_delete"}:
+            client = harbor_admin_client()
+            apply = bool(args.get("apply"))
+            target = {key: value for key, value in args.items() if key != "apply"}
+            result = mutation_preview(f"harbor/{name.removeprefix('harbor_')}", None, target, apply, "manual restore from Harbor audit state")
+            if apply:
+                if name == "harbor_project_member_remove":
+                    client.remove_project_member(args["project"], args["member_id"])
+                elif name == "harbor_robot_disable":
+                    client.disable_robot(args["robot_id"], args["disabled"])
+                elif name == "harbor_artifact_scan":
+                    client.scan_artifact(args["project"], args["repository"], args["reference"])
+                else:
+                    client.delete_artifact(args["project"], args["repository"], args["reference"])
+            return result
         if name == "mihomos_node_configure":
             node, op = kubectl_object(["get", "node", args["node"]])
             labels = dict((node.get("metadata") or {}).get("labels") or {})
@@ -878,6 +1017,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 result = command_result(ssh_argv(exec_node, shlex.join(commands[domain])), None, 120)
             return {"domain": domain, "interface_mode": interface_mode, "transport": transport, **result}
         if name == "infra_execute":
+            if domain == "harbor":
+                raise ValueError("harborctl compatibility transport is retired; use native harbor_* tools")
             prefix = {"cilium": ["cilium"], "ceph": ["ceph"], "pigsty": ["patronictl"], "harbor": ["harborctl"], "grafana": ["grafana-cli"], "github": ["gh"]}[domain]
             argv = args["argv"]
             if not argv or argv[0] != prefix[0]:
@@ -889,6 +1030,34 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 remote = "GH_TOKEN=$(cat) " + shlex.join(argv)
                 return command_result(ssh_argv(exec_node, remote), token, int(args.get("timeout_seconds", 600)))
             return command_result(ssh_argv(exec_node, shlex.join(argv)), args.get("stdin"), int(args.get("timeout_seconds", 600)))
+
+    if PROFILE in {"tenant", "all"} and name in {tool["name"] for tool in TENANT_TOOLS}:
+        if name == "harbor_tenant_browser_launch":
+            credential_store().get(args["credential_ref"], args["tenant"])
+            return {**redemption_registry().issue(args["credential_ref"], args["tenant"]), "purpose": "controlled-browser-login", "credential_material_returned": False}
+        if name == "harbor_tenant_kubernetes_inject":
+            preview = mutation_preview(f"secret/{args['tenant']}/{args['secret_name']}", None, {"type": "kubernetes.io/dockerconfigjson", "credential_material_returned": False}, bool(args.get("apply")), "delete generated Secret")
+            if args.get("apply"):
+                preview.update(credential_store().inject_dockerconfig(args["credential_ref"], args["tenant"], args["tenant"], args["secret_name"], urllib.parse.urlparse(HARBOR_URL).netloc))
+            return preview
+        client, project = tenant_client(args["tenant"], args["credential_ref"])
+        if name == "harbor_tenant_repositories":
+            return {"tenant": args["tenant"], "project": project, "repositories": client.repositories(project)}
+        if name == "harbor_tenant_artifacts":
+            return {"tenant": args["tenant"], "project": project, "repository": args["repository"], "artifacts": client.artifacts(project, args["repository"])}
+        if name == "harbor_tenant_robot_create":
+            preview = mutation_preview(f"harbor/{project}/robot/{args['name']}", None, {"permission": args["permission"], "duration_days": args.get("duration_days", 90)}, bool(args.get("apply")), "disable generated robot")
+            if not args.get("apply"):
+                return preview
+            robot, token = client.create_robot(project, args["name"], args["permission"], int(args.get("duration_days", 90)))
+            username = str(robot.get("name") or args["name"])
+            reference = credential_store().put(args["tenant"], project, "robot", {"username": username, "password": token, "project": project})
+            preview.update({"applied": True, "robot": robot, "credential": redemption_registry().issue(reference, args["tenant"]), "credential_material_returned": False})
+            return preview
+        preview = mutation_preview(f"harbor/{project}/robot/{args['robot_id']}", {"disabled": False}, {"disabled": True}, bool(args.get("apply")), {"disabled": False})
+        if args.get("apply"):
+            client.disable_robot(args["robot_id"], True)
+        return preview
 
     if PROFILE in {"orchestra", "all"}:
         if name == "link_execution":
@@ -1030,6 +1199,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/credentials/redeem":
+            self.send_html(200, '''<!doctype html><meta charset="utf-8"><title>RE8CH Credential Delivery</title>
+<style>body{font:16px system-ui;max-width:680px;margin:64px auto;padding:0 24px}button,pre{box-sizing:border-box;width:100%;padding:14px;border:1px solid #777;border-radius:10px}pre{white-space:pre-wrap;word-break:break-all;background:#eee}</style>
+<h1>一次性凭据交付</h1><p>凭据只显示一次，页面不会缓存。请确认当前设备可信。</p><button id="redeem">显示凭据</button><pre id="output">尚未兑换</pre>
+<script>document.getElementById('redeem').onclick=async()=>{const token=location.hash.slice(1);history.replaceState(null,'',location.pathname);const r=await fetch('/credentials/redeem',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token})});document.getElementById('output').textContent=r.ok?JSON.stringify(await r.json(),null,2):'凭据无效、已使用或已过期';document.getElementById('redeem').disabled=true}</script>'''); return
         if parsed.path == "/install":
             self.redirect("https://tools.re8ch.com/catalog"); return
         if parsed.path == "/install/authorize":
@@ -1046,6 +1220,18 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "not_found"})
 
     def do_POST(self) -> None:
+        if urllib.parse.urlparse(self.path).path == "/credentials/redeem":
+            try:
+                length = min(int(self.headers.get("Content-Length", "0")), 8192)
+                payload = json.loads(self.rfile.read(length))
+                consumed = redemption_registry().consume(str(payload.get("token") or ""))
+                if not consumed:
+                    self.send_json(410, {"error": "expired_or_consumed"}, {"Cache-Control": "no-store"}); return
+                reference, tenant = consumed
+                material = credential_store().get(reference, tenant)
+                self.send_json(200, {"tenant": tenant, "registry": HARBOR_URL, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
+            except Exception:
+                self.send_json(400, {"error": "invalid_redemption"}, {"Cache-Control": "no-store"}); return
         if not self.path.endswith("/mcp"):
             self.send_json(404, {"error": "not_found"}); return
         identity = self.identity()
@@ -1085,8 +1271,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    if PROFILE not in {"cloud", "infra", "orchestra", "all"}:
-        raise SystemExit("RE8CH_TOOL_PROFILE must be cloud, infra, orchestra, or all")
+    if PROFILE not in {"cloud", "infra", "orchestra", "tenant", "all"}:
+        raise SystemExit("RE8CH_TOOL_PROFILE must be cloud, infra, orchestra, tenant, or all")
     registry()
     ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler).serve_forever()
 
