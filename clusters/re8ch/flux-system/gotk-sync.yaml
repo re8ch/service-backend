@@ -17,7 +17,9 @@ spec:
   interval: 10m
   path: ./clusters/re8ch
   prune: false
-  wait: true
+  # The root owns intentionally suspended and condition-reporting resources;
+  # waiting on every descendant makes later signed revisions impossible to apply.
+  wait: false
   timeout: 3m
   decryption:
     provider: sops
