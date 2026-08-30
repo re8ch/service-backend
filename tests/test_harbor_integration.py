@@ -80,6 +80,16 @@ def test_redemption_is_short_lived_and_single_use():
         assert registry.consume(token) is None
 
 
+def test_adoption_is_short_lived_and_single_use():
+    with tempfile.TemporaryDirectory() as directory:
+        registry = harbor.RedemptionRegistry(Path(directory) / "broker.db", "https://tools.example", ttl_seconds=600)
+        issued = registry.issue_adoption("qwen")
+        token = issued["adoption_url"].split("#", 1)[1]
+        assert issued["adoption_url"].startswith("https://tools.example/credentials/adopt#")
+        assert registry.consume_adoption(token) == "qwen"
+        assert registry.consume_adoption(token) is None
+
+
 def test_robot_templates_reject_unknown_permissions():
     client = harbor.HarborClient("https://registry.example", "admin", "pw", lambda *_a, **_k: Response({}))
     with pytest.raises(ValueError, match="permission"):
