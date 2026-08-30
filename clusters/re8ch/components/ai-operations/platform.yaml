@@ -223,7 +223,7 @@ spec:
     spec:
       serviceAccountName: ai-operations
       automountServiceAccountToken: false
-      imagePullSecrets: [{name: ghcr-re8ch}]
+      imagePullSecrets: [{name: harbor-registry-pull}]
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       affinity:
@@ -273,7 +273,7 @@ spec:
         - {name: inventory, configMap: {name: ai-operations-inventory}}
         - {name: harbor-tenants, configMap: {name: harbor-tenant-catalog}}
         - name: runtime
-      secret:
+          secret:
             secretName: cloud-platform-runtime
             defaultMode: 256
             items:
@@ -287,7 +287,7 @@ metadata:
   name: credential-broker-registry
   namespace: credential-broker
   labels: {storage.re8ch.com/replicated-approved: "true"}
-spec: {accessModes: [ReadWriteOnce], storageClassName: ceph-block-re8ch, resources: {requests: {storage: 1Gi}}}
+spec: {accessModes: [ReadWriteOnce], storageClassName: rbd-r640, resources: {requests: {storage: 1Gi}}}
 ---
 apiVersion: apps/v1
 kind: Deployment
