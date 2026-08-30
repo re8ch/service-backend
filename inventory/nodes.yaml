@@ -19,7 +19,7 @@ items:
         membership: active
         roles: [control-plane, etcd, nuclio, pg-re8ch]
         services: [k3s-server, etcd, nuclio, pigsty, toolhive-primary, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi, rclone-csi]
-        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/nuclio: "true", node-role.kubernetes.io/pg-re8ch: "true", re8ch.com/toolhive-plane: primary, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true", storage.re8ch.com/object-client: "true"}
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/nuclio: "true", node-role.kubernetes.io/pg-re8ch: "true", re8ch.com/toolhive-plane: primary, scheduling.re8ch.com/provider: onprem, scheduling.re8ch.com/environment: datacenter, scheduling.re8ch.com/reliability-class: anchor, scheduling.re8ch.com/failure-domain: restricted-node-6dc3f140f9, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true", storage.re8ch.com/object-client: "true"}
         taints: []
         parameters: {cpu: 80, memoryKi: 259312228, ephemeralStorageKi: 309043584, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
         network: {region: cn-hunan, zone: hunan, controlRoute: public-primary, externalIPMode: mikrotik-proxy, networkLevel: 3}
@@ -36,7 +36,7 @@ items:
         membership: active
         roles: [control-plane, etcd, observe]
         services: [k3s-server, etcd, observability, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi]
-        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: a1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
         taints: []
         parameters: {cpu: 8, memoryKi: 12247672, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4}
@@ -53,7 +53,7 @@ items:
         membership: active
         roles: [control-plane, etcd, observe]
         services: [k3s-server, etcd, observability, ceph-mon, ceph-mds, ceph-osd, ceph-csi]
-        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: b1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
         taints: []
         parameters: {cpu: 8, memoryKi: 12247680, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4}
@@ -70,7 +70,7 @@ items:
         membership: active
         roles: [gpu]
         services: [k3s-agent, amd-rocm-workloads, ceph-csi]
-        labels: {node-role.kubernetes.io/gpu: "true", re8ch.com/gpu-runtime: rocm-wsl, re8ch.com/gpu-vendor: amd, storage.re8ch.com/ceph-client: "true"}
+        labels: {node-role.kubernetes.io/gpu: "true", re8ch.com/gpu-runtime: rocm-wsl, re8ch.com/gpu-vendor: amd, scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: opportunistic, scheduling.re8ch.com/failure-domain: amd-windows, storage.re8ch.com/ceph-client: "true"}
         taints: []
         parameters: {cpu: 8, memoryKi: 24610916, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04.1 LTS, kernelVersion: 192.0.2.27-microsoft-standard-WSL2}
         network: {region: cn-hubei, zone: hubei, controlRoute: zt-primary, externalIPMode: none, networkLevel: 4}
@@ -87,7 +87,7 @@ items:
         membership: active
         roles: [pg-re8ch]
         services: [k3s-agent, pigsty, ceph-csi]
-        labels: {node-role.kubernetes.io/pg-re8ch: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/pg-re8ch: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: domain-ex-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 4, memoryKi: 3481048, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
         network: {region: cn-shanghai, zone: shanghai, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
@@ -104,7 +104,7 @@ items:
         membership: active
         roles: [pg-re8ch]
         services: [k3s-agent, pigsty, ceph-csi]
-        labels: {node-role.kubernetes.io/pg-re8ch: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/pg-re8ch: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: zan-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 4, memoryKi: 3481048, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
         network: {region: cn-guangdong, zone: guangdong, controlRoute: public-primary, externalIPMode: static, networkLevel: 2}
@@ -121,7 +121,7 @@ items:
         membership: active
         roles: [nuclio]
         services: [k3s-agent, nuclio, public-edge, ceph-csi]
-        labels: {node-role.kubernetes.io/nuclio: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only, storage.re8ch.com/local-path-policy: runtime-cache-only}
+        labels: {node-role.kubernetes.io/nuclio: "true", scheduling.re8ch.com/provider: aliyun, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: muaya-ecs-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only, storage.re8ch.com/local-path-policy: runtime-cache-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1646400, ephemeralStorageKi: 40901312, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
         network: {region: cn-zhejiang, zone: zhejiang, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
@@ -138,7 +138,7 @@ items:
         membership: active
         roles: [nuclio]
         services: [k3s-agent, nuclio, public-edge, ceph-csi]
-        labels: {node-role.kubernetes.io/nuclio: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/nuclio: "true", scheduling.re8ch.com/provider: aliyun, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: muaya-lightweight-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1651808, ephemeralStorageKi: 40901312, osImage: Ubuntu 24.04.2 LTS, kernelVersion: 6.8.0-63-generic}
         network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
@@ -155,7 +155,7 @@ items:
         membership: active
         roles: [egress]
         services: [k3s-agent, overseas-egress, ceph-csi]
-        labels: {node-role.kubernetes.io/egress: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: overseas, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-edge-50-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 1, memoryKi: 2015236, ephemeralStorageKi: 19221248, osImage: Ubuntu 24.04.3 LTS, kernelVersion: 6.8.0-90-generic}
         network: {region: us-ca, zone: us-ca, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
@@ -172,7 +172,7 @@ items:
         membership: active
         roles: [egress]
         services: [k3s-agent, overseas-egress, ceph-csi]
-        labels: {node-role.kubernetes.io/egress: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: overseas, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-kl-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 1, memoryKi: 2015396, ephemeralStorageKi: 20529812, osImage: Ubuntu 24.04 LTS, kernelVersion: 6.8.0-31-generic}
         network: {region: my-kul, zone: malaysia}
@@ -189,7 +189,7 @@ items:
         membership: active
         roles: [egress]
         services: [k3s-agent, overseas-egress, ceph-csi]
-        labels: {node-role.kubernetes.io/egress: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: overseas, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-la-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 1, memoryKi: 2009924, ephemeralStorageKi: 20553408, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-27-generic}
         network: {region: us-ca, zone: us-ca}
@@ -206,7 +206,7 @@ items:
         membership: active
         roles: [observe]
         services: [k3s-agent, observability, ceph-csi]
-        labels: {node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true"}
+        labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: suxunji-vm, storage.re8ch.com/ceph-client: "true"}
         taints: []
         parameters: {cpu: 4, memoryKi: 3481044, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
         network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
@@ -223,7 +223,7 @@ items:
         membership: active
         roles: [observe]
         services: [k3s-agent, observability, ceph-csi]
-        labels: {node-role.kubernetes.io/observe: "true", storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: vm-20-12-ubuntu, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1978068, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
         network: {region: cn-unverified, zone: cn-unverified, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
