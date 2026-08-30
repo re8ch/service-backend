@@ -13,6 +13,7 @@ resources:
   - ../../platform/headlamp
   - ../../platform/scheduling-fabric
   - ../../platform/cloud-platform
+  - ../../platform/qwen-tenant-runtime
   - ../../platform/advanced-fabric
   - ../../platform/git-workspaces
   - ../../platform/workspace-controller
