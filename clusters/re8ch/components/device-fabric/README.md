@@ -1,7 +1,7 @@
 # RE8CH Device Fabric API
 
-This directory contains the API, controller deployment and restricted-node-6dc3f140f9 USB DRA driver
-deployment for devices attached through the restricted-node-6dc3f140f9/MikroTik edge. The current
+This directory contains the API, controller deployment and R640 USB DRA driver
+deployment for devices attached through the R640/MikroTik edge. The current
 trial is applied as explicit files, not through Kustomize: `crds.yaml`, then a
 ConfigMap built from `apps/device-fabric-controller/controller.py`, then
 `controller.yaml`, and finally the separately reviewed `canary.yaml`.
@@ -15,7 +15,7 @@ ConfigMap built from `apps/device-fabric-controller/controller.py`, then
   `HTTPRoute`, `TLSRoute`, `TCPRoute` or `UDPRoute`. It must not manually patch
   DNS. The existing edge DNS controllers remain authoritative.
 - `VoiceGateway` models provider/trunk, SIP/RTP properties and line inventory.
-  Call state remains in the existing restricted-node-6dc3f140f9 FreeSWITCH voice service; Kubernetes
+  Call state remains in the existing R640 FreeSWITCH voice service; Kubernetes
   status is only a projection.
 - USB allocation uses Kubernetes DRA (`DeviceClass`, `ResourceSlice`,
   `ResourceClaim`) through a node-local driver. `EdgeDevice` provides asset
@@ -64,8 +64,15 @@ the public edge by default.
 - Confirm K3s supports `resource.k8s.io/v1`; otherwise keep USB DRA manifests out
   of the apply set until the control plane is upgraded.
 - For the trial, cross-compile the USB node plugin locally and install it at the
-  exact restricted-node-6dc3f140f9 hostPath recorded in `controller.yaml`; the controller source is a
+  exact R640 hostPath recorded in `controller.yaml`; the controller source is a
   read-only ConfigMap. A later production packaging decision may replace these
   trial delivery mechanisms. Never build either component in the cluster.
 - Observe cluster/Cilium health through the RE8CH cluster infrastructure tool,
   then canary one authenticated GUI and one voice line before expanding.
+
+## Managed physical inventory
+
+- `poco-f4.yaml` records the authorized POCO F4 Android debug device by stable
+  USB serial, R640 placement, USB identity and its dedicated roaming WireGuard
+  address. It is inventory only: ADB and WireGuard credentials are deliberately
+  absent, and no `DeviceService` exposes its debug ports.
