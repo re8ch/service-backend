@@ -1,0 +1,40 @@
+{
+  "name": "poco-f4-debug",
+  "commentPrefix": "RE8CH POCO DEBUG",
+  "routerAddress": "192.0.2.131",
+  "publicAddress": "192.0.2.79",
+  "interface": "wg-poco-debug",
+  "listenPort": 51892,
+  "subnet": "192.0.2.25/30",
+  "routerTunnelAddress": "192.0.2.101/30",
+  "phoneAddress": "192.0.2.33/32",
+  "r640Address": "192.0.2.97",
+  "adbPort": 5555,
+  "protectedNetworks": [
+    "192.0.2.253/24",
+    "192.0.2.146/24",
+    "192.0.2.139/24",
+    "192.0.2.136/23",
+    "192.0.2.16/24",
+    "192.0.2.101/24",
+    "192.0.2.170/24",
+    "192.0.2.31/24",
+    "192.0.2.170/24",
+    "192.0.2.246/24",
+    "192.0.2.230/30",
+    "192.0.2.5/30"
+  ],
+  "protectedInterfaces": [
+    "wg-admin",
+    "wg-k3s-control",
+    "wg-la-egress",
+    "wg-malaysia-egress",
+    "wg-mihomo-loudi",
+    "zt-re8ch-control"
+  ],
+  "phonePublicKeySecret": {
+    "namespace": "ops",
+    "name": "poco-f4-wireguard-peer",
+    "key": "publicKey"
+  }
+}
