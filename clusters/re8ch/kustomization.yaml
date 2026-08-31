@@ -10,6 +10,8 @@ resources:
   - secrets/stalwart-recovery-admin.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/ai-operations/platform.yaml
+  - components/public-exposure/external-dns-cloudflare.yaml
+  - components/toolhive/external-observe-publication.yaml
   - components/personal-access
   - ../../platform/headlamp
   - ../../platform/scheduling-fabric
