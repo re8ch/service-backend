@@ -10,6 +10,64 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def test_external_dns_is_only_a_public_edge_execution_layer():
+    resources = documents(
+        ROOT / "clusters/re8ch/components/public-exposure/external-dns-cloudflare.yaml"
+    )
+    deployment = next(item for item in resources if item["kind"] == "Deployment")
+    args = deployment["spec"]["template"]["spec"]["containers"][0]["args"]
+    assert [arg for arg in args if arg.startswith("--source=")] == ["--source=ingress"]
+    assert "--label-filter=networking.re8ch.com/dns-authority=public-edge" in args
+
+    role = next(item for item in resources if item["kind"] == "ClusterRole")
+    api_groups = {group for rule in role["rules"] for group in rule["apiGroups"]}
+    assert "gateway.networking.k8s.io" not in api_groups
+
+
+def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
+    platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
+    route = next(
+        item
+        for item in platform
+        if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "cloud-platform-tool"
+    )
+    metadata = route["metadata"]
+    assert metadata.get("labels", {}).get("public.re8ch.com/external-dns") is None
+    assert not any(key.startswith("external-dns.alpha.kubernetes.io/") for key in metadata["annotations"])
+    assert metadata["annotations"]["networking.re8ch.com/dns-authority"] == (
+        "toolhive-system/tools-re8ch-com"
+    )
+
+    gateways = documents(ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml")
+    gateway = next(
+        item
+        for item in gateways
+        if item["kind"] == "Gateway" and item["metadata"]["name"] == "re8ch-gateway-canary"
+    )
+    assert not any(
+        key.startswith("external-dns.alpha.kubernetes.io/")
+        for key in gateway["metadata"].get("annotations", {})
+    )
+
+    publications = documents(
+        ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml"
+    )
+    authority = next(
+        item
+        for item in publications
+        if item["kind"] == "Ingress" and item["metadata"]["name"] == "tools-re8ch-com"
+    )
+    assert authority["metadata"]["labels"] == {
+        "networking.re8ch.com/dns-authority": "public-edge"
+    }
+    assert authority["metadata"]["annotations"]["networking.re8ch.com/provider"] == (
+        "public-edge-manager"
+    )
+    assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == (
+        "192.0.2.138"
+    )
+
+
 def test_embedded_workspace_controller_is_valid_python():
     config_map = next(
         item

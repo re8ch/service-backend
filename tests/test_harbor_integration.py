@@ -117,7 +117,7 @@ def test_broker_manifest_is_digest_pinned_and_admin_secret_is_runtime_only():
     assert (broker_security["runAsUser"], broker_security["runAsGroup"]) == (100, 101)
     assert (broker_security["fsGroup"], broker_security["fsGroupChangePolicy"]) == (101, "OnRootMismatch")
     assert broker["spec"]["strategy"] == {"type": "Recreate"}
-    assert broker["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "zan"}
+    assert broker["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     infra_env = deployments["cluster-infra-tool"]["spec"]["template"]["spec"]["containers"][0]["env"]
     password = next(item for item in infra_env if item["name"] == "HARBOR_ADMIN_PASSWORD")
     assert password["valueFrom"]["secretKeyRef"] == {"name": "cluster-infra-harbor", "key": "password", "optional": True}
