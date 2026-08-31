@@ -300,7 +300,7 @@ spec:
     metadata: {labels: {app: harbor-credential-broker}}
     spec:
       serviceAccountName: credential-broker
-      nodeSelector: {kubernetes.io/hostname: zan}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
@@ -420,11 +420,8 @@ kind: HTTPRoute
 metadata:
   name: cloud-platform-tool
   namespace: ai-operations
-  labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/dns-authority: toolhive-system/tools-re8ch-com
 spec:
   parentRefs:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}

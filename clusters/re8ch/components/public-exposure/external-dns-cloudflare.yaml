@@ -18,9 +18,6 @@ rules:
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["gateway.networking.k8s.io"]
-    resources: ["gateways", "httproutes", "tlsroutes"]
-    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -80,11 +77,11 @@ spec:
           image: ghcr.io/re8ch/external-dns:v0.21.0@sha256:99160687de6c703460ed1b792ccb985012a96cfb787109427b87b70faa69b33e
           args:
             - --source=ingress
-            - --source=gateway-httproute
-            - --source=gateway-tlsroute
             - --provider=cloudflare
             - --domain-filter=re8ch.com
-            - --label-filter=public.re8ch.com/external-dns=enabled
+            # ExternalDNS is only the execution layer for PublicEdge. Ordinary
+            # Ingresses and Gateway API routes cannot publish DNS directly.
+            - --label-filter=networking.re8ch.com/dns-authority=public-edge
             # Never derive a public DNS answer from an RFC1918 Gateway VIP.
             # Public origins must be explicit routable targets on the labeled
             # Service/Ingress/Route resource.
