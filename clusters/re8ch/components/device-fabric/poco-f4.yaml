@@ -1,0 +1,31 @@
+apiVersion: devices.re8ch.com/v1alpha1
+kind: EdgeDevice
+metadata:
+  name: poco-f4-roaming-debug
+  namespace: edge-devices
+  labels:
+    re8ch.com/device-class: android-debug
+    re8ch.com/owner-node: r640
+spec:
+  identity:
+    vendor: Xiaomi
+    model: POCO F4 (22021211RG)
+    serialNumber: "7239f00e"
+    assetTag: re8ch-poco-f4-debug
+    firmwareVersion: Android 12 / API 31
+  placement:
+    site: r640
+    nodeName: r640
+  connections:
+    - name: roaming-wireguard
+      type: Network
+      network:
+        addresses: [192.168.98.2]
+    - name: r640-usb-adb
+      type: USB
+      usb:
+        vendorID: 18d1
+        productID: 4ee7
+        serialNumber: "7239f00e"
+  capabilities: [USB]
+
