@@ -36,10 +36,6 @@ kind: Gateway
 metadata:
   name: re8ch-gateway-canary
   namespace: kube-system
-  annotations:
-    # DNS names belong to the public 443 edge, while the Gateway and backend
-    # Pods may live anywhere in the Cilium routing domain.
-    external-dns.alpha.kubernetes.io/target: 192.0.2.192
 spec:
   gatewayClassName: cilium-re8ch
   infrastructure:
@@ -336,7 +332,7 @@ kind: Ingress
 metadata:
   name: litellm-dns-authority
   namespace: llm-gateway
-  labels: {public.re8ch.com/external-dns: enabled}
+  labels: {networking.re8ch.com/dns-authority: public-edge}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: litellm.re8ch.com
     external-dns.alpha.kubernetes.io/ttl: "60"
