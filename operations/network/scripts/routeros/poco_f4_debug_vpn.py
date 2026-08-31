@@ -36,6 +36,11 @@ def load_desired(path):
         raise ValueError("debug interface name collides with a protected interface")
     if desired["listenPort"] in (51820, 51891):
         raise ValueError("listen port collides with an existing RE8CH WireGuard service")
+    reservation = desired["wanUdpReservation"]
+    if not reservation["comment"].startswith("RE8CH preserve MikroTik WAN UDP"):
+        raise ValueError("WAN UDP reservation must target the reviewed RouterOS preservation rule")
+    if not reservation["defaultDnatComment"].startswith("RE8CH default WAN UDP"):
+        raise ValueError("WAN UDP reservation must identify the reviewed default DNAT rule")
     if not desired["commentPrefix"].startswith("RE8CH POCO DEBUG"):
         raise ValueError("rollback scope requires the RE8CH POCO DEBUG prefix")
     return desired
@@ -84,6 +89,9 @@ class RouterOS:
     def delete(self, path, item_id):
         self.request(f"{path}/{item_id}", "DELETE")
 
+    def update(self, path, item_id, body):
+        return self.request(f"{path}/{item_id}", "PATCH", body)
+
     def move_before(self, path, item_id, destination_id):
         self.request(f"{path}/move", "POST", {"numbers": item_id, "destination": destination_id})
 
@@ -95,7 +103,7 @@ def comments(desired):
         "address": f"{prefix} router tunnel address",
         "peer": f"{prefix} POCO F4 peer",
         "input": f"{prefix} allow roaming WireGuard",
-        "adb": f"{prefix} allow restricted-node-6dc3f140f9 ADB only",
+        "adb": f"{prefix} allow R640 ADB only",
         "return": f"{prefix} allow established ADB return",
         "drop_source": f"{prefix} isolate phone source",
         "drop_destination": f"{prefix} deny other access to phone",
@@ -134,6 +142,55 @@ def ensure(router, path, comment, body):
     return router.create(path, {**body, "comment": comment})
 
 
+def udp_ports(value):
+    return {int(port) for port in str(value or "").split(",") if port}
+
+
+def wan_udp_rules(router, desired):
+    reservation = desired["wanUdpReservation"]
+    rules = router.rows("/ip/firewall/nat")
+    by_name = {row.get("comment"): (index, row) for index, row in enumerate(rules)}
+    preserve = by_name.get(reservation["comment"])
+    default = by_name.get(reservation["defaultDnatComment"])
+    if not preserve or not default:
+        raise RuntimeError("reviewed WAN UDP preservation/default DNAT rule is missing")
+    if preserve[0] >= default[0]:
+        raise RuntimeError("WAN UDP preservation rule must precede the default R640 DNAT")
+    preserve_row, default_row = preserve[1], default[1]
+    expected_preserve = {"chain": "dstnat", "action": "accept", "protocol": "udp",
+                         "dst-address": desired["publicAddress"]}
+    expected_default = {"chain": "dstnat", "action": "dst-nat", "protocol": "udp",
+                        "dst-address": desired["publicAddress"], "to-addresses": desired["r640Address"]}
+    if any(preserve_row.get(key) != value for key, value in expected_preserve.items()):
+        raise RuntimeError("WAN UDP preservation rule no longer matches the reviewed shape")
+    if any(default_row.get(key) != value for key, value in expected_default.items()):
+        raise RuntimeError("default R640 UDP DNAT rule no longer matches the reviewed shape")
+    if preserve_row.get("disabled") == "true" or default_row.get("disabled") == "true":
+        raise RuntimeError("WAN UDP preservation/default DNAT rule is disabled")
+    return preserve_row, default_row
+
+
+def reserve_wan_udp(router, desired):
+    preserve, _ = wan_udp_rules(router, desired)
+    ports = udp_ports(preserve.get("dst-port"))
+    ports.add(int(desired["listenPort"]))
+    value = ",".join(str(port) for port in sorted(ports))
+    if value != preserve.get("dst-port"):
+        preserve = router.update("/ip/firewall/nat", preserve[".id"], {"dst-port": value})
+    return preserve
+
+
+def release_wan_udp(router, desired):
+    preserve, _ = wan_udp_rules(router, desired)
+    ports = udp_ports(preserve.get("dst-port"))
+    ports.discard(int(desired["listenPort"]))
+    value = ",".join(str(port) for port in sorted(ports))
+    if not value:
+        raise RuntimeError("refusing to empty the shared WAN UDP preservation rule")
+    if value != preserve.get("dst-port"):
+        router.update("/ip/firewall/nat", preserve[".id"], {"dst-port": value})
+
+
 def reconcile(router, desired):
     assert_no_conflicts(router, desired)
     c = comments(desired)
@@ -141,6 +198,7 @@ def reconcile(router, desired):
     public_key = kubernetes_secret(phone_secret["namespace"], phone_secret["name"])[phone_secret["key"]].strip()
     if len(public_key) != 44:
         raise RuntimeError("phone WireGuard public key has an unexpected length")
+    reserve_wan_udp(router, desired)
 
     interface = ensure(router, "/interface/wireguard", c["interface"], {
         "name": desired["interface"], "listen-port": str(desired["listenPort"]), "disabled": "false"
@@ -188,14 +246,23 @@ def rollback(router, desired):
             if str(row.get("comment", "")).startswith(prefix):
                 router.delete(path, row[".id"])
                 removed.append({"path": path, "comment": row.get("comment")})
+    release_wan_udp(router, desired)
+    removed.append({"path": "/ip/firewall/nat", "port": desired["listenPort"]})
     return {"removed": removed}
 
 
 def status(router, desired):
     prefix = desired["commentPrefix"]
     paths = ("/interface/wireguard", "/interface/wireguard/peers", "/ip/address", "/ip/firewall/filter")
-    return {path: [{k: v for k, v in row.items() if k not in ("private-key", "public-key", "preshared-key")}
-                   for row in router.rows(path) if str(row.get("comment", "")).startswith(prefix)] for path in paths}
+    result = {path: [{k: v for k, v in row.items() if k not in ("private-key", "public-key", "preshared-key")}
+                     for row in router.rows(path) if str(row.get("comment", "")).startswith(prefix)] for path in paths}
+    preserve, default = wan_udp_rules(router, desired)
+    result["wanUdpReservation"] = {
+        "portReserved": int(desired["listenPort"]) in udp_ports(preserve.get("dst-port")),
+        "preserveComment": preserve.get("comment"),
+        "defaultDnatComment": default.get("comment"),
+    }
+    return result
 
 
 def main():
