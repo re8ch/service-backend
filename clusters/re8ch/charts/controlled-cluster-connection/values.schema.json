@@ -63,6 +63,21 @@
           }
         }
       }
+    },
+    "sharedServices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "direction", "access", "status"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "direction": {"enum": ["owner-to-consumer", "consumer-to-owner", "bidirectional"]},
+          "endpoint": {"type": "string", "pattern": "^https://"},
+          "access": {"type": "string", "minLength": 1},
+          "status": {"enum": ["declared", "active", "suspended"]}
+        }
+      }
     }
   }
 }

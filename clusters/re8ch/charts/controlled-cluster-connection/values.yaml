@@ -18,6 +18,16 @@ contract:
 
 # No access is granted by default. Each grant is an owner-reviewed decision.
 accessGrants: []
+
+# Reviewable service publication metadata. This is displayed by AmongClusters;
+# it does not create a Service, tunnel, credential, or data-plane connection.
+sharedServices: []
+# - name: owner-kubernetes-api
+#   kind: kubernetes-api
+#   direction: owner-to-consumer
+#   endpoint: https://kubernetes.example.com:6443
+#   access: Dex OIDC plus owner-controlled RBAC
+#   status: active
 # - name: owner-admin
 #   roleRef:
 #     kind: ClusterRole
