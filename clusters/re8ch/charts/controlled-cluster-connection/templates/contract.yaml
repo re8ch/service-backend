@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-contract" .Release.Name | trunc 63 | trimSuffix "-" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "controlled-cluster-connection.labels" . | nindent 4 }}
+data:
+  contract.yaml: |
+    apiVersion: access.re8ch.com/v1alpha1
+    kind: ControlledClusterConnection
+    metadata:
+      name: {{ .Values.cluster.name | quote }}
+    spec:
+      owner: {{ .Values.cluster.owner | quote }}
+      organizationBoundary: {{ .Values.cluster.organizationBoundary | quote }}
+      apiEndpoint: {{ .Values.cluster.apiEndpoint | quote }}
+      consumer: {{ .Values.consumer.name | quote }}
+      oidcIssuer: {{ .Values.consumer.oidcIssuer | quote }}
+      usernamePrefix: {{ .Values.consumer.usernamePrefix | quote }}
+      scopes: {{ .Values.consumer.scopes | toJson }}
+      relationship: {{ .Values.contract.relationship | quote }}
+      dataPlaneSharing: {{ .Values.contract.dataPlaneSharing | quote }}
+      credentialPolicy: {{ .Values.contract.credentialPolicy | quote }}
+      ownerRevocationAuthoritative: {{ .Values.contract.ownerRevocationAuthoritative }}

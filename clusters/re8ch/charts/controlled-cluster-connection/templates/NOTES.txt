@@ -1,0 +1,5 @@
+The owner-side controlled cluster connection contract is installed.
+
+This release grants only the access listed in accessGrants. It does not create
+tokens, client certificates, tunnels, service discovery or data-plane sharing.
+Remove an accessGrant (or uninstall this release) to revoke the delegated RBAC.

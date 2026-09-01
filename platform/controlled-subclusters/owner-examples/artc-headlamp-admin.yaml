@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: artc-cluster-admin-github-artchais-hedyzhang
+  labels:
+    access.re8ch.com/relationship: controlled-subcluster
+    access.re8ch.com/owner: artc
+  annotations:
+    access.re8ch.com/identity-source: dex-github
+    access.re8ch.com/equivalent-principals: oidc:trendstudiony@gmail.com,oidc:artchais-hedyzhang
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: oidc:trendstudiony@gmail.com
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: oidc:artchais-hedyzhang
