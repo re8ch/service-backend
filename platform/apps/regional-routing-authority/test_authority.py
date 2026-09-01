@@ -3,6 +3,7 @@ import os
 import pathlib
 import struct
 import unittest
+from unittest import mock
 
 
 os.environ.setdefault("CANDIDATES_JSON", "[]")
@@ -92,6 +93,25 @@ class AuthorityTests(unittest.TestCase):
             self.assertEqual(authority.ranked("app")[0]["id"], "us-relay")
         finally:
             authority.AREA = original_area
+
+    def test_publisher_refreshes_per_service_edge_status(self):
+        authority.CANDIDATES[:] = [{
+            "id": "edge-a", "region": "test", "area": "test", "ip": "192.0.2.95",
+            "probes": {"app": "https://app.re8ch.com/healthz"},
+        }]
+        authority.HEALTH = {"app": {"edge-a": {
+            "ready": False, "statusCode": 404, "latencyMs": 9,
+            "observedAt": 123, "failure": "unexpected status",
+        }}}
+        with mock.patch.object(authority, "NODE", "publisher"), \
+             mock.patch.object(authority, "PUBLISHER_NODE", "publisher"), \
+             mock.patch.object(authority, "KUBERNETES_API", "kubernetes"), \
+             mock.patch.object(authority, "kubernetes_patch") as patch:
+            authority.publish_edge_statuses()
+        path, payload = patch.call_args.args
+        self.assertEqual(path, "/apis/networking.re8ch.com/v1alpha1/publicedges/edge-a/status")
+        self.assertEqual(payload["status"]["conditions"][0]["status"], "False")
+        self.assertEqual(payload["status"]["services"]["app"]["statusCode"], 404)
 
 
 if __name__ == "__main__":
