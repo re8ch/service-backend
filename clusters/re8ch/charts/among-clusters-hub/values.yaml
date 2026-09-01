@@ -8,10 +8,10 @@ gateway:
 certificate:
   issuer: re8ch-cloudflare-dns01
 publication:
-  bootstrapTarget: 192.0.2.138
-  selectedEdge: loudi-r640
+  bootstrapTarget: ""
+  selectedEdge: ""
 ciliumPolicy:
-  enabled: true
+  enabled: false
 resources:
   requests: {cpu: 50m, memory: 64Mi}
   limits: {cpu: 500m, memory: 256Mi}
