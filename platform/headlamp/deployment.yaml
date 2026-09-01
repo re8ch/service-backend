@@ -53,7 +53,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.10.0
+              target=/headlamp/plugins/advanced-fabric-0.10.1
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               # Headlamp currently has one active replica because OAuth state is
@@ -66,9 +66,9 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.10.0.new
+              stage=/headlamp/plugins/.advanced-fabric-0.10.1.new
               cp /plugin/plugin.tar.gz "$archive"
-              echo 'a83e09ff563c757ea8a38cf1b5310867b5b4f67fa1537e344112bf036a2dccc2  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '5fc0d3d11e716ff187b97130a194bdff4e628f98c35fda94e1f49d6230e06bc4  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage"
@@ -158,7 +158,7 @@ spec:
             - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
             - -oidc-callback-url=https://headlamp.re8ch.com/oidc-callback
             # Headlamp adds openid itself when building the authorization URL.
-            - -oidc-scopes=profile,email,groups
+            - -oidc-scopes=profile,email,groups,offline_access
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:
@@ -198,7 +198,7 @@ spec:
           emptyDir: {}
         - name: among-clusters-plugin
           configMap:
-            name: headlamp-penrose-plugin-v0100
+            name: headlamp-penrose-plugin-v0101
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template

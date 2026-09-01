@@ -307,7 +307,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "d9a8400392667192270da78e24f392e7f9b4379c",
+    "commit": "6c507bb55e237f803fdbc92f976aae6f3da6690d",
     "id": "headlamp-advanced-fabric",
     "ownership": "owned",
     "projectType": "headlamp-plugin",
