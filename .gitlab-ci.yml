@@ -5,7 +5,7 @@ default:
 
 before_script:
   - apk add --no-cache git
-  - pip install --disable-pip-version-check --index-url https://mirrors.aliyun.com/pypi/simple/ --retries 5 --timeout 30 PyYAML pytest jsonschema
+  - pip install --disable-pip-version-check --retries 5 --timeout 30 PyYAML pytest jsonschema
 
 schema:
   stage: validate
