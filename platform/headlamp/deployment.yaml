@@ -35,7 +35,10 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    # restricted-node-6dc3f140f9 is the durable failover/build node when either WSL
+                    # control-plane node is unavailable. The plugins PVC is
+                    # CephFS, so the same versioned bundle remains shared.
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, r640-cn-hunan]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
