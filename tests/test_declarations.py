@@ -41,7 +41,7 @@ def test_headlamp_rollout_does_not_deadlock_on_two_eligible_nodes():
 
     assert deployment["spec"]["replicas"] == 2
     assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
-    assert eligible_nodes == {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "r640-cn-hunan"}
+    assert eligible_nodes == {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"}
 
 
 def test_advanced_fabric_publishes_read_only_network_evidence():
