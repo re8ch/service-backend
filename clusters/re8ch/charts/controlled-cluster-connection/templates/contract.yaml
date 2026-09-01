@@ -23,3 +23,6 @@ data:
       dataPlaneSharing: {{ .Values.contract.dataPlaneSharing | quote }}
       credentialPolicy: {{ .Values.contract.credentialPolicy | quote }}
       ownerRevocationAuthoritative: {{ .Values.contract.ownerRevocationAuthoritative }}
+      sharedServices: {{ .Values.sharedServices | toJson }}
+  contract.json: |
+    {{- dict "apiVersion" "access.re8ch.com/v1alpha1" "kind" "ControlledClusterConnection" "metadata" (dict "name" .Values.cluster.name) "spec" (dict "owner" .Values.cluster.owner "organizationBoundary" .Values.cluster.organizationBoundary "apiEndpoint" .Values.cluster.apiEndpoint "consumer" .Values.consumer.name "oidcIssuer" .Values.consumer.oidcIssuer "relationship" .Values.contract.relationship "dataPlaneSharing" .Values.contract.dataPlaneSharing "credentialPolicy" .Values.contract.credentialPolicy "ownerRevocationAuthoritative" .Values.contract.ownerRevocationAuthoritative "sharedServices" .Values.sharedServices) | toJson | nindent 4 }}
