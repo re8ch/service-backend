@@ -18,6 +18,10 @@ spec:
       repository: ghcr.io/re8ch/among-clusters
       digest: sha256:7de0ca8d5f739741b5d012ec68344f130bc46093f833a05a444523c1e2f22c1f
     hostname: among-clusters.re8ch.com
+    publication:
+      bootstrapTarget: 192.0.2.79
+      selectedEdge: loudi-r640
+    ciliumPolicy: {enabled: true}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -38,6 +42,13 @@ spec:
   values:
     clusterID: re8ch-k3s
     hubEndpoint: https://among-clusters.re8ch.com
+    hostAliases:
+      - ip: 192.0.2.209
+        hostnames: [among-clusters.re8ch.com]
+    networkPolicy:
+      # Cilium returns Envoy 403 when an egress-isolated pod calls this
+      # cluster's own Gateway VIP. External agents retain the chart default.
+      enabled: false
     apiServer:
       cidrs: [192.0.2.208/32, 192.0.2.183/32, 192.0.2.18/32]
       port: 6443

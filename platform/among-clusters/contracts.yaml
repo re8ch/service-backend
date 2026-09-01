@@ -8,6 +8,15 @@ spec:
   identity: {ed25519PublicKey: eEi8Tlcg8pnqP6xhokxtYEob5SIY8VfIc7mdECbD6YE}
 ---
 apiVersion: collaboration.re8ch.com/v1alpha1
+kind: CollaborationCluster
+metadata: {name: qwen}
+spec:
+  owner: qwen
+  displayName: qwen
+  capabilities: [signed-heartbeat, service-contracts]
+  identity: {ed25519PublicKey: kaAlj1l8DdxQy1iJKQMaem9flPZU8TzR+Qp1SHpCxKo}
+---
+apiVersion: collaboration.re8ch.com/v1alpha1
 kind: CollaborationRelationship
 metadata: {name: re8ch-artc}
 spec:

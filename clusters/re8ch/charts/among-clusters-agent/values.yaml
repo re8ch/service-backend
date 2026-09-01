@@ -4,13 +4,9 @@ image:
   repository: ghcr.io/re8ch/among-clusters
   digest: ""
 identitySecret: among-clusters-agent-identity
-hostAliases:
-  - ip: 192.0.2.209
-    hostnames: [among-clusters.re8ch.com]
+hostAliases: []
 networkPolicy:
-  # Cilium returns Envoy 403 when an egress-isolated pod calls this cluster's
-  # own Gateway VIP. External owner agents retain the chart default (enabled).
-  enabled: false
+  enabled: true
 apiServer:
   # Kubernetes NetworkPolicy implementations may evaluate egress after Service
   # DNAT. Owners must list their control-plane endpoint CIDRs explicitly.
