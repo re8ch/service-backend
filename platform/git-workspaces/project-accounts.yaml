@@ -673,6 +673,30 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: among-clusters-maintain
+  namespace: git-workspaces
+spec:
+  email: among-clusters-maintain@phonaid.com
+  provider: github
+  project: among-clusters
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: among-clusters-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: among-clusters-maintain
+  projectRef: among-clusters
+  repository: https://github.com/re8ch/among-clusters.git
+  folder: catalogs/platform/modules/among-clusters/source
+  branchPrefix: workspace/among-clusters-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: headlamp-advanced-fabric-maintain
   namespace: git-workspaces
 spec:
