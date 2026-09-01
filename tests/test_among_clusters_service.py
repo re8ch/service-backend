@@ -44,7 +44,6 @@ def test_gitops_keeps_human_relay_separate_from_service_health():
     release = (ROOT / "platform/among-clusters/release.yaml").read_text()
     assert DIGEST in release
     assert "controlled-cluster-relay" not in release
-    plugin_source = (ROOT / "catalogs/platform/modules/headlamp-advanced-fabric/source/src/amongClusters.tsx").read_text()
-    assert "K8s.getVersion" not in plugin_source
-    assert "ResourceClasses.Node" not in plugin_source
-    assert "collaborationclusters" in plugin_source
+    headlamp_resources = (ROOT / "platform/headlamp/kustomization.yaml").read_text()
+    assert "among-clusters-catalog.yaml" not in headlamp_resources
+    assert not (ROOT / "platform/headlamp/among-clusters-catalog.yaml").exists()
