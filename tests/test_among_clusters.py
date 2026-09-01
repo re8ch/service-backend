@@ -32,7 +32,7 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     deployment = (HEADLAMP / "deployment.yaml").read_text()
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generator = next(item for item in kustomization["configMapGenerator"]
-                     if item["name"] == "headlamp-penrose-plugin-v0101")
+                     if item["name"] == "headlamp-penrose-plugin-v0102")
     bundle_name = generator["files"][0].split("=", 1)[1].removeprefix("assets/")
     bundle = HEADLAMP / "assets" / bundle_name
     checksum = hashlib.sha256(bundle.read_bytes()).hexdigest()
