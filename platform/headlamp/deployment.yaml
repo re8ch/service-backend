@@ -48,6 +48,38 @@ spec:
       tolerations:
         - operator: Exists
       initContainers:
+        - name: install-birfucate-browser
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/birfucate-browser-0.1.0
+              lock=/headlamp/plugins/.birfucate-browser-install.lock
+              if [ -f "$target/package.json" ]; then exit 0; fi
+              rmdir "$lock" 2>/dev/null || true
+              until mkdir "$lock" 2>/dev/null; do
+                if [ -f "$target/package.json" ]; then exit 0; fi
+                sleep 2
+              done
+              trap 'rmdir "$lock" 2>/dev/null || true' EXIT
+              archive=/tmp/plugin.tar.gz
+              stage=/headlamp/plugins/.birfucate-browser-0.1.0.new
+              cp /plugin/plugin.tar.gz "$archive"
+              echo '59103b99c0dcc8520c132fc5e3e51126ee62e280cca23c9a8f4b0ff76cedc92a  /tmp/plugin.tar.gz' | sha256sum -c -
+              rm -rf "$stage"
+              mkdir -p "$stage"
+              tar -xzf "$archive" -C "$stage"
+              mv "$stage/headlamp-birfucate-browser" "$target"
+              rm -rf "$stage"
+              for old in /headlamp/plugins/birfucate-browser-*; do
+                [ "$old" = "$target" ] || rm -rf "$old"
+              done
+          volumeMounts:
+            - name: plugins
+              mountPath: /headlamp/plugins
+            - name: birfucate-browser-plugin
+              mountPath: /plugin
+              readOnly: true
         - name: install-among-clusters-plugin
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
           command: [/bin/sh, -ec]
@@ -199,6 +231,9 @@ spec:
         - name: among-clusters-plugin
           configMap:
             name: headlamp-penrose-plugin-v0110
+        - name: birfucate-browser-plugin
+          configMap:
+            name: headlamp-birfucate-browser-v010
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template
