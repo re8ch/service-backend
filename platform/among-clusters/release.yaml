@@ -38,6 +38,9 @@ spec:
   values:
     clusterID: re8ch-k3s
     hubEndpoint: https://among-clusters.re8ch.com
+    apiServer:
+      cidrs: [192.0.2.208/32, 192.0.2.183/32, 192.0.2.18/32]
+      port: 6443
     image:
       repository: ghcr.io/re8ch/among-clusters
       digest: sha256:7de0ca8d5f739741b5d012ec68344f130bc46093f833a05a444523c1e2f22c1f
