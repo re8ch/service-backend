@@ -11,6 +11,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 NODE = os.getenv("NODE_NAME", "unknown")
@@ -218,8 +219,48 @@ def probe_all():
 def probe_loop():
     while True:
         probe_all()
+        publish_edge_statuses()
         publish_default_area()
         time.sleep(PROBE_INTERVAL_SECONDS)
+
+
+def publish_edge_statuses():
+    """Publish fresh, per-service probe evidence from the elected authority."""
+    if NODE != PUBLISHER_NODE or not KUBERNETES_API:
+        return
+    observed_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    with LOCK:
+        candidates = list(CANDIDATES)
+        health = {service: dict(results) for service, results in HEALTH.items()}
+    for candidate in candidates:
+        edge_id = candidate["id"]
+        service_health = {
+            service: {
+                "ready": bool(results.get(edge_id, {}).get("ready")),
+                "statusCode": int(results.get(edge_id, {}).get("statusCode", 0)),
+                "latencyMs": int(results.get(edge_id, {}).get("latencyMs", 0)),
+                "observedAt": int(results.get(edge_id, {}).get("observedAt", 0)),
+                "reason": results.get(edge_id, {}).get("failure", ""),
+            }
+            for service, results in health.items()
+            if service in candidate.get("probes", {})
+        }
+        ready_services = sorted(name for name, result in service_health.items() if result["ready"])
+        ready = bool(ready_services)
+        condition = {
+            "type": "Ready",
+            "status": "True" if ready else "False",
+            "reason": "ServiceProbeSucceeded" if ready else "NoServiceProbeSucceeded",
+            "message": "ready services: " + ", ".join(ready_services) if ready else "no configured service probe is ready",
+            "lastTransitionTime": observed_at,
+        }
+        try:
+            kubernetes_patch(
+                f"/apis/networking.re8ch.com/v1alpha1/publicedges/{edge_id}/status",
+                {"status": {"observedAt": observed_at, "services": service_health, "conditions": [condition]}},
+            )
+        except Exception as exc:
+            print(f"publicedge_status edge={edge_id} error={exc}", flush=True)
 
 
 def publish_default_area():
@@ -437,6 +478,7 @@ def main():
     http = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), HTTPHandler)
     threading.Thread(target=http.serve_forever, daemon=True).start()
     probe_all()
+    publish_edge_statuses()
     publish_default_area()
     threading.Thread(target=probe_loop, daemon=True).start()
     dns_bind = bind_address()

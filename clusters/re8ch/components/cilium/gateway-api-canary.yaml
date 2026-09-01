@@ -185,6 +185,11 @@ spec:
     - name: re8ch-gateway-canary
       namespace: kube-system
       sectionName: http
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: http}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: http}
   hostnames: [headlamp.re8ch.com]
   rules:
     - filters:
@@ -213,6 +218,11 @@ spec:
     - name: re8ch-gateway-canary
       namespace: kube-system
       sectionName: headlamp-https
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: headlamp-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: headlamp-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: headlamp-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: headlamp-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: headlamp-https}
   hostnames: [headlamp.re8ch.com]
   rules:
     - filters:
