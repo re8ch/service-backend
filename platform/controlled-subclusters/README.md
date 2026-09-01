@@ -53,4 +53,3 @@ organisation's identity provider.
 The manifests in `owner-examples/` are examples to be copied into and owned by the
 target cluster. This directory is intentionally absent from every Kustomization in
 this repository.
-

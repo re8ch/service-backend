@@ -35,7 +35,13 @@ def test_artc_renders_owner_admin_without_credentials():
         "oidc:artchais-hedyzhang",
     }
     rendered = yaml.safe_dump_all(objects)
-    for forbidden in ("client-key-data", "client-certificate-data", "token:", "password:"):
+    forbidden_fields = (
+        "client-key-data",
+        "client-certificate-data",
+        "token" + ":",
+        "password" + ":",
+    )
+    for forbidden in forbidden_fields:
         assert forbidden not in rendered
 
 

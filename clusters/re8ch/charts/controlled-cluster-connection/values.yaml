@@ -39,4 +39,3 @@ accessGrants: []
 #   subjects:
 #     - kind: Group
 #       name: oidc:example:operators
-

@@ -42,3 +42,20 @@ def test_artc_owner_aliases_bind_one_explicit_admin():
         "oidc:trendstudiony@gmail.com",
         "oidc:artchais-hedyzhang",
     }
+
+
+def test_gitops_ssh_config_matches_reviewable_template():
+    manifests = yaml.safe_load_all(
+        (ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text()
+    )
+    config = next(
+        item
+        for item in manifests
+        if item
+        and item.get("kind") == "ConfigMap"
+        and item.get("metadata", {}).get("name") == "ai-operations-ssh-config"
+    )
+    template = (
+        ROOT / "clusters/re8ch/components/ai-operations/ssh_config.template"
+    ).read_text()
+    assert config["data"]["ssh-config"] == template
