@@ -6,10 +6,11 @@ resources:
   - availability-policy.yaml
   - qwen-kubeconfig.yaml
   - artc-kubeconfig.yaml
+  - controlled-cluster-relay.yaml
   - among-clusters-catalog.yaml
   - oidc-admin-rbac.yaml
 configMapGenerator:
-  - name: headlamp-penrose-plugin-v0100
+  - name: headlamp-penrose-plugin-v0101
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.10.0.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.10.1.bundle

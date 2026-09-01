@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: controlled-cluster-relay
+  namespace: headlamp
+data:
+  relay.py: |
+    import socket
+    import threading
+
+    RELAYS = ((16443, "192.0.2.145", 6443), (26443, "192.0.2.115", 6443))
+
+    def copy(source, target):
+        try:
+            while data := source.recv(65536):
+                target.sendall(data)
+        except OSError:
+            pass
+        finally:
+            try:
+                target.shutdown(socket.SHUT_WR)
+            except OSError:
+                pass
+
+    def handle(client, target_host, target_port):
+        try:
+            upstream = socket.create_connection((target_host, target_port), timeout=10)
+        except OSError:
+            client.close()
+            return
+        threading.Thread(target=copy, args=(client, upstream), daemon=True).start()
+        copy(upstream, client)
+        client.close()
+        upstream.close()
+
+    def serve(listen_port, target_host, target_port):
+        listener = socket.create_server(("0.0.0.0", listen_port), reuse_port=True)
+        while True:
+            client, _ = listener.accept()
+            threading.Thread(target=handle, args=(client, target_host, target_port), daemon=True).start()
+
+    for relay in RELAYS:
+        threading.Thread(target=serve, args=relay, daemon=True).start()
+    threading.Event().wait()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controlled-cluster-relay
+  namespace: headlamp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: controlled-cluster-relay
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: controlled-cluster-relay
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-1eb0570f74
+      containers:
+        - name: relay
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: ["python3", "/runtime/relay.py"]
+          ports:
+            - {name: artc-api, containerPort: 16443}
+            - {name: qwen-api, containerPort: 26443}
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - {name: runtime, mountPath: /runtime, readOnly: true}
+      volumes:
+        - name: runtime
+          configMap:
+            name: controlled-cluster-relay
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controlled-cluster-relay
+  namespace: headlamp
+spec:
+  selector:
+    app.kubernetes.io/name: controlled-cluster-relay
+  ports:
+    - {name: artc-api, port: 16443, targetPort: artc-api}
+    - {name: qwen-api, port: 26443, targetPort: qwen-api}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: controlled-cluster-relay
+  namespace: headlamp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: controlled-cluster-relay
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: headlamp
+      ports:
+        - {protocol: TCP, port: 16443}
+        - {protocol: TCP, port: 26443}
+  egress:
+    - to:
+        - ipBlock: {cidr: 192.0.2.145/32}
+      ports:
+        - {protocol: TCP, port: 6443}
+    - to:
+        - ipBlock: {cidr: 192.0.2.115/32}
+      ports:
+        - {protocol: TCP, port: 6443}
