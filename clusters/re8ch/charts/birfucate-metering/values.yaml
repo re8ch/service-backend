@@ -1,0 +1,111 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: python
+  tag: "3.13-alpine@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+collectionIntervalSeconds: 60
+lookbackSeconds: 300
+
+prometheus:
+  baseURL: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+  writePath: /api/v1/import/prometheus
+  timeoutSeconds: 15
+
+# OpenCost remains the authoritative static K8s CPU/RAM allocation source.
+# Birfucate links to it and measures non-K8s occupancy plus behavior.
+opencost:
+  enabled: true
+  baseURL: http://opencost.opencost.svc.cluster.local:9003
+  allocationPath: /allocation/compute?window=1h&aggregate=namespace
+
+usageSink:
+  enabled: false
+  url: http://tenant-infrastructure.tenant-infrastructure.svc.cluster.local/internal/usage-events
+  timeoutSeconds: 10
+  # Authentication is injected only by an out-of-band Secret.
+  existingSecret: ""
+  tokenKey: token
+
+outbox:
+  enabled: true
+  storageClassName: rbd-r640
+  size: 1Gi
+  retentionDays: 30
+
+tenantLabels:
+  tenant: tenant
+  resource: resource_ref
+
+# Queries must return tenant and resource_ref labels. Values are rates or
+# occupancy gauges as documented per meter. Pricing is intentionally absent.
+meters:
+  occupancy:
+    - name: ceph-volume-capacity
+      domain: ceph
+      unit: GiB-second
+      valueKind: gauge
+      query: sum by (tenant, resource_ref) (kube_persistentvolumeclaim_resource_requests_storage_bytes{storageclass=~".*ceph.*|rbd-.*"}) / 1073741824
+    - name: pigsty-database-storage
+      domain: pigsty
+      unit: GiB-second
+      valueKind: gauge
+      query: sum by (tenant, resource_ref) (pg_database_size_bytes{tenant!=""}) / 1073741824
+    - name: network-public-ip
+      domain: networks
+      unit: IP-second
+      valueKind: gauge
+      query: sum by (tenant, resource_ref) (public_edge_service_info{tenant!=""})
+  bifurcation:
+    - name: ceph-client-io
+      domain: ceph
+      occurrenceUnit: operation
+      intensityUnit: byte-per-operation
+      referenceIntensity: 4096
+      countQuery: sum by (tenant, resource_ref) (rate(ceph_pool_rd{tenant!=""}[5m]) + rate(ceph_pool_wr{tenant!=""}[5m]))
+      intensityQuery: sum by (tenant, resource_ref) (rate(ceph_pool_rd_bytes{tenant!=""}[5m]) + rate(ceph_pool_wr_bytes{tenant!=""}[5m])) / clamp_min(sum by (tenant, resource_ref) (rate(ceph_pool_rd{tenant!=""}[5m]) + rate(ceph_pool_wr{tenant!=""}[5m])), 0.000001)
+      fanoutQuery: count by (tenant, resource_ref) (ceph_client_metadata{tenant!=""})
+    - name: pigsty-transactions
+      domain: pigsty
+      occurrenceUnit: transaction
+      intensityUnit: tuple-per-transaction
+      referenceIntensity: 1
+      countQuery: sum by (tenant, resource_ref) (rate(pg_stat_database_xact_commit{tenant!=""}[5m]) + rate(pg_stat_database_xact_rollback{tenant!=""}[5m]))
+      intensityQuery: sum by (tenant, resource_ref) (rate(pg_stat_database_tup_fetched{tenant!=""}[5m]) + rate(pg_stat_database_tup_inserted{tenant!=""}[5m]) + rate(pg_stat_database_tup_updated{tenant!=""}[5m]) + rate(pg_stat_database_tup_deleted{tenant!=""}[5m])) / clamp_min(sum by (tenant, resource_ref) (rate(pg_stat_database_xact_commit{tenant!=""}[5m]) + rate(pg_stat_database_xact_rollback{tenant!=""}[5m])), 0.000001)
+      fanoutQuery: count by (tenant, resource_ref) (pg_stat_activity_count{tenant!="",state="active"})
+    - name: hubble-network-flows
+      domain: networks
+      occurrenceUnit: flow
+      intensityUnit: byte-per-flow
+      referenceIntensity: 1500
+      countQuery: sum by (tenant, resource_ref) (rate(hubble_flows_processed_total{tenant!=""}[5m]))
+      intensityQuery: sum by (tenant, resource_ref) (rate(hubble_flow_bytes_total{tenant!=""}[5m])) / clamp_min(sum by (tenant, resource_ref) (rate(hubble_flows_processed_total{tenant!=""}[5m])), 0.000001)
+      fanoutQuery: count by (tenant, resource_ref) (hubble_flows_processed_total{tenant!="",destination!=""})
+    - name: hyperglass-route-branches
+      domain: networks
+      occurrenceUnit: route-change
+      intensityUnit: path-per-change
+      referenceIntensity: 1
+      countQuery: sum by (tenant, resource_ref) (rate(hyperglass_route_change_total{tenant!=""}[5m]))
+      intensityQuery: avg by (tenant, resource_ref) (hyperglass_route_path_count{tenant!=""})
+      fanoutQuery: count by (tenant, resource_ref) (hyperglass_route_path_info{tenant!=""})
+
+serviceMonitor:
+  enabled: false
+  interval: 60s
+
+vmServiceScrape:
+  enabled: false
+  interval: 60s
+
+podAnnotations: {}
+podLabels: {}
+resources:
+  requests: {cpu: 25m, memory: 64Mi}
+  limits: {cpu: 500m, memory: 256Mi}
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}
+  template:
+    metadata:
+      annotations:
+        checksum/collector: {{ .Files.Get "files/collector.py" | sha256sum }}
+        checksum/config: {{ dict "collectionIntervalSeconds" .Values.collectionIntervalSeconds "prometheus" .Values.prometheus "opencost" .Values.opencost "usageSink" (omit .Values.usageSink "existingSecret" "tokenKey") "outbox" .Values.outbox "tenantLabels" .Values.tenantLabels "meters" .Values.meters | toJson | sha256sum }}
+        {{- with .Values.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+      labels:
+        {{- include "birfucate-metering.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+    spec:
+      serviceAccountName: {{ include "birfucate-metering.fullname" . }}
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: collector
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [python3, /etc/birfucate/collector.py]
+          env:
+            - {name: BIRFUCATE_CONFIG, value: /etc/birfucate/config.json}
+            - {name: BIRFUCATE_OUTBOX, value: /var/lib/birfucate/outbox.db}
+            {{- if and .Values.usageSink.enabled .Values.usageSink.existingSecret }}
+            - name: BIRFUCATE_USAGE_TOKEN
+              valueFrom: {secretKeyRef: {name: {{ .Values.usageSink.existingSecret }}, key: {{ .Values.usageSink.tokenKey }}}}
+            {{- end }}
+          ports: [{name: metrics, containerPort: 9791}]
+          readinessProbe: {httpGet: {path: /readyz, port: metrics}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /healthz, port: metrics}, periodSeconds: 30}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - {name: config, mountPath: /etc/birfucate, readOnly: true}
+            - {name: state, mountPath: /var/lib/birfucate}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: config, configMap: {name: {{ include "birfucate-metering.fullname" . }}, defaultMode: 292}}
+        {{- if .Values.outbox.enabled }}
+        - {name: state, persistentVolumeClaim: {claimName: {{ include "birfucate-metering.fullname" . }}}}
+        {{- else }}
+        - {name: state, emptyDir: {}}
+        {{- end }}
+        - {name: tmp, emptyDir: {}}
+      nodeSelector: {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations: {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity: {{- toYaml .Values.affinity | nindent 8 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+spec:
+  selector: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}
+  ports: [{name: metrics, port: 9791, targetPort: metrics}]
+{{- if .Values.outbox.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ .Values.outbox.storageClassName }}
+  resources: {requests: {storage: {{ .Values.outbox.size }}}}
+{{- end }}
