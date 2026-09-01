@@ -47,3 +47,14 @@ def test_gitops_keeps_human_relay_separate_from_service_health():
     headlamp_resources = (ROOT / "platform/headlamp/kustomization.yaml").read_text()
     assert "among-clusters-catalog.yaml" not in headlamp_resources
     assert not (ROOT / "platform/headlamp/among-clusters-catalog.yaml").exists()
+
+
+def test_hub_identity_and_contracts_start_without_false_active_state():
+    objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/contracts.yaml").read_text()))
+    hub = next(item for item in objects if item["kind"] == "CollaborationCluster")
+    assert hub["metadata"]["name"] == "re8ch-k3s"
+    assert len(hub["spec"]["identity"]["ed25519PublicKey"]) == 43
+    for item in objects:
+        assert "status" not in item
+        if item["kind"] == "CollaborationRelationship":
+            assert not item["spec"]["declarations"]["accepterEventRef"]
