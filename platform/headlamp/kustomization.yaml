@@ -10,7 +10,7 @@ resources:
   - among-clusters-catalog.yaml
   - oidc-admin-rbac.yaml
 configMapGenerator:
-  - name: headlamp-penrose-plugin-v0101
+  - name: headlamp-penrose-plugin-v0102
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.10.1.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.10.2.bundle
