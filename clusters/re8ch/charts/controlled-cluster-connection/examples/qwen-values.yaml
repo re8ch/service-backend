@@ -13,6 +13,13 @@ contract:
   dataPlaneSharing: prohibited
   credentialPolicy: oidc-no-static-credentials
   ownerRevocationAuthoritative: true
+sharedServices:
+  - name: qwen-kubernetes-api
+    kind: kubernetes-api
+    direction: owner-to-consumer
+    endpoint: https://192.0.2.115:6443
+    access: Dex OIDC plus owner-controlled RBAC
+    status: active
 accessGrants:
   - name: owner-admin-tianruoyou2022
     roleRef: {kind: ClusterRole, name: cluster-admin}

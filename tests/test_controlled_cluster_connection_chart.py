@@ -23,6 +23,7 @@ def test_chart_defaults_are_fail_closed():
     assert chart["type"] == "application"
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["accessGrants"] == []
+    assert values["sharedServices"] == []
     assert values["contract"]["dataPlaneSharing"] == "prohibited"
 
 
@@ -51,3 +52,5 @@ def test_qwen_renders_separate_owner_contract():
     assert 'name: "qwen"' in contract["data"]["contract.yaml"]
     binding = next(item for item in objects if item["kind"] == "ClusterRoleBinding")
     assert binding["metadata"]["labels"]["access.re8ch.com/owner"] == "qwen"
+    contract_json = yaml.safe_load(contract["data"]["contract.json"])
+    assert contract_json["spec"]["sharedServices"][0]["direction"] == "owner-to-consumer"

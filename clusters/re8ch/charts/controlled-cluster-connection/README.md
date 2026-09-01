@@ -4,6 +4,10 @@ This owner-installed Helm application grants explicit OIDC identities access to
 one independent Kubernetes cluster. It does not create credentials, tunnels,
 service discovery or data-plane federation.
 
+`sharedServices` is reviewable publication metadata consumed by the
+AmongClusters Headlamp view. Declaring an endpoint there never creates or
+exposes the underlying Service.
+
 ## Install
 
 The cluster owner reviews its values file and installs the release locally:

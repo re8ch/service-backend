@@ -2,8 +2,8 @@ apiVersion: v2
 name: controlled-cluster-connection
 description: Owner-controlled OIDC and RBAC contract for API-only collaboration between independent Kubernetes clusters.
 type: application
-version: 0.1.0
-appVersion: "1.0"
+version: 0.2.0
+appVersion: "1.1"
 keywords: [kubernetes, oidc, rbac, multicluster, headlamp]
 maintainers:
   - name: RE8CH Platform
