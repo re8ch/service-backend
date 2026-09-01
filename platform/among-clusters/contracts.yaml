@@ -1,0 +1,48 @@
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: CollaborationCluster
+metadata: {name: re8ch-k3s}
+spec:
+  owner: re8ch
+  displayName: RE8CH Hub
+  capabilities: [hub, signed-heartbeat, service-contracts]
+  identity: {ed25519PublicKey: eEi8Tlcg8pnqP6xhokxtYEob5SIY8VfIc7mdECbD6YE}
+---
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: CollaborationRelationship
+metadata: {name: re8ch-artc}
+spec:
+  participants: [re8ch-k3s, artc]
+  declarations: {proposerEventRef: "", accepterEventRef: ""}
+  dataPlaneSharing: prohibited
+---
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: CollaborationRelationship
+metadata: {name: re8ch-qwen}
+spec:
+  participants: [re8ch-k3s, qwen]
+  declarations: {proposerEventRef: "", accepterEventRef: ""}
+  dataPlaneSharing: prohibited
+---
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: PublishedService
+metadata: {name: re8ch-dex}
+spec:
+  publisher: re8ch-k3s
+  consumers: [artc, qwen]
+  kind: identity-provider
+  direction: consumer-to-owner
+  endpoint: https://dex.re8ch.com
+  accessContract: OIDC discovery and registered clients
+  declarations: {publisherEventRef: "", consumerEventRefs: {}}
+---
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: PublishedService
+metadata: {name: re8ch-headlamp}
+spec:
+  publisher: re8ch-k3s
+  consumers: [artc, qwen]
+  kind: management-ui
+  direction: bidirectional
+  endpoint: https://headlamp.re8ch.com
+  accessContract: owner-approved Kubernetes RBAC
+  declarations: {publisherEventRef: "", consumerEventRefs: {}}
