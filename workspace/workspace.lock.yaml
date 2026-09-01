@@ -21,7 +21,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/aesthete.git
   among-clusters:
-    commit: 83be72f0cc0fe561196dbefdececd86a6ac079f7
+    commit: f1144368f635d6cf8106d32fca35ab1654a9bf69
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/among-clusters.git
