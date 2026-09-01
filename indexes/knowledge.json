@@ -608,6 +608,26 @@
     "sha256": "b5a15f8e7d45e9cdc86ec53a75423f9284360c32500bb3c904bb846b6ae93c20"
   },
   {
+    "module": "among-clusters",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "among-clusters",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "among-clusters",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "among-clusters",
+    "ref": "catalogs/platform/modules/among-clusters/MEMORY.md",
+    "sha256": "b462a2b70a03a23a8603233503731f7356aee1c754e8a3b071c006dd2965c997"
+  },
+  {
     "module": "brand-assets",
     "ref": "README.md"
   },

@@ -1,0 +1,14 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: among-clusters, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: "https://github.com/re8ch/among-clusters.git", defaultBranch: main, owner: re8ch}
+  projectType: kubernetes-controller
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [go, helm, kubectl]
+  dependencies: []
+  source: {kind: submodule, path: source, metadataPolicy: in-repository}
+  identity: {maintainerAddress: among-clusters-maintain@phonaid.com, accountClass: project-maintainer}

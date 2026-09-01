@@ -206,3 +206,7 @@
 	path = catalogs/thiking-machine/modules/thiking-machine/source
 	url = https://github.com/re8ch/thiking-machine.git
 	branch = main
+[submodule "platform/among-clusters"]
+	path = catalogs/platform/modules/among-clusters/source
+	url = https://github.com/re8ch/among-clusters.git
+	branch = main

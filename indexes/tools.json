@@ -184,6 +184,18 @@
     "ref": "kubectl"
   },
   {
+    "module": "among-clusters",
+    "ref": "go"
+  },
+  {
+    "module": "among-clusters",
+    "ref": "helm"
+  },
+  {
+    "module": "among-clusters",
+    "ref": "kubectl"
+  },
+  {
     "module": "brand-assets",
     "ref": "git-lfs"
   },
