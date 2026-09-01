@@ -1,0 +1,43 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: among-clusters-hub, namespace: flux-system}
+spec:
+  interval: 10m
+  releaseName: among-clusters-hub
+  targetNamespace: among-clusters
+  storageNamespace: among-clusters
+  chart:
+    spec:
+      chart: ./clusters/re8ch/charts/among-clusters-hub
+      reconcileStrategy: Revision
+      sourceRef: {kind: GitRepository, name: service-backend, namespace: flux-system}
+  install: {createNamespace: true, crds: CreateReplace, remediation: {retries: 3}}
+  upgrade: {crds: CreateReplace, remediation: {retries: 3, strategy: rollback}}
+  values:
+    image:
+      repository: ghcr.io/re8ch/among-clusters
+      digest: sha256:7de0ca8d5f739741b5d012ec68344f130bc46093f833a05a444523c1e2f22c1f
+    hostname: among-clusters.re8ch.com
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: among-clusters-hub-agent, namespace: flux-system}
+spec:
+  interval: 10m
+  releaseName: among-clusters-agent
+  targetNamespace: among-clusters
+  storageNamespace: among-clusters
+  dependsOn: [{name: among-clusters-hub}]
+  chart:
+    spec:
+      chart: ./clusters/re8ch/charts/among-clusters-agent
+      reconcileStrategy: Revision
+      sourceRef: {kind: GitRepository, name: service-backend, namespace: flux-system}
+  install: {createNamespace: true, remediation: {retries: 3}}
+  upgrade: {remediation: {retries: 3, strategy: rollback}}
+  values:
+    clusterID: re8ch-k3s
+    hubEndpoint: https://among-clusters.re8ch.com
+    image:
+      repository: ghcr.io/re8ch/among-clusters
+      digest: sha256:7de0ca8d5f739741b5d012ec68344f130bc46093f833a05a444523c1e2f22c1f

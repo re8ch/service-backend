@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-08-24T18:59:56Z'
-  generation: 1787597996
+  generatedAt: '2026-09-01T13:58:45Z'
+  generation: 1788271125
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -20,6 +20,11 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/aesthete.git
+  among-clusters:
+    commit: e7f6472a313c65d4d95cb8ab3a3ce3669c14c273
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/among-clusters.git
   anycam:
     commit: 51151cc9d7d4395d47fcdf27b32c015ac2d34e31
     defaultBranch: main
@@ -126,7 +131,7 @@ modules:
     - garageband-mcp
     repository: https://github.com/re8ch/garageband-mcp-site.git
   headlamp-advanced-fabric:
-    commit: 6c507bb55e237f803fdbc92f976aae6f3da6690d
+    commit: f5a799251395da3c35349061d83686610edd4014
     defaultBranch: main
     dependencies:
     - advanced-fabric

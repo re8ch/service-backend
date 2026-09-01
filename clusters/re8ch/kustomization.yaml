@@ -14,6 +14,7 @@ resources:
   - components/toolhive/external-observe-publication.yaml
   - components/personal-access
   - ../../platform/headlamp
+  - ../../platform/among-clusters
   - ../../platform/scheduling-fabric
   - ../../platform/cloud-platform
   - ../../platform/qwen-tenant-runtime
