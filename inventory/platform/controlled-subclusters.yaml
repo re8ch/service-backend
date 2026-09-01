@@ -1,0 +1,30 @@
+apiVersion: access.re8ch.com/v1alpha1
+kind: ControlledSubclusterCatalog
+metadata:
+  name: external-clusters
+spec:
+  defaults:
+    relationship: api-access-only
+    credentialPolicy: oidc-no-static-credentials
+    dataPlaneSharing: prohibited
+    ownerRevocationAuthoritative: true
+  clusters:
+    - name: artc
+      owner: artc
+      organizationBoundary: external
+      apiEndpoint: https://192.0.2.125:6443
+      consumer: re8ch-headlamp
+      oidcIssuer: https://dex.re8ch.com
+      ownerDeclaration: platform/controlled-subclusters/owner-examples/artc-headlamp-admin.yaml
+      consumerDeclaration: platform/headlamp/artc-kubeconfig.yaml
+      status: proposed
+    - name: qwen
+      owner: qwen
+      organizationBoundary: external
+      apiEndpoint: https://192.0.2.154:6443
+      consumer: re8ch-headlamp
+      oidcIssuer: https://dex.re8ch.com
+      ownerDeclaration: platform/controlled-subclusters/owner-examples/qwen-headlamp-owner.yaml
+      consumerDeclaration: platform/headlamp/qwen-kubeconfig.yaml
+      status: proposed
+

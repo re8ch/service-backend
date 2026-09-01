@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: qwen-cluster-admin-github-tianruoyou2022
+  labels:
+    access.re8ch.com/relationship: controlled-subcluster
+    access.re8ch.com/owner: qwen
+  annotations:
+    access.re8ch.com/identity-source: dex-github
+    access.re8ch.com/equivalent-principals: oidc:85153954@qq.com,oidc:tianruoyou2022
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: oidc:85153954@qq.com
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: oidc:tianruoyou2022
+
