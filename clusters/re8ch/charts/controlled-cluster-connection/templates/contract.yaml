@@ -23,4 +23,3 @@ data:
       dataPlaneSharing: {{ .Values.contract.dataPlaneSharing | quote }}
       credentialPolicy: {{ .Values.contract.credentialPolicy | quote }}
       ownerRevocationAuthoritative: {{ .Values.contract.ownerRevocationAuthoritative }}
-

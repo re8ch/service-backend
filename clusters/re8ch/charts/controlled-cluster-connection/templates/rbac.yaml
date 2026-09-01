@@ -30,4 +30,3 @@ subjects:
     name: {{ $subject.name | quote }}
   {{- end }}
 {{- end }}
-

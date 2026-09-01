@@ -19,4 +19,3 @@ accessGrants:
     subjects:
       - {kind: User, name: "oidc:trendstudiony@gmail.com"}
       - {kind: User, name: "oidc:artchais-hedyzhang"}
-

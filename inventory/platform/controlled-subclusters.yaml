@@ -27,4 +27,3 @@ spec:
       ownerDeclaration: platform/controlled-subclusters/owner-examples/qwen-headlamp-owner.yaml
       consumerDeclaration: platform/headlamp/qwen-kubeconfig.yaml
       status: proposed
-

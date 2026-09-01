@@ -137,6 +137,9 @@ data:
     Host artchaisprod
       HostName 192.0.2.44
       User ubuntu
+    Host rancher
+      HostName 192.0.2.138
+      User re8ch-ai
     Host *
       BatchMode yes
       IdentitiesOnly yes
