@@ -271,7 +271,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "f785c30e19e2a24f0a005d139509546448d78c1a",
+    "commit": "424690905f0d15250a8d3599cc700c1b1c60b443",
     "id": "among-clusters",
     "ownership": "owned",
     "projectType": "kubernetes-controller",
