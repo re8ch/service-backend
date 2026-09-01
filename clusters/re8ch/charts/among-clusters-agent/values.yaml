@@ -4,6 +4,9 @@ image:
   repository: ghcr.io/re8ch/among-clusters
   digest: ""
 identitySecret: among-clusters-agent-identity
+hostAliases:
+  - ip: 192.0.2.213
+    hostnames: [among-clusters.re8ch.com]
 apiServer:
   # Kubernetes NetworkPolicy implementations may evaluate egress after Service
   # DNAT. Owners must list their control-plane endpoint CIDRs explicitly.
