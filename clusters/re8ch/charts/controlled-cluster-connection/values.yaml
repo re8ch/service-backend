@@ -1,0 +1,42 @@
+cluster:
+  name: ""
+  owner: ""
+  organizationBoundary: external
+  apiEndpoint: ""
+
+consumer:
+  name: re8ch-headlamp
+  oidcIssuer: https://dex.re8ch.com
+  usernamePrefix: "oidc:"
+  scopes: [openid, profile, email, groups]
+
+contract:
+  relationship: api-access-only
+  dataPlaneSharing: prohibited
+  credentialPolicy: oidc-no-static-credentials
+  ownerRevocationAuthoritative: true
+
+# No access is granted by default. Each grant is an owner-reviewed decision.
+accessGrants: []
+# - name: owner-admin
+#   roleRef:
+#     kind: ClusterRole
+#     name: cluster-admin
+#   subjects:
+#     - kind: User
+#       name: oidc:owner@example.com
+#
+# A grant can optionally define a chart-owned ClusterRole instead of referring
+# to a built-in role:
+# - name: delegated-operator
+#   roleRef:
+#     kind: ClusterRole
+#     name: controlled-subcluster-operator
+#   rules:
+#     - apiGroups: [""]
+#       resources: [namespaces, nodes]
+#       verbs: [get, list, watch]
+#   subjects:
+#     - kind: Group
+#       name: oidc:example:operators
+

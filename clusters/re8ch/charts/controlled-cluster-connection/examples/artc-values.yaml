@@ -1,0 +1,22 @@
+cluster:
+  name: artc
+  owner: artc
+  organizationBoundary: external
+  apiEndpoint: https://192.0.2.145:6443
+consumer:
+  name: re8ch-headlamp
+  oidcIssuer: https://dex.re8ch.com
+  usernamePrefix: "oidc:"
+  scopes: [openid, profile, email, groups]
+contract:
+  relationship: api-access-only
+  dataPlaneSharing: prohibited
+  credentialPolicy: oidc-no-static-credentials
+  ownerRevocationAuthoritative: true
+accessGrants:
+  - name: owner-admin-artchais-hedyzhang
+    roleRef: {kind: ClusterRole, name: cluster-admin}
+    subjects:
+      - {kind: User, name: "oidc:trendstudiony@gmail.com"}
+      - {kind: User, name: "oidc:artchais-hedyzhang"}
+

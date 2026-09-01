@@ -23,14 +23,17 @@ Host overseas-edge-50
   HostName 192.0.2.122
   User re8ch-ai
 Host qwen-1
-  HostName 192.0.2.115
+  HostName 192.0.2.183
   User re8ch-ai
 Host qwen-2
-  HostName 192.0.2.91
+  HostName 192.0.2.122
   User re8ch-ai
 Host qwen-3
   HostName 192.0.2.33
   User re8ch-ai
+Host artchaisprod
+  HostName 192.0.2.208
+  User ubuntu
 Host rancher
   HostName 192.0.2.79
   User re8ch-ai
