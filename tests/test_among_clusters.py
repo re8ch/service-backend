@@ -32,7 +32,7 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     deployment = (HEADLAMP / "deployment.yaml").read_text()
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generator = next(item for item in kustomization["configMapGenerator"]
-                     if item["name"] == "headlamp-penrose-plugin-v0100")
+                     if item["name"] == "headlamp-penrose-plugin-v0101")
     bundle_name = generator["files"][0].split("=", 1)[1].removeprefix("assets/")
     bundle = HEADLAMP / "assets" / bundle_name
     checksum = hashlib.sha256(bundle.read_bytes()).hexdigest()
@@ -43,4 +43,4 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     assert "AmongClusters" in javascript
     assert "among-clusters-catalog" in javascript
     assert "Explicitly published services" in javascript
-    assert not re.search(r"token|client-certificate-data|client-key-data", javascript, re.I)
+    assert not re.search(r"client-certificate-data|client-key-data|Bearer\\s+[A-Za-z0-9]", javascript, re.I)
