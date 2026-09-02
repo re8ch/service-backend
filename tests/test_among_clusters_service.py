@@ -15,7 +15,7 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert source["spec"]["ref"]["digest"] == CHART_DIGEST
     assert release["spec"]["values"]["image"]["digest"] == IMAGE_DIGEST
     assert release["spec"]["values"]["managedAccess"]["enabled"] is False
-    assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is True
+    assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
 
 
 def test_gitops_keeps_human_relay_separate_from_service_health():
@@ -34,3 +34,16 @@ def test_legacy_contracts_are_retained_for_review_but_not_reapplied():
     assert any(item["kind"] == "CollaborationCluster" for item in objects)
     kustomization = yaml.safe_load((ROOT / "platform/among-clusters/kustomization.yaml").read_text())
     assert "contracts.yaml" not in kustomization["resources"]
+
+
+def test_legacy_agent_cleanup_is_name_scoped():
+    objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/legacy-agent-cleanup.yaml").read_text()))
+    role = next(item for item in objects if item["kind"] == "Role")
+    job = next(item for item in objects if item["kind"] == "Job")
+    assert role["rules"] == [{
+        "apiGroups": ["helm.toolkit.fluxcd.io"],
+        "resources": ["helmreleases"],
+        "resourceNames": ["among-clusters-hub-agent"],
+        "verbs": ["get", "delete"],
+    }]
+    assert "among-clusters-hub-agent" in job["spec"]["template"]["spec"]["containers"][0]["args"][0]
