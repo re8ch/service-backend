@@ -28,17 +28,17 @@ def test_relay_only_publishes_the_two_controlled_api_ports():
     }
 
 
-def test_subcluster_kubeconfigs_use_tls_verified_relay_and_refresh_tokens():
+def test_subcluster_kubeconfigs_use_broker_imports_and_opaque_references():
     expected = {
-        "artc-kubeconfig.yaml": (16443, "artc-1"),
-        "qwen-kubeconfig.yaml": (26443, "qwen-1"),
+        "artc-kubeconfig.yaml": "artc-headlamp-admin",
+        "qwen-kubeconfig.yaml": "qwen-headlamp-admin",
     }
-    for filename, (port, tls_name) in expected.items():
+    for filename, grant in expected.items():
         config_map = documents(filename)[0]
         template = yaml.safe_load(next(iter(config_map["data"].values())))
         cluster = template["clusters"][0]["cluster"]
-        oidc = template["users"][0]["user"]["auth-provider"]["config"]
+        user = template["users"][0]["user"]
 
-        assert cluster["server"] == f"https://controlled-cluster-relay.headlamp.svc:{port}"
-        assert cluster["tls-server-name"] == tls_name
-        assert "offline_access" in oidc["scope"].split(",")
+        assert cluster["server"] == f"http://among-clusters-credential-broker.credential-broker.svc/k8s/byoc-pilot/{grant}"
+        assert user["token"] == f"credential://among-clusters/byoc-pilot/{grant}"
+        assert "auth-provider" not in user
