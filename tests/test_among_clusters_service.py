@@ -40,10 +40,16 @@ def test_legacy_agent_cleanup_is_name_scoped():
     objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/legacy-agent-cleanup.yaml").read_text()))
     role = next(item for item in objects if item["kind"] == "Role")
     job = next(item for item in objects if item["kind"] == "Job")
-    assert role["rules"] == [{
+    assert role["rules"][0] == {
         "apiGroups": ["helm.toolkit.fluxcd.io"],
         "resources": ["helmreleases"],
         "resourceNames": ["among-clusters-hub-agent"],
         "verbs": ["get", "delete"],
-    }]
+    }
+    assert role["rules"][1] == {
+        "apiGroups": ["batch"],
+        "resources": ["jobs"],
+        "resourceNames": ["among-clusters-legacy-agent-cleanup"],
+        "verbs": ["delete"],
+    }
     assert "among-clusters-hub-agent" in job["spec"]["template"]["spec"]["containers"][0]["args"][0]
