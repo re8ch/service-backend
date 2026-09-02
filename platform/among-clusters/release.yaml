@@ -42,3 +42,40 @@ spec:
       bootstrapTarget: 192.0.2.79
       selectedEdge: loudi-r640
     ciliumPolicy: {enabled: true}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata: {name: among-clusters-agent, namespace: flux-system}
+spec:
+  interval: 10m
+  provider: generic
+  url: oci://ghcr.io/re8ch/charts/among-clusters-agent
+  ref:
+    digest: sha256:58df2739c590e2c66b3261a7f3da0cf9f8bb362f4ec4e691fcee0fe7aa4161d8
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: among-clusters-agent, namespace: flux-system}
+spec:
+  interval: 10m
+  releaseName: among-clusters-agent
+  targetNamespace: among-clusters
+  storageNamespace: among-clusters
+  chartRef: {kind: OCIRepository, name: among-clusters-agent}
+  install: {createNamespace: false, remediation: {retries: 3}}
+  upgrade: {remediation: {retries: 3, strategy: rollback}}
+  rollback: {cleanupOnFail: true}
+  values:
+    clusterID: re8ch
+    tenant: byoc-pilot
+    trustDomain: re8ch.internal
+    hubEndpoint: https://among-clusters.re8ch.com
+    image:
+      repository: registry.re8ch.com/functions-shared/among-clusters
+      digest: sha256:9110bd98a528c7419e5539360c8c7130ec0c5ff6bc6f19fb0f53ad93f4915a3d
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    apiServer: {cidrs: [192.0.2.183/32], port: 6443}
+    gateway:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      listener: {enabled: false, port: 8443, publicEndpoint: "", hostPort: 0}
+    managedAccess: {enabled: false}
