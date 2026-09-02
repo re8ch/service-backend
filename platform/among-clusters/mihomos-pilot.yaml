@@ -29,6 +29,9 @@ kind: NetworkPolicy
 metadata:
   name: among-clusters-gateway-mihomos-egress
   namespace: among-clusters
+  annotations:
+    re8ch.com/network-authority: public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
+    re8ch.com/r640-dummy-purpose: internal-host-endpoint-only-not-public
   labels:
     app.kubernetes.io/part-of: among-clusters
     app.kubernetes.io/component: mihomos-pilot
@@ -45,6 +48,11 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: mihomos-node-cn
+        # The local Mihomos DaemonSet uses host networking, so Cilium evaluates
+        # the restricted-node-6dc3f140f9 endpoint as a host identity. This is an internal ZeroTier
+        # service address, never the public Gateway endpoint.
+        - ipBlock:
+            cidr: 192.0.2.183/32
       ports:
         - protocol: TCP
           port: 17891
