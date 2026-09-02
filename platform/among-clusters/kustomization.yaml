@@ -5,6 +5,7 @@ resources:
   - release.yaml
   - headlamp-viewer.yaml
   - byoc-pilot.yaml
+  - mihomos-pilot.yaml
   - headlamp-imports.yaml
   - broker-network-policy.yaml
   - legacy-agent-cleanup.yaml
