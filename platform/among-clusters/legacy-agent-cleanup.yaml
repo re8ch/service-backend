@@ -11,6 +11,10 @@ rules:
     resources: [helmreleases]
     resourceNames: [among-clusters-hub-agent]
     verbs: [get, delete]
+  - apiGroups: [batch]
+    resources: [jobs]
+    resourceNames: [among-clusters-legacy-agent-cleanup]
+    verbs: [delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -22,7 +26,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: among-clusters-legacy-agent-cleanup
+  name: among-clusters-legacy-agent-cleanup-v2
   namespace: flux-system
 spec:
   backoffLimit: 3
@@ -46,6 +50,15 @@ spec:
                 --header "Authorization: Bearer $token" \
                 --request DELETE "$api")
               case "$code" in
+                200|202|404) ;;
+                *) cat /tmp/response >&2; exit 1 ;;
+              esac
+              old_job=https://kubernetes.default.svc/apis/batch/v1/namespaces/flux-system/jobs/among-clusters-legacy-agent-cleanup
+              code=$(curl --silent --show-error --output /tmp/response --write-out '%{http_code}' \
+                --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+                --header "Authorization: Bearer $token" \
+                --request DELETE "$old_job")
+              case "$code" in
                 200|202|404) exit 0 ;;
                 *) cat /tmp/response >&2; exit 1 ;;
               esac
@@ -54,6 +67,8 @@ spec:
             capabilities: {drop: [ALL]}
             readOnlyRootFilesystem: true
             runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
       volumes:
