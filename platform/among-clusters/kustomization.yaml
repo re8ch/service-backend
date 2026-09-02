@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - release.yaml
+  - headlamp-viewer.yaml
   - legacy-agent-cleanup.yaml
