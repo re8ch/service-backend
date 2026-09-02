@@ -15,6 +15,9 @@ metadata:
     peering.re8ch.com/port-name: mixed
     peering.re8ch.com/ttl-seconds: "60"
 spec:
+  # Stable provider-internal VIP used only between the restricted-node-6dc3f140f9 Gateway and the
+  # local Mihomos fabric. It is not an advertised/public endpoint.
+  clusterIP: 192.0.2.217
   internalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: mihomos-node-cn
@@ -53,6 +56,10 @@ spec:
         # service address, never the public Gateway endpoint.
         - ipBlock:
             cidr: 192.0.2.178/32
+        # Cilium may enforce egress before kube-proxy translates the Service
+        # VIP to the host-network endpoint, so cover the exact stable VIP too.
+        - ipBlock:
+            cidr: 192.0.2.217/32
       ports:
         - protocol: TCP
           port: 17891
