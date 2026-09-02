@@ -60,7 +60,7 @@ def test_legacy_agent_cleanup_is_name_scoped():
     assert "among-clusters-hub-agent" in job["spec"]["template"]["spec"]["containers"][0]["args"][0]
 
 
-def test_byoc_pilot_stages_policy_before_managed_access_grants():
+def test_byoc_pilot_enables_generation_bound_managed_access_grants():
     objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/byoc-pilot.yaml").read_text()))
     by_kind = {}
     for item in objects:
@@ -70,6 +70,8 @@ def test_byoc_pilot_stages_policy_before_managed_access_grants():
         assert peer["spec"]["localIdentityRef"] == "re8ch"
         policy = by_kind["PeerPolicy"][f"{cluster}-kubernetes-api"]
         assert policy["spec"]["protocols"] == ["kubernetes-api"]
-    # Grants use v0.3 fields. They are intentionally introduced in a second
-    # reconciliation after the Helm release has upgraded the CRD schema.
-    assert "ManagedAccessGrant" not in by_kind
+        grant = by_kind["ManagedAccessGrant"][f"{cluster}-headlamp-admin"]
+        assert grant["spec"]["peerRef"] == f"re8ch-{cluster}"
+        assert grant["spec"]["advertisementRef"] == f"{cluster}-default-kubernetes"
+        assert grant["spec"]["scope"] == "Cluster"
+        assert grant["spec"]["approved"] is True
