@@ -8,6 +8,7 @@ copies credentials, environment files, or arbitrary build output.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -15,6 +16,24 @@ from pathlib import Path
 import yaml
 
 from workspace import Registry, repository_candidates, repository_key
+
+
+PUBLIC_AUTHORITY_INVENTORY = Path("operations/network/manifests/network/public-mesh/inventory.json")
+
+
+def public_authority_context(root: Path) -> str:
+    document = json.loads((root / PUBLIC_AUTHORITY_INVENTORY).read_text())
+    node = next(item for item in document["nodes"] if item["name"] == "restricted-node-6dc3f140f9")
+    authority = node["publicAuthority"]
+    return (
+        f"Source of truth: `{PUBLIC_AUTHORITY_INVENTORY}` (`restricted-node-6dc3f140f9.publicAuthority`). "
+        f"restricted-node-6dc3f140f9 public delivery is provider-owned `{node['publicIp']} -> "
+        f"{authority['type']} DNAT/eBGP -> {authority['lanBackend']}/restricted-node-6dc3f140f9`. "
+        f"The ZeroTier address `{node['ztIp']}` and `re8chzt128` dummy interface are "
+        "routing/service identities, not directly attached public endpoints. Before changing "
+        "an restricted-node-6dc3f140f9 public IP, route, Gateway, listener, DNAT, eBGP, ZeroTier, or dummy-interface "
+        "state, read and validate this authority. Never add an ad-hoc host route to bypass it."
+    )
 
 
 def git(path: Path, *args: str) -> str:
@@ -70,6 +89,14 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     readme = checkout / "README.md" if checkout else None
     purpose = synopsis(readme) if readme else ""
     catalog_overview, shared_context = catalog_context(root, module.catalog)
+    authority_section = []
+    if module.catalog == "platform":
+        authority_section = [
+            "## restricted-node-6dc3f140f9 public network authority",
+            "",
+            public_authority_context(root),
+            "",
+        ]
     return "\n".join([
         f"# {module.name} Agent MEMORY",
         "",
@@ -102,7 +129,7 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
         "",
         f"Existing repository AGENTS: `{'yes' if existing_agents and existing_agents.exists() else 'no'}`",
         "",
-    ])
+    ] + authority_section)
 
 
 def main() -> None:

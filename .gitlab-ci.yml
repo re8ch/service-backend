@@ -11,6 +11,7 @@ schema:
   stage: validate
   script:
     - python tests/validate_schemas.py
+    - python operations/scripts/validate-r640-public-authority.py
 
 unit:
   stage: test
