@@ -27,9 +27,9 @@ spec:
     adminTokenSecret: among-clusters-hub-admin
     managedAccess: {enabled: false}
     migration:
-      # One reviewed migration only. A follow-up change turns this back off
-      # after Flux confirms that the old CRDs were exported and replaced.
-      replaceCollaborationCRDs: true
+      # The one-time replacement completed with release v18. Keep destructive
+      # migration disabled for every subsequent reconciliation.
+      replaceCollaborationCRDs: false
     hostname: among-clusters.re8ch.com
     publication:
       bootstrapTarget: 192.0.2.79
