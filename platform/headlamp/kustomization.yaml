@@ -16,7 +16,7 @@ configMapGenerator:
   - name: headlamp-among-clusters-v036
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-among-clusters-0.3.6.tar.gz
+      - plugin.tar.gz=assets/re8ch-headlamp-among-clusters-0.3.6.bundle
   - name: headlamp-birfucate-browser-v010
     namespace: headlamp
     files:
