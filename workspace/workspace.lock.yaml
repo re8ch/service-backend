@@ -105,7 +105,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/cluster-website.git
   codex-admin-plugins:
-    commit: 89a5342e9d04ee14e97d3cd6ad5e7f241f16e3ed
+    commit: 57941c59bf0473441e9e771e908da5c25c962170
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/codex-admin-plugins.git

@@ -307,7 +307,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "89a5342e9d04ee14e97d3cd6ad5e7f241f16e3ed",
+    "commit": "57941c59bf0473441e9e771e908da5c25c962170",
     "id": "codex-admin-plugins",
     "ownership": "owned",
     "projectType": "codex-plugin-bundle",

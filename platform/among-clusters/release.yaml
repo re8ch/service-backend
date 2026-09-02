@@ -6,7 +6,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-hub
   ref:
-    digest: sha256:40ae5de5fd8835f2dd431ca55018d1d63bfb870105ec0c024a9a65d4eda63cdd
+    digest: sha256:5137f3ec8d775772834b911330ff8d910fe5376e453a964f4de40c11b526e3c9
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -23,7 +23,7 @@ spec:
   values:
     image:
       repository: registry.re8ch.com/functions-shared/among-clusters
-      digest: sha256:9110bd98a528c7419e5539360c8c7130ec0c5ff6bc6f19fb0f53ad93f4915a3d
+      digest: sha256:8b3ab6a8a71f5e50c5b886d64dea92f4143327f46de6d346027df09f60b7a740
     replicaCount: 1
     nodeSelector:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
@@ -51,7 +51,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-agent
   ref:
-    digest: sha256:58df2739c590e2c66b3261a7f3da0cf9f8bb362f4ec4e691fcee0fe7aa4161d8
+    digest: sha256:b6d67c40cf7305914fb079b43fbddb4e1026e2b79cdd4f422f333746a058425d
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -72,7 +72,7 @@ spec:
     hubEndpoint: https://among-clusters.re8ch.com
     image:
       repository: registry.re8ch.com/functions-shared/among-clusters
-      digest: sha256:9110bd98a528c7419e5539360c8c7130ec0c5ff6bc6f19fb0f53ad93f4915a3d
+      digest: sha256:8b3ab6a8a71f5e50c5b886d64dea92f4143327f46de6d346027df09f60b7a740
     nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
@@ -83,13 +83,20 @@ spec:
     peerConfirmations:
       - {peerRef: re8ch-qwen, bundleDigest: sha256:1ca3850085419fd4cb099a0922452e1c1d2ba044396fe64f920f63fd78123357}
       - {peerRef: re8ch-artc, bundleDigest: sha256:72dbab1a10af9585ff65e652c0a26240275f3a7cda3206d1aead6ebf5bf71a8e}
-    linkObservations:
-      - {linkRef: re8ch-qwen, peerRef: re8ch-qwen, endpoint: "quic://192.0.2.154:8443", expectedSPIFFEID: "spiffe://qwen.byoc/cluster/qwen"}
-      - {linkRef: re8ch-artc, peerRef: re8ch-artc, endpoint: "quic://192.0.2.125:8443", expectedSPIFFEID: "spiffe://artc.byoc/cluster/artc"}
+    # BYOC peers originate sessions to the provider-owned public authority.
+    # Their observations drive link status; restricted-node-6dc3f140f9 never dials customer-private nodes.
+    linkObservations: []
     gateway:
+      publicAuthority:
+        ownership: provider
+        sourceRef: operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
+        publicIP: 192.0.2.138
+        deliveryMode: mikrotik-ebgp-transit-dnat
+        edgeType: RouterOS
+        lanBackend: 192.0.2.169
       peerBundleSecret: among-clusters-peer-bundle
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
-      listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.178:8443", hostPort: 8443}
+      listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.138:8443", hostPort: 8443}
       peerIdentities:
         re8ch-qwen: ["spiffe://qwen.byoc/cluster/qwen"]
         re8ch-artc: ["spiffe://artc.byoc/cluster/artc"]
@@ -97,13 +104,13 @@ spec:
         - name: qwen-k8s
           port: 22240
           listen: ":22240"
-          endpoint: "192.0.2.154:8443"
           serviceIdentity: spiffe://qwen.byoc/ns/default/service/kubernetes
           expectedSPIFFEID: spiffe://qwen.byoc/cluster/qwen
+          sessionOnly: true
         - name: artc-k8s
           port: 23768
           listen: ":23768"
-          endpoint: "192.0.2.125:8443"
           serviceIdentity: spiffe://artc.byoc/ns/default/service/kubernetes
           expectedSPIFFEID: spiffe://artc.byoc/cluster/artc
+          sessionOnly: true
     managedAccess: {enabled: false}
