@@ -117,4 +117,7 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
     rule = policy["spec"]["egress"][0]
     assert rule["to"][0]["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "egress-fabric"
     assert rule["to"][0]["podSelector"]["matchLabels"]["app.kubernetes.io/name"] == "mihomos-node-cn"
+    assert rule["to"][1]["ipBlock"]["cidr"] == "192.0.2.178/32"
     assert rule["ports"] == [{"protocol": "TCP", "port": 17891}]
+    assert policy["metadata"]["annotations"]["re8ch.com/network-authority"] == "public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority"
+    assert policy["metadata"]["annotations"]["re8ch.com/r640-dummy-purpose"] == "internal-host-endpoint-only-not-public"
