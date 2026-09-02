@@ -23,3 +23,28 @@ spec:
       port: 17891
       targetPort: mixed
       protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: among-clusters-gateway-mihomos-egress
+  namespace: among-clusters
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+    app.kubernetes.io/component: mihomos-pilot
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: among-clusters-gateway
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: egress-fabric
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mihomos-node-cn
+      ports:
+        - protocol: TCP
+          port: 17891
