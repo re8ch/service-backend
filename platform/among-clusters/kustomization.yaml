@@ -5,4 +5,5 @@ resources:
   - release.yaml
   - headlamp-viewer.yaml
   - byoc-pilot.yaml
+  - headlamp-imports.yaml
   - legacy-agent-cleanup.yaml

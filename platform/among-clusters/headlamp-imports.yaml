@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata: {name: qwen-kubernetes-import, namespace: among-clusters}
+spec:
+  selector: {app.kubernetes.io/name: among-clusters-gateway}
+  ports: [{name: kubernetes, port: 6443, targetPort: qwen-k8s, protocol: TCP}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: artc-kubernetes-import, namespace: among-clusters}
+spec:
+  selector: {app.kubernetes.io/name: among-clusters-gateway}
+  ports: [{name: kubernetes, port: 6443, targetPort: artc-k8s, protocol: TCP}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: qwen-default-kubernetes-re8ch-qwen, namespace: byoc-pilot}
+spec:
+  type: ExternalName
+  externalName: qwen-kubernetes-import.among-clusters.svc.cluster.local
+  ports: [{name: kubernetes, port: 6443, protocol: TCP}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: artc-default-kubernetes-re8ch-artc, namespace: byoc-pilot}
+spec:
+  type: ExternalName
+  externalName: artc-kubernetes-import.among-clusters.svc.cluster.local
+  ports: [{name: kubernetes, port: 6443, protocol: TCP}]

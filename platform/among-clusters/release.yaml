@@ -93,4 +93,17 @@ spec:
       peerIdentities:
         re8ch-qwen: ["spiffe://qwen.byoc/cluster/qwen"]
         re8ch-artc: ["spiffe://artc.byoc/cluster/artc"]
+      imports:
+        - name: qwen-k8s
+          port: 22240
+          listen: ":22240"
+          endpoint: "192.0.2.154:8443"
+          serviceIdentity: spiffe://qwen.byoc/ns/default/service/kubernetes
+          expectedSPIFFEID: spiffe://qwen.byoc/cluster/qwen
+        - name: artc-k8s
+          port: 23768
+          listen: ":23768"
+          endpoint: "192.0.2.125:8443"
+          serviceIdentity: spiffe://artc.byoc/ns/default/service/kubernetes
+          expectedSPIFFEID: spiffe://artc.byoc/cluster/artc
     managedAccess: {enabled: false}
