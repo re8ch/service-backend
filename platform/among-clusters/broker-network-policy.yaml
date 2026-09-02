@@ -1,0 +1,54 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: among-clusters-broker-kube-apiserver
+  namespace: credential-broker
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: among-clusters-credential-broker
+  egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - {port: "443", protocol: TCP}
+            - {port: "6443", protocol: TCP}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: among-clusters-broker-hub
+  namespace: credential-broker
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: among-clusters-credential-broker
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: among-clusters
+            app.kubernetes.io/name: among-clusters-hub
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: among-clusters-broker-imports
+  namespace: credential-broker
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: among-clusters-credential-broker
+  egress:
+    # Cilium can enforce after Service DNAT. These are the local Gateway
+    # listener ports behind the stable :6443 ImportedService projections.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: among-clusters
+            app.kubernetes.io/name: among-clusters-gateway
+      toPorts:
+        - ports:
+            - {port: "22240", protocol: TCP}
+            - {port: "23768", protocol: TCP}

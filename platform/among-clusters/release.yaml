@@ -6,7 +6,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-hub
   ref:
-    digest: sha256:40ae5de5fd8835f2dd431ca55018d1d63bfb870105ec0c024a9a65d4eda63cdd
+    digest: sha256:9541bebb9b8ce17b4472b8649736992ee98ec0f8861d46d396a338a2a89a02a8
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -23,7 +23,7 @@ spec:
   values:
     image:
       repository: registry.re8ch.com/functions-shared/among-clusters
-      digest: sha256:9110bd98a528c7419e5539360c8c7130ec0c5ff6bc6f19fb0f53ad93f4915a3d
+      digest: sha256:f2d2157116714d91f4734874a01c9d38c2f5cf9acdd51679a87d0525959b11eb
     replicaCount: 1
     nodeSelector:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
@@ -51,7 +51,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-agent
   ref:
-    digest: sha256:58df2739c590e2c66b3261a7f3da0cf9f8bb362f4ec4e691fcee0fe7aa4161d8
+    digest: sha256:f3d90198839716f78ab3eb0d8928ec6b903352f31e021f021a9cdf7f5a6c67fd
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -72,7 +72,7 @@ spec:
     hubEndpoint: https://among-clusters.re8ch.com
     image:
       repository: registry.re8ch.com/functions-shared/among-clusters
-      digest: sha256:9110bd98a528c7419e5539360c8c7130ec0c5ff6bc6f19fb0f53ad93f4915a3d
+      digest: sha256:f2d2157116714d91f4734874a01c9d38c2f5cf9acdd51679a87d0525959b11eb
     nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
