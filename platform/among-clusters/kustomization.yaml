@@ -4,4 +4,5 @@ resources:
   - namespace.yaml
   - release.yaml
   - headlamp-viewer.yaml
+  - byoc-pilot.yaml
   - legacy-agent-cleanup.yaml
