@@ -8,6 +8,7 @@ resources:
   - flux-system/gotk-sync.yaml
   - gitlab-agent/agent.yaml
   - secrets/stalwart-recovery-admin.sops.yaml
+  - secrets/among-clusters-hub-admin.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/ai-operations/platform.yaml
   - components/public-exposure/external-dns-cloudflare.yaml

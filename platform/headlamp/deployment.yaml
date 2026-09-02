@@ -80,13 +80,43 @@ spec:
             - name: birfucate-browser-plugin
               mountPath: /plugin
               readOnly: true
+        - name: install-advanced-fabric-plugin
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/advanced-fabric-0.12.0
+              lock=/headlamp/plugins/.advanced-fabric-install.lock
+              if [ -f "$target/package.json" ]; then exit 0; fi
+              rmdir "$lock" 2>/dev/null || true
+              until mkdir "$lock" 2>/dev/null; do
+                if [ -f "$target/package.json" ]; then exit 0; fi
+                sleep 2
+              done
+              trap 'rmdir "$lock" 2>/dev/null || true' EXIT
+              archive=/tmp/plugin.tar.gz
+              stage=/headlamp/plugins/.advanced-fabric-0.12.0.new
+              curl --fail --silent --show-error --location \
+                https://github.com/re8ch/headlamp-advanced-fabric/releases/download/v0.12.0/re8ch-headlamp-advanced-fabric-0.12.0.tar.gz \
+                --output "$archive"
+              echo 'da561b967d0a08fe90a5430893643080a0c2f439409f0bf26017efa9ff674d9c  /tmp/plugin.tar.gz' | sha256sum -c -
+              rm -rf "$stage"
+              mkdir -p "$stage"
+              tar -xzf "$archive" -C "$stage" --strip-components=1
+              mv "$stage" "$target"
+              for old in /headlamp/plugins/advanced-fabric-*; do
+                [ "$old" = "$target" ] || rm -rf "$old"
+              done
+          volumeMounts:
+            - name: plugins
+              mountPath: /headlamp/plugins
         - name: install-among-clusters-plugin
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.11.0
-              lock=/headlamp/plugins/.advanced-fabric-install.lock
+              target=/headlamp/plugins/among-clusters-0.2.0
+              lock=/headlamp/plugins/.among-clusters-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               # Headlamp currently has one active replica because OAuth state is
               # process-local. Recover the empty mkdir lock left by a terminated
@@ -98,25 +128,21 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.11.0.new
-              cp /plugin/plugin.tar.gz "$archive"
-              echo '7fa946a0efef0e47365367a7c1d455c17fc1bae394823187342dd2e56d41f0dd  /tmp/plugin.tar.gz' | sha256sum -c -
+              stage=/headlamp/plugins/.among-clusters-0.2.0.new
+              curl --fail --silent --show-error --location \
+                https://github.com/re8ch/among-clusters/releases/download/v0.2.0/re8ch-headlamp-among-clusters-0.2.0.tar.gz \
+                --output "$archive"
+              echo 'a155e0e9717b040ac07260ff8ad49ba7223f48ca13806bf3961d20f1f3f283be  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
-              tar -xzf "$archive" -C "$stage"
-              plugin_dir="$(find "$stage" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
-              test -n "$plugin_dir"
-              mv "$plugin_dir" "$target"
-              rm -rf "$stage"
-              for old in /headlamp/plugins/advanced-fabric-*; do
+              tar -xzf "$archive" -C "$stage" --strip-components=1
+              mv "$stage" "$target"
+              for old in /headlamp/plugins/among-clusters-*; do
                 [ "$old" = "$target" ] || rm -rf "$old"
               done
           volumeMounts:
             - name: plugins
               mountPath: /headlamp/plugins
-            - name: among-clusters-plugin
-              mountPath: /plugin
-              readOnly: true
         - name: install-public-edge-plugin
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
           command: [/bin/sh, -ec]
@@ -262,9 +288,6 @@ spec:
           # Keep the runtime directory pod-local so restricted-node-6dc3f140f9 failover does not
           # depend on a cross-node CephFS NodePublish operation.
           emptyDir: {}
-        - name: among-clusters-plugin
-          configMap:
-            name: headlamp-penrose-plugin-v0110
         - name: birfucate-browser-plugin
           configMap:
             name: headlamp-birfucate-browser-v010

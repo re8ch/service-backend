@@ -35,6 +35,7 @@ def test_plugin_runtime_is_pod_local_and_complete():
     init_names = {item["name"] for item in pod["initContainers"]}
     assert {
         "install-birfucate-browser",
+        "install-advanced-fabric-plugin",
         "install-among-clusters-plugin",
         "install-public-edge-plugin",
         "install-mihomos-cluster-plugin",
