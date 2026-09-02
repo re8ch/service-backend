@@ -102,10 +102,19 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
         "maxAdvertisements": 1,
     }
 
-    service = yaml.safe_load((ROOT / "platform/among-clusters/mihomos-pilot.yaml").read_text())
+    pilot = list(yaml.safe_load_all((ROOT / "platform/among-clusters/mihomos-pilot.yaml").read_text()))
+    service = next(item for item in pilot if item["kind"] == "Service")
     assert service["kind"] == "Service"
     assert service["metadata"]["namespace"] == "egress-fabric"
     assert service["metadata"]["labels"]["peering.re8ch.com/advertise"] == "true"
     assert service["metadata"]["annotations"]["peering.re8ch.com/target-peers"] == "re8ch-qwen,re8ch-artc"
     assert service["spec"]["internalTrafficPolicy"] == "Local"
     assert service["spec"]["ports"][0]["port"] == 17891
+
+    policy = next(item for item in pilot if item["kind"] == "NetworkPolicy")
+    assert policy["metadata"]["name"] == "among-clusters-gateway-mihomos-egress"
+    assert policy["spec"]["podSelector"]["matchLabels"]["app.kubernetes.io/name"] == "among-clusters-gateway"
+    rule = policy["spec"]["egress"][0]
+    assert rule["to"][0]["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "egress-fabric"
+    assert rule["to"][0]["podSelector"]["matchLabels"]["app.kubernetes.io/name"] == "mihomos-node-cn"
+    assert rule["ports"] == [{"protocol": "TCP", "port": 17891}]
