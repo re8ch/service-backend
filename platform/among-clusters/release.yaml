@@ -6,7 +6,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-hub
   ref:
-    digest: sha256:fb2c3e44d46552ceed87b69adf8314538a1f0b496ce7f90aa3d2059ad6a1f0fc
+    digest: sha256:b9f7e3a4d087e0be32338224226913b1bd0d11b6e045de83a47219a979dcc4eb
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -23,7 +23,10 @@ spec:
   values:
     image:
       repository: ghcr.io/re8ch/among-clusters
-      digest: sha256:98ecc17ca14b7ee9e640d9eaf6f97a21cedcffc0b17890bb3158fa48d488bff3
+      digest: sha256:e6e687d5d46d125acfbf9eff9044b124a12cf7d7c2f1f360bd9b4c466c4201a6
+    replicaCount: 1
+    nodeSelector:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
     adminTokenSecret: among-clusters-hub-admin
     managedAccess: {enabled: false}
     migration:

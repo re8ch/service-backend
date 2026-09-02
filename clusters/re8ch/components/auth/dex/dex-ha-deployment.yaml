@@ -50,6 +50,12 @@ spec:
             - {name: GITHUB_CLIENT_ID, valueFrom: {secretKeyRef: {name: dex-github, key: client-id}}}
             - {name: GITHUB_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: dex-github, key: client-secret}}}
             - {name: DEX_DB_PASSWORD, valueFrom: {secretKeyRef: {name: dex-postgres, key: password}}}
+            # Dex exchanges OAuth codes directly with upstream providers. Keep
+            # these explicit so a stale kubectl-set field cannot redirect the
+            # exchange to a nonexistent localhost proxy.
+            - {name: HTTP_PROXY, value: ""}
+            - {name: HTTPS_PROXY, value: ""}
+            - {name: NO_PROXY, value: ""}
           readinessProbe: {httpGet: {path: /.well-known/openid-configuration, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 20, periodSeconds: 20}
           resources:
