@@ -34,6 +34,14 @@ def test_gitops_keeps_human_relay_separate_from_service_health():
     assert not (ROOT / "platform/headlamp/among-clusters-catalog.yaml").exists()
 
 
+def test_major_service_upgrade_waits_without_rollback():
+    objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/release.yaml").read_text()))
+    for release in (item for item in objects if item["kind"] == "HelmRelease"):
+        assert release["spec"]["upgrade"]["timeout"] == "15m"
+        assert release["spec"]["upgrade"]["remediation"] == {"retries": 0, "remediateLastFailure": False}
+        assert "rollback" not in release["spec"]
+
+
 def test_legacy_contracts_are_retained_for_review_but_not_reapplied():
     objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/contracts.yaml").read_text()))
     assert any(item["kind"] == "CollaborationCluster" for item in objects)
