@@ -111,27 +111,3 @@ spec:
   ports: [443]
   directions: [export]
   maxAdvertisements: 1
----
-apiVersion: peering.re8ch.com/v1alpha1
-kind: ManagedAccessGrant
-metadata: {name: qwen-headlamp-admin, namespace: byoc-pilot, labels: {app.kubernetes.io/part-of: among-clusters}}
-spec:
-  peerRef: re8ch-qwen
-  advertisementRef: qwen-default-kubernetes
-  scope: Cluster
-  expiresAt: "2026-10-02T00:00:00Z"
-  rules: [{apiGroups: ["*"], resources: ["*"], verbs: ["*"]}]
-  approved: true
-  revoked: false
----
-apiVersion: peering.re8ch.com/v1alpha1
-kind: ManagedAccessGrant
-metadata: {name: artc-headlamp-admin, namespace: byoc-pilot, labels: {app.kubernetes.io/part-of: among-clusters}}
-spec:
-  peerRef: re8ch-artc
-  advertisementRef: artc-default-kubernetes
-  scope: Cluster
-  expiresAt: "2026-10-02T00:00:00Z"
-  rules: [{apiGroups: ["*"], resources: ["*"], verbs: ["*"]}]
-  approved: true
-  revoked: false
