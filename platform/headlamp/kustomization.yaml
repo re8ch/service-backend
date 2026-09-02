@@ -13,10 +13,10 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz.b64=assets/re8ch-headlamp-advanced-fabric-0.12.0.bundle.b64
-  - name: headlamp-among-clusters-v028
+  - name: headlamp-among-clusters-v036
     namespace: headlamp
     files:
-      - plugin.tar.gz.b64=assets/re8ch-headlamp-among-clusters-0.2.8.bundle.b64
+      - plugin.tar.gz=assets/re8ch-headlamp-among-clusters-0.3.6.tar.gz
   - name: headlamp-birfucate-browser-v010
     namespace: headlamp
     files:
