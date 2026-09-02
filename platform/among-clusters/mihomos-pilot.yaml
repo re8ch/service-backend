@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: mihomos-cluster
     peering.re8ch.com/advertise: "true"
   annotations:
-    peering.re8ch.com/protocol: socks5
+    peering.re8ch.com/protocol: tcp
     peering.re8ch.com/service-class: network.egress.mihomo
     peering.re8ch.com/policy-ref: re8ch-mihomos-egress
     peering.re8ch.com/target-peers: re8ch-qwen,re8ch-artc

@@ -96,7 +96,7 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
     assert policy["spec"] == {
         "peerSelector": {"matchNames": ["re8ch-qwen", "re8ch-artc"]},
         "serviceClasses": ["network.egress.mihomo"],
-        "protocols": ["socks5"],
+        "protocols": ["tcp"],
         "ports": [17891],
         "directions": ["export"],
         "maxAdvertisements": 1,
