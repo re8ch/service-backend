@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-among-clusters-view
+  labels:
+    app.kubernetes.io/name: among-clusters
+    app.kubernetes.io/component: headlamp-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: among-clusters-view
+subjects:
+  - kind: ServiceAccount
+    name: headlamp
+    namespace: headlamp
