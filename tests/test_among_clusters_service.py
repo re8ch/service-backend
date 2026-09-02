@@ -83,3 +83,29 @@ def test_byoc_pilot_enables_generation_bound_managed_access_grants():
         assert grant["spec"]["advertisementRef"] == f"{cluster}-default-kubernetes"
         assert grant["spec"]["scope"] == "Cluster"
         assert grant["spec"]["approved"] is True
+
+
+def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
+    objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/byoc-pilot.yaml").read_text()))
+    names = {(item["kind"], item["metadata"]["name"]) for item in objects}
+    assert ("Peer", "qwen-artc") not in names
+    assert ("AuthenticatedLink", "qwen-artc") not in names
+    assert ("PeerPolicy", "qwen-artc-default-deny") not in names
+
+    policy = next(item for item in objects if item["kind"] == "PeerPolicy" and item["metadata"]["name"] == "re8ch-mihomos-egress")
+    assert policy["spec"] == {
+        "peerSelector": {"matchNames": ["re8ch-qwen", "re8ch-artc"]},
+        "serviceClasses": ["network.egress.mihomo"],
+        "protocols": ["socks5"],
+        "ports": [17891],
+        "directions": ["export"],
+        "maxAdvertisements": 1,
+    }
+
+    service = yaml.safe_load((ROOT / "platform/among-clusters/mihomos-pilot.yaml").read_text())
+    assert service["kind"] == "Service"
+    assert service["metadata"]["namespace"] == "egress-fabric"
+    assert service["metadata"]["labels"]["peering.re8ch.com/advertise"] == "true"
+    assert service["metadata"]["annotations"]["peering.re8ch.com/target-peers"] == "re8ch-qwen,re8ch-artc"
+    assert service["spec"]["internalTrafficPolicy"] == "Local"
+    assert service["spec"]["ports"][0]["port"] == 17891

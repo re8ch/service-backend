@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomos-byoc-egress
+  namespace: egress-fabric
+  labels:
+    app.kubernetes.io/name: mihomos-byoc-egress
+    app.kubernetes.io/part-of: mihomos-cluster
+    peering.re8ch.com/advertise: "true"
+  annotations:
+    peering.re8ch.com/protocol: socks5
+    peering.re8ch.com/service-class: network.egress.mihomo
+    peering.re8ch.com/policy-ref: re8ch-mihomos-egress
+    peering.re8ch.com/target-peers: re8ch-qwen,re8ch-artc
+    peering.re8ch.com/port-name: mixed
+    peering.re8ch.com/ttl-seconds: "60"
+spec:
+  internalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: mihomos-node-cn
+  ports:
+    - name: mixed
+      port: 17891
+      targetPort: mixed
+      protocol: TCP

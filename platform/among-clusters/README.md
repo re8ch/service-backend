@@ -1,5 +1,14 @@
 # AmongClusters sovereign peering rollout
 
+The BYOC pilot uses a provider-star topology: qwen and artc peer independently
+with RE8CH and are not automatically peered with one another.
+
+`mihomos-pilot.yaml` advertises the RE8CH Mihomos SOCKS5 egress fabric only to
+the explicitly named `re8ch-qwen` and `re8ch-artc` peers. It remains a
+ClusterIP carried over authenticated QUIC sessions and is not a public
+AnyTLS/SOCKS listener. Removing the advertise label or its PeerPolicy revokes
+the pilot.
+
 This directory consumes the independently released and signed AmongClusters
 OCI artifacts. Flux must not deploy the legacy vendored charts under
 `clusters/re8ch/charts` for version 0.2 or later.
