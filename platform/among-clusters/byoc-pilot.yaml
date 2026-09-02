@@ -72,7 +72,7 @@ metadata: {name: re8ch-mihomos-egress, namespace: byoc-pilot, labels: {app.kuber
 spec:
   peerSelector: {matchNames: [re8ch-qwen, re8ch-artc]}
   serviceClasses: [network.egress.mihomo]
-  protocols: [socks5]
+  protocols: [tcp]
   ports: [17891]
   directions: [export]
   maxAdvertisements: 1
