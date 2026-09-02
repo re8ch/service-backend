@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: byoc-pilot
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+    peering.re8ch.com/tenant: byoc-pilot
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: Peer
+metadata:
+  name: qwen-artc
+  namespace: byoc-pilot
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+spec:
+  localIdentityRef: qwen
+  remoteIdentityRef: artc
+  invitationRef: qwen-artc-20260902
+  transports: [quic-mtls]
+  suspended: false
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: AuthenticatedLink
+metadata:
+  name: qwen-artc
+  namespace: byoc-pilot
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+spec:
+  peerRef: qwen-artc
+  transport: quic-mtls
+  localGateway: quic://192.0.2.115:8443
+  remoteGateway: quic://192.0.2.145:8443
+  sessionIdentity: spiffe://qwen.byoc/cluster/qwen
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: PeerPolicy
+metadata:
+  name: qwen-artc-default-deny
+  namespace: byoc-pilot
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+spec:
+  peerSelector:
+    matchNames: [qwen-artc]
+  serviceClasses: []
+  protocols: []
+  ports: []
+  directions: []
+  maxAdvertisements: 0
