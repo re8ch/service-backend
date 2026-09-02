@@ -65,7 +65,7 @@ spec:
               archive=/tmp/plugin.tar.gz
               stage=/headlamp/plugins/.birfucate-browser-0.1.0.new
               cp /plugin/plugin.tar.gz "$archive"
-              echo '59103b99c0dcc8520c132fc5e3e51126ee62e280cca23c9a8f4b0ff76cedc92a  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'f86e875da3870a43d6648406e75e462cfd319c7998de631a2f080336ed9d5b75  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage"

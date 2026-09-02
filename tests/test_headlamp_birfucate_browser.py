@@ -20,6 +20,9 @@ def test_plugin_is_explicitly_read_only():
 
 def test_plugin_queries_birfucate_metrics_through_service_proxy():
     source = (PLUGIN / "src/index.tsx").read_text()
+    assert "from '@kinvolk/headlamp-plugin/lib/ApiProxy'" in source
+    assert "await clusterRequest(path" in source
+    assert "K8s as any).clusterRequest" not in source
     assert "services/http:panel-victoria-metrics:8428/proxy" in source
     assert "birfucate_occupancy_units_total" in source
     assert "birfucate_bifurcation_score_total" in source
@@ -30,7 +33,7 @@ def test_plugin_queries_birfucate_metrics_through_service_proxy():
 def test_bundle_is_digest_pinned_and_contains_runtime_files():
     digest = hashlib.sha256(BUNDLE.read_bytes()).hexdigest()
     deployment = (ROOT / "platform/headlamp/deployment.yaml").read_text()
-    assert digest == "59103b99c0dcc8520c132fc5e3e51126ee62e280cca23c9a8f4b0ff76cedc92a"
+    assert digest == "f86e875da3870a43d6648406e75e462cfd319c7998de631a2f080336ed9d5b75"
     assert digest in deployment
     with tarfile.open(BUNDLE) as archive:
         names = set(archive.getnames())

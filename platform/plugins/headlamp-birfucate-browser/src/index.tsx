@@ -1,4 +1,5 @@
-import { K8s, registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
+import { registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
+import { clusterRequest } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { SectionBox, StatusLabel, Table } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Select, TextField, Typography } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -32,7 +33,7 @@ function human(value: number): string {
 
 async function instantQuery(query: string): Promise<Sample[]> {
   const path = `${VM_PROXY}/api/v1/query?query=${encodeURIComponent(query)}`;
-  const response: any = await (K8s as any).clusterRequest(path, {method: 'GET'});
+  const response: any = await clusterRequest(path, {method: 'GET'});
   if (response?.status !== 'success') throw new Error(response?.error || 'VictoriaMetrics query failed');
   return response?.data?.result || [];
 }
