@@ -96,9 +96,7 @@ spec:
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
               stage=/headlamp/plugins/.advanced-fabric-0.12.0.new
-              curl --fail --silent --show-error --location \
-                https://github.com/re8ch/headlamp-advanced-fabric/releases/download/v0.12.0/re8ch-headlamp-advanced-fabric-0.12.0.tar.gz \
-                --output "$archive"
+              base64 -d /plugin/plugin.tar.gz.b64 > "$archive"
               echo 'da561b967d0a08fe90a5430893643080a0c2f439409f0bf26017efa9ff674d9c  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
@@ -110,6 +108,9 @@ spec:
           volumeMounts:
             - name: plugins
               mountPath: /headlamp/plugins
+            - name: advanced-fabric-plugin
+              mountPath: /plugin
+              readOnly: true
         - name: install-among-clusters-plugin
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
           command: [/bin/sh, -ec]
@@ -129,9 +130,7 @@ spec:
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
               stage=/headlamp/plugins/.among-clusters-0.2.0.new
-              curl --fail --silent --show-error --location \
-                https://github.com/re8ch/among-clusters/releases/download/v0.2.0/re8ch-headlamp-among-clusters-0.2.0.tar.gz \
-                --output "$archive"
+              base64 -d /plugin/plugin.tar.gz.b64 > "$archive"
               echo 'a155e0e9717b040ac07260ff8ad49ba7223f48ca13806bf3961d20f1f3f283be  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
@@ -143,6 +142,9 @@ spec:
           volumeMounts:
             - name: plugins
               mountPath: /headlamp/plugins
+            - name: among-clusters-plugin
+              mountPath: /plugin
+              readOnly: true
         - name: install-public-edge-plugin
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
           command: [/bin/sh, -ec]
@@ -291,6 +293,12 @@ spec:
         - name: birfucate-browser-plugin
           configMap:
             name: headlamp-birfucate-browser-v010
+        - name: advanced-fabric-plugin
+          configMap:
+            name: headlamp-advanced-fabric-v0120
+        - name: among-clusters-plugin
+          configMap:
+            name: headlamp-among-clusters-v020
         - name: public-edge-plugin
           configMap:
             name: headlamp-public-edge-v011

@@ -6,7 +6,7 @@ OCI artifacts. Flux must not deploy the legacy vendored charts under
 
 ## Phase 1: Hub and read-only UI
 
-The first reconciliation pins Hub chart `0.2.0` and its runtime image by OCI
+The first reconciliation pins Hub chart `0.2.1` and its runtime image by OCI
 digest, stops the legacy in-cluster Agent, and sets
 `migration.replaceCollaborationCRDs=true`. The migration hook emits sanitized
 legacy object specifications before deleting the four experimental
