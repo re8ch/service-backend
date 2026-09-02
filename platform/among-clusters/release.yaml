@@ -83,13 +83,20 @@ spec:
     peerConfirmations:
       - {peerRef: re8ch-qwen, bundleDigest: sha256:1ca3850085419fd4cb099a0922452e1c1d2ba044396fe64f920f63fd78123357}
       - {peerRef: re8ch-artc, bundleDigest: sha256:72dbab1a10af9585ff65e652c0a26240275f3a7cda3206d1aead6ebf5bf71a8e}
-    linkObservations:
-      - {linkRef: re8ch-qwen, peerRef: re8ch-qwen, endpoint: "quic://192.0.2.115:8443", expectedSPIFFEID: "spiffe://qwen.byoc/cluster/qwen"}
-      - {linkRef: re8ch-artc, peerRef: re8ch-artc, endpoint: "quic://192.0.2.145:8443", expectedSPIFFEID: "spiffe://artc.byoc/cluster/artc"}
+    # BYOC peers originate sessions to the provider-owned public authority.
+    # Their observations drive link status; restricted-node-6dc3f140f9 never dials customer-private nodes.
+    linkObservations: []
     gateway:
+      publicAuthority:
+        ownership: provider
+        sourceRef: operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
+        publicIP: 192.0.2.79
+        deliveryMode: mikrotik-ebgp-transit-dnat
+        edgeType: RouterOS
+        lanBackend: 192.0.2.97
       peerBundleSecret: among-clusters-peer-bundle
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
-      listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.183:8443", hostPort: 8443}
+      listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.79:8443", hostPort: 8443}
       peerIdentities:
         re8ch-qwen: ["spiffe://qwen.byoc/cluster/qwen"]
         re8ch-artc: ["spiffe://artc.byoc/cluster/artc"]
@@ -97,13 +104,13 @@ spec:
         - name: qwen-k8s
           port: 22240
           listen: ":22240"
-          endpoint: "192.0.2.115:8443"
           serviceIdentity: spiffe://qwen.byoc/ns/default/service/kubernetes
           expectedSPIFFEID: spiffe://qwen.byoc/cluster/qwen
+          sessionOnly: true
         - name: artc-k8s
           port: 23768
           listen: ":23768"
-          endpoint: "192.0.2.145:8443"
           serviceIdentity: spiffe://artc.byoc/ns/default/service/kubernetes
           expectedSPIFFEID: spiffe://artc.byoc/cluster/artc
+          sessionOnly: true
     managedAccess: {enabled: false}
