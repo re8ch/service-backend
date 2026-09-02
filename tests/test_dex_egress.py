@@ -23,3 +23,8 @@ def test_dex_disables_undeclared_process_proxy():
     assert environment["HTTP_PROXY"] == ""
     assert environment["HTTPS_PROXY"] == ""
     assert environment["NO_PROXY"] == ""
+
+
+def test_dex_is_reconciled_by_the_cluster_kustomization():
+    kustomization = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/auth/dex/dex-ha-deployment.yaml" in kustomization["resources"]
