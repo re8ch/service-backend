@@ -3,8 +3,8 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:98ecc17ca14b7ee9e640d9eaf6f97a21cedcffc0b17890bb3158fa48d488bff3"
-CHART_DIGEST = "sha256:fb2c3e44d46552ceed87b69adf8314538a1f0b496ce7f90aa3d2059ad6a1f0fc"
+IMAGE_DIGEST = "sha256:e6e687d5d46d125acfbf9eff9044b124a12cf7d7c2f1f360bd9b4c466c4201a6"
+CHART_DIGEST = "sha256:b9f7e3a4d087e0be32338224226913b1bd0d11b6e045de83a47219a979dcc4eb"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
@@ -16,6 +16,8 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert release["spec"]["values"]["image"]["digest"] == IMAGE_DIGEST
     assert release["spec"]["values"]["managedAccess"]["enabled"] is False
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
+    assert release["spec"]["values"]["replicaCount"] == 1
+    assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
 
 
 def test_gitops_keeps_human_relay_separate_from_service_health():
