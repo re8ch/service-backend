@@ -3,7 +3,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:a67831c25dfb6c4e67b619e8b7c84bebdf129a514d35a24906fbe310dd5a8e14"
+IMAGE_DIGEST = "sha256:0708e32bffc0a0e3a3aa215fced02b82b62df678425700d2fc48953e6faff891"
 CHART_DIGEST = "sha256:7e178a52c2a7bc524b794f49bdc044141edf10eb388f5a25ba22b39cb56c566d"
 
 
@@ -13,7 +13,10 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     release = next(item for item in objects if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/among-clusters-hub"
     assert source["spec"]["ref"]["digest"] == CHART_DIGEST
-    assert release["spec"]["values"]["image"]["digest"] == IMAGE_DIGEST
+    assert release["spec"]["values"]["image"] == {
+        "repository": "registry.re8ch.com/functions-shared/among-clusters",
+        "digest": IMAGE_DIGEST,
+    }
     assert release["spec"]["values"]["managedAccess"]["enabled"] is True
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1

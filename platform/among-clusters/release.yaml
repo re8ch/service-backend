@@ -22,8 +22,8 @@ spec:
   rollback: {cleanupOnFail: true}
   values:
     image:
-      repository: ghcr.io/re8ch/among-clusters
-      digest: sha256:a67831c25dfb6c4e67b619e8b7c84bebdf129a514d35a24906fbe310dd5a8e14
+      repository: registry.re8ch.com/functions-shared/among-clusters
+      digest: sha256:0708e32bffc0a0e3a3aa215fced02b82b62df678425700d2fc48953e6faff891
     replicaCount: 1
     nodeSelector:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
