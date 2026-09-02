@@ -3,8 +3,8 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:e6e687d5d46d125acfbf9eff9044b124a12cf7d7c2f1f360bd9b4c466c4201a6"
-CHART_DIGEST = "sha256:b9f7e3a4d087e0be32338224226913b1bd0d11b6e045de83a47219a979dcc4eb"
+IMAGE_DIGEST = "sha256:a67831c25dfb6c4e67b619e8b7c84bebdf129a514d35a24906fbe310dd5a8e14"
+CHART_DIGEST = "sha256:7e178a52c2a7bc524b794f49bdc044141edf10eb388f5a25ba22b39cb56c566d"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
@@ -14,7 +14,7 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/among-clusters-hub"
     assert source["spec"]["ref"]["digest"] == CHART_DIGEST
     assert release["spec"]["values"]["image"]["digest"] == IMAGE_DIGEST
-    assert release["spec"]["values"]["managedAccess"]["enabled"] is False
+    assert release["spec"]["values"]["managedAccess"]["enabled"] is True
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1
     assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
@@ -55,3 +55,19 @@ def test_legacy_agent_cleanup_is_name_scoped():
         "verbs": ["delete"],
     }
     assert "among-clusters-hub-agent" in job["spec"]["template"]["spec"]["containers"][0]["args"][0]
+
+
+def test_byoc_pilot_declares_policy_gated_cluster_access():
+    objects = list(yaml.safe_load_all((ROOT / "platform/among-clusters/byoc-pilot.yaml").read_text()))
+    by_kind = {}
+    for item in objects:
+        by_kind.setdefault(item["kind"], {})[item["metadata"]["name"]] = item
+    for cluster in ("qwen", "artc"):
+        peer = by_kind["Peer"][f"re8ch-{cluster}"]
+        assert peer["spec"]["localIdentityRef"] == "re8ch"
+        policy = by_kind["PeerPolicy"][f"{cluster}-kubernetes-api"]
+        assert policy["spec"]["protocols"] == ["kubernetes-api"]
+        grant = by_kind["ManagedAccessGrant"][f"{cluster}-headlamp-admin"]
+        assert grant["spec"]["scope"] == "Cluster"
+        assert grant["spec"]["approved"] is True
+        assert grant["spec"]["rules"] == [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}]

@@ -6,7 +6,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-hub
   ref:
-    digest: sha256:b9f7e3a4d087e0be32338224226913b1bd0d11b6e045de83a47219a979dcc4eb
+    digest: sha256:7e178a52c2a7bc524b794f49bdc044141edf10eb388f5a25ba22b39cb56c566d
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -23,12 +23,16 @@ spec:
   values:
     image:
       repository: ghcr.io/re8ch/among-clusters
-      digest: sha256:e6e687d5d46d125acfbf9eff9044b124a12cf7d7c2f1f360bd9b4c466c4201a6
+      digest: sha256:a67831c25dfb6c4e67b619e8b7c84bebdf129a514d35a24906fbe310dd5a8e14
     replicaCount: 1
     nodeSelector:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
     adminTokenSecret: among-clusters-hub-admin
-    managedAccess: {enabled: false}
+    managedAccess:
+      enabled: true
+      broker:
+        hostname: among-clusters.re8ch.com
+        namespace: credential-broker
     migration:
       # The one-time replacement completed with release v18. Keep destructive
       # migration disabled for every subsequent reconciliation.
