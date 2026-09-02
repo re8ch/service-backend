@@ -625,7 +625,7 @@
     "kind": "agent-memory",
     "module": "among-clusters",
     "ref": "catalogs/platform/modules/among-clusters/MEMORY.md",
-    "sha256": "b462a2b70a03a23a8603233503731f7356aee1c754e8a3b071c006dd2965c997"
+    "sha256": "378169da190d3137e092ff5a7c6c569efba3102a1cf0145a680b41f3a52c8042"
   },
   {
     "module": "brand-assets",
