@@ -6,4 +6,5 @@ resources:
   - headlamp-viewer.yaml
   - byoc-pilot.yaml
   - headlamp-imports.yaml
+  - broker-network-policy.yaml
   - legacy-agent-cleanup.yaml
