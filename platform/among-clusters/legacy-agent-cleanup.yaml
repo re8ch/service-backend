@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: among-clusters-legacy-agent-cleanup, namespace: flux-system}
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: among-clusters-legacy-agent-cleanup, namespace: flux-system}
+rules:
+  - apiGroups: [helm.toolkit.fluxcd.io]
+    resources: [helmreleases]
+    resourceNames: [among-clusters-hub-agent]
+    verbs: [get, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: among-clusters-legacy-agent-cleanup, namespace: flux-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: among-clusters-legacy-agent-cleanup}
+subjects:
+  - {kind: ServiceAccount, name: among-clusters-legacy-agent-cleanup, namespace: flux-system}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: among-clusters-legacy-agent-cleanup
+  namespace: flux-system
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      serviceAccountName: among-clusters-legacy-agent-cleanup
+      restartPolicy: Never
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: delete-legacy-release
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              api=https://kubernetes.default.svc/apis/helm.toolkit.fluxcd.io/v2/namespaces/flux-system/helmreleases/among-clusters-hub-agent
+              token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              code=$(curl --silent --show-error --output /tmp/response --write-out '%{http_code}' \
+                --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+                --header "Authorization: Bearer $token" \
+                --request DELETE "$api")
+              case "$code" in
+                200|202|404) exit 0 ;;
+                *) cat /tmp/response >&2; exit 1 ;;
+              esac
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
