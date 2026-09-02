@@ -117,6 +117,40 @@ spec:
             - name: among-clusters-plugin
               mountPath: /plugin
               readOnly: true
+        - name: install-public-edge-plugin
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/public-edge-0.1.1
+              archive=/tmp/plugin.tar.gz
+              cp /plugin/plugin.tar.gz "$archive"
+              echo 'efd28306361723382cf776c5fcc6c07610d030359ea7ba4222ca36944f1a7b2a  /tmp/plugin.tar.gz' | sha256sum -c -
+              rm -rf "$target.new"
+              mkdir -p "$target.new"
+              tar -xzf "$archive" -C "$target.new" --strip-components=1
+              rm -rf "$target"
+              mv "$target.new" "$target"
+          volumeMounts:
+            - {name: plugins, mountPath: /headlamp/plugins}
+            - {name: public-edge-plugin, mountPath: /plugin, readOnly: true}
+        - name: install-mihomos-cluster-plugin
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/mihomos-cluster-0.1.1
+              archive=/tmp/plugin.tar.gz
+              cp /plugin/plugin.tar.gz "$archive"
+              echo 'c9cf279206f877433cb3800219c4938f4015cb5402b07f3cf2fa121754cfd75e  /tmp/plugin.tar.gz' | sha256sum -c -
+              rm -rf "$target.new"
+              mkdir -p "$target.new"
+              tar -xzf "$archive" -C "$target.new" --strip-components=1
+              rm -rf "$target"
+              mv "$target.new" "$target"
+          volumeMounts:
+            - {name: plugins, mountPath: /headlamp/plugins}
+            - {name: mihomos-cluster-plugin, mountPath: /plugin, readOnly: true}
         - name: install-flux-plugin
           image: registry.re8ch.com/functions-shared/headlamp-plugin-flux@sha256:1570eba449f69bbc0d07bfc7fa983abcdc747c1885be4b15ea4792b4d63e5595
           command: [/bin/sh, -c]
@@ -224,7 +258,7 @@ spec:
               readOnly: true
       volumes:
         - name: plugins
-          # Both plugins are installed deterministically by init containers.
+          # Plugins are installed deterministically by init containers.
           # Keep the runtime directory pod-local so restricted-node-6dc3f140f9 failover does not
           # depend on a cross-node CephFS NodePublish operation.
           emptyDir: {}
@@ -234,6 +268,12 @@ spec:
         - name: birfucate-browser-plugin
           configMap:
             name: headlamp-birfucate-browser-v010
+        - name: public-edge-plugin
+          configMap:
+            name: headlamp-public-edge-v011
+        - name: mihomos-cluster-plugin
+          configMap:
+            name: headlamp-mihomos-cluster-v011
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template
