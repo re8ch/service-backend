@@ -9,10 +9,6 @@ resources:
   - controlled-cluster-relay.yaml
   - oidc-admin-rbac.yaml
 configMapGenerator:
-  - name: headlamp-penrose-plugin-v0110
-    namespace: headlamp
-    files:
-      - plugin.tar.gz=assets/re8ch-headlamp-advanced-fabric-0.11.0.bundle
   - name: headlamp-birfucate-browser-v010
     namespace: headlamp
     files:
