@@ -2,7 +2,7 @@ stages: [validate, test, render, security, release]
 
 default:
   image:
-    name: registry.re8ch.com/helm/connectool-ci-tools@sha256:9e9ea9643b5f9632b73da484289a0b60a16ba576dd35732d738bf5c595393c77
+    name: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
     entrypoint: [""]
   retry:
     max: 2
@@ -48,7 +48,7 @@ connectool-chart:
 release-connectool-chart:
   stage: release
   image:
-    name: registry.re8ch.com/helm/connectool-ci-tools@sha256:9e9ea9643b5f9632b73da484289a0b60a16ba576dd35732d738bf5c595393c77
+    name: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
     entrypoint: [""]
   before_script: []
   id_tokens:
