@@ -5,9 +5,9 @@ metadata:
   namespace: dex
   labels: {app.kubernetes.io/name: dex}
 spec:
-  # Incident mitigation: restricted-node-6dc3f140f9's host-network endpoint is unreachable from
-  # PublicEdge and causes intermittent 503s. Keep the verified Shanghai
-  # endpoint serving until the restricted-node-6dc3f140f9 cross-node route is repaired.
+  # Incident mitigation: cross-node PublicEdge traffic cannot reach the
+  # domain-ex host-network endpoint. Keep the locally reachable core endpoint
+  # serving until Dex can return to a routable HA data path.
   replicas: 1
   strategy:
     type: RollingUpdate
@@ -37,7 +37,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [domain-ex]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
