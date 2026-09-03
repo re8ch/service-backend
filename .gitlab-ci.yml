@@ -16,11 +16,13 @@ schema:
 
 unit:
   stage: test
+  tags: [r640-fallback]
   script:
     - pytest -q
 
 render:
   stage: render
+  tags: [r640-fallback]
   script:
     - kustomize build clusters/re8ch >/tmp/rendered.yaml
     - kustomize build platform/observability/bootstrap >/tmp/observability-bootstrap.yaml
@@ -31,9 +33,10 @@ render:
 
 connectool-chart:
   stage: render
+  tags: [r640-fallback]
   before_script: []
   image:
-    name: alpine/helm:3.18.6
+    name: registry.re8ch.com/helm/connectool-ci-tools@sha256:9e9ea9643b5f9632b73da484289a0b60a16ba576dd35732d738bf5c595393c77
     entrypoint: [""]
   script:
     - helm lint clusters/re8ch/charts/connectool
