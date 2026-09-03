@@ -105,9 +105,9 @@ build-connectool-ci-tools:
     - /tmp/tools-layer/usr/local/bin/crane append --base registry.re8ch.com/image/re8ch-ai-operations@sha256:cf8baa9d2874a910fd9e144edba15a09ea263710fb48bfb04c69f4b9b5dd830e --new_layer /tmp/tools-layer.tar.gz --new_tag registry.re8ch.com/helm/connectool-ci-tools:0.1.0
     - /tmp/tools-layer/usr/local/bin/crane digest registry.re8ch.com/helm/connectool-ci-tools:0.1.0
   rules:
-    - if: '$CI_COMMIT_BRANCH'
-      changes:
-        - operations/ci/images/connectool-ci-tools/Dockerfile
+    - if: '$CI_COMMIT_BRANCH == "codex/connectool-ci-download-retries"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes: [operations/ci/images/connectool-ci-tools/Dockerfile]
 
 secret-scan:
   stage: security
