@@ -8,9 +8,7 @@ spec:
   replicas: 2
   strategy:
     type: RollingUpdate
-    # hostNetwork binds 5556 on each identity node, so replacement must stop
-    # the old pod before scheduling its successor on the same node.
-    rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
   selector: {matchLabels: {app.kubernetes.io/name: dex}}
   template:
     metadata:
@@ -18,8 +16,9 @@ spec:
       annotations:
         images.re8ch.com/dex-digest: sha256:3b472d149aab6bb00516230bed8c582fc66a037966b8c222219b3942228cc5b2
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      # Use the Cilium pod network so PublicEdge reaches both replicas through
+      # routable pod IPs instead of node-local host firewall rules.
+      dnsPolicy: ClusterFirst
       # Keep the identity bootstrap path available while the replacement DNS
       # plane is being repaired. This is the stable ClusterIP of the GitOps-
       # managed primary database Service, not a PostgreSQL member address.
