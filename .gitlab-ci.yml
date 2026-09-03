@@ -1,7 +1,7 @@
 stages: [validate, test, render, security, release]
 
 default:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.12-alpine
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.12-alpine3.22
   retry:
     max: 2
     when: runner_system_failure
@@ -52,18 +52,9 @@ connectool-chart:
 release-connectool-chart:
   stage: release
   image:
-    name: alpine/helm:3.18.6
+    name: registry.re8ch.com/helm/connectool-ci-tools:0.1.0
     entrypoint: [""]
-  before_script:
-    - apk add --no-cache ca-certificates curl tar
-    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.3/cosign-linux-amd64
-    - chmod +x /usr/local/bin/cosign
-    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/crane.tar.gz https://github.com/google/go-containerregistry/releases/download/v0.20.3/go-containerregistry_Linux_x86_64.tar.gz
-    - tar -tzf /tmp/crane.tar.gz crane >/dev/null
-    - tar -xzf /tmp/crane.tar.gz -C /usr/local/bin crane
-    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/oras.tar.gz https://github.com/oras-project/oras/releases/download/v1.2.3/oras_1.2.3_linux_amd64.tar.gz
-    - tar -tzf /tmp/oras.tar.gz oras >/dev/null
-    - tar -xzf /tmp/oras.tar.gz -C /usr/local/bin oras
+  before_script: []
   id_tokens:
     SIGSTORE_ID_TOKEN:
       aud: sigstore
@@ -71,6 +62,35 @@ release-connectool-chart:
     - operations/ci/release-connectool-chart.sh
   rules:
     - if: '$CI_COMMIT_TAG =~ /^connectool-v[0-9]+\.[0-9]+\.[0-9]+$/'
+
+build-connectool-ci-tools:
+  stage: release
+  image:
+    name: alpine/helm:3.18.6
+    entrypoint: [""]
+  before_script: []
+  script:
+    - apk add --no-cache ca-certificates curl tar
+    - install -d /tmp/tools-layer/usr/local/bin
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/tools-layer/usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.3/cosign-linux-amd64
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/crane.tar.gz https://github.com/google/go-containerregistry/releases/download/v0.20.3/go-containerregistry_Linux_x86_64.tar.gz
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/oras.tar.gz https://github.com/oras-project/oras/releases/download/v1.2.3/oras_1.2.3_linux_amd64.tar.gz
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/helm.tar.gz https://get.helm.sh/helm-v3.18.6-linux-amd64.tar.gz
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.6.0/kustomize_v5.6.0_linux_amd64.tar.gz
+    - tar -tzf /tmp/crane.tar.gz crane >/dev/null && tar -xzf /tmp/crane.tar.gz -C /tmp/tools-layer/usr/local/bin crane
+    - tar -tzf /tmp/oras.tar.gz oras >/dev/null && tar -xzf /tmp/oras.tar.gz -C /tmp/tools-layer/usr/local/bin oras
+    - tar -tzf /tmp/helm.tar.gz linux-amd64/helm >/dev/null && tar -xzf /tmp/helm.tar.gz -C /tmp linux-amd64/helm && install -m 0755 /tmp/linux-amd64/helm /tmp/tools-layer/usr/local/bin/helm
+    - tar -tzf /tmp/kustomize.tar.gz kustomize >/dev/null && tar -xzf /tmp/kustomize.tar.gz -C /tmp/tools-layer/usr/local/bin kustomize
+    - chmod 0755 /tmp/tools-layer/usr/local/bin/*
+    - tar -czf /tmp/tools-layer.tar.gz -C /tmp/tools-layer .
+    - export DOCKER_CONFIG="$(mktemp -d)"
+    - printf '%s' "$CONNECTOOL_PASSWORD" | helm registry login registry.re8ch.com --username "$CONNECTOOL_USERNAME" --password-stdin
+    - /tmp/tools-layer/usr/local/bin/crane append --base registry.re8ch.com/image/re8ch-ai-operations@sha256:cf8baa9d2874a910fd9e144edba15a09ea263710fb48bfb04c69f4b9b5dd830e --new_layer /tmp/tools-layer.tar.gz --new_tag registry.re8ch.com/helm/connectool-ci-tools:0.1.0
+    - /tmp/tools-layer/usr/local/bin/crane digest registry.re8ch.com/helm/connectool-ci-tools:0.1.0
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - operations/ci/images/connectool-ci-tools/Dockerfile
 
 secret-scan:
   stage: security

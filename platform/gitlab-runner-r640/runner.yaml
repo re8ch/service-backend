@@ -116,6 +116,14 @@ data:
       token = "__RUNNER_TOKEN__"
       executor = "kubernetes"
       request_concurrency = 2
+      environment = [
+        "HTTP_PROXY=http://192.0.2.183:17891",
+        "HTTPS_PROXY=http://192.0.2.183:17891",
+        "http_proxy=http://192.0.2.183:17891",
+        "https_proxy=http://192.0.2.183:17891",
+        "NO_PROXY=127.0.0.1,localhost,.svc,.cluster.local,192.0.2.203/8,registry.re8ch.com",
+        "no_proxy=127.0.0.1,localhost,.svc,.cluster.local,192.0.2.203/8,registry.re8ch.com"
+      ]
       [runners.kubernetes]
         namespace = "gitlab-runner"
         service_account = "r640-fallback-runner"
