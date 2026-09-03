@@ -31,10 +31,6 @@ render:
 
 connectool-chart:
   stage: render
-  before_script: []
-  image:
-    name: alpine/helm:3.18.6
-    entrypoint: [""]
   script:
     - helm lint clusters/re8ch/charts/connectool
     - helm lint clusters/re8ch/charts/connectool -f clusters/re8ch/charts/connectool/examples/re8ch-values.yaml
