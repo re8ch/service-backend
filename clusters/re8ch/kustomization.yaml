@@ -28,4 +28,5 @@ resources:
   - ../../platform/apps/access-subscription
   - ../../platform/observability-source
   - ../../platform/connectool
+  - ../../platform/gitlab-runner-r640
   - ../../platform/external-projects
