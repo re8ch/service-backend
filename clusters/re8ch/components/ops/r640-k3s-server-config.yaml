@@ -24,6 +24,7 @@ node-label:
   - "re8ch.com/cilium-migrate=true"
 disable:
   - servicelb
+  - coredns
 kubelet-arg:
   - "max-pods=1024"
 kube-apiserver-arg:
