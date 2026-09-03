@@ -10,6 +10,7 @@ before_script: []
 
 schema:
   stage: validate
+  tags: [macmini-service-backend]
   script:
     - python tests/validate_schemas.py
     - python operations/scripts/validate-r640-public-authority.py
@@ -69,11 +70,13 @@ release-connectool-chart:
 
 secret-scan:
   stage: security
+  tags: [macmini-service-backend]
   script:
     - python tests/check_no_plaintext_secrets.py
 
 workspace-drift:
   stage: validate
+  tags: [macmini-service-backend]
   script:
     - python operations/workspace-controller/workspace.py doctor
     - python operations/workspace-controller/workspace.py index --write
