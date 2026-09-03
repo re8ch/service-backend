@@ -26,15 +26,16 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  # Identity must remain available when restricted-node-6dc3f140f9 is offline.
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  # Keep identity on the core anchor and a separate stable site.
+                  # WSL nodes remain eligible for observation workloads only.
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9, domain-ex]}
           preferredDuringSchedulingIgnoredDuringExecution:
-            # A1 already carries the pinned image; prefer it for the first
-            # recovery replica when B1's international registry egress is down.
+            # Prefer the core anchor while required anti-affinity keeps the
+            # second replica on domain-ex in the Shanghai failure domain.
             - weight: 100
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
@@ -43,8 +44,8 @@ spec:
       containers:
         - name: dex
           image: ghcr.io/re8ch/dex:v2.44.0-amd64@sha256:3b472d149aab6bb00516230bed8c582fc66a037966b8c222219b3942228cc5b2
-          # A1/B1 receive this digest through the audited CephFS cache-transfer
-          # path, so ordinary restarts use the node-local CRI cache.
+          # The digest is immutable; ordinary restarts may use node-local CRI
+          # cache while a new target can pull the exact artifact.
           imagePullPolicy: IfNotPresent
           command: [/usr/local/bin/dex]
           args: [serve, /etc/dex/config.yaml]

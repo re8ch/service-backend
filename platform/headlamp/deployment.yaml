@@ -38,7 +38,9 @@ spec:
                     # restricted-node-6dc3f140f9 is the durable failover/build node when either WSL
                     # control-plane node is unavailable. The plugins PVC is
                     # CephFS, so the same versioned bundle remains shared.
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+                    # Run the management UI on the core anchor and a stable
+                    # remote failure domain, not on lifecycle-variable WSL.
+                    values: [restricted-node-6dc3f140f9, domain-ex]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
