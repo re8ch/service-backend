@@ -18,8 +18,9 @@ schema:
 
 unit:
   stage: test
+  image: registry.re8ch.com/helm/connectool-ci-tools@sha256:9e9ea9643b5f9632b73da484289a0b60a16ba576dd35732d738bf5c595393c77
+  before_script: []
   script:
-    - apk add --no-cache helm
     - pytest -q
 
 render:
