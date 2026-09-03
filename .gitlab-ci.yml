@@ -2,6 +2,9 @@ stages: [validate, test, render, security, release]
 
 default:
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.12-alpine
+  retry:
+    max: 2
+    when: runner_system_failure
 
 before_script:
   - apk add --no-cache git
@@ -44,9 +47,9 @@ connectool-chart:
     - helm template connectool clusters/re8ch/charts/connectool --namespace connectool -f clusters/re8ch/charts/connectool/examples/re8ch-values.yaml >/tmp/connectool.yaml
     - helm package clusters/re8ch/charts/connectool --destination dist
     - test -s /tmp/connectool.yaml
-    - test -s dist/connectool-0.1.4.tgz
+    - test -s dist/connectool-0.1.5.tgz
   artifacts:
-    paths: [dist/connectool-0.1.4.tgz]
+    paths: [dist/connectool-0.1.5.tgz]
 
 release-connectool-chart:
   stage: release
