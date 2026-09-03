@@ -30,7 +30,7 @@ def test_every_plugin_has_independent_identity():
     assert len(identities) == len(set(identities))
 
 
-def test_headlamp_rollout_does_not_deadlock_on_two_eligible_nodes():
+def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
     rolling_update = deployment["spec"]["strategy"]["rollingUpdate"]
     eligible_nodes = set(
@@ -41,7 +41,7 @@ def test_headlamp_rollout_does_not_deadlock_on_two_eligible_nodes():
 
     assert deployment["spec"]["replicas"] == 2
     assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
-    assert eligible_nodes == {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"}
+    assert eligible_nodes == {"restricted-node-6dc3f140f9", "domain-ex"}
     plugins_volume = next(
         volume for volume in deployment["spec"]["template"]["spec"]["volumes"]
         if volume["name"] == "plugins"
