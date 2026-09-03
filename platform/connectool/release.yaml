@@ -10,7 +10,7 @@ spec:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://gitlab\.com$
-        subject: ^project_path:reachievellc/service-backend:ref_type:tag:ref:connectool-v[0-9]+\.[0-9]+\.[0-9]+$
+        subject: ^https://gitlab\.com/reachievellc/service-backend//\.gitlab-ci\.yml@refs/tags/connectool-v[0-9]+\.[0-9]+\.[0-9]+$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
