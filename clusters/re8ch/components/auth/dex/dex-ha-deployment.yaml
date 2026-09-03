@@ -8,7 +8,9 @@ spec:
   replicas: 2
   strategy:
     type: RollingUpdate
-    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    # Exactly two eligible nodes plus required anti-affinity leave no placement
+    # for a surge pod, so replace one replica at a time.
+    rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
   selector: {matchLabels: {app.kubernetes.io/name: dex}}
   template:
     metadata:
