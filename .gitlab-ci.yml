@@ -16,6 +16,8 @@ schema:
 
 unit:
   stage: test
+  before_script:
+    - git submodule update --init catalogs/platform/modules/connectool/source
   script:
     - pytest -q
 
