@@ -53,3 +53,8 @@ def test_duplicate_mcp_owners_are_rejected():
     )
     assert result.returncode != 0
     assert "exactly one Codex mcpOwner" in result.stderr
+
+
+def test_flux_oci_digest_suffix_is_sanitized_for_labels():
+    helpers = (CHART / "templates/_helpers.tpl").read_text()
+    assert 'replace "+" "_"' in helpers
