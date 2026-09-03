@@ -19,6 +19,7 @@ schema:
 unit:
   stage: test
   script:
+    - apk add --no-cache helm
     - pytest -q
 
 render:
