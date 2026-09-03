@@ -29,13 +29,13 @@ durable desired state.
 ## Install order
 
 1. Restore access to the active K3s API and verify the active server topology.
-   `apply-managed-ops.sh` also installs the narrow CoreDNS availability policy
-   before changing ToolHive resources, because KSA OIDC and OTLP both depend on
-   stable cluster DNS.
+   Verify the Helm-managed Advanced Fabric DNS authority before changing
+   ToolHive resources, because KSA OIDC and OTLP both depend on stable cluster
+   DNS.
 
-   The CoreDNS verifier checks desired replicas plus actual Pod Ready conditions,
-   because the Deployment controller's aggregate `readyReplicas` can briefly be
-   stale during node-taint eviction. It still requires two genuinely Ready Pods.
+   The verifier checks the fixed `192.0.2.149` Service IP, desired replicas and
+   actual Pod Ready conditions. It requires three genuinely Ready authoritative
+   DNS Pods on distinct eligible nodes.
 2. Install the CRD and operator charts at the same pinned ToolHive version.
 3. Run `apply-managed-ops.sh`; it syncs the reviewed Ops source ConfigMap,
    admin-only Harbor credential, common policy objects, proxy scheduling

@@ -129,12 +129,12 @@ spec:
             summary: Hubble observes sustained dropped traffic
             description: "Drop reason {{ $labels.reason }} exceeds five packets per second between namespaces."
             runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/network-routing-cost-observability-2026-08-02.md
-        - alert: Re8chCoreDNSFailureRatio
+        - alert: Re8chAdvancedFabricDNSFailureRatio
           expr: sum(rate(advanced_fabric_dns_failures_total[5m])) / clamp_min(sum(rate(advanced_fabric_dns_queries_total[5m])), 0.001) > 0.02
           for: 10m
-          labels: {severity: warning, owner: platform-network, service: coredns, tier: critical, alert_layer: prometheus, signal_domain: network}
+          labels: {severity: warning, owner: platform-network, service: advanced-fabric-dns, tier: critical, alert_layer: prometheus, signal_domain: network}
           annotations:
-            summary: CoreDNS failure ratio exceeds two percent
+            summary: Advanced Fabric DNS failure ratio exceeds two percent
             description: DNS failures have remained elevated for ten minutes.
             runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/k3s-cilium-gateway-operations-runbook-2026-08-16.md
         - alert: Re8chNodeNetworkErrors
