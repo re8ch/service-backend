@@ -22,6 +22,7 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
     ]
     assert release["spec"]["upgrade"]["preserveValues"] is False
     assert release["spec"]["test"] == {"enable": True, "ignoreFailures": False}
+    assert release["spec"]["values"]["advancedFabric"]["networkQuality"]["victoriaMetricsServiceScrape"] is False
 
 
 def test_every_managed_server_uses_fixed_cluster_dns():
