@@ -13,7 +13,7 @@ infrastructure. They run in isolated namespaces and do not replace OpenSandbox.
 Hard safety rules:
 
 - no host-kernel installation or automatic reboot;
-- no automatic CoreDNS rewrite;
+- no automatic cluster DNS rewrite;
 - compute is pinned to `restricted-node-6dc3f140f9`;
 - no public ingress during qualification;
 - all durable test data uses dedicated CephFS claims;
@@ -49,7 +49,8 @@ directly with HTTP 200, and reported public IP `192.0.2.189` through the
 normal restricted-node-6dc3f140f9 -> MikroTik -> LA route. Direct OpenAI was reset by the mainland
 cross-border path, while the same guest explicitly using the node-local Mihomo
 Service reached OpenAI and received the expected unauthenticated HTTP 401.
-Only CoreDNS `192.0.2.170/32` and Mihomo `192.0.2.252/32` were admitted from
+Only the then-current DNS endpoint `192.0.2.170/32` and Mihomo
+`192.0.2.252/32` were admitted from
 Cube's otherwise private-range-denied policy.
 
 MitOS still has `eth0` (`192.0.2.232/30`) but cannot reach its `192.0.2.108`
@@ -162,7 +163,7 @@ Mihomo must allow only the DNS and proxy endpoints they consume:
 ```json
 {
   "network": {
-    "allowOut": ["192.0.2.170/32", "192.0.2.252/32"]
+    "allowOut": ["192.0.2.149/32", "192.0.2.252/32"]
   }
 }
 ```
