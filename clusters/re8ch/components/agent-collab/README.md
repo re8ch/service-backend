@@ -6,8 +6,8 @@
 ## Current restricted-node-6dc3f140f9 Runtime
 
 - Teable 和 Redis 固定在 `restricted-node-6dc3f140f9`。
-- `r640-local-dns.yaml` 提供 restricted-node-6dc3f140f9 本地 CoreDNS；节点 kubelet 通过
-  `r640-k3s-local-dns.config.yaml` 使用该 DNS。
+- 集群内 DNS 统一由 Advanced Fabric DNS `192.0.2.42` 提供；本目录不再
+  维护节点专用 DNS 或 kubelet DNS 覆盖。
 - `teable-edge-relay.yaml` 在 ICP 节点把 Teable restricted-node-6dc3f140f9 NodePort 转给面板
   Nginx；`teable-panel-nginx.conf` 是面板端配置的受控副本。
 - `wechat-content-orchestrator.yaml` 提供 Teable → Kagent → Codex MCP

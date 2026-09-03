@@ -147,11 +147,11 @@ data:
               source: k3s
               cls: k3s
 
-      - job_name: k8s-coredns
+      - job_name: advanced-fabric-dns
         scrape_interval: 30s
         scrape_timeout: 10s
         static_configs:
-          - targets: ["192.0.2.131:9153"]
+          - targets: ["192.0.2.42:9153"]
             labels:
               tenant: re8ch
               node: rancher-panel
@@ -1781,7 +1781,7 @@ data:
                 "http-probe",
                 "k3s-node-exporter",
                 "k8s-cadvisor",
-                "k8s-coredns",
+                "advanced-fabric-dns",
                 "k8s-kubelet",
                 "k8s-traefik",
                 "kube-state-metrics",

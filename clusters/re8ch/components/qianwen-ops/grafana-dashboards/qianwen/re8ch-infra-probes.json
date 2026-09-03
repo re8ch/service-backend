@@ -75,7 +75,7 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "expr": "sum(up{job=~\"http-probe|k8s-coredns|kube-state-metrics|k8s-resource|k8s-cadvisor|k8s-probes\"})",
+          "expr": "sum(up{job=~\"http-probe|advanced-fabric-dns|kube-state-metrics|k8s-resource|k8s-cadvisor|k8s-probes\"})",
           "legendFormat": "up targets",
           "refId": "A"
         }

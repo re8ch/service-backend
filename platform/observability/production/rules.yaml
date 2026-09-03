@@ -130,7 +130,7 @@ spec:
             description: "Drop reason {{ $labels.reason }} exceeds five packets per second between namespaces."
             runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/network-routing-cost-observability-2026-08-02.md
         - alert: Re8chCoreDNSFailureRatio
-          expr: sum(rate(coredns_dns_responses_total{rcode=~"SERVFAIL|REFUSED"}[5m])) / clamp_min(sum(rate(coredns_dns_responses_total[5m])), 0.001) > 0.02
+          expr: sum(rate(advanced_fabric_dns_failures_total[5m])) / clamp_min(sum(rate(advanced_fabric_dns_queries_total[5m])), 0.001) > 0.02
           for: 10m
           labels: {severity: warning, owner: platform-network, service: coredns, tier: critical, alert_layer: prometheus, signal_domain: network}
           annotations:

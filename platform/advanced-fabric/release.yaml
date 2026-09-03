@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:712160d9155e9fe337425bd5b85e443fd7ef58765c5028a056d546e841feace1
+    digest: sha256:1965b1f3153abf7cfec41e6e60a4cf53d2bfdf15c1e96d2b124a7fa2ea25c3db
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -33,12 +33,15 @@ spec:
   upgrade:
     crds: CreateReplace
     disableWait: true
-    preserveValues: true
+    preserveValues: false
     remediation:
       retries: 3
       strategy: rollback
   rollback:
     cleanupOnFail: true
+  test:
+    enable: true
+    ignoreFailures: false
   values:
     # preserveValues keeps the pre-Flux service-vip-fabric settings. Declare
     # newly schema-required optional components explicitly so chart upgrades do
@@ -65,6 +68,20 @@ spec:
       serviceCIDR: 192.0.2.215/24
       controller:
         nodeSelector: {}
+      dns:
+        enabled: true
+        image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+        replicas: 3
+        pdbMinAvailable: 2
+        clusterDomain: cluster.local
+        ttlSeconds: 30
+        upstreams: [192.0.2.131, 192.0.2.148, 1.1.1.1]
+        conditionalForwarders:
+          ynzs.com: [192.0.2.131, 192.0.2.121]
+          zt.re8ch.com: [192.0.2.67, 192.0.2.79, 192.0.2.203]
+        service: {name: advanced-fabric-dns, clusterIP: 192.0.2.42}
+        doh: {serviceName: advanced-fabric-doh, caSecretName: advanced-fabric-doh-tls}
+        migration: {phase: active}
       networkQuality:
         enabled: true
         enforcementEnabled: false
@@ -81,7 +98,7 @@ spec:
           maximumFailureRatio: 0.001
           maximumP95Ms: 50
           requireTcp: true
-          shadowEnabled: true
+          shadowEnabled: false
           shadowServiceName: advanced-fabric-dns
         doh:
           enabled: true

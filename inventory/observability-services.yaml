@@ -32,9 +32,9 @@ spec:
       tier: critical
       workloadClass: network
       status: partial-native
-      workloads: [cilium, cilium-operator, coredns, coredns-r640, hubble-relay, hubble-ui, node-local-dns, re8ch-advanced-fabric-controller, re8ch-advanced-fabric-agent, podcidr-fabric-reconciler, regional-origin-dnat, traefik, traefik-public-edge, traefik-r640]
-      services: [hubble-peer, hubble-relay, hubble-ui, kube-dns, kube-dns-r640, traefik]
-      nativeMetrics: [cilium, hubble, coredns, traefik]
+      workloads: [cilium, cilium-operator, advanced-fabric-dns, hubble-relay, hubble-ui, re8ch-advanced-fabric-controller, re8ch-advanced-fabric-agent, podcidr-fabric-reconciler, regional-origin-dnat, traefik, traefik-public-edge, traefik-r640]
+      services: [advanced-fabric-dns, advanced-fabric-doh, hubble-peer, hubble-relay, hubble-ui, traefik]
+      nativeMetrics: [cilium, hubble, advanced-fabric-dns, traefik]
       action: enable-values-hubble-and-scrape-native-ports
     - namespace: rook-ceph
       owner: platform-storage

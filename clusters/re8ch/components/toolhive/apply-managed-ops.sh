@@ -5,7 +5,6 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 OPS_SOURCE="$SCRIPT_DIR/../ops/ops-mcp-server-app.py"
 
-kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/../ops/coredns-availability-policy.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/../ops/local-path-provisioner-availability-policy.yaml"
 kubectl --server="$KUBE_SERVER" apply -f "$SCRIPT_DIR/namespace-access-classification.yaml"
 kubectl --server="$KUBE_SERVER" -n toolhive-system create configmap ops-mcp-server-code \

@@ -3,6 +3,7 @@ token-file: /etc/rancher/k3s/server-token
 data-dir: /var/lib/rancher/k3s-server-a1-wsl-zt
 node-name: restricted-node-1eb0570f74
 node-ip: 192.0.2.18
+cluster-dns: 192.0.2.42
 advertise-address: 192.0.2.173
 tls-san:
   - 192.0.2.220
