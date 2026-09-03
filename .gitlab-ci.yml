@@ -27,7 +27,9 @@ render:
   script:
     - apk add --no-cache curl
     - 'case "$(uname -m)" in x86_64) KUSTOMIZE_ARCH=amd64 ;; aarch64|arm64) KUSTOMIZE_ARCH=arm64 ;; *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;; esac'
-    - curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.6.0/kustomize_v5.6.0_linux_${KUSTOMIZE_ARCH}.tar.gz" | tar xz
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.6.0/kustomize_v5.6.0_linux_${KUSTOMIZE_ARCH}.tar.gz"
+    - tar -tzf /tmp/kustomize.tar.gz >/dev/null
+    - tar -xzf /tmp/kustomize.tar.gz
     - ./kustomize build clusters/re8ch >/tmp/rendered.yaml
     - ./kustomize build platform/observability/bootstrap >/tmp/observability-bootstrap.yaml
     - ./kustomize build platform/observability/production >/tmp/observability-production.yaml
@@ -58,10 +60,14 @@ release-connectool-chart:
     entrypoint: [""]
   before_script:
     - apk add --no-cache ca-certificates curl tar
-    - curl -fsSLo /usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.3/cosign-linux-amd64
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.3/cosign-linux-amd64
     - chmod +x /usr/local/bin/cosign
-    - curl -fsSL https://github.com/google/go-containerregistry/releases/download/v0.20.3/go-containerregistry_Linux_x86_64.tar.gz | tar -xz -C /usr/local/bin crane
-    - curl -fsSL https://github.com/oras-project/oras/releases/download/v1.2.3/oras_1.2.3_linux_amd64.tar.gz | tar -xz -C /usr/local/bin oras
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/crane.tar.gz https://github.com/google/go-containerregistry/releases/download/v0.20.3/go-containerregistry_Linux_x86_64.tar.gz
+    - tar -tzf /tmp/crane.tar.gz crane >/dev/null
+    - tar -xzf /tmp/crane.tar.gz -C /usr/local/bin crane
+    - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/oras.tar.gz https://github.com/oras-project/oras/releases/download/v1.2.3/oras_1.2.3_linux_amd64.tar.gz
+    - tar -tzf /tmp/oras.tar.gz oras >/dev/null
+    - tar -xzf /tmp/oras.tar.gz -C /usr/local/bin oras
   id_tokens:
     SIGSTORE_ID_TOKEN:
       aud: sigstore
