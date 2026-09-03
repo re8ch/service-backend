@@ -9,7 +9,7 @@ metadata:
 spec:
   interval: 30m
   provider: generic
-  url: oci://ghcr.io/stacklok/toolhive/toolhive-registry-server
+  url: oci://ghcr.io/stacklok/toolhive-registry-server
   ref:
     tag: {{ .Values.toolhive.registry.release.version | quote }}
 ---

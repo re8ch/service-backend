@@ -2,7 +2,7 @@ apiVersion: v2
 name: connectool
 description: ConnecTool packages Dex authentication, ToolHive MCP/Skill distribution, and Codex plugin registration.
 type: application
-version: 0.1.4
+version: 0.1.5
 appVersion: "1.0"
 kubeVersion: ">=1.30.0-0"
 home: https://gitlab.com/reachievellc/service-backend/-/tree/main/clusters/re8ch/charts/connectool
