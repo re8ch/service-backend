@@ -380,10 +380,12 @@ for _attempt in 1 2 3; do
 done
 [ "$up_count" = 3 ] || fail "not all three ToolHive metrics targets are up"
 
-coredns_desired=$(kubectl --server="$KUBE_SERVER" -n kube-system get deployment coredns -o jsonpath='{.spec.replicas}')
-[ "$coredns_desired" -eq 2 ] || fail "CoreDNS desired replica count is not two"
-coredns_ready=$(kubectl --server="$KUBE_SERVER" -n kube-system get pods -l k8s-app=kube-dns -o json | \
+dns_desired=$(kubectl --server="$KUBE_SERVER" -n kube-system get deployment advanced-fabric-doh -o jsonpath='{.spec.replicas}')
+[ "$dns_desired" -ge 3 ] || fail "Advanced Fabric DNS desired replica count is below three"
+dns_ready=$(kubectl --server="$KUBE_SERVER" -n kube-system get pods -l app.kubernetes.io/name=advanced-fabric-doh -o json | \
   jq '[.items[] | select(.status.phase == "Running") | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))] | length')
-[ "$coredns_ready" -ge 2 ] || fail "CoreDNS does not have at least two Ready pods"
+[ "$dns_ready" -ge 3 ] || fail "Advanced Fabric DNS does not have at least three Ready pods"
+dns_ip=$(kubectl --server="$KUBE_SERVER" -n kube-system get service advanced-fabric-dns -o jsonpath='{.spec.clusterIP}')
+[ "$dns_ip" = "192.0.2.42" ] || fail "Advanced Fabric DNS ClusterIP drifted from 192.0.2.42"
 
-echo "PASS: managed ToolHive Ops surfaces, permissions, Registry, service health, telemetry, and CoreDNS"
+echo "PASS: managed ToolHive Ops surfaces, permissions, Registry, service health, telemetry, and Advanced Fabric DNS"

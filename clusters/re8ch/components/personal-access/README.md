@@ -76,7 +76,7 @@ Access DNS is internal only at `192.0.2.78`: two MosDNS replicas provide split
 resolution and a recoverable AdGuard Home instance supplies conservative
 filtering plus a 24-hour query UI. TCP/UDP 53 is admitted only from the RouterOS
 LAN and approved cluster network. The AdGuard UI is protected by Dex at
-`dns.access.re8ch.com`; no public DNS listener is created. CoreDNS and
+`dns.access.re8ch.com`; no public DNS listener is created. Advanced Fabric DNS and
 NodeLocal DNS are unchanged.
 
 ## Bootstrap
