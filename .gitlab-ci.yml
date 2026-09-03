@@ -44,9 +44,9 @@ connectool-chart:
     - helm template connectool clusters/re8ch/charts/connectool --namespace connectool -f clusters/re8ch/charts/connectool/examples/re8ch-values.yaml >/tmp/connectool.yaml
     - helm package clusters/re8ch/charts/connectool --destination dist
     - test -s /tmp/connectool.yaml
-    - test -s dist/connectool-0.1.3.tgz
+    - test -s dist/connectool-0.1.4.tgz
   artifacts:
-    paths: [dist/connectool-0.1.3.tgz]
+    paths: [dist/connectool-0.1.4.tgz]
 
 release-connectool-chart:
   stage: release
@@ -83,6 +83,8 @@ macmini-devops-context:
   stage: validate
   tags: [macmini-a1]
   rules:
+    - if: '$CI_COMMIT_TAG'
+      when: never
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
   before_script: []
   script:
