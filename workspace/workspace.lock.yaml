@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-09-02T03:36:03Z'
-  generation: 1788320163
+  generatedAt: '2026-09-03T16:26:29Z'
+  generation: 1788452789
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -11,7 +11,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/2woodblog.git
   advanced-fabric:
-    commit: 02e180cf847585ad8a82c5b70256f1b549ffb8fc
+    commit: e7936165d55e23b0b6ff417197eecb378caa31f9
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/advanced-fabric.git
@@ -114,6 +114,11 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/compocv.git
+  connectool:
+    commit: 63f726fc9742a7ad341311b08565df22f266e83c
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/connectool.git
   director-engines:
     commit: 012ebfd676464b062e986758548c3215d2f12b24
     defaultBranch: main

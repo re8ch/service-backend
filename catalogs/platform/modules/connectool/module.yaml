@@ -1,0 +1,21 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: connectool, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: 'https://github.com/re8ch/connectool.git', defaultBranch: main, owner: re8ch}
+  projectType: ai-tool-distribution
+  writePolicy: github-pr
+  knowledge: [README.md, docs/]
+  tools: [helm, toolhive, codex]
+  deployments: [ghcr.io/re8ch/charts/connectool, k3s/re8ch]
+  source:
+    kind: submodule
+    path: source
+    metadataPolicy: in-repository
+  identity:
+    maintainerAddress: connectool-maintain@phonaid.com
+    accountClass: project-maintainer
+  clusterIndex:
+    path: .re8ch/cluster-resources.yaml
