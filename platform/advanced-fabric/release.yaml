@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:8e54d410c566a2e13c27223ee659d8eac1a0ec495286d2f0ada8192ebc6d81df
+    digest: sha256:789308b2faa2c864600aa0817aec12616970ec77fb22f697e6c5fb498f46e9fe
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -73,6 +73,13 @@ spec:
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         replicas: 3
         pdbMinAvailable: 2
+        # Bootstrap by IP, outside both cluster DNS and the lossy Service VIP
+        # path. A1/B1 are currently reachable from every authoritative node;
+        # restricted-node-6dc3f140f9 remains last-resort until its WG transport IP is in the API cert.
+        kubernetesApiEndpoints:
+          - https://192.0.2.176:6443
+          - https://192.0.2.4:6443
+          - https://192.0.2.178:6443
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
