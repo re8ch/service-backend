@@ -1,0 +1,14 @@
+{{- range $publication := .Values.toolhive.publications }}
+  {{- $owners := 0 }}
+  {{- range $.Values.codex.plugins }}
+    {{- if and (eq .publication $publication.name) .mcpOwner }}{{ $owners = add1 $owners }}{{ end }}
+  {{- end }}
+  {{- if ne (int $owners) 1 }}{{ fail (printf "publication %q must have exactly one Codex mcpOwner; got %v" $publication.name $owners) }}{{ end }}
+{{- end }}
+{{- range $plugin := .Values.codex.plugins }}
+  {{- $matches := 0 }}
+  {{- range $.Values.toolhive.publications }}
+    {{- if eq .name $plugin.publication }}{{ $matches = add1 $matches }}{{ end }}
+  {{- end }}
+  {{- if ne (int $matches) 1 }}{{ fail (printf "Codex plugin %q must reference exactly one ToolHive publication; got %v" $plugin.name $matches) }}{{ end }}
+{{- end }}

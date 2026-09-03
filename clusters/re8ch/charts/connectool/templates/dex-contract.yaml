@@ -1,0 +1,20 @@
+{{- if .Values.dex.contract.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ default (printf "%s-dex-clients" .Release.Name) .Values.dex.contract.configMapName }}
+  namespace: {{ .Values.dex.contract.namespace }}
+  labels:
+    {{- include "connectool.labels" . | nindent 4 }}
+  annotations:
+    ai.re8ch.com/contract: dex-static-clients
+data:
+  clients.yaml: |
+    # Non-secret reconciliation input. Public PKCE clients have no client secret.
+    staticClients:
+    {{- range .Values.toolhive.publications }}
+      - id: {{ .clientId | quote }}
+        name: {{ .name | quote }}
+        public: true
+    {{- end }}
+{{- end }}
