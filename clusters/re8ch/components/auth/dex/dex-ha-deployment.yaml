@@ -20,6 +20,12 @@ spec:
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      # Keep the identity bootstrap path available while the replacement DNS
+      # plane is being repaired. This is the stable ClusterIP of the GitOps-
+      # managed primary database Service, not a PostgreSQL member address.
+      hostAliases:
+        - ip: 192.0.2.202
+          hostnames: [pg-re8ch-primary.pigsty-external.svc.cluster.local]
       imagePullSecrets: [{name: ghcr-re8ch}]
       affinity:
         nodeAffinity:
