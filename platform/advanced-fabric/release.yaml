@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:63db95899791cce959f4236ace9526c773663fd964f0b586a9a6480cf9dc7037
+    digest: sha256:8e54d410c566a2e13c27223ee659d8eac1a0ec495286d2f0ada8192ebc6d81df
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -73,6 +73,19 @@ spec:
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         replicas: 3
         pdbMinAvailable: 2
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: In
+                      values: [restricted-node-6dc3f140f9, zan, vm-20-12-ubuntu]
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels: {app.kubernetes.io/name: advanced-fabric-doh}
+                topologyKey: kubernetes.io/hostname
         clusterDomain: cluster.local
         ttlSeconds: 30
         upstreams: [192.0.2.131, 192.0.2.148, 1.1.1.1]
