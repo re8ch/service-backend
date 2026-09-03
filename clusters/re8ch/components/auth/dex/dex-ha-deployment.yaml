@@ -5,7 +5,10 @@ metadata:
   namespace: dex
   labels: {app.kubernetes.io/name: dex}
 spec:
-  replicas: 2
+  # Incident mitigation: restricted-node-6dc3f140f9's host-network endpoint is unreachable from
+  # PublicEdge and causes intermittent 503s. Keep the verified Shanghai
+  # endpoint serving until the restricted-node-6dc3f140f9 cross-node route is repaired.
+  replicas: 1
   strategy:
     type: RollingUpdate
     # Exactly two eligible nodes plus required anti-affinity leave no placement
@@ -34,16 +37,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  # Keep identity on the core anchor and a separate stable site.
-                  # WSL nodes remain eligible for observation workloads only.
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9, domain-ex]}
-          preferredDuringSchedulingIgnoredDuringExecution:
-            # Prefer the core anchor while required anti-affinity keeps the
-            # second replica on domain-ex in the Shanghai failure domain.
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [domain-ex]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
