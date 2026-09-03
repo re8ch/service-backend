@@ -20,6 +20,7 @@ mkdir -p dist
 helm lint "$chart_dir" -f "$chart_dir/examples/re8ch-values.yaml"
 helm package "$chart_dir" --destination dist
 printf '%s' "$CONNECTOOL_PASSWORD" | helm registry login "$registry" --username "$CONNECTOOL_USERNAME" --password-stdin
+export DOCKER_CONFIG="${HOME}/.config/helm/registry"
 helm push "dist/connectool-${version}.tgz" "oci://${registry}/$(dirname "$repository")"
 
 digest=$(crane digest "${registry}/${repository}:${version}")
