@@ -194,17 +194,17 @@ spec:
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
-  name: coredns
+  name: advanced-fabric-dns
   namespace: observability-system
   labels: {observability.re8ch.com/managed: "true"}
 spec:
   namespaceSelector: {matchNames: [kube-system]}
-  selector: {matchLabels: {k8s-app: kube-dns}}
+  selector: {matchLabels: {app.kubernetes.io/name: advanced-fabric-dns}}
   endpoints:
     - port: metrics
       interval: 30s
       relabelConfigs:
-        - {targetLabel: service, replacement: coredns}
+        - {targetLabel: service, replacement: advanced-fabric-dns}
         - {targetLabel: signal_domain, replacement: network}
 ---
 apiVersion: operator.victoriametrics.com/v1beta1

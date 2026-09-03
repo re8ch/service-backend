@@ -100,12 +100,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod) (rate(coredns_dns_requests_total{job=\"k8s-coredns\"}[5m]))",
+          "expr": "sum by (pod) (rate(advanced_fabric_dns_queries_total{job=\"advanced-fabric-dns\"}[5m]))",
           "legendFormat": "{{pod}} req/s",
           "refId": "A"
         },
         {
-          "expr": "sum by (rcode) (rate(coredns_dns_responses_total{job=\"k8s-coredns\"}[5m]))",
+          "expr": "sum by (rcode) (rate(advanced_fabric_dns_failures_total{job=\"advanced-fabric-dns\"}[5m]))",
           "legendFormat": "rcode {{rcode}}",
           "refId": "B"
         }

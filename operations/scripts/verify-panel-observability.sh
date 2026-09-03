@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PIGSTY_HOST="${PIGSTY_HOST:-ubuntu@192.0.2.192}"
+PIGSTY_HOST="${PIGSTY_HOST:-ubuntu@10.181.22.73}"
 NAMESPACE="${NAMESPACE:-qianwen-ops}"
 SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=20 -o ServerAliveCountMax=6)
 
@@ -17,7 +17,7 @@ import urllib.request
 namespace = os.environ["NAMESPACE"]
 dashboard_dir = "/home/ubuntu/pigsty/files/grafana/pgsql"
 metric_re = re.compile(r"(?<![A-Za-z0-9_:])([A-Za-z_:][A-Za-z0-9_:]*)(?=\s*(?:\{|\[))")
-pigsty_vm_url = "http://192.0.2.192:8428"
+pigsty_vm_url = "http://10.181.22.73:8428"
 
 cluster_ip = subprocess.check_output(
     ["kubectl", "-n", namespace, "get", "svc", "panel-victoria-metrics", "-o", "jsonpath={.spec.clusterIP}"],
@@ -48,7 +48,7 @@ datasources = subprocess.check_output(
     ["kubectl", "-n", namespace, "get", "cm", "panel-grafana-datasources", "-o", "jsonpath={.data.datasources\\.yaml}"],
     text=True,
 )
-if "uid: pigsty-metrics" not in datasources or "url: http://192.0.2.192:8428" not in datasources:
+if "uid: pigsty-metrics" not in datasources or "url: http://10.181.22.73:8428" not in datasources:
     raise SystemExit("panel Grafana is missing the Pigsty Metrics datasource")
 print("pigsty_metrics_datasource=present")
 if "uid: re8ch-vlogs" not in datasources or "type: victoriametrics-logs-datasource" not in datasources:
@@ -182,8 +182,8 @@ cluster_obs_yaml = subprocess.check_output(
     ["kubectl", "-n", namespace, "get", "deploy,ds,cm", "-o", "yaml"],
     text=True,
 )
-if "192.0.2.192:30428" in cluster_obs_yaml:
-    raise SystemExit("K3S observability still references ICP NodePort 192.0.2.192:30428")
+if "10.181.22.73:30428" in cluster_obs_yaml:
+    raise SystemExit("K3S observability still references ICP NodePort 10.181.22.73:30428")
 print("remote_write_path=headlamp_service_dns")
 
 old_edge = subprocess.run(
@@ -211,7 +211,7 @@ for app, expected_node in placements.items():
     print(f"{app}_node={node}")
 
 re8ch_checks = {
-    "coredns_series": 'count(coredns_build_info{job="k8s-coredns"})',
+    "advanced_fabric_dns_series": 'count(advanced_fabric_dns_ready{job="advanced-fabric-dns"})',
     "http_probe_series": 'count(probe_success{job="http-probe"})',
     "nuclio_info_series": "count(qianwen_nuclio_function_info)",
     "nuclio_processor_series": 'count({__name__=~"nuclio_processor_.*"})',
