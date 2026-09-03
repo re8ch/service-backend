@@ -75,7 +75,7 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "expr": "sum(up{job=~\"http-probe|k8s-coredns|kube-state-metrics|k8s-resource|k8s-cadvisor|k8s-probes\"})",
+          "expr": "sum(up{job=~\"http-probe|advanced-fabric-dns|kube-state-metrics|k8s-resource|k8s-cadvisor|k8s-probes\"})",
           "legendFormat": "up targets",
           "refId": "A"
         }
@@ -445,12 +445,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod) (rate(coredns_dns_requests_total{job=\"k8s-coredns\"}[5m]))",
+          "expr": "sum by (pod) (rate(advanced_fabric_dns_queries_total{job=\"advanced-fabric-dns\"}[5m]))",
           "legendFormat": "{{pod}} req/s",
           "refId": "A"
         },
         {
-          "expr": "sum by (rcode) (rate(coredns_dns_responses_total{job=\"k8s-coredns\"}[5m]))",
+          "expr": "sum by (rcode) (rate(advanced_fabric_dns_failures_total{job=\"advanced-fabric-dns\"}[5m]))",
           "legendFormat": "rcode {{rcode}}",
           "refId": "B"
         }

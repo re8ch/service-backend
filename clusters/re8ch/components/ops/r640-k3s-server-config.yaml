@@ -1,6 +1,7 @@
 node-name: restricted-node-6dc3f140f9
 node-ip: 192.0.2.178
 node-external-ip: 192.0.2.138
+cluster-dns: 192.0.2.149
 advertise-address: 192.0.2.179
 tls-san:
   - 192.0.2.116

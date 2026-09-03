@@ -33,15 +33,8 @@ The server code is stored in Kubernetes as ConfigMap `ops/ops-mcp-server-code` a
 | --- | --- |
 | `ops-mcp-server-app.py` | Source code synced from the live `ops-mcp-server-code` ConfigMap |
 | `ops-mcp-server-standardization.patch.yaml` | Resource/security baseline and current control-plane endpoint |
-| `coredns-availability.patch.yaml` | Bootstrap patch for an already-created CoreDNS Deployment |
-| `coredns-availability-policy.yaml` | Durable Kubernetes v1 admission policy that preserves two replicas and reviewed placement when the K3s Addon rewrites CoreDNS |
-
-The durable policy places CoreDNS only on nodes known to cache the pinned system
-image: `harbor-registry`, `qianwen-nuclio-79`, and `vm-20-12-ubuntu`. It adds the
-specific `anchor=true:NoSchedule` toleration required by the VM node and rewrites
-that toleration idempotently on every Deployment update. During the 2026-08-04
-qianwen node outage, the second replica moved to the VM node while the first
-remained on Harbor; both became Ready without an external image pull.
+Cluster DNS is owned by the Advanced Fabric HelmRelease. Ops no longer patches
+or admits a K3s-managed DNS Deployment.
 
 ## Apply Code To Cluster
 

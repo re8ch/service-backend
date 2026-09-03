@@ -22,6 +22,7 @@ Servers:
 
 CoreDNS listens only on each host's ZeroTier IP, not on `127.0.0.53`, so it does not replace `systemd-resolved`.
 
-K3s pods resolve `zt.re8ch.com` through `kube-system/coredns-custom`, which forwards the private zone to the three DNS servers.
+K3s pods resolve `zt.re8ch.com` through the Advanced Fabric DNS conditional
+forwarder, which sends the private zone to these three authoritative servers.
 
 `rancher.zt.re8ch.com` is kept as a legacy compatibility alias. Prefer `headlamp.zt.re8ch.com`, `panel.zt.re8ch.com`, and `metrics.zt.re8ch.com` for new configs.

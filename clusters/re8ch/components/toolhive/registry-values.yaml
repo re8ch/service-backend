@@ -44,9 +44,8 @@ config:
     - name: approved
       sources: [managed-workloads, re8ch-managed]
   database:
-    # Temporary Service IP: B1 currently cannot reach kube-dns (192.0.2.240).
-    # Restore postgresql.mcp-registry.svc.cluster.local after the Cilium/CoreDNS
-    # service-routing incident is resolved.
+    # Keep the known database endpoint during the DNS authority migration. Move
+    # back to the Service FQDN after the Advanced Fabric DNS health gate passes.
     host: 192.0.2.150
     port: 5432
     user: mcpregistry
