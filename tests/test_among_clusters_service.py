@@ -118,6 +118,15 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
     rule = policy["spec"]["egress"][0]
     assert rule["to"][0]["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "egress-fabric"
     assert rule["to"][0]["podSelector"]["matchLabels"]["app.kubernetes.io/name"] == "mihomos-node-cn"
+
+    cilium_policy = next(item for item in pilot if item["kind"] == "CiliumNetworkPolicy")
+    assert cilium_policy["spec"]["endpointSelector"]["matchLabels"] == {
+        "app.kubernetes.io/name": "among-clusters-gateway"
+    }
+    assert cilium_policy["spec"]["egress"] == [{
+        "toEntities": ["host", "remote-node"],
+        "toPorts": [{"ports": [{"port": "17891", "protocol": "TCP"}]}],
+    }]
     assert rule["to"][1]["ipBlock"]["cidr"] == "192.0.2.183/32"
     assert rule["to"][2]["ipBlock"]["cidr"] == "192.0.2.78/32"
     assert rule["ports"] == [{"protocol": "TCP", "port": 17891}]

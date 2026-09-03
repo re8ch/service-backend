@@ -63,3 +63,25 @@ spec:
       ports:
         - protocol: TCP
           port: 17891
+---
+# Cilium classifies host-network backends as host/remote-node identities after
+# Service translation. The CIDR rules above remain useful before translation;
+# this identity-aware rule covers the post-translation datapath without opening
+# any other destination port or selecting any other workload.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: among-clusters-gateway-mihomos-host-egress
+  namespace: among-clusters
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+    app.kubernetes.io/component: mihomos-pilot
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: among-clusters-gateway
+  egress:
+    - toEntities: [host, remote-node]
+      toPorts:
+        - ports:
+            - {port: "17891", protocol: TCP}
