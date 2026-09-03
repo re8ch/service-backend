@@ -7,6 +7,7 @@ default:
     when: runner_system_failure
 
 before_script:
+  - sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://mirrors.aliyun.com/alpine|g' /etc/apk/repositories
   - apk add --no-cache git
   - pip install --disable-pip-version-check --retries 5 --timeout 30 PyYAML pytest jsonschema
 
@@ -70,6 +71,7 @@ build-connectool-ci-tools:
     entrypoint: [""]
   before_script: []
   script:
+    - sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://mirrors.aliyun.com/alpine|g' /etc/apk/repositories
     - apk add --no-cache ca-certificates curl tar
     - install -d /tmp/tools-layer/usr/local/bin
     - curl --fail --silent --show-error --location --retry 8 --retry-all-errors --connect-timeout 30 --output /tmp/tools-layer/usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.3/cosign-linux-amd64
