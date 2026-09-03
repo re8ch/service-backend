@@ -31,7 +31,6 @@ cosign verify \
   "${registry}/${repository}@${digest}" >/dev/null
 
 oras push "${registry}/${repository}:artifacthub.io" \
-  --username "$CONNECTOOL_USERNAME" --password "$CONNECTOOL_PASSWORD" \
   --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
   "$chart_dir/artifacthub-repo.yml":application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml
 
