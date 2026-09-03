@@ -26,7 +26,7 @@ helm push "dist/connectool-${version}.tgz" "oci://${registry}/$(dirname "$reposi
 digest=$(crane digest "${registry}/${repository}:${version}")
 cosign sign --yes --identity-token "$SIGSTORE_ID_TOKEN" "${registry}/${repository}@${digest}"
 cosign verify \
-  --certificate-identity-regexp '^project_path:reachievellc/service-backend:ref_type:tag:ref:connectool-v[0-9]+\\.[0-9]+\\.[0-9]+$' \
+  --certificate-identity-regexp '^https://gitlab\.com/reachievellc/service-backend//\.gitlab-ci\.yml@refs/tags/connectool-v[0-9]+\.[0-9]+\.[0-9]+$' \
   --certificate-oidc-issuer https://gitlab.com \
   "${registry}/${repository}@${digest}" >/dev/null
 
