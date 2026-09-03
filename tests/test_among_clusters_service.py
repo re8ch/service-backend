@@ -3,8 +3,8 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:87310ad6f4ff7f54751fb2ef3326e5bc3f732c951874f55086a3bccc466f6dee"
-CHART_DIGEST = "sha256:31c18f94c3dc21bfe10a5ccac84b97a4a693ea5cee9efefdf9fd6c0f823bce31"
+IMAGE_DIGEST = "sha256:ef542284ec717bfbc0b41333f8a69e422bab4f4eb45ff17b47ab011938a4107b"
+CHART_DIGEST = "sha256:229bfa000da5feb8935db850bb4388e1fe1cd36f0813f86844539168dbab68da"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
@@ -14,7 +14,7 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/among-clusters-hub"
     assert source["spec"]["ref"]["digest"] == CHART_DIGEST
     assert release["spec"]["values"]["image"] == {
-        "repository": "registry.re8ch.com/functions-shared/among-clusters",
+        "repository": "ghcr.io/re8ch/among-clusters",
         "digest": IMAGE_DIGEST,
     }
     assert release["spec"]["values"]["managedAccess"]["enabled"] is True
