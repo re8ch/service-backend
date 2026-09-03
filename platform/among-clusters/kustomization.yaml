@@ -8,4 +8,5 @@ resources:
   - mihomos-pilot.yaml
   - headlamp-imports.yaml
   - broker-network-policy.yaml
+  - broker-auth-review.yaml
   - legacy-agent-cleanup.yaml

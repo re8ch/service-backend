@@ -40,5 +40,9 @@ def test_subcluster_kubeconfigs_use_broker_imports_and_opaque_references():
         user = template["users"][0]["user"]
 
         assert cluster["server"] == f"http://among-clusters-credential-broker.credential-broker.svc/k8s/byoc-pilot/{grant}"
-        assert user["token"] == f"credential://among-clusters/byoc-pilot/{grant}"
-        assert "auth-provider" not in user
+        assert "token" not in user
+        provider = user["auth-provider"]
+        assert provider["name"] == "oidc"
+        assert provider["config"]["client-id"] == "headlamp"
+        assert provider["config"]["idp-issuer-url"] == "https://dex.re8ch.com"
+        assert provider["config"]["scope"] == "openid,profile,email,groups,offline_access"
