@@ -91,12 +91,21 @@ data:
     while True:
         try:
             pods = request(f"/api/v1/namespaces/{namespace}/pods?labelSelector={selector}")["items"]
-            healthy = sorted((pod for pod in pods if ready(pod)), key=lambda pod: pod["metadata"]["name"])
+            # Prefer the R640-local backend for PublicEdge. Cross-node traffic
+            # to domain-ex remains the automatic fallback when restricted-node-6dc3f140f9 is absent.
+            healthy = sorted(
+                (pod for pod in pods if ready(pod)),
+                key=lambda pod: (
+                    pod.get("spec", {}).get("nodeName") != "restricted-node-6dc3f140f9",
+                    pod["metadata"]["name"],
+                ),
+            )
             current = [
                 pod for pod in healthy
                 if pod["metadata"].get("labels", {}).get("traffic.re8ch.com/headlamp-active") == "true"
             ]
-            selected = current[0] if current else (healthy[0] if healthy else None)
+            preferred = [pod for pod in healthy if pod.get("spec", {}).get("nodeName") == "restricted-node-6dc3f140f9"]
+            selected = preferred[0] if preferred else (current[0] if current else (healthy[0] if healthy else None))
             for pod in pods:
                 set_active(pod, selected is not None and pod["metadata"]["uid"] == selected["metadata"]["uid"])
         except Exception as error:
