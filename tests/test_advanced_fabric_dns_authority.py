@@ -29,7 +29,9 @@ def test_every_managed_server_uses_fixed_cluster_dns():
     configs = sorted((ROOT / "clusters/re8ch/components/ops").glob("*k3s-server-config.yaml"))
     assert len(configs) == 3
     for config in configs:
-        assert yaml.safe_load(config.read_text())["cluster-dns"] == "192.0.2.149"
+        rendered = yaml.safe_load(config.read_text())
+        assert rendered["cluster-dns"] == "192.0.2.149"
+        assert "coredns" in rendered["disable"]
 
 
 def test_legacy_cluster_dns_manifests_are_absent():
