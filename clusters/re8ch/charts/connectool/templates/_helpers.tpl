@@ -2,7 +2,7 @@
 app.kubernetes.io/name: connectool
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name (.Chart.Version | replace "+" "_") | trunc 63 | trimSuffix "-" | quote }}
 ai.re8ch.com/identity-provider: dex
 ai.re8ch.com/distribution-plane: toolhive
 {{- end }}
