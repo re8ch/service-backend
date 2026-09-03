@@ -1,0 +1,79 @@
+{{- range $publication := .Values.toolhive.publications }}
+{{- if or (not (hasKey $publication "createGroup")) $publication.createGroup }}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata:
+  name: {{ $publication.group }}
+  namespace: {{ $.Values.toolhive.namespace }}
+  labels:
+    {{- include "connectool.labels" $ | nindent 4 }}
+spec:
+  description: {{ printf "AI Registry publication %s" $publication.name | quote }}
+{{- end }}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPOIDCConfig
+metadata:
+  name: {{ printf "%s-issuer" $publication.name }}
+  namespace: {{ $.Values.toolhive.namespace }}
+  labels:
+    {{- include "connectool.labels" $ | nindent 4 }}
+spec:
+  type: inline
+  inline:
+    issuer: {{ $.Values.global.issuer | quote }}
+    clientId: {{ $publication.clientId | quote }}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: VirtualMCPServer
+metadata:
+  name: {{ $publication.name }}
+  namespace: {{ $.Values.toolhive.namespace }}
+  labels:
+    {{- include "connectool.labels" $ | nindent 4 }}
+spec:
+  groupRef: {name: {{ $publication.group }}}
+  replicas: {{ default 2 $publication.replicas }}
+  sessionAffinity: None
+  {{- if $.Values.toolhive.sessionStorage.address }}
+  sessionStorage:
+    provider: redis
+    address: {{ $.Values.toolhive.sessionStorage.address | quote }}
+    db: {{ default 0 $publication.session.database }}
+    keyPrefix: {{ default (printf "thv:%s:" $publication.name) $publication.session.keyPrefix | quote }}
+    passwordRef:
+      {{- toYaml $.Values.toolhive.sessionStorage.passwordSecretRef | nindent 6 }}
+  {{- end }}
+  incomingAuth:
+    type: oidc
+    oidcConfigRef:
+      name: {{ printf "%s-issuer" $publication.name }}
+      audience: {{ $publication.clientId | quote }}
+      resourceUrl: {{ $publication.resourceUrl | quote }}
+      scopes: {{ $.Values.global.scopes | toJson }}
+    authzConfig:
+      type: inline
+      groupClaimName: {{ $publication.authorization.groupClaim | quote }}
+      inline:
+        policies:
+          {{- toYaml $publication.authorization.policies | nindent 10 }}
+  outgoingAuth:
+    default: {type: discovered}
+  config:
+    aggregation:
+      conflictResolution: prefix
+      conflictResolutionConfig: {prefixFormat: "{workload}_"}
+      tools:
+        {{- range $publication.workloads }}
+        - workload: {{ .name }}
+          {{- with .toolConfigRef }}
+          toolConfigRef: {name: {{ . }}}
+          {{- end }}
+        {{- end }}
+    audit:
+      enabled: true
+      component: {{ $publication.name | quote }}
+      includeRequestData: false
+      includeResponseData: false
+{{- end }}
