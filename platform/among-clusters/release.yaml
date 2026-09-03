@@ -22,7 +22,7 @@ spec:
   values:
     image:
       repository: registry.re8ch.com/functions-shared/among-clusters
-      digest: sha256:65126d1c23e1bcb116ccf6db22950a66e14c208f66a8622ca044a1fe980a8c14
+      digest: sha256:87310ad6f4ff7f54751fb2ef3326e5bc3f732c951874f55086a3bccc466f6dee
     replicaCount: 1
     nodeSelector:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
@@ -70,7 +70,7 @@ spec:
     hubEndpoint: https://among-clusters.re8ch.com
     image:
       repository: registry.re8ch.com/functions-shared/among-clusters
-      digest: sha256:65126d1c23e1bcb116ccf6db22950a66e14c208f66a8622ca044a1fe980a8c14
+      digest: sha256:87310ad6f4ff7f54751fb2ef3326e5bc3f732c951874f55086a3bccc466f6dee
     nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
