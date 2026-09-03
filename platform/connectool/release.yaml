@@ -1,0 +1,116 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata: {name: connectool, namespace: flux-system}
+spec:
+  interval: 10m
+  provider: generic
+  url: oci://registry.re8ch.com/helm/connectool
+  ref: {semver: ">=0.1.0 <0.2.0"}
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: ^https://gitlab\.com$
+        subject: ^project_path:reachievellc/service-backend:ref_type:tag:ref:connectool-v[0-9]+\.[0-9]+\.[0-9]+$
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: connectool, namespace: flux-system}
+spec:
+  interval: 10m
+  releaseName: connectool
+  targetNamespace: connectool
+  storageNamespace: connectool
+  chartRef: {kind: OCIRepository, name: connectool}
+  install:
+    createNamespace: true
+    disableTakeOwnership: false
+    remediation: {retries: 3}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 3, strategy: rollback}
+  rollback: {cleanupOnFail: true}
+  values:
+    global:
+      issuer: https://dex.re8ch.com
+      scopes: [openid, profile, email, groups, offline_access]
+    dex:
+      contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}
+    toolhive:
+      namespace: toolhive-system
+      registry:
+        enabled: true
+        name: approved
+        sources:
+          - {name: managed-workloads, kubernetes: {namespaces: [toolhive-system]}}
+          - {name: re8ch-managed, managed: {}}
+        release:
+          enabled: true
+          version: 1.5.0
+          sourceNamespace: flux-system
+          values:
+            replicaCount: 2
+            image:
+              registryServerUrl: ghcr.io/stacklok/thv-registry-api:v1.5.0
+              pullPolicy: IfNotPresent
+            service: {type: ClusterIP, port: 8080, exposeInternalPort: true, internalPort: 8081}
+            resources:
+              requests: {cpu: 50m, memory: 128Mi}
+              limits: {cpu: 500m, memory: 512Mi}
+            rbac: {scope: namespace, allowedNamespaces: [toolhive-system]}
+            config:
+              sources:
+                - {name: managed-workloads, kubernetes: {namespaces: [toolhive-system]}}
+                - {name: re8ch-managed, managed: {}}
+              registries:
+                - {name: approved, sources: [managed-workloads, re8ch-managed]}
+              database: {host: 192.0.2.90, port: 5432, user: mcpregistry, migrationUser: mcpregistry, database: mcp-registry, sslMode: disable, maxOpenConns: 10}
+              auth: {mode: anonymous}
+              audit: {enabled: true}
+              telemetry: {enabled: true, serviceName: re8ch-toolhive-registry, endpoint: "192.0.2.147:4318", insecure: true, tracing: {enabled: true, sampling: 0.1}, metrics: {enabled: true}}
+            extraEnv:
+              - name: THV_REGISTRY_DATABASE_PASSWORD
+                valueFrom: {secretKeyRef: {name: toolhive-registry-database, key: migration-password}}
+              - name: THV_REGISTRY_DATABASE_MIGRATIONPASSWORD
+                valueFrom: {secretKeyRef: {name: toolhive-registry-database, key: migration-password}}
+      sessionStorage:
+        provider: redis
+        address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
+        passwordSecretRef: {name: toolhive-auth-redis, key: password}
+      publications:
+        - name: re8ch-tools-vmcp
+          clientId: re8ch-cloud-platform-tool
+          resourceUrl: https://tools.re8ch.com/cloud/mcp
+          group: platform-tools-public
+          createGroup: false
+          replicas: 2
+          session: {database: 2, keyPrefix: "thv:cloud:"}
+          workloads:
+            - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
+            - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
+            - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
+          authorization:
+            groupClaim: groups
+            policies:
+              - 'permit(principal, action, resource);'
+              - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+        - name: re8ch-admin-vmcp
+          clientId: re8ch-platform-admin
+          resourceUrl: https://admin.re8ch.com:8443/mcp
+          group: platform-admin-public
+          createGroup: false
+          replicas: 2
+          session: {database: 1, keyPrefix: "thv:vmcp:admin:"}
+          workloads:
+            - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
+          authorization:
+            groupClaim: groups
+            policies:
+              - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+    codex:
+      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch/codex-admin-plugins.git}
+      plugins:
+        - {name: re8ch-cloud-platform-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: true, skills: [skills/cloud-platform/SKILL.md]}
+        - {name: re8ch-cluster-infra-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/cluster-infra/SKILL.md]}
+        - {name: re8ch-agent-orchestra-collab, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/agent-orchestra/SKILL.md]}
+        - {name: re8ch-platform-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: true, skills: []}
