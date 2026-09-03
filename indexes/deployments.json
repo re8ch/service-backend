@@ -32,6 +32,14 @@
     "ref": "codex-plugin-marketplace"
   },
   {
+    "module": "connectool",
+    "ref": "ghcr.io/re8ch/charts/connectool"
+  },
+  {
+    "module": "connectool",
+    "ref": "k3s/re8ch"
+  },
+  {
     "module": "mihomos-cluster",
     "ref": "mihomos"
   },
