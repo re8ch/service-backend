@@ -224,6 +224,18 @@
     "ref": "toolhive"
   },
   {
+    "module": "connectool",
+    "ref": "helm"
+  },
+  {
+    "module": "connectool",
+    "ref": "toolhive"
+  },
+  {
+    "module": "connectool",
+    "ref": "codex"
+  },
+  {
     "module": "headlamp-advanced-fabric",
     "ref": "npm"
   },

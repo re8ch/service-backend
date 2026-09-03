@@ -716,6 +716,30 @@
     "sha256": "81918e62933515fe59d7efd1a58321b146c4aef51901c683f142bd49dbdd8174"
   },
   {
+    "module": "connectool",
+    "ref": "README.md"
+  },
+  {
+    "module": "connectool",
+    "ref": "docs/"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "connectool",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "connectool",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "connectool",
+    "ref": "catalogs/platform/modules/connectool/MEMORY.md",
+    "sha256": "52c8c80e3595ed0fc958620cbf8d0df580dc94f17d44a2b482cecbf7ed1c1847"
+  },
+  {
     "module": "headlamp-advanced-fabric",
     "ref": "README.md"
   },

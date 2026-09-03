@@ -673,6 +673,30 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: connectool-maintain
+  namespace: git-workspaces
+spec:
+  email: connectool-maintain@phonaid.com
+  provider: github
+  project: connectool
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: connectool-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: connectool-maintain
+  projectRef: connectool
+  repository: https://github.com/re8ch/connectool.git
+  folder: catalogs/platform/modules/connectool/source
+  branchPrefix: workspace/connectool-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: among-clusters-maintain
   namespace: git-workspaces
 spec:

@@ -29,32 +29,6 @@ render:
     - test -s /tmp/observability-bootstrap.yaml
     - test -s /tmp/observability-production.yaml
 
-connectool-chart:
-  stage: render
-  script:
-    - helm lint clusters/re8ch/charts/connectool
-    - helm lint clusters/re8ch/charts/connectool -f clusters/re8ch/charts/connectool/examples/re8ch-values.yaml
-    - helm template connectool clusters/re8ch/charts/connectool --namespace connectool -f clusters/re8ch/charts/connectool/examples/re8ch-values.yaml >/tmp/connectool.yaml
-    - helm package clusters/re8ch/charts/connectool --destination dist
-    - test -s /tmp/connectool.yaml
-    - test -s dist/connectool-0.1.6.tgz
-  artifacts:
-    paths: [dist/connectool-0.1.6.tgz]
-
-release-connectool-chart:
-  stage: release
-  image:
-    name: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
-    entrypoint: [""]
-  before_script: []
-  id_tokens:
-    SIGSTORE_ID_TOKEN:
-      aud: sigstore
-  script:
-    - operations/ci/release-connectool-chart.sh
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^connectool-v[0-9]+\.[0-9]+\.[0-9]+$/'
-
 secret-scan:
   stage: security
   script:
