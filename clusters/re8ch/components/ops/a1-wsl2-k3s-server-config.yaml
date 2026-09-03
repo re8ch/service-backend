@@ -17,6 +17,7 @@ disable-network-policy: true
 write-kubeconfig-mode: "0644"
 disable:
   - servicelb
+  - coredns
 embedded-registry: false
 kubelet-arg:
   - "max-pods=1024"
