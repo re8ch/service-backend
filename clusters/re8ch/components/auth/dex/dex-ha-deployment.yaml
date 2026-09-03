@@ -21,10 +21,10 @@ spec:
       annotations:
         images.re8ch.com/dex-digest: sha256:3b472d149aab6bb00516230bed8c582fc66a037966b8c222219b3942228cc5b2
     spec:
-      # Keep the database bootstrap path on the node network until the broken
-      # cross-node service path to the restricted-node-6dc3f140f9 PostgreSQL primary is repaired.
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      # PublicEdge can route the Cilium pod CIDR but not these nodes' host-
+      # network port 5556. On restricted-node-6dc3f140f9, this pod path also reaches the local
+      # PostgreSQL primary without crossing the broken inter-node service path.
+      dnsPolicy: ClusterFirst
       # Keep the identity bootstrap path available while the replacement DNS
       # plane is being repaired. This is the stable ClusterIP of the GitOps-
       # managed primary database Service, not a PostgreSQL member address.
