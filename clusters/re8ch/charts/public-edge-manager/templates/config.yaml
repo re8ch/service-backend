@@ -2,10 +2,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata: {name: {{ include "public-edge-manager.name" . }}}
 data:
+  API_GROUP: {{ .Values.api.group | quote }}
   NAMESERVERS: {{ join " " .Values.nameservers | quote }}
+  SOA_RNAME: {{ .Values.dns.soaRname | quote }}
+  PROBE_USER_AGENT: {{ .Values.probe.userAgent | quote }}
   SERVICES_JSON: {{ .Values.services | toJson | quote }}
+  PUBLICATION_ENABLED: {{ .Values.publication.enabled | quote }}
   PUBLISHER_NODE: {{ .Values.publication.publisherNode | quote }}
   PUBLICATION_REFS_JSON: {{ .Values.publication.refs | toJson | quote }}
+  READINESS_GATES_JSON: {{ .Values.readinessGates | toJson | quote }}
   CANDIDATE_CAPACITY_WEIGHT: {{ .Values.candidateSelection.capacityWeight | quote }}
   CANDIDATE_LOCAL_AREA_BONUS: {{ .Values.candidateSelection.localAreaBonus | quote }}
   CANDIDATE_PRIORITY_WEIGHT: {{ .Values.candidateSelection.priorityWeight | quote }}

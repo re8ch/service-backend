@@ -1,8 +1,12 @@
 image:
-  repository: docker.1ms.run/library/python
-  tag: "3.12-alpine"
-  digest: "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+  repository: ghcr.io/re8ch/public-edge-manager
+  tag: "0.3.1"
+  digest: "sha256:557fa1c9c9b56cafa3c0c8c45a7143a2c2931e1e6cbbbd3baaca54bd0f31ecd7"
   pullPolicy: IfNotPresent
+
+enabled: true
+api: {group: networking.re8ch.com}
+dns: {soaRname: hostmaster.re8ch.com.}
 
 crd:
   install: true
@@ -39,6 +43,7 @@ publicEdges:
     priority: 10
     serviceClasses: [api, db-ro, db-rw, web, registry]
     forwarding: {mode: DirectGateway}
+
   - name: loudi-r640
     area: CN
     region: loudi
@@ -50,10 +55,19 @@ publicEdges:
     serviceClasses: [api, db-ro, db-rw, web, registry]
     forwarding: {mode: DirectGateway}
 
+readinessGates:
+  db-rw:
+    configMap: {namespace: kube-system, name: pg-re8ch-role-authority, dataKey: authority.json}
+    requiredFields: {authority: patroni}
+    addressPath: [leader, address]
+    endpointSlice: {namespace: pigsty-external, name: pg-re8ch-primary}
+    requireSingleReadyAddress: true
+
 probe:
   connectTimeoutSeconds: 5
   responseTimeoutSeconds: 12
   intervalSeconds: 3
+  userAgent: public-edge-manager/0.3
 
 candidateSelection:
   capacityWeight: 10
@@ -64,6 +78,7 @@ candidateSelection:
   localNodeBonus: 5
 
 publication:
+  enabled: true
   # Cloudflare A records are global. The elected CN authority publishes the
   # default answer; region-aware names should be delegated to the NS service.
   publisherNode: vm-20-12-ubuntu
@@ -77,6 +92,9 @@ publication:
     dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
     collab: {namespace: mail-system, name: stalwart-collaboration-public}
     stalwart-admin: {namespace: mail-system, name: stalwart-admin-public}
+
+rbac: {mutateIngresses: true}
+service: {type: ClusterIP, annotations: {}, externalTrafficPolicy: ""}
 
 resources:
   requests: {cpu: 20m, memory: 32Mi}
