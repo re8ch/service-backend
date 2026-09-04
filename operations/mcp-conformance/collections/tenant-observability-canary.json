@@ -1,0 +1,24 @@
+{
+  "apiVersion": "testing.re8ch.com/v1alpha1",
+  "kind": "MCPCollection",
+  "metadata": {"name": "tenant-observability-canary", "version": "1.0.0"},
+  "spec": {
+    "endpoint": "https://tenant-canary.re8ch.com/tenant/observability/mcp",
+    "oauth": {
+      "audience": "https://tenant-canary.re8ch.com/tenant/observability/mcp",
+      "protectedResourceMetadata": "https://tenant-canary.re8ch.com/.well-known/oauth-protected-resource/tenant/observability/mcp",
+      "tokenEnv": "TENANT_OBSERVABILITY_CANARY_TOKEN",
+      "pkce": "S256"
+    },
+    "timeoutSeconds": 60,
+    "requireSignedEvidence": true,
+    "calls": [
+      {"name": "datasources", "tool": "grafana_datasource_list", "arguments": {}},
+      {"name": "tenant-metrics-query", "tool": "grafana_query", "arguments": {"spec": {"timeRange": {"from": "now-15m", "to": "now", "timezone": "UTC"}, "queries": [{"datasourceUid": "tenant-metrics", "refId": "A", "queryKind": "promql", "model": {"expr": "count(up{tenant=\"tenant-mcp-canary\"})"}, "intervalMs": 15000, "maxDataPoints": 1000}]}}},
+      {"name": "indicators", "tool": "grafana_indicators", "arguments": {"values": [1, 2, 3, 2, 5], "indicators": [{"type": "movingAverage", "window": 3}, {"type": "ema", "window": 3}, {"type": "changeRate"}, {"type": "volatility", "window": 3}, {"type": "zscore"}, {"type": "slope"}, {"type": "quantile", "quantile": 0.95}]}},
+      {"name": "pearson-lag", "tool": "grafana_correlate", "arguments": {"left": [1, 2, 3, 4, 5], "right": [2, 4, 6, 8, 10], "method": "pearson", "max_lag": 2}},
+      {"name": "spearman", "tool": "grafana_correlate", "arguments": {"left": [10, 30, 20, 40], "right": [1, 3, 2, 4], "method": "spearman", "max_lag": 0}},
+      {"name": "native-correlations", "tool": "grafana_correlate", "arguments": {"datasource_uid": "tenant-vlogs"}}
+    ]
+  }
+}
