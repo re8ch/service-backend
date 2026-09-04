@@ -16,7 +16,7 @@ SPEC.loader.exec_module(collector)
 
 def test_chart_lints_and_renders_restricted_workload():
     subprocess.run(["helm", "lint", str(CHART)], check=True, capture_output=True, text=True)
-    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai"], check=True, capture_output=True, text=True).stdout
+    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0"], check=True, capture_output=True, text=True).stdout
     docs = [item for item in yaml.safe_load_all(rendered) if item]
     deployment = next(item for item in docs if item["kind"] == "Deployment")
     pod = deployment["spec"]["template"]["spec"]
@@ -28,7 +28,12 @@ def test_chart_lints_and_renders_restricted_workload():
     assert container["command"] == ["python3", "/etc/birfucate/collector.py"]
     assert len(annotations["checksum/collector"]) == 64
     assert len(annotations["checksum/config"]) == 64
-    assert not any(item["kind"] in {"Role", "ClusterRole", "RoleBinding", "ClusterRoleBinding"} for item in docs)
+    discovery = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"].endswith("-discovery"))
+    assert discovery["spec"]["template"]["spec"]["automountServiceAccountToken"] is True
+    role = next(item for item in docs if item["kind"] == "ClusterRole")
+    writable = next(rule for rule in role["rules"] if rule["apiGroups"] == ["finops.re8ch.com"] and "serviceshards" in rule["resources"])
+    assert "create" in writable["verbs"]
+    assert not any("secrets" in rule["resources"] for rule in role["rules"])
 
 
 def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
@@ -40,6 +45,19 @@ def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
     names = {item["name"] for family in values["meters"].values() for item in family}
     assert domains == {"ceph", "pigsty", "networks"}
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
+
+
+def test_crds_use_status_subresources_cel_and_selectable_fields():
+    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0"], check=True, capture_output=True, text=True).stdout
+    crds = {item["spec"]["names"]["kind"]: item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "CustomResourceDefinition"}
+    assert set(crds) == {"Consumable", "ServiceShard", "ConsumptionBinding", "BifurcationPath", "Tenant", "ClusterRegistration", "ClusterConnection"}
+    for crd in crds.values():
+        version = crd["spec"]["versions"][0]
+        assert version["subresources"] == {"status": {}}
+        assert version["selectableFields"]
+        assert version["additionalPrinterColumns"]
+    consumable_spec = crds["Consumable"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+    assert consumable_spec["x-kubernetes-validations"]
 
 
 def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, monkeypatch):

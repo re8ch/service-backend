@@ -8,3 +8,7 @@ data:
     {{- dict "collectionIntervalSeconds" .Values.collectionIntervalSeconds "lookbackSeconds" .Values.lookbackSeconds "prometheus" .Values.prometheus "opencost" .Values.opencost "usageSink" (omit .Values.usageSink "existingSecret" "tokenKey") "outbox" .Values.outbox "tenantLabels" .Values.tenantLabels "meters" .Values.meters | toJson | nindent 4 }}
   collector.py: |
 {{ .Files.Get "files/collector.py" | indent 4 }}
+  discovery.json: |
+    {{- dict "intervalSeconds" .Values.discovery.intervalSeconds "clusterRef" .Values.discovery.clusterRef "regionRef" .Values.discovery.regionRef "classifications" .Values.discovery.classifications | toJson | nindent 4 }}
+  controller.py: |
+{{ .Files.Get "files/controller.py" | indent 4 }}

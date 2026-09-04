@@ -1,0 +1,17 @@
+{
+  "apiVersion": "testing.re8ch.com/v1alpha1",
+  "kind": "MCPCollection",
+  "metadata": {"name": "tenant-registry-canary", "version": "1.0.0"},
+  "spec": {
+    "endpoint": "https://tenant-canary.re8ch.com/tenant/registry/mcp",
+    "oauth": {
+      "audience": "https://tenant-canary.re8ch.com/tenant/registry/mcp",
+      "protectedResourceMetadata": "https://tenant-canary.re8ch.com/.well-known/oauth-protected-resource/tenant/registry/mcp",
+      "tokenEnv": "TENANT_REGISTRY_CANARY_TOKEN",
+      "pkce": "S256"
+    },
+    "timeoutSeconds": 20,
+    "requireSignedEvidence": true,
+    "calls": [{"name": "catalog", "tool": "service_catalog_list", "arguments": {} }]
+  }
+}

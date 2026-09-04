@@ -20,6 +20,10 @@ desired = {
     "re8ch-cloud-platform-tool": "RE8CH Cloud Platform Tool",
     "re8ch-cluster-infra-tool": "RE8CH Cluster Infra Tool",
     "re8ch-agent-orchestra-collab": "RE8CH Agent Orchestra Collab",
+    "re8ch-tenant-admin": "RE8CH Tenant Admin",
+    "re8ch-tenant-registry": "RE8CH Tenant Registry",
+    "re8ch-tenant-observability": "RE8CH Tenant Observability",
+    "re8ch-tenant-byoc": "RE8CH Tenant BYOC",
 }
 clients = config.setdefault("staticClients", [])
 by_id = {item.get("id"): item for item in clients}
@@ -52,4 +56,4 @@ $KUBECTL -n "$DEX_NAMESPACE" get secret "$DEX_SECRET" -o json | jq --arg name "$
 $KUBECTL -n "$DEX_NAMESPACE" create secret generic "$DEX_SECRET" --from-file=config.yaml="$workdir/config.yaml" --dry-run=client -o yaml | $KUBECTL apply -f - >/dev/null
 $KUBECTL -n "$DEX_NAMESPACE" rollout restart deployment/dex
 $KUBECTL -n "$DEX_NAMESPACE" rollout status deployment/dex --timeout=180s
-echo "Registered three Dex public clients; rollback Secret: $DEX_NAMESPACE/$backup"
+echo "Registered isolated admin, registry, observability and BYOC Dex clients; rollback Secret: $DEX_NAMESPACE/$backup"

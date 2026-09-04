@@ -5,6 +5,23 @@ that Kubernetes/OpenCost does not fully price: Ceph, Pigsty and network behavior
 It consumes existing Prometheus-compatible observations instead of replacing
 Ceph exporters, Pigsty recording rules, Hubble, Hyperglass or OpenCost.
 
+The chart also installs the `finops.re8ch.com/v1alpha1` control API and an
+observe-only discovery controller. It materializes exactly one `ServiceShard`
+and `BifurcationPath` for each Deployment, StatefulSet, DaemonSet, Job, CronJob
+and NuclioFunction. Source workloads are never mutated. Draft Consumables
+must be approved by an owner before a tenant ConsumptionBinding is valid.
+
+The four API kinds are:
+
+- cluster-scoped `Tenant` for generic admin or named-tenant identity mapping;
+- cluster-scoped `Consumable` for the app-native authorization adapter and meter contract;
+- namespaced `ServiceShard` for one workload and its discovered dependencies;
+- namespaced `ConsumptionBinding` for tenant/service-instance allocation;
+- namespaced `BifurcationPath` for compact Headlamp topology and usage status.
+
+High-frequency UsageEvents remain in the outbox and metrics/ledger backends;
+Kubernetes stores only declarative intent and bounded status summaries.
+
 ## Two charging facts
 
 - **Occupancy** integrates a resource gauge over time: `quantity = occupied × seconds`.
