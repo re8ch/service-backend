@@ -18,9 +18,11 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 
 ## Deliberate first-stage limits
 
-The HelmRelease is committed suspended and has no public HTTPRoute. This makes
-the chart and namespace visible to Flux without starting upstream defaults that
-contain development credentials or perform install-time downloads.
+The HelmRelease is committed suspended. PublicEdge declarations and HTTPRoutes
+for `pay.re8ch.com` (Control Center) and `pay-api.re8ch.com` (router) are staged,
+but have no ready backend until the release passes its credential gate. This
+makes the desired public topology reviewable without starting upstream defaults
+that contain development credentials or perform install-time downloads.
 
 Before unsuspending:
 
@@ -35,15 +37,22 @@ Before unsuspending:
    credentials, unrestricted ingress, privileged containers, or online builds.
 5. Keep the router internal and run its health/migration/dummy-connector tests.
 6. Deploy the RE8CH payment bridge and fulfillment outbox consumer.
-7. Only then add `/payments/v1` to the existing `api.re8ch.com` Gateway.
+7. Create the first administrator through the reviewed bootstrap procedure,
+   require TOTP, rotate the bootstrap credential, and verify unauthenticated
+   Control Center/API requests cannot access merchant or payment data.
+8. Unsuspend only after PublicEdge selects the validated restricted-node-6dc3f140f9 authority and both
+   public probes pass through the wildcard TLS listener.
 
 ## Initial deployment profile
 
 - Chart: `hyperswitch-stack` 0.2.26
 - Namespace: `payments`
 - Environment: sandbox
-- Public ingress, Control Center, web demo, monitoring bundle, card vault,
-  analytics pipeline, and UCS: disabled
+- Public chart ingress, web demo, monitoring bundle, card vault, analytics
+  pipeline, and UCS: disabled; Cilium Gateway API owns public exposure
+- Control Center: enabled at `https://pay.re8ch.com`; email login disabled,
+  TOTP required, sample data disabled
+- Router: `https://pay-api.re8ch.com`; no credentials are stored in this file
 - Placement: restricted-node-6dc3f140f9
 - Superposition: enabled, internal only; schema migration and fallback seed are
   intentionally supplied as reviewed artifacts rather than downloaded at boot

@@ -51,7 +51,22 @@ spec:
       autoBuild: {enable: false, forceBuild: false}
       ingress: {enabled: false}
     hyperswitch-control-center:
-      enabled: false
+      enabled: true
+      dependencies:
+        router: {host: "https://pay-api.re8ch.com"}
+        clickhouse: {enabled: false}
+      ingress: {enabled: false}
+      config:
+        default:
+          features:
+            email: "false"
+            totp: "true"
+            sample_data: "false"
+            test_processors: "true"
+            is_live_mode: "false"
+      resources:
+        requests: {cpu: 100m, memory: 128Mi}
+        limits: {cpu: 500m, memory: 512Mi}
     hyperswitch-monitoring:
       enabled: false
     hyperswitch-app:
