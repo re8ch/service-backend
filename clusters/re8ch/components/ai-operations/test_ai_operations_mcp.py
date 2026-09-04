@@ -71,6 +71,53 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("harbor_users", names)
         self.assertNotIn("infra_execute", names)
 
+    def test_tenant_infra_profile_exposes_service_lifecycle_only(self):
+        m = load("tenant-infra")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertTrue({"tenant_create", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "service_catalog_list", "service_instance_create", "service_binding_create", "usage_summary_get", "operation_get"}.issubset(names))
+        self.assertNotIn("infra_execute", names)
+        self.assertNotIn("harbor_users", names)
+        self.assertNotIn("activate_device", names)
+        with self.assertRaises(PermissionError):
+            m.call_tool("operation_status", {"operation_id": "op_admin"}, {"tenant": "qwen", "groups": []})
+
+    def test_tenant_planes_are_server_side_isolated_and_resources_are_tenant_scoped(self):
+        registry = load("tenant-registry")
+        registry.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
+        registry._TENANT_SERVICE_STORE = None
+        names = {tool["name"] for tool in registry.tools()}
+        self.assertIn("service_instance_create", names)
+        self.assertNotIn("tenant_create", names)
+        self.assertNotIn("byoc_cluster_register", names)
+        identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
+        listed = registry.resources_list(identity, None)
+        self.assertTrue(all("/canary/" in item["uri"] for item in listed["resources"]))
+        catalog = registry.resources_read(identity, "re8ch://tenant/canary/catalog")
+        body = json.loads(catalog["contents"][0]["text"])
+        self.assertEqual({item["serviceClass"] for item in body["services"]}, {"registry.harbor.v1"})
+        with self.assertRaises(PermissionError):
+            registry.resources_read(identity, "re8ch://tenant/other/instances")
+
+    def test_byoc_registration_returns_opaque_reference_and_hashes_key(self):
+        byoc = load("tenant-byoc")
+        byoc.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
+        byoc._TENANT_SERVICE_STORE = None
+        identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
+        result = byoc.call_tool("byoc_cluster_register", {"cluster_uid": "cluster-uid-123", "region_ref": "cn-east", "issuer": "https://issuer.example", "public_key": "public-key", "capabilities": ["mcs"]}, identity)
+        self.assertTrue(result["enrollmentRef"].startswith("enrollment://"))
+        stored = byoc.tenant_service_store().registrations("canary")[0]
+        self.assertNotEqual(stored["public_key_hash"], "public-key")
+        self.assertTrue(stored["public_key_hash"].startswith("sha256:"))
+
+    def test_tenant_context_is_derived_from_exactly_one_declared_group(self):
+        m = load("tenant-infra")
+        self.assertEqual(m.authenticated_tenant({"groups": ["re8ch:tenant:research-a"]}), "research-a")
+        self.assertEqual(m.authenticated_tenant({"groups": ["re8ch:tenant-admins"]}), "admin")
+        with self.assertRaises(PermissionError):
+            m.authenticated_tenant({"tenant": "admin", "groups": []})
+        with self.assertRaises(PermissionError):
+            m.authenticated_tenant({"groups": ["re8ch:qwen-operators", "re8ch:ledger-operators"]})
+
     def test_litellm_uses_its_real_health_path(self):
         m = load("orchestra")
         self.assertEqual(m.ORCHESTRA_HEALTH_PATHS["litellm"], "/health/liveliness")

@@ -1,4 +1,4 @@
-stages: [validate, test, render, security, release]
+stages: [validate, test, render, security, release, canary]
 
 default:
   image:
@@ -55,3 +55,28 @@ macmini-devops-context:
     - test -d /Volumes/A1/service-backend
     - curl -fsS http://127.0.0.1:19640/healthz
     - /Volumes/A1/service-backend/.venv/bin/python /Volumes/A1/service-backend/operations/workspace-controller/workspace.py --root /Volumes/A1/service-backend memory-audit
+
+tenant-infrastructure-release:
+  stage: release
+  tags: [macmini-a1]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  before_script: []
+  script:
+    - ./operations/mcp-conformance/release-tenant-infrastructure.sh
+  artifacts:
+    paths: [tenant-infrastructure.image, tenant-infrastructure.spdx.json]
+
+tenant-mcp-canary:
+  stage: canary
+  tags: [macmini-a1]
+  needs: [tenant-infrastructure-release]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  before_script: []
+  script:
+    - python3 operations/mcp-conformance/mcp_collection.py operations/mcp-conformance/collections/tenant-registry-canary.json --output tenant-registry-canary.evidence.json
+  artifacts:
+    paths: [tenant-registry-canary.evidence.json, tenant-registry-canary.evidence.json.bundle]

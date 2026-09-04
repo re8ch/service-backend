@@ -1,0 +1,147 @@
+# Promotion gate: this base is intentionally not referenced by clusters/re8ch
+# until IMAGE_REQUIRES_VERIFIED_DIGEST is replaced with a signed image digest.
+apiVersion: v1
+kind: Namespace
+metadata: {name: tenant-infrastructure, labels: {saas.re8ch.com/tenant: platform}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: tenant-infrastructure-catalog, namespace: tenant-infrastructure}
+data:
+  harbor-tenants.json: |
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"garageband":{},"jjklive":{},"ledger":{},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{},"space-mining-stage":{},"thiking-machine":{}}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: tenant-infrastructure-state, namespace: tenant-infrastructure, labels: {storage.re8ch.com/replicated-approved: "true"}}
+spec: {accessModes: [ReadWriteOnce], storageClassName: rbd-r640, resources: {requests: {storage: 1Gi}}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: tenant-infrastructure}}
+  template:
+    metadata: {labels: {app: tenant-infrastructure, saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-infrastructure
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: tenant-admin
+          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: tenant-admin}
+            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant-admin/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant-admin/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant-admin/mcp"}
+            - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
+            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
+            - {name: HARBOR_TENANTS_PATH, value: /etc/re8ch-ai-operations/harbor-tenants.json}
+          ports: [{name: admin, containerPort: 19443}]
+          readinessProbe: {httpGet: {path: /healthz, port: admin}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: admin}, periodSeconds: 15}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: state, mountPath: /var/lib/re8ch-ai-operations}
+            - {name: tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
+        - name: tenant-registry
+          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: tenant-registry}
+            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/registry/mcp"}
+            - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
+            - {name: LISTEN_PORT, value: "19444"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/registry/mcp"}
+            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
+          ports: [{name: registry, containerPort: 19444}]
+          readinessProbe: {httpGet: {path: /healthz, port: registry}, periodSeconds: 5}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
+        - name: tenant-observability
+          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: tenant-observability}
+            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/observability/mcp"}
+            - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
+            - {name: LISTEN_PORT, value: "19445"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/observability/mcp"}
+            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
+          ports: [{name: observability, containerPort: 19445}]
+          readinessProbe: {httpGet: {path: /healthz, port: observability}, periodSeconds: 5}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
+        - name: tenant-byoc
+          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: tenant-byoc}
+            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
+            - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
+            - {name: LISTEN_PORT, value: "19446"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
+            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
+          ports: [{name: byoc, containerPort: 19446}]
+          readinessProbe: {httpGet: {path: /healthz, port: byoc}, periodSeconds: 5}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
+      volumes:
+        - {name: state, persistentVolumeClaim: {claimName: tenant-infrastructure-state}}
+        - {name: tenants, configMap: {name: tenant-infrastructure-catalog}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-admin, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: admin}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-registry, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: registry}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-observability, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: observability}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: byoc}]}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
+spec:
+  hostnames: [tools.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /tenant-admin}}]
+      backendRefs: [{name: tenant-admin, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /tenant/registry}}]
+      backendRefs: [{name: tenant-registry, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /tenant/observability}}]
+      backendRefs: [{name: tenant-observability, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /tenant/byoc}}]
+      backendRefs: [{name: tenant-byoc, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant-admin}}]
+      backendRefs: [{name: tenant-admin, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant/registry}}]
+      backendRefs: [{name: tenant-registry, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant/observability}}]
+      backendRefs: [{name: tenant-observability, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant/byoc}}]
+      backendRefs: [{name: tenant-byoc, port: 80}]

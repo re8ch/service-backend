@@ -1,0 +1,157 @@
+apiVersion: finops.re8ch.com/v1alpha1
+kind: ConsumabilityCatalog
+metadata:
+  name: re8ch-cluster-bifurcation
+  snapshotRef: inventory/platform/live/services.yaml
+  observedAt: "2026-09-03T23:50:00+08:00"
+spec:
+  identityContract:
+    requiredDimensions: [tenant_ref, service_instance_ref, resource_ref, cluster_ref, region_ref]
+    optionalDimensions: [namespace, workload, service, node, storage_class, route, provider, model]
+    administrativePlugins:
+      - re8ch-cloud-platform-tool
+      - re8ch-cluster-infra-tool
+      - re8ch-agent-orchestra-collab
+    consumerPlugins:
+      - tenant
+    rule: Administrative plugins operate supply; the generic tenant proxy maps Tenant and Consumable grants to app-native authorization without exposing credential material.
+
+  assessmentClasses:
+    internal-control-plane:
+      consumable: false
+      namespaces:
+        - ai-operations
+        - auth
+        - cert-manager
+        - credential-broker
+        - dex
+        - edge-devices
+        - flux-system
+        - function-routing
+        - git-workspaces
+        - gitlab-agent
+        - headlamp
+        - image
+        - kube-system
+        - mcp-registry
+        - mail-system
+        - opentelemetry-operator
+        - ops
+        - scheduler-system
+        - scheduling-system
+        - synthetic-monitoring
+        - toolhive-system
+      treatment: Allocate as shared platform overhead; expose a tenant-safe facade only when a separate service class exists.
+    shared-infrastructure-product:
+      consumable: true
+      namespaces:
+        - among-clusters
+        - byoc-pilot
+        - egress-fabric
+        - harbor
+        - llm-gateway
+        - netbird-access
+        - observable
+        - observability-ai
+        - observability-system
+        - opencost
+        - opensandbox-system
+        - pigsty-external
+        - qianwen-ops
+        - regional-routing
+        - rook-ceph
+        - storage-fabric
+        - supabase-pg-re8ch
+      treatment: Publish plans, quotas, SLOs and UsageEvents; never expose administrative endpoints as the product endpoint.
+    tenant-facing-product:
+      consumable: true
+      namespaces:
+        - agent-collab
+        - ai-gateway
+        - anycam
+        - anysite
+        - codex-app-server
+        - codex-platform
+        - comfy-agent
+        - compocv
+        - cosyvoice
+        - dataspace
+        - default
+        - fleet
+        - kagent
+        - ledger
+        - neo4j
+        - nuclio
+        - qwen
+        - voice-observability
+      treatment: Attribute direct consumption to the owning tenant and attach dependent infrastructure UsageEvents by service_instance_ref.
+    evaluation-only:
+      consumable: false
+      namespaces:
+        - cube-trial
+        - mitos-trial
+        - runtime-poc
+        - symphony-trial
+      treatment: Inventory and meter for showback, but prohibit price publication until promoted by an owner.
+
+  serviceClasses:
+    - id: compute.workload.v1
+      productBoundary: Kubernetes workload execution, including CPU, memory, accelerators and ephemeral storage.
+      meters: [cpu_core_second, memory_gib_second, accelerator_second, ephemeral_storage_gib_second]
+      source: OpenCost plus kube-state-metrics
+      allocation: direct
+    - id: storage.volume.v1
+      productBoundary: Persistent RBD or CephFS capacity and I/O.
+      meters: [provisioned_gib_second, used_gib_second, read_operation, write_operation, read_byte, write_byte]
+      source: kube-state-metrics plus Ceph exporters
+      allocation: direct
+    - id: storage.bucket.v1
+      productBoundary: Object capacity, requests and transfer.
+      meters: [stored_gib_second, class_a_request, class_b_request, ingress_byte, egress_byte]
+      source: provider and object-gateway exporters
+      allocation: direct
+    - id: network.tenant.v1
+      productBoundary: Tenant network attachment, public address, ingress, egress and policy processing.
+      meters: [attachment_second, public_ip_second, ingress_byte, egress_byte, flow, policy_verdict]
+      source: Cilium/Hubble plus PublicEdge
+      allocation: direct
+    - id: network.among-clusters.v1
+      productBoundary: Cross-cluster path establishment and traffic delivery.
+      meters: [path_second, ingress_byte, egress_byte, forwarded_packet, route_change, remote_cluster_fanout]
+      source: AmongClusters plus AdvancedFabric/Hyperglass
+      allocation: direct-by-source-destination-cluster
+    - id: registry.harbor.v1
+      productBoundary: Private repositories, artifact storage, pull/push transfer and vulnerability scans.
+      meters: [repository_second, artifact_gib_second, pull_byte, push_byte, scan]
+      source: Harbor API/audit log plus Ceph and edge transfer
+      allocation: direct-with-dependent-storage-and-network
+    - id: observability.managed.v1
+      productBoundary: Metrics, logs, traces, dashboards, rules and retention.
+      meters: [active_series_second, sample_ingested, log_byte_ingested, trace_span_ingested, retained_gib_second, query]
+      source: VictoriaMetrics, VictoriaLogs, OpenTelemetry and Grafana
+      allocation: direct-ingest-and-retention; shared-query-overhead
+    - id: database.postgresql.shared.v1
+      productBoundary: Shared PostgreSQL database capacity and operations.
+      meters: [database_gib_second, connection_second, transaction, tuple, backup_gib_second]
+      source: Pigsty recording rules
+      allocation: direct
+    - id: ai.model-gateway.v1
+      productBoundary: Model inference routed through the shared gateway.
+      meters: [input_token, output_token, request, provider_cost, gpu_second]
+      source: LiteLLM spend and runtime telemetry
+      allocation: direct-by-key-team-model
+    - id: sandbox.runtime.v1
+      productBoundary: On-demand sandbox execution and artifact retention.
+      meters: [sandbox_second, cpu_core_second, memory_gib_second, artifact_gib_second, network_egress_byte]
+      source: OpenSandbox plus OpenCost/Ceph/Hubble
+      allocation: direct
+
+  publicationGates:
+    - owner-and-service-class-declared
+    - tenant-service-instance-issued
+    - tenant-and-resource-labels-present-on-every-meter
+    - quota-and-isolation-enforced
+    - slo-runbook-and-support-boundary-defined
+    - usage-event-replay-and-deduplication-tested
+    - dependent-cost-links-resolve-to-the-same-service-instance
+    - administrative-api-not-reachable-from-tenant-identity

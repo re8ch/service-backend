@@ -109,3 +109,14 @@ resources:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+discovery:
+  enabled: true
+  intervalSeconds: 120
+  clusterRef: re8ch
+  regionRef: multi-region
+  classifications:
+    internal-control-plane: [ai-operations, auth, cert-manager, dex, edge-devices, flux-system, function-routing, gitlab-agent, headlamp, image, kube-system, mcp-registry, opentelemetry-operator, ops, synthetic-monitoring, toolhive-system]
+    shared-infrastructure-product: [among-clusters, egress-fabric, harbor, llm-gateway, netbird-access, observable, observability-ai, opencost, opensandbox-system, pigsty-external, qianwen-ops, regional-routing, rook-ceph, storage-fabric, supabase-pg-re8ch]
+    tenant-facing-product: [agent-collab, ai-gateway, anycam, anysite, codex-app-server, codex-platform, comfy-agent, compocv, cosyvoice, dataspace, default, fleet, kagent, ledger, neo4j, nuclio, qwen, voice-observability]
+    evaluation-only: [cube-trial, mitos-trial, symphony-trial]
