@@ -205,6 +205,39 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     assert dns_values["publication"]["refs"]["stalwart-admin"] == admin_ref
 
 
+def test_public_edge_uses_the_public_digest_pinned_controller_supply_chain():
+    values = yaml.safe_load(
+        (ROOT / "clusters/re8ch/charts/public-edge-manager/values.yaml").read_text()
+    )
+    assert values["image"] == {
+        "repository": "ghcr.io/re8ch/public-edge-manager",
+        "tag": "0.3.1",
+        "digest": "sha256:557fa1c9c9b56cafa3c0c8c45a7143a2c2931e1e6cbbbd3baaca54bd0f31ecd7",
+        "pullPolicy": "IfNotPresent",
+    }
+    assert values["readinessGates"]["db-rw"]["requiredFields"] == {
+        "authority": "patroni"
+    }
+
+    authority_docs = documents(
+        ROOT / "clusters/re8ch/components/regional-routing/authority.yaml"
+    )
+    daemonset = next(item for item in authority_docs if item["kind"] == "DaemonSet")
+    container = daemonset["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == (
+        "ghcr.io/re8ch/public-edge-manager@"
+        "sha256:557fa1c9c9b56cafa3c0c8c45a7143a2c2931e1e6cbbbd3baaca54bd0f31ecd7"
+    )
+    assert "command" not in container
+    assert container["securityContext"]["runAsNonRoot"] is True
+    assert all(volume.get("name") != "script" for volume in container.get("volumeMounts", []))
+
+    kustomization = yaml.safe_load(
+        (ROOT / "clusters/re8ch/components/regional-routing/kustomization.yaml").read_text()
+    )
+    assert "configMapGenerator" not in kustomization
+
+
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
     plan = next(item for item in resources if item["kind"] == "ConfigMap")

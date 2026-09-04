@@ -13,7 +13,7 @@ rules:
     resources: [httproutes, grpcroutes, tlsroutes, tcproutes, gateways]
     verbs: [get, list, watch]
   - apiGroups: [""]
-    resources: [services, nodes]
+    resources: [services, nodes, configmaps]
     verbs: [get, list, watch]
   - apiGroups: [discovery.k8s.io]
     resources: [endpointslices]
