@@ -123,6 +123,37 @@ spec:
             op: 'replace',
             path: '/spec/strategy/rollingUpdate',
             value: {'maxSurge': 0, 'maxUnavailable': 1}
+          }, JSONPatch{
+            op: 'add',
+            path: '/spec/template/spec/affinity',
+            value: Object.spec.template.spec.affinity{
+              nodeAffinity: Object.spec.template.spec.affinity.nodeAffinity{
+                preferredDuringSchedulingIgnoredDuringExecution: [
+                  Object.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution{
+                    weight: 100,
+                    preference: Object.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference{
+                      matchExpressions: [
+                        Object.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference.matchExpressions{
+                          key: 'kubernetes.io/hostname',
+                          operator: 'In',
+                          values: ['restricted-node-6dc3f140f9']
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              podAntiAffinity: Object.spec.template.spec.affinity.podAntiAffinity{
+                requiredDuringSchedulingIgnoredDuringExecution: [
+                  Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution{
+                    labelSelector: Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector{
+                      matchLabels: {'app.kubernetes.io/instance': object.metadata.name}
+                    },
+                    topologyKey: 'kubernetes.io/hostname'
+                  }
+                ]
+              }
+            }
           }]
 ---
 apiVersion: admissionregistration.k8s.io/v1

@@ -72,6 +72,35 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
+def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
+    publications = documents(
+        ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml"
+    )
+    public_vmcp = [
+        item
+        for item in publications
+        if item["kind"] == "VirtualMCPServer"
+        and item["metadata"]["name"] in {"re8ch-admin-vmcp", "re8ch-tools-vmcp"}
+    ]
+    assert len(public_vmcp) == 2
+    assert all(item["spec"]["replicas"] == 2 for item in public_vmcp)
+    assert all("podTemplateSpec" not in item["spec"] for item in public_vmcp)
+
+    policies = documents(
+        ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml"
+    )
+    policy = next(
+        item
+        for item in policies
+        if item["kind"] == "MutatingAdmissionPolicy"
+        and item["metadata"]["name"] == "toolhive-vmcp-image-resolution.re8ch.com"
+    )
+    expression = policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
+    assert "preferredDuringSchedulingIgnoredDuringExecution" in expression
+    assert "values: ['restricted-node-6dc3f140f9']" in expression
+    assert "requiredDuringSchedulingIgnoredDuringExecution" in expression
+
+
 def test_embedded_workspace_controller_is_valid_python():
     config_map = next(
         item
