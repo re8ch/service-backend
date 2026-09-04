@@ -30,4 +30,5 @@ resources:
   - ../../platform/observability-source
   - ../../platform/connectool
   - ../../platform/gitlab-runner-r640
+  - ../../platform/birfucate-metering
   - ../../platform/external-projects

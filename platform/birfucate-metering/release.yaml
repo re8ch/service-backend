@@ -1,0 +1,45 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: birfucate-metering
+  namespace: flux-system
+spec:
+  interval: 10m
+  releaseName: birfucate-metering
+  targetNamespace: observability-ai
+  storageNamespace: observability-ai
+  chart:
+    spec:
+      chart: ./clusters/re8ch/charts/birfucate-metering
+      interval: 10m
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: service-backend
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      strategy: rollback
+  rollback:
+    cleanupOnFail: true
+  values:
+    image:
+      repository: python
+      tag: 3.13-alpine@sha256:62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7
+      pullPolicy: IfNotPresent
+    # Keep the first production reconciliation equivalent to the validated
+    # canary: no stateful allocation while Ceph is degraded and no downstream
+    # delivery until the tenant usage sink is promoted.
+    outbox:
+      enabled: false
+    usageSink:
+      enabled: false
+    serviceMonitor:
+      enabled: false
+    vmServiceScrape:
+      enabled: false

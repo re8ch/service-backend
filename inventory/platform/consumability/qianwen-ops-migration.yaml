@@ -1,0 +1,65 @@
+apiVersion: finops.re8ch.com/v1alpha1
+kind: TenantAdapterMigration
+metadata:
+  name: qianwen-ops-to-tenant
+spec:
+  sourceNamespace: qianwen-ops
+  targetControlPlane: tenant
+  policy:
+    deleteLegacyObjects: AfterReplacementReady
+    preservePersistentData: true
+    preserveUsageHistory: true
+    protectedTenant: admin
+  genericOperations:
+    - name: createTenant
+      crdTarget: Tenant
+      adapterAction: EnsureNativePrincipalAndIsolationUnit
+    - name: createGrant
+      crdTarget: ConsumptionBinding
+      adapterAction: ReconcileNativeRoleAndReturnOpaqueAccessRef
+    - name: updateVisibility
+      crdTarget: Tenant
+      adapterAction: ReconcileNativeVisibilityAndNetworkPolicy
+    - name: deleteTenant
+      crdTarget: Tenant
+      adapterAction: RevokeGrantsThenRetainOrDeleteDataByPolicy
+  replaceAfterReady:
+    - kind: ConfigMap
+      name: panel-tenant-metrics-proxy
+      replacement: tenant adapter for observability.grafana.v1 metrics datasource grants
+    - kind: Deployment
+      name: panel-tenant-metrics-proxy
+      replacement: tenant authentication/authorization proxy
+    - kind: Service
+      name: panel-tenant-metrics-proxy
+      replacement: tenant authentication/authorization proxy
+    - kind: ConfigMap
+      name: panel-tenant-logs-proxy
+      replacement: tenant adapter for observability.grafana.v1 log datasource grants
+    - kind: Deployment
+      name: panel-tenant-logs-proxy
+      replacement: tenant authentication/authorization proxy
+    - kind: Service
+      name: panel-tenant-logs-proxy
+      replacement: tenant authentication/authorization proxy
+    - kind: ConfigMap
+      name: tenant-catalog-example
+      replacement: Tenant and Consumable resources
+  preserveAsSharedDataPlane:
+    - {kind: Deployment, name: panel-grafana}
+    - {kind: Deployment, name: panel-grafana-renderer}
+    - {kind: Deployment, name: panel-victoria-metrics}
+    - {kind: Deployment, name: panel-victoria-logs}
+    - {kind: Service, name: panel-grafana}
+    - {kind: Service, name: panel-victoria-metrics}
+    - {kind: Service, name: panel-victoria-logs}
+    - {kind: ConfigMap, name: panel-grafana-datasources}
+    - {kind: ConfigMap, name: panel-grafana-dashboard-providers}
+  deletionGates:
+    - Tenant/admin remains Ready and immutable
+    - replacement tenant adapter is deployed with a digest-pinned image
+    - every legacy tenant has a Ready Tenant resource
+    - Grafana metrics and logs ConsumptionBindings are Ready
+    - datasource query smoke tests pass through opaque accessRef
+    - no legacy proxy endpoint has traffic during the agreed drain window
+    - rollback manifests and persistent volume references are recorded

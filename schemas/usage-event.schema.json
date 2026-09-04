@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/usage-event.v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "tenantRef", "resourceRef", "serviceClass", "meter", "quantity", "unit", "periodStart", "periodEnd", "regionRef", "sourceOperationId", "observedAt", "schemaVersion"],
+  "properties": {
+    "eventId": {"type": "string", "pattern": "^ue_[a-f0-9]{32}$"},
+    "tenantRef": {"type": "string", "minLength": 1},
+    "resourceRef": {"type": "string", "minLength": 1},
+    "serviceClass": {"type": "string", "minLength": 1},
+    "meter": {"type": "string", "minLength": 1},
+    "quantity": {"type": "number", "minimum": 0},
+    "unit": {"type": "string", "minLength": 1},
+    "periodStart": {"type": "string", "format": "date-time"},
+    "periodEnd": {"type": "string", "format": "date-time"},
+    "regionRef": {"type": "string", "minLength": 1},
+    "sourceOperationId": {"type": "string", "minLength": 1},
+    "observedAt": {"type": "string", "format": "date-time"},
+    "schemaVersion": {"const": "usage.re8ch.com/v1"},
+    "dimensions": {"type": "object", "additionalProperties": true}
+  }
+}

@@ -1,0 +1,116 @@
+{{- if .Values.discovery.enabled }}
+{{- $offerings := list
+  (dict "name" "compute-workload" "class" "compute.workload.v1" "owner" "platform-compute" "boundary" "Tenant-safe Kubernetes workload execution; scheduler and node administration excluded." "kinds" (list "Deployment" "StatefulSet" "DaemonSet" "Job" "CronJob" "NuclioFunction") "meters" (list (dict "name" "cpu_core_second" "unit" "core-second" "source" "OpenCost") (dict "name" "memory_gib_second" "unit" "GiB-second" "source" "OpenCost") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
+  (dict "name" "storage-volume" "class" "storage.volume.v1" "owner" "platform-storage" "boundary" "Persistent RBD and CephFS capacity and I/O; Ceph administration excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "provisioned_gib_second" "unit" "GiB-second" "source" "kube-state-metrics") (dict "name" "storage_operation" "unit" "operation" "source" "Ceph")))
+  (dict "name" "storage-bucket" "class" "storage.bucket.v1" "owner" "platform-storage" "boundary" "Tenant buckets, retained objects, requests and transfer; object-store administration excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "stored_gib_second" "unit" "GiB-second" "source" "object-gateway") (dict "name" "object_request" "unit" "request" "source" "object-gateway") (dict "name" "network_egress_byte" "unit" "byte" "source" "object-gateway")))
+  (dict "name" "network-tenant" "class" "network.tenant.v1" "owner" "platform-network" "boundary" "Tenant attachment, ingress, egress and policy processing; Cilium administration excluded." "kinds" (list "Deployment" "DaemonSet") "meters" (list (dict "name" "attachment_second" "unit" "attachment-second" "source" "Cilium") (dict "name" "flow" "unit" "flow" "source" "Hubble") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
+  (dict "name" "network-among-clusters" "class" "network.among-clusters.v1" "owner" "platform-network" "boundary" "Authenticated source-to-destination cluster paths; fabric administration excluded." "kinds" (list "Deployment" "DaemonSet") "meters" (list (dict "name" "path_second" "unit" "path-second" "source" "AmongClusters") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble") (dict "name" "route_change" "unit" "change" "source" "AdvancedFabric")))
+  (dict "name" "registry-harbor" "class" "registry.harbor.v1" "owner" "platform-registry" "boundary" "Tenant projects, repositories, transfers and scans; Harbor system project and admin API excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "artifact_gib_second" "unit" "GiB-second" "source" "Harbor-Ceph") (dict "name" "pull_byte" "unit" "byte" "source" "Harbor") (dict "name" "push_byte" "unit" "byte" "source" "Harbor") (dict "name" "scan" "unit" "scan" "source" "Trivy")))
+  (dict "name" "observability-managed" "class" "observability.managed.v1" "owner" "platform-observability" "boundary" "Tenant metrics, logs, traces, dashboards and retention; Grafana administration excluded." "kinds" (list "Deployment" "StatefulSet" "DaemonSet") "meters" (list (dict "name" "sample_ingested" "unit" "sample" "source" "VictoriaMetrics") (dict "name" "log_byte_ingested" "unit" "byte" "source" "VictoriaLogs") (dict "name" "retained_gib_second" "unit" "GiB-second" "source" "VictoriaMetrics")))
+  (dict "name" "database-postgresql-shared" "class" "database.postgresql.shared.v1" "owner" "platform-data" "boundary" "Tenant-isolated PostgreSQL databases; superuser and host administration excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "provisioned_gib_second" "unit" "GiB-second" "source" "Pigsty") (dict "name" "connection_second" "unit" "connection-second" "source" "Pigsty") (dict "name" "transaction" "unit" "transaction" "source" "Pigsty")))
+  (dict "name" "ai-model-gateway" "class" "ai.model-gateway.v1" "owner" "platform-ai" "boundary" "Tenant-scoped inference routing; provider credentials and gateway administration excluded." "kinds" (list "Deployment" "NuclioFunction") "meters" (list (dict "name" "request" "unit" "request" "source" "LiteLLM") (dict "name" "input_token" "unit" "token" "source" "LiteLLM") (dict "name" "output_token" "unit" "token" "source" "LiteLLM") (dict "name" "gpu_second" "unit" "GPU-second" "source" "runtime-telemetry")))
+  (dict "name" "sandbox-runtime" "class" "sandbox.runtime.v1" "owner" "platform-sandbox" "boundary" "Tenant sandbox sessions and artifacts; node and controller administration excluded." "kinds" (list "Deployment" "Job") "meters" (list (dict "name" "execution_second" "unit" "second" "source" "OpenSandbox") (dict "name" "cpu_core_second" "unit" "core-second" "source" "OpenCost") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
+}}
+{{- range $index, $item := $offerings }}
+{{ if $index }}---
+{{ end }}
+apiVersion: finops.re8ch.com/v1alpha1
+kind: Consumable
+metadata:
+  name: {{ $item.name }}
+  labels: {{- include "birfucate-metering.labels" $ | nindent 4 }}
+spec:
+  serviceClass: {{ $item.class }}
+  owner: {{ $item.owner }}
+  lifecycle: Draft
+  endpointClass: TenantSafe
+  authenticationProxyRef: tenant
+  supportBoundary: {{ $item.boundary | quote }}
+  accessContract:
+    {{- if eq $item.name "registry-harbor" }}
+    type: Harbor
+    isolationUnit: Project
+    isolationBoundary: Private Harbor project with quota, scoped membership and finite-duration robot accounts.
+    isolationMechanism: Harbor project RBAC, project quota, retention policy and robot permission set
+    provisioner: tenant-infrastructure/harbor-tenant-reconcile
+    tenantEndpoint: https://registry.re8ch.com
+    credentialDelivery: BrokerReference
+    requestFields: [project, permission, quotaGiB, robotDurationDays]
+    grantedResources: [HarborProject, HarborMembership, HarborRobotReference]
+    revocation: Remove project membership and disable project robots without deleting artifacts.
+    {{- else if eq $item.name "observability-managed" }}
+    type: Grafana
+    isolationUnit: OrganizationFolderDatasourceGrant
+    isolationBoundary: Tenant organization or folder boundary with explicit datasource UID grants; Grafana server administration remains platform-only.
+    isolationMechanism: OIDC team mapping, folder RBAC and datasource permissions
+    provisioner: observability-tenant-controller
+    tenantEndpoint: https://grafana.re8ch.com
+    credentialDelivery: OIDC
+    requestFields: [organizationRef, role, folderRefs, datasourceRefs]
+    grantedResources: [GrafanaOrganization, GrafanaTeam, GrafanaFolderGrant, GrafanaDatasourceGrant]
+    revocation: Remove team, folder and datasource grants while retaining telemetry according to retention policy.
+    {{- else if or (eq $item.name "storage-volume") (eq $item.name "storage-bucket") }}
+    type: Ceph
+    isolationUnit: PVCSubvolumeOrBucket
+    isolationBoundary: A Kubernetes PVC/CephFS subvolume or RGW bucket with tenant quota; Ceph cluster and pool administration remain platform-only.
+    isolationMechanism: Kubernetes namespace RBAC, CSI identity, CephX/RGW scoped identity and quota
+    provisioner: storage-fabric-controller
+    credentialDelivery: KubernetesSecretReference
+    requestFields: [mode, storageClassName, capacityGiB, accessModes, bucketClass]
+    grantedResources: [PersistentVolumeClaim, CephFSSubvolume, ObjectBucketClaim]
+    revocation: Delete or retain the claim according to the selected data-retention policy, then revoke scoped storage identity.
+    {{- else if or (eq $item.name "network-among-clusters") (eq $item.name "network-tenant") }}
+    type: Cilium
+    isolationUnit: NamespaceIdentityAndRoute
+    isolationBoundary: Namespace/service-account identity, explicit destinations and optional Gateway path; Cilium agents and fabric control plane remain platform-only.
+    isolationMechanism: Cilium identity, NetworkPolicy, Gateway API and AmongClusters authenticated link
+    provisioner: network-tenant-controller
+    credentialDelivery: None
+    requestFields: [namespaceRef, connectivity, destinationClusters, bandwidthMbps, gatewayClassRef]
+    grantedResources: [CiliumNetworkPolicy, HTTPRoute, AuthenticatedLink, ManagedAccessGrant]
+    revocation: Withdraw routes and grants, then remove tenant policy after active connections drain.
+    {{- else if eq $item.name "database-postgresql-shared" }}
+    type: PostgreSQL
+    isolationUnit: DatabaseRoleSchema
+    isolationBoundary: Tenant database, role, connection quota and backup policy; PostgreSQL superuser and host access remain platform-only.
+    isolationMechanism: Database/role ownership, pg_hba policy, connection limit and backup retention
+    provisioner: tenant-infrastructure/postgresql
+    credentialDelivery: BrokerReference
+    requestFields: [databaseClass, storageGiB, connectionLimit, backupRetention]
+    grantedResources: [DatabaseReference, RoleReference, BackupPolicy]
+    revocation: Disable login, terminate sessions and retain or delete database according to retention policy.
+    {{- else if eq $item.name "ai-model-gateway" }}
+    type: ModelGateway
+    isolationUnit: VirtualKeyTeamModelPolicy
+    isolationBoundary: Tenant virtual key reference with model allowlist, token budget and concurrency quota; provider keys remain platform-only.
+    isolationMechanism: LiteLLM team, virtual key, model allowlist and budget
+    provisioner: tenant-infrastructure/litellm
+    credentialDelivery: BrokerReference
+    requestFields: [models, tokenBudget, concurrency, expiry]
+    grantedResources: [VirtualKeyReference, ModelPolicy, BudgetPolicy]
+    revocation: Disable the virtual key reference and preserve usage records.
+    {{- else if eq $item.name "sandbox-runtime" }}
+    type: Sandbox
+    isolationUnit: SandboxSession
+    isolationBoundary: Expiring tenant sandbox with resource quota, immutable image and scoped artifact storage.
+    isolationMechanism: Namespace RBAC, runtime isolation, TTL and NetworkPolicy
+    provisioner: opensandbox
+    credentialDelivery: BrokerReference
+    requestFields: [imageDigest, cpu, memory, storage, ttlSeconds, networkPolicy]
+    grantedResources: [SandboxReference, ArtifactStoreReference]
+    revocation: Stop the sandbox at TTL and retain artifacts only for the selected retention class.
+    {{- else }}
+    type: Workload
+    isolationUnit: WorkloadQuota
+    isolationBoundary: Tenant workload resource quota and service endpoint; node and scheduler administration remain platform-only.
+    isolationMechanism: Namespace RBAC, ResourceQuota, LimitRange and NetworkPolicy
+    provisioner: tenant-runtime
+    credentialDelivery: None
+    requestFields: [cpu, memory, acceleratorClass, ephemeralStorage, ttlSeconds]
+    grantedResources: [WorkloadReference, ServiceReference]
+    revocation: Scale down or delete the workload and release attached claims according to their retention policies.
+    {{- end }}
+  allowedWorkloadKinds: {{ $item.kinds | toJson }}
+  meters: {{ $item.meters | toJson }}
+{{- end }}
+{{- end }}

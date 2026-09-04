@@ -1,0 +1,80 @@
+{{- range $crd := list (dict "kind" "ClusterRegistration" "plural" "clusterregistrations") (dict "kind" "ClusterConnection" "plural" "clusterconnections") }}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: {{ $crd.plural }}.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Cluster
+  names:
+    kind: {{ $crd.kind }}
+    plural: {{ $crd.plural }}
+    singular: {{ lower $crd.kind }}
+    shortNames: [{{ if eq $crd.kind "ClusterRegistration" }}creg{{ else }}cconn{{ end }}]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      additionalPrinterColumns:
+        - {name: Tenant, type: string, jsonPath: .spec.tenantRef}
+        - {name: State, type: string, jsonPath: .status.state}
+        - {name: Cluster, type: string, jsonPath: .spec.clusterUID}
+      selectableFields:
+        - jsonPath: .spec.tenantRef
+        - jsonPath: .spec.clusterUID
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec:
+              type: object
+              additionalProperties: false
+              required: [tenantRef, clusterUID]
+              properties:
+                tenantRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
+                clusterUID: {type: string, minLength: 8, maxLength: 128}
+{{- if eq $crd.kind "ClusterRegistration" }}
+                regionRef: {type: string, minLength: 1}
+                issuer: {type: string, pattern: '^https://'}
+                publicKeyHash: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}
+                capabilities: {type: array, uniqueItems: true, items: {type: string}}
+              required: [tenantRef, clusterUID, regionRef, issuer, publicKeyHash]
+{{- else }}
+                registrationRef: {type: string, minLength: 1}
+                regionRef: {type: string, minLength: 1}
+                identityRef: {type: string, pattern: '^spiffe://'}
+                capabilities: {type: array, uniqueItems: true, items: {type: string}}
+                revoked: {type: boolean, default: false}
+              required: [tenantRef, clusterUID, registrationRef, regionRef, identityRef]
+{{- end }}
+            status:
+              type: object
+              additionalProperties: false
+              properties:
+                observedGeneration: {type: integer, format: int64, minimum: 0}
+                state:
+                  type: string
+                  enum: {{ if eq $crd.kind "ClusterRegistration" }}[PendingChallenge, PendingApproval, Approved, Rejected, Expired]{{ else }}[Pending, Ready, Degraded, RevocationPending, Revoked]{{ end }}
+                enrollmentRef: {type: string}
+                lastHeartbeatTime: {type: string, format: date-time}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, reason, message, lastTransitionTime]
+                    properties:
+                      type: {type: string}
+                      status: {type: string, enum: ['True', 'False', Unknown]}
+                      observedGeneration: {type: integer, format: int64}
+                      reason: {type: string}
+                      message: {type: string}
+                      lastTransitionTime: {type: string, format: date-time}
+{{- end }}

@@ -1,0 +1,243 @@
+{{- if .Values.discovery.enabled }}
+{{- $scope := list (dict "kind" "Consumable" "plural" "consumables" "scope" "Cluster") (dict "kind" "ServiceShard" "plural" "serviceshards" "scope" "Namespaced") (dict "kind" "ConsumptionBinding" "plural" "consumptionbindings" "scope" "Namespaced") (dict "kind" "BifurcationPath" "plural" "bifurcationpaths" "scope" "Namespaced") }}
+{{- range $index, $resource := $scope }}
+{{- if $index }}
+---
+{{- end }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: {{ $resource.plural }}.finops.re8ch.com
+  labels: {{- include "birfucate-metering.labels" $ | nindent 4 }}
+spec:
+  group: finops.re8ch.com
+  scope: {{ $resource.scope }}
+  names:
+    plural: {{ $resource.plural }}
+    singular: {{ $resource.plural | trimSuffix "s" }}
+    kind: {{ $resource.kind }}
+    shortNames:
+      - {{- if eq $resource.kind "Consumable" }} con{{- else if eq $resource.kind "ServiceShard" }} sshard{{- else if eq $resource.kind "ConsumptionBinding" }} cbind{{- else }} bifpath{{- end }}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      {{- if eq $resource.kind "Consumable" }}
+      selectableFields:
+        - {jsonPath: .spec.lifecycle}
+        - {jsonPath: .spec.serviceClass}
+      additionalPrinterColumns:
+        - {name: Class, type: string, jsonPath: .spec.serviceClass}
+        - {name: Lifecycle, type: string, jsonPath: .spec.lifecycle}
+        - {name: Owner, type: string, jsonPath: .spec.owner}
+      {{- else if eq $resource.kind "ServiceShard" }}
+      selectableFields:
+        - {jsonPath: .spec.workloadRef.kind}
+        - {jsonPath: .spec.classification}
+        - {jsonPath: .spec.clusterRef}
+      additionalPrinterColumns:
+        - {name: Workload, type: string, jsonPath: .spec.workloadRef.name}
+        - {name: Kind, type: string, jsonPath: .spec.workloadRef.kind}
+        - {name: Class, type: string, jsonPath: .spec.classification}
+        - {name: Consumable, type: boolean, jsonPath: .status.consumable}
+        - {name: Coverage, type: number, jsonPath: .status.meterCoveragePercent}
+      {{- else if eq $resource.kind "ConsumptionBinding" }}
+      selectableFields:
+        - {jsonPath: .spec.tenantRef}
+        - {jsonPath: .spec.serviceInstanceRef}
+        - {jsonPath: .spec.consumableRef}
+      additionalPrinterColumns:
+        - {name: Tenant, type: string, jsonPath: .spec.tenantRef}
+        - {name: Instance, type: string, jsonPath: .spec.serviceInstanceRef}
+        - {name: Consumable, type: string, jsonPath: .spec.consumableRef}
+        - {name: Phase, type: string, jsonPath: .status.phase}
+      {{- else }}
+      selectableFields:
+        - {jsonPath: .spec.shardRef}
+        - {jsonPath: .spec.tenantRef}
+        - {jsonPath: .spec.serviceInstanceRef}
+      additionalPrinterColumns:
+        - {name: Shard, type: string, jsonPath: .spec.shardRef}
+        - {name: Tenant, type: string, jsonPath: .spec.tenantRef}
+        - {name: Nodes, type: integer, jsonPath: .status.nodeCount}
+        - {name: Edges, type: integer, jsonPath: .status.edgeCount}
+        - {name: Complete, type: boolean, jsonPath: .status.complete}
+      {{- end }}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              {{- if eq $resource.kind "Consumable" }}
+              required: [serviceClass, owner, lifecycle, supportBoundary, accessContract, allowedWorkloadKinds, meters]
+              properties:
+                serviceClass: {type: string, minLength: 1, maxLength: 128}
+                owner: {type: string, minLength: 1, maxLength: 128}
+                lifecycle: {type: string, enum: [Draft, Approved, Suspended]}
+                supportBoundary: {type: string, minLength: 1, maxLength: 1024}
+                sloRef: {type: string, maxLength: 253}
+                endpointClass: {type: string, enum: [TenantSafe, InternalAdmin, None], default: None}
+                authenticationProxyRef: {type: string, minLength: 1, default: tenant}
+                accessContract:
+                  type: object
+                  required: [type, isolationUnit, provisioner]
+                  properties:
+                    type: {type: string, enum: [Workload, Grafana, Harbor, Ceph, Cilium, PostgreSQL, ModelGateway, Sandbox]}
+                    isolationUnit: {type: string, minLength: 1}
+                    isolationBoundary: {type: string, minLength: 1}
+                    isolationMechanism: {type: string, minLength: 1}
+                    provisioner: {type: string, minLength: 1}
+                    tenantEndpoint: {type: string}
+                    credentialDelivery: {type: string, enum: [None, OIDC, BrokerReference, KubernetesSecretReference]}
+                    requestFields:
+                      type: array
+                      items: {type: string}
+                    grantedResources:
+                      type: array
+                      items: {type: string}
+                    revocation: {type: string, minLength: 1}
+                allowedWorkloadKinds:
+                  type: array
+                  minItems: 1
+                  items: {type: string, enum: [Deployment, StatefulSet, DaemonSet, Job, CronJob, NuclioFunction]}
+                meters:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [name, unit, source]
+                    properties:
+                      name: {type: string, pattern: '^[a-z][a-z0-9_]*$'}
+                      unit: {type: string, minLength: 1}
+                      source: {type: string, minLength: 1}
+              x-kubernetes-validations:
+                - rule: "self.lifecycle != 'Approved' || (self.owner.size() > 0 && self.meters.size() > 0 && self.endpointClass != 'InternalAdmin')"
+                  message: Approved consumables require an owner, meters, and a non-admin endpoint
+              {{- else if eq $resource.kind "ServiceShard" }}
+              required: [workloadRef, clusterRef, regionRef, classification, consumableIntent, meters]
+              properties:
+                workloadRef:
+                  type: object
+                  required: [apiVersion, kind, name, uid]
+                  properties:
+                    apiVersion: {type: string}
+                    kind: {type: string, enum: [Deployment, StatefulSet, DaemonSet, Job, CronJob, NuclioFunction]}
+                    name: {type: string}
+                    uid: {type: string}
+                consumableRef: {type: string}
+                clusterRef: {type: string, minLength: 1}
+                regionRef: {type: string, minLength: 1}
+                classification: {type: string, enum: [internal-control-plane, shared-infrastructure-product, tenant-facing-product, evaluation-only]}
+                consumableIntent: {type: boolean, default: false}
+                placement:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                resources:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                dependencies:
+                  type: array
+                  items:
+                    type: object
+                    required: [relation, apiVersion, kind, namespace, name]
+                    properties:
+                      relation: {type: string, enum: [Exposes, RoutesTo, StoresOn, Claims, RunsOn, DependsOn, ConsumedBy]}
+                      apiVersion: {type: string}
+                      kind: {type: string}
+                      namespace: {type: string}
+                      name: {type: string}
+                meters:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [name, unit, requiredDimensions]
+                    properties:
+                      name: {type: string}
+                      unit: {type: string}
+                      requiredDimensions:
+                        type: array
+                        minItems: 5
+                        items: {type: string}
+              {{- else if eq $resource.kind "ConsumptionBinding" }}
+              required: [tenantRef, serviceInstanceRef, consumableRef, shardRefs, planRef, quota, access, startsAt]
+              properties:
+                tenantRef: {type: string, minLength: 1}
+                serviceInstanceRef: {type: string, minLength: 1}
+                consumableRef: {type: string, minLength: 1}
+                shardRefs:
+                  type: array
+                  minItems: 1
+                  items: {type: string}
+                planRef: {type: string, minLength: 1}
+                quota: {type: object, x-kubernetes-preserve-unknown-fields: true}
+                access:
+                  type: object
+                  required: [type]
+                  properties:
+                    type: {type: string, enum: [Workload, Grafana, Harbor, Ceph, Cilium, PostgreSQL, ModelGateway, Sandbox]}
+                    grafana:
+                      type: object
+                      properties:
+                        organizationRef: {type: string}
+                        role: {type: string, enum: [Viewer, Editor]}
+                        folderRefs: {type: array, items: {type: string}}
+                        datasourceRefs: {type: array, minItems: 1, items: {type: string}}
+                    harbor:
+                      type: object
+                      properties:
+                        project: {type: string}
+                        permission: {type: string, enum: [pull, build-push, project-admin]}
+                        quotaGiB: {type: integer, minimum: 1}
+                        robotDurationDays: {type: integer, minimum: 1, maximum: 365}
+                    ceph:
+                      type: object
+                      properties:
+                        mode: {type: string, enum: [RBD, CephFS, S3]}
+                        storageClassName: {type: string}
+                        capacityGiB: {type: integer, minimum: 1}
+                        accessModes: {type: array, items: {type: string, enum: [ReadWriteOnce, ReadOnlyMany, ReadWriteMany]}}
+                        bucketClass: {type: string}
+                    cilium:
+                      type: object
+                      properties:
+                        namespaceRef: {type: string}
+                        connectivity: {type: string, enum: [ClusterLocal, CrossCluster, PublicEdge]}
+                        destinationClusters: {type: array, items: {type: string}}
+                        bandwidthMbps: {type: integer, minimum: 1}
+                        gatewayClassRef: {type: string}
+                    parameters: {type: object, x-kubernetes-preserve-unknown-fields: true}
+                startsAt: {type: string, format: date-time}
+                endsAt: {type: string, format: date-time}
+                sourceClusterRef: {type: string}
+                destinationClusterRef: {type: string}
+                clusterConnectionRef: {type: string, minLength: 1}
+              x-kubernetes-validations:
+                - rule: "!has(self.endsAt) || timestamp(self.endsAt) > timestamp(self.startsAt)"
+                  message: endsAt must be later than startsAt
+                - rule: "self.access.type != 'Grafana' || has(self.access.grafana)"
+                  message: Grafana access requires grafana parameters
+                - rule: "self.access.type != 'Harbor' || has(self.access.harbor)"
+                  message: Harbor access requires harbor parameters
+                - rule: "self.access.type != 'Ceph' || has(self.access.ceph)"
+                  message: Ceph access requires ceph parameters
+                - rule: "self.access.type != 'Cilium' || has(self.access.cilium)"
+                  message: Cilium access requires cilium parameters
+                - rule: "self.access.type != 'Cilium' || self.access.cilium.connectivity != 'CrossCluster' || has(self.clusterConnectionRef)"
+                  message: CrossCluster Cilium access requires a Ready same-tenant ClusterConnection reference
+              {{- else }}
+              required: [shardRef]
+              properties:
+                shardRef: {type: string, minLength: 1}
+                tenantRef: {type: string}
+                serviceInstanceRef: {type: string}
+                bindingRef: {type: string}
+              {{- end }}
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+{{- end }}
+{{- end }}

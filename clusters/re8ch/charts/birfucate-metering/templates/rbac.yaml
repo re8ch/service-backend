@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+automountServiceAccountToken: false
+{{- if .Values.discovery.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}-discovery
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}-discovery
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [pods, services, persistentvolumeclaims, nodes]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets, daemonsets]
+    verbs: [get, list, watch]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch]
+  - apiGroups: [nuclio.io]
+    resources: [nucliofunctions]
+    verbs: [get, list, watch]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  - apiGroups: [resource.k8s.io]
+    resources: [resourceclaims, resourceslices, deviceclasses]
+    verbs: [get, list, watch]
+  - apiGroups: [finops.re8ch.com]
+    resources: [tenants, consumables, serviceshards, consumptionbindings, bifurcationpaths, clusterregistrations, clusterconnections]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [finops.re8ch.com]
+    resources: [tenants/status, consumables/status, serviceshards/status, consumptionbindings/status, bifurcationpaths/status, clusterregistrations/status, clusterconnections/status]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "birfucate-metering.fullname" . }}-discovery
+  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+subjects:
+  - {kind: ServiceAccount, name: {{ include "birfucate-metering.fullname" . }}-discovery, namespace: {{ .Release.Namespace }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: {{ include "birfucate-metering.fullname" . }}-discovery}
+{{- end }}

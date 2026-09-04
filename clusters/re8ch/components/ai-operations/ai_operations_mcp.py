@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from harbor_integration import HarborClient, HarborError, KubernetesCredentialStore, RedemptionRegistry, desired_tenant
+from tenant_infrastructure import ServiceError, ServiceStore, catalog as service_catalog
 
 PROFILE = os.getenv("RE8CH_TOOL_PROFILE", "cloud").lower()
 AUDIENCE = os.getenv("RE8CH_TOOL_AUDIENCE", f"re8ch-{PROFILE}-tool")
@@ -44,6 +45,7 @@ SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
+TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -51,6 +53,11 @@ PROFILE_GROUPS = {
     "orchestra": {ADMIN_GROUP, "re8ch:agent-operators"},
     "all": {ADMIN_GROUP, "re8ch:infra-operators", "re8ch:agent-operators"},
     "tenant": {ADMIN_GROUP},
+    "tenant-infra": set(),
+    "tenant-admin": {"re8ch:tenant-admins"},
+    "tenant-registry": set(),
+    "tenant-observability": set(),
+    "tenant-byoc": set(),
 }
 ALLOW_AUTHENTICATED_DEX = os.getenv("ALLOW_AUTHENTICATED_DEX", "false").lower() == "true"
 
@@ -386,6 +393,15 @@ def execute_capsule(identity: dict[str, Any], capsule: dict[str, Any], signature
 
 
 def dex_identity(token: str) -> dict[str, Any] | None:
+    try:
+        encoded = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        token_audience = claims.get("aud", [])
+        audiences = {token_audience} if isinstance(token_audience, str) else set(token_audience)
+    except Exception:
+        return None
+    if AUDIENCE not in audiences:
+        return None
     request = urllib.request.Request(DEX_USERINFO_URL, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=8) as response:
@@ -396,7 +412,8 @@ def dex_identity(token: str) -> dict[str, Any] | None:
     groups = data.get("groups") or []
     if not subject or not isinstance(groups, list):
         return None
-    return {"subject": subject, "groups": groups, "auth_type": "dex"}
+    tenant = data.get("tenant") or data.get("tenantRef")
+    return {"subject": subject, "groups": groups, "tenant": tenant, "auth_type": "dex"}
 
 
 def allowed(identity: dict[str, Any]) -> bool:
@@ -530,6 +547,38 @@ TENANT_TOOLS = [
     {"name": "harbor_tenant_browser_launch", "description": "Issue a short-lived single-use credential URL for a controlled browser login without returning the password through MCP.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}}, ["tenant", "credential_ref"])},
 ]
 
+TENANT_INFRA_TOOLS = [
+    {"name": "tenant_create", "description": "Create a named tenant identity boundary. Protected admin identity is never created through this tool.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "display_name": {"type": "string"}, "identity_ref": {"type": "string"}}, ["tenant_ref", "display_name", "identity_ref"])},
+    {"name": "tenant_list", "description": "List tenant identity boundaries. Only the protected admin tenant may call this tool.", "inputSchema": schema({})},
+    {"name": "tenant_grant_create", "description": "Map one published Consumable role to an app-native authorization adapter and return only an opaque access reference.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "consumable_ref": {"type": "string"}, "role_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}, "constraints": {"type": "object"}}, ["tenant_ref", "consumable_ref", "role_ref", "visibility"])},
+    {"name": "tenant_visibility_update", "description": "Change tenant visibility without exposing an application's native ACL model.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}}, ["tenant_ref", "visibility"])},
+    {"name": "tenant_delete", "description": "Start deletion of a non-admin tenant and revoke its grants before adapter cleanup.", "inputSchema": schema({"tenant_ref": {"type": "string"}}, ["tenant_ref"])},
+    {"name": "service_catalog_list", "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.", "inputSchema": schema({})},
+    {"name": "service_instance_plan", "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}}, ["name", "spec"])},
+    {"name": "service_instance_create", "description": "Create a durable tenant service instance request idempotently.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["name", "spec", "idempotency_key"])},
+    {"name": "service_instance_get", "description": "Read one service instance owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}}, ["resource_ref"])},
+    {"name": "service_instance_list", "description": "List service instances owned by the authenticated tenant.", "inputSchema": schema({})},
+    {"name": "service_instance_update", "description": "Update the desired specification of a tenant service instance idempotently.", "inputSchema": schema({"resource_ref": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["resource_ref", "spec", "idempotency_key"])},
+    {"name": "service_instance_suspend", "description": "Suspend a tenant service instance without deleting retained data.", "inputSchema": schema({"resource_ref": {"type": "string"}, "idempotency_key": {"type": "string"}}, ["resource_ref", "idempotency_key"])},
+    {"name": "service_instance_resume", "description": "Resume a suspended tenant service instance.", "inputSchema": schema({"resource_ref": {"type": "string"}, "idempotency_key": {"type": "string"}}, ["resource_ref", "idempotency_key"])},
+    {"name": "service_instance_delete", "description": "Soft-delete a tenant service instance and retain recoverable data for the controller retention period.", "inputSchema": schema({"resource_ref": {"type": "string"}, "idempotency_key": {"type": "string"}}, ["resource_ref", "idempotency_key"])},
+    {"name": "service_binding_create", "description": "Create an opaque tenant binding; credential material is never returned.", "inputSchema": schema({"resource_ref": {"type": "string"}, "binding_type": {"type": "string"}, "parameters": {"type": "object"}}, ["resource_ref", "binding_type"])},
+    {"name": "service_binding_list", "description": "List bindings owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}})},
+    {"name": "service_binding_revoke", "description": "Revoke a tenant binding and its opaque credential reference.", "inputSchema": schema({"binding_ref": {"type": "string"}}, ["binding_ref"])},
+    {"name": "usage_summary_get", "description": "Return unpriced usage totals for the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}})},
+    {"name": "operation_get", "description": "Read an immutable tenant operation record.", "inputSchema": schema({"operation_id": {"type": "string"}}, ["operation_id"])},
+]
+
+TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
+TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "operation_get"}
+TENANT_BYOC_TOOLS = [
+    {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},
+    {"name": "byoc_registration_list", "description": "List cluster registrations visible to the current plane.", "inputSchema": schema({"tenant_ref": {"type": "string"}})},
+    {"name": "byoc_connection_list", "description": "List authenticated cluster connections visible to the current tenant.", "inputSchema": schema({})},
+    {"name": "byoc_connection_approve", "description": "Approve one pending registration and issue a workload identity reference.", "inputSchema": schema({"registration_ref": {"type": "string"}}, ["registration_ref"])},
+    {"name": "byoc_connection_revoke", "description": "Revoke a cluster connection; offline clusters enter RevocationPending.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "connection_ref": {"type": "string"}, "offline": {"type": "boolean"}}, ["tenant_ref", "connection_ref"])},
+]
+
 ORCHESTRA_TOOLS = [
     {"name": "orchestra_service_status", "description": "Read application service health.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "kagent", "codex"]}}, ["service"])},
     {"name": "orchestra_request", "description": "Call an application API using a server-side service credential reference.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "kagent", "codex"]}, "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string"}, "body": {}}, ["service", "method", "path"])},
@@ -547,8 +596,16 @@ ORCHESTRA_HEALTH_PATHS = {
 
 def tools() -> list[dict[str, Any]]:
     if PROFILE == "all":
-        return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + TENANT_TOOLS + ORCHESTRA_TOOLS
-    return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS}.get(PROFILE, [])
+        return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + TENANT_TOOLS + TENANT_INFRA_TOOLS + ORCHESTRA_TOOLS
+    if PROFILE == "tenant-infra":
+        return TENANT_INFRA_TOOLS
+    if PROFILE == "tenant-admin":
+        return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_ADMIN_NAMES] + [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in TENANT_ADMIN_NAMES]
+    if PROFILE in {"tenant-registry", "tenant-observability"}:
+        return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
+    if PROFILE == "tenant-byoc":
+        return [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
+    return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS, "tenant-infra": TENANT_INFRA_TOOLS}.get(PROFILE, [])
 
 
 def harbor_admin_client() -> HarborClient:
@@ -568,6 +625,99 @@ def tenant_catalog() -> dict[str, dict[str, Any]]:
     if not HARBOR_TENANTS_PATH.exists():
         return {}
     return json.loads(HARBOR_TENANTS_PATH.read_text()).get("tenants", {})
+
+
+_TENANT_SERVICE_STORE: ServiceStore | None = None
+
+
+def tenant_service_store() -> ServiceStore:
+    global _TENANT_SERVICE_STORE
+    if _TENANT_SERVICE_STORE is None:
+        _TENANT_SERVICE_STORE = ServiceStore(TENANT_SERVICE_DB)
+    return _TENANT_SERVICE_STORE
+
+
+def tenant_catalog_for_profile() -> list[dict[str, Any]]:
+    services = service_catalog()
+    allowed = {
+        "tenant-registry": {"registry.harbor.v1"},
+        "tenant-observability": {"observability.grafana.v1"},
+        "tenant-byoc": {"network.amongclusters.v1"},
+    }.get(PROFILE)
+    return [item for item in services if not allowed or item.get("serviceClass") in allowed]
+
+
+def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
+    """Materialize bounded, tenant-scoped MCP resources; samples remain outside Kubernetes/MCP."""
+    tenant = authenticated_tenant(identity)
+    store = tenant_service_store()
+    records: list[tuple[str, str, Any]] = [
+        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", {"services": tenant_catalog_for_profile(), "pricingIncluded": False}),
+    ]
+    if PROFILE == "tenant-admin":
+        records.extend([
+            ("re8ch://admin/tenants", "Tenants", {"tenants": store.tenants()}),
+            ("re8ch://admin/byoc/registrations", "BYOC registrations", {"registrations": store.registrations()}),
+            ("re8ch://admin/byoc/connections", "BYOC connections", {"connections": store.connections()}),
+        ])
+    else:
+        records.extend([
+            (f"re8ch://tenant/{tenant}/instances", "Service instances", {"instances": store.list(tenant)}),
+            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", {"bindings": store.bindings(tenant)}),
+            (f"re8ch://tenant/{tenant}/usage", "Unpriced usage summary", store.usage_summary(tenant, None)),
+        ])
+        if PROFILE == "tenant-byoc":
+            records.extend([
+                (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
+                (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", {"connections": store.connections(tenant)}),
+            ])
+    return [{"uri": uri, "name": name, "mimeType": "application/json", "value": value} for uri, name, value in records]
+
+
+def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, Any]:
+    page_size = max(1, min(int(os.getenv("MCP_RESOURCE_PAGE_SIZE", "50")), 200))
+    try:
+        offset = int(cursor or "0")
+    except ValueError as exc:
+        raise ValueError("invalid resource cursor") from exc
+    records = mcp_resources(identity)
+    if offset < 0 or offset > len(records):
+        raise ValueError("invalid resource cursor")
+    page = records[offset:offset + page_size]
+    result: dict[str, Any] = {"resources": [{key: item[key] for key in ("uri", "name", "mimeType")} for item in page]}
+    if offset + page_size < len(records):
+        result["nextCursor"] = str(offset + page_size)
+    return result
+
+
+def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
+    match = next((item for item in mcp_resources(identity) if item["uri"] == uri), None)
+    if not match:
+        raise PermissionError("resource is not visible to the authenticated tenant")
+    return {"contents": [{"uri": uri, "mimeType": match["mimeType"], "text": json.dumps(match["value"], ensure_ascii=False, separators=(",", ":"))}]}
+
+
+def authenticated_tenant(identity: dict[str, Any]) -> str:
+    explicit = str(identity.get("tenant") or "").strip().lower()
+    groups = {str(group) for group in identity.get("groups") or []}
+    if explicit and not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", explicit):
+        raise PermissionError("authenticated tenant is not a valid DNS label")
+    if explicit:
+        if explicit == "admin" and "re8ch:tenant-admins" not in groups:
+            raise PermissionError("admin tenant requires the protected tenant-admin identity")
+        return explicit
+    candidates = set()
+    if "re8ch:tenant-admins" in groups:
+        candidates.add("admin")
+    for group in groups:
+        match = re.fullmatch(r"re8ch:tenant:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)", group)
+        legacy = re.fullmatch(r"re8ch:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)-(?:operators|members|tenant)", group)
+        match = match or legacy
+        if match:
+            candidates.add(match.group(1))
+    if len(candidates) != 1:
+        raise PermissionError("exactly one authenticated tenant context is required")
+    return candidates.pop()
 
 
 def tenant_client(tenant: str, reference: str) -> tuple[HarborClient, str]:
@@ -668,6 +818,8 @@ def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
 
 
 def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
+    if name not in {tool["name"] for tool in tools()}:
+        raise PermissionError("tool is not published in this profile")
     if name == "activate_device":
         if identity.get("auth_type") != "dex":
             raise PermissionError("device activation requires a live Dex access token")
@@ -1062,6 +1214,72 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             client.disable_robot(args["robot_id"], True)
         return preview
 
+    tenant_profiles = {"tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "all"}
+    tenant_tool_names = {tool["name"] for tool in TENANT_INFRA_TOOLS + TENANT_BYOC_TOOLS}
+    if PROFILE in tenant_profiles and name in tenant_tool_names:
+        tenant = authenticated_tenant(identity)
+        store = tenant_service_store()
+        admin_tools = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete"}
+        if name in admin_tools | {"byoc_connection_approve"} and (PROFILE != "tenant-admin" or tenant != "admin"):
+            raise PermissionError("the protected admin tenant is required")
+        if PROFILE == "tenant-registry" and name in {"service_instance_plan", "service_instance_create"} and args.get("spec", {}).get("serviceClass") != "registry.harbor.v1":
+            raise PermissionError("registry plugin accepts only registry.harbor.v1")
+        if PROFILE == "tenant-observability" and name in {"service_instance_plan", "service_instance_create"} and args.get("spec", {}).get("serviceClass") != "observability.grafana.v1":
+            raise PermissionError("observability plugin accepts only observability.grafana.v1")
+        if name == "tenant_create":
+            return store.create_tenant(args["tenant_ref"], args["display_name"], args["identity_ref"])
+        if name == "tenant_list":
+            return {"tenantRef": tenant, "tenants": store.tenants()}
+        if name == "tenant_grant_create":
+            return store.create_grant(args["tenant_ref"], args["consumable_ref"], args["role_ref"], args["visibility"], args.get("constraints") or {})
+        if name == "tenant_visibility_update":
+            return store.set_visibility(args["tenant_ref"], args["visibility"])
+        if name == "tenant_delete":
+            return store.delete_tenant(args["tenant_ref"])
+        if name == "byoc_cluster_register":
+            return store.register_cluster(tenant, args["cluster_uid"], args["region_ref"], args["issuer"], args["public_key"], args.get("capabilities") or [])
+        if name == "byoc_registration_list":
+            target = args.get("tenant_ref") if tenant == "admin" else tenant
+            return {"tenantRef": target, "registrations": store.registrations(target)}
+        if name == "byoc_connection_list":
+            return {"tenantRef": tenant, "connections": store.connections(tenant)}
+        if name == "byoc_connection_approve":
+            return store.approve_cluster(args["registration_ref"])
+        if name == "byoc_connection_revoke":
+            target = args.get("tenant_ref") if tenant == "admin" else tenant
+            if target != tenant and tenant != "admin":
+                raise PermissionError("cross-tenant connection revoke is forbidden")
+            return store.revoke_connection(target, args["connection_ref"], bool(args.get("offline")))
+        if name == "service_catalog_list":
+            return {"tenantRef": tenant, "services": tenant_catalog_for_profile(), "pricingIncluded": False}
+        if name == "service_instance_plan":
+            return store.plan(tenant, args["name"], args["spec"])
+        if name == "service_instance_create":
+            return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
+        if name == "service_instance_get":
+            return store.get(tenant, args["resource_ref"])
+        if name == "service_instance_list":
+            return {"tenantRef": tenant, "instances": store.list(tenant)}
+        if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
+            current = store.get(tenant, args["resource_ref"])
+            spec = dict(args.get("spec") or current["spec"])
+            if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
+                raise ServiceError("serviceClass is immutable")
+            desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}.get(name)
+            if desired:
+                spec["desiredState"] = desired
+            return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
+        if name == "service_binding_create":
+            return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
+        if name == "service_binding_list":
+            return {"tenantRef": tenant, "bindings": store.bindings(tenant, args.get("resource_ref"))}
+        if name == "service_binding_revoke":
+            return store.revoke_binding(tenant, args["binding_ref"])
+        if name == "usage_summary_get":
+            return store.usage_summary(tenant, args.get("resource_ref"))
+        if name == "operation_get":
+            return store.operation(tenant, args["operation_id"])
+
     if PROFILE in {"orchestra", "all"}:
         if name == "link_execution":
             return {k: args.get(k) for k in ("task_id", "kagent_session_id", "trace_id", "codex_thread_id", "artifact_id")}
@@ -1274,9 +1492,13 @@ class Handler(BaseHTTPRequestHandler):
             method = request.get("method")
             rid = request.get("id")
             if method == "initialize":
-                result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {"listChanged": False}}, "serverInfo": {"name": f"re8ch-{PROFILE}", "version": "0.1.0"}}
+                result = {"protocolVersion": "2025-06-18", "capabilities": {"tools": {"listChanged": False}, "resources": {"subscribe": False, "listChanged": False}}, "serverInfo": {"name": f"re8ch-{PROFILE}", "version": "0.2.0"}}
             elif method == "tools/list":
                 result = {"tools": tools()}
+            elif method == "resources/list":
+                result = resources_list(identity, (request.get("params") or {}).get("cursor"))
+            elif method == "resources/read":
+                result = resources_read(identity, str((request.get("params") or {}).get("uri") or ""))
             elif method == "tools/call":
                 params = request.get("params") or {}
                 value = call_tool(params.get("name", ""), params.get("arguments") or {}, identity)
@@ -1296,8 +1518,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    if PROFILE not in {"cloud", "infra", "orchestra", "tenant", "all"}:
-        raise SystemExit("RE8CH_TOOL_PROFILE must be cloud, infra, orchestra, tenant, or all")
+    profiles = {"cloud", "infra", "orchestra", "tenant", "tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "all"}
+    if PROFILE not in profiles:
+        raise SystemExit(f"RE8CH_TOOL_PROFILE must be one of: {', '.join(sorted(profiles))}")
     registry()
     ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler).serve_forever()
 
