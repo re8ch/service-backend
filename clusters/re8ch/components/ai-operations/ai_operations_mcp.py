@@ -27,6 +27,19 @@ from typing import Any
 
 from harbor_integration import HarborClient, HarborError, KubernetesCredentialStore, RedemptionRegistry, desired_tenant
 from tenant_infrastructure import ServiceError, ServiceStore, catalog as service_catalog
+from grafana_exploration import (
+    RESULTS as GRAFANA_RESULTS,
+    ExplorationError,
+    GrafanaClient as TenantGrafanaClient,
+    analyze_series,
+    datasource_capability,
+    execute_query as execute_grafana_query,
+    frames_to_series,
+    indicators as calculate_grafana_indicators,
+    lag_correlations,
+    stable_hash,
+    tenant_config as grafana_tenant_config,
+)
 
 PROFILE = os.getenv("RE8CH_TOOL_PROFILE", "cloud").lower()
 AUDIENCE = os.getenv("RE8CH_TOOL_AUDIENCE", f"re8ch-{PROFILE}-tool")
@@ -577,6 +590,31 @@ TENANT_INFRA_TOOLS = [
     {"name": "operation_get", "description": "Read an immutable tenant operation record.", "inputSchema": schema({"operation_id": {"type": "string"}}, ["operation_id"])},
 ]
 
+EXPLORATION_SPEC_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "timeRange": {"type": "object"}, "queries": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"type": "object"}},
+        "pipeline": {"type": "array", "items": {"type": "object"}}, "indicators": {"type": "array", "items": {"type": "object"}},
+        "visualization": {"type": "object"},
+    },
+    "required": ["queries"], "additionalProperties": False,
+}
+
+GRAFANA_TENANT_TOOLS = [
+    {"name": "grafana_datasource_list", "description": "List query capabilities for datasources visible in the authenticated tenant Grafana organization.", "inputSchema": schema({})},
+    {"name": "grafana_datasource_get", "description": "Read sanitized metadata for one tenant-visible Grafana datasource.", "inputSchema": schema({"datasource_uid": {"type": "string"}}, ["datasource_uid"])},
+    {"name": "grafana_query", "description": "Run bounded tenant-scoped datasource queries through Grafana and return normalized DataFrames.", "inputSchema": schema({"spec": EXPLORATION_SPEC_SCHEMA}, ["spec"])},
+    {"name": "grafana_analyze", "description": "Apply deterministic reduce, merge, math, normalize, or filter operations to numeric series.", "inputSchema": schema({
+        "series": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "number"}}},
+        "pipeline": {"type": "array", "items": {"type": "object"}}, "result_ref": {"type": "string"},
+    })},
+    {"name": "grafana_indicators", "description": "Calculate moving average, EMA, change rate, volatility, z-score, slope, trend, and quantiles.", "inputSchema": schema({"values": {"type": "array", "items": {"type": "number"}}, "indicators": {"type": "array", "items": {"type": "object"}}, "result_ref": {"type": "string"}}, ["indicators"])},
+    {"name": "grafana_correlate", "description": "Calculate Pearson, Spearman, and lag correlations, or list native Grafana datasource correlations.", "inputSchema": schema({"left": {"type": "array", "items": {"type": "number"}}, "right": {"type": "array", "items": {"type": "number"}}, "method": {"type": "string", "enum": ["pearson", "spearman"]}, "max_lag": {"type": "integer", "minimum": 0, "maximum": 100}, "datasource_uid": {"type": "string"}})},
+    {"name": "grafana_render", "description": "Render an existing tenant panel or an ephemeral dashboard to a short-lived PNG resource reference.", "inputSchema": schema({"dashboard_uid": {"type": "string"}, "dashboard": {"type": "object"}, "panel_id": {"type": "integer", "minimum": 1}, "from": {"type": ["string", "integer"]}, "to": {"type": ["string", "integer"]}, "width": {"type": "integer", "minimum": 320, "maximum": 2400}, "height": {"type": "integer", "minimum": 200, "maximum": 1600}}, ["panel_id"])},
+    {"name": "grafana_exploration_save", "description": "Explicitly save an AI exploration dashboard in the authenticated tenant organization.", "inputSchema": schema({"dashboard": {"type": "object"}, "folder_uid": {"type": "string"}, "message": {"type": "string"}, "idempotency_key": {"type": "string"}}, ["dashboard", "idempotency_key"])},
+    {"name": "grafana_exploration_delete", "description": "Explicitly delete a saved AI exploration dashboard owned by the authenticated tenant.", "inputSchema": schema({"dashboard_uid": {"type": "string"}}, ["dashboard_uid"])},
+]
+
 TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
 TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "operation_get"}
 TENANT_BYOC_TOOLS = [
@@ -610,7 +648,8 @@ def tools() -> list[dict[str, Any]]:
     if PROFILE == "tenant-admin":
         return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_ADMIN_NAMES] + [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in TENANT_ADMIN_NAMES]
     if PROFILE in {"tenant-registry", "tenant-observability"}:
-        return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
+        base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
+        return base + (GRAFANA_TENANT_TOOLS if PROFILE == "tenant-observability" else [])
     if PROFILE == "tenant-byoc":
         return [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS, "tenant-infra": TENANT_INFRA_TOOLS}.get(PROFILE, [])
@@ -653,6 +692,30 @@ def grafana_request(path: str, *, organization_id: int | None = None) -> Any:
     request = urllib.request.Request(GRAFANA_URL.rstrip("/") + path, headers=headers)
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.load(response)
+
+
+def tenant_grafana_client(tenant: str, *, administrative: bool = False) -> TenantGrafanaClient:
+    config = grafana_tenant_config(tenant)
+    if administrative:
+        username = os.getenv("GRAFANA_ADMIN_USERNAME", "")
+        password = os.getenv("GRAFANA_ADMIN_PASSWORD", "")
+        if not username or not password:
+            username = kubernetes_secret_value("qianwen-ops", "panel-grafana-admin-recovery", "username")
+            password = kubernetes_secret_value("qianwen-ops", "panel-grafana-admin-recovery", "password")
+        authorization = "Basic " + base64.b64encode(f"{username}:{password}".encode()).decode()
+    else:
+        token = os.getenv(config.get("tokenEnv") or ("GRAFANA_TENANT_TOKEN_" + tenant.upper().replace("-", "_")), "")
+        if not token:
+            if not config.get("namespace") or not config.get("tokenSecret"):
+                raise RuntimeError("tenant Grafana credential reference is unavailable")
+            token = kubernetes_secret_value(config["namespace"], config["tokenSecret"], "token")
+        authorization = "Bearer " + token
+    return TenantGrafanaClient(GRAFANA_URL, authorization, int(config["orgId"]))
+
+
+def tenant_grafana_datasources(client: TenantGrafanaClient) -> list[dict[str, Any]]:
+    rows = client.request("GET", "/api/datasources")
+    return [row for row in rows if row.get("uid") and datasource_capability(row)["queryKinds"]]
 
 
 def sanitized_grafana_inventory() -> dict[str, Any]:
@@ -750,6 +813,15 @@ def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, An
 
 
 def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
+    transient = re.fullmatch(r"re8ch://tenant/([^/]+)/grafana/results/(gr_[a-f0-9]+)", uri)
+    if transient:
+        tenant = authenticated_tenant(identity)
+        if transient.group(1) != tenant:
+            raise PermissionError("resource is not visible to the authenticated tenant")
+        value = GRAFANA_RESULTS.get(tenant, transient.group(2))
+        if isinstance(value, dict) and isinstance(value.get("blob"), (bytes, bytearray)):
+            return {"contents": [{"uri": uri, "mimeType": value.get("mimeType", "application/octet-stream"), "blob": base64.b64encode(value["blob"]).decode()}]}
+        return {"contents": [{"uri": uri, "mimeType": "application/json", "text": json.dumps(value, ensure_ascii=False, separators=(",", ":"))}]}
     match = next((item for item in mcp_resources(identity) if item["uri"] == uri), None)
     if not match:
         raise PermissionError("resource is not visible to the authenticated tenant")
@@ -876,9 +948,106 @@ def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
     return ["ssh", "-F", SSH_CONFIG, "--", node["target"], command]
 
 
+def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
+    tenant = authenticated_tenant(identity)
+    client = tenant_grafana_client(tenant)
+    operation_id = "op_" + uuid.uuid4().hex
+    datasources = tenant_grafana_datasources(client)
+    if name == "grafana_datasource_list":
+        return {"operationId": operation_id, "tenantRef": tenant, "datasources": [datasource_capability(row) for row in datasources]}
+    if name == "grafana_datasource_get":
+        row = next((row for row in datasources if row.get("uid") == args["datasource_uid"]), None)
+        if not row:
+            raise PermissionError("datasource is not visible to the authenticated tenant")
+        return {"operationId": operation_id, "tenantRef": tenant, "datasource": datasource_capability(row)}
+    if name == "grafana_query":
+        return {"operationId": operation_id, "tenantRef": tenant, **execute_grafana_query(client, tenant, args["spec"], datasources)}
+    if name in {"grafana_analyze", "grafana_indicators"}:
+        series = args.get("series")
+        if not series and args.get("result_ref"):
+            series = frames_to_series(GRAFANA_RESULTS.get(tenant, args["result_ref"]))
+        if not series and args.get("values"):
+            series = {"input": args["values"]}
+        if not series:
+            raise ExplorationError("numeric series or result_ref is required")
+        if name == "grafana_analyze":
+            result = analyze_series(series, args.get("pipeline") or [])
+        else:
+            if len(series) != 1:
+                raise ExplorationError("grafana_indicators requires exactly one numeric series")
+            result = {"indicators": calculate_grafana_indicators(next(iter(series.values())), args["indicators"])}
+        ref = GRAFANA_RESULTS.put(tenant, result)
+        return {"operationId": operation_id, "tenantRef": tenant, "resultRef": ref, "resultUri": f"re8ch://tenant/{tenant}/grafana/results/{ref}", **result}
+    if name == "grafana_correlate":
+        if args.get("datasource_uid"):
+            if not any(row.get("uid") == args["datasource_uid"] for row in datasources):
+                raise PermissionError("datasource is not visible to the authenticated tenant")
+            encoded = urllib.parse.quote(args["datasource_uid"], safe="")
+            rows = client.request("GET", f"/api/datasources/uid/{encoded}/correlations")
+            keys = ("uid", "label", "description", "type", "targetUID", "config")
+            return {"operationId": operation_id, "tenantRef": tenant, "nativeCorrelations": [{key: row.get(key) for key in keys} for row in rows]}
+        left, right = args.get("left") or [], args.get("right") or []
+        if len(left) != len(right) or len(left) < 2:
+            raise ExplorationError("left and right must have the same length of at least two")
+        method = args.get("method", "pearson")
+        rows = lag_correlations([float(x) for x in left], [float(x) for x in right], method, int(args.get("max_lag", 0)))
+        best = max((row for row in rows if row["coefficient"] is not None), key=lambda row: abs(row["coefficient"]), default=None)
+        return {"operationId": operation_id, "tenantRef": tenant, "method": method, "correlations": rows, "best": best, "warning": "Correlation does not imply causation."}
+    admin = tenant_grafana_client(tenant, administrative=True)
+    if name == "grafana_render":
+        dashboard_uid = args.get("dashboard_uid")
+        temporary_uid = None
+        if args.get("dashboard"):
+            temporary_uid = "mcp-render-" + uuid.uuid4().hex[:20]
+            dashboard = dict(args["dashboard"])
+            dashboard.update({"uid": temporary_uid, "tags": sorted(set(dashboard.get("tags") or []) | {"re8ch-ai-ephemeral", f"tenant:{tenant}"})})
+            admin.request("POST", "/api/dashboards/db", {"dashboard": dashboard, "folderUid": "", "overwrite": False, "message": "Ephemeral tenant MCP render"})
+            dashboard_uid = temporary_uid
+        if not dashboard_uid:
+            raise ExplorationError("dashboard_uid or dashboard is required")
+        query = urllib.parse.urlencode({"panelId": args["panel_id"], "from": args.get("from", "now-1h"), "to": args.get("to", "now"), "width": args.get("width", 1000), "height": args.get("height", 500), "tz": "UTC"})
+        uid = urllib.parse.quote(str(dashboard_uid), safe="")
+        try:
+            image = admin.request("GET", f"/render/d-solo/{uid}?{query}", timeout=60, raw=True)
+        finally:
+            if temporary_uid:
+                admin.request("DELETE", f"/api/dashboards/uid/{temporary_uid}")
+        ref = GRAFANA_RESULTS.put(tenant, {"blob": image, "mimeType": "image/png", "queryHash": stable_hash(args)})
+        return {"operationId": operation_id, "tenantRef": tenant, "imageRef": f"re8ch://tenant/{tenant}/grafana/results/{ref}", "mimeType": "image/png", "expiresInSeconds": 900}
+    if name == "grafana_exploration_save":
+        dashboard = dict(args["dashboard"])
+        dashboard.setdefault("uid", "ai-" + hashlib.sha256(f"{tenant}:{args['idempotency_key']}".encode()).hexdigest()[:24])
+        dashboard["tags"] = sorted(set(dashboard.get("tags") or []) | {"re8ch-ai-exploration", f"tenant:{tenant}"})
+        if dashboard.get("uid"):
+            encoded = urllib.parse.quote(str(dashboard["uid"]), safe="")
+            try:
+                current = admin.request("GET", f"/api/dashboards/uid/{encoded}")
+            except ExplorationError:
+                current = None
+            current_tags = set(((current or {}).get("dashboard") or {}).get("tags") or [])
+            if current and {"re8ch-ai-exploration", f"tenant:{tenant}"} - current_tags:
+                raise PermissionError("a provisioned or non-exploration dashboard cannot be overwritten")
+        folder_uid = f"ai-explorations-{tenant}"
+        try:
+            admin.request("GET", f"/api/folders/{folder_uid}")
+        except ExplorationError:
+            admin.request("POST", "/api/folders", {"uid": folder_uid, "title": "AI Explorations"})
+        saved = admin.request("POST", "/api/dashboards/db", {"dashboard": dashboard, "folderUid": folder_uid, "overwrite": True, "message": args.get("message", "Saved by tenant observability MCP")})
+        return {"operationId": operation_id, "tenantRef": tenant, "dashboardUid": saved.get("uid"), "url": saved.get("url"), "idempotencyKey": args["idempotency_key"], "queryHash": stable_hash(dashboard)}
+    uid = urllib.parse.quote(args["dashboard_uid"], safe="")
+    existing = admin.request("GET", f"/api/dashboards/uid/{uid}")
+    tags = set((existing.get("dashboard") or {}).get("tags") or [])
+    if {"re8ch-ai-exploration", f"tenant:{tenant}"} - tags:
+        raise PermissionError("only tenant-owned AI exploration dashboards may be deleted")
+    deleted = admin.request("DELETE", f"/api/dashboards/uid/{uid}")
+    return {"operationId": operation_id, "tenantRef": tenant, "deleted": True, "title": deleted.get("title")}
+
+
 def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if name not in {tool["name"] for tool in tools()}:
         raise PermissionError("tool is not published in this profile")
+    if PROFILE == "tenant-observability" and name in {tool["name"] for tool in GRAFANA_TENANT_TOOLS}:
+        return call_grafana_tenant_tool(name, args, identity)
     if name == "activate_device":
         if identity.get("auth_type") != "dex":
             raise PermissionError("device activation requires a live Dex access token")
