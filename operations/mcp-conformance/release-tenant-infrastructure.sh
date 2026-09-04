@@ -18,7 +18,7 @@ docker buildx build --platform linux/amd64 --provenance=mode=max \
   --push --metadata-file "$metadata" -t "$image" "$context"
 digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$metadata")
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
-docker sbom --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
+docker sbom --platform linux/amd64 --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
 if [[ -n "${COSIGN_KEY:-}" ]]; then
   cosign sign --yes --key "$COSIGN_KEY" "$immutable"
   cosign verify --key "${COSIGN_PUBLIC_KEY:-$COSIGN_KEY}" "$immutable" >/dev/null
