@@ -104,6 +104,26 @@ def assert_case(value: Any, assertions: list[dict[str, Any]]) -> None:
             raise AssertionError(f"{assertion['path']}: expected a non-empty value")
 
 
+def call_with_poll(call: Any, assertions: list[dict[str, Any]], poll: dict[str, Any] | None = None,
+                   sleeper: Any = time.sleep) -> tuple[Any, int]:
+    """Call once by default, or poll until the declared assertions become true."""
+    policy = poll or {}
+    max_attempts = int(policy.get("maxAttempts", 1))
+    interval = float(policy.get("intervalSeconds", 0))
+    last_error: AssertionError | None = None
+    for attempt in range(1, max_attempts + 1):
+        value = call()
+        try:
+            assert_case(value, assertions)
+            return value, attempt
+        except (AssertionError, KeyError, IndexError, TypeError) as exc:
+            last_error = exc if isinstance(exc, AssertionError) else AssertionError(str(exc))
+            if attempt == max_attempts:
+                break
+            sleeper(interval)
+    raise AssertionError(f"poll assertions did not pass after {max_attempts} attempts: {last_error}")
+
+
 def run(path: Path, output: Path) -> dict[str, Any]:
     collection = json.loads(path.read_text())
     if collection.get("apiVersion") != "testing.re8ch.com/v1alpha1" or collection.get("kind") != "MCPCollection":
@@ -152,10 +172,12 @@ def run(path: Path, output: Path) -> dict[str, Any]:
     cases = spec.get("calls", [])
     for case in cases:
         if case["tool"] not in tool_names: raise AssertionError(f"tool is absent: {case['tool']}")
-        value = client.rpc("tools/call", {"name": case["tool"], "arguments": interpolate(case.get("arguments", {}), variables)})
-        assert_case(value, case.get("assertions", []))
+        def invoke() -> Any:
+            return client.rpc("tools/call", {"name": case["tool"], "arguments": interpolate(case.get("arguments", {}), variables)})
+        value, attempts = call_with_poll(invoke, case.get("assertions", []), case.get("poll"))
         for key, path_expr in case.get("capture", {}).items(): variables[key] = str(select(value, path_expr))
-        calls.append({"name": case["name"], "tool": case["tool"], "responseHash": digest(value), "operationIds": operation_ids(value)})
+        calls.append({"name": case["name"], "tool": case["tool"], "attempts": attempts,
+                      "responseHash": digest(value), "operationIds": operation_ids(value)})
         cleanup.extend(case.get("cleanup", []))
     for case in reversed(cleanup):
         if case["tool"] not in tool_names: raise AssertionError(f"cleanup tool is absent: {case['tool']}")

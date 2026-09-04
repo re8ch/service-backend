@@ -37,6 +37,7 @@
               "name": {"type": "string"}, "tool": {"type": "string"}, "arguments": {"type": "object"},
               "capture": {"type": "object", "additionalProperties": {"type": "string"}},
               "assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}},
+              "poll": {"$ref": "#/$defs/poll"},
               "cleanup": {"type": "array", "items": {"$ref": "#/$defs/call"}}
             }
           }
@@ -46,6 +47,7 @@
   },
   "$defs": {
     "assertion": {"type": "object", "additionalProperties": false, "required": ["path"], "properties": {"path": {"type": "string"}, "equals": {}, "nonEmpty": {"type": "boolean"}}},
+    "poll": {"type": "object", "additionalProperties": false, "required": ["maxAttempts", "intervalSeconds"], "properties": {"maxAttempts": {"type": "integer", "minimum": 1, "maximum": 120}, "intervalSeconds": {"type": "number", "minimum": 0, "maximum": 30}}},
     "call": {"type": "object", "additionalProperties": false, "required": ["tool"], "properties": {"name": {"type": "string"}, "tool": {"type": "string"}, "arguments": {"type": "object"}, "assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}}}
   }
 }
