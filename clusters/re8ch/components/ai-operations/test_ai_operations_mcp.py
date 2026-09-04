@@ -64,6 +64,21 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("password", serialized.lower())
         self.assertNotIn("token", serialized.lower())
 
+    def test_infra_exposes_native_grafana_and_headlamp_kubernetes_views(self):
+        m = load("infra")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertTrue({"grafana_inventory", "grafana_organization_get", "kubernetes_workload_inventory", "kubernetes_recent_events"}.issubset(names))
+
+    def test_harbor_admin_credential_falls_back_to_server_held_secret(self):
+        m = load("infra")
+        m.HARBOR_URL = "https://registry.example"
+        m.os.environ.pop("HARBOR_ADMIN_USERNAME", None)
+        m.os.environ.pop("HARBOR_ADMIN_PASSWORD", None)
+        values = {("ai-operations", "cluster-infra-harbor", "username"): "admin", ("ai-operations", "cluster-infra-harbor", "password"): "opaque"}
+        m.kubernetes_secret_value = lambda namespace, name, key: values[(namespace, name, key)]
+        client = m.harbor_admin_client()
+        self.assertEqual(client.base_url, "https://registry.example/api/v2.0")
+
     def test_tenant_profile_exposes_only_tenant_harbor_surface(self):
         m = load("tenant")
         names = {tool["name"] for tool in m.tools()}

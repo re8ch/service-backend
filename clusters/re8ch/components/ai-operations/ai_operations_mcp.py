@@ -43,6 +43,7 @@ MAX_OUTPUT = int(os.getenv("MAX_OUTPUT_BYTES", str(4 * 1024 * 1024)))
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
+GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.re8ch.com")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
@@ -81,7 +82,7 @@ CREDENTIAL_CATALOG = {
     "node-ssh": {"kind": "file", "paths": [SSH_CONFIG, SSH_IDENTITY_FILE], "actions": ["shell", "file"]},
     "kubernetes": {"kind": "file", "paths": [str(KUBECONFIG_DIR / "re8ch.yaml")], "actions": ["kubectl"]},
     "harbor-api": {"kind": "environment", "env": "HARBOR_ADMIN_PASSWORD", "actions": ["harbor-api"]},
-    "grafana-api": {"kind": "environment", "env": "GRAFANA_API_TOKEN", "actions": ["grafana-api"]},
+    "grafana-api": {"kind": "kubernetes-secret", "namespace": "qianwen-ops", "name": "panel-grafana-admin-recovery", "keys": ["username", "password"], "actions": ["grafana-api"]},
     "litellm-api": {"kind": "environment", "env": "LITELLM_API_TOKEN", "actions": ["litellm-read"]},
     "github-native": {"kind": "environment", "env": "GH_TOKEN", "actions": ["github-api"]},
 }
@@ -347,6 +348,9 @@ def credential_catalog() -> list[dict[str, Any]]:
             available = all(Path(path).exists() for path in item["paths"])
         elif item["kind"] == "environment":
             available = bool(os.getenv(item["env"]))
+        elif item["kind"] == "kubernetes-secret":
+            command = ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), "--namespace", item["namespace"], "get", "secret", item["name"]]
+            available = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15, check=False).returncode == 0
         values.append({"name": name, "kind": item["kind"], "actions": item["actions"], "available": available})
     return values
 
@@ -520,6 +524,10 @@ INFRA_TOOLS = [
     {"name": "harbor_robot_disable", "description": "Disable or enable a Harbor robot account.", "inputSchema": schema({"robot_id": {"type": "integer", "minimum": 1}, "disabled": {"type": "boolean"}, "apply": {"type": "boolean"}}, ["robot_id", "disabled"])},
     {"name": "harbor_artifact_scan", "description": "Request a Harbor vulnerability scan for one artifact.", "inputSchema": schema({"project": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "apply": {"type": "boolean"}}, ["project", "repository", "reference"])},
     {"name": "harbor_artifact_delete", "description": "Delete one explicitly selected Harbor artifact.", "inputSchema": schema({"project": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "apply": {"type": "boolean"}}, ["project", "repository", "reference"])},
+    {"name": "grafana_inventory", "description": "Read sanitized Grafana organizations, folders, dashboards and datasource metadata through the native API.", "inputSchema": schema({})},
+    {"name": "grafana_organization_get", "description": "Read one Grafana organization and its users without returning credentials.", "inputSchema": schema({"organization_id": {"type": "integer", "minimum": 1}}, ["organization_id"])},
+    {"name": "kubernetes_workload_inventory", "description": "Read sanitized Kubernetes workload readiness for Headlamp-compatible control-plane views.", "inputSchema": schema({"namespace": {"type": "string"}})},
+    {"name": "kubernetes_recent_events", "description": "Read recent Kubernetes warning events for a namespace or the complete cluster.", "inputSchema": schema({"namespace": {"type": "string"}})},
     {"name": "litellm_gateway_status", "description": "Read the cluster LiteLLM liveness and readiness endpoints without exposing credentials.", "inputSchema": schema({})},
     {"name": "litellm_models", "description": "List models exposed by the cluster LiteLLM gateway using its server-held credential.", "inputSchema": schema({})},
     {"name": "litellm_spend", "description": "Read LiteLLM aggregate spend data using its server-held credential.", "inputSchema": schema({})},
@@ -609,7 +617,58 @@ def tools() -> list[dict[str, Any]]:
 
 
 def harbor_admin_client() -> HarborClient:
-    return HarborClient(HARBOR_URL, os.getenv("HARBOR_ADMIN_USERNAME", "admin"), os.getenv("HARBOR_ADMIN_PASSWORD", ""))
+    username = os.getenv("HARBOR_ADMIN_USERNAME", "")
+    password = os.getenv("HARBOR_ADMIN_PASSWORD", "")
+    if not username or not password:
+        username = kubernetes_secret_value("ai-operations", "cluster-infra-harbor", "username")
+        password = kubernetes_secret_value("ai-operations", "cluster-infra-harbor", "password")
+    return HarborClient(HARBOR_URL, username, password)
+
+
+def kubernetes_secret_value(namespace: str, name: str, key: str) -> str:
+    """Read a server-held Secret without routing its value through operation logs or MCP output."""
+    if not all(re.fullmatch(r"[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?", item) for item in (namespace, name, key)):
+        raise ValueError("invalid Kubernetes Secret reference")
+    command = ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), "--namespace", namespace, "get", "secret", name, "-o", f"jsonpath={{.data.{key}}}"]
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=False)
+    if result.returncode != 0 or not result.stdout:
+        raise RuntimeError(f"credential reference is unavailable: {namespace}/{name}:{key}")
+    try:
+        return base64.b64decode(result.stdout, validate=True).decode()
+    finally:
+        result = None
+
+
+def grafana_request(path: str, *, organization_id: int | None = None) -> Any:
+    token = os.getenv("GRAFANA_API_TOKEN", "")
+    headers = {"Accept": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    else:
+        username = kubernetes_secret_value("qianwen-ops", "panel-grafana-admin-recovery", "username")
+        password = kubernetes_secret_value("qianwen-ops", "panel-grafana-admin-recovery", "password")
+        headers["Authorization"] = "Basic " + base64.b64encode(f"{username}:{password}".encode()).decode()
+    if organization_id:
+        headers["X-Grafana-Org-Id"] = str(organization_id)
+    request = urllib.request.Request(GRAFANA_URL.rstrip("/") + path, headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def sanitized_grafana_inventory() -> dict[str, Any]:
+    health = grafana_request("/api/health")
+    organizations = grafana_request("/api/orgs")
+    folders = grafana_request("/api/folders?limit=1000")
+    dashboards = grafana_request("/api/search?type=dash-db&limit=5000")
+    datasources = grafana_request("/api/datasources")
+    return {
+        "health": {key: health.get(key) for key in ("database", "version", "commit")},
+        "organizations": [{key: item.get(key) for key in ("id", "name")} for item in organizations],
+        "folders": [{key: item.get(key) for key in ("id", "uid", "title", "url")} for item in folders],
+        "dashboards": [{key: item.get(key) for key in ("id", "uid", "title", "folderUid", "folderTitle", "url")} for item in dashboards],
+        "datasources": [{key: item.get(key) for key in ("id", "uid", "name", "type", "access", "isDefault", "readOnly")} for item in datasources],
+        "credentialMaterialReturned": False,
+    }
 
 
 def credential_store() -> KubernetesCredentialStore:
@@ -899,6 +958,42 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"session_id": args["session_id"], "status": "terminated"}
 
     if PROFILE in {"infra", "all"}:
+        if name == "grafana_inventory":
+            return sanitized_grafana_inventory()
+        if name == "grafana_organization_get":
+            org_id = int(args["organization_id"])
+            organization = grafana_request(f"/api/orgs/{org_id}")
+            users = grafana_request(f"/api/orgs/{org_id}/users")
+            return {
+                "organization": {key: organization.get(key) for key in ("id", "name", "address")},
+                "users": [{key: item.get(key) for key in ("orgId", "userId", "email", "login", "role")} for item in users],
+                "credentialMaterialReturned": False,
+            }
+        if name == "kubernetes_workload_inventory":
+            namespace = args.get("namespace")
+            command = ["get", "deployments,statefulsets,daemonsets,jobs,cronjobs"]
+            command += ["--namespace", namespace] if namespace else ["--all-namespaces"]
+            result = kubectl_json(command)
+            workloads = []
+            for item in result.get("items", []):
+                meta, status = item.get("metadata") or {}, item.get("status") or {}
+                workloads.append({
+                    "apiVersion": item.get("apiVersion"), "kind": item.get("kind"), "namespace": meta.get("namespace"), "name": meta.get("name"),
+                    "generation": meta.get("generation"), "desired": status.get("replicas", status.get("desiredNumberScheduled", 0)),
+                    "ready": status.get("readyReplicas", status.get("numberReady", status.get("succeeded", 0))),
+                    "conditions": [{key: condition.get(key) for key in ("type", "status", "reason", "lastTransitionTime")} for condition in status.get("conditions") or []],
+                })
+            return {"operation_id": result.get("operation_id"), "count": len(workloads), "workloads": workloads}
+        if name == "kubernetes_recent_events":
+            namespace = args.get("namespace")
+            command = ["get", "events", "--field-selector", "type=Warning", "--sort-by=.lastTimestamp"]
+            command += ["--namespace", namespace] if namespace else ["--all-namespaces"]
+            result = kubectl_json(command)
+            events = []
+            for item in result.get("items", [])[-200:]:
+                meta, involved = item.get("metadata") or {}, item.get("involvedObject") or {}
+                events.append({"namespace": meta.get("namespace"), "reason": item.get("reason"), "message": item.get("message"), "count": item.get("count"), "lastTimestamp": item.get("lastTimestamp"), "object": {key: involved.get(key) for key in ("kind", "name", "namespace")}})
+            return {"operation_id": result.get("operation_id"), "count": len(events), "events": events}
         if name in {"harbor_users", "harbor_projects", "harbor_robots", "harbor_repositories", "harbor_artifacts"}:
             client = harbor_admin_client()
             if name == "harbor_users":
