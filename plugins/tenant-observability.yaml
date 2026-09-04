@@ -7,6 +7,6 @@ spec:
   healthCheck: {type: http, path: /healthz}
   policy:
     resourceScopes: [tenant-self]
-    allowedOperations: [service-catalog-list, service-instance-plan, service-instance-create, service-instance-get, service-instance-list, service-instance-update, service-instance-suspend, service-instance-resume, service-instance-delete, service-binding-create, service-binding-list, service-binding-revoke, usage-summary-get, operation-get, grafana-datasource-list, grafana-datasource-get, grafana-query, grafana-analyze, grafana-indicators, grafana-correlate, grafana-render, grafana-exploration-save, grafana-exploration-delete]
+    allowedOperations: [service-catalog-list, service-instance-plan, service-instance-create, service-instance-get, service-instance-list, service-instance-update, service-instance-suspend, service-instance-resume, service-instance-delete, service-binding-create, service-binding-list, service-binding-revoke, usage-summary-get, operation-get, grafana-capability-list, grafana-capability-get, grafana-function-list, grafana-function-get, grafana-function-run, grafana-datasource-list, grafana-datasource-get, grafana-query, grafana-analyze, grafana-indicators, grafana-correlate, grafana-render, grafana-exploration-save, grafana-exploration-delete]
     deniedFields: [password, token, secret, kubeconfig, privateKey, credentialMaterial, candidateRef, rawInfrastructureMutation, price, tax, journalEntry]
   publication: {enabled: false, toolPrefix: tenant_observability}
