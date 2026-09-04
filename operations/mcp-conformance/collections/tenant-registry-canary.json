@@ -1,7 +1,7 @@
 {
   "apiVersion": "testing.re8ch.com/v1alpha1",
   "kind": "MCPCollection",
-  "metadata": {"name": "tenant-registry-canary", "version": "1.0.0"},
+  "metadata": {"name": "tenant-registry-canary", "version": "2.0.0"},
   "spec": {
     "endpoint": "https://tenant-canary.re8ch.com/tenant/registry/mcp",
     "oauth": {
@@ -10,8 +10,28 @@
       "tokenEnv": "TENANT_REGISTRY_CANARY_TOKEN",
       "pkce": "S256"
     },
-    "timeoutSeconds": 20,
+    "variableEnv": {
+      "credentialRef": "TENANT_REGISTRY_CREDENTIAL_REF",
+      "sourceUrl": "TENANT_REGISTRY_CANARY_SOURCE_URL",
+      "sourceRevision": "TENANT_REGISTRY_CANARY_SOURCE_REVISION",
+      "artifactReference": "TENANT_REGISTRY_CANARY_ARTIFACT_REFERENCE"
+    },
+    "variables": {"repository": "mcp-effectivity", "tag": "canary"},
+    "timeoutSeconds": 30,
     "requireSignedEvidence": true,
-    "calls": [{"name": "catalog", "tool": "service_catalog_list", "arguments": {} }]
+    "calls": [
+      {"name": "catalog", "tool": "service_catalog_list", "arguments": {}},
+      {"name": "project", "tool": "harbor_project_get", "arguments": {"credential_ref": "${credentialRef}"}},
+      {"name": "repositories", "tool": "harbor_repository_list", "arguments": {"credential_ref": "${credentialRef}"}},
+      {"name": "build", "tool": "harbor_build_start", "arguments": {"credential_ref": "${credentialRef}", "context": "${sourceUrl}", "revision": "${sourceRevision}", "dockerfile": "Dockerfile", "repository": "${repository}", "tag": "${tag}", "platforms": ["linux/amd64"], "sign": true, "scan": true, "idempotency_key": "tenant-registry-effectivity-v2", "apply": true}, "capture": {"buildOperation": "payload.operationId"}, "assertions": [{"path": "payload.operationId", "nonEmpty": true}]},
+      {"name": "build-status", "tool": "harbor_build_get", "arguments": {"operation_id": "${buildOperation}"}},
+      {"name": "build-list", "tool": "harbor_build_list", "arguments": {}},
+      {"name": "artifacts", "tool": "harbor_artifact_list", "arguments": {"credential_ref": "${credentialRef}", "repository": "${repository}"}},
+      {"name": "artifact", "tool": "harbor_artifact_get", "arguments": {"credential_ref": "${credentialRef}", "repository": "${repository}", "reference": "${artifactReference}"}},
+      {"name": "vulnerabilities", "tool": "harbor_vulnerability_report_get", "arguments": {"credential_ref": "${credentialRef}", "repository": "${repository}", "reference": "${artifactReference}"}},
+      {"name": "sbom", "tool": "harbor_sbom_get", "arguments": {"credential_ref": "${credentialRef}", "repository": "${repository}", "reference": "${artifactReference}"}},
+      {"name": "accessories", "tool": "harbor_accessory_list", "arguments": {"credential_ref": "${credentialRef}", "repository": "${repository}", "reference": "${artifactReference}"}},
+      {"name": "audit", "tool": "harbor_audit_log_list", "arguments": {"credential_ref": "${credentialRef}"}}
+    ]
   }
 }

@@ -96,6 +96,19 @@ def test_robot_templates_reject_unknown_permissions():
         client.create_robot("qwen", "bad", "system-admin", 30)
 
 
+def test_native_supply_chain_endpoints_are_project_scoped():
+    calls = []
+    def opener(request, timeout):
+        calls.append((request.method, request.full_url))
+        return Response({} if request.method != "GET" or "accessories" not in request.full_url else [])
+    client = harbor.HarborClient("https://registry.example", "robot", "pw", opener)
+    client.artifact("qwen", "apps/api", "sha256:abc")
+    client.accessories("qwen", "apps/api", "sha256:abc")
+    client.vulnerability_report("qwen", "apps/api", "sha256:abc")
+    client.sbom("qwen", "apps/api", "sha256:abc")
+    assert all("/projects/qwen/repositories/apps%2Fapi/artifacts/sha256%3Aabc" in url for _, url in calls)
+
+
 def test_harbor_catalog_covers_every_product_catalog_with_qwen_canonical_name():
     root = Path(__file__).parents[1]
     configured = json.loads((root / "clusters/re8ch/components/ai-operations/harbor-tenants.json").read_text())["tenants"]

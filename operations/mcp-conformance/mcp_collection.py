@@ -61,12 +61,57 @@ def fetch_json(url: str, timeout: int) -> Any:
         return json.load(response)
 
 
+def interpolate(value: Any, variables: dict[str, str]) -> Any:
+    if isinstance(value, str):
+        for key, replacement in variables.items():
+            value = value.replace("${" + key + "}", replacement)
+        return value
+    if isinstance(value, list): return [interpolate(item, variables) for item in value]
+    if isinstance(value, dict): return {key: interpolate(item, variables) for key, item in value.items()}
+    return value
+
+
+def select(value: Any, path: str) -> Any:
+    current = value
+    for component in path.split("."):
+        if component == "payload" and isinstance(current, dict) and isinstance(current.get("content"), list):
+            current = json.loads(current["content"][0]["text"])
+            continue
+        current = current[int(component)] if isinstance(current, list) else current[component]
+    return current
+
+
+def operation_ids(value: Any) -> list[str]:
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in {"operationId", "operation_id"} and isinstance(item, str): found.append(item)
+            found.extend(operation_ids(item))
+    elif isinstance(value, list):
+        for item in value: found.extend(operation_ids(item))
+    elif isinstance(value, str) and value.startswith("{"):
+        try: found.extend(operation_ids(json.loads(value)))
+        except ValueError: pass
+    return sorted(set(found))
+
+
+def assert_case(value: Any, assertions: list[dict[str, Any]]) -> None:
+    for assertion in assertions:
+        actual = select(value, assertion["path"])
+        if "equals" in assertion and actual != assertion["equals"]:
+            raise AssertionError(f"{assertion['path']}: expected {assertion['equals']!r}, got {actual!r}")
+        if assertion.get("nonEmpty") and actual in (None, "", [], {}):
+            raise AssertionError(f"{assertion['path']}: expected a non-empty value")
+
+
 def run(path: Path, output: Path) -> dict[str, Any]:
     collection = json.loads(path.read_text())
     if collection.get("apiVersion") != "testing.re8ch.com/v1alpha1" or collection.get("kind") != "MCPCollection":
         raise ValueError("unsupported MCPCollection")
     spec = collection["spec"]
     variables = {key: os.path.expandvars(str(value)) for key, value in spec.get("variables", {}).items()}
+    for key, env_name in spec.get("variableEnv", {}).items():
+        variables[key] = os.getenv(env_name, "")
     endpoint = spec["endpoint"].format(**variables)
     token_env = spec["oauth"]["tokenEnv"]
     token = os.getenv(token_env, "")
@@ -103,11 +148,20 @@ def run(path: Path, output: Path) -> dict[str, Any]:
     for item in resources:
         value = client.rpc("resources/read", {"uri": item["uri"]})
         resource_hashes.append({"uri": item["uri"], "responseHash": digest(value)})
-    calls = []
-    for case in spec.get("calls", []):
+    calls, cleanup = [], []
+    cases = spec.get("calls", [])
+    for case in cases:
         if case["tool"] not in tool_names: raise AssertionError(f"tool is absent: {case['tool']}")
-        value = client.rpc("tools/call", {"name": case["tool"], "arguments": case.get("arguments", {})})
-        calls.append({"name": case["name"], "tool": case["tool"], "responseHash": digest(value)})
+        value = client.rpc("tools/call", {"name": case["tool"], "arguments": interpolate(case.get("arguments", {}), variables)})
+        assert_case(value, case.get("assertions", []))
+        for key, path_expr in case.get("capture", {}).items(): variables[key] = str(select(value, path_expr))
+        calls.append({"name": case["name"], "tool": case["tool"], "responseHash": digest(value), "operationIds": operation_ids(value)})
+        cleanup.extend(case.get("cleanup", []))
+    for case in reversed(cleanup):
+        if case["tool"] not in tool_names: raise AssertionError(f"cleanup tool is absent: {case['tool']}")
+        value = client.rpc("tools/call", {"name": case["tool"], "arguments": interpolate(case.get("arguments", {}), variables)})
+        assert_case(value, case.get("assertions", []))
+        calls.append({"name": "cleanup:" + case.get("name", case["tool"]), "tool": case["tool"], "responseHash": digest(value), "cleanup": True})
     manifest = {
         "apiVersion": "evidence.re8ch.com/v1alpha1", "kind": "MCPEvidence", "collection": collection["metadata"]["name"],
         "startedAt": int(time.time()), "endpoint": endpoint, "audience": audience,

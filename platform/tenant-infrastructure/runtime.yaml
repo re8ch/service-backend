@@ -58,6 +58,8 @@ spec:
             - {name: tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
         - name: tenant-registry
           image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          envFrom:
+            - secretRef: {name: tenant-registry-supply-chain, optional: true}
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-registry}
             - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/registry/mcp"}
@@ -65,6 +67,7 @@ spec:
             - {name: LISTEN_PORT, value: "19444"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/registry/mcp"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
+            - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
           ports: [{name: registry, containerPort: 19444}]
           readinessProbe: {httpGet: {path: /healthz, port: registry}, periodSeconds: 5}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}

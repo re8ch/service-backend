@@ -17,6 +17,7 @@
       "properties": {
         "endpoint": {"type": "string", "pattern": "^https://"},
         "variables": {"type": "object", "additionalProperties": {"type": "string"}},
+        "variableEnv": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"}},
         "timeoutSeconds": {"type": "integer", "minimum": 1, "maximum": 120},
         "requireSignedEvidence": {"type": "boolean"},
         "oauth": {
@@ -32,10 +33,20 @@
         "calls": {
           "type": "array", "items": {
             "type": "object", "additionalProperties": false, "required": ["name", "tool"],
-            "properties": {"name": {"type": "string"}, "tool": {"type": "string"}, "arguments": {"type": "object"}}
+            "properties": {
+              "name": {"type": "string"}, "tool": {"type": "string"}, "arguments": {"type": "object"},
+              "capture": {"type": "object", "additionalProperties": {"type": "string"}},
+              "assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}},
+              "cleanup": {"type": "array", "items": {"$ref": "#/$defs/call"}}
+            }
           }
         }
       }
     }
+  },
+  "$defs": {
+    "assertion": {"type": "object", "additionalProperties": false, "required": ["path"], "properties": {"path": {"type": "string"}, "equals": {}, "nonEmpty": {"type": "boolean"}}},
+    "call": {"type": "object", "additionalProperties": false, "required": ["tool"], "properties": {"name": {"type": "string"}, "tool": {"type": "string"}, "arguments": {"type": "object"}, "assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}}}
   }
+}
 }
