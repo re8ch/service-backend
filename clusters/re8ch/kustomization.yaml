@@ -31,4 +31,5 @@ resources:
   - ../../platform/connectool
   - ../../platform/gitlab-runner-r640
   - ../../platform/birfucate-metering
+  - ../../platform/hyperswitch
   - ../../platform/external-projects
