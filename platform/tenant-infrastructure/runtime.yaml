@@ -1,5 +1,4 @@
-# Promotion gate: this base is intentionally not referenced by clusters/re8ch
-# until IMAGE_REQUIRES_VERIFIED_DIGEST is replaced with a signed image digest.
+# Promoted by tenant-infrastructure-release job 16306623445 after Cosign verification.
 apiVersion: v1
 kind: Namespace
 metadata: {name: tenant-infrastructure, labels: {saas.re8ch.com/tenant: platform}}
@@ -38,7 +37,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: tenant-admin
-          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-admin}
             - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant-admin/mcp"}
@@ -57,7 +56,7 @@ spec:
             - {name: state, mountPath: /var/lib/re8ch-ai-operations}
             - {name: tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
         - name: tenant-registry
-          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
           envFrom:
             - secretRef: {name: tenant-registry-supply-chain, optional: true}
           env:
@@ -74,7 +73,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
         - name: tenant-observability
-          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
           envFrom:
             - secretRef: {name: tenant-grafana-credentials, optional: true}
           env:
@@ -90,7 +89,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
         - name: tenant-byoc
-          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-byoc}
             - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
