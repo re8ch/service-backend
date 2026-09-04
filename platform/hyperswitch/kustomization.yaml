@@ -10,9 +10,11 @@ resources:
 
 configMapGenerator:
   - name: hyperswitch-superposition-seed
+    namespace: payments
     files:
       - superposition_seed.toml=vendor/hyperswitch-v1.126.0-superposition_seed.toml
   - name: hyperswitch-superposition-schema
+    namespace: payments
     files:
       - superposition.sql=vendor/superposition-v0.112.0.sql
 
