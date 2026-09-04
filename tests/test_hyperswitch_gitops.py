@@ -78,14 +78,23 @@ def test_chart_is_version_pinned_and_latest_is_forbidden():
 
 def test_public_routes_use_dedicated_tls_listeners():
     routes = list(yaml.safe_load_all(ROUTES.read_text()))
-    assert {route["spec"]["hostnames"][0] for route in routes} == {
+    http_routes = [route for route in routes if route["kind"] == "HTTPRoute"]
+    assert {route["spec"]["hostnames"][0] for route in http_routes} == {
         "pay.re8ch.com",
         "pay-api.re8ch.com",
     }
-    for route in routes:
-        assert route["kind"] == "HTTPRoute"
+    for route in http_routes:
         assert len(route["spec"]["parentRefs"]) == 6
         assert all(ref["sectionName"].endswith("-https") for ref in route["spec"]["parentRefs"])
+
+    authority = next(route for route in routes if route["kind"] == "Ingress")
+    assert authority["spec"]["ingressClassName"] == "external-dns-only"
+    assert authority["metadata"]["labels"] == {
+        "networking.re8ch.com/dns-authority": "public-edge"
+    }
+    assert authority["metadata"]["annotations"][
+        "external-dns.alpha.kubernetes.io/target"
+    ] == "192.0.2.79"
 
 
 def test_publicedge_only_advertises_hyperswitch_from_r640():
