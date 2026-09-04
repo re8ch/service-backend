@@ -1,0 +1,100 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: hyperswitch
+  namespace: flux-system
+spec:
+  interval: 30m
+  url: https://juspay.github.io/hyperswitch-helm
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: hyperswitch
+  namespace: flux-system
+spec:
+  # The release is intentionally staged. Unsuspend only after the encrypted
+  # runtime values and mirrored, digest-pinned images described in README.md
+  # have passed review. The upstream chart otherwise generates development
+  # credentials and downloads source/config during installation.
+  suspend: true
+  interval: 10m
+  releaseName: hyperswitch
+  targetNamespace: payments
+  storageNamespace: payments
+  chart:
+    spec:
+      chart: hyperswitch-stack
+      version: 0.2.26
+      sourceRef:
+        kind: HelmRepository
+        name: hyperswitch
+        namespace: flux-system
+      interval: 30m
+  install:
+    createNamespace: false
+    remediation: {retries: 3}
+  upgrade:
+    cleanupOnFail: true
+    remediation: {retries: 3, strategy: rollback}
+  rollback: {cleanupOnFail: true}
+  values:
+    global:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+    hyperswitch-web:
+      enabled: false
+      autoBuild: {enable: false, forceBuild: false}
+      ingress: {enabled: false}
+    hyperswitch-control-center:
+      enabled: false
+    hyperswitch-monitoring:
+      enabled: false
+    hyperswitch-app:
+      # Required by router releases >= v1.124. The stack chart also installs
+      # the schema migration/alias that its otherwise-empty database needs.
+      superpositionFallback:
+        enabled: true
+        source: configMap
+        configMap: hyperswitch-superposition-seed
+        key: superposition_seed.toml
+      superpositionDB:
+        enable: true
+        aliasService: superposition-db
+        migration: {enable: false}
+      superposition:
+        enabled: true
+        replicaCount: 1
+        configs:
+          db_host: "superposition-db:5432"
+          db_name: hyperswitch
+          db_user: hyperswitch
+          rust_log: info
+          app_env: PROD
+          auth_provider: DISABLED
+          auth_z_provider: DISABLED
+        resources:
+          requests: {cpu: 50m, memory: 128Mi}
+          limits: {cpu: 500m, memory: 512Mi}
+      server:
+        run_env: sandbox
+        ingress: {enabled: false}
+        configs:
+          cors: {wildcard_origin: false, origin: "https://api.re8ch.com"}
+          analytics: {source: sqlx, forex_enabled: false}
+      services:
+        consumer: {enabled: false}
+        producer: {enabled: false}
+        drainer: {enabled: false}
+      hyperswitch-card-vault:
+        enabled: false
+      hyperswitch-ucs:
+        enabled: false
+      kafka: {enabled: false}
+      clickhouse: {enabled: false}
+      mailhog: {enabled: false}
+      vector: {enabled: false}
