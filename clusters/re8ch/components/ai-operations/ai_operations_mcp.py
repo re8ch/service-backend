@@ -35,8 +35,13 @@ from grafana_exploration import (
     datasource_capability,
     execute_query as execute_grafana_query,
     frames_to_series,
+    grafana_capabilities,
+    grafana_capability,
     indicators as calculate_grafana_indicators,
     lag_correlations,
+    metric_function,
+    metric_functions,
+    render_metric_function,
     stable_hash,
     tenant_config as grafana_tenant_config,
 )
@@ -601,6 +606,11 @@ EXPLORATION_SPEC_SCHEMA = {
 }
 
 GRAFANA_TENANT_TOOLS = [
+    {"name": "grafana_capability_list", "description": "List Grafana-native, datasource-plugin, and RE8CH-derived capabilities with API generation, version, DataFrame contract, availability, limitations, and canary evidence.", "inputSchema": schema({})},
+    {"name": "grafana_capability_get", "description": "Read one reviewed Grafana capability contract by stable capability ID.", "inputSchema": schema({"capability_id": {"type": "string"}}, ["capability_id"])},
+    {"name": "grafana_function_list", "description": "List reviewed one-call metric and analysis functions, including Pigsty/PostgreSQL health, transactions, replication, locks, IO, WAL, checkpoint, and capacity diagnostics.", "inputSchema": schema({"chart": {"type": "string"}, "category": {"type": "string"}})},
+    {"name": "grafana_function_get", "description": "Read one preset metric function, its query template, parameters, unit, and analysis recipe.", "inputSchema": schema({"function_id": {"type": "string"}}, ["function_id"])},
+    {"name": "grafana_function_run", "description": "Execute a reviewed tenant-bound metric function against a visible Grafana datasource and return DataFrames plus deterministic analysis.", "inputSchema": schema({"function_id": {"type": "string"}, "datasource_uid": {"type": "string"}, "parameters": {"type": "object"}, "timeRange": {"type": "object"}}, ["function_id", "datasource_uid"])},
     {"name": "grafana_datasource_list", "description": "List query capabilities for datasources visible in the authenticated tenant Grafana organization.", "inputSchema": schema({})},
     {"name": "grafana_datasource_get", "description": "Read sanitized metadata for one tenant-visible Grafana datasource.", "inputSchema": schema({"datasource_uid": {"type": "string"}}, ["datasource_uid"])},
     {"name": "grafana_query", "description": "Run bounded tenant-scoped datasource queries through Grafana and return normalized DataFrames.", "inputSchema": schema({"spec": EXPLORATION_SPEC_SCHEMA}, ["spec"])},
@@ -788,6 +798,9 @@ def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
             (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", {"bindings": store.bindings(tenant)}),
             (f"re8ch://tenant/{tenant}/usage", "Unpriced usage summary", store.usage_summary(tenant, None)),
         ])
+        if PROFILE == "tenant-observability":
+            records.append((f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities()))
+            records.append((f"re8ch://tenant/{tenant}/grafana/functions", "Grafana metric functions", metric_functions()))
         if PROFILE == "tenant-byoc":
             records.extend([
                 (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
@@ -950,9 +963,33 @@ def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
 
 def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     tenant = authenticated_tenant(identity)
-    client = tenant_grafana_client(tenant)
     operation_id = "op_" + uuid.uuid4().hex
+    if name == "grafana_capability_list":
+        return {"operationId": operation_id, "tenantRef": tenant, **grafana_capabilities()}
+    if name == "grafana_capability_get":
+        return {"operationId": operation_id, "tenantRef": tenant, **grafana_capability(args["capability_id"])}
+    if name == "grafana_function_list":
+        catalog = metric_functions()
+        rows = catalog["items"]
+        if args.get("chart"):
+            rows = [row for row in rows if row.get("chart") == args["chart"]]
+        if args.get("category"):
+            rows = [row for row in rows if row.get("category") == args["category"]]
+        return {"operationId": operation_id, "tenantRef": tenant, "functions": rows, "catalogHash": catalog["catalogHash"]}
+    if name == "grafana_function_get":
+        return {"operationId": operation_id, "tenantRef": tenant, **metric_function(args["function_id"])}
+    client = tenant_grafana_client(tenant)
     datasources = tenant_grafana_datasources(client)
+    if name == "grafana_function_run":
+        if not any(row.get("uid") == args["datasource_uid"] for row in datasources):
+            raise PermissionError("datasource is not visible to the authenticated tenant")
+        recipe = render_metric_function(args["function_id"], tenant, args["datasource_uid"], args.get("parameters"))
+        spec = {"timeRange": args.get("timeRange") or {"from": "now-1h", "to": "now", "timezone": "UTC"}, "queries": recipe["queries"]}
+        queried = execute_grafana_query(client, tenant, spec, datasources)
+        series = frames_to_series(queried)
+        analysis = analyze_series(series, recipe["pipeline"]) if series and recipe["pipeline"] else None
+        derived = {key: calculate_grafana_indicators(values, recipe["indicators"]) for key, values in series.items()} if series and recipe["indicators"] else None
+        return {"operationId": operation_id, "tenantRef": tenant, **recipe, "query": queried, "analysis": analysis, "derivedIndicators": derived}
     if name == "grafana_datasource_list":
         return {"operationId": operation_id, "tenantRef": tenant, "datasources": [datasource_capability(row) for row in datasources]}
     if name == "grafana_datasource_get":

@@ -13,6 +13,9 @@
     "timeoutSeconds": 60,
     "requireSignedEvidence": true,
     "calls": [
+      {"name": "capabilities", "tool": "grafana_capability_list", "arguments": {}},
+      {"name": "pigsty-functions", "tool": "grafana_function_list", "arguments": {"chart": "pigsty"}},
+      {"name": "pigsty-commit-rate", "tool": "grafana_function_run", "arguments": {"function_id": "pigsty.commit-rate", "datasource_uid": "tenant-metrics", "timeRange": {"from": "now-15m", "to": "now", "timezone": "UTC"}}},
       {"name": "datasources", "tool": "grafana_datasource_list", "arguments": {}},
       {"name": "tenant-metrics-query", "tool": "grafana_query", "arguments": {"spec": {"timeRange": {"from": "now-15m", "to": "now", "timezone": "UTC"}, "queries": [{"datasourceUid": "tenant-metrics", "refId": "A", "queryKind": "promql", "model": {"expr": "count(up{tenant=\"tenant-mcp-canary\"})"}, "intervalMs": 15000, "maxDataPoints": 1000}]}}},
       {"name": "indicators", "tool": "grafana_indicators", "arguments": {"values": [1, 2, 3, 2, 5], "indicators": [{"type": "movingAverage", "window": 3}, {"type": "ema", "window": 3}, {"type": "changeRate"}, {"type": "volatility", "window": 3}, {"type": "zscore"}, {"type": "slope"}, {"type": "quantile", "quantile": 0.95}]}},
