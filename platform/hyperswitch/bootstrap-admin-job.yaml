@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hyperswitch-bootstrap-admin-v1
+  namespace: payments
+  labels:
+    app.kubernetes.io/name: hyperswitch
+    app.kubernetes.io/component: bootstrap-admin
+spec:
+  backoffLimit: 20
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hyperswitch
+        app.kubernetes.io/component: bootstrap-admin
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-6dc3f140f9]
+      containers:
+        - name: create-admin
+          image: docker.io/curlimages/curl:8.11.1
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              base_url=http://hyperswitch-hyperswitch-server:80
+              until curl --fail --silent --show-error "$base_url/health" >/dev/null; do
+                sleep 5
+              done
+              payload=$(printf '{"email":"%s","password":"%s","country":"US"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
+              if curl --fail --silent --show-error \
+                -H 'Content-Type: application/json' \
+                -H 'api-key: hyperswitch' \
+                -d "$payload" "$base_url/user/signin" >/dev/null; then
+                exit 0
+              fi
+              curl --fail --silent --show-error \
+                -H 'Content-Type: application/json' \
+                -H 'Origin: https://pay.re8ch.com' \
+                -H 'Referer: https://pay.re8ch.com/' \
+                -H 'api-key: hyperswitch' \
+                -d "$payload" "$base_url/user/signup" >/dev/null
+          env:
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: hyperswitch-bootstrap-admin
+                  key: email
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hyperswitch-bootstrap-admin
+                  key: password

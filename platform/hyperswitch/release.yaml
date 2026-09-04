@@ -13,11 +13,7 @@ metadata:
   name: hyperswitch
   namespace: flux-system
 spec:
-  # The release is intentionally staged. Unsuspend only after the encrypted
-  # runtime values and mirrored, digest-pinned images described in README.md
-  # have passed review. The upstream chart otherwise generates development
-  # credentials and downloads source/config during installation.
-  suspend: true
+  suspend: false
   interval: 10m
   releaseName: hyperswitch
   targetNamespace: payments
@@ -38,6 +34,10 @@ spec:
     cleanupOnFail: true
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  valuesFrom:
+    - kind: Secret
+      name: hyperswitch-runtime-values
+      valuesKey: values.yaml
   values:
     global:
       affinity:

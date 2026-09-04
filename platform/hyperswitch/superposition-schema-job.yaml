@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hyperswitch-superposition-schema-v0-112-0
+  namespace: payments
+  labels:
+    app.kubernetes.io/name: hyperswitch
+    app.kubernetes.io/component: superposition-schema
+spec:
+  backoffLimit: 20
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hyperswitch
+        app.kubernetes.io/component: superposition-schema
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-6dc3f140f9]
+      containers:
+        - name: apply-schema
+          image: docker.io/bitnamilegacy/postgresql:16.1.0-debian-11-r18
+          imagePullPolicy: IfNotPresent
+          command: [/bin/bash, -ec]
+          args:
+            - |
+              until pg_isready -h hyperswitch-postgresql -p 5432 -U hyperswitch; do
+                sleep 5
+              done
+              export PGPASSWORD="$POSTGRES_PASSWORD"
+              psql -v ON_ERROR_STOP=1 \
+                -h hyperswitch-postgresql -p 5432 \
+                -U hyperswitch -d hyperswitch \
+                -f /schema/superposition.sql
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hyperswitch-postgresql
+                  key: password
+          volumeMounts:
+            - name: schema
+              mountPath: /schema
+              readOnly: true
+      volumes:
+        - name: schema
+          configMap:
+            name: hyperswitch-superposition-schema

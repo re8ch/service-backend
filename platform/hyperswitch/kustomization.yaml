@@ -3,4 +3,17 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - release.yaml
+  - superposition-schema-job.yaml
+  - bootstrap-admin-job.yaml
   - public-route.yaml
+
+configMapGenerator:
+  - name: hyperswitch-superposition-seed
+    files:
+      - superposition_seed.toml=vendor/hyperswitch-v1.126.0-superposition_seed.toml
+  - name: hyperswitch-superposition-schema
+    files:
+      - superposition.sql=vendor/superposition-v0.112.0.sql
+
+generatorOptions:
+  disableNameSuffixHash: true

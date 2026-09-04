@@ -9,6 +9,7 @@ resources:
   - gitlab-agent/agent.yaml
   - secrets/stalwart-recovery-admin.sops.yaml
   - secrets/among-clusters-hub-admin.sops.yaml
+  - secrets/hyperswitch-runtime-values.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/ai-operations/platform.yaml
   - components/auth/dex/dex-ha-deployment.yaml

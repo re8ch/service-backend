@@ -16,32 +16,22 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   separate fulfillment worker consumes it. Webhook retries therefore cannot
   issue duplicate entitlements.
 
-## Deliberate first-stage limits
+## Bootstrap controls
 
-The HelmRelease is committed suspended. PublicEdge declarations and HTTPRoutes
-for `pay.re8ch.com` (Control Center) and `pay-api.re8ch.com` (router) are staged,
-but have no ready backend until the release passes its credential gate. This
-makes the desired public topology reviewable without starting upstream defaults
-that contain development credentials or perform install-time downloads.
-
-Before unsuspending:
-
-1. Mirror every upstream image into `registry.re8ch.com` and pin it by digest.
-2. Provide SOPS-encrypted runtime values for PostgreSQL, Redis, Superposition,
-   admin/API keys, signing keys, and connector credentials. Never commit their
-   plaintext values.
-3. Vendor the version-matched `superposition_seed.toml` into the declared
-   ConfigMap and apply the version-matched Superposition schema through a
-   reviewed migration artifact. Install-time network downloads stay disabled.
-4. Render the exact chart and reject generated Secrets with upstream example
-   credentials, unrestricted ingress, privileged containers, or online builds.
-5. Keep the router internal and run its health/migration/dummy-connector tests.
-6. Deploy the RE8CH payment bridge and fulfillment outbox consumer.
-7. Create the first administrator through the reviewed bootstrap procedure,
-   require TOTP, rotate the bootstrap credential, and verify unauthenticated
-   Control Center/API requests cannot access merchant or payment data.
-8. Unsuspend only after PublicEdge selects the validated restricted-node-6dc3f140f9 authority and both
-   public probes pass through the wildcard TLS listener.
+- Runtime PostgreSQL, Superposition and router keys are generated randomly and
+  supplied only through `clusters/re8ch/secrets/hyperswitch-runtime-values.sops.yaml`.
+  The AGE recipient is the Flux decryption identity; plaintext is never committed.
+- `superposition_seed.toml` is vendored from Hyperswitch `v1.126.0` with SHA-256
+  `dfde263a0d59561c79f18aaee654aa90505554e7f6594e790b063f74e289e91a`.
+- `superposition.sql` is vendored from Superposition `v0.112.0` with SHA-256
+  `e1f9cdae07ee7fb3852de172ce497c6c192944ca0f2cc0c13bf6d18de39319d9`.
+  A one-shot Job waits for PostgreSQL and applies this local artifact, so initial
+  installation does not depend on GitHub availability.
+- A one-shot bootstrap Job creates `liuhualin@wattman.cn`. Control Center has
+  TOTP enabled; complete enrollment on the first login and then rotate the
+  bootstrap password.
+- The chart remains sandbox-only. Real Stripe, PayPal, WeChat or Alipay connector
+  credentials are added separately after webhook and reconciliation testing.
 
 ## Initial deployment profile
 
