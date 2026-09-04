@@ -12,10 +12,17 @@ def objects():
     return list(yaml.safe_load_all(RELEASE.read_text()))
 
 
-def test_hyperswitch_starts_as_internal_suspended_sandbox():
+def test_hyperswitch_is_active_internal_sandbox_with_sops_values():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
-    assert release["spec"]["suspend"] is True
+    assert release["spec"]["suspend"] is False
     assert release["spec"]["targetNamespace"] == "payments"
+    assert release["spec"]["valuesFrom"] == [
+        {
+            "kind": "Secret",
+            "name": "hyperswitch-runtime-values",
+            "valuesKey": "values.yaml",
+        }
+    ]
     values = release["spec"]["values"]
     assert values["hyperswitch-web"]["enabled"] is False
     assert values["hyperswitch-control-center"]["enabled"] is True
@@ -46,6 +53,21 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
                 visit(child)
 
     visit(release)
+
+
+def test_superposition_bootstrap_artifacts_are_vendored():
+    kustomization = yaml.safe_load(
+        (ROOT / "platform/hyperswitch/kustomization.yaml").read_text()
+    )
+    assert kustomization["generatorOptions"]["disableNameSuffixHash"] is True
+    files = {
+        item
+        for generator in kustomization["configMapGenerator"]
+        for item in generator["files"]
+    }
+    assert any("hyperswitch-v1.126.0-superposition_seed.toml" in item for item in files)
+    assert any("superposition-v0.112.0.sql" in item for item in files)
+    assert kustomization["resources"].count("superposition-schema-job.yaml") == 1
 
 
 def test_chart_is_version_pinned_and_latest_is_forbidden():
