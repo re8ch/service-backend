@@ -1,0 +1,29 @@
+# Contract-only canary. The worker is promoted separately after its signed image digest
+# and MCP effectivity evidence are available; this file is intentionally not in a kustomization.
+apiVersion: v1
+kind: Service
+metadata: {name: harbor-supply-chain, namespace: tenant-infrastructure}
+spec: {selector: {app: harbor-supply-chain}, ports: [{name: http, port: 80, targetPort: 8080}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: harbor-supply-chain, namespace: tenant-infrastructure}
+spec:
+  replicas: 0
+  selector: {matchLabels: {app: harbor-supply-chain}}
+  template:
+    metadata: {labels: {app: harbor-supply-chain, saas.re8ch.com/tenant: platform}}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: r640}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: worker
+          image: registry.re8ch.com/image/re8ch-harbor-supply-chain:IMAGE_REQUIRES_VERIFIED_DIGEST
+          envFrom: [{secretRef: {name: tenant-registry-supply-chain}}]
+          ports: [{name: http, containerPort: 8080}]
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: "2", memory: 2Gi}}
+          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-supply-chain}, {name: tmp, mountPath: /tmp}]
+      volumes: [{name: state, emptyDir: {}}, {name: tmp, emptyDir: {}}]

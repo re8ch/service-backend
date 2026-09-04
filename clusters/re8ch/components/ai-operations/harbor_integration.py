@@ -109,8 +109,27 @@ class HarborClient:
     def repositories(self, project: str) -> list[dict[str, Any]]:
         return self.paged(f"/projects/{self.quote(project)}/repositories")
 
+    def project(self, project: str) -> dict[str, Any]:
+        return self.request("GET", f"/projects/{self.quote(project)}")
+
     def artifacts(self, project: str, repository: str) -> list[dict[str, Any]]:
         return self.paged(f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts?with_tag=true&with_scan_overview=true")
+
+    def artifact(self, project: str, repository: str, reference: str) -> dict[str, Any]:
+        return self.request("GET", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}?with_tag=true&with_scan_overview=true&with_accessory=true")
+
+    def accessories(self, project: str, repository: str, reference: str) -> list[dict[str, Any]]:
+        return self.paged(f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}/accessories")
+
+    def vulnerability_report(self, project: str, repository: str, reference: str) -> dict[str, Any]:
+        return self.request("GET", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}/additions/vulnerabilities")
+
+    def sbom(self, project: str, repository: str, reference: str) -> dict[str, Any]:
+        return self.request("GET", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}/additions/sbom")
+
+    def audit_logs(self, project: str) -> list[dict[str, Any]]:
+        query = urllib.parse.quote(f"project_name={project}", safe="=")
+        return self.paged(f"/audit-logs?q={query}")
 
     def robots(self) -> list[dict[str, Any]]:
         return self.paged("/robots")
@@ -170,6 +189,14 @@ class HarborClient:
 
     def delete_artifact(self, project: str, repository: str, reference: str) -> None:
         self.request("DELETE", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}")
+
+    def create_tag(self, project: str, repository: str, reference: str, tag: str) -> None:
+        if not NAME_RE.fullmatch(tag):
+            raise ValueError("invalid OCI tag")
+        self.request("POST", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}/tags", {"name": tag})
+
+    def delete_tag(self, project: str, repository: str, reference: str, tag: str) -> None:
+        self.request("DELETE", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}/tags/{self.quote(tag)}")
 
 
 class KubernetesCredentialStore:

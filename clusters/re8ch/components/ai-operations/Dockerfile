@@ -4,8 +4,8 @@ RUN apk add --no-cache python3 kubectl openssh-client ca-certificates curl githu
 COPY ai_operations_mcp.py /app/ai_operations_mcp.py
 COPY grafana_exploration.py /app/grafana_exploration.py
 COPY grafana_capabilities.json /app/grafana_capabilities.json
-COPY grafana_functions.json /app/grafana_functions.json
 COPY harbor_integration.py /app/harbor_integration.py
+COPY harbor_supply_chain.py /app/harbor_supply_chain.py
 COPY tenant_infrastructure.py /app/tenant_infrastructure.py
 RUN addgroup -S re8ch && adduser -S -G re8ch -h /var/lib/re8ch-ai-operations re8ch \
     && mkdir -p /etc/re8ch-ai-operations/kubeconfigs /var/lib/re8ch-ai-operations \

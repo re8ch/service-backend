@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from harbor_integration import HarborClient, HarborError, KubernetesCredentialStore, RedemptionRegistry, desired_tenant
+from harbor_supply_chain import SupplyChainClient
 from tenant_infrastructure import ServiceError, ServiceStore, catalog as service_catalog
 from grafana_exploration import (
     RESULTS as GRAFANA_RESULTS,
@@ -39,9 +40,6 @@ from grafana_exploration import (
     grafana_capability,
     indicators as calculate_grafana_indicators,
     lag_correlations,
-    metric_function,
-    metric_functions,
-    render_metric_function,
     stable_hash,
     tenant_config as grafana_tenant_config,
 )
@@ -65,6 +63,7 @@ GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.re8ch.com")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
+SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -573,6 +572,24 @@ TENANT_TOOLS = [
     {"name": "harbor_tenant_browser_launch", "description": "Issue a short-lived single-use credential URL for a controlled browser login without returning the password through MCP.", "inputSchema": schema({"tenant": {"type": "string"}, "credential_ref": {"type": "string"}}, ["tenant", "credential_ref"])},
 ]
 
+HARBOR_TENANT_TOOLS = [
+    {"name": "harbor_project_get", "description": "Read the authenticated tenant's Harbor project metadata and quota summary.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
+    {"name": "harbor_repository_list", "description": "List repositories in the authenticated tenant's Harbor project.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
+    {"name": "harbor_artifact_list", "description": "List artifacts, tags and scan summaries in a tenant repository.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}}, ["credential_ref", "repository"])},
+    {"name": "harbor_artifact_get", "description": "Read one artifact with tags, scan overview and OCI accessory metadata.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}}, ["credential_ref", "repository", "reference"])},
+    {"name": "harbor_artifact_scan_start", "description": "Preview or request Harbor's native vulnerability scan for one artifact.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "apply": {"type": "boolean"}}, ["credential_ref", "repository", "reference"])},
+    {"name": "harbor_vulnerability_report_get", "description": "Read Harbor's native vulnerability addition for one artifact.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}}, ["credential_ref", "repository", "reference"])},
+    {"name": "harbor_sbom_get", "description": "Read Harbor's native SBOM addition for one artifact when the scanner provides it.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}}, ["credential_ref", "repository", "reference"])},
+    {"name": "harbor_accessory_list", "description": "List OCI subject accessories such as signatures, attestations and SBOM artifacts.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}}, ["credential_ref", "repository", "reference"])},
+    {"name": "harbor_tag_create", "description": "Preview or create a tag on an existing tenant artifact.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "tag": {"type": "string"}, "apply": {"type": "boolean"}}, ["credential_ref", "repository", "reference", "tag"])},
+    {"name": "harbor_tag_delete", "description": "Preview or delete one explicitly selected tenant artifact tag.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}, "reference": {"type": "string"}, "tag": {"type": "string"}, "apply": {"type": "boolean"}}, ["credential_ref", "repository", "reference", "tag"])},
+    {"name": "harbor_audit_log_list", "description": "Read the authenticated tenant project's sanitized Harbor audit events.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
+    {"name": "harbor_build_start", "description": "Start an isolated BuildKit build with mandatory SBOM and provenance attestations, optional signing and Harbor scan.", "inputSchema": schema({"credential_ref": {"type": "string"}, "context": {"type": "string"}, "revision": {"type": "string"}, "dockerfile": {"type": "string"}, "repository": {"type": "string"}, "tag": {"type": "string"}, "platforms": {"type": "array", "items": {"type": "string", "enum": ["linux/amd64", "linux/arm64"]}, "maxItems": 2}, "build_args": {"type": "object", "additionalProperties": {"type": "string"}}, "sign": {"type": "boolean"}, "scan": {"type": "boolean"}, "idempotency_key": {"type": "string"}, "apply": {"type": "boolean"}}, ["credential_ref", "context", "repository", "tag", "idempotency_key"])},
+    {"name": "harbor_build_get", "description": "Read one tenant build, attestation, signature and scan operation summary.", "inputSchema": schema({"operation_id": {"type": "string"}}, ["operation_id"])},
+    {"name": "harbor_build_list", "description": "List the authenticated tenant's supply-chain operations.", "inputSchema": schema({})},
+    {"name": "harbor_build_cancel", "description": "Preview or cancel one authenticated tenant build.", "inputSchema": schema({"operation_id": {"type": "string"}, "apply": {"type": "boolean"}}, ["operation_id"])},
+]
+
 TENANT_INFRA_TOOLS = [
     {"name": "tenant_create", "description": "Create a named tenant identity boundary. Protected admin identity is never created through this tool.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "display_name": {"type": "string"}, "identity_ref": {"type": "string"}}, ["tenant_ref", "display_name", "identity_ref"])},
     {"name": "tenant_list", "description": "List tenant identity boundaries. Only the protected admin tenant may call this tool.", "inputSchema": schema({})},
@@ -608,9 +625,6 @@ EXPLORATION_SPEC_SCHEMA = {
 GRAFANA_TENANT_TOOLS = [
     {"name": "grafana_capability_list", "description": "List Grafana-native, datasource-plugin, and RE8CH-derived capabilities with API generation, version, DataFrame contract, availability, limitations, and canary evidence.", "inputSchema": schema({})},
     {"name": "grafana_capability_get", "description": "Read one reviewed Grafana capability contract by stable capability ID.", "inputSchema": schema({"capability_id": {"type": "string"}}, ["capability_id"])},
-    {"name": "grafana_function_list", "description": "List reviewed one-call metric and analysis functions, including Pigsty/PostgreSQL health, transactions, replication, locks, IO, WAL, checkpoint, and capacity diagnostics.", "inputSchema": schema({"chart": {"type": "string"}, "category": {"type": "string"}})},
-    {"name": "grafana_function_get", "description": "Read one preset metric function, its query template, parameters, unit, and analysis recipe.", "inputSchema": schema({"function_id": {"type": "string"}}, ["function_id"])},
-    {"name": "grafana_function_run", "description": "Execute a reviewed tenant-bound metric function against a visible Grafana datasource and return DataFrames plus deterministic analysis.", "inputSchema": schema({"function_id": {"type": "string"}, "datasource_uid": {"type": "string"}, "parameters": {"type": "object"}, "timeRange": {"type": "object"}}, ["function_id", "datasource_uid"])},
     {"name": "grafana_datasource_list", "description": "List query capabilities for datasources visible in the authenticated tenant Grafana organization.", "inputSchema": schema({})},
     {"name": "grafana_datasource_get", "description": "Read sanitized metadata for one tenant-visible Grafana datasource.", "inputSchema": schema({"datasource_uid": {"type": "string"}}, ["datasource_uid"])},
     {"name": "grafana_query", "description": "Run bounded tenant-scoped datasource queries through Grafana and return normalized DataFrames.", "inputSchema": schema({"spec": EXPLORATION_SPEC_SCHEMA}, ["spec"])},
@@ -659,7 +673,7 @@ def tools() -> list[dict[str, Any]]:
         return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_ADMIN_NAMES] + [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in TENANT_ADMIN_NAMES]
     if PROFILE in {"tenant-registry", "tenant-observability"}:
         base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
-        return base + (GRAFANA_TENANT_TOOLS if PROFILE == "tenant-observability" else [])
+        return base + (GRAFANA_TENANT_TOOLS if PROFILE == "tenant-observability" else HARBOR_TENANT_TOOLS)
     if PROFILE == "tenant-byoc":
         return [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS, "tenant-infra": TENANT_INFRA_TOOLS}.get(PROFILE, [])
@@ -800,7 +814,6 @@ def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
         ])
         if PROFILE == "tenant-observability":
             records.append((f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities()))
-            records.append((f"re8ch://tenant/{tenant}/grafana/functions", "Grafana metric functions", metric_functions()))
         if PROFILE == "tenant-byoc":
             records.extend([
                 (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
@@ -868,6 +881,10 @@ def tenant_client(tenant: str, reference: str) -> tuple[HarborClient, str]:
     material = credential_store().get(reference, tenant)
     project = material.get("project", tenant)
     return HarborClient(HARBOR_URL, material.get("username", ""), material.get("password", "")), project
+
+
+def supply_chain_client() -> SupplyChainClient:
+    return SupplyChainClient(SUPPLY_CHAIN_URL, os.getenv("HARBOR_SUPPLY_CHAIN_TOKEN", ""))
 
 
 def litellm_get(path: str, authenticated: bool = True) -> dict[str, Any]:
@@ -968,28 +985,8 @@ def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str
         return {"operationId": operation_id, "tenantRef": tenant, **grafana_capabilities()}
     if name == "grafana_capability_get":
         return {"operationId": operation_id, "tenantRef": tenant, **grafana_capability(args["capability_id"])}
-    if name == "grafana_function_list":
-        catalog = metric_functions()
-        rows = catalog["items"]
-        if args.get("chart"):
-            rows = [row for row in rows if row.get("chart") == args["chart"]]
-        if args.get("category"):
-            rows = [row for row in rows if row.get("category") == args["category"]]
-        return {"operationId": operation_id, "tenantRef": tenant, "functions": rows, "catalogHash": catalog["catalogHash"]}
-    if name == "grafana_function_get":
-        return {"operationId": operation_id, "tenantRef": tenant, **metric_function(args["function_id"])}
     client = tenant_grafana_client(tenant)
     datasources = tenant_grafana_datasources(client)
-    if name == "grafana_function_run":
-        if not any(row.get("uid") == args["datasource_uid"] for row in datasources):
-            raise PermissionError("datasource is not visible to the authenticated tenant")
-        recipe = render_metric_function(args["function_id"], tenant, args["datasource_uid"], args.get("parameters"))
-        spec = {"timeRange": args.get("timeRange") or {"from": "now-1h", "to": "now", "timezone": "UTC"}, "queries": recipe["queries"]}
-        queried = execute_grafana_query(client, tenant, spec, datasources)
-        series = frames_to_series(queried)
-        analysis = analyze_series(series, recipe["pipeline"]) if series and recipe["pipeline"] else None
-        derived = {key: calculate_grafana_indicators(values, recipe["indicators"]) for key, values in series.items()} if series and recipe["indicators"] else None
-        return {"operationId": operation_id, "tenantRef": tenant, **recipe, "query": queried, "analysis": analysis, "derivedIndicators": derived}
     if name == "grafana_datasource_list":
         return {"operationId": operation_id, "tenantRef": tenant, "datasources": [datasource_capability(row) for row in datasources]}
     if name == "grafana_datasource_get":
@@ -1513,6 +1510,40 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         preview = mutation_preview(f"harbor/{project}/robot/{args['robot_id']}", {"disabled": False}, {"disabled": True}, bool(args.get("apply")), {"disabled": False})
         if args.get("apply"):
             client.disable_robot(args["robot_id"], True)
+        return preview
+
+    if PROFILE == "tenant-registry" and name in {tool["name"] for tool in HARBOR_TENANT_TOOLS}:
+        tenant = authenticated_tenant(identity)
+        if name.startswith("harbor_build_"):
+            if name == "harbor_build_get": return supply_chain_client().get_build(tenant, args["operation_id"])
+            if name == "harbor_build_list": return supply_chain_client().list_builds(tenant)
+            if name == "harbor_build_cancel":
+                preview = mutation_preview(f"build/{tenant}/{args['operation_id']}", {"state": "running"}, {"state": "cancelled"}, bool(args.get("apply")), "restart build")
+                if args.get("apply"): preview.update(supply_chain_client().cancel_build(tenant, args["operation_id"]))
+                return preview
+            client, project = tenant_client(tenant, args["credential_ref"])
+            client.project(project)
+            preview = mutation_preview(f"harbor/{project}/{args['repository']}:{args['tag']}", None, {"sbom": True, "provenance": "mode=max", "sign": args.get("sign", True), "scan": args.get("scan", True)}, bool(args.get("apply")), "cancel build and explicitly delete its artifact")
+            if args.get("apply"): preview.update(supply_chain_client().start_build(tenant, project, args, args["idempotency_key"]))
+            return preview
+        client, project = tenant_client(tenant, args["credential_ref"])
+        if name == "harbor_project_get": return {"tenant": tenant, "project": client.project(project)}
+        if name == "harbor_repository_list": return {"tenant": tenant, "project": project, "repositories": client.repositories(project)}
+        if name == "harbor_artifact_list": return {"tenant": tenant, "project": project, "repository": args["repository"], "artifacts": client.artifacts(project, args["repository"])}
+        if name == "harbor_artifact_get": return client.artifact(project, args["repository"], args["reference"])
+        if name == "harbor_vulnerability_report_get": return client.vulnerability_report(project, args["repository"], args["reference"])
+        if name == "harbor_sbom_get": return client.sbom(project, args["repository"], args["reference"])
+        if name == "harbor_accessory_list": return {"accessories": client.accessories(project, args["repository"], args["reference"])}
+        if name == "harbor_audit_log_list": return {"events": client.audit_logs(project)}
+        target = f"harbor/{project}/{args['repository']}@{args['reference']}"
+        if name == "harbor_artifact_scan_start":
+            preview = mutation_preview(target, None, {"scan": "requested"}, bool(args.get("apply")), "scan requests are append-only")
+            if args.get("apply"): client.scan_artifact(project, args["repository"], args["reference"])
+            return preview
+        present = name == "harbor_tag_create"
+        preview = mutation_preview(f"{target}/tags/{args['tag']}", None if present else {"present": True}, {"present": present}, bool(args.get("apply")), {"present": not present})
+        if args.get("apply"):
+            (client.create_tag if present else client.delete_tag)(project, args["repository"], args["reference"], args["tag"])
         return preview
 
     tenant_profiles = {"tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "all"}
