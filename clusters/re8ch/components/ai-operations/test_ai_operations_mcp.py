@@ -23,6 +23,62 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_observability_profile_exposes_deep_grafana_surface(self):
+        m = load("tenant-observability")
+        names = {tool["name"] for tool in m.tools()}
+        self.assertTrue({
+            "grafana_datasource_list", "grafana_datasource_get", "grafana_query", "grafana_analyze",
+            "grafana_indicators", "grafana_correlate", "grafana_render",
+            "grafana_exploration_save", "grafana_exploration_delete",
+        }.issubset(names))
+        self.assertNotIn("grafana_inventory", names)
+
+    def test_grafana_query_requires_tenant_scope_and_rejects_sql_writes(self):
+        m = load("tenant-observability")
+        gx = importlib.import_module("grafana_exploration")
+        base = {"timeRange": {"from": 1_000, "to": 2_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}}]}
+        gx.validate_query_spec(base, "qwen", {"metrics": "prometheus"})
+        bad = json.loads(json.dumps(base)); bad["queries"][0]["model"]["expr"] = "up"
+        with self.assertRaises(gx.ExplorationError):
+            gx.validate_query_spec(bad, "qwen", {"metrics": "prometheus"})
+        with self.assertRaises(gx.ExplorationError):
+            gx.validate_sql("DELETE FROM events")
+        with self.assertRaises(gx.ExplorationError):
+            gx.validate_sql("SELECT 1; DROP TABLE events")
+
+    def test_grafana_query_uses_datasource_minimum_interval(self):
+        load("tenant-observability")
+        gx = importlib.import_module("grafana_exploration")
+        class Client:
+            body = None
+            def request(self, method, path, body):
+                self.body = body
+                return {"results": {"A": {"frames": []}}}
+        client = Client()
+        spec = {"timeRange": {"from": 1_000, "to": 61_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}, "maxDataPoints": 1000}]}
+        gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
+        self.assertEqual(client.body["queries"][0]["intervalMs"], 15_000)
+        spec["queries"][0]["intervalMs"] = 1000
+        with self.assertRaises(gx.ExplorationError):
+            gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
+
+    def test_grafana_indicators_and_correlations_are_deterministic(self):
+        load("tenant-observability")
+        gx = importlib.import_module("grafana_exploration")
+        result = gx.indicators([1.0, 2.0, 3.0, 4.0], [{"type": "movingAverage", "window": 2}, {"type": "slope"}, {"type": "volatility", "window": 3}])
+        self.assertEqual(result["movingAverage"], [1.0, 1.5, 2.5, 3.5])
+        self.assertEqual(result["slope"]["trend"], "up")
+        self.assertAlmostEqual(gx.correlation([1, 2, 3], [2, 4, 6]), 1.0)
+        self.assertAlmostEqual(gx.correlation([10, 20, 30], [1, 2, 3], "spearman"), 1.0)
+
+    def test_grafana_result_references_are_tenant_bound(self):
+        load("tenant-observability")
+        gx = importlib.import_module("grafana_exploration")
+        ref = gx.RESULTS.put("qwen", {"series": [1, 2]})
+        self.assertEqual(gx.RESULTS.get("qwen", ref)["series"], [1, 2])
+        with self.assertRaises(gx.ExplorationError):
+            gx.RESULTS.get("ledger", ref)
+
     def test_permanent_token_is_audience_bound_and_deactivatable(self):
         m = load("cloud")
         meta, token = m.registry().activate("user-1", [m.ADMIN_GROUP], "ssh-ed25519 test")
