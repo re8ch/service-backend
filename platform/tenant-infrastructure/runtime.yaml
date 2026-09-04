@@ -72,6 +72,8 @@ spec:
           volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
         - name: tenant-observability
           image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          envFrom:
+            - secretRef: {name: tenant-grafana-credentials, optional: true}
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-observability}
             - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/observability/mcp"}
