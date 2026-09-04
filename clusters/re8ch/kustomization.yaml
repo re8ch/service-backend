@@ -14,6 +14,7 @@ resources:
   - components/auth/dex/dex-ha-deployment.yaml
   - components/public-exposure/external-dns-cloudflare.yaml
   - components/toolhive/external-observe-publication.yaml
+  - components/toolhive/proxy-scheduling-policy.yaml
   - components/personal-access
   - ../../platform/headlamp
   - ../../platform/among-clusters

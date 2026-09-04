@@ -73,18 +73,16 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
 
 
 def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
-    publications = documents(
-        ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml"
-    )
-    public_vmcp = [
+    release = next(
         item
-        for item in publications
-        if item["kind"] == "VirtualMCPServer"
-        and item["metadata"]["name"] in {"re8ch-admin-vmcp", "re8ch-tools-vmcp"}
-    ]
-    assert len(public_vmcp) == 2
-    assert all(item["spec"]["replicas"] == 2 for item in public_vmcp)
-    assert all("podTemplateSpec" not in item["spec"] for item in public_vmcp)
+        for item in documents(ROOT / "platform/connectool/release.yaml")
+        if item["kind"] == "HelmRelease"
+    )
+    publications = release["spec"]["values"]["toolhive"]["publications"]
+    assert {item["name"]: item["replicas"] for item in publications} == {
+        "re8ch-tools-vmcp": 2,
+        "re8ch-admin-vmcp": 2,
+    }
 
     policies = documents(
         ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml"
@@ -99,6 +97,9 @@ def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
     assert "preferredDuringSchedulingIgnoredDuringExecution" in expression
     assert "values: ['restricted-node-6dc3f140f9']" in expression
     assert "requiredDuringSchedulingIgnoredDuringExecution" in expression
+
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
 
 
 def test_embedded_workspace_controller_is_valid_python():
