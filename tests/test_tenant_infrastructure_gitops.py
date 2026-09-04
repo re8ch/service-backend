@@ -27,7 +27,8 @@ def test_tenant_runtime_has_dedicated_audience_no_kubernetes_token_and_digest_ga
     for container in pod["containers"]:
         env = {item["name"]: item["value"] for item in container["env"]}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
-        assert "IMAGE_REQUIRES_VERIFIED_DIGEST" in container["image"]
+        assert container["image"].startswith("registry.re8ch.com/image/re8ch-ai-operations@sha256:")
+        assert "IMAGE_REQUIRES_VERIFIED_DIGEST" not in container["image"]
     assert profiles == {
         "tenant-admin": "https://tools.re8ch.com/tenant-admin/mcp",
         "tenant-registry": "https://tools.re8ch.com/tenant/registry/mcp",
@@ -35,7 +36,7 @@ def test_tenant_runtime_has_dedicated_audience_no_kubernetes_token_and_digest_ga
         "tenant-byoc": "https://tools.re8ch.com/tenant/byoc/mcp",
     }
     root_kustomization = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
-    assert "platform/tenant-infrastructure" not in root_kustomization
+    assert "platform/tenant-infrastructure" in root_kustomization
 
 
 def test_plugin_definition_is_tenant_self_and_denies_financial_mutation():
