@@ -8,6 +8,10 @@ image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
 trap 'rm -f "$metadata"' EXIT
 
+: "${HARBOR_USERNAME:?HARBOR_USERNAME is required for registry publication}"
+: "${HARBOR_PASSWORD:?HARBOR_PASSWORD is required for registry publication}"
+printf '%s' "$HARBOR_PASSWORD" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 docker buildx build --platform linux/amd64 --provenance=mode=max \
   --attest "type=sbom,generator=${sbom_generator}" \

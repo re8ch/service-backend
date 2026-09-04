@@ -15,3 +15,5 @@ def test_tenant_release_supports_gitlab_keyless_and_pinned_digest_verification()
     assert '"$immutable"' in release
     assert 'type=sbom,generator=${sbom_generator}' in release
     assert 'docker.1ms.run/docker/buildkit-syft-scanner:stable-1' in release
+    assert '--password-stdin' in release
+    assert 'HARBOR_PASSWORD' in release
