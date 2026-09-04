@@ -59,6 +59,9 @@ macmini-devops-context:
 tenant-infrastructure-release:
   stage: release
   tags: [macmini-a1]
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
