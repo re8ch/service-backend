@@ -34,4 +34,5 @@ resources:
   - ../../platform/birfucate-metering
   - ../../platform/tenant-infrastructure
   - ../../platform/hyperswitch
+  - ../../platform/public-edge-manager
   - ../../platform/external-projects
