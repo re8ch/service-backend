@@ -8,7 +8,10 @@ image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
 trap 'rm -f "$metadata"' EXIT
 
-docker buildx build --platform linux/amd64 --provenance=mode=max --sbom=true --push --metadata-file "$metadata" -t "$image" "$context"
+sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
+docker buildx build --platform linux/amd64 --provenance=mode=max \
+  --attest "type=sbom,generator=${sbom_generator}" \
+  --push --metadata-file "$metadata" -t "$image" "$context"
 digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$metadata")
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
 docker sbom --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
