@@ -10,13 +10,18 @@ metadata:
   name: regional-routing-authority
   namespace: regional-routing
 data:
+  API_GROUP: networking.re8ch.com
   NAMESERVERS: ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.
+  SOA_RNAME: hostmaster.re8ch.com.
+  PROBE_USER_AGENT: public-edge-manager/0.3
+  PUBLICATION_ENABLED: "true"
   BIND_ADDRESSES_JSON: '{"restricted-node-1eb0570f74":"192.0.2.176","restricted-node-296f36f2fb":"192.0.2.4","domain-ex":"192.0.2.200","vm-20-12-ubuntu":"192.0.2.239","overseas-kl":"192.0.2.145","overseas-la":"192.0.2.111"}'
   AUTHORITY_REGIONS_JSON: '{"restricted-node-1eb0570f74":"loudi","restricted-node-296f36f2fb":"loudi","domain-ex":"shanghai","vm-20-12-ubuntu":"guangzhou","overseas-kl":"kuala-lumpur","overseas-la":"los-angeles"}'
   AUTHORITY_AREAS_JSON: '{"restricted-node-1eb0570f74":"CN","restricted-node-296f36f2fb":"CN","domain-ex":"CN","vm-20-12-ubuntu":"CN","overseas-kl":"APAC","overseas-la":"US"}'
   # Publication must be elected by an off-LAN observer. A1 can hairpin through
   # RouterOS and incorrectly classify an externally unreachable restricted-node-6dc3f140f9 as ready.
   PUBLISHER_NODE: vm-20-12-ubuntu
+  READINESS_GATES_JSON: '{"db-rw":{"configMap":{"namespace":"kube-system","name":"pg-re8ch-role-authority","dataKey":"authority.json"},"requiredFields":{"authority":"patroni"},"addressPath":["leader","address"],"endpointSlice":{"namespace":"pigsty-external","name":"pg-re8ch-primary"},"requireSingleReadyAddress":true}}'
   PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"qianwen-ops","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"},"litellm":{"namespace":"llm-gateway","name":"litellm-dns-authority"},"cube":{"namespace":"cube-trial","name":"cube-dns-authority"},"dbgui":{"namespace":"ops","name":"cloudbeaver-dns-authority"},"collab":{"namespace":"mail-system","name":"stalwart-collaboration-public"},"stalwart-admin":{"namespace":"mail-system","name":"stalwart-admin-public"}}'
   SERVICES_JSON: |-
     {
@@ -153,9 +158,8 @@ spec:
       tolerations: [{operator: Exists}]
       containers:
         - name: authority
-          image: docker.1ms.run/library/python:3.12-alpine
+          image: ghcr.io/re8ch/public-edge-manager@sha256:557fa1c9c9b56cafa3c0c8c45a7143a2c2931e1e6cbbbd3baaca54bd0f31ecd7
           imagePullPolicy: IfNotPresent
-          command: [python3, /app/authority.py]
           envFrom: [{configMapRef: {name: regional-routing-authority}}]
           env:
             - {name: PYTHONDONTWRITEBYTECODE, value: "1"}
@@ -174,13 +178,9 @@ spec:
             allowPrivilegeEscalation: false
             capabilities: {add: [NET_BIND_SERVICE], drop: [ALL]}
             readOnlyRootFilesystem: true
-            runAsNonRoot: false
-            runAsUser: 0
-          volumeMounts:
-            - {name: script, mountPath: /app, readOnly: true}
-      volumes:
-        - name: script
-          configMap: {name: regional-routing-authority-script, defaultMode: 0555}
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1
