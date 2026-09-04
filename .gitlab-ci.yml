@@ -1,6 +1,7 @@
 stages: [validate, test, render, security, release, canary]
 
 default:
+  tags: [macmini-a1]
   image:
     name: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
     entrypoint: [""]
