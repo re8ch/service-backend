@@ -317,19 +317,6 @@ spec:
       includeRequestData: false
       includeResponseData: false
   telemetryConfigRef: {name: platform-tools-telemetry}
-  podTemplateSpec:
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app.kubernetes.io/instance: re8ch-admin-vmcp}}
-              topologyKey: kubernetes.io/hostname
-      securityContext: {seccompProfile: {type: RuntimeDefault}}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: VirtualMCPServer
@@ -398,16 +385,3 @@ spec:
       includeRequestData: false
       includeResponseData: false
   telemetryConfigRef: {name: platform-tools-telemetry}
-  podTemplateSpec:
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app.kubernetes.io/instance: re8ch-tools-vmcp}}
-              topologyKey: kubernetes.io/hostname
-      securityContext: {seccompProfile: {type: RuntimeDefault}}
