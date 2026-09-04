@@ -15,6 +15,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 
@@ -27,6 +28,8 @@ MAX_RANGE_MS = 31 * 24 * 60 * 60 * 1000
 MAX_POINTS_PER_SERIES = 5_000
 MAX_TOTAL_POINTS = 50_000
 RESULT_TTL_SECONDS = 900
+FUNCTIONS_PATH = Path(os.getenv("GRAFANA_FUNCTIONS_PATH", Path(__file__).with_name("grafana_functions.json")))
+CAPABILITIES_PATH = Path(os.getenv("GRAFANA_CAPABILITIES_PATH", Path(__file__).with_name("grafana_capabilities.json")))
 
 TENANT_GRAFANA = {
     "qwen": {"orgId": 2, "namespace": "qwen", "tokenSecret": "grafana-qianwen-viewer", "tenantLabel": "qianwen"},
@@ -169,6 +172,74 @@ class ResultStore:
 
 
 RESULTS = ResultStore()
+
+
+def grafana_capabilities() -> dict[str, Any]:
+    try:
+        manifest = json.loads(CAPABILITIES_PATH.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExplorationError("Grafana capability manifest is unavailable") from exc
+    if manifest.get("kind") != "GrafanaCapabilityList" or not isinstance(manifest.get("items"), list):
+        raise ExplorationError("Grafana capability manifest is invalid")
+    result = dict(manifest)
+    result["capabilityManifestHash"] = stable_hash(manifest)
+    return result
+
+
+def grafana_capability(capability_id: str) -> dict[str, Any]:
+    manifest = grafana_capabilities()
+    item = next((row for row in manifest["items"] if row.get("id") == capability_id), None)
+    if not item:
+        raise ExplorationError("Grafana capability is unknown")
+    return {"capability": item, "capabilityManifestHash": manifest["capabilityManifestHash"]}
+
+
+def metric_functions() -> dict[str, Any]:
+    try:
+        catalog = json.loads(FUNCTIONS_PATH.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExplorationError("Grafana metric function catalog is unavailable") from exc
+    if catalog.get("kind") != "GrafanaMetricFunctionList" or not isinstance(catalog.get("items"), list):
+        raise ExplorationError("Grafana metric function catalog is invalid")
+    result = dict(catalog)
+    result["catalogHash"] = stable_hash(catalog)
+    return result
+
+
+def metric_function(function_id: str) -> dict[str, Any]:
+    catalog = metric_functions()
+    item = next((row for row in catalog["items"] if row.get("id") == function_id), None)
+    if not item:
+        raise ExplorationError("Grafana metric function is unknown")
+    return {"function": item, "catalogHash": catalog["catalogHash"]}
+
+
+def render_metric_function(function_id: str, tenant: str, datasource_uid: str, parameters: dict[str, Any] | None = None) -> dict[str, Any]:
+    item = metric_function(function_id)["function"]
+    values = {**(item.get("defaults") or {}), **(parameters or {}), "tenant": tenant_config(tenant)["tenantLabel"]}
+    allowed = {"tenant", "window", "offset", "expression"}
+    if set(values) - allowed:
+        raise ExplorationError("metric function contains unsupported parameters")
+    for key in ("window", "offset"):
+        if key in values:
+            parse_duration(str(values[key]))
+    if "expression" in values:
+        expression = str(values["expression"])
+        if len(expression) > 2000 or re.search(r"[;\n\r]", expression):
+            raise ExplorationError("invalid PromQL expression parameter")
+        tenant_label = re.escape(str(values["tenant"]))
+        if not re.search(r"tenant\s*=~?\s*[\"']" + tenant_label + r"[\"']", expression):
+            raise ExplorationError("expression parameter must contain the authenticated tenant matcher")
+
+    def render(template: str) -> str:
+        required = set(re.findall(r"\$\{([a-zA-Z][a-zA-Z0-9_]*)\}", template))
+        if required - set(values):
+            raise ExplorationError("metric function requires parameters: " + ", ".join(sorted(required - set(values))))
+        return re.sub(r"\$\{([a-zA-Z][a-zA-Z0-9_]*)\}", lambda match: str(values[match.group(1)]), template)
+
+    definitions = item.get("queries") or [{"refId": "A", "expr": item["expr"]}]
+    queries = [{"datasourceUid": datasource_uid, "refId": row["refId"], "queryKind": item["queryKind"], "model": {"expr": render(row["expr"])}, "maxDataPoints": 1000} for row in definitions]
+    return {"functionId": function_id, "queries": queries, "pipeline": item.get("analysis") or [], "indicators": item.get("indicators") or [], "unit": item.get("unit"), "catalogHash": metric_functions()["catalogHash"]}
 
 
 def datasource_capability(item: dict[str, Any]) -> dict[str, Any]:

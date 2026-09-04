@@ -1,0 +1,107 @@
+{
+  "apiVersion": "observability.re8ch.com/v1alpha1",
+  "kind": "GrafanaCapabilityList",
+  "metadata": {
+    "name": "tenant-observability",
+    "grafanaTargetVersion": "13.x",
+    "collectionEvidenceHash": null,
+    "collectionEvidenceStatus": "not-executed"
+  },
+  "dataFrameSchemas": {
+    "grafana-query-response-v1": {
+      "input": {"type": "GrafanaDataQuery[]", "required": ["datasourceUid", "refId", "model"]},
+      "output": {"type": "GrafanaDataFrame[]", "schema": {"fields": "Field[]", "data": {"values": "unknown[][]"}}}
+    },
+    "re8ch-numeric-series-v1": {
+      "input": {"type": "record<string, number[]>"},
+      "output": {"type": "record<string, number[]> plus summaries"}
+    },
+    "grafana-dashboard-v1": {
+      "input": {"type": "DashboardSpec"},
+      "output": {"type": "DashboardResource", "required": ["metadata", "spec"]}
+    }
+  },
+  "items": [
+    {
+      "id": "datasource-query",
+      "tools": ["grafana_query"],
+      "origin": "grafana-oss",
+      "status": "implemented-legacy",
+      "officialApi": {"path": "/api/ds/query", "generation": "legacy", "grafanaVersion": "13.x"},
+      "datasourcePlugin": {"id": "dynamic", "version": "runtime-discovered"},
+      "dataFrameSchemaRef": "grafana-query-response-v1",
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "collectionEvidenceHash": null
+    },
+    {
+      "id": "dashboard-save",
+      "tools": ["grafana_exploration_save", "grafana_render"],
+      "origin": "grafana-oss",
+      "status": "migration-required",
+      "officialApi": {"path": "/apis/dashboard.grafana.app/v1beta1/namespaces/:namespace/dashboards", "fallbackPath": "/api/dashboards/db", "generation": "new-with-legacy-fallback", "grafanaVersion": "13.x"},
+      "datasourcePlugin": null,
+      "dataFrameSchemaRef": "grafana-dashboard-v1",
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "collectionEvidenceHash": null
+    },
+    {
+      "id": "native-correlations",
+      "tools": ["grafana_correlate"],
+      "origin": "grafana-oss",
+      "status": "implemented-legacy",
+      "officialApi": {"path": "/api/datasources/uid/:uid/correlations", "generation": "legacy", "grafanaVersion": "13.x"},
+      "datasourcePlugin": {"id": "dynamic", "version": "runtime-discovered"},
+      "dataFrameSchemaRef": null,
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "collectionEvidenceHash": null
+    },
+    {
+      "id": "jaeger-trace-search",
+      "tools": ["grafana_query"],
+      "origin": "datasource-plugin",
+      "status": "discovery-only",
+      "officialApi": {"path": "/api/ds/query", "generation": "legacy", "grafanaVersion": "13.x"},
+      "datasourcePlugin": {"id": "jaeger", "version": "runtime-discovered"},
+      "dataFrameSchemaRef": "grafana-query-response-v1",
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "collectionEvidenceHash": null
+    },
+    {
+      "id": "numeric-analysis",
+      "tools": ["grafana_analyze", "grafana_indicators", "grafana_correlate"],
+      "origin": "re8ch-analysis",
+      "status": "partial",
+      "officialApi": null,
+      "datasourcePlugin": null,
+      "dataFrameSchemaRef": "re8ch-numeric-series-v1",
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "limitations": ["Does not execute Grafana panel transformations", "Resample, outer join, null fill, statistical significance, and anomaly intervals are not implemented"],
+      "collectionEvidenceHash": null
+    },
+    {
+      "id": "tenant-query-enforcement",
+      "tools": ["grafana_query"],
+      "origin": "re8ch-analysis",
+      "status": "caller-matcher-required",
+      "officialApi": null,
+      "datasourcePlugin": {"id": "prometheus-or-loki-compatible", "version": "runtime-discovered"},
+      "dataFrameSchemaRef": "grafana-query-response-v1",
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "limitations": ["PromQL and LogsQL tenant selectors are validated textually and are not AST-injected"],
+      "collectionEvidenceHash": null
+    },
+    {
+      "id": "sql-read-only",
+      "tools": ["grafana_query"],
+      "origin": "re8ch-analysis",
+      "status": "validation-only",
+      "officialApi": {"path": "/api/ds/query", "generation": "legacy", "grafanaVersion": "13.x"},
+      "datasourcePlugin": {"id": "grafana-postgresql-datasource", "version": "runtime-discovered"},
+      "dataFrameSchemaRef": "grafana-query-response-v1",
+      "availability": {"oss": true, "enterprise": true, "cloud": true},
+      "limitations": ["statement_timeout is not yet enforced in the datasource backend session"],
+      "collectionEvidenceHash": null
+    }
+  ]
+}
+
