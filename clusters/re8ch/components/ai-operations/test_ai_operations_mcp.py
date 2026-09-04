@@ -28,43 +28,37 @@ class RegistryTests(unittest.TestCase):
         names = {tool["name"] for tool in m.tools()}
         self.assertTrue({
             "grafana_capability_list", "grafana_capability_get",
-            "grafana_function_list", "grafana_function_get", "grafana_function_run",
             "grafana_datasource_list", "grafana_datasource_get", "grafana_query", "grafana_analyze",
             "grafana_indicators", "grafana_correlate", "grafana_render",
             "grafana_exploration_save", "grafana_exploration_delete",
         }.issubset(names))
         self.assertNotIn("grafana_inventory", names)
 
-    def test_grafana_capability_manifest_distinguishes_native_and_derived(self):
+    def test_grafana_capability_manifest_distinguishes_origins_and_evidence(self):
         load("tenant-observability")
         gx = importlib.import_module("grafana_exploration")
         manifest = gx.grafana_capabilities()
-        by_id = {row["id"]: row for row in manifest["items"]}
+        self.assertTrue(manifest["capabilityManifestHash"].startswith("sha256:"))
+        self.assertEqual(manifest["metadata"]["collectionEvidenceStatus"], "not-executed")
+        self.assertIsNone(manifest["metadata"]["collectionEvidenceHash"])
+        by_id = {item["id"]: item for item in manifest["items"]}
         self.assertEqual(by_id["datasource-query"]["origin"], "grafana-oss")
         self.assertEqual(by_id["jaeger-trace-search"]["origin"], "datasource-plugin")
         self.assertEqual(by_id["numeric-analysis"]["origin"], "re8ch-analysis")
-        self.assertEqual(manifest["metadata"]["collectionEvidenceStatus"], "not-executed")
-        self.assertIsNone(manifest["metadata"]["collectionEvidenceHash"])
+        self.assertEqual(by_id["dashboard-save"]["officialApi"]["generation"], "new-with-legacy-fallback")
+        self.assertIn("Does not execute Grafana panel transformations", by_id["numeric-analysis"]["limitations"])
+        with self.assertRaises(gx.ExplorationError):
+            gx.grafana_capability("does-not-exist")
 
-    def test_pigsty_metric_function_catalog_is_tenant_safe_and_discoverable(self):
+    def test_grafana_capabilities_are_a_tenant_scoped_mcp_resource(self):
         m = load("tenant-observability")
-        gx = importlib.import_module("grafana_exploration")
-        catalog = gx.metric_functions()
-        pigsty = [row for row in catalog["items"] if row["chart"] == "pigsty"]
-        self.assertGreaterEqual(len(pigsty), 15)
-        self.assertTrue(catalog["catalogHash"].startswith("sha256:"))
-        recipe = gx.render_metric_function("pigsty.commit-rate", "qwen", "tenant-metrics", {})
-        self.assertIn('tenant="qianwen"', recipe["queries"][0]["model"]["expr"])
-        self.assertIn("[5m]", recipe["queries"][0]["model"]["expr"])
-        with self.assertRaises(gx.ExplorationError):
-            gx.render_metric_function("pigsty.commit-rate", "qwen", "tenant-metrics", {"window": "5m;bad"})
-        with self.assertRaises(gx.ExplorationError):
-            gx.render_metric_function("re8ch.compare-period", "qwen", "tenant-metrics", {"expression": "up"})
         m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
         m._TENANT_SERVICE_STORE = None
-        identity = {"tenant": "qwen", "groups": ["re8ch:tenant:qwen"]}
-        uri = "re8ch://tenant/qwen/grafana/functions"
+        identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
+        uri = "re8ch://tenant/canary/grafana/capabilities"
         self.assertIn(uri, {item["uri"] for item in m.resources_list(identity, None)["resources"]})
+        body = json.loads(m.resources_read(identity, uri)["contents"][0]["text"])
+        self.assertEqual(body["kind"], "GrafanaCapabilityList")
 
     def test_grafana_query_requires_tenant_scope_and_rejects_sql_writes(self):
         m = load("tenant-observability")
@@ -191,6 +185,7 @@ class RegistryTests(unittest.TestCase):
         registry._TENANT_SERVICE_STORE = None
         names = {tool["name"] for tool in registry.tools()}
         self.assertIn("service_instance_create", names)
+        self.assertTrue({"harbor_project_get", "harbor_artifact_scan_start", "harbor_sbom_get", "harbor_build_start"}.issubset(names))
         self.assertNotIn("tenant_create", names)
         self.assertNotIn("byoc_cluster_register", names)
         identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
