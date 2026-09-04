@@ -72,6 +72,8 @@ spec:
           volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
         - name: tenant-observability
           image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          envFrom:
+            - secretRef: {name: tenant-grafana-credentials, optional: true}
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-observability}
             - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/observability/mcp"}
@@ -79,16 +81,6 @@ spec:
             - {name: LISTEN_PORT, value: "19445"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/observability/mcp"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
-            - name: GRAFANA_ADMIN_USERNAME
-              valueFrom: {secretKeyRef: {name: tenant-grafana-credentials, key: admin_username, optional: true}}
-            - name: GRAFANA_ADMIN_PASSWORD
-              valueFrom: {secretKeyRef: {name: tenant-grafana-credentials, key: admin_password, optional: true}}
-            - name: GRAFANA_TENANT_TOKEN_QWEN
-              valueFrom: {secretKeyRef: {name: tenant-grafana-credentials, key: qwen_token, optional: true}}
-            - name: GRAFANA_TENANT_TOKEN_LEDGER
-              valueFrom: {secretKeyRef: {name: tenant-grafana-credentials, key: ledger_token, optional: true}}
-            - name: GRAFANA_TENANT_TOKEN_RE8CH
-              valueFrom: {secretKeyRef: {name: tenant-grafana-credentials, key: re8ch_token, optional: true}}
           ports: [{name: observability, containerPort: 19445}]
           readinessProbe: {httpGet: {path: /healthz, port: observability}, periodSeconds: 5}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
