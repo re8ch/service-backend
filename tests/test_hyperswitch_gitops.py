@@ -41,7 +41,10 @@ def test_hyperswitch_disables_upstream_root_telemetry_hooks():
     assert helm_release["spec"]["timeout"] == "10m"
     assert helm_release["spec"]["install"]["disableHooks"] is True
     assert helm_release["spec"]["upgrade"]["disableHooks"] is True
-    assert "postRenderers" not in helm_release["spec"]
+    patch = helm_release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]
+    assert patch["target"]["name"] == "hyperswitch-hyperswitch-server"
+    assert "ROUTER__ANALYTICS__CLICKHOUSE__PASSWORD" in patch["patch"]
+    assert "$patch: delete" in patch["patch"]
 
 
 def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
@@ -64,6 +67,10 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     assert app["superposition"]["enabled"] is True
     assert app["superpositionDB"]["enable"] is True
     assert app["superpositionFallback"]["source"] == "configMap"
+    assert app["superposition"]["configs"]["app_env"] == "DEV"
+    assert app["server"]["configs"]["superposition"]["backup_file_path"].endswith(
+        "superposition_seed.toml"
+    )
     secretish_keys = {"db" + "_password", "superposition" + "_token", "api" + "_key", "client" + "_secret"}
 
     def visit(value):

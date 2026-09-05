@@ -40,6 +40,27 @@ spec:
     disableHooks: true
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              group: apps
+              version: v1
+              kind: Deployment
+              name: hyperswitch-hyperswitch-server
+            patch: |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: hyperswitch-hyperswitch-server
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: hyperswitch-router
+                        env:
+                          - name: ROUTER__ANALYTICS__CLICKHOUSE__PASSWORD
+                            $patch: delete
   valuesFrom:
     - kind: Secret
       name: hyperswitch-runtime-values
@@ -105,7 +126,10 @@ spec:
           db_name: hyperswitch
           db_user: hyperswitch
           rust_log: info
-          app_env: PROD
+          # This release is explicitly sandbox-only. In PROD, Superposition
+          # requires an external KMS and treats DB_PASSWORD as ciphertext;
+          # DEV consumes the SOPS-protected database password directly.
+          app_env: DEV
           auth_provider: DISABLED
           auth_z_provider: DISABLED
         resources:
@@ -116,7 +140,11 @@ spec:
         ingress: {enabled: false}
         configs:
           cors: {wildcard_origin: false, origin: "https://api.re8ch.com"}
-          analytics: {source: sqlx, forex_enabled: false}
+          analytics:
+            source: sqlx
+            forex_enabled: false
+          superposition:
+            backup_file_path: "/local/config/superposition/superposition_seed.toml"
       services:
         consumer: {enabled: false}
         producer: {enabled: false}
