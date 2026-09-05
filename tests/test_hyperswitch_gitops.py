@@ -43,12 +43,11 @@ def test_control_center_route_uses_service_port_not_container_port():
 
 def test_admin_bootstrap_uses_injected_service_coordinates():
     job = yaml.safe_load((ROOT / "platform/hyperswitch/bootstrap-admin-job.yaml").read_text())
-    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v7"
+    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v8"
     command = job["spec"]["template"]["spec"]["containers"][0]["args"][0]
     assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_HOST" in command
     assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_PORT" in command
-    assert '"role_id":"org_admin"' in command
-    assert "/user/internal_signup" in command
+    assert "/user/tenant_signup" in command
     env = job["spec"]["template"]["spec"]["containers"][0]["env"]
     admin_key = next(item for item in env if item["name"] == "ADMIN_API_KEY")
     assert admin_key["valueFrom"]["secretKeyRef"]["key"] == "ROUTER__SECRETS__ADMIN_API_KEY"
@@ -175,7 +174,7 @@ def test_rendered_helm_values_namespace_and_job_admission():
         elif kind != "Namespace":
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
-            expected_revision = "-v7" if "bootstrap-admin" in resource["metadata"]["name"] else "-v3"
+            expected_revision = "-v8" if "bootstrap-admin" in resource["metadata"]["name"] else "-v3"
             assert resource["metadata"]["name"].endswith(expected_revision)
             pod = resource["spec"]["template"]["spec"]
             assert pod["securityContext"]["runAsNonRoot"] is True

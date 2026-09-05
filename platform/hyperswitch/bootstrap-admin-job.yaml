@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v7
+  name: hyperswitch-bootstrap-admin-v8
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -51,11 +51,11 @@ spec:
                 -d "$payload" "$base_url/user/signin" >/dev/null; then
                 exit 0
               fi
-              create_payload=$(printf '{"name":"RE8CH Administrator","email":"%s","password":"%s","role_id":"org_admin"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
+              create_payload=$(printf '{"name":"RE8CH Administrator","email":"%s","password":"%s"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
               curl --fail --silent --show-error \
                 -H 'Content-Type: application/json' \
                 -H "api-key: $ADMIN_API_KEY" \
-                -d "$create_payload" "$base_url/user/internal_signup" >/dev/null
+                -d "$create_payload" "$base_url/user/tenant_signup" >/dev/null
           env:
             - name: ADMIN_API_KEY
               valueFrom:
