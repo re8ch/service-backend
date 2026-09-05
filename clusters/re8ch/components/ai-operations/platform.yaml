@@ -192,6 +192,39 @@ metadata:
   labels: {storage.re8ch.com/replicated-approved: "true"}
 spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-re8ch, resources: {requests: {storage: 1Gi}}}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: controlled-cluster-kubeconfigs, namespace: ai-operations}
+data:
+  qwen-controlled.yaml: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+      - name: qwen-controlled
+        cluster:
+          server: http://among-clusters-credential-broker.credential-broker.svc/k8s/byoc-pilot/qwen-headlamp-admin
+    users:
+      - name: qwen-controlled
+        user: {token: "credential://among-clusters/byoc-pilot/qwen-headlamp-admin"}
+    contexts:
+      - name: qwen-controlled
+        context: {cluster: qwen-controlled, user: qwen-controlled}
+    current-context: qwen-controlled
+  artc-controlled.yaml: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+      - name: artc-controlled
+        cluster:
+          server: http://among-clusters-credential-broker.credential-broker.svc/k8s/byoc-pilot/artc-headlamp-admin
+    users:
+      - name: artc-controlled
+        user: {token: "credential://among-clusters/byoc-pilot/artc-headlamp-admin"}
+    contexts:
+      - name: artc-controlled
+        context: {cluster: artc-controlled, user: artc-controlled}
+    current-context: artc-controlled
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: cloud-platform-tool, namespace: ai-operations}
@@ -251,6 +284,8 @@ spec:
             - {name: inventory, mountPath: /etc/re8ch-ai-operations/nodes.json, subPath: nodes.json, readOnly: true}
             - {name: capsule-policy, mountPath: /etc/re8ch-ai-operations/capsule-policy.json, subPath: policy.json, readOnly: true}
             - {name: runtime, mountPath: /etc/re8ch-ai-operations/kubeconfigs/re8ch.yaml, subPath: kubeconfig-re8ch.yaml, readOnly: true}
+            - {name: controlled-cluster-kubeconfigs, mountPath: /etc/re8ch-ai-operations/kubeconfigs/qwen-controlled.yaml, subPath: qwen-controlled.yaml, readOnly: true}
+            - {name: controlled-cluster-kubeconfigs, mountPath: /etc/re8ch-ai-operations/kubeconfigs/artc-controlled.yaml, subPath: artc-controlled.yaml, readOnly: true}
             - {name: ssh-config, mountPath: /etc/re8ch-ai-operations/ssh_config, subPath: ssh-config, readOnly: true}
             - {name: runtime, mountPath: /etc/re8ch-ai-operations/id_ed25519, subPath: id_ed25519, readOnly: true}
       volumes:
@@ -258,6 +293,7 @@ spec:
         - {name: inventory, configMap: {name: ai-operations-inventory}}
         - {name: capsule-policy, configMap: {name: ops-capsule-policy}}
         - {name: ssh-config, configMap: {name: ai-operations-ssh-config, defaultMode: 292}}
+        - {name: controlled-cluster-kubeconfigs, configMap: {name: controlled-cluster-kubeconfigs, defaultMode: 256}}
         - name: runtime
           secret:
             secretName: cloud-platform-runtime
