@@ -137,12 +137,13 @@ def run(path: Path, output: Path) -> dict[str, Any]:
     token = os.getenv(token_env, "")
     if not token:
         raise RuntimeError(f"credential broker environment reference {token_env} is unavailable")
-    audience = spec["oauth"]["audience"]
-    if audience not in jwt_aud(token):
-        raise AssertionError("JWT audience does not contain the protected MCP resource")
+    resource = spec["oauth"]["resource"]
+    token_audience = spec["oauth"].get("tokenAudience", resource)
+    if token_audience not in jwt_aud(token):
+        raise AssertionError("JWT audience does not contain the declared MCP token audience")
     timeout = int(spec.get("timeoutSeconds", 20))
     metadata = fetch_json(spec["oauth"]["protectedResourceMetadata"].format(**variables), timeout)
-    if metadata.get("resource") != audience or not metadata.get("authorization_servers"):
+    if metadata.get("resource") != resource or not metadata.get("authorization_servers"):
         raise AssertionError("protected resource metadata is incomplete or has the wrong resource")
     authorization_server = metadata["authorization_servers"][0].rstrip("/")
     discovery = fetch_json(authorization_server + "/.well-known/openid-configuration", timeout)
@@ -186,7 +187,8 @@ def run(path: Path, output: Path) -> dict[str, Any]:
         calls.append({"name": "cleanup:" + case.get("name", case["tool"]), "tool": case["tool"], "responseHash": digest(value), "cleanup": True})
     manifest = {
         "apiVersion": "evidence.re8ch.com/v1alpha1", "kind": "MCPEvidence", "collection": collection["metadata"]["name"],
-        "startedAt": int(time.time()), "endpoint": endpoint, "audience": audience,
+        "startedAt": int(time.time()), "endpoint": endpoint, "resource": resource,
+        "tokenAudience": token_audience,
         "serverIdentity": initialized.get("serverInfo"), "toolCount": len(tools), "toolSchemaHash": digest(tools),
         "resourceCount": len(resources), "resourcePages": pages, "resources": resource_hashes, "calls": calls,
         "imageDigest": os.getenv("MCP_SERVER_IMAGE_DIGEST", "unknown"), "gitRevision": os.getenv("CI_COMMIT_SHA", "unknown"),

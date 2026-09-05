@@ -22,9 +22,10 @@
         "requireSignedEvidence": {"type": "boolean"},
         "oauth": {
           "type": "object", "additionalProperties": false,
-          "required": ["audience", "protectedResourceMetadata", "tokenEnv", "pkce"],
+          "required": ["resource", "tokenAudience", "protectedResourceMetadata", "tokenEnv", "pkce"],
           "properties": {
-            "audience": {"type": "string", "pattern": "^https://"},
+            "resource": {"type": "string", "pattern": "^https://"},
+            "tokenAudience": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$"},
             "protectedResourceMetadata": {"type": "string", "pattern": "^https://"},
             "tokenEnv": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"},
             "pkce": {"const": "S256"}
