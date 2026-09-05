@@ -79,6 +79,12 @@ proxy-server resolvers stay domestic to avoid recursive node lookup. The rules
 run private direct, domestic direct, overseas service groups, CN domain/IP
 direct and finally `MATCH,PROXY`; IP providers use `no-resolve`.
 
+Critical mainland cloud consoles use explicit high-priority direct rules and
+domestic DNS policy in addition to the synchronized community lists. This
+currently covers Tencent Cloud/Qcloud, Alibaba Cloud and Huawei Cloud domains,
+so an incomplete upstream list cannot silently send those consoles through an
+overseas proxy.
+
 Access DNS is internal only at `192.0.2.53`: two MosDNS replicas provide split
 resolution and a recoverable AdGuard Home instance supplies conservative
 filtering plus a 24-hour query UI. TCP/UDP 53 is admitted only from the RouterOS

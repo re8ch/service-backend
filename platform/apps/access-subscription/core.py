@@ -15,7 +15,24 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20260827-3"
+SHADOWROCKET_PROFILE_REVISION = "20260905-cn-cloud-direct-1"
+
+# Keep critical mainland cloud consoles deterministic even when an upstream
+# community ruleset is incomplete or temporarily unavailable.
+CN_CLOUD_DIRECT_DOMAINS = (
+    "cloud.tencent.com",
+    "tencentcloud.com",
+    "tencentcloudapi.com",
+    "qcloud.com",
+    "myqcloud.com",
+    "qcloudcdn.com",
+    "aliyun.com",
+    "aliyuncs.com",
+    "alicdn.com",
+    "huaweicloud.com",
+    "huaweicloudapis.com",
+    "myhuaweicloud.com",
+)
 
 
 @dataclass(frozen=True)
@@ -225,8 +242,12 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
                 "  proxy-server-nameserver:", "    - https://dns.alidns.com/dns-query", "    - https://doh.pub/dns-query",
                 "  direct-nameserver:", "    - https://dns.alidns.com/dns-query", "    - https://doh.pub/dns-query",
                 "  nameserver:", "    - https://1.1.1.1/dns-query#PROXY", "    - https://dns.google/dns-query#PROXY",
-                "  nameserver-policy:", "    'rule-set:private,cn,apple,microsoft':", "      - https://dns.alidns.com/dns-query", "      - https://doh.pub/dns-query",
+                "  nameserver-policy:",
+                *[line for domain in CN_CLOUD_DIRECT_DOMAINS for line in
+                  (f"    '+.{domain}':", "      - https://dns.alidns.com/dns-query", "      - https://doh.pub/dns-query")],
+                "    'rule-set:private,cn,apple,microsoft':", "      - https://dns.alidns.com/dns-query", "      - https://doh.pub/dns-query",
                 "rules:", "  - RULE-SET,private,DIRECT", "  - RULE-SET,private-ip,DIRECT,no-resolve",
+                *[f"  - DOMAIN-SUFFIX,{domain},DIRECT" for domain in CN_CLOUD_DIRECT_DOMAINS],
                 "  - RULE-SET,apple,🍎 Apple", "  - RULE-SET,microsoft,🪟 Microsoft", "  - RULE-SET,openai,🤖 AI",
                 "  - RULE-SET,anthropic,🤖 AI", "  - RULE-SET,google,🔎 Google / YouTube", "  - RULE-SET,youtube,🔎 Google / YouTube",
                 "  - RULE-SET,telegram,✈️ Telegram", "  - RULE-SET,netflix,🎬 Streaming", "  - RULE-SET,disney,🎬 Streaming",
@@ -284,6 +305,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                ("speedtest", "📶 Speed Test", ""), ("games", "🎮 Games", ""),
                ("cn", "DIRECT", ""), ("cn-ip", "DIRECT", ",no-resolve"))
     lines.extend(["", "[Rule]", "DOMAIN,auth.openai.com,🤖 AI", "DOMAIN-SUFFIX,openai.com,🤖 AI", "DOMAIN-SUFFIX,chatgpt.com,🤖 AI"])
+    lines.extend(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in CN_CLOUD_DIRECT_DOMAINS)
     for rule_id, policy, option in mapping:
         lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}{option}")
     lines.extend(["DOMAIN-SUFFIX,cn,DIRECT", "GEOIP,CN,DIRECT,no-resolve", "FINAL,PROXY", ""])
