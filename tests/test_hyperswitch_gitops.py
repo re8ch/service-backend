@@ -35,6 +35,28 @@ def test_hyperswitch_is_active_internal_sandbox_with_sops_values():
     assert values["hyperswitch-app"]["server"]["run_env"] == "sandbox"
 
 
+def test_hyperswitch_prestart_hook_is_restricted_compatible():
+    release = yaml.safe_load_all(RELEASE.read_text())
+    helm_release = next(item for item in release if item.get("kind") == "HelmRelease")
+    assert helm_release["spec"]["timeout"] == "10m"
+    patches = helm_release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    hook_patch = yaml.safe_load(next(
+        item["patch"] for item in patches
+        if item["target"] == {"kind": "Job", "name": "prestart-hook"}
+    ))
+    pod = hook_patch["spec"]["template"]["spec"]
+    assert pod["securityContext"] == {
+        "runAsNonRoot": True,
+        "runAsUser": 65532,
+        "runAsGroup": 65532,
+        "seccompProfile": {"type": "RuntimeDefault"},
+    }
+    assert pod["containers"][0]["securityContext"] == {
+        "allowPrivilegeEscalation": False,
+        "capabilities": {"drop": ["ALL"]},
+    }
+
+
 def test_superposition_is_explicit_and_has_no_plaintext_secret():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     app = release["spec"]["values"]["hyperswitch-app"]
