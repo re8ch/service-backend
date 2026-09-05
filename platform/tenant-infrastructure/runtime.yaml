@@ -1,4 +1,4 @@
-# Promoted by tenant-infrastructure-release job 16306623445 after Cosign verification.
+# Promoted by tenant-infrastructure-release job 16325768113 after Cosign verification.
 apiVersion: v1
 kind: Namespace
 metadata: {name: tenant-infrastructure, labels: {saas.re8ch.com/tenant: platform}}
@@ -37,7 +37,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: tenant-admin
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-admin}
             # Dex binds authorization-code tokens to the public OAuth client ID.
@@ -59,7 +59,7 @@ spec:
             - {name: state, mountPath: /var/lib/re8ch-ai-operations}
             - {name: tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
         - name: tenant-registry
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
           envFrom:
             - secretRef: {name: tenant-registry-supply-chain, optional: true}
           env:
@@ -77,7 +77,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
         - name: tenant-observability
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
           envFrom:
             - secretRef: {name: tenant-grafana-credentials, optional: true}
           env:
@@ -94,7 +94,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
         - name: tenant-byoc
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-byoc}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-byoc}
