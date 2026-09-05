@@ -20,10 +20,16 @@ def test_dex_disables_undeclared_process_proxy():
     )
     environment = {item["name"]: item.get("value") for item in container["env"]}
 
-    assert environment["HTTP_PROXY"] == "http://192.0.2.178:17891"
-    assert environment["HTTPS_PROXY"] == "http://192.0.2.178:17891"
+    assert environment["HTTP_PROXY"] == "http://127.0.0.1:17892"
+    assert environment["HTTPS_PROXY"] == "http://127.0.0.1:17892"
     assert ".svc" in environment["NO_PROXY"]
     assert "192.0.2.183/8" in environment["NO_PROXY"]
+
+    pod = deployment["spec"]["template"]["spec"]
+    egress = next(container for container in pod["containers"] if container["name"] == "github-egress")
+    assert "@sha256:" in egress["image"]
+    assert egress["securityContext"]["allowPrivilegeEscalation"] is False
+    assert egress["readinessProbe"]["tcpSocket"]["port"] == "egress"
 
 
 def test_dex_is_reconciled_by_the_cluster_kustomization():

@@ -1,3 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-github-egress
+  namespace: dex
+data:
+  config.yaml: |
+    mixed-port: 17892
+    bind-address: 127.0.0.1
+    allow-lan: false
+    mode: rule
+    ipv6: false
+    proxies:
+      - {name: global-kl, type: socks5, server: 192.0.2.245, port: 1080}
+      - {name: global-la, type: socks5, server: 192.0.2.110, port: 1080}
+    proxy-groups:
+      - name: GITHUB
+        type: fallback
+        proxies: [global-kl, global-la]
+        url: https://github.com/login/oauth/access_token
+        interval: 30
+        lazy: false
+    rules:
+      - DOMAIN-SUFFIX,github.com,GITHUB
+      - MATCH,GITHUB
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -59,8 +85,8 @@ spec:
             # Dex is pinned to restricted-node-6dc3f140f9 during the current identity-plane incident,
             # so use the colocated Mihomo listener. GitHub is not reliably
             # reachable from this CN node without the managed global egress.
-            - {name: HTTP_PROXY, value: "http://192.0.2.178:17891"}
-            - {name: HTTPS_PROXY, value: "http://192.0.2.178:17891"}
+            - {name: HTTP_PROXY, value: "http://127.0.0.1:17892"}
+            - {name: HTTPS_PROXY, value: "http://127.0.0.1:17892"}
             - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
           readinessProbe: {httpGet: {path: /.well-known/openid-configuration, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 20, periodSeconds: 20}
@@ -68,7 +94,25 @@ spec:
             requests: {cpu: 20m, memory: 64Mi}
             limits: {cpu: 300m, memory: 256Mi}
           volumeMounts: [{name: config, mountPath: /etc/dex, readOnly: true}]
-      volumes: [{name: config, secret: {secretName: dex-config}}]
+        - name: github-egress
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          imagePullPolicy: IfNotPresent
+          args: [-f, /etc/mihomo/config.yaml]
+          ports: [{name: egress, containerPort: 17892}]
+          readinessProbe: {tcpSocket: {port: egress}, initialDelaySeconds: 2, periodSeconds: 5}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 5m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 96Mi}
+          volumeMounts: [{name: github-egress-config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}]
+      volumes:
+        - {name: config, secret: {secretName: dex-config}}
+        - {name: github-egress-config, configMap: {name: dex-github-egress}}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
