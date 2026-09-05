@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v3
+  name: hyperswitch-bootstrap-admin-v4
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -40,7 +40,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              base_url=http://hyperswitch-hyperswitch-server:80
+              base_url=http://hyperswitch-hyperswitch-server.payments.svc.cluster.local:80
               until curl --fail --silent --show-error "$base_url/health" >/dev/null; do
                 sleep 5
               done
