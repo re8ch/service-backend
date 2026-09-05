@@ -20,9 +20,10 @@ def test_dex_disables_undeclared_process_proxy():
     )
     environment = {item["name"]: item.get("value") for item in container["env"]}
 
-    assert environment["HTTP_PROXY"] == ""
-    assert environment["HTTPS_PROXY"] == ""
-    assert environment["NO_PROXY"] == ""
+    assert environment["HTTP_PROXY"] == "http://192.0.2.183:17891"
+    assert environment["HTTPS_PROXY"] == "http://192.0.2.183:17891"
+    assert ".svc" in environment["NO_PROXY"]
+    assert "192.0.2.203/8" in environment["NO_PROXY"]
 
 
 def test_dex_is_reconciled_by_the_cluster_kustomization():

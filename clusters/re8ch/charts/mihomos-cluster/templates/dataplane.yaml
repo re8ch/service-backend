@@ -20,7 +20,15 @@ data:
         url: "https://www.gstatic.com/generate_204"
         interval: 30
         lazy: false
-    rules: ["IP-CIDR,192.0.2.203/8,DIRECT,no-resolve", "IP-CIDR,192.0.2.225/10,DIRECT,no-resolve", "IP-CIDR,192.0.2.179/12,DIRECT,no-resolve", "IP-CIDR,192.0.2.148/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,DIRECT", "RULE-SET,cn-ip,DIRECT", "MATCH,GLOBAL"]
+      # OAuth code exchange is a release-critical path. Probe the real GitHub
+      # endpoint instead of assuming that a generic Google probe proves it.
+      - name: GITHUB
+        type: fallback
+        proxies: [{{ range $index, $candidate := .Values.exits.globalCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name | quote }}{{ end }}]
+        url: "https://github.com/login/oauth/access_token"
+        interval: 30
+        lazy: false
+    rules: ["IP-CIDR,192.0.2.203/8,DIRECT,no-resolve", "IP-CIDR,192.0.2.225/10,DIRECT,no-resolve", "IP-CIDR,192.0.2.179/12,DIRECT,no-resolve", "IP-CIDR,192.0.2.148/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,github.com,GITHUB", "DOMAIN-SUFFIX,githubusercontent.com,GITHUB", "DOMAIN-SUFFIX,cn,DIRECT", "RULE-SET,cn-ip,DIRECT", "MATCH,GLOBAL"]
   global.yaml: |
     mixed-port: {{ .Values.nodeProxy.port }}
     external-controller: 0.0.0.0:{{ .Values.nodeProxy.controllerPort }}

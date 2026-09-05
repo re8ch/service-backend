@@ -23,8 +23,9 @@ from collections import Counter, defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 NAMESPACE = os.getenv("POD_NAMESPACE", "egress-fabric")
-LABEL = os.getenv("POD_SELECTOR", "app.kubernetes.io/name=mihomo-node")
-GROUP = os.getenv("MIHOMO_GROUP", "stable-egress")
+LABEL = os.getenv("POD_SELECTOR", "app.kubernetes.io/name=mihomos-node-cn")
+GROUP = os.getenv("MIHOMO_GROUP", "GLOBAL")
+MIHOMO_CONTROLLER_PORT = int(os.getenv("MIHOMO_CONTROLLER_PORT", "19090"))
 PROBE_URL = os.getenv("PROBE_URL", "https://www.gstatic.com/generate_204")
 INTERVAL = int(os.getenv("PROBE_INTERVAL_SECONDS", "15"))
 TIMEOUT_MS = int(os.getenv("PROBE_TIMEOUT_MS", "5000"))
@@ -42,7 +43,10 @@ PORT = int(os.getenv("HTTP_PORT", "8080"))
 GEODB_PATH = os.getenv("GEODB_PATH", "/etc/re8ch-geodb/geodb.json.gz")
 GEODB_SHA256 = os.getenv("GEODB_SHA256", "")
 CANARY_CLIENTS = {x for x in os.getenv("CANARY_CLIENT_IDS", "").split(",") if x}
-API = "https://kubernetes.default.svc"
+API = "https://{}:{}".format(
+    os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"),
+    os.getenv("KUBERNETES_SERVICE_PORT_HTTPS", "443"),
+)
 TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 
@@ -280,7 +284,7 @@ def mihomo_loop():
             targets = k8s_pods()
             if not targets:
                 time.sleep(INTERVAL); continue
-            base = f"http://{targets[0]}:9090"
+            base = f"http://{targets[0]}:{MIHOMO_CONTROLLER_PORT}"
             group = request(f"{base}/proxies/{urllib.parse.quote(GROUP)}")
             names = [x for x in group.get("all", []) if x not in ("DIRECT", "REJECT", GROUP)]
             scores = {}
@@ -289,7 +293,7 @@ def mihomo_loop():
                 for ip in targets:
                     q = urllib.parse.urlencode({"url": PROBE_URL, "timeout": TIMEOUT_MS})
                     try:
-                        latency = float(request(f"http://{ip}:9090/proxies/{urllib.parse.quote(name)}/delay?{q}")["delay"]); ok = True
+                        latency = float(request(f"http://{ip}:{MIHOMO_CONTROLLER_PORT}/proxies/{urllib.parse.quote(name)}/delay?{q}")["delay"]); ok = True
                     except Exception:
                         latency, ok = float(TIMEOUT_MS), False
                     observed.append(latency); loss.observe(name, 0.0 if ok else 1.0)
@@ -304,7 +308,7 @@ def mihomo_loop():
                 current, changed_at = best, now
             if current:
                 for ip in targets:
-                    request(f"http://{ip}:9090/proxies/{urllib.parse.quote(GROUP)}", "PUT", {"name": current}, {"Content-Type": "application/json"})
+                    request(f"http://{ip}:{MIHOMO_CONTROLLER_PORT}/proxies/{urllib.parse.quote(GROUP)}", "PUT", {"name": current}, {"Content-Type": "application/json"})
             with STATE.lock:
                 STATE.paths["mihomo"] = {"selected": current, "scores": scores, "observed_at": int(now)}
             print(json.dumps({"event": "path-decision", "dataplane": "mihomo", "selected": current, "scores": scores}, sort_keys=True), flush=True)
