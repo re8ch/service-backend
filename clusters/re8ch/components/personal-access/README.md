@@ -59,6 +59,13 @@ Device telemetry reads the loopback-only Mihomo controller and aggregates
 stores device IDs only—never queried or visited domains. The 300 GB allowance
 is a monthly soft reminder and does not enforce billing or throttling.
 
+For Shadowrocket on macOS, import the generated `shadowrocket.conf` from
+**Config → + → Download from URL**, then select **Use Config**. Update it from
+the Config page. Do not add the `.conf` URL as a Home-page node subscription:
+that path expects a node list and reports `Cannot fetch subscribe servers` for
+a complete Shadowrocket configuration. The URL-scheme one-click action remains
+an iPhone/iPad convenience.
+
 ## Rules and DNS
 
 The daily rule synchronizer obtains Mihomo MRS artifacts from MetaCubeX and
