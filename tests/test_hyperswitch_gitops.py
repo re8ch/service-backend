@@ -81,6 +81,10 @@ def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
     assert app["externalPostgresql"]["primary"]["host"] == (
         "pg-re8ch-primary.pigsty-external.svc.cluster.local"
     )
+    assert app["externalPostgresql"]["readOnly"]["enabled"] is True
+    assert app["externalPostgresql"]["readOnly"]["auth"]["username"] == (
+        "hyperswitch_app_ro"
+    )
     assert app["redis"]["master"]["persistence"]["storageClass"] == "rbd-r640"
     assert values["hyperswitch-ucs"]["enabled"] is False
 
