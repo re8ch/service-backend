@@ -29,13 +29,34 @@ spec:
                 labelSelector: {matchLabels: {app.kubernetes.io/name: farseer-web}}
       containers:
         - name: web
-          image: registry.re8ch.com/image/farseer-web:8627b31c7949@sha256:3530bf4fd86af9bf11b48a9cce6501206a1787ada537fab6ccce09490c5e585b
+          image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
           imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 8080}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 20m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL], add: [CHOWN, SETGID, SETUID]}}
+          volumeMounts:
+            - {name: nginx, mountPath: /etc/nginx/conf.d/default.conf, subPath: default.conf, readOnly: true}
+      volumes:
+        - {name: nginx, configMap: {name: farseer-cos-origin}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: farseer-cos-origin, namespace: farseer}
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      location = /healthz { access_log off; return 200 'ok'; }
+      location / {
+        proxy_set_header Host farseer-1301339749.cos-website.ap-guangzhou.myqcloud.com;
+        proxy_set_header Connection '';
+        proxy_http_version 1.1;
+        proxy_pass http://farseer-1301339749.cos-website.ap-guangzhou.myqcloud.com;
+      }
+    }
 ---
 apiVersion: v1
 kind: Service
