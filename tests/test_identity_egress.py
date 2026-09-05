@@ -21,6 +21,10 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
     assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 0
     assert "@sha256:" in container["image"]
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
+    assert deployment["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
+    assert container["args"][:2] == ["-d", "/var/lib/mihomo"]
+    assert any(volume["name"] == "state" and "emptyDir" in volume for volume in deployment["spec"]["template"]["spec"]["volumes"])
+    assert "preferredDuringSchedulingIgnoredDuringExecution" in deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"]
     assert "github.com%2Flogin%2Foauth%2Faccess_token" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
     assert budget["spec"]["minAvailable"] == 1
