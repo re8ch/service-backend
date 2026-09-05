@@ -7,6 +7,7 @@ COPY grafana_capabilities.json /app/grafana_capabilities.json
 COPY harbor_integration.py /app/harbor_integration.py
 COPY harbor_supply_chain.py /app/harbor_supply_chain.py
 COPY tenant_infrastructure.py /app/tenant_infrastructure.py
+COPY tenant_control_controller.py /app/tenant_control_controller.py
 RUN addgroup -S re8ch && adduser -S -G re8ch -h /var/lib/re8ch-ai-operations re8ch \
     && mkdir -p /etc/re8ch-ai-operations/kubeconfigs /var/lib/re8ch-ai-operations \
     && chown -R re8ch:re8ch /var/lib/re8ch-ai-operations

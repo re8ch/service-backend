@@ -1,67 +1,179 @@
-# Promoted by tenant-infrastructure-release job 16325768113 after Cosign verification.
+# Production topology. The legacy PVC is intentionally retained, but no runtime mounts it.
 apiVersion: v1
 kind: Namespace
-metadata: {name: tenant-infrastructure, labels: {saas.re8ch.com/tenant: platform}}
----
-apiVersion: v1
-kind: ConfigMap
-metadata: {name: tenant-infrastructure-catalog, namespace: tenant-infrastructure}
-data:
-  harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"garageband":{},"jjklive":{},"ledger":{},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{},"space-mining-stage":{},"thiking-machine":{}}}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
-automountServiceAccountToken: false
+metadata:
+  name: tenant-infrastructure
+  labels: {saas.re8ch.com/tenant: platform}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: tenant-infrastructure-state, namespace: tenant-infrastructure, labels: {storage.re8ch.com/replicated-approved: "true"}}
-spec: {accessModes: [ReadWriteOnce], storageClassName: rbd-r640, resources: {requests: {storage: 1Gi}}}
+metadata:
+  name: tenant-infrastructure-state
+  namespace: tenant-infrastructure
+  annotations:
+    tenancy.re8ch.com/retained-until: "2026-09-13"
+    tenancy.re8ch.com/recovery-mode: read-only
+  labels: {storage.re8ch.com/replicated-approved: "true"}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-admin, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-registry, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-observability, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: tenant-control-controller}
+rules:
+  - apiGroups: [tenancy.re8ch.com]
+    resources: [tenants, tenantidentitybindings, tenantgrants, tenantserviceinstances]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [tenancy.re8ch.com]
+    resources: [tenants/status, tenantidentitybindings/status, tenantgrants/status, tenantserviceinstances/status]
+    verbs: [get, update, patch]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: tenant-control-controller}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: tenant-control-controller}
+subjects: [{kind: ServiceAccount, name: tenant-control-controller, namespace: tenant-infrastructure}]
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
+metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
+spec:
+  replicas: 2
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 1}}
+  selector: {matchLabels: {app: tenant-control-controller}}
+  template:
+    metadata: {labels: {app: tenant-control-controller, saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-control-controller
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      containers:
+        - name: controller
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          command: [python, /app/tenant_control_controller.py]
+          env:
+            - {name: LISTEN_PORT, value: "19447"}
+            - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
+            - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+          ports: [{name: http, containerPort: 19447}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-control-controller}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: tenant-runtime-image-cache, namespace: tenant-infrastructure}
+spec:
+  selector: {matchLabels: {app: tenant-runtime-image-cache}}
+  template:
+    metadata: {labels: {app: tenant-runtime-image-cache}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      automountServiceAccountToken: false
+      initContainers:
+        - name: pull
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          imagePullPolicy: IfNotPresent
+          command: [sh, -c, "true"]
+      containers:
+        - name: hold
+          image: registry.k8s.io/pause:3.10.1
+          resources: {requests: {cpu: 1m, memory: 2Mi}, limits: {cpu: 5m, memory: 8Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-admin, namespace: tenant-infrastructure}
 spec:
   replicas: 1
-  strategy: {type: Recreate}
-  selector: {matchLabels: {app: tenant-infrastructure}}
+  progressDeadlineSeconds: 600
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: tenant-admin}}
   template:
-    metadata: {labels: {app: tenant-infrastructure, saas.re8ch.com/tenant: platform}}
+    metadata: {labels: {app: tenant-admin, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
     spec:
-      serviceAccountName: tenant-infrastructure
+      serviceAccountName: tenant-admin
       automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       imagePullSecrets: [{name: harbor-registry-pull}]
-      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
-        - name: tenant-admin
+        - name: runtime
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-admin}
-            # Dex binds authorization-code tokens to the public OAuth client ID.
-            # PUBLIC_MCP_URL remains the RFC 9728 resource identifier; the 1:1
-            # client/resource mapping is asserted by GitOps and conformance tests.
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-admin}
-            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant-admin/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant-admin/mcp"}
-            - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
-            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
-            - {name: HARBOR_TENANTS_PATH, value: /etc/re8ch-ai-operations/harbor-tenants.json}
-          ports: [{name: admin, containerPort: 19443}]
-          readinessProbe: {httpGet: {path: /healthz, port: admin}, periodSeconds: 5}
-          livenessProbe: {httpGet: {path: /healthz, port: admin}, periodSeconds: 15}
+            - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+          ports: [{name: http, containerPort: 19443}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts:
-            - {name: state, mountPath: /var/lib/re8ch-ai-operations}
-            - {name: tenants, mountPath: /etc/re8ch-ai-operations/harbor-tenants.json, subPath: harbor-tenants.json, readOnly: true}
-        - name: tenant-registry
+          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
+      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-registry, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 600
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: tenant-registry}}
+  template:
+    metadata: {labels: {app: tenant-registry, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-registry
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: runtime
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
-          envFrom:
-            - secretRef: {name: tenant-registry-supply-chain, optional: true}
+          imagePullPolicy: IfNotPresent
+          envFrom: [{secretRef: {name: tenant-registry-supply-chain, optional: true}}]
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-registry}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-registry}
@@ -69,17 +181,39 @@ spec:
             - {name: LISTEN_PORT, value: "19444"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/registry/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/registry/mcp"}
-            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
+            - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
-          ports: [{name: registry, containerPort: 19444}]
-          readinessProbe: {httpGet: {path: /healthz, port: registry}, periodSeconds: 5}
+            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+          ports: [{name: http, containerPort: 19444}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
-        - name: tenant-observability
+          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
+      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-observability, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 600
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: tenant-observability}}
+  template:
+    metadata: {labels: {app: tenant-observability, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-observability
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: runtime
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
-          envFrom:
-            - secretRef: {name: tenant-grafana-credentials, optional: true}
+          imagePullPolicy: IfNotPresent
+          envFrom: [{secretRef: {name: tenant-grafana-credentials, optional: true}}]
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-observability}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-observability}
@@ -87,14 +221,37 @@ spec:
             - {name: LISTEN_PORT, value: "19445"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/observability/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/observability/mcp"}
-            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
-          ports: [{name: observability, containerPort: 19445}]
-          readinessProbe: {httpGet: {path: /healthz, port: observability}, periodSeconds: 5}
+            - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+          ports: [{name: http, containerPort: 19445}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
-        - name: tenant-byoc
+          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
+      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 600
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: tenant-byoc}}
+  template:
+    metadata: {labels: {app: tenant-byoc, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-byoc
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: runtime
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-byoc}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-byoc}
@@ -102,35 +259,78 @@ spec:
             - {name: LISTEN_PORT, value: "19446"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/byoc/mcp"}
-            - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
-          ports: [{name: byoc, containerPort: 19446}]
-          readinessProbe: {httpGet: {path: /healthz, port: byoc}, periodSeconds: 5}
+            - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+          ports: [{name: http, containerPort: 19446}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: state, mountPath: /var/lib/re8ch-ai-operations}]
-      volumes:
-        - {name: state, persistentVolumeClaim: {claimName: tenant-infrastructure-state}}
-        - {name: tenants, configMap: {name: tenant-infrastructure-catalog}}
+          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
+      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: tenant-admin, namespace: tenant-infrastructure}
-spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: admin}]}
+spec: {selector: {app: tenant-admin}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: tenant-registry, namespace: tenant-infrastructure}
-spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: registry}]}
+spec: {selector: {app: tenant-registry}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: tenant-observability, namespace: tenant-infrastructure}
-spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: observability}]}
+spec: {selector: {app: tenant-observability}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
-spec: {selector: {app: tenant-infrastructure}, ports: [{name: http, port: 80, targetPort: byoc}]}
+spec: {selector: {app: tenant-byoc}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: tenant-control-controller}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {tenant-runtime: "true"}}}]
+      ports: [{protocol: TCP, port: 19447}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: tenant-admin, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: tenant-admin}}
+  policyTypes: [Ingress]
+  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19443}]}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: tenant-registry, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: tenant-registry}}
+  policyTypes: [Ingress]
+  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19444}]}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: tenant-observability, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: tenant-observability}}
+  policyTypes: [Ingress]
+  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19445}]}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: tenant-byoc}}
+  policyTypes: [Ingress]
+  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19446}]}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

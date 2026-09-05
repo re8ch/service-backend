@@ -16,6 +16,11 @@ import yaml
 
 path = Path(os.environ["CONFIG_PATH"])
 config = yaml.safe_load(path.read_text())
+refresh = config.setdefault("expiry", {}).setdefault("refreshTokens", {})
+refresh["reuseInterval"] = "30s"
+refresh.setdefault("validIfNotUsedFor", "720h")
+refresh.setdefault("absoluteLifetime", "2160h")
+refresh.pop("disableRotation", None)
 desired = {
     "re8ch-cloud-platform-tool": "RE8CH Cloud Platform Tool",
     "re8ch-cluster-infra-tool": "RE8CH Cluster Infra Tool",
@@ -56,4 +61,4 @@ $KUBECTL -n "$DEX_NAMESPACE" get secret "$DEX_SECRET" -o json | jq --arg name "$
 $KUBECTL -n "$DEX_NAMESPACE" create secret generic "$DEX_SECRET" --from-file=config.yaml="$workdir/config.yaml" --dry-run=client -o yaml | $KUBECTL apply -f - >/dev/null
 $KUBECTL -n "$DEX_NAMESPACE" rollout restart deployment/dex
 $KUBECTL -n "$DEX_NAMESPACE" rollout status deployment/dex --timeout=180s
-echo "Registered isolated admin, registry, observability and BYOC Dex clients; rollback Secret: $DEX_NAMESPACE/$backup"
+echo "Registered isolated tenant clients and rotation-safe refresh policy; rollback Secret: $DEX_NAMESPACE/$backup"
