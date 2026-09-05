@@ -15,6 +15,7 @@ metadata:
 spec:
   suspend: false
   interval: 10m
+  timeout: 10m
   releaseName: hyperswitch
   targetNamespace: payments
   storageNamespace: payments
@@ -34,6 +35,35 @@ spec:
     cleanupOnFail: true
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  # The upstream pre-install Job does not declare a Restricted-compatible
+  # security context. Harden it after Helm renders the chart so it can run in
+  # the payments namespace without weakening namespace Pod Security.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Job
+              name: prestart-hook
+            patch: |
+              apiVersion: batch/v1
+              kind: Job
+              metadata:
+                name: prestart-hook
+              spec:
+                template:
+                  spec:
+                    securityContext:
+                      runAsNonRoot: true
+                      runAsUser: 65532
+                      runAsGroup: 65532
+                      seccompProfile:
+                        type: RuntimeDefault
+                    containers:
+                      - name: prestart-hook
+                        securityContext:
+                          allowPrivilegeEscalation: false
+                          capabilities:
+                            drop: [ALL]
   valuesFrom:
     - kind: Secret
       name: hyperswitch-runtime-values
