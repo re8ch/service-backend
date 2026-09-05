@@ -68,9 +68,15 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     assert app["superpositionDB"]["enable"] is True
     assert app["superpositionFallback"]["source"] == "configMap"
     assert app["superposition"]["configs"]["app_env"] == "DEV"
+    assert app["superposition"]["configs"]["db_host"] == (
+        "hyperswitch-postgresql.payments.svc.cluster.local:5432"
+    )
     assert app["server"]["configs"]["superposition"]["backup_file_path"].endswith(
         "superposition_seed.toml"
     )
+    cors = app["server"]["configs"]["cors"]
+    assert cors["wildcard_origin"] is False
+    assert "https://pay.re8ch.com" in cors["origins"]
     secretish_keys = {"db" + "_password", "superposition" + "_token", "api" + "_key", "client" + "_secret"}
 
     def visit(value):
