@@ -11,20 +11,8 @@ data:
     allow-lan: true
     mode: rule
     ipv6: false
-    proxies:
-      - {name: global-kl, type: socks5, server: 192.0.2.245, port: 1080}
-      - {name: global-la, type: socks5, server: 192.0.2.110, port: 1080}
-    proxy-groups:
-      - name: GITHUB-OAUTH
-        type: fallback
-        proxies: [global-kl, global-la]
-        url: https://github.com/login/oauth/access_token
-        interval: 30
-        lazy: false
     rules:
-      - DOMAIN-SUFFIX,github.com,GITHUB-OAUTH
-      - DOMAIN-SUFFIX,githubusercontent.com,GITHUB-OAUTH
-      - MATCH,GITHUB-OAUTH
+      - MATCH,DIRECT
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -36,7 +24,9 @@ spec:
   replicas: 2
   strategy:
     type: RollingUpdate
-    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    # There are exactly two edge failure domains. Replace one replica at a
+    # time so an update never needs a third eligible node.
+    rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
   selector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
   template:
     metadata:
@@ -50,13 +40,11 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl, overseas-la]}
         podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                topologyKey: kubernetes.io/hostname
-                labelSelector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
       tolerations: [{operator: Exists}]
       automountServiceAccountToken: false
       securityContext:
@@ -79,7 +67,7 @@ spec:
             periodSeconds: 2
           readinessProbe:
             httpGet:
-              path: /proxies/GITHUB-OAUTH/delay?url=https%3A%2F%2Fgithub.com%2Flogin%2Foauth%2Faccess_token&timeout=5000
+              path: /proxies/DIRECT/delay?url=https%3A%2F%2Fgithub.com%2Flogin%2Foauth%2Faccess_token&timeout=5000
               port: controller
             periodSeconds: 10
             timeoutSeconds: 7
@@ -132,6 +120,15 @@ spec:
       ports: [{port: 17893, protocol: TCP}]
   egress:
     - to:
-        - ipBlock: {cidr: 192.0.2.245/32}
-        - ipBlock: {cidr: 192.0.2.110/32}
-      ports: [{port: 1080, protocol: TCP}]
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [192.0.2.183/8, 192.0.2.81/10, 127.0.0.0/8, 192.0.2.95/16, 192.0.2.33/12, 192.0.2.136/16]
+      ports: [{port: 443, protocol: TCP}]
