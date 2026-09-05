@@ -41,11 +41,12 @@ def test_control_center_route_uses_service_port_not_container_port():
     assert route["spec"]["rules"][0]["backendRefs"][0]["port"] == 80
 
 
-def test_admin_bootstrap_uses_cluster_fqdn():
+def test_admin_bootstrap_uses_injected_service_coordinates():
     job = yaml.safe_load((ROOT / "platform/hyperswitch/bootstrap-admin-job.yaml").read_text())
-    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v4"
+    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v5"
     command = job["spec"]["template"]["spec"]["containers"][0]["args"][0]
-    assert "hyperswitch-hyperswitch-server.payments.svc.cluster.local" in command
+    assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_HOST" in command
+    assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_PORT" in command
 
 
 def test_hyperswitch_disables_upstream_root_telemetry_hooks():
@@ -169,7 +170,7 @@ def test_rendered_helm_values_namespace_and_job_admission():
         elif kind != "Namespace":
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
-            expected_revision = "-v4" if "bootstrap-admin" in resource["metadata"]["name"] else "-v3"
+            expected_revision = "-v5" if "bootstrap-admin" in resource["metadata"]["name"] else "-v3"
             assert resource["metadata"]["name"].endswith(expected_revision)
             pod = resource["spec"]["template"]["spec"]
             assert pod["securityContext"]["runAsNonRoot"] is True
