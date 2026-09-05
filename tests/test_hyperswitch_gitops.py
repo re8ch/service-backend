@@ -102,3 +102,28 @@ def test_publicedge_only_advertises_hyperswitch_from_r640():
     assert '"pay.re8ch.com.": {"service":"pay-ui"' in authority
     assert '"pay-api.re8ch.com.": {"service":"pay-api"' in authority
     assert '"pay-ui":["hyperswitch"],"pay-api":["hyperswitch"]' in authority
+
+
+def test_rendered_helm_values_namespace_and_job_admission():
+    import subprocess
+
+    rendered = list(yaml.safe_load_all(subprocess.check_output(
+        ["kustomize", "build", str(ROOT / "platform/hyperswitch")], text=True
+    )))
+    secret = next(item for item in yaml.safe_load_all(
+        (ROOT / "clusters/re8ch/secrets/hyperswitch-runtime-values.sops.yaml").read_text()
+    ) if item and item["metadata"]["name"] == "hyperswitch-runtime-values")
+    for resource in rendered:
+        kind = resource["kind"]
+        if kind in {"HelmRelease", "HelmRepository"}:
+            assert resource["metadata"]["namespace"] == secret["metadata"]["namespace"]
+        elif kind != "Namespace":
+            assert resource["metadata"]["namespace"] == "payments"
+        if kind == "Job":
+            assert resource["metadata"]["name"].endswith("-v2")
+            pod = resource["spec"]["template"]["spec"]
+            assert pod["securityContext"]["runAsNonRoot"] is True
+            assert pod["securityContext"]["seccompProfile"]["type"] == "RuntimeDefault"
+            for container in pod["containers"]:
+                assert container["securityContext"]["allowPrivilegeEscalation"] is False
+                assert "ALL" in container["securityContext"]["capabilities"]["drop"]
