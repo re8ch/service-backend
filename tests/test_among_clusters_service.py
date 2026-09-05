@@ -4,7 +4,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 IMAGE_DIGEST = "sha256:593d0c797c5fdfa1ff56e9d96b701599468461a193f24a148b6df4964f5c01ee"
-CHART_DIGEST = "sha256:ec7d043c8892612f39cac51392934913ac7835ac18dd40fa9b4621312b1be172"
+CHART_DIGEST = "sha256:f008777c22d20e44b95486df52f6307c5809eb8e92a96cdcc79a08cc33bf9484"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
