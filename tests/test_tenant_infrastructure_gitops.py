@@ -32,10 +32,10 @@ def test_tenant_runtime_has_dedicated_audience_no_kubernetes_token_and_digest_ga
         assert container["image"].startswith("registry.re8ch.com/image/re8ch-ai-operations@sha256:")
         assert "IMAGE_REQUIRES_VERIFIED_DIGEST" not in container["image"]
     assert profiles == {
-        "tenant-admin": "https://tools.re8ch.com/tenant-admin/mcp",
-        "tenant-registry": "https://tools.re8ch.com/tenant/registry/mcp",
-        "tenant-observability": "https://tools.re8ch.com/tenant/observability/mcp",
-        "tenant-byoc": "https://tools.re8ch.com/tenant/byoc/mcp",
+        "tenant-admin": "re8ch-tenant-admin",
+        "tenant-registry": "re8ch-tenant-registry",
+        "tenant-observability": "re8ch-tenant-observability",
+        "tenant-byoc": "re8ch-tenant-byoc",
     }
     assert metadata_urls == {
         "tenant-admin": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant-admin/mcp",
