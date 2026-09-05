@@ -190,6 +190,22 @@ class ServiceStore:
             rows = db.execute("SELECT * FROM tenants ORDER BY tenant_ref").fetchall()
         return [dict(row) for row in rows]
 
+    def tenant_for_identity(self, identity_refs: set[str]) -> str | None:
+        """Resolve one active Tenant from controller-owned identity references."""
+        refs = sorted({value.strip() for value in identity_refs if value.strip()})
+        if not refs:
+            return None
+        placeholders = ",".join("?" for _ in refs)
+        with self.connect() as db:
+            rows = db.execute(
+                f"SELECT tenant_ref FROM tenants WHERE state='Active' AND identity_ref IN ({placeholders}) ORDER BY tenant_ref",
+                refs,
+            ).fetchall()
+        tenants = {str(row["tenant_ref"]) for row in rows}
+        if len(tenants) > 1:
+            raise ServiceError("identity is bound to multiple active tenants")
+        return next(iter(tenants), None)
+
     def set_visibility(self, tenant_ref: str, visibility: str) -> dict[str, Any]:
         tenant_ref = self.validate_tenant_ref(tenant_ref)
         if tenant_ref == "admin":
