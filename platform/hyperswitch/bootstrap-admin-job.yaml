@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v5
+  name: hyperswitch-bootstrap-admin-v6
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -44,19 +44,18 @@ spec:
               until curl --fail --silent --show-error "$base_url/health" >/dev/null; do
                 sleep 5
               done
-              payload=$(printf '{"email":"%s","password":"%s","country":"US"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
+              payload=$(printf '{"email":"%s","password":"%s"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
               if curl --fail --silent --show-error \
                 -H 'Content-Type: application/json' \
                 -H 'api-key: hyperswitch' \
                 -d "$payload" "$base_url/user/signin" >/dev/null; then
                 exit 0
               fi
+              create_payload=$(printf '{"name":"RE8CH Administrator","email":"%s","password":"%s","role_id":"org_admin"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
               curl --fail --silent --show-error \
                 -H 'Content-Type: application/json' \
-                -H 'Origin: https://pay.re8ch.com' \
-                -H 'Referer: https://pay.re8ch.com/' \
                 -H 'api-key: hyperswitch' \
-                -d "$payload" "$base_url/user/signup" >/dev/null
+                -d "$create_payload" "$base_url/user/internal_signup" >/dev/null
           env:
             - name: ADMIN_EMAIL
               valueFrom:
