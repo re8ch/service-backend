@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v2
+  name: hyperswitch-bootstrap-admin-v3
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
