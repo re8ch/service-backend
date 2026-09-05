@@ -214,3 +214,7 @@
 	path = catalogs/platform/modules/connectool/source
 	url = https://github.com/re8ch/connectool.git
 	branch = main
+[submodule "farseer/farseer"]
+	path = catalogs/farseer/modules/farseer/source
+	url = https://github.com/re8ch/farseer.git
+	branch = main

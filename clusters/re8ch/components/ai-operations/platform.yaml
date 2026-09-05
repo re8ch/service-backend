@@ -15,14 +15,14 @@ kind: ConfigMap
 metadata: {name: harbor-tenant-catalog, namespace: ai-operations}
 data:
   harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata: {name: harbor-tenant-catalog, namespace: credential-broker}
 data:
   harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
 ---
 apiVersion: v1
 kind: ServiceAccount
