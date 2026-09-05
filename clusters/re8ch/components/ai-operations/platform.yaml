@@ -202,7 +202,7 @@ data:
     clusters:
       - name: qwen-controlled
         cluster:
-          server: http://among-clusters-credential-broker-direct.credential-broker.svc:8080/k8s/byoc-pilot/qwen-headlamp-admin
+          server: https://among-clusters.re8ch.com/broker/k8s/byoc-pilot/qwen-headlamp-admin
     users:
       - name: qwen-controlled
         user: {token: "credential://among-clusters/byoc-pilot/qwen-headlamp-admin"}
@@ -216,7 +216,7 @@ data:
     clusters:
       - name: artc-controlled
         cluster:
-          server: http://among-clusters-credential-broker-direct.credential-broker.svc:8080/k8s/byoc-pilot/artc-headlamp-admin
+          server: https://among-clusters.re8ch.com/broker/k8s/byoc-pilot/artc-headlamp-admin
     users:
       - name: artc-controlled
         user: {token: "credential://among-clusters/byoc-pilot/artc-headlamp-admin"}
