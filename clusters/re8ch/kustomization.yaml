@@ -11,6 +11,7 @@ resources:
   - secrets/among-clusters-hub-admin.sops.yaml
   - secrets/hyperswitch-runtime-values.sops.yaml
   - components/cilium/gateway-api-canary.yaml
+  - components/farseer/public-web.yaml
   - components/cilium/r640-policy-update-budget.yaml
   - components/ai-operations/platform.yaml
   - components/auth/dex/dex-ha-deployment.yaml
