@@ -148,6 +148,16 @@ spec:
               _secretRef:
                 name: hyperswitch-pigsty-credentials
                 key: primaryPlainPassword
+        readOnly:
+          enabled: true
+          host: "pg-re8ch-primary.pigsty-external.svc.cluster.local"
+          auth:
+            username: hyperswitch_app_ro
+            database: hyperswitch
+            password:
+              _secretRef:
+                name: hyperswitch-pigsty-credentials
+                key: readOnlyPassword
       redis:
         master:
           persistence:
