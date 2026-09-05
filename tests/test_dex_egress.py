@@ -20,8 +20,9 @@ def test_dex_disables_undeclared_process_proxy():
     )
     environment = {item["name"]: item.get("value") for item in container["env"]}
 
-    assert environment["HTTP_PROXY"] == "http://192.0.2.183:17891"
-    assert environment["HTTPS_PROXY"] == "http://192.0.2.183:17891"
+    expected = "http://identity-egress.egress-fabric.svc.cluster.local:17893"
+    assert environment["HTTP_PROXY"] == expected
+    assert environment["HTTPS_PROXY"] == expected
     assert ".svc" in environment["NO_PROXY"]
     assert "192.0.2.203/8" in environment["NO_PROXY"]
 

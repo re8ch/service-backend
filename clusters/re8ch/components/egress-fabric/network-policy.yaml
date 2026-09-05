@@ -7,6 +7,15 @@ spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
   ingress:
+    # Identity providers use a dedicated pod-network proxy. Restrict this
+    # release-critical path to Dex rather than exposing the general node proxy.
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: dex}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: dex}
+      ports:
+        - {port: 17893, protocol: TCP}
     - from:
         - namespaceSelector: {}
       ports:
