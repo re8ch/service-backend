@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: farseer
+  labels:
+    app.kubernetes.io/part-of: re8ch-saas
+    saas.re8ch.com/product: farseer
+    saas.re8ch.com/tenant: farseer
+    saas.re8ch.com/layer: prod
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: farseer-web
+  namespace: farseer
+  labels: {app.kubernetes.io/name: farseer-web, saas.re8ch.com/tenant: farseer}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app.kubernetes.io/name: farseer-web}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: farseer-web, saas.re8ch.com/tenant: farseer}}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector: {matchLabels: {app.kubernetes.io/name: farseer-web}}
+      containers:
+        - name: web
+          image: registry.re8ch.com/image/farseer-web:8627b31c7949@sha256:3530bf4fd86af9bf11b48a9cce6501206a1787ada537fab6ccce09490c5e585b
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 15}
+          resources: {requests: {cpu: 20m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL], add: [CHOWN, SETGID, SETUID]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: farseer-web, namespace: farseer}
+spec:
+  selector: {app.kubernetes.io/name: farseer-web}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: farseer-web, namespace: farseer}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: farseer-https}
+  hostnames: [farseer.re8ch.com]
+  rules:
+    - backendRefs: [{name: farseer-web, port: 80}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: farseer-public-dns
+  namespace: farseer
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: farseer.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: farseer.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: farseer-web, port: {name: http}}}
