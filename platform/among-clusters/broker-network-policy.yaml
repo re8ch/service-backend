@@ -66,7 +66,7 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: ai-operations
-            app: cloud-platform-tool
+            k8s:app: cloud-platform-tool
       toPorts:
         - ports:
             - {port: "8080", protocol: TCP}
