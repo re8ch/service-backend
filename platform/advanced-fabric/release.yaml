@@ -71,8 +71,11 @@ spec:
       dns:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
-        replicas: 3
-        pdbMinAvailable: 2
+        # Only schedule authoritative DNS where the bootstrap API endpoints are
+        # reachable. vm-20-12-ubuntu currently cannot complete the API watch,
+        # so a third replica there is permanently unready and blocks rollouts.
+        replicas: 2
+        pdbMinAvailable: 1
         # Bootstrap by IP, outside both cluster DNS and the lossy Service VIP
         # path. A1/B1 are currently reachable from every authoritative node;
         # restricted-node-6dc3f140f9 remains last-resort until its WG transport IP is in the API cert.
@@ -87,7 +90,7 @@ spec:
                 - matchExpressions:
                     - key: kubernetes.io/hostname
                       operator: In
-                      values: [restricted-node-6dc3f140f9, zan, vm-20-12-ubuntu]
+                      values: [restricted-node-6dc3f140f9, zan]
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
