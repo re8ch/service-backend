@@ -1,0 +1,14 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: r640-policy-update-budget
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: r640
+  defaults:
+    # R640 hosts enough endpoints that a policy batch can exceed the 10s
+    # default. Repeated timeout rollbacks remove Envoy ingress policies and
+    # cause intermittent HTTP 403 responses on otherwise healthy MCP routes.
+    endpoint-policy-update-timeout: 60s
