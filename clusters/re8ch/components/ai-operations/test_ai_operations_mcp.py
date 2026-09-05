@@ -217,6 +217,24 @@ class RegistryTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             m.authenticated_tenant({"groups": ["re8ch:qwen-operators", "re8ch:ledger-operators"]})
 
+    def test_tenant_context_uses_admin_managed_oidc_identity_binding(self):
+        m = load("tenant-registry")
+        m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
+        m._TENANT_SERVICE_STORE = None
+        m.tenant_service_store().create_tenant(
+            "research-a", "Research A", "oidc:https://dex.re8ch.com#subject-1"
+        )
+        identity = {
+            "auth_type": "dex", "issuer": "https://dex.re8ch.com",
+            "subject": "subject-1", "groups": [],
+        }
+        self.assertEqual(m.authenticated_tenant(identity), "research-a")
+
+    def test_tenant_admin_requires_admin_group_even_when_dex_is_authenticated(self):
+        m = load("tenant-admin")
+        self.assertFalse(m.allowed({"auth_type": "dex", "subject": "user", "groups": []}))
+        self.assertTrue(m.allowed({"auth_type": "dex", "subject": "admin", "groups": ["re8ch:tenant-admins"]}))
+
     def test_litellm_uses_its_real_health_path(self):
         m = load("orchestra")
         self.assertEqual(m.ORCHESTRA_HEALTH_PATHS["litellm"], "/health/liveliness")

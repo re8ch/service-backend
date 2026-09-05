@@ -434,10 +434,20 @@ def dex_identity(token: str) -> dict[str, Any] | None:
     if not subject or not isinstance(groups, list):
         return None
     tenant = data.get("tenant") or data.get("tenantRef")
-    return {"subject": subject, "groups": groups, "tenant": tenant, "auth_type": "dex"}
+    return {
+        "subject": subject,
+        "issuer": "https://dex.re8ch.com",
+        "email": data.get("email"),
+        "email_verified": data.get("email_verified") is True,
+        "groups": groups,
+        "tenant": tenant,
+        "auth_type": "dex",
+    }
 
 
 def allowed(identity: dict[str, Any]) -> bool:
+    if PROFILE == "tenant-admin":
+        return "re8ch:tenant-admins" in set(identity.get("groups", []))
     if ALLOW_AUTHENTICATED_DEX and identity.get("auth_type") in {"dex", "device"} and identity.get("subject"):
         return True
     return bool(set(identity.get("groups", [])) & PROFILE_GROUPS.get(PROFILE, set()))
@@ -872,9 +882,20 @@ def authenticated_tenant(identity: dict[str, Any]) -> str:
         match = match or legacy
         if match:
             candidates.add(match.group(1))
-    if len(candidates) != 1:
+    if len(candidates) == 1:
+        return candidates.pop()
+    if len(candidates) > 1:
         raise PermissionError("exactly one authenticated tenant context is required")
-    return candidates.pop()
+    subject = str(identity.get("subject") or "").strip()
+    issuer = str(identity.get("issuer") or "https://dex.re8ch.com").rstrip("/")
+    identity_refs = {subject, f"oidc:{issuer}#{subject}"} if subject else set()
+    email = str(identity.get("email") or "").strip().lower()
+    if email and identity.get("email_verified") is True:
+        identity_refs.add(f"email:{email}")
+    mapped = tenant_service_store().tenant_for_identity(identity_refs)
+    if mapped:
+        return mapped
+    raise PermissionError("exactly one authenticated tenant context is required")
 
 
 def tenant_client(tenant: str, reference: str) -> tuple[HarborClient, str]:
