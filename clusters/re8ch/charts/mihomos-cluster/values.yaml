@@ -22,6 +22,7 @@ exits:
   globalCandidates:
     - {name: global-edge-50, address: 192.0.2.79}
     - {name: global-kl, address: 192.0.2.245}
+    - {name: global-la, address: 192.0.2.110}
   cnCandidates:
     - {name: cn-r640, address: 192.0.2.178}
     - {name: cn-a1, address: 192.0.2.176}
