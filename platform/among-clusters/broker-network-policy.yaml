@@ -52,3 +52,21 @@ spec:
         - ports:
             - {port: "22240", protocol: TCP}
             - {port: "23768", protocol: TCP}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: among-clusters-broker-tool-access
+  namespace: credential-broker
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: among-clusters-credential-broker
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ai-operations
+            app: cloud-platform-tool
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
