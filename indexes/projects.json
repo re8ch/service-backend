@@ -154,7 +154,7 @@
   },
   {
     "catalog": "farseer",
-    "commit": "cb80779b8ed4e810cd86025972c8900dcc6f657a",
+    "commit": "20280bd27febe22b6b01be519c778d2a26cf80da",
     "id": "farseer",
     "ownership": "owned",
     "projectType": "product-api",
