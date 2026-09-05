@@ -75,6 +75,8 @@ spec:
         limits: {cpu: 500m, memory: 512Mi}
     hyperswitch-monitoring:
       enabled: false
+    hyperswitch-ucs:
+      enabled: false
     hyperswitch-app:
       # Required by router releases >= v1.124. The stack chart also installs
       # the schema migration/alias that its otherwise-empty database needs.
@@ -87,6 +89,14 @@ spec:
         enable: true
         aliasService: superposition-db
         migration: {enable: false}
+      postgresql:
+        primary:
+          persistence:
+            storageClass: rbd-r640
+      redis:
+        master:
+          persistence:
+            storageClass: rbd-r640
       superposition:
         enabled: true
         replicaCount: 1
