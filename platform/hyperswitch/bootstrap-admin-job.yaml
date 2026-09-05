@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v8
+  name: hyperswitch-bootstrap-admin-v9
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -44,6 +44,16 @@ spec:
               until curl --fail --silent --show-error "$base_url/health" >/dev/null; do
                 sleep 5
               done
+              if ! curl --fail --silent --show-error \
+                -H "api-key: $ADMIN_API_KEY" \
+                "$base_url/accounts/$MERCHANT_ID" >/dev/null; then
+                merchant_payload=$(printf '{"merchant_id":"%s","merchant_name":"%s","return_url":"%s","primary_business_details":[{"country":"US","business":"default"}]}' \
+                  "$MERCHANT_ID" "$MERCHANT_NAME" "$RETURN_URL")
+                curl --fail --silent --show-error \
+                  -H 'Content-Type: application/json' \
+                  -H "api-key: $ADMIN_API_KEY" \
+                  -d "$merchant_payload" "$base_url/accounts" >/dev/null
+              fi
               payload=$(printf '{"email":"%s","password":"%s"}' "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
               if curl --fail --silent --show-error \
                 -H 'Content-Type: application/json' \
@@ -56,6 +66,9 @@ spec:
                 -H 'Content-Type: application/json' \
                 -H "api-key: $ADMIN_API_KEY" \
                 -d "$create_payload" "$base_url/user/tenant_signup" >/dev/null
+              # TOTP is deliberately completed by the administrator in Control
+              # Center: its one-time seed and verification code must never be
+              # emitted by a Kubernetes Job or stored in GitOps logs.
           env:
             - name: ADMIN_API_KEY
               valueFrom:
@@ -72,3 +85,9 @@ spec:
                 secretKeyRef:
                   name: hyperswitch-bootstrap-admin
                   key: password
+            - name: MERCHANT_ID
+              value: re8ch
+            - name: MERCHANT_NAME
+              value: RE8CH
+            - name: RETURN_URL
+              value: https://pay.re8ch.com
