@@ -46,7 +46,7 @@ workspace-drift:
 
 macmini-devops-context:
   stage: validate
-  tags: [macmini-a1]
+  tags: [macmini-service-backend-shell]
   rules:
     - if: '$CI_COMMIT_TAG'
       when: never
@@ -57,9 +57,18 @@ macmini-devops-context:
     - curl -fsS http://127.0.0.1:19640/healthz
     - /Volumes/A1/service-backend/.venv/bin/python /Volumes/A1/service-backend/operations/workspace-controller/workspace.py --root /Volumes/A1/service-backend memory-audit
 
+tenant-release-preflight:
+  stage: validate
+  tags: [macmini-service-backend-shell]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  before_script: []
+  script:
+    - ./operations/mcp-conformance/release-tenant-infrastructure.sh --check
+
 tenant-infrastructure-release:
   stage: release
-  tags: [macmini-a1]
+  tags: [macmini-service-backend-shell]
   id_tokens:
     SIGSTORE_ID_TOKEN:
       aud: sigstore

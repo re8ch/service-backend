@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This publisher needs the Macmini shell runner, not the validation container.
+for tool in docker python3 cosign; do
+  command -v "$tool" >/dev/null || {
+    echo "Missing $tool; use the macmini-service-backend-shell runner" >&2
+    exit 127
+  }
+done
+docker info >/dev/null
+docker buildx version >/dev/null
+docker sbom version >/dev/null
+if [[ "${1:-}" == "--check" ]]; then
+  echo "Tenant release tools and Docker daemon are available"
+  exit 0
+fi
+
 : "${TENANT_IMAGE_REPOSITORY:=registry.re8ch.com/image/re8ch-ai-operations}"
 : "${TENANT_IMAGE_TAG:=${CI_COMMIT_SHA:-$(git rev-parse HEAD)}}"
 context=clusters/re8ch/components/ai-operations
