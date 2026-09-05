@@ -111,3 +111,22 @@ metadata: {name: identity-egress, namespace: egress-fabric}
 spec:
   minAvailable: 1
   selector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: identity-egress, namespace: egress-fabric}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: dex}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: dex}
+      ports: [{port: 17893, protocol: TCP}]
+  egress:
+    - to:
+        - ipBlock: {cidr: 192.0.2.245/32}
+        - ipBlock: {cidr: 192.0.2.110/32}
+      ports: [{port: 1080, protocol: TCP}]
