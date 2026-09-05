@@ -13,7 +13,7 @@ spec:
     - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: pay-ui-https}
   hostnames: [pay.re8ch.com]
   rules:
-    - backendRefs: [{name: hyperswitch-control-center, port: 9000}]
+    - backendRefs: [{name: hyperswitch-control-center, port: 80}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -55,7 +55,7 @@ spec:
         paths:
           - path: /
             pathType: Prefix
-            backend: {service: {name: hyperswitch-control-center, port: {number: 9000}}}
+            backend: {service: {name: hyperswitch-control-center, port: {number: 80}}}
     - host: pay-api.re8ch.com
       http:
         paths:
