@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-superposition-schema-v0-112-0-v3
+  name: hyperswitch-superposition-schema-v0-112-0-v4
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -40,20 +40,20 @@ spec:
           command: [/bin/bash, -ec]
           args:
             - |
-              until pg_isready -h hyperswitch-postgresql -p 5432 -U hyperswitch; do
+              until pg_isready -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 -U hyperswitch_migrator; do
                 sleep 5
               done
               export PGPASSWORD="$POSTGRES_PASSWORD"
               psql -v ON_ERROR_STOP=1 \
-                -h hyperswitch-postgresql -p 5432 \
-                -U hyperswitch -d hyperswitch \
+                -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 \
+                -U hyperswitch_migrator -d hyperswitch \
                 -f /schema/superposition.sql
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: hyperswitch-postgresql
-                  key: password
+                  name: hyperswitch-pigsty-credentials
+                  key: primaryPassword
           volumeMounts:
             - name: schema
               mountPath: /schema

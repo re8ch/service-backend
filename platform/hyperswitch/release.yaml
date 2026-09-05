@@ -61,6 +61,27 @@ spec:
                         env:
                           - name: ROUTER__ANALYTICS__CLICKHOUSE__PASSWORD
                             $patch: delete
+          - target:
+              group: apps
+              version: v1
+              kind: Deployment
+              name: hyperswitch-superposition
+            patch: |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: hyperswitch-superposition
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: superposition
+                        env:
+                          - name: DB_PASSWORD
+                            valueFrom:
+                              secretKeyRef:
+                                name: hyperswitch-pigsty-credentials
+                                key: DB_PASSWORD
   valuesFrom:
     - kind: Secret
       name: hyperswitch-runtime-values
@@ -111,9 +132,22 @@ spec:
         aliasService: superposition-db
         migration: {enable: false}
       postgresql:
+        enabled: false
+      externalPostgresql:
+        enabled: true
         primary:
-          persistence:
-            storageClass: rbd-r640
+          host: "pg-re8ch-primary.pigsty-external.svc.cluster.local"
+          auth:
+            username: hyperswitch_migrator
+            database: hyperswitch
+            password:
+              _secretRef:
+                name: hyperswitch-pigsty-credentials
+                key: primaryPassword
+            plainpassword:
+              _secretRef:
+                name: hyperswitch-pigsty-credentials
+                key: primaryPlainPassword
       redis:
         master:
           persistence:
@@ -124,9 +158,9 @@ spec:
         configs:
           # Use the concrete in-namespace Service FQDN. The compatibility
           # ExternalName alias is not resolvable on every cluster DNS path.
-          db_host: "hyperswitch-postgresql.payments.svc.cluster.local:5432"
+          db_host: "pg-re8ch-primary.pigsty-external.svc.cluster.local:5432"
           db_name: hyperswitch
-          db_user: hyperswitch
+          db_user: hyperswitch_migrator
           rust_log: info
           # This release is explicitly sandbox-only. In PROD, Superposition
           # requires an external KMS and treats DB_PASSWORD as ciphertext;
