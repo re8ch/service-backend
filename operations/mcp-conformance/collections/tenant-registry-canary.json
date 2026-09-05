@@ -5,7 +5,8 @@
   "spec": {
     "endpoint": "https://tenant-canary.re8ch.com/tenant/registry/mcp",
     "oauth": {
-      "audience": "https://tenant-canary.re8ch.com/tenant/registry/mcp",
+      "resource": "https://tenant-canary.re8ch.com/tenant/registry/mcp",
+      "tokenAudience": "re8ch-tenant-registry",
       "protectedResourceMetadata": "https://tenant-canary.re8ch.com/.well-known/oauth-protected-resource/tenant/registry/mcp",
       "tokenEnv": "TENANT_REGISTRY_CANARY_TOKEN",
       "pkce": "S256"

@@ -40,7 +40,10 @@ spec:
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-admin}
-            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant-admin/mcp"}
+            # Dex binds authorization-code tokens to the public OAuth client ID.
+            # PUBLIC_MCP_URL remains the RFC 9728 resource identifier; the 1:1
+            # client/resource mapping is asserted by GitOps and conformance tests.
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-admin}
             - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant-admin/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant-admin/mcp"}
@@ -61,7 +64,7 @@ spec:
             - secretRef: {name: tenant-registry-supply-chain, optional: true}
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-registry}
-            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/registry/mcp"}
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-registry}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19444"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/registry/mcp"}
@@ -79,7 +82,7 @@ spec:
             - secretRef: {name: tenant-grafana-credentials, optional: true}
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-observability}
-            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/observability/mcp"}
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-observability}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19445"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/observability/mcp"}
@@ -94,7 +97,7 @@ spec:
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:89538b0b3a5574c686ea64a61ce16fb8e97832aa93438660a2f71b16f0003f5b
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-byoc}
-            - {name: RE8CH_TOOL_AUDIENCE, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant-byoc}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19446"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
