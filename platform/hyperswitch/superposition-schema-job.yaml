@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-superposition-schema-v0-112-0-v2
+  name: hyperswitch-superposition-schema-v0-112-0-v3
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
