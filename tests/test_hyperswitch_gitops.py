@@ -35,6 +35,12 @@ def test_hyperswitch_is_active_internal_sandbox_with_sops_values():
     assert values["hyperswitch-app"]["server"]["run_env"] == "sandbox"
 
 
+def test_control_center_route_uses_service_port_not_container_port():
+    routes = list(yaml.safe_load_all(ROUTES.read_text()))
+    route = next(item for item in routes if item.get("metadata", {}).get("name") == "hyperswitch-control-center-public")
+    assert route["spec"]["rules"][0]["backendRefs"][0]["port"] == 80
+
+
 def test_hyperswitch_disables_upstream_root_telemetry_hooks():
     release = yaml.safe_load_all(RELEASE.read_text())
     helm_release = next(item for item in release if item.get("kind") == "HelmRelease")
