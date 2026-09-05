@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: among-clusters-credential-broker-direct
+  namespace: credential-broker
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: among-clusters-credential-broker
+  ports:
+    - {name: http, port: 8080, targetPort: 8080, protocol: TCP}
+---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
