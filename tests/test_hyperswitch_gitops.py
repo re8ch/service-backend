@@ -142,7 +142,7 @@ def test_rendered_helm_values_namespace_and_job_admission():
         elif kind != "Namespace":
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
-            assert resource["metadata"]["name"].endswith("-v2")
+            assert resource["metadata"]["name"].endswith("-v3")
             pod = resource["spec"]["template"]["spec"]
             assert pod["securityContext"]["runAsNonRoot"] is True
             assert pod["securityContext"]["seccompProfile"]["type"] == "RuntimeDefault"
