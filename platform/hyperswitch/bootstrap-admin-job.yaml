@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v1
+  name: hyperswitch-bootstrap-admin-v2
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -14,6 +14,10 @@ spec:
         app.kubernetes.io/name: hyperswitch
         app.kubernetes.io/component: bootstrap-admin
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       restartPolicy: OnFailure
       affinity:
         nodeAffinity:
@@ -27,6 +31,10 @@ spec:
         - name: create-admin
           image: docker.io/curlimages/curl:8.11.1
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
           command: [/bin/sh, -ec]
           args:
             - |
