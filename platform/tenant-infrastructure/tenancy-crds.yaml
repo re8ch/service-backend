@@ -1,0 +1,152 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: tenants.tenancy.re8ch.com}
+spec:
+  group: tenancy.re8ch.com
+  scope: Cluster
+  names: {kind: Tenant, plural: tenants, singular: tenant, shortNames: [rtenant]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      selectableFields: [{jsonPath: .spec.lifecycle}]
+      additionalPrinterColumns:
+        - {name: Lifecycle, type: string, jsonPath: .spec.lifecycle}
+        - {name: Ready, type: string, jsonPath: '.status.conditions[?(@.type=="Ready")].status'}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              additionalProperties: false
+              required: [displayName, lifecycle, deletionPolicy]
+              properties:
+                displayName: {type: string, minLength: 1, maxLength: 128}
+                lifecycle: {type: string, enum: [Active, Suspended, Deleting]}
+                deletionPolicy: {type: string, enum: [Retain, RevokeThenDelete]}
+            status: &status
+              type: object
+              additionalProperties: false
+              properties:
+                observedGeneration: {type: integer, minimum: 0}
+                operationId: {type: string, pattern: '^op_[a-f0-9]+$'}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [type, status, reason, lastTransitionTime]
+                    properties:
+                      type: {type: string, enum: [Ready, Reconciling, RevocationPending, Degraded]}
+                      status: {type: string, enum: ['True', 'False', Unknown]}
+                      reason: {type: string, minLength: 1, maxLength: 128}
+                      message: {type: string, maxLength: 1024}
+                      lastTransitionTime: {type: string, format: date-time}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: tenantidentitybindings.tenancy.re8ch.com}
+spec:
+  group: tenancy.re8ch.com
+  scope: Cluster
+  names: {kind: TenantIdentityBinding, plural: tenantidentitybindings, singular: tenantidentitybinding, shortNames: [tib]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      selectableFields: [{jsonPath: .spec.tenantRef}, {jsonPath: .spec.issuer}]
+      additionalPrinterColumns:
+        - {name: Tenant, type: string, jsonPath: .spec.tenantRef}
+        - {name: Issuer, type: string, jsonPath: .spec.issuer}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              additionalProperties: false
+              required: [tenantRef, issuer, subjectHash]
+              properties:
+                tenantRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
+                issuer: {type: string, format: uri, pattern: '^https://'}
+                subjectHash: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}
+                revoked: {type: boolean, default: false}
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          x-kubernetes-validations:
+            - rule: 'self.spec.subjectHash == oldSelf.spec.subjectHash && self.spec.issuer == oldSelf.spec.issuer'
+              message: identity is immutable; revoke and replace the binding
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: tenantgrants.tenancy.re8ch.com}
+spec:
+  group: tenancy.re8ch.com
+  scope: Cluster
+  names: {kind: TenantGrant, plural: tenantgrants, singular: tenantgrant, shortNames: [tgrant]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      selectableFields: [{jsonPath: .spec.tenantRef}, {jsonPath: .spec.consumableRef}]
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              additionalProperties: false
+              required: [tenantRef, consumableRef, roleRef, lifecycle]
+              properties:
+                tenantRef: {type: string, minLength: 1}
+                consumableRef: {type: string, minLength: 1}
+                roleRef: {type: string, minLength: 1}
+                lifecycle: {type: string, enum: [Active, Revoked, Expired]}
+                notBefore: {type: string, format: date-time}
+                expiresAt: {type: string, format: date-time}
+                constraints: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: tenantserviceinstances.tenancy.re8ch.com}
+spec:
+  group: tenancy.re8ch.com
+  scope: Namespaced
+  names: {kind: TenantServiceInstance, plural: tenantserviceinstances, singular: tenantserviceinstance, shortNames: [tsi]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      selectableFields: [{jsonPath: .spec.tenantRef}, {jsonPath: .spec.serviceClass}]
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              additionalProperties: false
+              required: [tenantRef, serviceClass, plan, lifecycle]
+              properties:
+                tenantRef: {type: string, minLength: 1}
+                serviceClass: {type: string, minLength: 1}
+                plan: {type: string, minLength: 1}
+                lifecycle: {type: string, enum: [Requested, Active, Suspended, Deleting]}
+                parameters: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true

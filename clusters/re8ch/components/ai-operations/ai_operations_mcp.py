@@ -64,6 +64,7 @@ HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-opera
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
+TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -865,37 +866,40 @@ def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
 
 
 def authenticated_tenant(identity: dict[str, Any]) -> str:
-    explicit = str(identity.get("tenant") or "").strip().lower()
     groups = {str(group) for group in identity.get("groups") or []}
-    if explicit and not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", explicit):
-        raise PermissionError("authenticated tenant is not a valid DNS label")
-    if explicit:
-        if explicit == "admin" and "re8ch:tenant-admins" not in groups:
-            raise PermissionError("admin tenant requires the protected tenant-admin identity")
-        return explicit
-    candidates = set()
-    if "re8ch:tenant-admins" in groups:
-        candidates.add("admin")
-    for group in groups:
-        match = re.fullmatch(r"re8ch:tenant:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)", group)
-        legacy = re.fullmatch(r"re8ch:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)-(?:operators|members|tenant)", group)
-        match = match or legacy
-        if match:
-            candidates.add(match.group(1))
-    if len(candidates) == 1:
-        return candidates.pop()
-    if len(candidates) > 1:
-        raise PermissionError("exactly one authenticated tenant context is required")
     subject = str(identity.get("subject") or "").strip()
     issuer = str(identity.get("issuer") or "https://dex.re8ch.com").rstrip("/")
-    identity_refs = {subject, f"oidc:{issuer}#{subject}"} if subject else set()
-    email = str(identity.get("email") or "").strip().lower()
-    if email and identity.get("email_verified") is True:
-        identity_refs.add(f"email:{email}")
-    mapped = tenant_service_store().tenant_for_identity(identity_refs)
-    if mapped:
-        return mapped
-    raise PermissionError("exactly one authenticated tenant context is required")
+    if TENANT_CONTROL_URL and subject:
+        payload = json.dumps({"issuer": issuer, "subjectHash": "sha256:" + hashlib.sha256(f"{issuer}\n{subject}".encode()).hexdigest()}).encode()
+        request = urllib.request.Request(TENANT_CONTROL_URL + "/v1/resolve", data=payload, method="POST", headers={"Content-Type": "application/json", "X-Tenant-Caller": PROFILE})
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                tenant = str(json.load(response).get("tenantRef") or "")
+            if tenant:
+                if PROFILE == "tenant-admin" and (tenant != "admin" or "re8ch:tenant-admins" not in groups):
+                    raise PermissionError("admin runtime requires the protected admin tenant and group")
+                return tenant
+        except urllib.error.HTTPError as exc:
+            raise PermissionError("identity is not bound to an active tenant") from exc
+        except (urllib.error.URLError, ValueError) as exc:
+            raise RuntimeError("tenant authorizer is unavailable") from exc
+    raise PermissionError("issuer and subject must resolve through TenantIdentityBinding")
+
+
+def readiness() -> tuple[bool, dict[str, str]]:
+    checks = {}
+    targets = {"dex": "https://dex.re8ch.com/.well-known/openid-configuration"}
+    if TENANT_CONTROL_URL:
+        targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
+    if PROFILE == "tenant-registry": targets["adapter"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
+    if PROFILE == "tenant-observability": targets["adapter"] = GRAFANA_URL.rstrip("/") + "/api/health"
+    for name, url in targets.items():
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=3) as response:
+                checks[name] = "ok" if response.status < 400 else "failed"
+        except Exception:
+            checks[name] = "failed"
+    return all(value == "ok" for value in checks.values()), checks
 
 
 def tenant_client(tenant: str, reference: str) -> tuple[HarborClient, str]:
@@ -1773,6 +1777,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/livez":
+            self.send_json(200, {"status": "ok", "profile": PROFILE}); return
+        if parsed.path in {"/readyz", "/healthz"}:
+            ready, checks = readiness()
+            self.send_json(200 if ready else 503, {"status": "ready" if ready else "not-ready", "profile": PROFILE, "checks": checks}); return
         if parsed.path == "/credentials/redeem":
             self.send_html(200, '''<!doctype html><meta charset="utf-8"><title>RE8CH Credential Delivery</title>
 <style>body{font:16px system-ui;max-width:680px;margin:64px auto;padding:0 24px}button,pre{box-sizing:border-box;width:100%;padding:14px;border:1px solid #777;border-radius:10px}pre{white-space:pre-wrap;word-break:break-all;background:#eee}</style>
@@ -1787,8 +1796,6 @@ class Handler(BaseHTTPRequestHandler):
             self.marketplace_login(urllib.parse.parse_qs(parsed.query)); return
         if parsed.path == "/install/callback":
             self.marketplace_callback(urllib.parse.parse_qs(parsed.query)); return
-        if self.path.endswith("/healthz"):
-            self.send_json(200, {"status": "ok", "profile": PROFILE, "audience": AUDIENCE}); return
         if "/.well-known/oauth-protected-resource" in self.path:
             origin = os.getenv("PUBLIC_MCP_URL", f"https://{PROFILE}.tools.re8ch.com/mcp")
             self.send_json(200, {"resource": origin, "authorization_servers": ["https://dex.re8ch.com"], "bearer_methods_supported": ["header"], "scopes_supported": ["openid", "profile", "email", "groups", "offline_access"]}); return
