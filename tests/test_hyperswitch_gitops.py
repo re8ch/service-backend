@@ -43,11 +43,13 @@ def test_control_center_route_uses_service_port_not_container_port():
 
 def test_admin_bootstrap_uses_injected_service_coordinates():
     job = yaml.safe_load((ROOT / "platform/hyperswitch/bootstrap-admin-job.yaml").read_text())
-    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v8"
+    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v9"
     command = job["spec"]["template"]["spec"]["containers"][0]["args"][0]
     assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_HOST" in command
     assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_PORT" in command
     assert "/user/tenant_signup" in command
+    assert '"$base_url/accounts/$MERCHANT_ID"' in command
+    assert '"$base_url/accounts"' in command
     env = job["spec"]["template"]["spec"]["containers"][0]["env"]
     admin_key = next(item for item in env if item["name"] == "ADMIN_API_KEY")
     assert admin_key["valueFrom"]["secretKeyRef"]["key"] == "ROUTER__SECRETS__ADMIN_API_KEY"
@@ -74,7 +76,11 @@ def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
     assert labels["pod-security.kubernetes.io/audit"] == "restricted"
     values = next(item for item in objects() if item["kind"] == "HelmRelease")["spec"]["values"]
     app = values["hyperswitch-app"]
-    assert app["postgresql"]["primary"]["persistence"]["storageClass"] == "rbd-r640"
+    assert app["postgresql"]["enabled"] is False
+    assert app["externalPostgresql"]["enabled"] is True
+    assert app["externalPostgresql"]["primary"]["host"] == (
+        "pg-re8ch-primary.pigsty-external.svc.cluster.local"
+    )
     assert app["redis"]["master"]["persistence"]["storageClass"] == "rbd-r640"
     assert values["hyperswitch-ucs"]["enabled"] is False
 
@@ -87,7 +93,7 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     assert app["superpositionFallback"]["source"] == "configMap"
     assert app["superposition"]["configs"]["app_env"] == "DEV"
     assert app["superposition"]["configs"]["db_host"] == (
-        "hyperswitch-postgresql.payments.svc.cluster.local:5432"
+        "pg-re8ch-primary.pigsty-external.svc.cluster.local:5432"
     )
     assert app["server"]["configs"]["superposition"]["backup_file_path"].endswith(
         "superposition_seed.toml"
@@ -174,7 +180,7 @@ def test_rendered_helm_values_namespace_and_job_admission():
         elif kind != "Namespace":
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
-            expected_revision = "-v8" if "bootstrap-admin" in resource["metadata"]["name"] else "-v3"
+            expected_revision = "-v9" if "bootstrap-admin" in resource["metadata"]["name"] else "-v4"
             assert resource["metadata"]["name"].endswith(expected_revision)
             pod = resource["spec"]["template"]["spec"]
             assert pod["securityContext"]["runAsNonRoot"] is True
