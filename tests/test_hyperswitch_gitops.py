@@ -44,6 +44,20 @@ def test_hyperswitch_disables_upstream_root_telemetry_hooks():
     assert "postRenderers" not in helm_release["spec"]
 
 
+def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
+    namespace = yaml.safe_load(
+        (ROOT / "platform/hyperswitch/namespace.yaml").read_text()
+    )
+    labels = namespace["metadata"]["labels"]
+    assert labels["pod-security.kubernetes.io/enforce"] == "baseline"
+    assert labels["pod-security.kubernetes.io/audit"] == "restricted"
+    values = next(item for item in objects() if item["kind"] == "HelmRelease")["spec"]["values"]
+    app = values["hyperswitch-app"]
+    assert app["postgresql"]["primary"]["persistence"]["storageClass"] == "rbd-r640"
+    assert app["redis"]["master"]["persistence"]["storageClass"] == "rbd-r640"
+    assert values["hyperswitch-ucs"]["enabled"] is False
+
+
 def test_superposition_is_explicit_and_has_no_plaintext_secret():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     app = release["spec"]["values"]["hyperswitch-app"]
