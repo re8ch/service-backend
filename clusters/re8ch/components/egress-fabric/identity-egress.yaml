@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: identity-egress-config
+  namespace: egress-fabric
+data:
+  config.yaml: |
+    mixed-port: 17893
+    external-controller: 0.0.0.0:19091
+    bind-address: 0.0.0.0
+    allow-lan: true
+    mode: rule
+    ipv6: false
+    proxies:
+      - {name: global-kl, type: socks5, server: 192.0.2.245, port: 1080}
+      - {name: global-la, type: socks5, server: 192.0.2.110, port: 1080}
+    proxy-groups:
+      - name: GITHUB-OAUTH
+        type: fallback
+        proxies: [global-kl, global-la]
+        url: https://github.com/login/oauth/access_token
+        interval: 30
+        lazy: false
+    rules:
+      - DOMAIN-SUFFIX,github.com,GITHUB-OAUTH
+      - DOMAIN-SUFFIX,githubusercontent.com,GITHUB-OAUTH
+      - MATCH,GITHUB-OAUTH
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-egress
+  namespace: egress-fabric
+  labels: {app.kubernetes.io/name: identity-egress}
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: identity-egress}
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      priorityClassName: system-cluster-critical
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
+      tolerations: [{operator: Exists}]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: proxy
+          image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+          imagePullPolicy: IfNotPresent
+          args: [-f, /etc/mihomo/config.yaml]
+          ports:
+            - {name: proxy, containerPort: 17893, protocol: TCP}
+            - {name: controller, containerPort: 19091, protocol: TCP}
+          startupProbe:
+            httpGet: {path: /version, port: controller}
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /proxies/GITHUB-OAUTH/delay?url=https%3A%2F%2Fgithub.com%2Flogin%2Foauth%2Faccess_token&timeout=5000
+              port: controller
+            periodSeconds: 10
+            timeoutSeconds: 7
+            failureThreshold: 2
+          livenessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 20}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}
+      volumes:
+        - {name: config, configMap: {name: identity-egress-config}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-egress
+  namespace: egress-fabric
+  labels: {app.kubernetes.io/name: identity-egress}
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  trafficDistribution: PreferClose
+  selector: {app.kubernetes.io/name: identity-egress}
+  ports:
+    - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: identity-egress, namespace: egress-fabric}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
