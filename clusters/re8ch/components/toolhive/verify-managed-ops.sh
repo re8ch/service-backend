@@ -44,7 +44,7 @@ kubectl --server="$KUBE_SERVER" get mutatingadmissionpolicy/local-path-provision
 kubectl --server="$KUBE_SERVER" get mutatingadmissionpolicybinding/local-path-provisioner-availability.re8ch.com >/dev/null
 local_path_node=$(kubectl --server="$KUBE_SERVER" -n kube-system get deployment local-path-provisioner \
   -o jsonpath='{.spec.template.spec.nodeSelector.kubernetes\.io/hostname}')
-[ "$local_path_node" = "vm-20-12-ubuntu" ] || fail "local-path-provisioner is not pinned to the cached system-image node"
+[ "$local_path_node" = "restricted-node-6dc3f140f9" ] || fail "local-path-provisioner is not pinned to the active storage node"
 kubectl --server="$KUBE_SERVER" -n kube-system wait --for=condition=Available deployment/local-path-provisioner --timeout=60s >/dev/null
 
 # Authentik's writable-primary canary has passed; both identity components and

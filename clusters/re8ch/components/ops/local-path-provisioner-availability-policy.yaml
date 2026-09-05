@@ -28,7 +28,7 @@ spec:
             JSONPatch{
               op: 'add',
               path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'),
-              value: 'vm-20-12-ubuntu'
+              value: 'r640'
             },
             JSONPatch{
               op: 'add',
