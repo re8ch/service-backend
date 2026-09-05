@@ -153,6 +153,15 @@
     "source": "catalogs/compocv/modules/compocv/source"
   },
   {
+    "catalog": "farseer",
+    "commit": "f2555e92c9ccf2c7cc402010dcb6b631d98612f1",
+    "id": "farseer",
+    "ownership": "owned",
+    "projectType": "product-api",
+    "repository": "https://github.com/re8ch/farseer.git",
+    "source": "catalogs/farseer/modules/farseer/source"
+  },
+  {
     "catalog": "garageband",
     "commit": "d430c62fdbb14edaddba5ebadd47ca24ee669aef",
     "id": "garageband-mcp",

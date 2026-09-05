@@ -1,0 +1,2 @@
+tools: [npm, go, docker, kubectl]
+

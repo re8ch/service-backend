@@ -289,6 +289,30 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: farseer-maintain
+  namespace: git-workspaces
+spec:
+  email: farseer-maintain@phonaid.com
+  provider: github
+  project: farseer
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: farseer-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: farseer-maintain
+  projectRef: farseer
+  repository: https://github.com/re8ch/farseer.git
+  folder: catalogs/farseer/modules/farseer/source
+  branchPrefix: workspace/farseer-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: garageband-mcp-maintain
   namespace: git-workspaces
 spec:

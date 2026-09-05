@@ -8,6 +8,10 @@
     "ref": "compocv"
   },
   {
+    "module": "farseer",
+    "ref": "farseer"
+  },
+  {
     "module": "ledger",
     "ref": "ledger"
   },
