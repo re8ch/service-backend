@@ -1,0 +1,5 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: WorkspaceCatalog
+metadata: {name: farseer}
+spec: {title: Farseer, ownership: owned, knowledgeRoot: knowledge, toolIndex: tools/index.yaml}
+

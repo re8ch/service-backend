@@ -100,6 +100,22 @@
     "ref": "kubectl"
   },
   {
+    "module": "farseer",
+    "ref": "npm"
+  },
+  {
+    "module": "farseer",
+    "ref": "go"
+  },
+  {
+    "module": "farseer",
+    "ref": "docker"
+  },
+  {
+    "module": "farseer",
+    "ref": "kubectl"
+  },
+  {
     "module": "garageband-mcp",
     "ref": "garageband-mcp"
   },

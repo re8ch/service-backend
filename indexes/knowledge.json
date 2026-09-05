@@ -340,6 +340,26 @@
     "sha256": "8abef15f95cdf1852e3b7acfb24285532d19847508973623112897e4d14e8d3e"
   },
   {
+    "module": "farseer",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "farseer",
+    "ref": "catalogs/farseer/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "farseer",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "farseer",
+    "ref": "catalogs/farseer/modules/farseer/MEMORY.md",
+    "sha256": "3bd90428043c58d67fd79a313184d314f5afd1b26f9e284ad7c73c4f6c236f5a"
+  },
+  {
     "module": "garageband-mcp",
     "ref": "README.md"
   },
