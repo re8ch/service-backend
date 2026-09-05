@@ -27,11 +27,14 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
 
 
 def test_identity_egress_is_restricted_to_dex_ingress():
-    policy = documents(ROOT / "clusters/re8ch/components/egress-fabric/network-policy.yaml")[0]
-    rule = next(
-        item for item in policy["spec"]["ingress"]
-        if any(port["port"] == 17893 for port in item.get("ports", []))
-    )
+    docs = documents(ROOT / "clusters/re8ch/components/egress-fabric/identity-egress.yaml")
+    policy = next(item for item in docs if item["kind"] == "NetworkPolicy")
+    rule = policy["spec"]["ingress"][0]
     source = rule["from"][0]
     assert source["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "dex"
     assert source["podSelector"]["matchLabels"]["app.kubernetes.io/name"] == "dex"
+
+
+def test_identity_egress_is_reachable_from_the_cluster_root_overlay():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/egress-fabric/identity-egress.yaml" in root["resources"]
