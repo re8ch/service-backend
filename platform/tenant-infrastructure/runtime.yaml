@@ -65,6 +65,7 @@ spec:
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19444"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/registry/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/registry/mcp"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
           ports: [{name: registry, containerPort: 19444}]
@@ -82,6 +83,7 @@ spec:
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19445"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/observability/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/observability/mcp"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
           ports: [{name: observability, containerPort: 19445}]
           readinessProbe: {httpGet: {path: /healthz, port: observability}, periodSeconds: 5}
@@ -96,6 +98,7 @@ spec:
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19446"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/byoc/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/byoc/mcp"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/re8ch-ai-operations/tenant-services.db}
           ports: [{name: byoc, containerPort: 19446}]
           readinessProbe: {httpGet: {path: /healthz, port: byoc}, periodSeconds: 5}

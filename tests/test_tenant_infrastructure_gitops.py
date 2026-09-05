@@ -24,9 +24,11 @@ def test_tenant_runtime_has_dedicated_audience_no_kubernetes_token_and_digest_ga
     pod = deployment["spec"]["template"]["spec"]
     assert pod["automountServiceAccountToken"] is False
     profiles = {}
+    metadata_urls = {}
     for container in pod["containers"]:
         env = {item["name"]: item["value"] for item in container["env"]}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
+        metadata_urls[env["RE8CH_TOOL_PROFILE"]] = env["PUBLIC_RESOURCE_METADATA_URL"]
         assert container["image"].startswith("registry.re8ch.com/image/re8ch-ai-operations@sha256:")
         assert "IMAGE_REQUIRES_VERIFIED_DIGEST" not in container["image"]
     assert profiles == {
@@ -34,6 +36,12 @@ def test_tenant_runtime_has_dedicated_audience_no_kubernetes_token_and_digest_ga
         "tenant-registry": "https://tools.re8ch.com/tenant/registry/mcp",
         "tenant-observability": "https://tools.re8ch.com/tenant/observability/mcp",
         "tenant-byoc": "https://tools.re8ch.com/tenant/byoc/mcp",
+    }
+    assert metadata_urls == {
+        "tenant-admin": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant-admin/mcp",
+        "tenant-registry": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/registry/mcp",
+        "tenant-observability": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/observability/mcp",
+        "tenant-byoc": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/byoc/mcp",
     }
     root_kustomization = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
     assert "platform/tenant-infrastructure" in root_kustomization
