@@ -22,6 +22,11 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
     assert "@sha256:" in container["image"]
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
     assert deployment["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
+    assert deployment["spec"]["template"]["spec"]["hostNetwork"] is True
+    assert deployment["spec"]["template"]["spec"]["dnsPolicy"] == "Default"
+    init = deployment["spec"]["template"]["spec"]["initContainers"][0]
+    assert init["env"][0]["valueFrom"]["fieldRef"]["fieldPath"] == "status.hostIP"
+    assert "bind-address: ${HOST_IP}" in init["args"][0]
     assert container["args"][:2] == ["-d", "/var/lib/mihomo"]
     assert any(volume["name"] == "state" and "emptyDir" in volume for volume in deployment["spec"]["template"]["spec"]["volumes"])
     affinity = deployment["spec"]["template"]["spec"]["affinity"]
