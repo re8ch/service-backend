@@ -9,6 +9,12 @@ kept root-only on restricted-node-6dc3f140f9 and must never be copied into Kuber
 `re8ch-ai` account and the fixed `re8ch-host-op` command; generic root login and
 generic sudo are not part of this design.
 
+Windows control-plane host recovery and the non-secret three-node management
+SSH declaration live under `windows/` and `management-ssh-mesh/`. See
+`runbooks/management-ssh-mesh.md`. Host recovery remains available when
+Kubernetes is unavailable; cluster workloads may observe it but do not own
+host-reboot credentials.
+
 Installation is deliberately two-step and does not happen as a side effect of
 applying Kubernetes manifests:
 
