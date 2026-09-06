@@ -1,0 +1,76 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: neo4j, namespace: flux-system}
+spec:
+  interval: 1h
+  url: https://helm.neo4j.com/neo4j
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: neo4j
+  namespace: flux-system
+  annotations:
+    gitops.re8ch.com/adoption-phase: declared-suspended
+    gitops.re8ch.com/scope: primary-only-no-ledger
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: neo4j
+  targetNamespace: neo4j
+  storageNamespace: neo4j
+  chart:
+    spec:
+      chart: neo4j
+      version: 2026.6.0
+      sourceRef: {kind: HelmRepository, name: neo4j, namespace: flux-system}
+      interval: 1h
+  install:
+    disableTakeOwnership: false
+    remediation: {retries: 0}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
+  values:
+    # Keep rendering deterministic in Flux; readiness is validated separately.
+    disableLookups: true
+    neo4j:
+      name: neo4j
+      edition: community
+      passwordFromSecret: neo4j-auth
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    volumes:
+      data:
+        mode: volume
+        volume:
+          persistentVolumeClaim: {claimName: data-neo4j-0}
+      backups: {mode: share, share: {name: data}}
+      logs: {mode: share, share: {name: data}}
+      metrics: {mode: share, share: {name: data}}
+      import: {mode: share, share: {name: data}}
+      licenses: {mode: share, share: {name: data}}
+    additionalVolumes:
+      - name: plugins
+        persistentVolumeClaim: {claimName: plugins-neo4j-0}
+    additionalVolumeMounts:
+      - {name: plugins, mountPath: /plugins}
+    config:
+      dbms.security.procedures.unrestricted: apoc.*,gds.*
+      dbms.security.procedures.allowlist: apoc.*,gds.*
+      server.memory.heap.initial_size: 1G
+      server.memory.heap.max_size: 2G
+      server.memory.pagecache.size: 2G
+    resources:
+      requests: {cpu: 250m, memory: 3Gi}
+      limits: {cpu: "2", memory: 6Gi}
+    services:
+      default:
+        enabled: true
+        spec:
+          type: ClusterIP
+          ports:
+            http: {enabled: true, port: 7474, targetPort: 7474}
+            https: {enabled: false}
+            bolt: {enabled: true, port: 7687, targetPort: 7687}
