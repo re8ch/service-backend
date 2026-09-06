@@ -1,0 +1,43 @@
+{
+  "apiVersion": "operations.re8ch.com/v1alpha1",
+  "kind": "ManagementRecoveryRecord",
+  "metadata": {"name": "a1-b1-2026-09-06", "date": "2026-09-06", "classification": "control-plane-host-management"},
+  "spec": {
+    "trigger": "R640 OS hang followed by A1 WireGuard boot ordering failure and loss of Windows host SSH management paths",
+    "rootCauses": [
+      "A1 wg-quick started before its 10.181.22.147 preferred source address was available",
+      "A1 Windows OpenSSH Server was absent",
+      "Windows OpenSSH capability installation failed with 0x80240438 because the feature source was unreachable",
+      "A1 and B1 Windows hosts had no active ZeroTier interface, so legacy direct Windows addresses timed out"
+    ],
+    "repairs": [
+      "Validated the declared R640 public network authority before restoring A1 WireGuard",
+      "Restored the A1-R640 WireGuard session and etcd quorum",
+      "Installed the reviewed SYSTEM control-plane watchdog on B1, then A1",
+      "Recovered A1 OpenSSH from B1's matching standalone Microsoft OpenSSH installation without copying host keys",
+      "Installed per-host Administrator public keys with SYSTEM and Administrators-only ACLs",
+      "Changed operator access to WSL ZeroTier jump hosts followed by the Windows LAN endpoint"
+    ],
+    "openSshArtifact": {
+      "sourceHost": "b1-windows",
+      "sourcePath": "C:\\Program Files\\OpenSSH",
+      "sshdFileVersion": "10.0.0.0",
+      "sshdSha256": "d66150486d472b8748cae2d6f5078a210dae91621447974bde028f077a4ef90c",
+      "targetOsVersion": "10.0.20348",
+      "hostKeysCopied": false
+    },
+    "verification": {
+      "windowsSshAliases": ["A1", "B1"],
+      "windowsSshHostnames": ["A1", "B1"],
+      "sshdState": "Running",
+      "sshdStartupType": "Automatic",
+      "watchdogTaskState": "Ready",
+      "watchdogPrincipal": "SYSTEM",
+      "watchdogLogonType": "ServiceAccount",
+      "controlPlaneNodesReady": ["a1-wsl-zt", "b1-wsl-zt", "r640"],
+      "kubernetesReadyz": "ok",
+      "hostRebootPerformed": false
+    },
+    "secretsRecorded": false
+  }
+}
