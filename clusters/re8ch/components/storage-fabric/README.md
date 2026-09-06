@@ -42,6 +42,11 @@ The current data placement is:
   during the rollback window, and logical Cypher exports are mirrored to CephFS.
 - model assets are mirrored into the managed restricted-node-6dc3f140f9 CephFS data pool.
 
+restricted-node-6dc3f140f9 installs `systemd/re8ch-postgres-stack-start` and its service/timer. The
+timer retries after boot until Ceph can map and mount the dedicated RBD; it
+never promotes either `nofailover` replica. Patroni starts only after the
+expected `PG_VERSION` exists on the mounted filesystem.
+
 Fallback is deliberately one-way and single-writer. It is a recovery copy, not
 an automatic dual-writer failover. Install the units in `systemd/` on restricted-node-6dc3f140f9;
 `re8ch-nas-fallback-bind.service` makes the local view private before the CephFS

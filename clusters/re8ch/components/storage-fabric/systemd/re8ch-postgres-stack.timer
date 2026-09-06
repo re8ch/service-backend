@@ -1,0 +1,11 @@
+[Unit]
+Description=Retry-safe delayed startup of the R640 RE8CH PostgreSQL primary
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+AccuracySec=10s
+Unit=re8ch-postgres-stack.service
+
+[Install]
+WantedBy=timers.target

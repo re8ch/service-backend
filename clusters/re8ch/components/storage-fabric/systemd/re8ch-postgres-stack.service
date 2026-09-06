@@ -1,0 +1,10 @@
+[Unit]
+Description=Start the R640 RE8CH PostgreSQL primary after its RBD is available
+After=network-online.target patroni-dcs-etcd.service
+Wants=network-online.target patroni-dcs-etcd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-postgres-stack-start
+TimeoutStartSec=180s
+RemainAfterExit=yes
