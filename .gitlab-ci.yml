@@ -77,6 +77,7 @@ tenant-infrastructure-release:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - clusters/re8ch/components/ai-operations/**/*
+        - operations/mcp-conformance/release-tenant-infrastructure.sh
   before_script: []
   script:
     - ./operations/mcp-conformance/release-tenant-infrastructure.sh

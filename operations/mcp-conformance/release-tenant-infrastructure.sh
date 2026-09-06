@@ -11,8 +11,22 @@ done
 docker info >/dev/null
 docker buildx version >/dev/null
 docker sbom version >/dev/null
+
+# The Macmini runner may keep a remote restricted-node-6dc3f140f9 builder selected even while its
+# local tunnel is down. Release correctness does not depend on that builder:
+# select the known local BuildKit instance unless the caller explicitly pins a
+# healthy alternative.
+: "${TENANT_IMAGE_BUILDER:=re8ch-direct}"
+if ! docker buildx inspect --bootstrap "$TENANT_IMAGE_BUILDER" >/dev/null 2>&1; then
+  if docker buildx inspect --bootstrap default >/dev/null 2>&1; then
+    TENANT_IMAGE_BUILDER=default
+  else
+    echo "No healthy local BuildKit builder is available" >&2
+    exit 1
+  fi
+fi
 if [[ "${1:-}" == "--check" ]]; then
-  echo "Tenant release tools and Docker daemon are available"
+  echo "Tenant release tools, Docker daemon and builder ${TENANT_IMAGE_BUILDER} are available"
   exit 0
 fi
 
@@ -30,7 +44,7 @@ printf '%s' "$HARBOR_PASSWORD" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" -
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 push_attempt=1
 push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
-while ! docker buildx build --platform linux/amd64 --provenance=mode=max \
+while ! docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 --provenance=mode=max \
   --attest "type=sbom,generator=${sbom_generator}" \
   --push --metadata-file "$metadata" -f "$dockerfile" -t "$image" .; do
   if (( push_attempt >= push_attempts )); then
