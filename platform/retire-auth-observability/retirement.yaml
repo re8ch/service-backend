@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: retire-unused-auth-observability, namespace: flux-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: retire-unused-auth-observability}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments/scale]
+    resourceNames:
+      - authentik-server
+      - authentik-worker
+      - authentik-redis
+      - otel-operator-opentelemetry-operator
+      - robusta-forwarder
+      - robusta-runner
+      - trial-gateway-collector
+    verbs: [get, patch, update]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    resourceNames: [authentik-server]
+    verbs: [get, delete]
+  - apiGroups: [opentelemetry.io]
+    resources: [opentelemetrycollectors]
+    resourceNames: [trial-gateway]
+    verbs: [get, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: retire-unused-auth-observability}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: retire-unused-auth-observability}
+subjects:
+  - {kind: ServiceAccount, name: retire-unused-auth-observability, namespace: flux-system}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: retire-unused-auth-observability-v1
+  namespace: flux-system
+  labels: {app.kubernetes.io/part-of: platform-retirement}
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata: {labels: {app.kubernetes.io/part-of: platform-retirement}}
+    spec:
+      serviceAccountName: retire-unused-auth-observability
+      restartPolicy: OnFailure
+      containers:
+        - name: retire
+          image: registry.k8s.io/kubectl:v1.33.4@sha256:261a9ed843eb68e3d50da132245e2221d75ca19504130e47bd32788c0ff339a0
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              kubectl -n auth scale deployment/authentik-server deployment/authentik-worker deployment/authentik-redis --replicas=0
+              kubectl -n auth delete ingress/authentik-server --ignore-not-found
+              kubectl -n opentelemetry-operator scale deployment/otel-operator-opentelemetry-operator --replicas=0
+              kubectl -n observability-ai delete opentelemetrycollector/trial-gateway --ignore-not-found
+              kubectl -n observability-ai scale deployment/robusta-forwarder deployment/robusta-runner --replicas=0
+              kubectl -n auth get deployment authentik-server authentik-worker authentik-redis -o jsonpath='{range .items[*]}{.metadata.name}={.spec.replicas}{"\n"}{end}'
+              kubectl -n observability-ai get deployment robusta-forwarder robusta-runner -o jsonpath='{range .items[*]}{.metadata.name}={.spec.replicas}{"\n"}{end}'

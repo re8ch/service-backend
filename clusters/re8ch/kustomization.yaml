@@ -37,6 +37,7 @@ resources:
   - ../../platform/connectool
   - ../../platform/gitlab-runner-r640
   - ../../platform/birfucate-metering
+  - ../../platform/retire-auth-observability
   - ../../platform/tenant-infrastructure
   - ../../platform/hyperswitch
   - ../../platform/public-edge-manager
