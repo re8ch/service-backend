@@ -236,7 +236,7 @@ metadata: {name: personal-access-auto-public, namespace: egress-fabric, labels: 
 addressType: IPv4
 ports: [{name: anytls, port: 24443, protocol: TCP}]
 endpoints:
-  - {addresses: [192.0.2.3], conditions: {ready: true}, zone: us-ca}
+  - {addresses: [192.0.2.91], conditions: {ready: true}, zone: us-la}
   - {addresses: [192.0.2.27], conditions: {ready: true}, zone: my-kul}
 ---
 apiVersion: discovery.k8s.io/v1
@@ -244,7 +244,7 @@ kind: EndpointSlice
 metadata: {name: personal-access-us-ca-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-us-ca}}
 addressType: IPv4
 ports: [{name: anytls, port: 24443, protocol: TCP}]
-endpoints: [{addresses: [192.0.2.3], conditions: {ready: true}, zone: us-ca}]
+endpoints: [{addresses: [192.0.2.91], conditions: {ready: true}, zone: us-la}]
 ---
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
@@ -259,7 +259,7 @@ metadata: {name: personal-access-hysteria2-public, namespace: egress-fabric, lab
 addressType: IPv4
 ports: [{name: hysteria2, port: 24444, protocol: UDP}]
 endpoints:
-  - {addresses: [192.0.2.3], conditions: {ready: true}, zone: us-ca}
+  - {addresses: [192.0.2.91], conditions: {ready: true}, zone: us-la}
   - {addresses: [192.0.2.27], conditions: {ready: true}, zone: my-kul}
 ---
 apiVersion: gateway.networking.k8s.io/v1
