@@ -21,11 +21,14 @@ spec:
           properties:
             spec:
               type: object
-              required: [displayName, lifecycle, deletionPolicy]
+              required: [displayName, lifecycle, deletionPolicy, runtimeNamespaceRef]
               properties:
                 displayName: {type: string, minLength: 1, maxLength: 128}
                 lifecycle: {type: string, enum: [Active, Suspended, Deleting]}
                 deletionPolicy: {type: string, enum: [Retain, RevokeThenDelete]}
+                runtimeNamespaceRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
+                imagePullSecretRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$'}
+                harborProjectRef: {type: string, pattern: '^[a-z0-9](?:[._-]?[a-z0-9]+)*$'}
             status: &status
               type: object
               properties:
@@ -148,3 +151,75 @@ spec:
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: tenantresourceclaims.tenancy.re8ch.com}
+spec:
+  group: tenancy.re8ch.com
+  scope: Namespaced
+  names: {kind: TenantResourceClaim, plural: tenantresourceclaims, singular: tenantresourceclaim, shortNames: [trc]}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      selectableFields: [{jsonPath: .spec.tenantRef}, {jsonPath: .spec.capability}, {jsonPath: .status.phase}]
+      additionalPrinterColumns:
+        - {name: Tenant, type: string, jsonPath: .spec.tenantRef}
+        - {name: Capability, type: string, jsonPath: .spec.capability}
+        - {name: Phase, type: string, jsonPath: .status.phase}
+        - {name: Expires, type: date, jsonPath: .status.expiresAt}
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [tenantRef, idempotencyKey, capability, ttlSeconds, parameters]
+              properties:
+                tenantRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
+                idempotencyKey: {type: string, minLength: 8, maxLength: 128}
+                capability: {type: string, enum: [compute.workload.v1, storage.volume.v1]}
+                ttlSeconds: {type: integer, minimum: 300, maximum: 2592000}
+                desiredState: {type: string, enum: [Active, Released], default: Active}
+                parameters:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              properties:
+                observedGeneration: {type: integer, minimum: 0}
+                phase: {type: string, enum: [Pending, Provisioning, Ready, Updating, Expiring, Released, Failed]}
+                expiresAt: {type: string, format: date-time}
+                claimHash: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}
+                runtimeNamespaceRef: {type: string}
+                workloadRef:
+                  type: object
+                  properties: {apiVersion: {type: string}, kind: {type: string}, name: {type: string}, namespace: {type: string}}
+                volumeRef:
+                  type: object
+                  properties: {name: {type: string}, namespace: {type: string}}
+                endpoint:
+                  type: object
+                  properties: {url: {type: string, format: uri}, anonymous: {type: boolean}}
+                imagePolicy:
+                  type: object
+                  properties: {verifiedImageDigest: {type: string}, digestVerified: {type: boolean}, signatureVerified: {type: boolean}, scanPassed: {type: boolean}, sbomPresent: {type: boolean}, provenancePresent: {type: boolean}}
+                conditions:
+                  type: array
+                  x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys: [type]
+                  items:
+                    type: object
+                    required: [type, status, reason, lastTransitionTime]
+                    properties:
+                      type: {type: string}
+                      status: {type: string, enum: ['True', 'False', Unknown]}
+                      reason: {type: string}
+                      message: {type: string, maxLength: 1024}
+                      lastTransitionTime: {type: string, format: date-time}
+          x-kubernetes-validations:
+            - rule: 'self.spec.tenantRef == oldSelf.spec.tenantRef && self.spec.idempotencyKey == oldSelf.spec.idempotencyKey && self.spec.capability == oldSelf.spec.capability'
+              message: tenantRef, idempotencyKey and capability are immutable

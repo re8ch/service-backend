@@ -8,7 +8,7 @@ member addresses rather than an HA VIP. Never run this chart through the old
 `192.0.2.192:6443` endpoint: that address now belongs to the
 `vm-20-12-ubuntu` worker and no longer serves the Kubernetes API. Before any
 storage mutation, verify the selected member with `/readyz`, node readiness,
-Rook/Ceph health, and the Qwen smoke endpoint.
+Rook/Ceph health, and an approved tenant-independent smoke endpoint.
 
 This chart inventories visible Alibaba OSS and Tencent COS buckets and can
 install the rclone CSI driver. It keeps object stores parallel to CephFS:

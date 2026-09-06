@@ -23,9 +23,9 @@ only; it does not carry arbitrary terminal IP traffic.
 - `networking.re8ch.com/mihomo-node=enabled` records the installed capability;
   it no longer gates DaemonSet placement. `mihomo-gateway` remains the non-local
   ClusterIP bootstrap path while a node is warming its pinned image.
-- While restricted-node-6dc3f140f9 host-to-Cilium ingress is under repair,
+- While R640 host-to-Cilium ingress is under repair,
   `re8ch-mihomo-transit-relay.service` may expose that gateway only on
-  `192.0.2.179:7890`. It must never bind a public, LAN, or Node InternalIP.
+  `10.250.0.128:7890`. It must never bind a public, LAN, or Node InternalIP.
 - Host image pulls opt in through `k3s-egress-proxy.conf` and the accompanying
   environment file. `NO_PROXY` keeps all cluster, private, RE8CH, etcd and
   storage traffic direct. Enabling or disabling it requires a one-node-at-a-time
@@ -65,7 +65,7 @@ The intended region labels are `洛杉矶出口`, `娄底出口`, `长沙出口`
 region has a real NetBird routing peer, a working Mihomo/forwarding dataplane,
 and external reachability plus throughput evidence. Relay-only K3s nodes are
 not advertised as exits. As of 2026-08-10 only Los Angeles
-(`re8ch-router-la-edge-50`) and Loudi/restricted-node-6dc3f140f9 (`re8ch-router-cn-r640`) satisfy the
+(`re8ch-router-la-edge-50`) and Loudi/R640 (`re8ch-router-cn-r640`) satisfy the
 routing-peer prerequisite; the other four names remain planned rather than
 fake selectable profiles.
 
@@ -73,7 +73,7 @@ Device assignment is group-driven. A newly enrolled peer with no profile group
 uses only the ordinary NetBird peer mesh and does not automatically consume an
 exit. Assign exactly one full-exit or split-exit profile per device to avoid
 overlapping default routes. The `harry@re8ch.com` Android canary
-`192.0.2.4` was assigned to the existing `geo-split-clients` profile on
+`100.123.135.80` was assigned to the existing `geo-split-clients` profile on
 2026-08-10 while the Chinese display-name migration is staged.
 
 Mihomo's native provider health check and `automatic-fallback` group provide a
@@ -140,9 +140,9 @@ sudo k3s kubectl -n egress-fabric rollout restart ds/mihomo-node
 
 ## Staged deployment
 
-Run from restricted-node-6dc3f140f9 while `/readyz` is `ok` and the exact target nodes are healthy.
+Run from R640 while `/readyz` is `ok` and the exact target nodes are healthy.
 An unrelated worker being `NotReady` is an alert, not an apply gate. Mihomo may
-be installed on every eligible non-Nuclio/non-Qianwen node as a routing
+be installed on every eligible non-application node as a routing
 capability, while the controller admits only healthy candidates and requires an
 N-of-M path quorum; no individual low-bandwidth CN candidate is mandatory.
 
@@ -163,7 +163,7 @@ transparent interception is authorized:
 ```yaml
 - {name: HTTP_PROXY, value: http://mihomo-node.egress-fabric.svc:7890}
 - {name: HTTPS_PROXY, value: http://mihomo-node.egress-fabric.svc:7890}
-- {name: NO_PROXY, value: .svc,.cluster.local,192.0.2.183/8,192.0.2.81/10}
+- {name: NO_PROXY, value: .svc,.cluster.local,10.0.0.0/8,100.64.0.0/10}
 ```
 
 Validate DNS, target HTTPS, observed public IP, controller selection and
@@ -185,19 +185,19 @@ Rollback removes proxy environment variables first. Scaling `mihomo-node` and
 the controller to zero then returns traffic to its original direct behavior.
 Because no host route is touched, rollback does not require Cilium/BGP repair.
 
-## restricted-node-6dc3f140f9 edge authority
+## R640 edge authority
 
-restricted-node-6dc3f140f9 does not directly own the physical ZeroTier ingress. MikroTik owns
-`192.0.2.178` and proxies traffic to the restricted-node-6dc3f140f9 LAN address
-`192.0.2.169`. Services intended to use that ingress must listen on
-`192.0.2.169` or `0.0.0.0`; binding only the restricted-node-6dc3f140f9 dummy
-`192.0.2.178/32` bypasses the MikroTik DNAT destination.
+R640 does not directly own the physical ZeroTier ingress. MikroTik owns
+`10.181.22.128` and proxies traffic to the R640 LAN address
+`192.168.88.251`. Services intended to use that ingress must listen on
+`192.168.88.251` or `0.0.0.0`; binding only the R640 dummy
+`10.181.22.128/32` bypasses the MikroTik DNAT destination.
 
 As of 2026-08-09, existing specific DNAT rules win first. MikroTik preserves
 its active WAN UDP control ports (IKE/IPsec, ZeroTier and deployed WireGuard
 listeners) plus ESP. All remaining public TCP, UDP and other IP protocols for
-`192.0.2.138` default-DNAT to `192.0.2.169` without port translation.
-The final WAN masquerade provides symmetric restricted-node-6dc3f140f9 egress. restricted-node-6dc3f140f9 UFW permits
-traffic arriving on `eno2np1` for `192.0.2.169`; service authentication and
+`223.159.210.222` default-DNAT to `192.168.88.251` without port translation.
+The final WAN masquerade provides symmetric R640 egress. R640 UFW permits
+traffic arriving on `eno2np1` for `192.168.88.251`; service authentication and
 host hardening are therefore mandatory. Add a per-port MikroTik rule only for
 translation, source restriction, or traffic retained by RouterOS.

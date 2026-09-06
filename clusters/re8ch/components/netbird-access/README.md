@@ -2,21 +2,21 @@
 
 This directory deploys a single-account NetBird Community control plane at
 `access.re8ch.com:8443` plus two container-isolated routing peers. The peers run in
-Pod network namespaces on `restricted-node-6dc3f140f9` and `overseas-edge-50`; they do not use
+Pod network namespaces on `r640` and `overseas-edge-50`; they do not use
 `hostNetwork` and must not change host routes, Cilium, FRR, or Kubernetes node
 identity addresses.
 
 ## Hard gates
 
 Do not apply the shared control-plane stack while K3s `/readyz` reports an etcd
-failure. Run `preflight.sh` through restricted-node-6dc3f140f9 first; its whole-cluster readiness gate
+failure. Run `preflight.sh` through R640 first; its whole-cluster readiness gate
 applies to shared control-plane changes, not to an isolated regional relay. The stack also requires the
 default `local-path` StorageClass and the existing wildcard TLS Secret in the
 `llm-gateway` namespace. The single-replica server and its local volume are
-pinned to restricted-node-6dc3f140f9; back up the PVC before moving the control plane.
+pinned to R640; back up the PVC before moving the control plane.
 
-The current public origin is `192.0.2.138`. The DNS controller owns the A
-record. MikroTik must forward public UDP 3478 to restricted-node-6dc3f140f9 UDP NodePort 30478; this
+The current public origin is `223.159.210.222`. The DNS controller owns the A
+record. MikroTik must forward public UDP 3478 to R640 UDP NodePort 30478; this
 is an edge-router change, not a Kubernetes node route change. Do not proxy this
 hostname through Cloudflare because NetBird needs gRPC, WebSocket, relay, and
 STUN behavior end to end.
@@ -42,7 +42,7 @@ manual `re8ch.com` DNS changes.
 
 ## Deployment
 
-From restricted-node-6dc3f140f9:
+From R640:
 
 ```bash
 cd /path/to/cloud-functions/manifests/k3s/netbird-access
@@ -60,7 +60,7 @@ KUBECTL='sudo k3s kubectl' ./deploy-routing-peers.sh
 ```
 
 Regional external relay canaries use a scoped gate: K3s API/etcd, the exact
-target nodes, NetBird public root and a Qwen regional smoke must be healthy.
+target nodes, NetBird public root and a tenant-independent regional smoke must be healthy.
 An unrelated NotReady node that is neither selected nor changed is reported but
 does not block adding a relay in another failure domain. Install the shared
 relay auth Secret without printing it, then deploy:
@@ -87,16 +87,16 @@ This exception does not apply to NetBird routing peers or Mihomo.
 
 Canary state on 2026-08-09:
 
-- `relay-gz-1.re8ch.com` -> `rancher-panel` / `192.0.2.192`: DNS, public TLS
+- `relay-gz-1.re8ch.com` -> `rancher-panel` / `1.14.174.244`: DNS, public TLS
   relay on TCP 31080, QUIC relay on UDP 31080 and STUN on UDP 31081 passed.
-- `relay-hz-1.re8ch.com` -> `harbor-registry` / `192.0.2.185`: public TLS
+- `relay-hz-1.re8ch.com` -> `harbor-registry` / `8.136.187.255`: public TLS
   relay on TCP 31080 and STUN on UDP 3478 passed. The target node briefly
   became NotReady during rollout, then recovered and the Deployment converged
   to 1/1 Ready with zero restarts.
-- `qianwen-nuclio-79` is explicitly excluded from this rollout.
+- Application nodes are explicitly excluded from this rollout.
 
 The management server now advertises both regional relays and both working
-STUN endpoints. The former embedded restricted-node-6dc3f140f9 relay is disabled; its exact server
+STUN endpoints. The former embedded R640 relay is disabled; its exact server
 Secret is retained as `netbird-server-config-pre-external-relay-20260809` for
 rollback. `activate-external-relays.sh` is idempotent and never overwrites that
 first rollback copy.
@@ -106,7 +106,7 @@ first rollback copy.
 The real Android peer `yuechu` was tested from the LA routing peer before and
 after cutover using the same 20-packet probe:
 
-- embedded restricted-node-6dc3f140f9 relay: 193.2/1236.0/5922.0 ms min/avg/max, 0% loss;
+- embedded R640 relay: 193.2/1236.0/5922.0 ms min/avg/max, 0% loss;
 - Guangzhou QUIC relay: 192.2/203.2/218.8 ms, 0% loss;
 - Hangzhou relay after forced Guangzhou failure: 184.9/221.8/789.4 ms, 0%
   loss, including the first post-switch packet;
@@ -152,7 +152,7 @@ default, so a failed publication cannot erase the last working rules. The API
 token belongs to the `geodb-sync` Network Admin service user and exists only in
 the `netbird-geodb-sync` Secret.
 
-The same immutable snapshot is rendered locally for the restricted-node-6dc3f140f9 transparent
+The same immutable snapshot is rendered locally for the R640 transparent
 gateway. `geosite-cn` contains suffix rules and `geoip-cn` contains collapsed
 IPv4/IPv6 CIDRs. The gateway never downloads GeoSite/GeoIP at startup. NetBird
 management, overlay and RFC1918 destinations are evaluated before customer
@@ -164,7 +164,7 @@ peers.
 Use one Deployment, setup key, state directory and routing-peer group per
 region. `onboard-regional-peer.sh` is create-only: it refuses to mutate an
 existing Deployment and refuses a NotReady target node. A failed new peer is
-therefore isolated and cannot roll or reconfigure LA, restricted-node-6dc3f140f9, the NetBird server,
+therefore isolated and cannot roll or reconfigure LA, R640, the NetBird server,
 or another region. Setup keys auto-assign only that region's router group;
 client profile groups are attached later, after reachability and throughput
 acceptance.
@@ -181,20 +181,20 @@ Mihomo consumes the full pinned CN snapshot. CN suffix/CIDR matches select
 `LOUDI-DIRECT`; everything else selects `stable-egress`. `LOUDI-DIRECT` is a
 Mihomo-native WireGuard outbound to MikroTik over the LAN only:
 
-- endpoint `192.0.2.240:51891`, transit `192.0.2.253/30`, MTU 1380;
+- endpoint `192.168.88.1:51891`, transit `192.168.97.0/30`, MTU 1380;
 - the private key is stored only in `netbird-mihomo-loudi-wireguard` and the
   rendered provider only in `netbird-mihomo-loudi-path`;
-- MikroTik accepts the endpoint only from restricted-node-6dc3f140f9 `192.0.2.169`, forwards the
+- MikroTik accepts the endpoint only from R640 `192.168.88.251`, forwards the
   tunnel only to `WAN`, NATs it through the main Loudi WAN, and clamps TCP MSS
   to 1200 in both directions;
 - no public DNAT, Cilium/BGP mutation, host route, or NetBird control-plane
   change is involved.
 
-This source identity prevents MikroTik's legacy restricted-node-6dc3f140f9 destination-IP PBR from
+This source identity prevents MikroTik's legacy R640 destination-IP PBR from
 classifying a second time after Mihomo has already classified a domain. The
 NetBird user profile is `loudi-split-clients`, exposed by Network
-`娄底出口+海外请求分流`: all IPv4 enters the restricted-node-6dc3f140f9 classifier, CN exits as
-`192.0.2.138`, and non-CN exits through LA as `192.0.2.189`. New members
+`娄底出口+海外请求分流`: all IPv4 enters the R640 classifier, CN exits as
+`223.159.210.222`, and non-CN exits through LA as `38.207.168.50`. New members
 are never auto-added; assign the group only after client-specific acceptance.
 
 RouterOS rollback is based on backup/export
@@ -212,7 +212,7 @@ Pod-local TBF qdisc. Its identity is persisted at
 direct WireGuard whenever the cloud firewall permits it. The LA Pod deliberately
 uses `1.1.1.1` and `8.8.8.8` as its original DNS upstream: cluster DNS has been
 observed returning poisoned answers for Google/YouTube, while domain resources
-must resolve at the overseas routing peer. The restricted-node-6dc3f140f9 CN peer is now the canary
+must resolve at the overseas routing peer. The R640 CN peer is now the canary
 transparent Mihomo gateway. A separate `netbird-egress-probe` Linux client is
 assigned to a probe-only Network whose sole router is that gateway; it prevents
 LA-direct from making an acceptance test look successful. Its

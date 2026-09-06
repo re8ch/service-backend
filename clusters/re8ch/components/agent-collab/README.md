@@ -1,14 +1,14 @@
-# Agent Collab / restricted-node-6dc3f140f9 AI Platform
+# Agent Collab / R640 AI Platform
 
-本目录同时保存当前 restricted-node-6dc3f140f9 AI 智能表格平台和 2026-07-02 的历史失败记录。
+本目录同时保存当前 R640 AI 智能表格平台和 2026-07-02 的历史失败记录。
 当前运行路径以 `teable-pg-re8ch.yaml` 及下列恢复清单为准。
 
-## Current restricted-node-6dc3f140f9 Runtime
+## Current R640 Runtime
 
-- Teable 和 Redis 固定在 `restricted-node-6dc3f140f9`。
-- 集群内 DNS 统一由 Advanced Fabric DNS `192.0.2.149` 提供；本目录不再
+- Teable 和 Redis 固定在 `r640`。
+- 集群内 DNS 统一由 Advanced Fabric DNS `10.43.65.40` 提供；本目录不再
   维护节点专用 DNS 或 kubelet DNS 覆盖。
-- `teable-edge-relay.yaml` 在 ICP 节点把 Teable restricted-node-6dc3f140f9 NodePort 转给面板
+- `teable-edge-relay.yaml` 在 ICP 节点把 Teable R640 NodePort 转给面板
   Nginx；`teable-panel-nginx.conf` 是面板端配置的受控副本。
 - `wechat-content-orchestrator.yaml` 提供 Teable → Kagent → Codex MCP
   编排入口。
@@ -45,7 +45,7 @@ kine began returning TLS handshake timeouts and slow SQL warnings. Recovery
 required killing the Teable/Redis workload processes, restarting `k3s`, scaling
 the Teable Deployments to zero, and deleting the remaining Teable Pods.
 
-The corrected first deployment target is restricted-node-6dc3f140f9, and the current manifest is:
+The corrected first deployment target is R640, and the current manifest is:
 
 ```text
 manifests/k3s/agent-collab/teable-pg-re8ch.yaml
@@ -115,4 +115,4 @@ Post-rollback checks showed all nodes Ready and no Teable PV output.
 - Keep Teable migrations in an init container using the migrator database URL.
 - Keep public Ingress/DNS as a separate explicit step after service health is
   confirmed.
-- Re-check Qwen/API smoke endpoints before any public routing change.
+- Re-check platform and tenant API smoke endpoints before any public routing change.

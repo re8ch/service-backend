@@ -68,14 +68,14 @@ and encrypted transport definitions are never included in the chart.
 
 | Domain | Prefix | Authority | May be optimized by FRR |
 | --- | --- | --- | --- |
-| Kubernetes node identity | `192.0.2.20/24` | K3S Node InternalIP / ZeroTier | No |
-| A1/B1 and private-transit identity | `192.0.2.65/24` | Host loopback + FRR | Yes, service/transit use only |
-| Kubernetes Service VIP | `192.0.2.121/24` | Cilium LB IPAM | Yes |
-| Pod CIDR | `192.0.2.57/16` | Cilium/Kubernetes IPAM | No |
+| Kubernetes node identity | `10.181.22.0/24` | K3S Node InternalIP / ZeroTier | No |
+| A1/B1 and private-transit identity | `10.250.0.0/24` | Host loopback + FRR | Yes, service/transit use only |
+| Kubernetes Service VIP | `10.251.0.0/24` | Cilium LB IPAM | Yes |
+| Pod CIDR | `10.42.0.0/16` | Cilium/Kubernetes IPAM | No |
 
 The former incident happened when routing policy changed the next hop for the
 Node InternalIP domain. The service-VIP design avoids that failure mode by
-advertising only exact `/32` LoadBalancer VIPs from `192.0.2.121/24`.
+advertising only exact `/32` LoadBalancer VIPs from `10.251.0.0/24`.
 
 ## Intended data path
 
@@ -83,9 +83,9 @@ advertising only exact `/32` LoadBalancer VIPs from `192.0.2.121/24`.
 selected LoadBalancer Service
   -> Cilium allocates one 10.251.0.x VIP
   -> A1/B1 advertise that /32 to the ICP FRR handoff
-  -> restricted-node-6dc3f140f9 advertises it to both A1 and B1 over private-transit
-  -> FRR exports only 192.0.2.121/24 more-specifics into the service fabric
-  -> A1/B1 use the high-speed WSL LAN fabric; restricted-node-6dc3f140f9 uses the MikroTik edge
+  -> R640 advertises it to both A1 and B1 over private-transit
+  -> FRR exports only 10.251.0.0/24 more-specifics into the service fabric
+  -> A1/B1 use the high-speed WSL LAN fabric; R640 uses the MikroTik edge
 ```
 
 Cilium BGP is an advertisement control plane; it does not create the data path.
@@ -115,16 +115,16 @@ pass the live read-only checks listed below.
 2. A1/B1 sustained bidirectional transfer still uses `wg-wsl-lan`; small ping
    success alone is insufficient.
 3. `ip route get` for every other control-plane InternalIP has the documented
-   stable path. No FRR RIB/FIB entry may cover `192.0.2.20/24` or
-   `192.0.2.57/16`.
+   stable path. No FRR RIB/FIB entry may cover `10.181.22.0/24` or
+   `10.42.0.0/16`.
 4. The three embedded-etcd control-plane nodes and their Cilium agents are
    Ready. Unrelated worker readiness is not a routing-change gate.
-5. FRR import/export policies on A1, B1 and restricted-node-6dc3f140f9/MikroTik accept only exact
-   `192.0.2.121/24` service `/32` routes from the Cilium handoff.
+5. FRR import/export policies on A1, B1 and R640/MikroTik accept only exact
+   `10.251.0.0/24` service `/32` routes from the Cilium handoff.
 6. The selected canary Service has at least two topology-spread Ready endpoints
    and a PodDisruptionBudget.
 7. Existing product endpoints remain unchanged; this fabric does not modify
-   Qwen workloads or public DNS.
+   tenant workloads or public DNS.
 
 ## Stage 1 canary
 
@@ -143,12 +143,12 @@ black-hole analysis deterministic.
 When enabled, the optional Mihomo DaemonSet runs only on nodes carrying its
 capability label. Its Service defaults to `ClusterIP`. A reviewed deployment
 may set `service.type=LoadBalancer`, `service.advertise=true`, and request an
-address such as `192.0.2.181`. Cilium then owns that Service address and BGP
+address such as `10.251.0.2`. Cilium then owns that Service address and BGP
 announces the exact `/32` from nodes with eligible endpoints.
 
 The VIP solves stable discovery and next-hop failover for proxy clients; it
-does not accelerate traffic by itself. The `192.0.2.181` experiment was removed
-because BGP selected restricted-node-6dc3f140f9 correctly while remote host-to-Cilium-Service ingress
+does not accelerate traffic by itself. The `10.251.0.2` experiment was removed
+because BGP selected R640 correctly while remote host-to-Cilium-Service ingress
 failed. Keeping the advertisement would have created a deterministic black
 hole. Re-enable it only after an external host can complete TCP and HTTP CONNECT
 tests through the VIP and withdrawal is verified when the endpoint disappears.

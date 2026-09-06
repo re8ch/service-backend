@@ -143,29 +143,66 @@ def shard_for(workload, resources, config):
     meta, spec = workload["metadata"], workload.get("spec", {})
     ns, kind = meta["namespace"], workload["kind"]
     deps, ambiguous = dependencies(workload, resources)
-    cls = classification(ns, config)
+    claim_uid = meta.get("labels", {}).get("tenancy.re8ch.com/claim-uid")
+    cls = "tenant-facing-product" if claim_uid else classification(ns, config)
     containers = spec.get("template", {}).get("spec", {}).get("containers", [])
     if kind == "CronJob":
         containers = spec.get("jobTemplate", {}).get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
     requested = {"containers": [{"name": c.get("name"), "requests": c.get("resources", {}).get("requests", {})} for c in containers]}
+    meters = meter_contract(kind, ns)
+    if claim_uid:
+        meters = [meter for meter in meters if meter["name"] != "gpu_second"]
     return {
         "apiVersion": f"{GROUP}/{VERSION}", "kind": "ServiceShard",
         "metadata": {"name": stable_name(kind, meta["name"]), "namespace": ns, "finalizers": [FINALIZER], "labels": {"app.kubernetes.io/managed-by": "birfucate-discovery", "finops.re8ch.com/classification": cls, "finops.re8ch.com/workload-kind": kind.lower()}},
-        "spec": {"workloadRef": {"apiVersion": workload["apiVersion"], "kind": kind, "name": meta["name"], "uid": meta["uid"]}, "consumableRef": consumable_for(ns), "clusterRef": config["clusterRef"], "regionRef": meta.get("labels", {}).get("topology.kubernetes.io/region", config["regionRef"]), "classification": cls, "consumableIntent": False, "placement": {"replicas": spec.get("replicas"), "nodes": sorted({x["name"] for x in deps if x["kind"] == "Node"})}, "resources": requested, "dependencies": deps, "meters": meter_contract(kind, ns)},
-        "status": {"observedGeneration": meta.get("generation", 1), "consumable": False, "meterCoveragePercent": 0, "conditions": conditions(ambiguous), "ambiguousDependencies": ambiguous},
+        "spec": {"workloadRef": {"apiVersion": workload["apiVersion"], "kind": kind, "name": meta["name"], "uid": meta["uid"]}, "consumableRef": "compute-workload" if claim_uid else consumable_for(ns), "clusterRef": config["clusterRef"], "regionRef": meta.get("labels", {}).get("topology.kubernetes.io/region", config["regionRef"]), "classification": cls, "consumableIntent": bool(claim_uid), "placement": {"replicas": spec.get("replicas"), "nodes": sorted({x["name"] for x in deps if x["kind"] == "Node"})}, "resources": requested, "dependencies": deps, "meters": meters},
+        "status": {"observedGeneration": meta.get("generation", 1), "consumable": bool(claim_uid), "meterCoveragePercent": 0, "conditions": conditions(ambiguous, bool(claim_uid)), "ambiguousDependencies": ambiguous},
     }
 
 
-def conditions(ambiguous):
+def conditions(ambiguous, autonomous=False):
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     def c(t, ok, reason): return {"type": t, "status": "True" if ok else "False", "reason": reason, "lastTransitionTime": now}
-    return [c("Discovered", True, "WorkloadObserved"), c("Measurable", False, "UsageDimensionsUnverified"), c("Isolated", False, "OwnerApprovalRequired"), c("Consumable", False, "DraftOnly"), c("Degraded", bool(ambiguous), "AmbiguousDependency" if ambiguous else "NoKnownDegradation")]
+    return [c("Discovered", True, "WorkloadObserved"), c("Measurable", False, "UsageDimensionsUnverified"), c("Isolated", autonomous, "TenantClaimPolicy" if autonomous else "OwnerApprovalRequired"), c("Consumable", autonomous, "TenantGrant" if autonomous else "DraftOnly"), c("Degraded", bool(ambiguous), "AmbiguousDependency" if ambiguous else "NoKnownDegradation")]
+
+
+def derived_binding(claim, shard):
+    meta, spec = claim["metadata"], claim["spec"]
+    name = "claim-" + meta["uid"][:24].lower()
+    parameters = spec.get("parameters", {})
+    if spec["capability"] == "storage.volume.v1":
+        access = {"type": "Ceph", "ceph": {"mode": "RBD" if parameters.get("plan") == "rbd" else "CephFS", "storageClassName": parameters.get("storageClass"), "capacityGiB": parameters.get("sizeGiB"), "accessModes": [parameters.get("accessMode")]}}
+    else:
+        access = {"type": "Workload", "parameters": {"claimName": meta["name"], "claimUid": meta["uid"]}}
+    result = {
+        "apiVersion": f"{GROUP}/{VERSION}", "kind": "ConsumptionBinding",
+        "metadata": {"name": name, "namespace": meta["namespace"], "labels": {"app.kubernetes.io/managed-by": "birfucate-discovery", "tenancy.re8ch.com/claim-uid": meta["uid"]}},
+        "spec": {"tenantRef": spec["tenantRef"], "serviceInstanceRef": meta["uid"], "consumableRef": shard["spec"]["consumableRef"], "shardRefs": [shard["metadata"]["name"]], "planRef": spec["capability"], "quota": parameters.get("resources", {"storageGiB": parameters.get("sizeGiB")}), "access": access, "startsAt": meta["creationTimestamp"], "sourceClusterRef": shard["spec"]["clusterRef"]},
+    }
+    if spec["capability"] != "storage.volume.v1" and claim.get("status", {}).get("expiresAt"):
+        result["spec"]["endsAt"] = claim["status"]["expiresAt"]
+    return result
+
+
+def volume_shard_for(pvc, claim, config):
+    meta = pvc["metadata"]
+    name = stable_name("PersistentVolumeClaim", meta["name"])
+    meters = [
+        {"name": "provisioned_gib_second", "unit": "GiB-second", "requiredDimensions": DIMENSIONS},
+        {"name": "storage_operation", "unit": "operation", "requiredDimensions": DIMENSIONS},
+    ]
+    return {
+        "apiVersion": f"{GROUP}/{VERSION}", "kind": "ServiceShard",
+        "metadata": {"name": name, "namespace": meta["namespace"], "finalizers": [FINALIZER], "labels": {"app.kubernetes.io/managed-by": "birfucate-discovery", "finops.re8ch.com/classification": "tenant-facing-product", "finops.re8ch.com/workload-kind": "persistentvolumeclaim", "tenancy.re8ch.com/claim-uid": claim["metadata"]["uid"]}},
+        "spec": {"workloadRef": {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "name": meta["name"], "uid": meta["uid"]}, "consumableRef": "storage-volume", "clusterRef": config["clusterRef"], "regionRef": config["regionRef"], "classification": "tenant-facing-product", "consumableIntent": True, "placement": {}, "resources": {"storage": pvc.get("spec", {}).get("resources", {}).get("requests", {}).get("storage"), "storageClassName": pvc.get("spec", {}).get("storageClassName")}, "dependencies": [], "meters": meters},
+        "status": {"observedGeneration": meta.get("generation", 1), "consumable": True, "meterCoveragePercent": 0, "conditions": conditions([], True), "ambiguousDependencies": []},
+    }
 
 
 def path_for(shard, binding=None):
     ns, name = shard["metadata"]["namespace"], shard["metadata"]["name"]
     root = f"shard:{ns}/{name}"
-    nodes = [{"id": root, "kind": "ServiceShard", "namespace": ns, "name": name, "state": "Draft"}]
+    nodes = [{"id": root, "kind": "ServiceShard", "namespace": ns, "name": name, "state": "Consumable" if shard["spec"].get("consumableIntent") else "Draft"}]
     edges = []
     for dep in shard["spec"]["dependencies"]:
         node_id = f"{dep['kind']}:{dep['namespace']}/{dep['name']}"
@@ -176,7 +213,8 @@ def path_for(shard, binding=None):
         spec.update({"tenantRef": binding["spec"]["tenantRef"], "serviceInstanceRef": binding["spec"]["serviceInstanceRef"], "bindingRef": binding["metadata"]["name"]})
         instance = f"instance:{binding['spec']['serviceInstanceRef']}"
         usage = f"usage:{binding['spec']['serviceInstanceRef']}"
-        nodes += [{"id": instance, "kind": "TenantServiceInstance", "namespace": ns, "name": binding["spec"]["serviceInstanceRef"], "state": "Bound"}, {"id": usage, "kind": "UsageEvent", "namespace": "", "name": binding["spec"]["serviceInstanceRef"], "state": "PendingMeters"}]
+        claim_binding = bool(binding.get("metadata", {}).get("labels", {}).get("tenancy.re8ch.com/claim-uid"))
+        nodes += [{"id": instance, "kind": "TenantResourceClaim" if claim_binding else "TenantServiceInstance", "namespace": ns, "name": binding["spec"]["serviceInstanceRef"], "state": "Bound"}, {"id": usage, "kind": "UsageEvent", "namespace": "", "name": binding["spec"]["serviceInstanceRef"], "state": "PendingMeters"}]
         edges += [{"from": root, "to": instance, "relation": "ConsumedBy"}, {"from": instance, "to": usage, "relation": "MeasuredAs"}]
     return {"apiVersion": f"{GROUP}/{VERSION}", "kind": "BifurcationPath", "metadata": {"name": name, "namespace": ns, "labels": shard["metadata"]["labels"]}, "spec": spec, "status": {"observedGeneration": 1, "nodes": nodes, "edges": edges, "nodeCount": len(nodes), "edgeCount": len(edges), "complete": False, "usage": [], "missingMeters": [x["name"] for x in shard["spec"]["meters"]]}}
 
@@ -241,8 +279,10 @@ class Kubernetes:
 
 
 def reconcile(kube, config):
-    resources = {"pods": kube.list("v1", "pods"), "services": kube.list("v1", "services"), "httproutes": kube.list("gateway.networking.k8s.io/v1", "httproutes")}
+    resources = {"pods": kube.list("v1", "pods"), "services": kube.list("v1", "services"), "persistentvolumeclaims": kube.list("v1", "persistentvolumeclaims"), "httproutes": kube.list("gateway.networking.k8s.io/v1", "httproutes")}
     bindings = kube.list(f"{GROUP}/{VERSION}", "consumptionbindings")
+    claims = kube.list("tenancy.re8ch.com/v1alpha1", "tenantresourceclaims")
+    claims_by_uid = {item["metadata"]["uid"]: item for item in claims if item.get("spec", {}).get("desiredState", "Active") == "Active" or item.get("spec", {}).get("capability") == "storage.volume.v1"}
     consumables = {x["metadata"]["name"]: x for x in kube.list(f"{GROUP}/{VERSION}", "consumables")}
     count = 0
     desired = set()
@@ -250,11 +290,29 @@ def reconcile(kube, config):
         for workload in kube.list(api, plural):
             workload["kind"] = kind
             shard = shard_for(workload, resources, config)
-            binding = next((x for x in bindings if x["metadata"].get("namespace") == shard["metadata"]["namespace"] and shard["metadata"]["name"] in x.get("spec", {}).get("shardRefs", [])), None)
+            claim_uid = workload.get("metadata", {}).get("labels", {}).get("tenancy.re8ch.com/claim-uid")
+            if claim_uid in claims_by_uid:
+                binding = derived_binding(claims_by_uid[claim_uid], shard)
+                binding = kube.apply("consumptionbindings", binding)
+                bindings = [x for x in bindings if x["metadata"]["name"] != binding["metadata"]["name"]] + [binding]
+            else:
+                binding = next((x for x in bindings if x["metadata"].get("namespace") == shard["metadata"]["namespace"] and shard["metadata"]["name"] in x.get("spec", {}).get("shardRefs", [])), None)
             desired.add((shard["metadata"]["namespace"], shard["metadata"]["name"]))
             kube.apply("serviceshards", shard)
             kube.apply("bifurcationpaths", path_for(shard, binding))
             count += 1
+    for pvc in resources["persistentvolumeclaims"]:
+        claim_uid = pvc.get("metadata", {}).get("labels", {}).get("tenancy.re8ch.com/claim-uid")
+        claim = claims_by_uid.get(claim_uid)
+        if not claim or claim.get("spec", {}).get("capability") != "storage.volume.v1":
+            continue
+        shard = volume_shard_for(pvc, claim, config)
+        binding = kube.apply("consumptionbindings", derived_binding(claim, shard))
+        bindings = [x for x in bindings if x["metadata"]["name"] != binding["metadata"]["name"]] + [binding]
+        desired.add((shard["metadata"]["namespace"], shard["metadata"]["name"]))
+        kube.apply("serviceshards", shard)
+        kube.apply("bifurcationpaths", path_for(shard, binding))
+        count += 1
     for existing in kube.list(f"{GROUP}/{VERSION}", "serviceshards"):
         meta = existing["metadata"]
         key = (meta["namespace"], meta["name"])

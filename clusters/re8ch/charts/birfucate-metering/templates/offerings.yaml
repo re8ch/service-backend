@@ -1,7 +1,7 @@
 {{- if .Values.discovery.enabled }}
 {{- $offerings := list
   (dict "name" "compute-workload" "class" "compute.workload.v1" "owner" "platform-compute" "boundary" "Tenant-safe Kubernetes workload execution; scheduler and node administration excluded." "kinds" (list "Deployment" "StatefulSet" "DaemonSet" "Job" "CronJob" "NuclioFunction") "meters" (list (dict "name" "cpu_core_second" "unit" "core-second" "source" "OpenCost") (dict "name" "memory_gib_second" "unit" "GiB-second" "source" "OpenCost") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
-  (dict "name" "storage-volume" "class" "storage.volume.v1" "owner" "platform-storage" "boundary" "Persistent RBD and CephFS capacity and I/O; Ceph administration excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "provisioned_gib_second" "unit" "GiB-second" "source" "kube-state-metrics") (dict "name" "storage_operation" "unit" "operation" "source" "Ceph")))
+  (dict "name" "storage-volume" "class" "storage.volume.v1" "owner" "platform-storage" "boundary" "Persistent RBD and CephFS capacity and I/O; Ceph administration excluded." "kinds" (list "Deployment" "StatefulSet" "PersistentVolumeClaim") "meters" (list (dict "name" "provisioned_gib_second" "unit" "GiB-second" "source" "kube-state-metrics") (dict "name" "storage_operation" "unit" "operation" "source" "Ceph")))
   (dict "name" "storage-bucket" "class" "storage.bucket.v1" "owner" "platform-storage" "boundary" "Tenant buckets, retained objects, requests and transfer; object-store administration excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "stored_gib_second" "unit" "GiB-second" "source" "object-gateway") (dict "name" "object_request" "unit" "request" "source" "object-gateway") (dict "name" "network_egress_byte" "unit" "byte" "source" "object-gateway")))
   (dict "name" "network-tenant" "class" "network.tenant.v1" "owner" "platform-network" "boundary" "Tenant attachment, ingress, egress and policy processing; Cilium administration excluded." "kinds" (list "Deployment" "DaemonSet") "meters" (list (dict "name" "attachment_second" "unit" "attachment-second" "source" "Cilium") (dict "name" "flow" "unit" "flow" "source" "Hubble") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
   (dict "name" "network-among-clusters" "class" "network.among-clusters.v1" "owner" "platform-network" "boundary" "Authenticated source-to-destination cluster paths; fabric administration excluded." "kinds" (list "Deployment" "DaemonSet") "meters" (list (dict "name" "path_second" "unit" "path-second" "source" "AmongClusters") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble") (dict "name" "route_change" "unit" "change" "source" "AdvancedFabric")))
@@ -22,7 +22,7 @@ metadata:
 spec:
   serviceClass: {{ $item.class }}
   owner: {{ $item.owner }}
-  lifecycle: Draft
+  lifecycle: {{ if or (eq $item.name "compute-workload") (eq $item.name "storage-volume") }}Approved{{ else }}Draft{{ end }}
   endpointClass: TenantSafe
   authenticationProxyRef: tenant
   supportBoundary: {{ $item.boundary | quote }}
@@ -106,7 +106,7 @@ spec:
     isolationMechanism: Namespace RBAC, ResourceQuota, LimitRange and NetworkPolicy
     provisioner: tenant-runtime
     credentialDelivery: None
-    requestFields: [cpu, memory, acceleratorClass, ephemeralStorage, ttlSeconds]
+    requestFields: [kind, imageDigest, cpu, memory, ephemeralStorage, ttlSeconds, replicas, volumeMounts, exposure]
     grantedResources: [WorkloadReference, ServiceReference]
     revocation: Scale down or delete the workload and release attached claims according to their retention policies.
     {{- end }}
