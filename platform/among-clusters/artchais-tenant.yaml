@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: artchais
+  labels:
+    app.kubernetes.io/part-of: among-clusters
+    peering.re8ch.com/tenant: artchais
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: Peer
+metadata: {name: re8ch-artc, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  localIdentityRef: re8ch
+  remoteIdentityRef: artc
+  invitationRef: re8ch-artc-artchais
+  transports: [quic-mtls]
+  suspended: false
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: AuthenticatedLink
+metadata: {name: re8ch-artc, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  peerRef: re8ch-artc
+  transport: quic-mtls
+  localGateway: quic://192.0.2.138:8443
+  sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: PeerPolicy
+metadata: {name: artc-kubernetes-api, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  peerSelector: {matchNames: [re8ch-artc]}
+  serviceClasses: [kubernetes.control-plane]
+  protocols: [kubernetes-api]
+  ports: [443]
+  directions: [export]
+  maxAdvertisements: 1
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: ManagedAccessGrant
+metadata: {name: artc-codex-viewer, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  peerRef: re8ch-artc
+  advertisementRef: artc-default-kubernetes
+  expiresAt: "2027-09-06T23:59:59Z"
+  scope: Cluster
+  rules:
+    - {apiGroups: [""], resources: [namespaces, nodes, pods, pods/log, services, endpoints, events, persistentvolumeclaims], verbs: [get, list, watch]}
+    - {apiGroups: [apps], resources: [deployments, statefulsets, daemonsets, replicasets], verbs: [get, list, watch]}
+    - {apiGroups: [batch], resources: [jobs, cronjobs], verbs: [get, list, watch]}
+    - {apiGroups: [networking.k8s.io], resources: [ingresses, networkpolicies], verbs: [get, list, watch]}
+    - {apiGroups: [gateway.networking.k8s.io], resources: [httproutes], verbs: [get, list, watch]}
+    - {apiGroups: [storage.k8s.io], resources: [storageclasses], verbs: [get, list, watch]}
+  approved: true
+  revoked: false
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: ManagedAccessGrant
+metadata: {name: artc-codex-operator, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  peerRef: re8ch-artc
+  advertisementRef: artc-default-kubernetes
+  expiresAt: "2027-09-06T23:59:59Z"
+  scope: Namespaced
+  namespaces: [artchais]
+  rules:
+    - {apiGroups: [""], resources: [pods, pods/log, services, endpoints, events, persistentvolumeclaims], verbs: [get, list, watch, create, update, patch, delete]}
+    - {apiGroups: [apps], resources: [deployments, statefulsets, daemonsets, replicasets], verbs: [get, list, watch, create, update, patch, delete]}
+    - {apiGroups: [batch], resources: [jobs, cronjobs], verbs: [get, list, watch, create, update, patch, delete]}
+    - {apiGroups: [networking.k8s.io], resources: [ingresses, networkpolicies], verbs: [get, list, watch, create, update, patch, delete]}
+    - {apiGroups: [gateway.networking.k8s.io], resources: [httproutes], verbs: [get, list, watch, create, update, patch, delete]}
+  approved: true
+  revoked: false
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: ManagedAccessGrant
+metadata: {name: artc-codex-admin, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  peerRef: re8ch-artc
+  advertisementRef: artc-default-kubernetes
+  expiresAt: "2027-09-06T23:59:59Z"
+  scope: Cluster
+  rules:
+    - {apiGroups: ["*"], resources: ["*"], verbs: ["*"]}
+  approved: true
+  revoked: false
