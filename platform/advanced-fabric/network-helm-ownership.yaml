@@ -1,0 +1,208 @@
+# Cilium and Traefik are declared here before controller cutover. Keep both
+# releases suspended until the runbook preconditions are satisfied; otherwise
+# Flux would race the existing manual/K3s owners of the production data plane.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cilium
+  namespace: flux-system
+  annotations:
+    gitops.re8ch.com/adoption-phase: declared-suspended
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: cilium
+  targetNamespace: kube-system
+  storageNamespace: kube-system
+  chart:
+    spec:
+      # The running 1.21.0-dev build is not published by helm.cilium.io. This
+      # immutable upstream chart archive is pinned by the service-backend Git
+      # revision until the cluster is validated on a published Cilium release.
+      chart: ./clusters/re8ch/components/cilium/vendor/cilium-1.21.0-dev.tgz
+      interval: 1h
+      reconcileStrategy: Revision
+      sourceRef: {kind: GitRepository, name: service-backend, namespace: flux-system}
+  install:
+    crds: CreateReplace
+    disableTakeOwnership: false
+    remediation: {retries: 0}
+  upgrade:
+    crds: CreateReplace
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
+  values:
+    autoDirectNodeRoutes: false
+    bandwidthManager: {enabled: true, bbr: false}
+    bgpControlPlane: {enabled: true}
+    bpf: {distributedLRU: {enabled: true}}
+    cni: {customConf: false, exclusive: true, install: true, uninstall: false}
+    directRoutingSkipUnreachable: false
+    envoy:
+      enabled: false
+      nodeSelector: {kubernetes.io/os: linux, re8ch.com/cilium-migrate: "true"}
+    gatewayAPI:
+      enabled: true
+      enableAlpn: true
+      enableAppProtocol: true
+      externalTrafficPolicy: Cluster
+      gatewayClass: {create: true}
+      hostNetwork: {enabled: false}
+      secretsNamespace: {create: true, name: cilium-secrets, sync: true}
+    hubble:
+      enabled: true
+      relay:
+        enabled: true
+        replicas: 1
+        image:
+          repository: quay.io/cilium/hubble-relay-ci
+          tag: latest
+          digest: sha256:424b1228033d34fae4f204a418fc66b5b6826b389ba03c4b08d9a6021e4d7285
+          useDigest: true
+          pullPolicy: IfNotPresent
+        nodeSelector: {kubernetes.io/hostname: artchais-nuclio-1}
+        tolerations: [{key: dedicated, operator: Equal, value: observability, effect: NoSchedule}]
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 256Mi}
+      ui:
+        enabled: true
+        replicas: 1
+        nodeSelector: {kubernetes.io/hostname: vm-20-12-ubuntu}
+        tolerations: [{key: anchor, operator: Equal, value: "true", effect: NoSchedule}]
+        service: {type: ClusterIP}
+        backend:
+          image:
+            repository: quay.io/cilium/hubble-ui-backend
+            tag: v0.13.5
+            digest: sha256:fac0c300ae119274edca11fd89b1ad23c788792d8bc4ea2ba631c709e8d3c688
+            useDigest: true
+            pullPolicy: IfNotPresent
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+        frontend:
+          image:
+            repository: quay.io/cilium/hubble-ui
+            tag: v0.13.5
+            digest: sha256:f7d514fc54d784ed6df9d58cf0e97648b143f92b766dd1780ed3fc845bd4c516
+            useDigest: true
+            pullPolicy: IfNotPresent
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+    image:
+      repository: quay.io/cilium/cilium-ci
+      tag: latest
+      digest: sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+      useDigest: true
+      pullPolicy: IfNotPresent
+    ipam: {mode: kubernetes}
+    ipv4NativeRoutingCIDR: 192.0.2.57/16
+    k8s: {requireIPv4PodCIDR: true}
+    k8sServiceHost: 127.0.0.1
+    k8sServicePort: 6444
+    kubeProxyReplacement: "true"
+    localRedirectPolicy: true
+    nodeSelector: {kubernetes.io/os: linux, re8ch.com/cilium-migrate: "true"}
+    operator:
+      replicas: 3
+      skipCRDCreation: true
+      unmanagedPodWatcher: {restart: false}
+      image:
+        repository: quay.io/cilium/operator
+        tag: latest
+        suffix: -ci
+        genericDigest: sha256:b6390ca03f3cba10d8ab963a9735ec1657e62bce254de45ffb101d1d4d528315
+        useDigest: true
+        pullPolicy: IfNotPresent
+      nodeSelector: {kubernetes.io/os: linux}
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists}
+        - {key: node-role.kubernetes.io/master, operator: Exists}
+        - {key: node.kubernetes.io/not-ready, operator: Exists}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {io.cilium/app: operator, name: cilium-operator}
+              topologyKey: kubernetes.io/hostname
+    routingMode: native
+    tunnelPort: 8473
+    tunnelProtocol: vxlan
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: traefik, namespace: flux-system}
+spec:
+  interval: 1h
+  url: https://traefik.github.io/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: flux-system
+  annotations:
+    gitops.re8ch.com/adoption-phase: declared-suspended
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: traefik
+  targetNamespace: kube-system
+  storageNamespace: kube-system
+  chart:
+    spec:
+      chart: traefik
+      version: 39.0.7
+      sourceRef: {kind: HelmRepository, name: traefik, namespace: flux-system}
+      interval: 1h
+  install:
+    disableTakeOwnership: false
+    remediation: {retries: 0}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
+  values:
+    additionalArguments:
+      - --providers.kubernetesingress.ingressendpoint.publishedservice=kube-system/traefik
+    deployment:
+      kind: DaemonSet
+      dnsPolicy: ClusterFirstWithHostNet
+      podAnnotations: {prometheus.io/port: "8082", prometheus.io/scrape: "true"}
+    hostNetwork: true
+    image: {repository: rancher/mirrored-library-traefik, tag: 3.6.13}
+    nodeSelector: {kubernetes.io/hostname: muaya-lightweight}
+    podSecurityContext: {runAsNonRoot: false, runAsUser: 0}
+    securityContext: {capabilities: {add: [NET_BIND_SERVICE]}}
+    priorityClassName: system-cluster-critical
+    ports:
+      metrics: {port: 19101, expose: {default: false}}
+      traefik: {port: 8080, expose: {default: false}}
+      web: {port: 80, hostPort: 80, expose: {default: true}, exposedPort: 80, protocol: TCP}
+      websecure:
+        port: 443
+        hostPort: 443
+        expose: {default: true}
+        exposedPort: 443
+        protocol: TCP
+        http: {tls: {enabled: true}}
+    providers: {kubernetesIngress: {publishedService: {enabled: true}}}
+    service: {enabled: true, ipFamilyPolicy: PreferDualStack, type: ClusterIP}
+    tolerations:
+      - {key: CriticalAddonsOnly, operator: Exists}
+      - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
