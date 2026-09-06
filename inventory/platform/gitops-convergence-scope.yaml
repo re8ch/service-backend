@@ -1,0 +1,25 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitOpsConvergenceScope
+metadata:
+  name: re8ch-long-running-platform-2026-09
+spec:
+  retainAndAdopt:
+    - {name: nuclio, namespace: nuclio, reason: active-functions-and-ready-endpoints}
+    - {name: re8ch-ai-gateway, namespace: ai-gateway, reason: active-litellm-gateway}
+    - {name: harbor, namespace: harbor, reason: authoritative-container-registry}
+    - {name: neo4j, namespace: neo4j, reason: primary-graph-database}
+  retire:
+    - {name: authentik, namespace: auth}
+    - {name: opentelemetry-operator, namespace: opentelemetry-operator}
+    - {name: robusta, namespace: observability-ai}
+    - {name: netbird, namespace: netbird-access}
+    - {name: fleet, namespace: fleet}
+    - {name: supabase, namespace: supabase-pg-re8ch}
+  excludedProducts:
+    - qwen
+    - qianwen-ops
+    - ledger
+  rules:
+    preservePersistentDataOnRetirement: true
+    requireExactExternalChartVersion: true
+    requireSuspendedAdoptionWhenAnotherControllerExists: true

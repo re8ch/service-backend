@@ -1,0 +1,87 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: nuclio, namespace: flux-system}
+spec:
+  interval: 1h
+  url: https://nuclio.github.io/nuclio/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nuclio
+  namespace: flux-system
+  annotations:
+    gitops.re8ch.com/adoption-phase: declared-suspended
+    gitops.re8ch.com/retention-reason: active-functions-and-ready-endpoints
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: nuclio
+  targetNamespace: nuclio
+  storageNamespace: nuclio
+  chart:
+    spec:
+      chart: nuclio
+      version: 0.21.26
+      sourceRef: {kind: HelmRepository, name: nuclio, namespace: flux-system}
+      interval: 1h
+  install: {disableTakeOwnership: false, remediation: {retries: 0}}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
+  values:
+    controller:
+      nodeSelector: {kubernetes.io/hostname: artchais-nuclio-1}
+      resources:
+        requests: {cpu: 50m, memory: 128Mi}
+        limits: {cpu: 500m, memory: 512Mi}
+    dashboard:
+      nodeSelector: {kubernetes.io/hostname: artchais-nuclio-1}
+      nodePort: 30070
+      resources:
+        requests: {cpu: 50m, memory: 128Mi}
+        limits: {cpu: 1000m, memory: 768Mi}
+    platform:
+      kube:
+        defaultFunctionNodeSelector: {pigsty.cc/workload: nuclio}
+        defaultServiceType: ClusterIP
+    rbac: {crdAccessMode: cluster}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata: {name: litellm-helm, namespace: flux-system}
+spec:
+  interval: 1h
+  provider: generic
+  url: oci://ghcr.io/berriai/litellm-helm
+  ref:
+    digest: sha256:df9be29316b0eda2b7df5ba6077a39aeb818cf20fb19b01ea4bd8937af1063b3
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: re8ch-ai-gateway
+  namespace: flux-system
+  annotations:
+    gitops.re8ch.com/adoption-phase: declared-suspended
+    gitops.re8ch.com/retention-reason: active-gateway-and-secret-backed-providers
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: re8ch-ai-gateway
+  targetNamespace: ai-gateway
+  storageNamespace: ai-gateway
+  chartRef: {kind: OCIRepository, name: litellm-helm}
+  # The current effective values contain provider topology and must be promoted
+  # through an encrypted Secret before cutover. A missing Secret is an explicit
+  # second safety gate in addition to suspension.
+  valuesFrom:
+    - {kind: Secret, name: re8ch-ai-gateway-flux-values, valuesKey: values.yaml}
+  install: {disableTakeOwnership: false, remediation: {retries: 0}}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
