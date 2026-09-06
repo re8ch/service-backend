@@ -9,7 +9,7 @@ opencost:
       enabled: false
     external:
       enabled: true
-      url: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+      url: http://vmsingle-opencost.observability-system.svc.cluster.local:8429
   customPricing:
     enabled: true
     provider: default
@@ -36,4 +36,4 @@ opencost:
     nodeExporter:
       enabled: false
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/hostname: r640

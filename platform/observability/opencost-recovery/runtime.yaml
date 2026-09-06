@@ -1,0 +1,49 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  name: opencost
+  namespace: observability-system
+  labels:
+    app.kubernetes.io/part-of: re8ch-observability
+    observability.re8ch.com/component: opencost-metrics
+spec:
+  retentionPeriod: "30d"
+  nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+  storage:
+    accessModes: [ReadWriteOnce]
+    storageClassName: local-path
+    resources: {requests: {storage: 20Gi}}
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {cpu: "2", memory: 4Gi}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  name: opencost
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  replicaCount: 1
+  externalLabelName: vmagent_ha
+  selectAllByDefault: false
+  serviceScrapeSelector:
+    matchLabels: {observability.re8ch.com/opencost-recovery: "true"}
+  nodeScrapeSelector:
+    matchLabels: {observability.re8ch.com/opencost-recovery: "true"}
+  remoteWrite:
+    - url: http://vmsingle-opencost.observability-system.svc:8429/api/v1/write
+  externalLabels: {cluster: re8ch, environment: production}
+  extraArgs:
+    promscrape.streamParse: "true"
+    promscrape.maxScrapeSize: 64MB
+    remoteWrite.maxDiskUsagePerURL: 10GB
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {cpu: "2", memory: 2Gi}

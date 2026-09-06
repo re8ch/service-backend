@@ -64,7 +64,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: personal-access-us-ca, namespace: egress-fabric}
 spec:
-  replicas: 1
+  replicas: 0
   strategy: {type: Recreate}
   selector: {matchLabels: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: us-ca}}
   template:
