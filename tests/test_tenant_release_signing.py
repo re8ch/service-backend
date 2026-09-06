@@ -18,3 +18,5 @@ def test_tenant_release_supports_gitlab_keyless_and_pinned_digest_verification()
     assert '--password-stdin' in release
     assert 'HARBOR_PASSWORD' in release
     assert 'docker sbom --platform linux/amd64' in release
+    assert 'TENANT_IMAGE_PUSH_ATTEMPTS' in release
+    assert 'fresh registry upload session' in release

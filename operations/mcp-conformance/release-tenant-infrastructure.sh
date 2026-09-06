@@ -28,9 +28,20 @@ trap 'rm -f "$metadata"' EXIT
 printf '%s' "$HARBOR_PASSWORD" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$HARBOR_USERNAME" --password-stdin >/dev/null
 
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
-docker buildx build --platform linux/amd64 --provenance=mode=max \
+push_attempt=1
+push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
+while ! docker buildx build --platform linux/amd64 --provenance=mode=max \
   --attest "type=sbom,generator=${sbom_generator}" \
-  --push --metadata-file "$metadata" -t "$image" "$context"
+  --push --metadata-file "$metadata" -t "$image" "$context"; do
+  if (( push_attempt >= push_attempts )); then
+    echo "Image build/push failed after ${push_attempt} attempts" >&2
+    exit 1
+  fi
+  delay=$((push_attempt * 10))
+  echo "Image build/push attempt ${push_attempt}/${push_attempts} failed; retrying with a fresh registry upload session in ${delay}s" >&2
+  sleep "$delay"
+  push_attempt=$((push_attempt + 1))
+done
 digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$metadata")
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
 docker sbom --platform linux/amd64 --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
