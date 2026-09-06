@@ -21,7 +21,7 @@ toolhive:
       resourceUrl: https://tools.re8ch.com/cloud/mcp
       group: platform-tools-public
       createGroup: false
-      replicas: 2
+      replicas: 1
       session: {database: 2, keyPrefix: "thv:cloud:"}
       workloads:
         - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
