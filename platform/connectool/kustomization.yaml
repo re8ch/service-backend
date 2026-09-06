@@ -3,3 +3,6 @@ kind: Kustomization
 resources:
   - release.yaml
   - toolhive-operator-release.yaml
+  - artchais-release.yaml
+  - cloud-route.yaml
+  - dex-artchais-reconciler.yaml

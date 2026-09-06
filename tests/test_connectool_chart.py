@@ -29,6 +29,7 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
+    assert vmcp["spec"]["replicas"] == 1
     assert "public: true" in dex["data"]["clients.yaml"]
 
 
@@ -59,3 +60,26 @@ def test_duplicate_mcp_owners_are_rejected():
 def test_flux_oci_digest_suffix_is_sanitized_for_labels():
     helpers = (CHART / "templates/_helpers.tpl").read_text()
     assert 'replace "+" "_"' in helpers
+
+
+def test_cloud_resource_url_has_a_gateway_route():
+    route = yaml.safe_load((ROOT / "platform/connectool/cloud-route.yaml").read_text())
+    paths = {rule["matches"][0]["path"]["value"] for rule in route["spec"]["rules"]}
+    backends = {rule["backendRefs"][0]["name"] for rule in route["spec"]["rules"]}
+    assert "/cloud" in paths
+    assert "/.well-known/oauth-protected-resource/cloud" in paths
+    assert backends == {"vmcp-re8ch-tools-vmcp"}
+
+
+def test_artchais_dex_reconciler_is_one_shot_and_secret_safe():
+    objects = [item for item in yaml.safe_load_all((ROOT / "platform/connectool/dex-artchais-reconciler.yaml").read_text()) if item]
+    job = next(item for item in objects if item["kind"] == "Job")
+    role = next(item for item in objects if item["kind"] == "Role")
+    script = next(item for item in objects if item["kind"] == "ConfigMap")["data"]["register.sh"]
+    container = job["spec"]["template"]["spec"]["containers"][0]
+    assert "@sha256:" in container["image"]
+    assert job["spec"]["template"]["spec"]["restartPolicy"] == "Never"
+    assert {rule["resources"][0] for rule in role["rules"]} == {"secrets", "deployments"}
+    assert "re8ch-artchais-tenant" in script
+    assert all(team in script for team in ("tenant-admins", "tenant-operators", "tenant-viewers"))
+    assert "print(" not in script
