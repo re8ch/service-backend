@@ -102,7 +102,7 @@ spec:
                 allowedWorkloadKinds:
                   type: array
                   minItems: 1
-                  items: {type: string, enum: [Deployment, StatefulSet, DaemonSet, Job, CronJob, NuclioFunction]}
+                  items: {type: string, enum: [Deployment, StatefulSet, DaemonSet, Job, CronJob, NuclioFunction, PersistentVolumeClaim]}
                 meters:
                   type: array
                   minItems: 1
@@ -124,7 +124,7 @@ spec:
                   required: [apiVersion, kind, name, uid]
                   properties:
                     apiVersion: {type: string}
-                    kind: {type: string, enum: [Deployment, StatefulSet, DaemonSet, Job, CronJob, NuclioFunction]}
+                    kind: {type: string, enum: [Deployment, StatefulSet, DaemonSet, Job, CronJob, NuclioFunction, PersistentVolumeClaim]}
                     name: {type: string}
                     uid: {type: string}
                 consumableRef: {type: string}

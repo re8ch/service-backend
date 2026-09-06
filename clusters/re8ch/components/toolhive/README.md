@@ -119,7 +119,7 @@ ToolHive operator permission would make publication review ineffective.
 - Grafana dashboard UID is `toolhive-mcp-control-plane`; the tracked URL is
   `/grafana/d/toolhive-mcp-control-plane/toolhive-mcp-control-plane`.
 - VictoriaMetrics scrapes all three proxy `/metrics` endpoints through the
-  `toolhive-mcp-control-plane` job in `qianwen-ops/panel-observability.yaml`.
+  `toolhive-mcp-control-plane` job in the platform observability stack.
 - `panel-re8ch-vmalert` evaluates `Re8chToolHiveMCPProxyDown` and
   `Re8chToolHiveToolCallErrors`; the first covers missing proxy targets and the
   second is limited to non-2xx `tools/call` traffic so unsupported MCP

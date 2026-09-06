@@ -43,7 +43,8 @@ def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
     assert values["vmServiceScrape"]["enabled"] is False
     domains = {item["domain"] for family in values["meters"].values() for item in family}
     names = {item["name"] for family in values["meters"].values() for item in family}
-    assert domains == {"ceph", "pigsty", "networks"}
+    assert domains == {"compute", "ceph", "pigsty", "networks"}
+    assert {"tenant-claim-cpu-request", "tenant-claim-memory-request", "tenant-claim-ephemeral-storage-request"} <= names
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
 
 
@@ -84,6 +85,8 @@ def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, mon
     occupancy = next(event for event in events if event["meter"] == "occupancy.capacity")
     behavior = next(event for event in events if event["meter"] == "bifurcation.io")
     assert occupancy["quantity"] == 20
+    assert occupancy["pricingApplied"] is False
+    assert occupancy["accountingPosted"] is False
     assert behavior["dimensions"]["occurrences"] == 30
     assert behavior["dimensions"]["intensity"] == 12
     assert behavior["dimensions"]["fanout"] == 2

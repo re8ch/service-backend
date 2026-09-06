@@ -66,19 +66,15 @@ TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-opera
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
 TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
 ARTCHAIS_TENANT_REF = os.getenv("ARTCHAIS_TENANT_REF", "artchais")
+TENANT_CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
     "infra": {ADMIN_GROUP, "re8ch:infra-operators"},
     "orchestra": {ADMIN_GROUP, "re8ch:agent-operators"},
     "all": {ADMIN_GROUP, "re8ch:infra-operators", "re8ch:agent-operators"},
-    "tenant": {ADMIN_GROUP},
-    "tenant-infra": set(),
-    "tenant-admin": {"re8ch:tenant-admins"},
-    "tenant-registry": set(),
-    "tenant-observability": set(),
-    "tenant-byoc": set(),
-    "tenant-artchais": set(),
+    "admin": {"re8ch:tenant-admins"},
+    "tenant": set(),
 }
 ALLOW_AUTHENTICATED_DEX = os.getenv("ALLOW_AUTHENTICATED_DEX", "false").lower() == "true"
 
@@ -449,7 +445,7 @@ def dex_identity(token: str) -> dict[str, Any] | None:
 
 
 def allowed(identity: dict[str, Any]) -> bool:
-    if PROFILE == "tenant-admin":
+    if PROFILE == "admin":
         return "re8ch:tenant-admins" in set(identity.get("groups", []))
     if ALLOW_AUTHENTICATED_DEX and identity.get("auth_type") in {"dex", "device"} and identity.get("subject"):
         return True
@@ -654,6 +650,17 @@ GRAFANA_TENANT_TOOLS = [
 
 TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
 TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "operation_get"}
+TENANT_CLAIM_TOOLS = [
+    {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
+    {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
+    {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the active TenantGrant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
+    {"name": "tenant_claim_get", "description": "Read one claim and its workload, volume or public endpoint binding.", "inputSchema": schema({"name": {"type": "string"}}, ["name"])},
+    {"name": "tenant_claim_list", "description": "List claims owned by the authenticated tenant.", "inputSchema": schema({})},
+    {"name": "tenant_claim_update", "description": "Scale or roll a Deployment, or expand a volume, using a fresh claimHash. Job parameters are immutable.", "inputSchema": schema({"name": {"type": "string"}, "claim": {"type": "object"}, "claim_hash": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}}, ["name", "claim", "claim_hash", "idempotency_key"])},
+    {"name": "tenant_claim_renew", "description": "Renew a claim TTL from now without per-request approval.", "inputSchema": schema({"name": {"type": "string"}, "ttl_seconds": {"type": "integer", "minimum": 300, "maximum": 2592000}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}}, ["name", "ttl_seconds", "idempotency_key"])},
+    {"name": "tenant_claim_cancel", "description": "Release compute children; independent volume data remains retained.", "inputSchema": schema({"name": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}}, ["name", "idempotency_key"])},
+    {"name": "tenant_usage_summary_get", "description": "Return auditable, unpriced showback records joined by tenant claim UID.", "inputSchema": schema({"claim_name": {"type": "string"}})},
+]
 TENANT_BYOC_TOOLS = [
     {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},
     {"name": "byoc_registration_list", "description": "List cluster registrations visible to the current plane.", "inputSchema": schema({"tenant_ref": {"type": "string"}})},
@@ -686,18 +693,13 @@ ORCHESTRA_HEALTH_PATHS = {
 def tools() -> list[dict[str, Any]]:
     if PROFILE == "all":
         return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + TENANT_TOOLS + TENANT_INFRA_TOOLS + ORCHESTRA_TOOLS
-    if PROFILE == "tenant-infra":
-        return TENANT_INFRA_TOOLS
-    if PROFILE == "tenant-admin":
+    if PROFILE == "admin":
         return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_ADMIN_NAMES] + [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in TENANT_ADMIN_NAMES]
-    if PROFILE in {"tenant-registry", "tenant-observability"}:
+    if PROFILE == "tenant":
         base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
-        return base + (GRAFANA_TENANT_TOOLS if PROFILE == "tenant-observability" else HARBOR_TENANT_TOOLS)
-    if PROFILE == "tenant-byoc":
-        return [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
-    if PROFILE == "tenant-artchais":
-        return ARTCHAIS_CLUSTER_TOOLS
-    return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS, "tenant-infra": TENANT_INFRA_TOOLS}.get(PROFILE, [])
+        byoc = [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
+        return base + HARBOR_TENANT_TOOLS + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + ARTCHAIS_CLUSTER_TOOLS
+    return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS}.get(PROFILE, [])
 
 
 def harbor_admin_client() -> HarborClient:
@@ -805,13 +807,7 @@ def tenant_service_store() -> ServiceStore:
 
 
 def tenant_catalog_for_profile() -> list[dict[str, Any]]:
-    services = service_catalog()
-    allowed = {
-        "tenant-registry": {"registry.harbor.v1"},
-        "tenant-observability": {"observability.grafana.v1"},
-        "tenant-byoc": {"network.amongclusters.v1"},
-    }.get(PROFILE)
-    return [item for item in services if not allowed or item.get("serviceClass") in allowed]
+    return service_catalog()
 
 
 def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
@@ -821,7 +817,7 @@ def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
     records: list[tuple[str, str, Any]] = [
         (f"re8ch://tenant/{tenant}/catalog", "Service catalog", {"services": tenant_catalog_for_profile(), "pricingIncluded": False}),
     ]
-    if PROFILE == "tenant-admin":
+    if PROFILE == "admin":
         records.extend([
             ("re8ch://admin/tenants", "Tenants", {"tenants": store.tenants()}),
             ("re8ch://admin/byoc/registrations", "BYOC registrations", {"registrations": store.registrations()}),
@@ -831,15 +827,13 @@ def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
         records.extend([
             (f"re8ch://tenant/{tenant}/instances", "Service instances", {"instances": store.list(tenant)}),
             (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", {"bindings": store.bindings(tenant)}),
-            (f"re8ch://tenant/{tenant}/usage", "Unpriced usage summary", store.usage_summary(tenant, None)),
+            (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", store.usage_summary(tenant, None)),
+            (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", tenant_control_request("/v1/claims", tenant)),
+            (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", tenant_claim_usage_summary(tenant)),
+            (f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities()),
+            (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
+            (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", {"connections": store.connections(tenant)}),
         ])
-        if PROFILE == "tenant-observability":
-            records.append((f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities()))
-        if PROFILE == "tenant-byoc":
-            records.extend([
-                (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
-                (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", {"connections": store.connections(tenant)}),
-            ])
     return [{"uri": uri, "name": name, "mimeType": "application/json", "value": value} for uri, name, value in records]
 
 
@@ -888,35 +882,56 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
                 tenant = str(resolved.get("tenantRef") or "")
                 role = str(resolved.get("role") or "viewer")
             if tenant:
-                if PROFILE == "tenant-admin" and (tenant != "admin" or "re8ch:tenant-admins" not in groups):
+                if PROFILE == "admin" and (tenant != "admin" or "re8ch:tenant-admins" not in groups):
                     raise PermissionError("admin runtime requires the protected admin tenant and group")
                 return {"tenantRef": tenant, "role": role}
         except urllib.error.HTTPError as exc:
             raise PermissionError("identity is not bound to an active tenant") from exc
         except (urllib.error.URLError, ValueError) as exc:
             raise RuntimeError("tenant authorizer is unavailable") from exc
-    if not TENANT_CONTROL_URL:
-        if "re8ch:tenant-admins" in groups:
-            return {"tenantRef": "admin", "role": "admin"}
-        legacy = set()
-        for group in groups:
-            direct = re.fullmatch(r"re8ch:tenant:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)", group)
-            operator = re.fullmatch(r"re8ch:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)-(?:operators|members|tenant)", group)
-            if direct or operator:
-                legacy.add((direct or operator).group(1))
-        if len(legacy) == 1:
-            return {"tenantRef": next(iter(legacy)), "role": "operator"}
-        if len(legacy) > 1:
-            raise PermissionError("identity is bound to multiple tenant groups")
-        if subject:
-            tenant = tenant_service_store().tenant_for_identity({f"oidc:{issuer}#{subject}"})
-            if tenant:
-                return {"tenantRef": tenant, "role": "viewer"}
     raise PermissionError("issuer and subject must resolve through TenantIdentityBinding")
 
 
 def authenticated_tenant(identity: dict[str, Any]) -> str:
     return authenticated_tenant_context(identity)["tenantRef"]
+
+def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | None = None, method: str | None = None) -> dict[str, Any]:
+    if not TENANT_CONTROL_URL:
+        raise RuntimeError("tenant claim controller is unavailable")
+    body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+    request = urllib.request.Request(
+        TENANT_CONTROL_URL + path,
+        data=body,
+        method=method or ("POST" if body is not None else "GET"),
+        headers={"Accept": "application/json", "Content-Type": "application/json", "X-Tenant-Caller": "tenant", "X-Tenant-Ref": tenant, "X-Tenant-Service-Token": TENANT_CLAIM_SERVICE_TOKEN},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = json.load(exc).get("error")
+        except Exception:
+            detail = f"tenant claim controller returned HTTP {exc.code}"
+        if exc.code in {401, 403}:
+            raise PermissionError(detail) from None
+        raise ValueError(detail) from None
+
+
+def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> dict[str, Any]:
+    result = tenant_control_request("/v1/claims" + ("/" + urllib.parse.quote(claim_name, safe="") if claim_name else ""), tenant)
+    values = [result] if claim_name else result.get("items", [])
+    rows = []
+    for value in values:
+        spec, status = value.get("spec", {}), value.get("status", {})
+        params = spec.get("parameters", {})
+        row = {"claimName": value.get("metadata", {}).get("name"), "claimUid": value.get("metadata", {}).get("uid"), "capability": spec.get("capability"), "phase": status.get("phase"), "expiresAt": status.get("expiresAt")}
+        if spec.get("capability") == "storage.volume.v1":
+            row["requested"] = {"storageGiB": params.get("sizeGiB")}
+        else:
+            row["requested"] = {"pods": params.get("replicas", params.get("parallelism", 1)), **params.get("resources", {}), "publicEndpoints": 1 if params.get("exposure", {}).get("enabled") else 0}
+        rows.append(row)
+    return {"tenantRef": tenant, "claims": rows, "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate", "usageState": "requested-capacity; UsageEvent aggregation is asynchronous"}
 
 
 def readiness() -> tuple[bool, dict[str, str]]:
@@ -924,8 +939,9 @@ def readiness() -> tuple[bool, dict[str, str]]:
     targets = {"dex": "https://dex.re8ch.com/.well-known/openid-configuration"}
     if TENANT_CONTROL_URL:
         targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
-    if PROFILE == "tenant-registry": targets["adapter"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
-    if PROFILE == "tenant-observability": targets["adapter"] = GRAFANA_URL.rstrip("/") + "/api/health"
+    if PROFILE == "tenant": targets["supplyChain"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
+    if PROFILE == "tenant" and not TENANT_CLAIM_SERVICE_TOKEN:
+        checks["claimServiceCredential"] = "failed"
     for name, url in targets.items():
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=3) as response:
@@ -1249,10 +1265,32 @@ def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str
 def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if name not in {tool["name"] for tool in tools()}:
         raise PermissionError("tool is not published in this profile")
-    if PROFILE == "tenant-artchais" and name in {tool["name"] for tool in ARTCHAIS_CLUSTER_TOOLS}:
+    if PROFILE == "tenant" and name in {tool["name"] for tool in ARTCHAIS_CLUSTER_TOOLS}:
         return call_artc_cluster_tool(name, args, identity)
-    if PROFILE == "tenant-observability" and name in {tool["name"] for tool in GRAFANA_TENANT_TOOLS}:
+    if PROFILE == "tenant" and name in {tool["name"] for tool in GRAFANA_TENANT_TOOLS}:
         return call_grafana_tenant_tool(name, args, identity)
+    if PROFILE == "tenant" and name in {tool["name"] for tool in TENANT_CLAIM_TOOLS}:
+        tenant = authenticated_tenant(identity)
+        if name == "tenant_capabilities_list":
+            return {"tenantRef": tenant, "capabilities": [
+                {"name": "compute.workload.v1", "kinds": ["Job", "Deployment"], "resources": ["cpu", "memory", "ephemeralStorage"], "publicExposure": "anonymous-deployment-only", "imagePolicy": "tenant Harbor signed digest with scan, SBOM and provenance", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
+                {"name": "storage.volume.v1", "plans": ["rbd", "cephfs"], "lifecycle": "independent-retained", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
+            ], "requiresApproval": False, "pricingIncluded": False}
+        if name == "tenant_claim_plan":
+            return tenant_control_request("/v1/claims/plan", tenant, {"claim": args["claim"]})
+        if name == "tenant_claim_create":
+            return tenant_control_request("/v1/claims", tenant, {"claim": args["claim"], "claimHash": args["claim_hash"]})
+        if name == "tenant_claim_get":
+            return tenant_control_request("/v1/claims/" + urllib.parse.quote(args["name"], safe=""), tenant)
+        if name == "tenant_claim_list":
+            return tenant_control_request("/v1/claims", tenant)
+        if name == "tenant_claim_update":
+            return tenant_control_request("/v1/claims/" + urllib.parse.quote(args["name"], safe="") + "/update", tenant, {"claim": args["claim"], "claimHash": args["claim_hash"], "idempotencyKey": args["idempotency_key"]})
+        if name == "tenant_claim_renew":
+            return tenant_control_request("/v1/claims/" + urllib.parse.quote(args["name"], safe="") + "/renew", tenant, {"ttlSeconds": args["ttl_seconds"], "idempotencyKey": args["idempotency_key"]})
+        if name == "tenant_claim_cancel":
+            return tenant_control_request("/v1/claims/" + urllib.parse.quote(args["name"], safe="") + "/cancel", tenant, {"idempotencyKey": args["idempotency_key"]})
+        return tenant_claim_usage_summary(tenant, args.get("claim_name"))
     if name == "activate_device":
         if identity.get("auth_type") != "dex":
             raise PermissionError("device activation requires a live Dex access token")
@@ -1683,7 +1721,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             client.disable_robot(args["robot_id"], True)
         return preview
 
-    if PROFILE == "tenant-registry" and name in {tool["name"] for tool in HARBOR_TENANT_TOOLS}:
+    if PROFILE == "tenant" and name in {tool["name"] for tool in HARBOR_TENANT_TOOLS}:
         tenant = authenticated_tenant(identity)
         if name.startswith("harbor_build_"):
             if name == "harbor_build_get": return supply_chain_client().get_build(tenant, args["operation_id"])
@@ -1717,18 +1755,14 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             (client.create_tag if present else client.delete_tag)(project, args["repository"], args["reference"], args["tag"])
         return preview
 
-    tenant_profiles = {"tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "all"}
+    tenant_profiles = {"admin", "tenant", "all"}
     tenant_tool_names = {tool["name"] for tool in TENANT_INFRA_TOOLS + TENANT_BYOC_TOOLS}
     if PROFILE in tenant_profiles and name in tenant_tool_names:
         tenant = authenticated_tenant(identity)
         store = tenant_service_store()
         admin_tools = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete"}
-        if name in admin_tools | {"byoc_connection_approve"} and (PROFILE != "tenant-admin" or tenant != "admin"):
+        if name in admin_tools | {"byoc_connection_approve"} and (PROFILE != "admin" or tenant != "admin"):
             raise PermissionError("the protected admin tenant is required")
-        if PROFILE == "tenant-registry" and name in {"service_instance_plan", "service_instance_create"} and args.get("spec", {}).get("serviceClass") != "registry.harbor.v1":
-            raise PermissionError("registry plugin accepts only registry.harbor.v1")
-        if PROFILE == "tenant-observability" and name in {"service_instance_plan", "service_instance_create"} and args.get("spec", {}).get("serviceClass") != "observability.grafana.v1":
-            raise PermissionError("observability plugin accepts only observability.grafana.v1")
         if name == "tenant_create":
             return store.create_tenant(args["tenant_ref"], args["display_name"], args["identity_ref"])
         if name == "tenant_list":
@@ -2024,7 +2058,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    profiles = {"cloud", "infra", "orchestra", "tenant", "tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "tenant-artchais", "all"}
+    profiles = {"cloud", "infra", "orchestra", "admin", "tenant", "all"}
     if PROFILE not in profiles:
         raise SystemExit(f"RE8CH_TOOL_PROFILE must be one of: {', '.join(sorted(profiles))}")
     registry()

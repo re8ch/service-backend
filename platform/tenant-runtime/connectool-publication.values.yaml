@@ -1,0 +1,20 @@
+# Merge into platform/connectool/release.yaml at release promotion.
+toolhive:
+  # Add admin-api-backend to the existing re8ch-admin-vmcp workloads.
+  publications:
+    - name: tenant-vmcp
+      clientId: re8ch-tenant
+      resourceUrl: https://tools.re8ch.com/tenant/mcp
+      group: tenant-public
+      createGroup: true
+      replicas: 2
+      session: {database: 4, keyPrefix: "thv:tenant:"}
+      workloads: [{name: tenant-api-backend}]
+      authorization:
+        groupClaim: groups
+        policies:
+          # Identity-to-tenant and grant checks are authoritative in the backend.
+          - 'permit(principal, action, resource);'
+codex:
+  plugins:
+    - {name: re8ch-tenant, publication: tenant-vmcp, category: Productivity, mcpOwner: true, skills: []}

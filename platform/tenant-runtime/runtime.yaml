@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-api, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: admin-api, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: admin-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated}}
+spec:
+  replicas: 2
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: admin-api}}
+  template:
+    metadata: {labels: {app: admin-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: admin-api
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: runtime
+          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: admin}
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-platform-admin}
+            - {name: LISTEN_PORT, value: "19449"}
+            - {name: PUBLIC_MCP_URL, value: "https://admin.re8ch.com:8443/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp"}
+            - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+          ports: [{name: http, containerPort: 19449}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
+      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated}}
+spec:
+  replicas: 2
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: tenant-api}}
+  template:
+    metadata: {labels: {app: tenant-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-api
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: runtime
+          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
+            - {secretRef: {name: tenant-registry-supply-chain, optional: true}}
+            - {secretRef: {name: tenant-grafana-credentials, optional: true}}
+          env:
+            - {name: RE8CH_TOOL_PROFILE, value: tenant}
+            - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant}
+            - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
+            - {name: LISTEN_PORT, value: "19448"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
+            - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
+            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+          ports: [{name: http, containerPort: 19448}]
+          startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
+      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: admin-api, namespace: tenant-infrastructure}
+spec: {selector: {app: admin-api}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-api, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-api}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: admin-api, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: admin-api}}
+  policyTypes: [Ingress]
+  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19449}]}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: tenant-api, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: tenant-api}}
+  policyTypes: [Ingress]
+  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}]
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: admin-api-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: platform-admin-public}
+  remoteUrl: http://admin-api.tenant-infrastructure.svc/mcp
+  transport: streamable-http
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: tenant-api-backend, namespace: toolhive-system}
+spec:
+  groupRef: {name: tenant-public}
+  remoteUrl: http://tenant-api.tenant-infrastructure.svc/mcp
+  transport: streamable-http

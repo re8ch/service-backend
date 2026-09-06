@@ -59,13 +59,14 @@ approval; changing the internal observe list must not change the public list.
 
 The deployed private Codex publication uses the R640-hosted `:8443` edge. Its
 fixed readiness probe verifies these network and OAuth gates without depending
-on unrelated worker nodes or a Qwen tenant.
+on unrelated worker nodes or any tenant workload.
 
 ## Single-layer identity contract
 
 The production chain is `Codex -> Dex -> ToolHive vMCP -> Ops MCP backend`.
 `re8ch-platform-tools` and `re8ch-platform-admin` are distinct Dex public
 clients, so their token audiences cannot be replayed across endpoints. Dex
-emits the canonical `groups` claim; ToolHive Cedar policies map
-`re8ch:k8s-admins` to admin and `re8ch:qwen-operators`/`re8ch:k8s-admins` to the
-bounded restart and scale tools. Authentik is not on the request path.
+emits the canonical `groups` claim; ToolHive Cedar policies map the platform
+administrator group to `admin`. Tenant access is resolved from immutable
+`TenantIdentityBinding` records and is never inferred from a product-specific
+group. Authentik is not on the request path.

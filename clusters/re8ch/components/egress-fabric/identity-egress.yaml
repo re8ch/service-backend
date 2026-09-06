@@ -148,3 +148,21 @@ spec:
             cidr: 0.0.0.0/0
             except: [192.0.2.203/8, 192.0.2.225/10, 127.0.0.0/8, 192.0.2.148/16, 192.0.2.179/12, 192.0.2.148/16]
       ports: [{port: 443, protocol: TCP}]
+---
+# Tenant claim traffic is transparently SNATed on the controlled restricted-node-6dc3f140f9 egress
+# node. The per-claim NetworkPolicy independently rejects private/control-plane
+# destinations before this policy is considered.
+apiVersion: cilium.io/v2
+kind: CiliumEgressGatewayPolicy
+metadata: {name: tenant-metered-public}
+spec:
+  selectors:
+    - namespaceSelector:
+        matchExpressions: [{key: saas.re8ch.com/tenant, operator: Exists}]
+      podSelector:
+        matchLabels: {networking.re8ch.com/egress-class: metered-public}
+  destinationCIDRs: [0.0.0.0/0]
+  excludedCIDRs: [192.0.2.203/8, 192.0.2.225/10, 127.0.0.0/8, 192.0.2.148/16, 192.0.2.179/12, 192.0.2.148/16, 224.0.0.0/4]
+  egressGateway:
+    nodeSelector:
+      matchLabels: {kubernetes.io/hostname: restricted-node-6dc3f140f9}

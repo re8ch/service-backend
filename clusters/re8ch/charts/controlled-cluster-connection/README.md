@@ -19,10 +19,9 @@ helm upgrade --install controlled-cluster-connection . \
   -f examples/artc-values.yaml
 ```
 
-Use `examples/qwen-values.yaml` for qwen. In production, keep the reviewed
-values in the owner's own repository; the examples here describe the current
-cross-organisation agreement but are not reconciled into either external
-cluster by RE8CH Flux.
+For another tenant, start from the schema and keep the reviewed values in the
+owner's own repository. Examples describe cross-organisation agreements but
+are not reconciled into external clusters by RE8CH Flux.
 
 ## Verify
 

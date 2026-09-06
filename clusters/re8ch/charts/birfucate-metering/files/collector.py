@@ -108,10 +108,11 @@ def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: f
     iso = lambda value: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(value))
     return {
         "eventId": event_id(stable), "tenantRef": tenant, "resourceRef": resource,
-        "serviceClass": {"ceph": "storage.volume.v1", "pigsty": "database.postgresql.shared.v1", "networks": "network.tenant.v1"}[domain],
+        "serviceClass": {"compute": "compute.workload.v1", "ceph": "storage.volume.v1", "pigsty": "database.postgresql.shared.v1", "networks": "network.tenant.v1"}[domain],
         "meter": meter, "quantity": quantity, "unit": unit, "periodStart": iso(start), "periodEnd": iso(end),
         "regionRef": "meter-source", "sourceOperationId": "birfucate:" + event_id(stable)[3:], "observedAt": iso(end),
         "schemaVersion": "usage.re8ch.com/v1", "dimensions": dimensions,
+        "pricingApplied": False, "accountingPosted": False,
     }
 
 
@@ -130,7 +131,7 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         except urllib.error.URLError:
             set_metric("birfucate_dependency_up", {"dependency": "opencost"}, 0)
     for meter in config["meters"].get("occupancy", []):
-        values = vector(prometheus_query(prom["baseURL"], meter["query"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
+        values = vector(prometheus_query(prom["baseURL"], meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
         for (tenant, resource), gauge in values.items():
             quantity = gauge * interval
             labels = {"tenant": tenant, "resource_ref": resource, "domain": meter["domain"], "meter": meter["name"], "unit": meter["unit"]}

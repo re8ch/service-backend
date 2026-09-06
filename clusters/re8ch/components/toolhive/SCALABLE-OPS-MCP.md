@@ -1,7 +1,7 @@
 # Scalable Ops MCP control plane
 
 The external operations tools are an independent platform control surface. They
-do not depend on Qwen workloads or on every Kubernetes node being Ready.
+do not depend on tenant workloads or on every Kubernetes node being Ready.
 
 The supported composition is:
 

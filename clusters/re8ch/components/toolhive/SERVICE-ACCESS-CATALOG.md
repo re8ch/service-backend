@@ -66,7 +66,7 @@ drifts from the checked-in domain map.
 
 The live per-resource permission matrix currently contains 335 decisions: 169
 workloads and 166 Services. Nine Deployments map to exact approval-gated admin
-restart/scale targets; 22 qwen Deployments map to the tenant operate restart
+restart/scale targets; declared tenant Deployments map to the tenant operate
 boundary. Every other mutation is explicitly unpublished and remains behind its
 native control plane. Both KAgent integrations have accepted the updated schema
 and discover 25 observe tools and 26 operate tools.

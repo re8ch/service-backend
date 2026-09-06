@@ -124,7 +124,7 @@ Do not install the cluster chart until the operator deployment and discovery
 pods are healthy.
 
 The re8ch-files MDS placement is a required allowlist, not a preference.
-Metadata servers may run only on restricted-node-6dc3f140f9, restricted-node-1eb0570f74, or restricted-node-296f36f2fb. Qwen/Nuclio
+Metadata servers may run only on restricted-node-6dc3f140f9, restricted-node-1eb0570f74, or restricted-node-296f36f2fb. Tenant application
 nodes are business-function nodes and are not valid Ceph control-plane
 candidates. Pod anti-affinity must remain enabled in addition to node affinity.
 
@@ -145,7 +145,7 @@ boundary and promotion gates.
    default class.
 4. The smoke DaemonSet has one pod on each pilot node and all three files are
    visible from every pod.
-5. Existing Qwen pods and public smoke endpoints remain healthy.
+5. Existing tenant pods and public smoke endpoints remain healthy.
 6. Both MDS Pods run on distinct approved nodes; desired and observed
    CephFilesystem generations match.
 7. CephFS subvolumegroup and subvolume listing complete without timeout.

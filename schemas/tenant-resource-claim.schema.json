@@ -8,34 +8,66 @@
     "apiVersion": {"const": "tenancy.re8ch.com/v1alpha1"},
     "kind": {"const": "TenantResourceClaim"},
     "metadata": {
-      "type": "object", "additionalProperties": false,
-      "required": ["name", "tenantRef"],
-      "properties": {
-        "name": {"$ref": "#/$defs/name"},
-        "tenantRef": {"$ref": "#/$defs/name"},
-        "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 128}
-      }
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"$ref": "#/$defs/name"}}
     },
     "spec": {
-      "type": "object", "additionalProperties": false,
-      "required": ["capability", "ttlSeconds", "parameters"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantRef", "idempotencyKey", "capability", "ttlSeconds", "parameters"],
       "properties": {
-        "capability": {"enum": ["image.run.v1", "database.run.v1", "network.service-binding.v1", "storage.volume.v1", "storage.bucket.v1"]},
+        "tenantRef": {"$ref": "#/$defs/name"},
+        "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 128},
+        "capability": {"enum": ["compute.workload.v1", "storage.volume.v1"]},
         "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 2592000},
-        "parameters": {"type": "object"},
-        "consumer": {
-          "type": "object", "additionalProperties": false,
-          "required": ["cluster"],
-          "properties": {
-            "cluster": {"enum": ["qwen", "artc", "external"]},
-            "serviceAccount": {"$ref": "#/$defs/name"},
-            "publicEdgeRef": {"$ref": "#/$defs/name"}
-          }
+        "parameters": {
+          "oneOf": [
+            {"$ref": "#/$defs/computeParameters"},
+            {"$ref": "#/$defs/volumeParameters"}
+          ]
         }
-      }
+      },
+      "allOf": [
+        {"if": {"properties": {"capability": {"const": "compute.workload.v1"}}}, "then": {"properties": {"parameters": {"$ref": "#/$defs/computeParameters"}}}},
+        {"if": {"properties": {"capability": {"const": "storage.volume.v1"}}}, "then": {"properties": {"parameters": {"$ref": "#/$defs/volumeParameters"}}}}
+      ]
     }
   },
   "$defs": {
-    "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63}
+    "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63},
+    "quantity": {"type": "string", "pattern": "^[1-9][0-9]*(m|Ki|Mi|Gi|Ti)?$"},
+    "computeParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "imageDigest", "resources"],
+      "properties": {
+        "kind": {"enum": ["Job", "Deployment"]},
+        "imageDigest": {"type": "string", "pattern": "^registry\\.re8ch\\.com/[a-z0-9][a-z0-9._-]*/.+@sha256:[a-f0-9]{64}$"},
+        "command": {"type": "array", "items": {"type": "string"}},
+        "args": {"type": "array", "items": {"type": "string"}},
+        "env": {"type": "object", "additionalProperties": {"type": "string"}},
+        "resources": {
+          "type": "object", "additionalProperties": false,
+          "required": ["cpu", "memory", "ephemeralStorage"],
+          "properties": {"cpu": {"$ref": "#/$defs/quantity"}, "memory": {"$ref": "#/$defs/quantity"}, "ephemeralStorage": {"$ref": "#/$defs/quantity"}}
+        },
+        "replicas": {"type": "integer", "minimum": 1, "maximum": 20},
+        "parallelism": {"type": "integer", "minimum": 1, "maximum": 20},
+        "completions": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "volumeMounts": {
+          "type": "array",
+          "items": {"type": "object", "additionalProperties": false, "required": ["claimName", "mountPath"], "properties": {"claimName": {"$ref": "#/$defs/name"}, "mountPath": {"type": "string", "pattern": "^/.+"}, "readOnly": {"type": "boolean"}}}
+        },
+        "exposure": {"type": "object", "additionalProperties": false, "required": ["enabled"], "properties": {"enabled": {"type": "boolean"}, "port": {"type": "integer", "minimum": 1, "maximum": 65535}, "healthPath": {"type": "string", "pattern": "^/"}}},
+        "egressClass": {"const": "metered-public"}
+      }
+    },
+    "volumeParameters": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sizeGiB"],
+      "properties": {"sizeGiB": {"type": "integer", "minimum": 1, "maximum": 1024}, "accessMode": {"enum": ["ReadWriteOnce", "ReadWriteMany"]}, "plan": {"enum": ["rbd", "cephfs"]}, "retentionPolicy": {"const": "Retain"}}
+    }
   }
 }

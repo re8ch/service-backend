@@ -31,6 +31,20 @@ spec:
   issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
   dnsNames: [sub.access.re8ch.com, dns.access.re8ch.com]
 ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: re8ch-apps-public-gateway, namespace: kube-system}
+spec:
+  secretName: re8ch-apps-wildcard-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
+  dnsNames: ["*.apps.re8ch.com"]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -51,6 +65,17 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: apps-wildcard-https
+      hostname: "*.apps.re8ch.com"
+      protocol: HTTPS
+      port: 443
+      tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-apps-wildcard-tls}]}
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchExpressions:
+              - {key: saas.re8ch.com/tenant, operator: Exists}
     - {name: teable-https, hostname: teable.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: browser-https, hostname: browser.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: storage-https, hostname: storage.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}

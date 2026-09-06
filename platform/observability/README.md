@@ -1,7 +1,7 @@
 # RE8CH production observability
 
-This tree replaces the hand-maintained scrape section in
-`qianwen-ops/panel-observability.yaml` with VictoriaMetrics Operator resources.
+This tree replaces the hand-maintained scrape section in the legacy panel
+observability manifest with VictoriaMetrics Operator resources.
 It contains no custom metric collector: each platform component exports its
 native metrics, and each application owns its metric semantics, SLO, dashboard,
 recording rules and runbook.

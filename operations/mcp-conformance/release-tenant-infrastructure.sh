@@ -18,7 +18,7 @@ fi
 
 : "${TENANT_IMAGE_REPOSITORY:=registry.re8ch.com/image/re8ch-ai-operations}"
 : "${TENANT_IMAGE_TAG:=${CI_COMMIT_SHA:-$(git rev-parse HEAD)}}"
-context=clusters/re8ch/components/ai-operations
+dockerfile=clusters/re8ch/components/ai-operations/Dockerfile
 image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
 trap 'rm -f "$metadata"' EXIT
@@ -32,7 +32,7 @@ push_attempt=1
 push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
 while ! docker buildx build --platform linux/amd64 --provenance=mode=max \
   --attest "type=sbom,generator=${sbom_generator}" \
-  --push --metadata-file "$metadata" -t "$image" "$context"; do
+  --push --metadata-file "$metadata" -f "$dockerfile" -t "$image" .; do
   if (( push_attempt >= push_attempts )); then
     echo "Image build/push failed after ${push_attempt} attempts" >&2
     exit 1
