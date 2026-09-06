@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: retire-netbird-fleet-supabase, namespace: flux-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: retire-netbird-fleet-supabase}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments/scale]
+    resourceNames:
+      - netbird-dashboard
+      - netbird-egress-probe
+      - netbird-relay-gz-1
+      - netbird-relay-hz-1
+      - netbird-router-cn
+      - netbird-router-la
+      - netbird-server
+      - fleet
+      - fleet-egress-proxy
+      - fleet-redis
+      - supabase-auth
+      - supabase-imgproxy
+      - supabase-kong
+      - supabase-meta
+      - supabase-realtime
+      - supabase-rest
+      - supabase-storage
+      - supabase-studio
+    verbs: [get, patch, update]
+  - apiGroups: [apps]
+    resources: [statefulsets/scale]
+    resourceNames: [fleet-mysql]
+    verbs: [get, patch, update]
+  - apiGroups: [batch]
+    resources: [cronjobs]
+    resourceNames: [netbird-geodb-sync]
+    verbs: [get, patch, update]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    resourceNames:
+      - fleet
+      - netbird-access-dns
+      - netbird-relay-gz-1-dns
+      - netbird-relay-hz-1-dns
+      - supabase-pg-re8ch-studio
+    verbs: [get, delete]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    resourceNames: [netbird-dashboard-public, supabase-public]
+    verbs: [get, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: retire-netbird-fleet-supabase}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: retire-netbird-fleet-supabase}
+subjects:
+  - {kind: ServiceAccount, name: retire-netbird-fleet-supabase, namespace: flux-system}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: retire-netbird-fleet-supabase-v1
+  namespace: flux-system
+  labels: {app.kubernetes.io/part-of: platform-retirement}
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata: {labels: {app.kubernetes.io/part-of: platform-retirement}}
+    spec:
+      serviceAccountName: retire-netbird-fleet-supabase
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: retire
+          image: registry.k8s.io/kubectl:v1.33.4@sha256:261a9ed843eb68e3d50da132245e2221d75ca19504130e47bd32788c0ff339a0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              kubectl -n netbird-access delete ingress/netbird-access-dns ingress/netbird-relay-gz-1-dns ingress/netbird-relay-hz-1-dns --ignore-not-found
+              kubectl -n netbird-access delete httproute/netbird-dashboard-public --ignore-not-found
+              kubectl -n netbird-access patch cronjob/netbird-geodb-sync --type=merge -p '{"spec":{"suspend":true}}'
+              kubectl -n netbird-access scale deployment/netbird-dashboard deployment/netbird-egress-probe deployment/netbird-relay-gz-1 deployment/netbird-relay-hz-1 deployment/netbird-router-cn deployment/netbird-router-la deployment/netbird-server --replicas=0
+
+              kubectl -n fleet delete ingress/fleet --ignore-not-found
+              kubectl -n fleet scale deployment/fleet deployment/fleet-egress-proxy deployment/fleet-redis --replicas=0
+              kubectl -n fleet scale statefulset/fleet-mysql --replicas=0
+
+              kubectl -n supabase-pg-re8ch delete ingress/supabase-pg-re8ch-studio httproute/supabase-public --ignore-not-found
+              kubectl -n supabase-pg-re8ch scale deployment/supabase-auth deployment/supabase-imgproxy deployment/supabase-kong deployment/supabase-meta deployment/supabase-realtime deployment/supabase-rest deployment/supabase-storage deployment/supabase-studio --replicas=0
+
+              kubectl -n fleet get deployment fleet fleet-egress-proxy fleet-redis -o jsonpath='{range .items[*]}{.metadata.name}={.spec.replicas}{"\n"}{end}'
+              kubectl -n fleet get statefulset fleet-mysql -o jsonpath='{.metadata.name}={.spec.replicas}{"\n"}'
+              kubectl -n supabase-pg-re8ch get deployment -o jsonpath='{range .items[*]}{.metadata.name}={.spec.replicas}{"\n"}{end}'
