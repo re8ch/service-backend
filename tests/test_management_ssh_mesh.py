@@ -49,3 +49,4 @@ def test_windows_installer_separates_wsl_owner_from_host_reboot_authority() -> N
     script = (ROOT / "operations/host-ops/windows/install-re8ch-control-plane-host.ps1").read_text()
     assert "-UserId 'SYSTEM'" in script
     assert "-LogonType ServiceAccount" in script
+    assert "OpenSSH.Server~~~~192.0.2.79" in script
