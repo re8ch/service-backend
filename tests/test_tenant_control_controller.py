@@ -21,8 +21,12 @@ class FakeKube:
         return self.values[plural]
 
 
-def binding(tenant, digest="sha256:" + "a" * 64, revoked=False):
-    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.re8ch.com", "subjectHash": digest, "revoked": revoked}}
+def binding(tenant, digest="sha256:" + "a" * 64, revoked=False, role="viewer"):
+    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.re8ch.com", "subjectHash": digest, "role": role, "revoked": revoked}}
+
+
+def group_binding(tenant, group, role):
+    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.re8ch.com", "group": group, "role": role}}
 
 
 def tenant(name, lifecycle="Active"):
@@ -31,7 +35,24 @@ def tenant(name, lifecycle="Active"):
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
-    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == "acme"
+    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer"}
+
+
+def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
+    bindings = [
+        group_binding("artchais", "Artchais:tenant-viewers", "viewer"),
+        group_binding("artchais", "Artchais:tenant-operators", "operator"),
+    ]
+    monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
+    result = controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-viewers", "Artchais:tenant-operators"])
+    assert result == {"tenantRef": "artchais", "role": "operator"}
+
+
+def test_groups_spanning_tenants_are_denied(monkeypatch):
+    bindings = [group_binding("artchais", "Artchais:tenant-admins", "admin"), group_binding("other", "Other:tenant-admins", "admin")]
+    monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais"), tenant("other")]))
+    with pytest.raises(PermissionError):
+        controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
 
 
 @pytest.mark.parametrize(

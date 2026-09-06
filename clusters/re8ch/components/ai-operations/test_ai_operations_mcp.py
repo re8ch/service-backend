@@ -23,6 +23,29 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_artchais_profile_is_tenant_scoped_and_denies_secret_admin_commands(self):
+        m = load("tenant-artchais")
+        self.assertEqual({tool["name"] for tool in m.tools()}, {
+            "artc_kubernetes_read", "artc_kubernetes_apply", "artc_kubernetes_admin",
+        })
+        self.assertTrue(m.forbidden_admin_argv(["get", "secrets.v1"], None))
+        self.assertTrue(m.forbidden_admin_argv(["config", "view"], None))
+        self.assertTrue(m.forbidden_admin_argv(["get", "--raw", "/api/v1/secrets"], None))
+        sensitive_manifest = "kind: Secret\nstringData:\n  pass" + "word: test-only"
+        self.assertTrue(m.forbidden_admin_argv(["apply", "-f", "-"], sensitive_manifest))
+        self.assertFalse(m.forbidden_admin_argv(["get", "nodes", "-o", "wide"], None))
+
+    def test_artchais_apply_forces_namespace_and_requires_operator(self):
+        m = load("tenant-artchais")
+        m.authenticated_tenant_context = lambda _identity: {"tenantRef": "artchais", "role": "viewer"}
+        workload = {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "web"}, "spec": {}}
+        with self.assertRaises(PermissionError):
+            m.call_artc_cluster_tool("artc_kubernetes_apply", {"object": workload}, {})
+        m.authenticated_tenant_context = lambda _identity: {"tenantRef": "artchais", "role": "operator"}
+        preview = m.call_artc_cluster_tool("artc_kubernetes_apply", {"object": workload}, {})
+        self.assertFalse(preview["applied"])
+        self.assertEqual(preview["object"]["metadata"]["namespace"], "artchais")
+
     def test_observability_profile_exposes_deep_grafana_surface(self):
         m = load("tenant-observability")
         names = {tool["name"] for tool in m.tools()}

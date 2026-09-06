@@ -5,6 +5,7 @@ resources:
   - release.yaml
   - headlamp-viewer.yaml
   - byoc-pilot.yaml
+  - artchais-tenant.yaml
   - mihomos-pilot.yaml
   - headlamp-imports.yaml
   - broker-network-policy.yaml
