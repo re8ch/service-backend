@@ -29,6 +29,7 @@ desired = {
     "re8ch-tenant-registry": "RE8CH Tenant Registry",
     "re8ch-tenant-observability": "RE8CH Tenant Observability",
     "re8ch-tenant-byoc": "RE8CH Tenant BYOC",
+    "re8ch-artchais-tenant": "RE8CH Artchais Tenant",
 }
 clients = config.setdefault("staticClients", [])
 by_id = {item.get("id"): item for item in clients}
@@ -50,6 +51,24 @@ installer.update({
     "redirectURIs": ["https://marketplace.re8ch.com/install/callback"],
 })
 installer.pop("secret", None)
+
+# Reuse the existing GitHub OAuth connector and restrict the additional
+# organization claim to the three tenant roles. The connector's client secret
+# remains in this in-memory document and is never printed or committed.
+github = next((item for item in config.get("connectors", []) if item.get("type") == "github"), None)
+if github is None:
+    raise SystemExit("existing Dex GitHub connector is required")
+github_config = github.setdefault("config", {})
+github_config["teamNameField"] = "slug"
+orgs = github_config.setdefault("orgs", [])
+artchais = next((item for item in orgs if isinstance(item, dict) and str(item.get("name", "")).lower() == "artchais"), None)
+if artchais is None:
+    artchais = {"name": "Artchais", "teams": []}
+    orgs.append(artchais)
+teams = artchais.setdefault("teams", [])
+for team in ("tenant-admins", "tenant-operators", "tenant-viewers"):
+    if team not in teams:
+        teams.append(team)
 path.write_text(yaml.safe_dump(config, sort_keys=False))
 PY
 

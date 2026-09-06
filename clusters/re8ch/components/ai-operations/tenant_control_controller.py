@@ -84,20 +84,31 @@ def condition(kind, ok, reason, message=""):
             "message": message[:1024], "lastTransitionTime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
 
-def resolve(issuer, subject_hash):
+ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
+
+
+def resolve(issuer, subject_hash, groups=None):
     matches = []
+    groups = {str(group) for group in (groups or []) if isinstance(group, str)}
     for binding in kube().list("tenantidentitybindings"):
         spec = binding.get("spec", {})
-        if not spec.get("revoked") and spec.get("issuer", "").rstrip("/") == issuer.rstrip("/") and hmac.compare_digest(spec.get("subjectHash", ""), subject_hash):
-            matches.append(spec.get("tenantRef"))
-    matches = sorted(set(filter(None, matches)))
-    if len(matches) != 1:
+        if spec.get("revoked") or spec.get("issuer", "").rstrip("/") != issuer.rstrip("/"):
+            continue
+        subject_match = bool(subject_hash and spec.get("subjectHash") and hmac.compare_digest(spec["subjectHash"], subject_hash))
+        group_match = bool(spec.get("group") and spec["group"] in groups)
+        if subject_match or group_match:
+            matches.append((spec.get("tenantRef"), spec.get("role", "viewer")))
+    tenants_matched = sorted(set(tenant for tenant, _ in matches if tenant))
+    if len(tenants_matched) != 1:
         raise PermissionError("identity must resolve to exactly one active tenant")
     tenants = {item["metadata"]["name"]: item for item in kube().list("tenants")}
-    tenant = tenants.get(matches[0])
+    tenant = tenants.get(tenants_matched[0])
     if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
         raise PermissionError("tenant is not active")
-    return matches[0]
+    role = max((role for tenant_ref, role in matches if tenant_ref == tenants_matched[0]), key=lambda value: ROLE_ORDER.get(value, 0))
+    if role not in ROLE_ORDER:
+        raise PermissionError("identity binding has an invalid role")
+    return {"tenantRef": tenants_matched[0], "role": role}
 
 
 def reconcile_loop():
@@ -133,14 +144,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path != "/v1/resolve": self.send_json(404, {"error": "not_found"}); return
-        if self.headers.get("X-Tenant-Caller", "") not in {"tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc"}:
+        if self.headers.get("X-Tenant-Caller", "") not in {"tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "tenant-artchais"}:
             self.send_json(401, {"error": "unauthorized"}); return
         try:
             size = min(int(self.headers.get("Content-Length", "0")), 4096)
             body = json.loads(self.rfile.read(size))
-            issuer, subject_hash = str(body["issuer"]), str(body["subjectHash"])
-            if not subject_hash.startswith("sha256:"): raise ValueError()
-            self.send_json(200, {"tenantRef": resolve(issuer, subject_hash)})
+            issuer = str(body["issuer"])
+            subject_hash = str(body.get("subjectHash") or "")
+            groups = body.get("groups") or []
+            if subject_hash and not subject_hash.startswith("sha256:"): raise ValueError()
+            if not isinstance(groups, list) or len(groups) > 128 or any(not isinstance(group, str) or len(group) > 256 for group in groups): raise ValueError()
+            if not subject_hash and not groups: raise ValueError()
+            self.send_json(200, resolve(issuer, subject_hash, groups))
         except PermissionError as exc: self.send_json(403, {"error": str(exc)})
         except Exception: self.send_json(400, {"error": "invalid_request"})
 

@@ -68,17 +68,21 @@ spec:
           properties:
             spec:
               type: object
-              required: [tenantRef, issuer, subjectHash]
+              required: [tenantRef, issuer]
               properties:
                 tenantRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
                 issuer: {type: string, format: uri, pattern: '^https://'}
                 subjectHash: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}
+                group: {type: string, minLength: 1, maxLength: 256}
+                role: {type: string, enum: [viewer, operator, admin], default: viewer}
                 revoked: {type: boolean, default: false}
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true
           x-kubernetes-validations:
-            - rule: 'self.spec.subjectHash == oldSelf.spec.subjectHash && self.spec.issuer == oldSelf.spec.issuer'
+            - rule: 'has(self.spec.subjectHash) != has(self.spec.group)'
+              message: exactly one of subjectHash or group is required
+            - rule: 'self.spec.issuer == oldSelf.spec.issuer && (!has(oldSelf.spec.subjectHash) || self.spec.subjectHash == oldSelf.spec.subjectHash) && (!has(oldSelf.spec.group) || self.spec.group == oldSelf.spec.group) && (!has(oldSelf.spec.role) || self.spec.role == oldSelf.spec.role)'
               message: identity is immutable; revoke and replace the binding
 ---
 apiVersion: apiextensions.k8s.io/v1

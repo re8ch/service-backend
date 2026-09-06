@@ -74,6 +74,21 @@ def test_tenancy_crds_are_structural_and_status_enabled():
     rules = " ".join(item["rule"] for item in validations)
     assert "self.spec.issuer == oldSelf.spec.issuer" in rules
     assert "self.spec.subjectHash == oldSelf.spec.subjectHash" in rules
+    schema = identity["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+    assert schema["properties"]["role"]["enum"] == ["viewer", "operator", "admin"]
+    assert "has(self.spec.subjectHash) != has(self.spec.group)" in rules
+
+
+def test_artchais_github_team_bindings_have_explicit_roles():
+    docs = documents(ROOT / "platform/tenant-infrastructure/artchais-tenant.yaml")
+    tenant = next(item for item in docs if item["kind"] == "Tenant")
+    bindings = [item for item in docs if item["kind"] == "TenantIdentityBinding"]
+    assert tenant["metadata"]["name"] == "artchais"
+    assert {(item["spec"]["group"], item["spec"]["role"]) for item in bindings} == {
+        ("Artchais:tenant-admins", "admin"),
+        ("Artchais:tenant-operators", "operator"),
+        ("Artchais:tenant-viewers", "viewer"),
+    }
 
 
 def test_dex_refresh_rotation_has_bounded_reuse_window():

@@ -65,6 +65,7 @@ CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
 TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
+ARTCHAIS_TENANT_REF = os.getenv("ARTCHAIS_TENANT_REF", "artchais")
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -77,6 +78,7 @@ PROFILE_GROUPS = {
     "tenant-registry": set(),
     "tenant-observability": set(),
     "tenant-byoc": set(),
+    "tenant-artchais": set(),
 }
 ALLOW_AUTHENTICATED_DEX = os.getenv("ALLOW_AUTHENTICATED_DEX", "false").lower() == "true"
 
@@ -660,6 +662,12 @@ TENANT_BYOC_TOOLS = [
     {"name": "byoc_connection_revoke", "description": "Revoke a cluster connection; offline clusters enter RevocationPending.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "connection_ref": {"type": "string"}, "offline": {"type": "boolean"}}, ["tenant_ref", "connection_ref"])},
 ]
 
+ARTCHAIS_CLUSTER_TOOLS = [
+    {"name": "artc_kubernetes_read", "description": "Read an allowlisted, non-secret Kubernetes resource from the Artchais artc cluster using the caller's tenant role.", "inputSchema": schema({"resource": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["resource"])},
+    {"name": "artc_kubernetes_apply", "description": "Preview or apply one allowlisted namespaced object to the Artchais namespace. Operator or admin role is required and apply=true is explicit.", "inputSchema": schema({"object": {"type": "object"}, "apply": {"type": "boolean"}}, ["object"])},
+    {"name": "artc_kubernetes_admin", "description": "Preview or run a bounded kubectl argv against artc using the admin grant. Credential export, Secret access, exec and proxy commands are always denied.", "inputSchema": schema({"argv": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 128}, "stdin": {"type": "string", "maxLength": 1048576}, "apply": {"type": "boolean"}, "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 600}}, ["argv"])},
+]
+
 ORCHESTRA_TOOLS = [
     {"name": "orchestra_service_status", "description": "Read application service health.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "kagent", "codex"]}}, ["service"])},
     {"name": "orchestra_request", "description": "Call an application API using a server-side service credential reference.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "kagent", "codex"]}, "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string"}, "body": {}}, ["service", "method", "path"])},
@@ -687,6 +695,8 @@ def tools() -> list[dict[str, Any]]:
         return base + (GRAFANA_TENANT_TOOLS if PROFILE == "tenant-observability" else HARBOR_TENANT_TOOLS)
     if PROFILE == "tenant-byoc":
         return [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
+    if PROFILE == "tenant-artchais":
+        return ARTCHAIS_CLUSTER_TOOLS
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS, "tenant": TENANT_TOOLS, "tenant-infra": TENANT_INFRA_TOOLS}.get(PROFILE, [])
 
 
@@ -865,25 +875,48 @@ def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
     return {"contents": [{"uri": uri, "mimeType": match["mimeType"], "text": json.dumps(match["value"], ensure_ascii=False, separators=(",", ":"))}]}
 
 
-def authenticated_tenant(identity: dict[str, Any]) -> str:
+def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
     groups = {str(group) for group in identity.get("groups") or []}
     subject = str(identity.get("subject") or "").strip()
     issuer = str(identity.get("issuer") or "https://dex.re8ch.com").rstrip("/")
     if TENANT_CONTROL_URL and subject:
-        payload = json.dumps({"issuer": issuer, "subjectHash": "sha256:" + hashlib.sha256(f"{issuer}\n{subject}".encode()).hexdigest()}).encode()
+        payload = json.dumps({"issuer": issuer, "subjectHash": "sha256:" + hashlib.sha256(f"{issuer}\n{subject}".encode()).hexdigest(), "groups": sorted(groups)}).encode()
         request = urllib.request.Request(TENANT_CONTROL_URL + "/v1/resolve", data=payload, method="POST", headers={"Content-Type": "application/json", "X-Tenant-Caller": PROFILE})
         try:
             with urllib.request.urlopen(request, timeout=5) as response:
-                tenant = str(json.load(response).get("tenantRef") or "")
+                resolved = json.load(response)
+                tenant = str(resolved.get("tenantRef") or "")
+                role = str(resolved.get("role") or "viewer")
             if tenant:
                 if PROFILE == "tenant-admin" and (tenant != "admin" or "re8ch:tenant-admins" not in groups):
                     raise PermissionError("admin runtime requires the protected admin tenant and group")
-                return tenant
+                return {"tenantRef": tenant, "role": role}
         except urllib.error.HTTPError as exc:
             raise PermissionError("identity is not bound to an active tenant") from exc
         except (urllib.error.URLError, ValueError) as exc:
             raise RuntimeError("tenant authorizer is unavailable") from exc
+    if not TENANT_CONTROL_URL:
+        if "re8ch:tenant-admins" in groups:
+            return {"tenantRef": "admin", "role": "admin"}
+        legacy = set()
+        for group in groups:
+            direct = re.fullmatch(r"re8ch:tenant:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)", group)
+            operator = re.fullmatch(r"re8ch:([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)-(?:operators|members|tenant)", group)
+            if direct or operator:
+                legacy.add((direct or operator).group(1))
+        if len(legacy) == 1:
+            return {"tenantRef": next(iter(legacy)), "role": "operator"}
+        if len(legacy) > 1:
+            raise PermissionError("identity is bound to multiple tenant groups")
+        if subject:
+            tenant = tenant_service_store().tenant_for_identity({f"oidc:{issuer}#{subject}"})
+            if tenant:
+                return {"tenantRef": tenant, "role": "viewer"}
     raise PermissionError("issuer and subject must resolve through TenantIdentityBinding")
+
+
+def authenticated_tenant(identity: dict[str, Any]) -> str:
+    return authenticated_tenant_context(identity)["tenantRef"]
 
 
 def readiness() -> tuple[bool, dict[str, str]]:
@@ -954,6 +987,117 @@ def kubectl_patch(argv: list[str], payload: dict[str, Any]) -> dict[str, Any]:
     if result["exit_code"] != 0:
         raise ValueError(result["stderr"] or "kubectl patch failed")
     return {"operation_id": result["operation_id"], "object": json.loads(result["stdout"])}
+
+
+ARTC_READ_RESOURCES = {
+    "namespaces", "nodes", "pods", "pods/log", "services", "endpoints", "events",
+    "persistentvolumeclaims", "deployments", "statefulsets", "daemonsets", "replicasets",
+    "jobs", "cronjobs", "ingresses", "httproutes", "networkpolicies", "storageclasses",
+}
+ARTC_APPLY_KINDS = {
+    ("v1", "Service"), ("v1", "PersistentVolumeClaim"),
+    ("apps/v1", "Deployment"), ("apps/v1", "StatefulSet"),
+    ("batch/v1", "Job"), ("batch/v1", "CronJob"),
+    ("networking.k8s.io/v1", "Ingress"), ("networking.k8s.io/v1", "NetworkPolicy"),
+    ("gateway.networking.k8s.io/v1", "HTTPRoute"),
+}
+ARTC_ADMIN_DENIED = {
+    "secret", "secrets", "serviceaccounts/token", "exec", "attach", "cp", "debug",
+    "proxy", "port-forward", "auth", "config", "certificate", "token",
+    "raw",
+}
+ARTC_SENSITIVE_FIELDS = {"secret", "password", "token", "privatekey", "clientsecret", "apikey", "stringdata"}
+
+
+def artc_kubeconfig(role: str) -> Path:
+    selected = role if role in {"viewer", "operator", "admin"} else "viewer"
+    path = KUBECONFIG_DIR / f"artc-{selected}.yaml"
+    if not path.is_file():
+        raise RuntimeError(f"artc {selected} access grant is unavailable")
+    return path
+
+
+def artc_identity(identity: dict[str, Any]) -> dict[str, str]:
+    context = authenticated_tenant_context(identity)
+    if context["tenantRef"] != ARTCHAIS_TENANT_REF:
+        raise PermissionError("this publication is restricted to the Artchais tenant")
+    return context
+
+
+def valid_kubernetes_name(value: str) -> str:
+    if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?", value) or len(value) > 253:
+        raise ValueError("invalid Kubernetes name")
+    return value
+
+
+def contains_sensitive_field(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(str(key).lower().replace("_", "") in ARTC_SENSITIVE_FIELDS or contains_sensitive_field(item) for key, item in value.items())
+    if isinstance(value, list):
+        return any(contains_sensitive_field(item) for item in value)
+    return False
+
+
+def forbidden_admin_argv(values: list[str], stdin: str | None) -> bool:
+    lowered = [value.lower() for value in values]
+    words = {part for value in lowered for part in re.split(r"[./=,:]+", value.lstrip("-")) if part}
+    forbidden_flags = ("kubeconfig", "client-key", "client-certificate", "certificate-authority", "--token", "--server", "--as")
+    if words & ARTC_ADMIN_DENIED or "secret" in words or "secrets" in words:
+        return True
+    if any(any(flag in value for flag in forbidden_flags) for value in lowered):
+        return True
+    if stdin and re.search(r"(?i)(kind\s*:\s*secret|stringData\s*:|client-key-data|token\s*:|password\s*:)", stdin):
+        return True
+    return False
+
+
+def call_artc_cluster_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> dict[str, Any]:
+    context = artc_identity(identity)
+    role = context["role"]
+    if name == "artc_kubernetes_read":
+        resource = str(args["resource"]).lower()
+        if resource not in ARTC_READ_RESOURCES:
+            raise PermissionError("resource is not in the non-secret read allowlist")
+        argv = ["kubectl", "--kubeconfig", str(artc_kubeconfig(role))]
+        namespace = str(args.get("namespace") or "")
+        if namespace:
+            argv += ["--namespace", valid_kubernetes_name(namespace)]
+        argv += ["get", resource]
+        if args.get("name"):
+            argv.append(valid_kubernetes_name(str(args["name"])))
+        argv += ["-o", "json"]
+        return {"tenantRef": context["tenantRef"], "role": role, **command_result(argv, None, 120)}
+    if name == "artc_kubernetes_apply":
+        if role not in {"operator", "admin"}:
+            raise PermissionError("operator or admin role is required")
+        obj = args["object"]
+        if (str(obj.get("apiVersion") or ""), str(obj.get("kind") or "")) not in ARTC_APPLY_KINDS:
+            raise PermissionError("object kind is not in the Artchais workload allowlist")
+        metadata = obj.get("metadata") or {}
+        if metadata.get("namespace") not in (None, "", ARTCHAIS_TENANT_REF):
+            raise PermissionError("objects must target the Artchais namespace")
+        obj = {**obj, "metadata": {**metadata, "namespace": ARTCHAIS_TENANT_REF}}
+        if contains_sensitive_field(obj):
+            raise PermissionError("inline credential and Secret fields are denied")
+        preview = {"tenantRef": context["tenantRef"], "role": role, "applied": False, "object": obj}
+        if not args.get("apply"):
+            return preview
+        argv = ["kubectl", "--kubeconfig", str(artc_kubeconfig(role)), "--namespace", ARTCHAIS_TENANT_REF, "apply", "-f", "-", "-o", "json"]
+        return {**preview, "applied": True, "result": command_result(argv, json.dumps(obj, separators=(",", ":")), 180)}
+    if name == "artc_kubernetes_admin":
+        if role != "admin":
+            raise PermissionError("admin role is required")
+        values = args["argv"]
+        if not isinstance(values, list) or not values or any(not isinstance(value, str) or not value or len(value) > 1024 for value in values):
+            raise ValueError("argv must contain bounded non-empty strings")
+        if forbidden_admin_argv(values, args.get("stdin")):
+            raise PermissionError("credential export, Secret access, interactive pod access and proxy commands are denied")
+        preview = {"tenantRef": context["tenantRef"], "role": role, "applied": False, "argv": values}
+        if not args.get("apply"):
+            return preview
+        result = command_result(["kubectl", "--kubeconfig", str(artc_kubeconfig("admin")), *values], args.get("stdin"), int(args.get("timeout_seconds", 300)))
+        return {**preview, "applied": True, "result": result}
+    raise ValueError("unknown Artchais cluster tool")
 
 
 def mutation_preview(resource: str, before: Any, after: Any, apply: bool, rollback: Any) -> dict[str, Any]:
@@ -1105,6 +1249,8 @@ def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str
 def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if name not in {tool["name"] for tool in tools()}:
         raise PermissionError("tool is not published in this profile")
+    if PROFILE == "tenant-artchais" and name in {tool["name"] for tool in ARTCHAIS_CLUSTER_TOOLS}:
+        return call_artc_cluster_tool(name, args, identity)
     if PROFILE == "tenant-observability" and name in {tool["name"] for tool in GRAFANA_TENANT_TOOLS}:
         return call_grafana_tenant_tool(name, args, identity)
     if name == "activate_device":
@@ -1878,7 +2024,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    profiles = {"cloud", "infra", "orchestra", "tenant", "tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "all"}
+    profiles = {"cloud", "infra", "orchestra", "tenant", "tenant-infra", "tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "tenant-artchais", "all"}
     if PROFILE not in profiles:
         raise SystemExit(f"RE8CH_TOOL_PROFILE must be one of: {', '.join(sorted(profiles))}")
     registry()
