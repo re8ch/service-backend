@@ -78,7 +78,7 @@ spec:
       imagePullSecrets: [{name: harbor-registry-pull}]
       containers:
         - name: controller
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f658598d3e7c02be4e4d65b857fe8b73c389d3697f672980361be7c215812fa0
           command: [python, /app/tenant_control_controller.py]
           env:
             - {name: LISTEN_PORT, value: "19447"}
@@ -109,7 +109,7 @@ spec:
       automountServiceAccountToken: false
       initContainers:
         - name: pull
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f658598d3e7c02be4e4d65b857fe8b73c389d3697f672980361be7c215812fa0
           imagePullPolicy: IfNotPresent
           command: [sh, -c, "true"]
       containers:
@@ -135,7 +135,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f658598d3e7c02be4e4d65b857fe8b73c389d3697f672980361be7c215812fa0
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-admin}
@@ -171,7 +171,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f658598d3e7c02be4e4d65b857fe8b73c389d3697f672980361be7c215812fa0
           imagePullPolicy: IfNotPresent
           envFrom: [{secretRef: {name: tenant-registry-supply-chain, optional: true}}]
           env:
@@ -211,7 +211,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f658598d3e7c02be4e4d65b857fe8b73c389d3697f672980361be7c215812fa0
           imagePullPolicy: IfNotPresent
           envFrom: [{secretRef: {name: tenant-grafana-credentials, optional: true}}]
           env:
@@ -250,7 +250,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:09060106850c4b279b8be4d6ad2a3d535e4e0d86ec2a975cd3de4320b0138d4c
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f658598d3e7c02be4e4d65b857fe8b73c389d3697f672980361be7c215812fa0
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant-byoc}

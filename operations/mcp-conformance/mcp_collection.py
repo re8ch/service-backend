@@ -197,10 +197,13 @@ def run(path: Path, output: Path) -> dict[str, Any]:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     cosign_key = os.getenv("MCP_EVIDENCE_COSIGN_KEY")
+    identity_token = os.getenv("MCP_EVIDENCE_SIGSTORE_ID_TOKEN")
     if cosign_key:
         subprocess.run(["cosign", "sign-blob", "--yes", "--key", cosign_key, "--bundle", str(output) + ".bundle", str(output)], check=True)
+    elif identity_token:
+        subprocess.run(["cosign", "sign-blob", "--yes", "--identity-token", identity_token, "--bundle", str(output) + ".bundle", str(output)], check=True)
     elif spec.get("requireSignedEvidence", True):
-        raise RuntimeError("evidence was written but MCP_EVIDENCE_COSIGN_KEY is required for signing")
+        raise RuntimeError("signed evidence requires MCP_EVIDENCE_COSIGN_KEY or MCP_EVIDENCE_SIGSTORE_ID_TOKEN")
     return manifest
 
 
