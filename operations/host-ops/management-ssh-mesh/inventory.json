@@ -19,7 +19,14 @@
       {
         "name": "a1-windows",
         "platform": "windows-server-2022",
-        "ssh": {"user": "Administrator", "addresses": ["192.0.2.17", "192.0.2.246"], "port": 22, "hostKeyRef": "ssh-hostkeys/a1-windows"},
+        "ssh": {
+          "user": "Administrator",
+          "addresses": ["192.0.2.246"],
+          "port": 22,
+          "hostKeyRef": "ssh-hostkeys/a1-windows",
+          "preferredPath": {"mode": "wsl-jump", "jumpAddress": "192.0.2.176", "destinationAddress": "192.0.2.246"},
+          "legacyDirectAddresses": ["192.0.2.17"]
+        },
         "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.176"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 10
@@ -27,7 +34,14 @@
       {
         "name": "b1-windows",
         "platform": "windows-server-2022",
-        "ssh": {"user": "Administrator", "addresses": ["192.0.2.126", "192.0.2.35"], "port": 22, "hostKeyRef": "ssh-hostkeys/b1-windows"},
+        "ssh": {
+          "user": "Administrator",
+          "addresses": ["192.0.2.35"],
+          "port": 22,
+          "hostKeyRef": "ssh-hostkeys/b1-windows",
+          "preferredPath": {"mode": "wsl-jump", "jumpAddress": "192.0.2.4", "destinationAddress": "192.0.2.35"},
+          "legacyDirectAddresses": ["192.0.2.126"]
+        },
         "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.4"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 20
@@ -45,6 +59,15 @@
       "priorityDelaySeconds": 60,
       "taskName": "RE8CH Control Plane Host Watchdog",
       "lifecycleTaskName": "RE8CH WSL Lifecycle"
+    },
+    "windowsOpenSsh": {
+      "serviceName": "sshd",
+      "startupType": "Automatic",
+      "preferredProvider": "WindowsCapability",
+      "capabilityName": "OpenSSH.Server~~~~192.0.2.138",
+      "approvedStandaloneInstallRoot": "C:\\Program Files\\OpenSSH",
+      "administratorAuthorizedKeysPath": "C:\\ProgramData\\ssh\\administrators_authorized_keys",
+      "authorizedKeysAclPrincipals": ["SYSTEM", "Administrators"]
     }
   }
 }

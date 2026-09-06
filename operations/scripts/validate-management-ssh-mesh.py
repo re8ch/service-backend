@@ -25,6 +25,18 @@ def main() -> None:
             raise SystemExit(f"{node['name']} must pin a hostKeyRef")
         for address in ssh["addresses"]:
             ipaddress.ip_address(address)
+        if node["platform"] == "windows-server-2022":
+            path = ssh["preferredPath"]
+            if path["mode"] != "wsl-jump":
+                raise SystemExit(f"{node['name']} must use the independent WSL jump path")
+            ipaddress.ip_address(path["jumpAddress"])
+            ipaddress.ip_address(path["destinationAddress"])
+            if path["jumpAddress"] != node["wsl"]["nodeAddress"]:
+                raise SystemExit(f"{node['name']} jump address must match its WSL node address")
+            if path["destinationAddress"] not in ssh["addresses"]:
+                raise SystemExit(f"{node['name']} destination must be a declared SSH address")
+            for address in ssh.get("legacyDirectAddresses", []):
+                ipaddress.ip_address(address)
 
     windows = [node for node in nodes if node["platform"] == "windows-server-2022"]
     if len(windows) != 2:
@@ -51,6 +63,11 @@ def main() -> None:
     for value in spec["credentialRefs"].values():
         if not value or "password" in value.lower():
             raise SystemExit("credentialRefs must be opaque non-password references")
+    openssh = spec["windowsOpenSsh"]
+    if openssh["serviceName"] != "sshd" or openssh["startupType"] != "Automatic":
+        raise SystemExit("Windows OpenSSH must use the automatic sshd service")
+    if set(openssh["authorizedKeysAclPrincipals"]) != {"SYSTEM", "Administrators"}:
+        raise SystemExit("administrator authorized keys ACL must be restricted")
     print("management SSH mesh inventory validated")
 
 
