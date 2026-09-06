@@ -432,7 +432,7 @@ metadata:
     app.kubernetes.io/name: fleet
     app.kubernetes.io/component: server
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: fleet

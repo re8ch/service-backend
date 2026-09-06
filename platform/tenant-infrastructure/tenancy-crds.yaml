@@ -21,7 +21,6 @@ spec:
           properties:
             spec:
               type: object
-              additionalProperties: false
               required: [displayName, lifecycle, deletionPolicy]
               properties:
                 displayName: {type: string, minLength: 1, maxLength: 128}
@@ -29,7 +28,6 @@ spec:
                 deletionPolicy: {type: string, enum: [Retain, RevokeThenDelete]}
             status: &status
               type: object
-              additionalProperties: false
               properties:
                 observedGeneration: {type: integer, minimum: 0}
                 operationId: {type: string, pattern: '^op_[a-f0-9]+$'}
@@ -39,7 +37,6 @@ spec:
                   x-kubernetes-list-map-keys: [type]
                   items:
                     type: object
-                    additionalProperties: false
                     required: [type, status, reason, lastTransitionTime]
                     properties:
                       type: {type: string, enum: [Ready, Reconciling, RevocationPending, Degraded]}
@@ -71,7 +68,6 @@ spec:
           properties:
             spec:
               type: object
-              additionalProperties: false
               required: [tenantRef, issuer, subjectHash]
               properties:
                 tenantRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
@@ -105,7 +101,6 @@ spec:
           properties:
             spec:
               type: object
-              additionalProperties: false
               required: [tenantRef, consumableRef, roleRef, lifecycle]
               properties:
                 tenantRef: {type: string, minLength: 1}
@@ -139,7 +134,6 @@ spec:
           properties:
             spec:
               type: object
-              additionalProperties: false
               required: [tenantRef, serviceClass, plan, lifecycle]
               properties:
                 tenantRef: {type: string, minLength: 1}
