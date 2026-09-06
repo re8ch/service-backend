@@ -38,6 +38,12 @@ if ($PSCmdlet.ShouldProcess($NodeName, 'install RE8CH control-plane host recover
     New-Item -ItemType Directory -Path $programDirectory -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 're8ch-control-plane-watchdog.ps1') -Destination $watchdogPath -Force
     $config | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $configPath -Encoding UTF8
+    if (-not (Get-Service -Name sshd -ErrorAction SilentlyContinue)) {
+        $capability = Get-WindowsCapability -Online -Name 'OpenSSH.Server~~~~192.0.2.138'
+        if ($capability.State -ne 'Installed') {
+            Add-WindowsCapability -Online -Name $capability.Name | Out-Null
+        }
+    }
     Set-Service -Name sshd -StartupType Automatic
     Start-Service -Name sshd
     $firewallName = 'RE8CH management SSH mesh'
