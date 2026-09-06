@@ -72,7 +72,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
+def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -80,7 +80,7 @@ def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
     )
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
-        "re8ch-tools-vmcp": 2,
+        "re8ch-tools-vmcp": 1,
         "re8ch-admin-vmcp": 2,
     }
 

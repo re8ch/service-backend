@@ -29,6 +29,7 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
+    assert vmcp["spec"]["replicas"] == 1
     assert "public: true" in dex["data"]["clients.yaml"]
 
 
