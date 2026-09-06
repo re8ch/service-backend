@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - release.yaml
+configMapGenerator:
+  - name: rook-ceph-operator-values
+    namespace: flux-system
+    files: [values.yaml=operator-values.yaml]
+  - name: rook-ceph-cluster-values
+    namespace: flux-system
+    files: [values.yaml=cluster-values.yaml]
+  - name: rook-ceph-csi-values
+    namespace: flux-system
+    files: [values.yaml=csi-drivers-values.yaml]
+generatorOptions:
+  disableNameSuffixHash: true
+  labels: {app.kubernetes.io/part-of: rook-ceph-gitops}

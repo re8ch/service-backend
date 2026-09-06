@@ -1,0 +1,99 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: rook-release, namespace: flux-system}
+spec:
+  interval: 1h
+  url: https://charts.rook.io/release
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: ceph-csi-operator, namespace: flux-system}
+spec:
+  interval: 1h
+  url: https://ceph.github.io/ceph-csi-operator
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: rook-ceph
+  namespace: flux-system
+  annotations: {gitops.re8ch.com/adoption-phase: declared-suspended}
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: rook-ceph
+  targetNamespace: rook-ceph
+  storageNamespace: rook-ceph
+  chart:
+    spec:
+      chart: rook-ceph
+      version: v1.20.3
+      sourceRef: {kind: HelmRepository, name: rook-release, namespace: flux-system}
+      interval: 1h
+  valuesFrom:
+    - {kind: ConfigMap, name: rook-ceph-operator-values, valuesKey: values.yaml}
+  install: {crds: CreateReplace, disableTakeOwnership: false, remediation: {retries: 0}}
+  upgrade:
+    crds: CreateReplace
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ceph-csi-drivers
+  namespace: flux-system
+  annotations: {gitops.re8ch.com/adoption-phase: declared-suspended}
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: ceph-csi-drivers
+  targetNamespace: rook-ceph
+  storageNamespace: rook-ceph
+  dependsOn: [{name: rook-ceph, namespace: flux-system}]
+  chart:
+    spec:
+      chart: ceph-csi-drivers
+      version: 1.0.4
+      sourceRef: {kind: HelmRepository, name: ceph-csi-operator, namespace: flux-system}
+      interval: 1h
+  valuesFrom:
+    - {kind: ConfigMap, name: rook-ceph-csi-values, valuesKey: values.yaml}
+  install: {disableTakeOwnership: false, remediation: {retries: 0}}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: rook-ceph-cluster
+  namespace: flux-system
+  annotations: {gitops.re8ch.com/adoption-phase: declared-suspended}
+spec:
+  suspend: true
+  interval: 30m
+  releaseName: rook-ceph-cluster
+  targetNamespace: rook-ceph
+  storageNamespace: rook-ceph
+  dependsOn:
+    - {name: rook-ceph, namespace: flux-system}
+    - {name: ceph-csi-drivers, namespace: flux-system}
+  chart:
+    spec:
+      chart: rook-ceph-cluster
+      version: v1.20.3
+      sourceRef: {kind: HelmRepository, name: rook-release, namespace: flux-system}
+      interval: 1h
+  valuesFrom:
+    - {kind: ConfigMap, name: rook-ceph-cluster-values, valuesKey: values.yaml}
+  install: {disableTakeOwnership: false, remediation: {retries: 0}}
+  upgrade:
+    cleanupOnFail: true
+    disableTakeOwnership: false
+    remediation: {retries: 0, remediateLastFailure: false}
+  rollback: {cleanupOnFail: true}
