@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencost-ui-nginx-config
+  namespace: opencost
+data:
+  nginx.conf: |
+    upstream model {
+      server opencost.opencost.svc.cluster.local:9003;
+    }
+    server {
+      listen 9090;
+      listen [::]:9090;
+      server_name _;
+      root /var/www;
+      index index.html;
+      location /healthz {
+        access_log off;
+        return 200 'OK';
+      }
+      location / {
+        try_files $uri /index.html;
+      }
+      location /model/ {
+        proxy_connect_timeout 180;
+        proxy_send_timeout 180;
+        proxy_read_timeout 180;
+        proxy_pass http://model/;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      }
+    }

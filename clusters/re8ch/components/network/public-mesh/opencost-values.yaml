@@ -36,9 +36,4 @@ opencost:
     nodeExporter:
       enabled: false
   nodeSelector:
-    kubernetes.io/hostname: rancher-panel
-  tolerations:
-    - key: dedicated
-      operator: Equal
-      value: panel
-      effect: NoSchedule
+    kubernetes.io/hostname: restricted-node-6dc3f140f9

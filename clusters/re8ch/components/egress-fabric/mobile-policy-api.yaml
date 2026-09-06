@@ -5,7 +5,7 @@ metadata:
   namespace: egress-fabric
   labels: {app.kubernetes.io/name: network-decomplexer-policy-api}
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels: {app.kubernetes.io/name: network-decomplexer-policy-api}
   template:
@@ -76,7 +76,7 @@ metadata:
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: agent.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:

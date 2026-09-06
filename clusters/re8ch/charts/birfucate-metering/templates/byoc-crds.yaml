@@ -34,8 +34,6 @@ spec:
             metadata: {type: object}
             spec:
               type: object
-              additionalProperties: false
-              required: [tenantRef, clusterUID]
               properties:
                 tenantRef: {type: string, pattern: '^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$'}
                 clusterUID: {type: string, minLength: 8, maxLength: 128}
@@ -43,19 +41,18 @@ spec:
                 regionRef: {type: string, minLength: 1}
                 issuer: {type: string, pattern: '^https://'}
                 publicKeyHash: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}
-                capabilities: {type: array, uniqueItems: true, items: {type: string}}
+                capabilities: {type: array, items: {type: string}}
               required: [tenantRef, clusterUID, regionRef, issuer, publicKeyHash]
 {{- else }}
                 registrationRef: {type: string, minLength: 1}
                 regionRef: {type: string, minLength: 1}
                 identityRef: {type: string, pattern: '^spiffe://'}
-                capabilities: {type: array, uniqueItems: true, items: {type: string}}
+                capabilities: {type: array, items: {type: string}}
                 revoked: {type: boolean, default: false}
               required: [tenantRef, clusterUID, registrationRef, regionRef, identityRef]
 {{- end }}
             status:
               type: object
-              additionalProperties: false
               properties:
                 observedGeneration: {type: integer, format: int64, minimum: 0}
                 state:
