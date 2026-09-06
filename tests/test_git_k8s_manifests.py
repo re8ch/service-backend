@@ -72,7 +72,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
+def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -80,7 +80,7 @@ def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
     )
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
-        "re8ch-tools-vmcp": 2,
+        "re8ch-tools-vmcp": 1,
         "re8ch-admin-vmcp": 2,
     }
 
@@ -97,9 +97,39 @@ def test_public_vmcp_deployments_prefer_r640_with_cross_node_fallback():
     assert "preferredDuringSchedulingIgnoredDuringExecution" in expression
     assert "values: ['restricted-node-6dc3f140f9']" in expression
     assert "requiredDuringSchedulingIgnoredDuringExecution" in expression
+    assert policy["spec"]["matchConstraints"]["resourceRules"][0]["resourceNames"] == [
+        "vmcp-re8ch-admin-vmcp",
+        "vmcp-re8ch-tools-vmcp",
+        "vmcp-artchais-tenant-vmcp",
+    ]
+
+    public_policy = next(
+        item
+        for item in policies
+        if item["kind"] == "MutatingAdmissionPolicy"
+        and item["metadata"]["name"] == "toolhive-public-vmcp-r640.re8ch.com"
+    )
+    public_rule = public_policy["spec"]["matchConstraints"]["resourceRules"][0]
+    assert public_rule["resourceNames"] == [
+        "vmcp-re8ch-tools-vmcp",
+        "vmcp-artchais-tenant-vmcp",
+    ]
+    assert "value: 'restricted-node-6dc3f140f9'" in public_policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
+    assert "components/toolhive/public-vmcp-scheduling-reconciler.yaml" in root["resources"]
+
+    reconciler = documents(
+        ROOT / "clusters/re8ch/components/toolhive/public-vmcp-scheduling-reconciler.yaml"
+    )
+    role = next(item for item in reconciler if item["kind"] == "Role")
+    job = next(item for item in reconciler if item["kind"] == "Job")
+    assert role["rules"][0]["resourceNames"] == public_rule["resourceNames"]
+    assert role["rules"][0]["verbs"] == ["get", "patch"]
+    container = job["spec"]["template"]["spec"]["containers"][0]
+    assert "@sha256:" in container["image"]
+    assert all(name in container["args"][0] for name in public_rule["resourceNames"])
 
 
 def test_embedded_workspace_controller_is_valid_python():
