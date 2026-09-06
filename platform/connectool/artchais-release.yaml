@@ -28,7 +28,7 @@ spec:
           clientId: re8ch-artchais-tenant
           resourceUrl: https://tools.re8ch.com/tenant/artchais/mcp
           group: artchais-tenant-public
-          replicas: 2
+          replicas: 1
           session: {database: 4, keyPrefix: "thv:artchais:"}
           workloads: [{name: artchais-tenant-runtime}]
           authorization:
