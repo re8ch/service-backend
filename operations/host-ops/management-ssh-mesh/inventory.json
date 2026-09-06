@@ -1,0 +1,50 @@
+{
+  "apiVersion": "operations.re8ch.com/v1alpha1",
+  "kind": "ManagementSshMesh",
+  "metadata": {"name": "control-plane-host-mesh"},
+  "spec": {
+    "credentialRefs": {
+      "routeros": "ops/mikrotik-routeros-admin",
+      "windowsHosts": "node-ssh",
+      "windowsUserCa": "ops/re8ch-windows-user-ca"
+    },
+    "nodes": [
+      {
+        "name": "mikrotik",
+        "platform": "routeros",
+        "ssh": {"user": "admin", "addresses": ["192.0.2.131"], "port": 22, "hostKeyRef": "ssh-hostkeys/mikrotik-rb4011"},
+        "recoveryOwner": "routeros",
+        "rebootPolicy": "manual"
+      },
+      {
+        "name": "a1-windows",
+        "platform": "windows-server-2022",
+        "ssh": {"user": "Administrator", "addresses": ["192.0.2.169", "192.0.2.145"], "port": 22, "hostKeyRef": "ssh-hostkeys/a1-windows"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.18"},
+        "recoveryOwner": "windows-scheduled-task",
+        "peerPriority": 10
+      },
+      {
+        "name": "b1-windows",
+        "platform": "windows-server-2022",
+        "ssh": {"user": "Administrator", "addresses": ["192.0.2.181", "192.0.2.253"], "port": 22, "hostKeyRef": "ssh-hostkeys/b1-windows"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.208"},
+        "recoveryOwner": "windows-scheduled-task",
+        "peerPriority": 20
+      }
+    ],
+    "allowedSourceCidrs": ["192.0.2.253/24", "192.0.2.16/24", "192.0.2.180/24", "192.0.2.160/24", "192.0.2.90/24"],
+    "watchdog": {
+      "intervalSeconds": 300,
+      "bootGraceSeconds": 900,
+      "failureThreshold": 3,
+      "nodeReplyTimeoutSeconds": 600,
+      "hostRebootCooldownSeconds": 21600,
+      "peerQuorumRequired": true,
+      "minimumHealthyPeers": 2,
+      "priorityDelaySeconds": 60,
+      "taskName": "RE8CH Control Plane Host Watchdog",
+      "lifecycleTaskName": "RE8CH WSL Lifecycle"
+    }
+  }
+}
