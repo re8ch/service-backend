@@ -20,9 +20,8 @@ exits:
   # proxy. A single headless-Service hostname hides endpoint health from
   # Mihomo and makes DNS selection look like random connection failures.
   globalCandidates:
-    - {name: global-edge-50, address: 192.0.2.79}
-    - {name: global-kl, address: 192.0.2.245}
     - {name: global-la, address: 192.0.2.110}
+    - {name: global-kl, address: 192.0.2.245}
   cnCandidates:
     - {name: cn-r640, address: 192.0.2.178}
     - {name: cn-a1, address: 192.0.2.176}
