@@ -13,6 +13,21 @@ spec:
     kind: GitRepository
     name: service-backend
 ---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: observability-opencost-recovery
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./platform/observability/opencost-recovery
+  prune: false
+  wait: true
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: service-backend
+---
 # Production stays explicitly suspended until Ceph has no unfound objects and
 # the operator bootstrap has completed. This is the cutover safety gate.
 apiVersion: kustomize.toolkit.fluxcd.io/v1

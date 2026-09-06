@@ -4,6 +4,7 @@ metadata:
   name: netbird-geodb-sync
   namespace: netbird-access
 spec:
+  suspend: true
   schedule: "17 3 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 2
@@ -16,7 +17,7 @@ spec:
         spec:
           restartPolicy: Never
           nodeSelector:
-            kubernetes.io/hostname: restricted-node-6dc3f140f9
+            kubernetes.io/hostname: r640
           containers:
             - name: sync
               image: python:3.13-alpine
