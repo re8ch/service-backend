@@ -3,11 +3,11 @@
   "kind": "MCPCollection",
   "metadata": {"name": "tenant-observability-canary", "version": "1.0.0"},
   "spec": {
-    "endpoint": "https://tenant-canary.re8ch.com/tenant/observability/mcp",
+    "endpoint": "https://tools.re8ch.com/tenant/observability/mcp",
     "oauth": {
-      "resource": "https://tenant-canary.re8ch.com/tenant/observability/mcp",
+      "resource": "https://tools.re8ch.com/tenant/observability/mcp",
       "tokenAudience": "re8ch-tenant-observability",
-      "protectedResourceMetadata": "https://tenant-canary.re8ch.com/.well-known/oauth-protected-resource/tenant/observability/mcp",
+      "protectedResourceMetadata": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/observability/mcp",
       "tokenEnv": "TENANT_OBSERVABILITY_CANARY_TOKEN",
       "pkce": "S256"
     },
