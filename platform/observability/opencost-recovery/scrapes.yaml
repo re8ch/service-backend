@@ -1,0 +1,45 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: opencost-kube-state-metrics
+  namespace: observability-system
+  labels: {observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  namespaceSelector: {matchNames: [observability-system]}
+  selector: {matchLabels: {app.kubernetes.io/instance: re8ch-kube-state-metrics}}
+  endpoints:
+    - {port: http, interval: 30s, scrapeTimeout: 10s}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMNodeScrape
+metadata:
+  name: opencost-kubelet
+  namespace: observability-system
+  labels: {observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  selector: {}
+  scheme: https
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  tlsConfig: {insecureSkipVerify: true}
+  relabelConfigs:
+    - {sourceLabels: [__meta_kubernetes_node_name], targetLabel: node}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMNodeScrape
+metadata:
+  name: opencost-kubelet-cadvisor
+  namespace: observability-system
+  labels: {observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  selector: {}
+  scheme: https
+  interval: 30s
+  scrapeTimeout: 15s
+  path: /metrics/cadvisor
+  bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  tlsConfig: {insecureSkipVerify: true}
+  relabelConfigs:
+    - {sourceLabels: [__meta_kubernetes_node_name], targetLabel: node}
