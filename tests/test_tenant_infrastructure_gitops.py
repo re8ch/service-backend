@@ -91,6 +91,27 @@ def test_artchais_github_team_bindings_have_explicit_roles():
     }
 
 
+def test_artchais_toolhive_publication_uses_signed_runtime_and_opaque_grants():
+    runtime_docs = documents(ROOT / "platform/tenant-infrastructure/artchais-runtime.yaml")
+    server = next(item for item in runtime_docs if item["kind"] == "MCPServer")
+    env = {item["name"]: item["value"] for item in server["spec"]["env"]}
+    assert server["spec"]["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:30bfefb7e126859b32326fa0557be161e2a27e7a426295eeae014468caa80593"
+    assert env["RE8CH_TOOL_PROFILE"] == "tenant-artchais"
+    assert env["RE8CH_TOOL_AUDIENCE"] == "re8ch-artchais-tenant"
+    kubeconfigs = next(item for item in runtime_docs if item["kind"] == "ConfigMap")["data"]
+    serialized = json.dumps(kubeconfigs)
+    for role in ("viewer", "operator", "admin"):
+        assert f"credential://among-clusters/artchais/artc-codex-{role}" in serialized
+    assert "client-key-data" not in serialized
+
+    release = documents(ROOT / "platform/connectool/artchais-release.yaml")[0]
+    publication = release["spec"]["values"]["toolhive"]["publications"][0]
+    assert publication["resourceUrl"] == "https://tools.re8ch.com/tenant/artchais/mcp"
+    assert publication["clientId"] == "re8ch-artchais-tenant"
+    policies = " ".join(publication["authorization"]["policies"])
+    assert all(f"Artchais:tenant-{role}" in policies for role in ("admins", "operators", "viewers"))
+
+
 def test_dex_refresh_rotation_has_bounded_reuse_window():
     script = (ROOT / "clusters/re8ch/components/ai-operations/register-dex-clients.sh").read_text()
     assert 'refresh["reuseInterval"] = "30s"' in script

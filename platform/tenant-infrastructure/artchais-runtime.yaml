@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: artchais-tenant-runtime, namespace: toolhive-system}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: artchais-artc-kubeconfigs, namespace: toolhive-system}
+data:
+  artc-viewer.yaml: |
+    apiVersion: v1
+    kind: Config
+    clusters: [{name: artc, cluster: {server: https://among-clusters.re8ch.com}}]
+    users: [{name: artchais-viewer, user: {token: credential://among-clusters/artchais/artc-codex-viewer}}]
+    contexts: [{name: artc, context: {cluster: artc, user: artchais-viewer}}]
+    current-context: artc
+  artc-operator.yaml: |
+    apiVersion: v1
+    kind: Config
+    clusters: [{name: artc, cluster: {server: https://among-clusters.re8ch.com}}]
+    users: [{name: artchais-operator, user: {token: credential://among-clusters/artchais/artc-codex-operator}}]
+    contexts: [{name: artc, context: {cluster: artc, user: artchais-operator}}]
+    current-context: artc
+  artc-admin.yaml: |
+    apiVersion: v1
+    kind: Config
+    clusters: [{name: artc, cluster: {server: https://among-clusters.re8ch.com}}]
+    users: [{name: artchais-admin, user: {token: credential://among-clusters/artchais/artc-codex-admin}}]
+    contexts: [{name: artc, context: {cluster: artc, user: artchais-admin}}]
+    current-context: artc
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: artchais-tenant-runtime, namespace: toolhive-system}
+spec:
+  groupRef: {name: artchais-tenant-public}
+  image: registry.re8ch.com/image/re8ch-ai-operations@sha256:30bfefb7e126859b32326fa0557be161e2a27e7a426295eeae014468caa80593
+  replicas: 1
+  backendReplicas: 1
+  transport: streamable-http
+  mcpPort: 19443
+  proxyPort: 8080
+  serviceAccount: artchais-tenant-runtime
+  env:
+    - {name: RE8CH_TOOL_PROFILE, value: tenant-artchais}
+    - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-artchais-tenant}
+    - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
+    - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/artchais/mcp"}
+    - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/artchais/mcp"}
+    - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+    - {name: KUBECONFIG_DIR, value: /etc/re8ch-ai-operations/kubeconfigs}
+  audit: {enabled: true}
+  podTemplateSpec:
+    metadata: {labels: {tenant-runtime: "true", tenancy.re8ch.com/tenant: artchais}}
+    spec:
+      containers:
+        - name: mcp
+          volumeMounts: [{name: kubeconfigs, mountPath: /etc/re8ch-ai-operations/kubeconfigs, readOnly: true}]
+      volumes: [{name: kubeconfigs, configMap: {name: artchais-artc-kubeconfigs}}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: artchais-tenant-mcp, namespace: toolhive-system}
+spec:
+  hostnames: [tools.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /tenant/artchais}}]
+      backendRefs: [{name: vmcp-artchais-tenant-vmcp, port: 4483}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant/artchais}}]
+      backendRefs: [{name: vmcp-artchais-tenant-vmcp, port: 4483}]
