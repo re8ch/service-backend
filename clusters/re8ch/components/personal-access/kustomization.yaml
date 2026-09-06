@@ -4,3 +4,4 @@ resources:
   - data-plane.yaml
   - edge-expansion.yaml
   - access-dns.yaml
+  - udp-host-tuning.yaml
