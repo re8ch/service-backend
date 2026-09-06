@@ -55,6 +55,10 @@ def test_groups_spanning_tenants_are_denied(monkeypatch):
         controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
 
 
+def test_controller_exposes_only_admin_and_tenant_callers():
+    assert controller.ALLOWED_CALLERS == {"admin", "tenant"}
+
+
 @pytest.mark.parametrize(
     "bindings,tenants",
     [

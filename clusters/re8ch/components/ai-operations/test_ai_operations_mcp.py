@@ -47,7 +47,7 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(preview["object"]["metadata"]["namespace"], "artchais")
 
     def test_observability_profile_exposes_deep_grafana_surface(self):
-        m = load("tenant-observability")
+        m = load("tenant")
         names = {tool["name"] for tool in m.tools()}
         self.assertTrue({
             "grafana_capability_list", "grafana_capability_get",
@@ -58,7 +58,7 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("grafana_inventory", names)
 
     def test_grafana_capability_manifest_distinguishes_origins_and_evidence(self):
-        load("tenant-observability")
+        load("tenant")
         gx = importlib.import_module("grafana_exploration")
         manifest = gx.grafana_capabilities()
         self.assertTrue(manifest["capabilityManifestHash"].startswith("sha256:"))
@@ -74,17 +74,20 @@ class RegistryTests(unittest.TestCase):
             gx.grafana_capability("does-not-exist")
 
     def test_grafana_capabilities_are_a_tenant_scoped_mcp_resource(self):
-        m = load("tenant-observability")
+        m = load("tenant")
         m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
         m._TENANT_SERVICE_STORE = None
-        identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
-        uri = "re8ch://tenant/canary/grafana/capabilities"
+        m.authenticated_tenant = lambda _identity: "acme"
+        m.tenant_control_request = lambda *_args, **_kwargs: {"items": []}
+        m.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
+        identity = {"tenant": "acme", "groups": []}
+        uri = "re8ch://tenant/acme/grafana/capabilities"
         self.assertIn(uri, {item["uri"] for item in m.resources_list(identity, None)["resources"]})
         body = json.loads(m.resources_read(identity, uri)["contents"][0]["text"])
         self.assertEqual(body["kind"], "GrafanaCapabilityList")
 
     def test_grafana_query_requires_tenant_scope_and_rejects_sql_writes(self):
-        m = load("tenant-observability")
+        m = load("tenant")
         gx = importlib.import_module("grafana_exploration")
         base = {"timeRange": {"from": 1_000, "to": 2_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}}]}
         gx.validate_query_spec(base, "qwen", {"metrics": "prometheus"})
@@ -97,7 +100,7 @@ class RegistryTests(unittest.TestCase):
             gx.validate_sql("SELECT 1; DROP TABLE events")
 
     def test_grafana_query_uses_datasource_minimum_interval(self):
-        load("tenant-observability")
+        load("tenant")
         gx = importlib.import_module("grafana_exploration")
         class Client:
             body = None
@@ -113,7 +116,7 @@ class RegistryTests(unittest.TestCase):
             gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
 
     def test_grafana_indicators_and_correlations_are_deterministic(self):
-        load("tenant-observability")
+        load("tenant")
         gx = importlib.import_module("grafana_exploration")
         result = gx.indicators([1.0, 2.0, 3.0, 4.0], [{"type": "movingAverage", "window": 2}, {"type": "slope"}, {"type": "volatility", "window": 3}])
         self.assertEqual(result["movingAverage"], [1.0, 1.5, 2.5, 3.5])
@@ -122,7 +125,7 @@ class RegistryTests(unittest.TestCase):
         self.assertAlmostEqual(gx.correlation([10, 20, 30], [1, 2, 3], "spearman"), 1.0)
 
     def test_grafana_result_references_are_tenant_bound(self):
-        load("tenant-observability")
+        load("tenant")
         gx = importlib.import_module("grafana_exploration")
         ref = gx.RESULTS.put("qwen", {"series": [1, 2]})
         self.assertEqual(gx.RESULTS.get("qwen", ref)["series"], [1, 2])
@@ -188,73 +191,77 @@ class RegistryTests(unittest.TestCase):
     def test_tenant_profile_exposes_only_tenant_harbor_surface(self):
         m = load("tenant")
         names = {tool["name"] for tool in m.tools()}
-        self.assertIn("harbor_tenant_robot_create", names)
+        self.assertIn("harbor_project_get", names)
         self.assertNotIn("harbor_users", names)
         self.assertNotIn("infra_execute", names)
 
-    def test_tenant_infra_profile_exposes_service_lifecycle_only(self):
-        m = load("tenant-infra")
+    def test_admin_and_tenant_profiles_are_separate(self):
+        m = load("tenant")
         names = {tool["name"] for tool in m.tools()}
-        self.assertTrue({"tenant_create", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "service_catalog_list", "service_instance_create", "service_binding_create", "usage_summary_get", "operation_get"}.issubset(names))
+        self.assertTrue({"service_catalog_list", "service_instance_create", "service_binding_create", "usage_summary_get", "operation_get", "tenant_claim_create"}.issubset(names))
+        self.assertNotIn("tenant_create", names)
         self.assertNotIn("infra_execute", names)
         self.assertNotIn("harbor_users", names)
         self.assertNotIn("activate_device", names)
-        with self.assertRaises(PermissionError):
-            m.call_tool("operation_status", {"operation_id": "op_admin"}, {"tenant": "qwen", "groups": []})
+        admin = load("admin")
+        admin_names = {tool["name"] for tool in admin.tools()}
+        self.assertTrue({"tenant_create", "tenant_grant_create", "tenant_delete"}.issubset(admin_names))
+        self.assertNotIn("tenant_claim_create", admin_names)
 
     def test_tenant_planes_are_server_side_isolated_and_resources_are_tenant_scoped(self):
-        registry = load("tenant-registry")
+        registry = load("tenant")
         registry.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
         registry._TENANT_SERVICE_STORE = None
         names = {tool["name"] for tool in registry.tools()}
         self.assertIn("service_instance_create", names)
         self.assertTrue({"harbor_project_get", "harbor_artifact_scan_start", "harbor_sbom_get", "harbor_build_start"}.issubset(names))
         self.assertNotIn("tenant_create", names)
-        self.assertNotIn("byoc_cluster_register", names)
-        identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
+        self.assertIn("byoc_cluster_register", names)
+        registry.authenticated_tenant = lambda _identity: "acme"
+        registry.tenant_control_request = lambda *_args, **_kwargs: {"items": []}
+        registry.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
+        identity = {"tenant": "acme", "groups": []}
         listed = registry.resources_list(identity, None)
-        self.assertTrue(all("/canary/" in item["uri"] for item in listed["resources"]))
-        catalog = registry.resources_read(identity, "re8ch://tenant/canary/catalog")
+        self.assertTrue(all("/acme/" in item["uri"] for item in listed["resources"]))
+        catalog = registry.resources_read(identity, "re8ch://tenant/acme/catalog")
         body = json.loads(catalog["contents"][0]["text"])
-        self.assertEqual({item["serviceClass"] for item in body["services"]}, {"registry.harbor.v1"})
+        self.assertTrue({"registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1"} <= {item["serviceClass"] for item in body["services"]})
         with self.assertRaises(PermissionError):
             registry.resources_read(identity, "re8ch://tenant/other/instances")
 
     def test_byoc_registration_returns_opaque_reference_and_hashes_key(self):
-        byoc = load("tenant-byoc")
+        byoc = load("tenant")
         byoc.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
         byoc._TENANT_SERVICE_STORE = None
-        identity = {"tenant": "canary", "groups": ["re8ch:tenant:canary"]}
+        identity = {"tenant": "acme", "groups": []}
+        byoc.authenticated_tenant = lambda _identity: "acme"
         result = byoc.call_tool("byoc_cluster_register", {"cluster_uid": "cluster-uid-123", "region_ref": "cn-east", "issuer": "https://issuer.example", "public_key": "public-key", "capabilities": ["mcs"]}, identity)
         self.assertTrue(result["enrollmentRef"].startswith("enrollment://"))
-        stored = byoc.tenant_service_store().registrations("canary")[0]
+        stored = byoc.tenant_service_store().registrations("acme")[0]
         self.assertNotEqual(stored["public_key_hash"], "public-key")
         self.assertTrue(stored["public_key_hash"].startswith("sha256:"))
 
-    def test_tenant_context_is_derived_from_exactly_one_declared_group(self):
-        m = load("tenant-infra")
-        self.assertEqual(m.authenticated_tenant({"groups": ["re8ch:tenant:research-a"]}), "research-a")
-        self.assertEqual(m.authenticated_tenant({"groups": ["re8ch:tenant-admins"]}), "admin")
+    def test_tenant_context_never_uses_group_or_tenant_claims(self):
+        m = load("tenant")
         with self.assertRaises(PermissionError):
-            m.authenticated_tenant({"tenant": "admin", "groups": []})
-        with self.assertRaises(PermissionError):
-            m.authenticated_tenant({"groups": ["re8ch:qwen-operators", "re8ch:ledger-operators"]})
+            m.authenticated_tenant({"tenant": "research-a", "groups": ["re8ch:tenant:research-a"]})
 
     def test_tenant_context_uses_admin_managed_oidc_identity_binding(self):
-        m = load("tenant-registry")
-        m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
-        m._TENANT_SERVICE_STORE = None
-        m.tenant_service_store().create_tenant(
-            "research-a", "Research A", "oidc:https://dex.re8ch.com#subject-1"
-        )
+        m = load("tenant")
+        m.TENANT_CONTROL_URL = "http://tenant-control"
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return None
+            def read(self): return b'{"tenantRef":"research-a"}'
+        m.urllib.request.urlopen = lambda *_args, **_kwargs: Response()
         identity = {
             "auth_type": "dex", "issuer": "https://dex.re8ch.com",
             "subject": "subject-1", "groups": [],
         }
         self.assertEqual(m.authenticated_tenant(identity), "research-a")
 
-    def test_tenant_admin_requires_admin_group_even_when_dex_is_authenticated(self):
-        m = load("tenant-admin")
+    def test_admin_requires_admin_group_even_when_dex_is_authenticated(self):
+        m = load("admin")
         self.assertFalse(m.allowed({"auth_type": "dex", "subject": "user", "groups": []}))
         self.assertTrue(m.allowed({"auth_type": "dex", "subject": "admin", "groups": ["re8ch:tenant-admins"]}))
 

@@ -357,7 +357,7 @@
     "kind": "agent-memory",
     "module": "farseer",
     "ref": "catalogs/farseer/modules/farseer/MEMORY.md",
-    "sha256": "3bd90428043c58d67fd79a313184d314f5afd1b26f9e284ad7c73c4f6c236f5a"
+    "sha256": "45bd10a27f27a9a32d13198813285311c245ddb54ebd7d09759a7b05fcd0ac3a"
   },
   {
     "module": "garageband-mcp",
@@ -693,7 +693,7 @@
     "kind": "agent-memory",
     "module": "cloud-functions",
     "ref": "catalogs/platform/modules/cloud-functions/MEMORY.md",
-    "sha256": "68a910adbaddba32c9bc0cbaa6639ca618856625a30eb503994bb7d7fa520aad"
+    "sha256": "ec85813a71872524fb2454868d761b0c3568c777e276a08def6ac100fe3e13a7"
   },
   {
     "module": "cluster-website",

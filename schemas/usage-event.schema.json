@@ -18,6 +18,8 @@
     "sourceOperationId": {"type": "string", "minLength": 1},
     "observedAt": {"type": "string", "format": "date-time"},
     "schemaVersion": {"const": "usage.re8ch.com/v1"},
-    "dimensions": {"type": "object", "additionalProperties": true}
+    "dimensions": {"type": "object", "additionalProperties": true},
+    "pricingApplied": {"const": false},
+    "accountingPosted": {"const": false}
   }
 }

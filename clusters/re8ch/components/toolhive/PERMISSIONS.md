@@ -17,7 +17,7 @@ A tool is publishable only when all four are defined.
 | Level | Agent caller | Tool backend | Human GUI | Native scope |
 | --- | --- | --- | --- | --- |
 | observe | `kagent/readonly-k8s-diagnostic-agent` | `toolhive-system/ops-mcp-observe` | `headlamp/platform-observer` | non-Secret get/list/watch |
-| operate | `kagent/my-first-k8s-agent` | `toolhive-system/ops-mcp-operate` | `headlamp/platform-operator` | observe + qwen Deployment patch |
+| operate | `kagent/my-first-k8s-agent` | `toolhive-system/ops-mcp-operate` | `headlamp/platform-operator` | observe + bounded tenant Deployment patch |
 | admin | `toolhive-system/platform-admin-agent` | `toolhive-system/ops-mcp-admin` | existing separately controlled admin UIs | tenancy/RBAC/Harbor provisioning |
 
 KAgent observe/operate tokens are audience-bound TokenRequests with a one-hour

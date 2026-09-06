@@ -1,10 +1,11 @@
 # AmongClusters sovereign peering rollout
 
-The BYOC pilot uses a provider-star topology: qwen and artc peer independently
-with RE8CH and are not automatically peered with one another.
+The BYOC pilot uses a provider-star topology: every external cluster peers
+independently with RE8CH and external clusters are not automatically peered
+with one another.
 
 `mihomos-pilot.yaml` advertises the RE8CH Mihomos SOCKS5 egress fabric only to
-the explicitly named `re8ch-qwen` and `re8ch-artc` peers. It remains a
+explicitly granted tenant peers. It remains a
 ClusterIP carried over authenticated QUIC sessions and is not a public
 AnyTLS/SOCKS listener. Removing the advertise label or its PeerPolicy revokes
 the pilot.

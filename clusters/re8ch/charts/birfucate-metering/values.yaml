@@ -44,11 +44,34 @@ tenantLabels:
 # occupancy gauges as documented per meter. Pricing is intentionally absent.
 meters:
   occupancy:
+    - name: tenant-claim-cpu-request
+      domain: compute
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="cpu"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"})
+    - name: tenant-claim-memory-request
+      domain: compute
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: tenant-claim-ephemeral-storage-request
+      domain: compute
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="ephemeral_storage"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: ceph-volume-capacity
       domain: ceph
       unit: GiB-second
       valueKind: gauge
-      query: sum by (tenant, resource_ref) (kube_persistentvolumeclaim_resource_requests_storage_bytes{storageclass=~".*ceph.*|rbd-.*"}) / 1073741824
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (kube_persistentvolumeclaim_resource_requests_storage_bytes * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: pigsty-database-storage
       domain: pigsty
       unit: GiB-second

@@ -63,6 +63,33 @@ metadata: {name: tenant-control-controller}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: tenant-control-controller}
 subjects: [{kind: ServiceAccount, name: tenant-control-controller, namespace: tenant-infrastructure}]
 ---
+# Bound as a RoleBinding only inside declared tenant runtime namespaces.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: tenant-resource-provisioner}
+rules:
+  - apiGroups: [tenancy.re8ch.com]
+    resources: [tenantresourceclaims]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [tenancy.re8ch.com]
+    resources: [tenantresourceclaims/status]
+    verbs: [get, update, patch]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims, services]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
@@ -80,8 +107,12 @@ spec:
         - name: controller
           image: registry.re8ch.com/image/re8ch-ai-operations@sha256:30bfefb7e126859b32326fa0557be161e2a27e7a426295eeae014468caa80593
           command: [python, /app/tenant_control_controller.py]
+          envFrom:
+            - {secretRef: {name: tenant-registry-supply-chain, optional: true}}
+            - {secretRef: {name: tenant-claim-internal-auth, optional: true}}
           env:
             - {name: LISTEN_PORT, value: "19447"}
+            - {name: IMAGE_POLICY_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
             - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
           ports: [{name: http, containerPort: 19447}]

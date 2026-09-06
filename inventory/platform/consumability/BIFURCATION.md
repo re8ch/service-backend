@@ -93,11 +93,10 @@ the same four generic operations: create tenant, create grant, update visibility
 and delete tenant. Deletion revokes grants first and lets each adapter apply its
 own retention policy.
 
-`qianwen-ops` is migrated as an implementation namespace, not published as a
-Qwen-specific product. Its VictoriaMetrics, VictoriaLogs and Grafana data plane
-is retained; the hard-coded tenant metrics/logs proxies and example tenant
-catalog are removed only after the generic replacements satisfy the gates in
-[`qianwen-ops-migration.yaml`](qianwen-ops-migration.yaml).
+Legacy implementation namespaces are never published as products. Existing
+VictoriaMetrics, VictoriaLogs and Grafana data planes remain internal adapters;
+hard-coded tenant proxies and example catalogs are removed only after generic
+replacements satisfy their migration gates.
 
 The first productization wave should be:
 

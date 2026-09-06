@@ -78,6 +78,30 @@ def test_path_contains_no_price_or_high_frequency_samples():
     assert path["status"]["complete"] is False
 
 
+def test_tenant_claim_workload_becomes_consumable_and_derives_binding():
+    item = workload()
+    item["metadata"]["labels"] = {"tenancy.re8ch.com/claim-uid": "claim-uid"}
+    shard = controller.shard_for(item, {"pods": [], "services": [], "httproutes": []}, CONFIG)
+    claim = {"metadata": {"name": "agent-web", "namespace": "acme", "uid": "claim-uid", "creationTimestamp": "2026-09-06T00:00:00Z"}, "spec": {"tenantRef": "acme", "capability": "compute.workload.v1", "parameters": {"resources": {"cpu": "500m"}}}, "status": {"expiresAt": "2026-09-07T00:00:00Z"}}
+    binding = controller.derived_binding(claim, shard)
+    path = controller.path_for(shard, binding)
+    assert shard["spec"]["consumableIntent"] is True
+    assert shard["spec"]["consumableRef"] == "compute-workload"
+    assert binding["spec"]["serviceInstanceRef"] == "claim-uid"
+    assert any(node["kind"] == "TenantResourceClaim" for node in path["status"]["nodes"])
+
+
+def test_retained_claim_pvc_has_storage_shard_and_showback_binding():
+    claim = {"metadata": {"name": "data", "namespace": "acme", "uid": "volume-uid", "creationTimestamp": "2026-09-06T00:00:00Z"}, "spec": {"tenantRef": "acme", "capability": "storage.volume.v1", "parameters": {"sizeGiB": 20, "plan": "rbd", "storageClass": "rbd-r640", "accessMode": "ReadWriteOnce"}}}
+    pvc = {"metadata": {"name": "trc-data", "namespace": "acme", "uid": "pvc-uid", "labels": {"tenancy.re8ch.com/claim-uid": "volume-uid"}}, "spec": {"storageClassName": "rbd-r640", "resources": {"requests": {"storage": "20Gi"}}}}
+    shard = controller.volume_shard_for(pvc, claim, CONFIG)
+    binding = controller.derived_binding(claim, shard)
+    assert shard["spec"]["workloadRef"]["kind"] == "PersistentVolumeClaim"
+    assert shard["spec"]["consumableRef"] == "storage-volume"
+    assert binding["spec"]["quota"] == {"storageGiB": 20}
+    assert binding["spec"]["access"]["type"] == "Ceph"
+
+
 class FakeKube:
     def __init__(self, offering_lifecycle):
         self.statuses = []

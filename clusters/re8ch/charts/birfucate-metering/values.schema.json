@@ -22,11 +22,11 @@
   },
   "$defs": {
     "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
-    "domain": {"enum": ["ceph", "pigsty", "networks"]},
+    "domain": {"enum": ["compute", "ceph", "pigsty", "networks"]},
     "occupancy": {
       "type": "object", "additionalProperties": false,
       "required": ["name", "domain", "unit", "valueKind", "query"],
-      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "unit": {"type": "string"}, "valueKind": {"const": "gauge"}, "query": {"type": "string", "minLength": 1}}
+      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "unit": {"type": "string"}, "valueKind": {"const": "gauge"}, "query": {"type": "string", "minLength": 1}, "tenantLabel": {"type": "string"}, "resourceLabel": {"type": "string"}}
     },
     "bifurcation": {
       "type": "object", "additionalProperties": false,
