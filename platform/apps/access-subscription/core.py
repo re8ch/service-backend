@@ -15,7 +15,13 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20260905-cn-cloud-direct-1"
+SHADOWROCKET_PROFILE_REVISION = "20260906-la-only-1"
+
+# Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
+# still recovering. Keep clients on the two independently reachable LA
+# listeners instead of allowing URL-test/fallback groups to flap across stale
+# routes. Re-enable KL only after its host and both protocols pass qualification.
+ACTIVE_PUBLICATION_IDS = frozenset({"direct-la-anytls", "direct-la-hysteria2"})
 
 # Keep critical mainland cloud consoles deterministic even when an upstream
 # community ruleset is incomplete or temporarily unavailable.
@@ -103,20 +109,26 @@ SERVICE_RULESETS = (
 
 
 def published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]:
-    return tuple(node for node in nodes if node.runtime.healthy and node.runtime.qualified_mbps >= 100)
+    return tuple(
+        node for node in nodes
+        if node.node_id in ACTIVE_PUBLICATION_IDS
+        and node.runtime.healthy
+        and node.runtime.qualified_mbps >= 100
+    )
 
 
 def public_node(node: Node) -> dict:
     # Runtime Service/listener names are control-plane details.  Status clients
     # receive only publication data plus non-sensitive qualification signals.
+    enabled = node.node_id in ACTIVE_PUBLICATION_IDS
     return {
         "id": node.node_id,
         "name": node.name,
         **asdict(node.publication),
         "region": node.runtime.region,
-        "healthy": node.runtime.healthy,
+        "healthy": enabled and node.runtime.healthy,
         "qualifiedMbps": node.runtime.qualified_mbps,
-        "qualified": node.runtime.healthy and node.runtime.qualified_mbps >= 100,
+        "qualified": enabled and node.runtime.healthy and node.runtime.qualified_mbps >= 100,
     }
 
 
@@ -208,7 +220,7 @@ def mihomo_proxy(node: Node, password: str) -> list[str]:
 def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [json.dumps(node.name, ensure_ascii=False) for node in active]
-    stable_ids = ("direct-kl-anytls", "direct-la-anytls", "route-kl-anytls", "route-la-anytls", "us-ca")
+    stable_ids = ("direct-la-anytls", "direct-la-hysteria2")
     stable = [node for node_id in stable_ids for node in active if node.node_id == node_id]
     stable_names = [json.dumps(node.name, ensure_ascii=False) for node in stable]
     out = ["mixed-port: 7890", "allow-lan: false", "mode: rule", "log-level: warning", "ipv6: false",
@@ -272,7 +284,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                         nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [node.name for node in active]
-    stable_ids = ("direct-kl-anytls", "direct-la-anytls", "route-kl-anytls", "route-la-anytls", "us-ca")
+    stable_ids = ("direct-la-anytls", "direct-la-hysteria2")
     stable_names = [node.name for node_id in stable_ids for node in active if node.node_id == node_id]
     config_url = f"{base_url}/s/{token}/shadowrocket.conf?v={SHADOWROCKET_PROFILE_REVISION}"
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
