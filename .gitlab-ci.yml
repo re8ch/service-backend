@@ -73,7 +73,10 @@ tenant-infrastructure-release:
     SIGSTORE_ID_TOKEN:
       aud: sigstore
   rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $TENANT_FORCE_RELEASE == "true"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - clusters/re8ch/components/ai-operations/**/*
   before_script: []
   script:
     - ./operations/mcp-conformance/release-tenant-infrastructure.sh
@@ -83,7 +86,10 @@ tenant-infrastructure-release:
 tenant-mcp-canary:
   stage: canary
   tags: [macmini-a1]
-  needs: [tenant-infrastructure-release]
+  needs:
+    - job: tenant-infrastructure-release
+      optional: true
+      artifacts: false
   id_tokens:
     MCP_EVIDENCE_SIGSTORE_ID_TOKEN:
       aud: sigstore

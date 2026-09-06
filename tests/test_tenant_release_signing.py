@@ -20,3 +20,6 @@ def test_tenant_release_supports_gitlab_keyless_and_pinned_digest_verification()
     assert 'docker sbom --platform linux/amd64' in release
     assert 'TENANT_IMAGE_PUSH_ATTEMPTS' in release
     assert 'fresh registry upload session' in release
+    assert 'TENANT_FORCE_RELEASE == "true"' in pipeline
+    assert 'clusters/re8ch/components/ai-operations/**/*' in pipeline
+    assert 'optional: true' in pipeline
