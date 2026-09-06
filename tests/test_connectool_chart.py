@@ -59,3 +59,12 @@ def test_duplicate_mcp_owners_are_rejected():
 def test_flux_oci_digest_suffix_is_sanitized_for_labels():
     helpers = (CHART / "templates/_helpers.tpl").read_text()
     assert 'replace "+" "_"' in helpers
+
+
+def test_cloud_resource_url_has_a_gateway_route():
+    route = yaml.safe_load((ROOT / "platform/connectool/cloud-route.yaml").read_text())
+    paths = {rule["matches"][0]["path"]["value"] for rule in route["spec"]["rules"]}
+    backends = {rule["backendRefs"][0]["name"] for rule in route["spec"]["rules"]}
+    assert "/cloud" in paths
+    assert "/.well-known/oauth-protected-resource/cloud" in paths
+    assert backends == {"vmcp-re8ch-tools-vmcp"}
