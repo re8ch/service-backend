@@ -101,7 +101,10 @@ spec:
         apiVersions: ["v1"]
         operations: ["CREATE", "UPDATE"]
         resources: ["deployments"]
-        resourceNames: [re8ch-admin-vmcp, re8ch-tools-vmcp]
+        resourceNames:
+          - vmcp-re8ch-admin-vmcp
+          - vmcp-re8ch-tools-vmcp
+          - vmcp-artchais-tenant-vmcp
   matchConditions:
     - name: is-toolhive-vmcp
       expression: >-
@@ -161,6 +164,51 @@ kind: MutatingAdmissionPolicyBinding
 metadata: {name: toolhive-vmcp-image-resolution.re8ch.com}
 spec:
   policyName: toolhive-vmcp-image-resolution.re8ch.com
+  matchResources:
+    namespaceSelector:
+      matchLabels: {re8ch.com/plane: control}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata: {name: toolhive-public-vmcp-r640.re8ch.com}
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: IfNeeded
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+        resourceNames:
+          - vmcp-re8ch-tools-vmcp
+          - vmcp-artchais-tenant-vmcp
+  matchConditions:
+    - name: is-toolhive-vmcp
+      expression: >-
+        object.metadata.namespace == 'toolhive-system' &&
+        object.metadata.labels['app'] == 'virtualmcpserver'
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          has(object.spec.template.spec.nodeSelector)
+          ? [JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'),
+              value: 'restricted-node-6dc3f140f9'
+            }]
+          : [JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector',
+              value: {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'}
+            }]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata: {name: toolhive-public-vmcp-r640.re8ch.com}
+spec:
+  policyName: toolhive-public-vmcp-r640.re8ch.com
   matchResources:
     namespaceSelector:
       matchLabels: {re8ch.com/plane: control}
