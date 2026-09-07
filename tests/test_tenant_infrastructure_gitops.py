@@ -65,6 +65,13 @@ def test_production_tenant_readiness_degrades_explicitly_while_harbor_worker_is_
     assert release["spec"]["values"]["tenantPlatform"]["tenantReadinessPath"] == "/livez"
 
 
+def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():
+    root_namespaces = documents(ROOT / "clusters/re8ch/namespaces.yaml")
+    namespace = next(item for item in root_namespaces if item["metadata"]["name"] == "tenant-infrastructure")
+    assert namespace["metadata"]["labels"]["saas.re8ch.com/tenant"] == "platform"
+    assert not any(item["kind"] == "Namespace" for item in tenant_chart_documents())
+
+
 def test_tenancy_crds_are_structural_and_status_enabled():
     docs = tenant_chart_documents()
     docs = [item for item in docs if item["kind"] == "CustomResourceDefinition" and item["spec"]["group"] == "tenancy.re8ch.com"]
