@@ -60,6 +60,28 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     }
 
 
+def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
+    docs = tenant_chart_documents()
+    backend_auth = next(item for item in docs if item["kind"] == "MCPExternalAuthConfig" and item["metadata"]["name"] == "admin-vmcp-backend-auth")
+    assert backend_auth["spec"] == {
+        "type": "bearerToken",
+        "bearerToken": {"tokenSecretRef": {"name": "admin-vmcp-backend-auth", "key": "token"}},
+    }
+    entry = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "admin-api-backend")
+    assert entry["spec"]["externalAuthConfigRef"] == {"name": "admin-vmcp-backend-auth"}
+    admin = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "admin-api")
+    service_token = next(item for item in admin["spec"]["template"]["spec"]["containers"][0]["env"] if item["name"] == "SERVICE_API_TOKEN")
+    assert service_token["valueFrom"]["secretKeyRef"] == {"name": "admin-vmcp-backend-auth", "key": "token"}
+    policy = next(item for item in docs if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "admin-api")
+    source = policy["spec"]["ingress"][0]["from"][0]
+    assert source["podSelector"]["matchLabels"] == {"app": "virtualmcpserver", "toolhive-name": "re8ch-admin-vmcp"}
+
+    encrypted = (ROOT / "clusters/re8ch/secrets/admin-vmcp-backend-auth.sops.yaml").read_text()
+    assert "pending-encryption" not in encrypted
+    assert encrypted.count("ENC[AES256_GCM") >= 2
+    assert "secrets/admin-vmcp-backend-auth.sops.yaml" in (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
+
+
 def test_production_tenant_readiness_degrades_explicitly_while_harbor_worker_is_absent():
     release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
     assert release["spec"]["values"]["tenantPlatform"]["tenantReadinessPath"] == "/livez"
