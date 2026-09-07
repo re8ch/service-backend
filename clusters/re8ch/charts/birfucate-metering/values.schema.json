@@ -4,6 +4,18 @@
   "additionalProperties": true,
   "properties": {
     "collectionIntervalSeconds": {"type": "integer", "minimum": 10, "maximum": 3600},
+    "browserAPI": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "lookbackSeconds"],
+      "properties": {"enabled": {"type": "boolean"}, "lookbackSeconds": {"type": "integer", "minimum": 60, "maximum": 3600}}
+    },
+    "tenantPlatform": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "tenants"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
+        "tenants": {"type": "array", "items": {"type": "object"}}
+      }
+    },
     "prometheus": {
       "type": "object", "required": ["baseURL", "timeoutSeconds"],
       "properties": {"baseURL": {"type": "string", "pattern": "^https?://"}, "writePath": {"type": "string", "pattern": "^/"}, "timeoutSeconds": {"type": "integer", "minimum": 1, "maximum": 60}}

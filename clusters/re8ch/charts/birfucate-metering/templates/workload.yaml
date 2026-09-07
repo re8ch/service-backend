@@ -12,7 +12,7 @@ spec:
     metadata:
       annotations:
         checksum/collector: {{ .Files.Get "files/collector.py" | sha256sum }}
-        checksum/config: {{ dict "collectionIntervalSeconds" .Values.collectionIntervalSeconds "prometheus" .Values.prometheus "opencost" .Values.opencost "usageSink" (omit .Values.usageSink "existingSecret" "tokenKey") "outbox" .Values.outbox "tenantLabels" .Values.tenantLabels "meters" .Values.meters | toJson | sha256sum }}
+        checksum/config: {{ dict "collectionIntervalSeconds" .Values.collectionIntervalSeconds "browserAPI" .Values.browserAPI "prometheus" .Values.prometheus "opencost" .Values.opencost "usageSink" (omit .Values.usageSink "existingSecret" "tokenKey") "outbox" .Values.outbox "tenantLabels" .Values.tenantLabels "meters" .Values.meters | toJson | sha256sum }}
         {{- with .Values.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
       labels:
         {{- include "birfucate-metering.labels" . | nindent 8 }}
