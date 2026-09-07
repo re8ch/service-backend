@@ -1,0 +1,41 @@
+{{- if .Values.tenantPlatform.enabled }}
+{{- range $tenant := .Values.tenantPlatform.tenants }}
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: Tenant
+metadata:
+  name: {{ $tenant.name }}
+  labels: {app.kubernetes.io/part-of: birfucate-metering}
+spec:
+  displayName: {{ $tenant.displayName | quote }}
+  lifecycle: {{ $tenant.lifecycle }}
+  deletionPolicy: {{ $tenant.deletionPolicy }}
+  runtimeNamespaceRef: {{ $tenant.runtimeNamespaceRef }}
+  imagePullSecretRef: {{ $tenant.imagePullSecretRef }}
+  harborProjectRef: {{ $tenant.harborProjectRef }}
+{{- range $binding := $tenant.identityBindings }}
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantIdentityBinding
+metadata: {name: {{ $binding.name }}}
+spec:
+  tenantRef: {{ $tenant.name }}
+  issuer: {{ $binding.issuer }}
+  group: {{ $binding.group | quote }}
+  role: {{ $binding.role }}
+  revoked: false
+{{- end }}
+---
+{{- range $grant := $tenant.grants }}
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantGrant
+metadata: {name: {{ $grant.name }}}
+spec:
+  tenantRef: {{ $tenant.name }}
+  consumableRef: {{ $grant.consumableRef }}
+  roleRef: {{ $grant.roleRef }}
+  lifecycle: {{ $grant.lifecycle }}
+---
+{{- end }}
+---
+{{- end }}
+{{- end }}

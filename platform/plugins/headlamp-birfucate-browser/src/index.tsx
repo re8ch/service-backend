@@ -1,10 +1,10 @@
 import { registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
-import { clusterRequest } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
+import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { SectionBox, StatusLabel, Table } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { Alert, Box, Button, Chip, FormControl, InputLabel, MenuItem, Select, TextField, Typography } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
 
-const VM_PROXY = '/api/v1/namespaces/qianwen-ops/services/http:panel-victoria-metrics:8428/proxy';
+const BIRFUCATE_PROXY = '/api/v1/namespaces/observability-ai/services/http:birfucate-metering:9791/proxy';
 const METRICS = [
   'birfucate_occupancy_current',
   'birfucate_occupancy_units_total',
@@ -32,9 +32,12 @@ function human(value: number): string {
 }
 
 async function instantQuery(query: string): Promise<Sample[]> {
-  const path = `${VM_PROXY}/api/v1/query?query=${encodeURIComponent(query)}`;
-  const response: any = await clusterRequest(path, {method: 'GET'});
-  if (response?.status !== 'success') throw new Error(response?.error || 'VictoriaMetrics query failed');
+  const path = `${BIRFUCATE_PROXY}/api/v1/browser/query?metric=${encodeURIComponent(query)}`;
+  // request() binds the URL to Headlamp's currently selected cluster. Calling
+  // clusterRequest() without that cluster silently targets the Headlamp SPA and
+  // returns index.html, which then fails JSON parsing at "<!DOCTYPE".
+  const response: any = await request(path, {method: 'GET'});
+  if (response?.status !== 'success') throw new Error(response?.error || 'Birfucate query failed');
   return response?.data?.result || [];
 }
 
@@ -53,7 +56,7 @@ function Dashboard() {
   async function refresh() {
     setLoading(true); setError('');
     try {
-      const results = await Promise.all(METRICS.map(metric => instantQuery(`last_over_time(${metric}[10m])`)));
+      const results = await Promise.all(METRICS.map(metric => instantQuery(metric)));
       const byKey = new Map<string, Row>();
       results.forEach((samples, index) => samples.forEach(sample => {
         const labels = sample.metric || {};
@@ -106,7 +109,7 @@ function Dashboard() {
         {header:'Bifurcation',accessorFn:(x:Row)=><StatusLabel status={x.score > 0 ? 'success' : 'warning'}>{human(x.score)}</StatusLabel>},
       ] as any}/>
     </SectionBox>
-    <Typography variant="caption" color="text.secondary">数据源：VictoriaMetrics 中最近 10 分钟的 Birfucate 指标。Tenant 筛选仅用于浏览；授权由 Headlamp 与 Kubernetes services/proxy RBAC 执行。</Typography>
+    <Typography variant="caption" color="text.secondary">数据源：Birfucate Chart 提供的受限浏览 API（最近 10 分钟）。Tenant 筛选仅用于浏览；授权由 Headlamp 与 Kubernetes services/proxy RBAC 执行。</Typography>
   </Box>;
 }
 
