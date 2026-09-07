@@ -2,8 +2,8 @@ apiVersion: v2
 name: birfucate-metering
 description: AI-oriented occupancy and behavioral bifurcation metering for Ceph, Pigsty and networks
 type: application
-version: 0.3.1
-appVersion: "0.3.1"
+version: 0.3.2
+appVersion: "0.3.2"
 kubeVersion: ">=1.35.0-0"
 annotations:
   artifacthub.io/license: Apache-2.0

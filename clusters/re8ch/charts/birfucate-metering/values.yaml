@@ -42,7 +42,7 @@ tenantPlatform:
         - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
 
 prometheus:
-  baseURL: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+  baseURL: http://vmsingle-opencost.observability-system.svc.cluster.local:8428
   writePath: /api/v1/import/prometheus
   timeoutSeconds: 15
 

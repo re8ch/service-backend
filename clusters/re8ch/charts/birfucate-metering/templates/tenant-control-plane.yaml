@@ -1,12 +1,6 @@
 {{- if .Values.tenantPlatform.enabled }}
 # Production topology. The legacy PVC is intentionally retained, but no runtime mounts it.
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: tenant-infrastructure
-  labels: {saas.re8ch.com/tenant: platform}
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: tenant-infrastructure-state
