@@ -11,6 +11,8 @@ resources:
   - secrets/among-clusters-hub-admin.sops.yaml
   - secrets/hyperswitch-runtime-values.sops.yaml
   - secrets/hyperswitch-bootstrap-admin.sops.yaml
+  - secrets/tenant-claim-internal-auth.sops.yaml
+  - secrets/tenant-registry-supply-chain.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/farseer/public-web.yaml
   - components/cilium/r640-policy-update-budget.yaml
@@ -27,7 +29,7 @@ resources:
   - ../../platform/among-clusters
   - ../../platform/scheduling-fabric
   - ../../platform/cloud-platform
-  - ../../platform/qwen-tenant-runtime
+  - ../../platform/tenant-runtime
   - ../../platform/advanced-fabric
   - ../../platform/git-workspaces
   - ../../platform/workspace-controller

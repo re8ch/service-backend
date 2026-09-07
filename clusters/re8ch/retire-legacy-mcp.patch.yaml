@@ -21,26 +21,6 @@ metadata: {name: harbor-credential-broker, namespace: credential-broker}
 $patch: delete
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: tenant-admin, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: apps/v1
-kind: Deployment
-metadata: {name: tenant-registry, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: apps/v1
-kind: Deployment
-metadata: {name: tenant-observability, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: apps/v1
-kind: Deployment
-metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: apps/v1
-kind: Deployment
 metadata: {name: external-dns-cloudflare, namespace: qianwen-ops}
 ---
 $patch: delete
@@ -62,26 +42,6 @@ $patch: delete
 apiVersion: v1
 kind: Service
 metadata: {name: harbor-credential-broker, namespace: credential-broker}
----
-$patch: delete
-apiVersion: v1
-kind: Service
-metadata: {name: tenant-admin, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: v1
-kind: Service
-metadata: {name: tenant-registry, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: v1
-kind: Service
-metadata: {name: tenant-observability, namespace: tenant-infrastructure}
----
-$patch: delete
-apiVersion: v1
-kind: Service
-metadata: {name: tenant-byoc, namespace: tenant-infrastructure}
 ---
 $patch: delete
 apiVersion: gateway.networking.k8s.io/v1
@@ -107,8 +67,3 @@ $patch: delete
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: {name: harbor-credential-broker, namespace: credential-broker}
----
-$patch: delete
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}

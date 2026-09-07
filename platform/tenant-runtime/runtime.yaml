@@ -25,7 +25,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: admin}
@@ -61,7 +61,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations:IMAGE_REQUIRES_VERIFIED_DIGEST
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54
           imagePullPolicy: IfNotPresent
           envFrom:
             - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
@@ -127,3 +127,15 @@ spec:
   groupRef: {name: tenant-public}
   remoteUrl: http://tenant-api.tenant-infrastructure.svc/mcp
   transport: streamable-http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-mcp, namespace: toolhive-system}
+spec:
+  hostnames: [tools.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /tenant}}]
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]

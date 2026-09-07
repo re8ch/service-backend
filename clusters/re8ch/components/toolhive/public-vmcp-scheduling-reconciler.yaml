@@ -15,7 +15,7 @@ rules:
     resources: [deployments]
     resourceNames:
       - vmcp-re8ch-tools-vmcp
-      - vmcp-artchais-tenant-vmcp
+      - vmcp-tenant-vmcp
     verbs: [get, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -51,7 +51,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              for deployment in vmcp-re8ch-tools-vmcp vmcp-artchais-tenant-vmcp; do
+              for deployment in vmcp-re8ch-tools-vmcp vmcp-tenant-vmcp; do
                 attempt=1
                 until [ "$attempt" -gt 5 ]; do
                   kubectl -n toolhive-system patch deployment "$deployment" --type merge \

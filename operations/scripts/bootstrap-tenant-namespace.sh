@@ -145,6 +145,20 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: tenant-resource-provisioner
+  namespace: ${tenant}
+subjects:
+- kind: ServiceAccount
+  name: tenant-control-controller
+  namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tenant-resource-provisioner
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: ${tenant}-kubectl-operator
   namespace: ${tenant}
 subjects:

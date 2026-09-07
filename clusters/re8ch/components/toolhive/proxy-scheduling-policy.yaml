@@ -104,7 +104,7 @@ spec:
         resourceNames:
           - vmcp-re8ch-admin-vmcp
           - vmcp-re8ch-tools-vmcp
-          - vmcp-artchais-tenant-vmcp
+          - vmcp-tenant-vmcp
   matchConditions:
     - name: is-toolhive-vmcp
       expression: >-
@@ -182,7 +182,7 @@ spec:
         resources: ["deployments"]
         resourceNames:
           - vmcp-re8ch-tools-vmcp
-          - vmcp-artchais-tenant-vmcp
+          - vmcp-tenant-vmcp
   matchConditions:
     - name: is-toolhive-vmcp
       expression: >-

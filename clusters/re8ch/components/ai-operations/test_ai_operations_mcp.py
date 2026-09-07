@@ -23,11 +23,11 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
-    def test_artchais_profile_is_tenant_scoped_and_denies_secret_admin_commands(self):
-        m = load("tenant-artchais")
-        self.assertEqual({tool["name"] for tool in m.tools()}, {
+    def test_tenant_profile_includes_artchais_grant_tools_and_denies_secret_admin_commands(self):
+        m = load("tenant")
+        self.assertTrue({
             "artc_kubernetes_read", "artc_kubernetes_apply", "artc_kubernetes_admin",
-        })
+        } <= {tool["name"] for tool in m.tools()})
         self.assertTrue(m.forbidden_admin_argv(["get", "secrets.v1"], None))
         self.assertTrue(m.forbidden_admin_argv(["config", "view"], None))
         self.assertTrue(m.forbidden_admin_argv(["get", "--raw", "/api/v1/secrets"], None))
@@ -36,7 +36,7 @@ class RegistryTests(unittest.TestCase):
         self.assertFalse(m.forbidden_admin_argv(["get", "nodes", "-o", "wide"], None))
 
     def test_artchais_apply_forces_namespace_and_requires_operator(self):
-        m = load("tenant-artchais")
+        m = load("tenant")
         m.authenticated_tenant_context = lambda _identity: {"tenantRef": "artchais", "role": "viewer"}
         workload = {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "web"}, "spec": {}}
         with self.assertRaises(PermissionError):

@@ -1,0 +1,24 @@
+{
+  "apiVersion": "testing.re8ch.com/v1alpha1",
+  "kind": "MCPCollection",
+  "metadata": {"name": "tenant-canary", "version": "1.0.0"},
+  "spec": {
+    "endpoint": "https://tools.re8ch.com/tenant/mcp",
+    "oauth": {
+      "resource": "https://tools.re8ch.com/tenant/mcp",
+      "tokenAudience": "re8ch-tenant",
+      "protectedResourceMetadata": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
+      "tokenEnv": "TENANT_CANARY_TOKEN",
+      "pkce": "S256"
+    },
+    "timeoutSeconds": 30,
+    "requireSignedEvidence": true,
+    "calls": [
+      {"name": "catalog", "tool": "service_catalog_list", "arguments": {}},
+      {"name": "instances", "tool": "service_instance_list", "arguments": {}},
+      {"name": "claim-capabilities", "tool": "tenant_capabilities_list", "arguments": {}},
+      {"name": "claims", "tool": "tenant_claim_list", "arguments": {}},
+      {"name": "usage", "tool": "tenant_usage_summary_get", "arguments": {}}
+    ]
+  }
+}
