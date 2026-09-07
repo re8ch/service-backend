@@ -15,7 +15,14 @@ trap 'rm -f "$metadata_file" "$response_file"' EXIT HUP INT TERM
 
 curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 10 \
   --max-time 20 "$metadata_url" >"$metadata_file"
-jq -e --arg resource "$endpoint" '.resource == $resource and (.authorization_servers | length > 0)' "$metadata_file" >/dev/null
+python3 - "$metadata_file" "$endpoint" <<'PY'
+import json
+import sys
+
+metadata = json.load(open(sys.argv[1]))
+if metadata.get("resource") != sys.argv[2] or not metadata.get("authorization_servers"):
+    raise SystemExit("tenant protected-resource metadata is incomplete")
+PY
 
 anonymous_status=$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
   --max-time 20 -H 'Content-Type: application/json' -H 'Accept: application/json' \
@@ -32,8 +39,24 @@ if [ -n "${TENANT_CANARY_REFRESH_TOKEN:-}" ]; then
     operations/mcp-conformance/collections/tenant-canary.json --output "$evidence"
   unset TENANT_CANARY_TOKEN DEX_REFRESH_TOKEN
 else
-  jq -n --arg endpoint "$endpoint" --arg metadata "$metadata_url" --arg status "$anonymous_status" \
-    --arg revision "${CI_COMMIT_SHA:-unknown}" \
-    '{apiVersion:"evidence.re8ch.com/v1alpha1",kind:"MCPEvidence",collection:"tenant-canary",mode:"bootstrap-fail-closed",endpoint:$endpoint,protectedResourceMetadata:$metadata,anonymousStatus:($status|tonumber),gitRevision:$revision,sensitiveMaterialPersisted:false}' >"$evidence"
+  ENDPOINT="$endpoint" METADATA_URL="$metadata_url" ANONYMOUS_STATUS="$anonymous_status" \
+    python3 - "$evidence" <<'PY'
+import json
+import os
+import sys
+
+value = {
+    "apiVersion": "evidence.re8ch.com/v1alpha1",
+    "kind": "MCPEvidence",
+    "collection": "tenant-canary",
+    "mode": "bootstrap-fail-closed",
+    "endpoint": os.environ["ENDPOINT"],
+    "protectedResourceMetadata": os.environ["METADATA_URL"],
+    "anonymousStatus": int(os.environ["ANONYMOUS_STATUS"]),
+    "gitRevision": os.getenv("CI_COMMIT_SHA", "unknown"),
+    "sensitiveMaterialPersisted": False,
+}
+open(sys.argv[1], "w").write(json.dumps(value, indent=2, sort_keys=True) + "\n")
+PY
   cosign sign-blob --yes --identity-token "$MCP_EVIDENCE_SIGSTORE_ID_TOKEN" --bundle "$evidence.bundle" "$evidence"
 fi
