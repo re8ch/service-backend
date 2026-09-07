@@ -31,6 +31,7 @@ spec:
           env:
             - {name: RE8CH_TOOL_PROFILE, value: admin}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-platform-admin}
+            - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: LISTEN_PORT, value: "19449"}
             - {name: PUBLIC_MCP_URL, value: "https://admin.re8ch.com:8443/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp"}
@@ -105,7 +106,11 @@ metadata: {name: admin-api, namespace: tenant-infrastructure}
 spec:
   podSelector: {matchLabels: {app: admin-api}}
   policyTypes: [Ingress]
-  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19449}]}]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}
+          podSelector: {matchLabels: {app: virtualmcpserver, toolhive-name: re8ch-admin-vmcp}}
+      ports: [{protocol: TCP, port: 19449}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -126,12 +131,21 @@ spec:
         - ports: [{port: "19448", protocol: TCP}]
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata: {name: admin-vmcp-backend-auth, namespace: toolhive-system}
+spec:
+  type: bearerToken
+  bearerToken:
+    tokenSecretRef: {name: admin-vmcp-backend-auth, key: token}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata: {name: admin-api-backend, namespace: toolhive-system}
 spec:
   groupRef: {name: platform-admin-public}
   remoteUrl: http://admin-api.tenant-infrastructure.svc/mcp
   transport: streamable-http
+  externalAuthConfigRef: {name: admin-vmcp-backend-auth}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
