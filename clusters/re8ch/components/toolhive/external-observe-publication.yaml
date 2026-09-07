@@ -68,8 +68,8 @@ metadata:
 spec:
   groupRef: {name: platform-observe}
   image: docker.1ms.run/library/python:3.12-alpine
-  backendReplicas: 2
-  replicas: 2
+  backendReplicas: 1
+  replicas: 1
   sessionAffinity: None
   sessionStorage:
     provider: redis
@@ -111,16 +111,7 @@ spec:
     metadata:
       annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app.kubernetes.io/instance: ops-observe-external}}
-              topologyKey: kubernetes.io/hostname
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       containers:
