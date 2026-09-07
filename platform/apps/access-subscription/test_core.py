@@ -81,6 +81,15 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("name: CODEX-STABLE", config)
         self.assertNotIn("fallback:", config)
 
+    def test_mihomo_forces_todesk_process_and_domains_direct(self):
+        config = mihomo_config("credential", "token", "https://sub.access.re8ch.com").decode()
+        self.assertIn("find-process-mode: strict", config)
+        for process in ("ToDesk", "ToDesk_Service", "ToDesk_Session_Proxy"):
+            self.assertIn(f"PROCESS-NAME,{process},DIRECT", config)
+            self.assertLess(config.index(f"PROCESS-NAME,{process},DIRECT"), config.index("MATCH,PROXY"))
+        self.assertIn("DOMAIN-SUFFIX,todesk.com,DIRECT", config)
+        self.assertIn("'+.todesk.com':", config)
+
     def test_shadowrocket_config_defaults_to_proxy(self):
         config = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com").decode()
         self.assertIn("[Proxy]", config)
@@ -96,7 +105,7 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("CODEX-STABLE = select, 🇺🇸 Edge Direct · 洛杉矶 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", config)
         self.assertNotIn("AUTO = url-test, ♻️ Auto · Smart Select", config)
         self.assertIn("🤖 AI = select, CODEX-STABLE, PROXY, AUTO, DIRECT", config)
-        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20260906-la-only-1", config)
+        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20260907-todesk-direct-1", config)
         self.assertIn("skip-proxy = 192.0.2.136/16", config)
         self.assertIn("dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query", config)
         self.assertIn("fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query", config)
@@ -112,6 +121,14 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("FINAL,PROXY", config)
         self.assertIn("/current/cn.list,DIRECT", config)
         self.assertNotIn("personal-access-us-ca", config)
+
+    def test_shadowrocket_forces_todesk_process_and_domains_direct(self):
+        config = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com").decode()
+        self.assertIn("todesk.com, *.todesk.com", config)
+        for process in ("ToDesk", "ToDesk_Service", "ToDesk_Session_Proxy"):
+            self.assertIn(f"PROCESS-NAME,{process},DIRECT", config)
+            self.assertLess(config.index(f"PROCESS-NAME,{process},DIRECT"), config.index("FINAL,PROXY"))
+        self.assertIn("DOMAIN-SUFFIX,todesk.com,DIRECT", config)
 
     def test_shadowrocket_import_url_encodes_complete_config_endpoint(self):
         url = shadowrocket_import_url("https://sub.access.re8ch.com/s/a.b/shadowrocket.conf")
