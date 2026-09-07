@@ -11,13 +11,13 @@ automountServiceAccountToken: false
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: admin-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated}}
+metadata: {name: admin-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated, ai.connectool.io/mcp-backend: "true"}}
 spec:
-  replicas: 2
+  replicas: 1
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
   selector: {matchLabels: {app: admin-api}}
   template:
-    metadata: {labels: {app: admin-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    metadata: {labels: {app: admin-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: admin-api
       automountServiceAccountToken: false
@@ -48,13 +48,13 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: tenant-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated}}
+metadata: {name: tenant-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated, ai.connectool.io/mcp-backend: "true"}}
 spec:
-  replicas: 2
+  replicas: 1
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
   selector: {matchLabels: {app: tenant-api}}
   template:
-    metadata: {labels: {app: tenant-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform}}
+    metadata: {labels: {app: tenant-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: tenant-api
       automountServiceAccountToken: false

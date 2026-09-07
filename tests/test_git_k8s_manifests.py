@@ -72,7 +72,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
+def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -81,41 +81,31 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
-        "re8ch-admin-vmcp": 2,
+        "re8ch-admin-vmcp": 1,
         "tenant-vmcp": 1,
+    }
+    assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
     }
 
     policies = documents(
         ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml"
     )
-    policy = next(
-        item
-        for item in policies
-        if item["kind"] == "MutatingAdmissionPolicy"
-        and item["metadata"]["name"] == "toolhive-vmcp-image-resolution.re8ch.com"
-    )
+    assert len(policies) == 2
+    policy = next(item for item in policies if item["kind"] == "MutatingAdmissionPolicy")
+    assert policy["metadata"]["name"] == "toolhive-mcp-r640.re8ch.com"
     expression = policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
-    assert "preferredDuringSchedulingIgnoredDuringExecution" in expression
-    assert "values: ['restricted-node-6dc3f140f9']" in expression
-    assert "requiredDuringSchedulingIgnoredDuringExecution" in expression
-    assert policy["spec"]["matchConstraints"]["resourceRules"][0]["resourceNames"] == [
-        "vmcp-re8ch-admin-vmcp",
-        "vmcp-re8ch-tools-vmcp",
-        "vmcp-tenant-vmcp",
-    ]
+    rule = policy["spec"]["matchConstraints"]["resourceRules"][0]
+    assert rule["resources"] == ["deployments", "statefulsets"]
+    assert "resourceNames" not in rule
+    assert "object.metadata.labels['toolhive'] == 'true'" in policy["spec"]["matchConditions"][0]["expression"]
+    assert "value: 'restricted-node-6dc3f140f9'" in expression
+    serialized = (ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml").read_text()
+    assert "podAntiAffinity" not in serialized
+    assert "@sha256:" not in serialized
 
-    public_policy = next(
-        item
-        for item in policies
-        if item["kind"] == "MutatingAdmissionPolicy"
-        and item["metadata"]["name"] == "toolhive-public-vmcp-r640.re8ch.com"
-    )
-    public_rule = public_policy["spec"]["matchConstraints"]["resourceRules"][0]
-    assert public_rule["resourceNames"] == [
-        "re8ch-tools-vmcp",
-        "tenant-vmcp",
-    ]
-    assert "value: 'restricted-node-6dc3f140f9'" in public_policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
+    legacy = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
+    assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig"} for item in legacy)
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]

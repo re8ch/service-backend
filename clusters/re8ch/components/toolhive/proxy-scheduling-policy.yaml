@@ -1,7 +1,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingAdmissionPolicy
 metadata:
-  name: toolhive-proxy-scheduling.re8ch.com
+  name: toolhive-mcp-r640.re8ch.com
 spec:
   failurePolicy: Fail
   reinvocationPolicy: IfNeeded
@@ -10,186 +10,14 @@ spec:
       - apiGroups: ["apps"]
         apiVersions: ["v1"]
         operations: ["CREATE", "UPDATE"]
-        resources: ["deployments"]
-        resourceNames:
-          - ops-observe-managed
-          - ops-operate-managed
-          - ops-admin-managed
+        resources: ["deployments", "statefulsets"]
   matchConditions:
-    - name: is-toolhive-proxy-runner
+    - name: is-toolhive-mcp-workload
       expression: >-
         object.metadata.namespace == 'toolhive-system' &&
-        object.metadata.labels['toolhive'] == 'true' &&
-        object.metadata.labels['app'] == 'mcpserver'
-  mutations:
-    - patchType: JSONPatch
-      jsonPatch:
-        expression: >-
-          has(object.spec.template.spec.nodeSelector)
-          ? [JSONPatch{
-              op: 'add',
-              path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'),
-              value: 'restricted-node-296f36f2fb'
-            }]
-          : [JSONPatch{
-              op: 'add',
-              path: '/spec/template/spec/nodeSelector',
-              value: {'kubernetes.io/hostname': 'restricted-node-296f36f2fb'}
-            }]
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicyBinding
-metadata:
-  name: toolhive-proxy-scheduling.re8ch.com
-spec:
-  policyName: toolhive-proxy-scheduling.re8ch.com
-  matchResources:
-    namespaceSelector:
-      matchLabels:
-        re8ch.com/plane: control
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicy
-metadata: {name: toolhive-external-admin-proxy-scheduling.re8ch.com}
-spec:
-  failurePolicy: Fail
-  reinvocationPolicy: IfNeeded
-  matchConstraints:
-    resourceRules:
-      - apiGroups: ["apps"]
-        apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
-        resources: ["deployments"]
-        # External Ops publications follow the A1/B1 affinity declared by the
-        # MCPServer. Clear the retired restricted-node-6dc3f140f9 singleton selector on every update.
-        resourceNames:
-          - ops-observe-external
-          - ops-operate-external
-          - ops-admin-external
-  matchConditions:
-    - name: is-toolhive-proxy-runner
-      expression: >-
-        object.metadata.namespace == 'toolhive-system' &&
-        object.metadata.labels['toolhive'] == 'true' &&
-        object.metadata.labels['app'] == 'mcpserver'
-  mutations:
-    - patchType: JSONPatch
-      jsonPatch:
-        expression: >-
-          has(object.spec.template.spec.nodeSelector)
-          ? [JSONPatch{op: 'replace', path: '/spec/template/spec/nodeSelector', value: {'re8ch.com/toolhive-plane': 'primary'}}]
-          : [JSONPatch{op: 'add', path: '/spec/template/spec/nodeSelector', value: {'re8ch.com/toolhive-plane': 'primary'}}]
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicyBinding
-metadata: {name: toolhive-external-admin-proxy-scheduling.re8ch.com}
-spec:
-  policyName: toolhive-external-admin-proxy-scheduling.re8ch.com
-  matchResources:
-    namespaceSelector:
-      matchLabels: {re8ch.com/plane: control}
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicy
-metadata: {name: toolhive-vmcp-image-resolution.re8ch.com}
-spec:
-  failurePolicy: Fail
-  reinvocationPolicy: IfNeeded
-  matchConstraints:
-    resourceRules:
-      - apiGroups: ["apps"]
-        apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
-        resources: ["deployments"]
-        resourceNames:
-          - vmcp-re8ch-admin-vmcp
-          - vmcp-re8ch-tools-vmcp
-          - vmcp-tenant-vmcp
-  matchConditions:
-    - name: is-toolhive-vmcp
-      expression: >-
-        object.metadata.namespace == 'toolhive-system' &&
-        object.metadata.labels['app'] == 'virtualmcpserver'
-  mutations:
-    - patchType: JSONPatch
-      jsonPatch:
-        expression: >-
-          [JSONPatch{
-            op: 'replace',
-            path: '/spec/template/spec/containers/0/image',
-            value: 'ghcr.io/stacklok/toolhive/vmcp@sha256:f26fac5b35ac5ca23e0f78367a31b49cda36c880f6cadfa6ba118fb1fb39e371'
-          }, JSONPatch{
-            op: 'replace',
-            path: '/spec/template/spec/containers/0/imagePullPolicy',
-            value: 'IfNotPresent'
-          }, JSONPatch{
-            op: 'replace',
-            path: '/spec/strategy/rollingUpdate',
-            value: {'maxSurge': 0, 'maxUnavailable': 1}
-          }, JSONPatch{
-            op: 'add',
-            path: '/spec/template/spec/affinity',
-            value: Object.spec.template.spec.affinity{
-              nodeAffinity: Object.spec.template.spec.affinity.nodeAffinity{
-                preferredDuringSchedulingIgnoredDuringExecution: [
-                  Object.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution{
-                    weight: 100,
-                    preference: Object.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference{
-                      matchExpressions: [
-                        Object.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference.matchExpressions{
-                          key: 'kubernetes.io/hostname',
-                          operator: 'In',
-                          values: ['restricted-node-6dc3f140f9']
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              podAntiAffinity: Object.spec.template.spec.affinity.podAntiAffinity{
-                requiredDuringSchedulingIgnoredDuringExecution: [
-                  Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution{
-                    labelSelector: Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector{
-                      matchLabels: {'app.kubernetes.io/instance': object.metadata.name}
-                    },
-                    topologyKey: 'kubernetes.io/hostname'
-                  }
-                ]
-              }
-            }
-          }]
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicyBinding
-metadata: {name: toolhive-vmcp-image-resolution.re8ch.com}
-spec:
-  policyName: toolhive-vmcp-image-resolution.re8ch.com
-  matchResources:
-    namespaceSelector:
-      matchLabels: {re8ch.com/plane: control}
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicy
-metadata: {name: toolhive-public-vmcp-r640.re8ch.com}
-spec:
-  failurePolicy: Fail
-  reinvocationPolicy: IfNeeded
-  matchConstraints:
-    resourceRules:
-      - apiGroups: ["apps"]
-        apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
-        resources: ["deployments"]
-        resourceNames:
-          # ToolHive names Deployments after the VirtualMCPServer object. The
-          # vmcp-* prefix belongs to the generated Service, not the Deployment.
-          - re8ch-tools-vmcp
-          - tenant-vmcp
-  matchConditions:
-    - name: is-toolhive-vmcp
-      expression: >-
-        object.metadata.namespace == 'toolhive-system' &&
-        object.metadata.labels['app'] == 'virtualmcpserver'
+        has(object.metadata.labels) &&
+        'toolhive' in object.metadata.labels &&
+        object.metadata.labels['toolhive'] == 'true'
   mutations:
     - patchType: JSONPatch
       jsonPatch:
@@ -208,9 +36,10 @@ spec:
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingAdmissionPolicyBinding
-metadata: {name: toolhive-public-vmcp-r640.re8ch.com}
+metadata:
+  name: toolhive-mcp-r640.re8ch.com
 spec:
-  policyName: toolhive-public-vmcp-r640.re8ch.com
+  policyName: toolhive-mcp-r640.re8ch.com
   matchResources:
     namespaceSelector:
       matchLabels: {re8ch.com/plane: control}
