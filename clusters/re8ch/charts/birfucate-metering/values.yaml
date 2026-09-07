@@ -22,6 +22,9 @@ browserAPI:
 tenantPlatform:
   enabled: false
   image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+  # Use /livez only as an explicit degraded mode while the isolated Harbor
+  # supply-chain worker is unavailable. Supply-chain tool calls still fail closed.
+  tenantReadinessPath: /readyz
   tenants:
     - name: artchais
       displayName: Artchais

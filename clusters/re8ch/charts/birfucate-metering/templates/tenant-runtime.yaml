@@ -36,6 +36,7 @@ spec:
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+            - {name: DEVICE_REGISTRY_PATH, value: /tmp/devices.db}
           ports: [{name: http, containerPort: 19449}]
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
           readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
@@ -78,9 +79,10 @@ spec:
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
+            - {name: DEVICE_REGISTRY_PATH, value: /tmp/devices.db}
           ports: [{name: http, containerPort: 19448}]
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
-          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+          readinessProbe: {httpGet: {path: {{ .Values.tenantPlatform.tenantReadinessPath }}, port: http}, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}

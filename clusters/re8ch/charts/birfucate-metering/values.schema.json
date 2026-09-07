@@ -9,10 +9,11 @@
       "properties": {"enabled": {"type": "boolean"}, "lookbackSeconds": {"type": "integer", "minimum": 60, "maximum": 3600}}
     },
     "tenantPlatform": {
-      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "tenants"],
+      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "tenantReadinessPath", "tenants"],
       "properties": {
         "enabled": {"type": "boolean"},
         "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
+        "tenantReadinessPath": {"enum": ["/readyz", "/livez"]},
         "tenants": {"type": "array", "items": {"type": "object"}}
       }
     },

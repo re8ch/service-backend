@@ -37,6 +37,8 @@ kind: Job
 metadata:
   name: public-vmcp-scheduling-reconciler-v1
   namespace: toolhive-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   backoffLimit: 3
   ttlSecondsAfterFinished: 86400
