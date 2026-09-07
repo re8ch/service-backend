@@ -8,7 +8,7 @@ metadata: {name: dex-client-reconciler, namespace: dex}
 rules:
   - apiGroups: [""]
     resources: [configmaps]
-    resourceNames: [connectool-dex-clients, dex-client-reconciler-v1]
+    resourceNames: [connectool-dex-clients, dex-client-reconciler-v2]
     verbs: [get]
   - apiGroups: [""]
     resources: [secrets]
@@ -30,30 +30,47 @@ subjects: [{kind: ServiceAccount, name: dex-client-reconciler, namespace: dex}]
 ---
 apiVersion: v1
 kind: ConfigMap
-metadata: {name: dex-client-reconciler-v1, namespace: dex}
+metadata: {name: dex-client-reconciler-v2, namespace: dex}
 data:
-  reconcile.sh: |
-    #!/usr/bin/env sh
-    set -eu
-    workdir=$(mktemp -d)
-    trap 'rm -rf "$workdir"' EXIT HUP INT TERM
-    for attempt in $(seq 1 60); do
-      if kubectl -n dex get configmap connectool-dex-clients -o jsonpath='{.data.clients\.yaml}' >"$workdir/clients.yaml" 2>/dev/null; then
-        break
-      fi
-      if [ "$attempt" -eq 60 ]; then echo "ConnecTool Dex contract was not created" >&2; exit 1; fi
-      sleep 5
-    done
-    kubectl -n dex get secret dex-config -o jsonpath='{.data.config\.yaml}' | base64 -d >"$workdir/config.yaml"
-    CONFIG_PATH="$workdir/config.yaml" CLIENTS_PATH="$workdir/clients.yaml" python3 - <<'PY'
-    import os
-    from pathlib import Path
+  reconcile.py: |
+    import base64
+    import json
+    import logging
+    import ssl
+    import time
+    import urllib.error
+    import urllib.request
     import yaml
 
-    config_path = Path(os.environ["CONFIG_PATH"])
-    contract_path = Path(os.environ["CLIENTS_PATH"])
-    config = yaml.safe_load(config_path.read_text())
-    contract = yaml.safe_load(contract_path.read_text())
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+    api = "https://kubernetes.default.svc"
+    token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
+    context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+
+    def request(path, method="GET", body=None, content_type="application/json"):
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(api + path, data=data, method=method, headers={
+            "Authorization": "Bearer " + token,
+            "Content-Type": content_type,
+        })
+        with urllib.request.urlopen(req, context=context, timeout=20) as response:
+            return json.load(response)
+
+    contract = None
+    for attempt in range(60):
+        try:
+            obj = request("/api/v1/namespaces/dex/configmaps/connectool-dex-clients")
+            contract = yaml.safe_load(obj["data"]["clients.yaml"])
+            break
+        except (urllib.error.HTTPError, urllib.error.URLError, KeyError) as exc:
+            logging.warning("waiting for ConnecTool Dex contract (%s/60): %s", attempt + 1, exc)
+            time.sleep(5)
+    if contract is None:
+        raise RuntimeError("ConnecTool Dex contract could not be read")
+
+    secret = request("/api/v1/namespaces/dex/secrets/dex-config")
+    config = yaml.safe_load(base64.b64decode(secret["data"]["config.yaml"]))
     desired = {item["id"]: item for item in contract.get("staticClients", [])}
     retired = {
         "re8ch-qwen-tenant", "re8ch-tenant-admin", "re8ch-tenant-registry",
@@ -70,20 +87,25 @@ data:
         client.pop("secret", None)
         client.pop("redirectURIs", None)
     config["staticClients"] = clients
-    config_path.write_text(yaml.safe_dump(config, sort_keys=False))
-    PY
-    kubectl -n dex get secret dex-config -o json | jq '
-      .metadata={name:"dex-config-pre-tenant-publication-v1",namespace:.metadata.namespace} |
-      del(.metadata.creationTimestamp,.metadata.resourceVersion,.metadata.uid,.metadata.managedFields,.metadata.ownerReferences)' |
-      kubectl apply -f - >/dev/null
-    kubectl -n dex create secret generic dex-config --from-file=config.yaml="$workdir/config.yaml" --dry-run=client -o yaml |
-      kubectl apply -f - >/dev/null
-    kubectl -n dex rollout restart deployment/dex
-    kubectl -n dex rollout status deployment/dex --timeout=180s
+    backup = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "dex-config-pre-tenant-publication-v1", "namespace": "dex"}, "type": secret.get("type", "Opaque"), "data": secret["data"]}
+    try:
+        request("/api/v1/namespaces/dex/secrets", "POST", backup)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 409:
+            raise
+    encoded = base64.b64encode(yaml.safe_dump(config, sort_keys=False).encode()).decode()
+    request("/api/v1/namespaces/dex/secrets/dex-config", "PATCH", {"data": {"config.yaml": encoded}}, "application/merge-patch+json")
+    restarted_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    request("/apis/apps/v1/namespaces/dex/deployments/dex", "PATCH", {"spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": restarted_at}}}}}, "application/merge-patch+json")
+    logging.info("Dex static clients reconciled; deployment restart requested")
 ---
 apiVersion: batch/v1
 kind: Job
-metadata: {name: dex-client-reconciler-v1, namespace: dex, labels: {app.kubernetes.io/part-of: connectool}}
+metadata:
+  name: dex-client-reconciler-v2
+  namespace: dex
+  labels: {app.kubernetes.io/part-of: connectool}
+  annotations: {kustomize.toolkit.fluxcd.io/force: enabled}
 spec:
   backoffLimit: 3
   template:
@@ -96,7 +118,7 @@ spec:
       containers:
         - name: reconcile
           image: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
-          command: [/scripts/reconcile.sh]
+          command: [python3, /scripts/reconcile.py]
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
           volumeMounts:
@@ -104,5 +126,5 @@ spec:
             - {name: work, mountPath: /tmp}
       volumes:
         - name: script
-          configMap: {name: dex-client-reconciler-v1, defaultMode: 0555}
+          configMap: {name: dex-client-reconciler-v2, defaultMode: 0444}
         - {name: work, emptyDir: {sizeLimit: 16Mi}}
