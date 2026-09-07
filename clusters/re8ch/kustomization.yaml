@@ -13,7 +13,8 @@ resources:
   - secrets/hyperswitch-bootstrap-admin.sops.yaml
   - secrets/tenant-claim-internal-auth.sops.yaml
   - secrets/tenant-registry-supply-chain.sops.yaml
-  - secrets/admin-vmcp-backend-auth.sops.yaml
+  - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
+  - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/farseer/public-web.yaml
   - components/cilium/r640-policy-update-budget.yaml
