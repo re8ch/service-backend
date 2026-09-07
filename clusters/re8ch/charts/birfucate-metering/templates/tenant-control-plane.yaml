@@ -1,19 +1,4 @@
 {{- if .Values.tenantPlatform.enabled }}
-# Production topology. The legacy PVC is intentionally retained, but no runtime mounts it.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: tenant-infrastructure-state
-  namespace: tenant-infrastructure
-  annotations:
-    tenancy.re8ch.com/retained-until: "2026-09-13"
-    tenancy.re8ch.com/recovery-mode: read-only
-  labels: {storage.re8ch.com/replicated-approved: "true"}
-spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: rbd-r640
-  resources: {requests: {storage: 1Gi}}
----
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
