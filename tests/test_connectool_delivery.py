@@ -21,6 +21,15 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
     assert {item["replicas"] for item in publications} == {1}
+    by_name = {item["name"]: item for item in publications}
+    assert by_name["re8ch-tools-vmcp"]["workloads"] == [
+        {"name": "ops-observe-vmcp-internal", "toolConfigRef": "ops-public-read-tools"},
+        {"name": "ops-operate-vmcp-internal", "toolConfigRef": "ops-operate-tools"},
+    ]
+    assert by_name["re8ch-admin-vmcp"]["workloads"] == [
+        {"name": "ops-admin-vmcp-internal", "toolConfigRef": "ops-admin-tools"},
+        {"name": "admin-api-backend"},
+    ]
     assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
         "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
     }
