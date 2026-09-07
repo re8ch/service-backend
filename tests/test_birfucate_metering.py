@@ -40,6 +40,7 @@ def test_chart_lints_and_renders_restricted_workload():
 def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["opencost"]["enabled"] is True
+    assert values["prometheus"]["baseURL"] == "http://vmsingle-opencost.observability-system.svc.cluster.local:8428"
     assert values["prometheus"]["writePath"] == "/api/v1/import/prometheus"
     assert values["vmServiceScrape"]["enabled"] is False
     domains = {item["domain"] for family in values["meters"].values() for item in family}

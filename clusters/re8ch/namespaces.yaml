@@ -5,6 +5,12 @@ metadata: {name: gitlab-agent}
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: tenant-infrastructure
+  labels: {saas.re8ch.com/tenant: platform}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: git-workspaces
   labels: {pod-security.kubernetes.io/enforce: restricted}
 ---
