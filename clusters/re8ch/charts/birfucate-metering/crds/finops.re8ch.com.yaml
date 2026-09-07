@@ -1,0 +1,931 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterregistrations.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Cluster
+  names:
+    kind: ClusterRegistration
+    plural: clusterregistrations
+    singular: clusterregistration
+    shortNames:
+    - creg
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Tenant
+      type: string
+      jsonPath: .spec.tenantRef
+    - name: State
+      type: string
+      jsonPath: .status.state
+    - name: Cluster
+      type: string
+      jsonPath: .spec.clusterUID
+    selectableFields:
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.clusterUID
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            properties:
+              tenantRef:
+                type: string
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+              clusterUID:
+                type: string
+                minLength: 8
+                maxLength: 128
+              regionRef:
+                type: string
+                minLength: 1
+              issuer:
+                type: string
+                pattern: ^https://
+              publicKeyHash:
+                type: string
+                pattern: ^sha256:[a-f0-9]{64}$
+              capabilities:
+                type: array
+                items:
+                  type: string
+            required:
+            - tenantRef
+            - clusterUID
+            - regionRef
+            - issuer
+            - publicKeyHash
+          status:
+            type: object
+            properties:
+              observedGeneration:
+                type: integer
+                format: int64
+                minimum: 0
+              state:
+                type: string
+                enum:
+                - PendingChallenge
+                - PendingApproval
+                - Approved
+                - Rejected
+                - Expired
+              enrollmentRef:
+                type: string
+              lastHeartbeatTime:
+                type: string
+                format: date-time
+              conditions:
+                type: array
+                x-kubernetes-list-type: map
+                x-kubernetes-list-map-keys:
+                - type
+                items:
+                  type: object
+                  required:
+                  - type
+                  - status
+                  - reason
+                  - message
+                  - lastTransitionTime
+                  properties:
+                    type:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                      - 'True'
+                      - 'False'
+                      - Unknown
+                    observedGeneration:
+                      type: integer
+                      format: int64
+                    reason:
+                      type: string
+                    message:
+                      type: string
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterconnections.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Cluster
+  names:
+    kind: ClusterConnection
+    plural: clusterconnections
+    singular: clusterconnection
+    shortNames:
+    - cconn
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Tenant
+      type: string
+      jsonPath: .spec.tenantRef
+    - name: State
+      type: string
+      jsonPath: .status.state
+    - name: Cluster
+      type: string
+      jsonPath: .spec.clusterUID
+    selectableFields:
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.clusterUID
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            properties:
+              tenantRef:
+                type: string
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+              clusterUID:
+                type: string
+                minLength: 8
+                maxLength: 128
+              registrationRef:
+                type: string
+                minLength: 1
+              regionRef:
+                type: string
+                minLength: 1
+              identityRef:
+                type: string
+                pattern: ^spiffe://
+              capabilities:
+                type: array
+                items:
+                  type: string
+              revoked:
+                type: boolean
+                default: false
+            required:
+            - tenantRef
+            - clusterUID
+            - registrationRef
+            - regionRef
+            - identityRef
+          status:
+            type: object
+            properties:
+              observedGeneration:
+                type: integer
+                format: int64
+                minimum: 0
+              state:
+                type: string
+                enum:
+                - Pending
+                - Ready
+                - Degraded
+                - RevocationPending
+                - Revoked
+              enrollmentRef:
+                type: string
+              lastHeartbeatTime:
+                type: string
+                format: date-time
+              conditions:
+                type: array
+                x-kubernetes-list-type: map
+                x-kubernetes-list-map-keys:
+                - type
+                items:
+                  type: object
+                  required:
+                  - type
+                  - status
+                  - reason
+                  - message
+                  - lastTransitionTime
+                  properties:
+                    type:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                      - 'True'
+                      - 'False'
+                      - Unknown
+                    observedGeneration:
+                      type: integer
+                      format: int64
+                    reason:
+                      type: string
+                    message:
+                      type: string
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: consumables.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Cluster
+  names:
+    plural: consumables
+    singular: consumable
+    kind: Consumable
+    shortNames:
+    - con
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    selectableFields:
+    - jsonPath: .spec.lifecycle
+    - jsonPath: .spec.serviceClass
+    additionalPrinterColumns:
+    - name: Class
+      type: string
+      jsonPath: .spec.serviceClass
+    - name: Lifecycle
+      type: string
+      jsonPath: .spec.lifecycle
+    - name: Owner
+      type: string
+      jsonPath: .spec.owner
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          spec:
+            type: object
+            required:
+            - serviceClass
+            - owner
+            - lifecycle
+            - supportBoundary
+            - accessContract
+            - allowedWorkloadKinds
+            - meters
+            properties:
+              serviceClass:
+                type: string
+                minLength: 1
+                maxLength: 128
+              owner:
+                type: string
+                minLength: 1
+                maxLength: 128
+              lifecycle:
+                type: string
+                enum:
+                - Draft
+                - Approved
+                - Suspended
+              supportBoundary:
+                type: string
+                minLength: 1
+                maxLength: 1024
+              sloRef:
+                type: string
+                maxLength: 253
+              endpointClass:
+                type: string
+                enum:
+                - TenantSafe
+                - InternalAdmin
+                - None
+                default: None
+              authenticationProxyRef:
+                type: string
+                minLength: 1
+                default: tenant
+              accessContract:
+                type: object
+                required:
+                - type
+                - isolationUnit
+                - provisioner
+                properties:
+                  type:
+                    type: string
+                    enum:
+                    - Workload
+                    - Grafana
+                    - Harbor
+                    - Ceph
+                    - Cilium
+                    - PostgreSQL
+                    - ModelGateway
+                    - Sandbox
+                  isolationUnit:
+                    type: string
+                    minLength: 1
+                  isolationBoundary:
+                    type: string
+                    minLength: 1
+                  isolationMechanism:
+                    type: string
+                    minLength: 1
+                  provisioner:
+                    type: string
+                    minLength: 1
+                  tenantEndpoint:
+                    type: string
+                  credentialDelivery:
+                    type: string
+                    enum:
+                    - None
+                    - OIDC
+                    - BrokerReference
+                    - KubernetesSecretReference
+                  requestFields:
+                    type: array
+                    items:
+                      type: string
+                  grantedResources:
+                    type: array
+                    items:
+                      type: string
+                  revocation:
+                    type: string
+                    minLength: 1
+              allowedWorkloadKinds:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+                  enum:
+                  - Deployment
+                  - StatefulSet
+                  - DaemonSet
+                  - Job
+                  - CronJob
+                  - NuclioFunction
+                  - PersistentVolumeClaim
+              meters:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required:
+                  - name
+                  - unit
+                  - source
+                  properties:
+                    name:
+                      type: string
+                      pattern: ^[a-z][a-z0-9_]*$
+                    unit:
+                      type: string
+                      minLength: 1
+                    source:
+                      type: string
+                      minLength: 1
+            x-kubernetes-validations:
+            - rule: self.lifecycle != 'Approved' || (self.owner.size() > 0 && self.meters.size()
+                > 0 && self.endpointClass != 'InternalAdmin')
+              message: Approved consumables require an owner, meters, and a non-admin
+                endpoint
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: serviceshards.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Namespaced
+  names:
+    plural: serviceshards
+    singular: serviceshard
+    kind: ServiceShard
+    shortNames:
+    - sshard
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    selectableFields:
+    - jsonPath: .spec.workloadRef.kind
+    - jsonPath: .spec.classification
+    - jsonPath: .spec.clusterRef
+    additionalPrinterColumns:
+    - name: Workload
+      type: string
+      jsonPath: .spec.workloadRef.name
+    - name: Kind
+      type: string
+      jsonPath: .spec.workloadRef.kind
+    - name: Class
+      type: string
+      jsonPath: .spec.classification
+    - name: Consumable
+      type: boolean
+      jsonPath: .status.consumable
+    - name: Coverage
+      type: number
+      jsonPath: .status.meterCoveragePercent
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          spec:
+            type: object
+            required:
+            - workloadRef
+            - clusterRef
+            - regionRef
+            - classification
+            - consumableIntent
+            - meters
+            properties:
+              workloadRef:
+                type: object
+                required:
+                - apiVersion
+                - kind
+                - name
+                - uid
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                    enum:
+                    - Deployment
+                    - StatefulSet
+                    - DaemonSet
+                    - Job
+                    - CronJob
+                    - NuclioFunction
+                    - PersistentVolumeClaim
+                  name:
+                    type: string
+                  uid:
+                    type: string
+              consumableRef:
+                type: string
+              clusterRef:
+                type: string
+                minLength: 1
+              regionRef:
+                type: string
+                minLength: 1
+              classification:
+                type: string
+                enum:
+                - internal-control-plane
+                - shared-infrastructure-product
+                - tenant-facing-product
+                - evaluation-only
+              consumableIntent:
+                type: boolean
+                default: false
+              placement:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              resources:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              dependencies:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - relation
+                  - apiVersion
+                  - kind
+                  - namespace
+                  - name
+                  properties:
+                    relation:
+                      type: string
+                      enum:
+                      - Exposes
+                      - RoutesTo
+                      - StoresOn
+                      - Claims
+                      - RunsOn
+                      - DependsOn
+                      - ConsumedBy
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    namespace:
+                      type: string
+                    name:
+                      type: string
+              meters:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required:
+                  - name
+                  - unit
+                  - requiredDimensions
+                  properties:
+                    name:
+                      type: string
+                    unit:
+                      type: string
+                    requiredDimensions:
+                      type: array
+                      minItems: 5
+                      items:
+                        type: string
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: consumptionbindings.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Namespaced
+  names:
+    plural: consumptionbindings
+    singular: consumptionbinding
+    kind: ConsumptionBinding
+    shortNames:
+    - cbind
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    selectableFields:
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.serviceInstanceRef
+    - jsonPath: .spec.consumableRef
+    additionalPrinterColumns:
+    - name: Tenant
+      type: string
+      jsonPath: .spec.tenantRef
+    - name: Instance
+      type: string
+      jsonPath: .spec.serviceInstanceRef
+    - name: Consumable
+      type: string
+      jsonPath: .spec.consumableRef
+    - name: Phase
+      type: string
+      jsonPath: .status.phase
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          spec:
+            type: object
+            required:
+            - tenantRef
+            - serviceInstanceRef
+            - consumableRef
+            - shardRefs
+            - planRef
+            - quota
+            - access
+            - startsAt
+            properties:
+              tenantRef:
+                type: string
+                minLength: 1
+              serviceInstanceRef:
+                type: string
+                minLength: 1
+              consumableRef:
+                type: string
+                minLength: 1
+              shardRefs:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+              planRef:
+                type: string
+                minLength: 1
+              quota:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              access:
+                type: object
+                required:
+                - type
+                properties:
+                  type:
+                    type: string
+                    enum:
+                    - Workload
+                    - Grafana
+                    - Harbor
+                    - Ceph
+                    - Cilium
+                    - PostgreSQL
+                    - ModelGateway
+                    - Sandbox
+                  grafana:
+                    type: object
+                    properties:
+                      organizationRef:
+                        type: string
+                      role:
+                        type: string
+                        enum:
+                        - Viewer
+                        - Editor
+                      folderRefs:
+                        type: array
+                        items:
+                          type: string
+                      datasourceRefs:
+                        type: array
+                        minItems: 1
+                        items:
+                          type: string
+                  harbor:
+                    type: object
+                    properties:
+                      project:
+                        type: string
+                      permission:
+                        type: string
+                        enum:
+                        - pull
+                        - build-push
+                        - project-admin
+                      quotaGiB:
+                        type: integer
+                        minimum: 1
+                      robotDurationDays:
+                        type: integer
+                        minimum: 1
+                        maximum: 365
+                  ceph:
+                    type: object
+                    properties:
+                      mode:
+                        type: string
+                        enum:
+                        - RBD
+                        - CephFS
+                        - S3
+                      storageClassName:
+                        type: string
+                      capacityGiB:
+                        type: integer
+                        minimum: 1
+                      accessModes:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - ReadWriteOnce
+                          - ReadOnlyMany
+                          - ReadWriteMany
+                      bucketClass:
+                        type: string
+                  cilium:
+                    type: object
+                    properties:
+                      namespaceRef:
+                        type: string
+                      connectivity:
+                        type: string
+                        enum:
+                        - ClusterLocal
+                        - CrossCluster
+                        - PublicEdge
+                      destinationClusters:
+                        type: array
+                        items:
+                          type: string
+                      bandwidthMbps:
+                        type: integer
+                        minimum: 1
+                      gatewayClassRef:
+                        type: string
+                  parameters:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+              startsAt:
+                type: string
+                format: date-time
+              endsAt:
+                type: string
+                format: date-time
+              sourceClusterRef:
+                type: string
+              destinationClusterRef:
+                type: string
+              clusterConnectionRef:
+                type: string
+                minLength: 1
+            x-kubernetes-validations:
+            - rule: '!has(self.endsAt) || timestamp(self.endsAt) > timestamp(self.startsAt)'
+              message: endsAt must be later than startsAt
+            - rule: self.access.type != 'Grafana' || has(self.access.grafana)
+              message: Grafana access requires grafana parameters
+            - rule: self.access.type != 'Harbor' || has(self.access.harbor)
+              message: Harbor access requires harbor parameters
+            - rule: self.access.type != 'Ceph' || has(self.access.ceph)
+              message: Ceph access requires ceph parameters
+            - rule: self.access.type != 'Cilium' || has(self.access.cilium)
+              message: Cilium access requires cilium parameters
+            - rule: self.access.type != 'Cilium' || self.access.cilium.connectivity
+                != 'CrossCluster' || has(self.clusterConnectionRef)
+              message: CrossCluster Cilium access requires a Ready same-tenant ClusterConnection
+                reference
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: bifurcationpaths.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Namespaced
+  names:
+    plural: bifurcationpaths
+    singular: bifurcationpath
+    kind: BifurcationPath
+    shortNames:
+    - bifpath
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    selectableFields:
+    - jsonPath: .spec.shardRef
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.serviceInstanceRef
+    additionalPrinterColumns:
+    - name: Shard
+      type: string
+      jsonPath: .spec.shardRef
+    - name: Tenant
+      type: string
+      jsonPath: .spec.tenantRef
+    - name: Nodes
+      type: integer
+      jsonPath: .status.nodeCount
+    - name: Edges
+      type: integer
+      jsonPath: .status.edgeCount
+    - name: Complete
+      type: boolean
+      jsonPath: .status.complete
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          spec:
+            type: object
+            required:
+            - shardRef
+            properties:
+              shardRef:
+                type: string
+                minLength: 1
+              tenantRef:
+                type: string
+              serviceInstanceRef:
+                type: string
+              bindingRef:
+                type: string
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenants.finops.re8ch.com
+spec:
+  group: finops.re8ch.com
+  scope: Cluster
+  names:
+    plural: tenants
+    singular: tenant
+    kind: Tenant
+    shortNames:
+    - tnt
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    selectableFields:
+    - jsonPath: .spec.role
+    - jsonPath: .spec.identityRef
+    additionalPrinterColumns:
+    - name: Role
+      type: string
+      jsonPath: .spec.role
+    - name: Identity
+      type: string
+      jsonPath: .spec.identityRef
+    - name: Ready
+      type: string
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          spec:
+            type: object
+            required:
+            - role
+            - identityRef
+            properties:
+              role:
+                type: string
+                enum:
+                - Admin
+                - Tenant
+              identityRef:
+                type: string
+                minLength: 1
+              subjectSelectors:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required:
+                  - claim
+                  - value
+                  properties:
+                    claim:
+                      type: string
+                      enum:
+                      - sub
+                      - email
+                      - group
+                    value:
+                      type: string
+                      minLength: 1
+              allowedConsumables:
+                type: array
+                items:
+                  type: string
+            x-kubernetes-validations:
+            - rule: self.role != 'Admin' || self.identityRef == 'tenant-admin'
+              message: The Admin tenant must use the protected tenant-admin identity
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true

@@ -35,6 +35,7 @@ spec:
     tenantPlatform:
       enabled: true
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
+      tenantReadinessPath: /livez
     # Keep the first production reconciliation equivalent to the validated
     # canary: no stateful allocation while Ceph is degraded and no downstream
     # delivery until the tenant usage sink is promoted.
