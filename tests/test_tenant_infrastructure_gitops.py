@@ -72,6 +72,14 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
         "role": "admin",
         "revoked": False,
     }
+    user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins")
+    assert user_binding["spec"] == {
+        "tenantRef": "admin",
+        "issuer": "https://dex.re8ch.com",
+        "group": "re8ch:k8s-admins",
+        "role": "admin",
+        "revoked": False,
+    }
     backend_auth = next(item for item in docs if item["kind"] == "MCPExternalAuthConfig" and item["metadata"]["name"] == "admin-vmcp-backend-auth")
     assert backend_auth["spec"] == {
         "type": "headerInjection",

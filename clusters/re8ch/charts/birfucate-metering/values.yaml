@@ -34,6 +34,7 @@ tenantPlatform:
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: re8ch
       identityBindings:
+        - {name: admin-github-k8s-admins, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: admin}
         - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
       grants: []
     - name: artchais
