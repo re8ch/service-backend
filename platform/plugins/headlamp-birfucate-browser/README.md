@@ -1,6 +1,7 @@
 # Birfucate Browser for Headlamp
 
-Read-only browsing of tenant resource consumption. The page queries the
+Read-only browsing of tenant resource consumption and versioned showback cost.
+The page includes a Tenant → Resource type → Purpose flow and queries the
 allowlisted browser API owned by the Birfucate Chart through the Kubernetes
 Service Proxy and renders:
 
