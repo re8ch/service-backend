@@ -127,6 +127,22 @@ def test_connectool_has_one_generic_tenant_publication():
         assert legacy not in serialized
 
 
+def test_tenant_public_route_preserves_end_user_identity_at_backend():
+    docs = tenant_chart_documents()
+    route = next(item for item in docs if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "tenant-mcp")
+    backends = [rule["backendRefs"][0] for rule in route["spec"]["rules"]]
+    assert backends == [
+        {"name": "tenant-api", "namespace": "tenant-infrastructure", "port": 80},
+        {"name": "tenant-api", "namespace": "tenant-infrastructure", "port": 80},
+    ]
+    grant = next(item for item in docs if item["kind"] == "ReferenceGrant" and item["metadata"]["name"] == "tenant-mcp-publicedge")
+    assert grant["metadata"]["namespace"] == "tenant-infrastructure"
+    assert grant["spec"]["from"] == [
+        {"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "namespace": "toolhive-system"}
+    ]
+    assert grant["spec"]["to"] == [{"group": "", "kind": "Service", "name": "tenant-api"}]
+
+
 def test_tenant_resource_claim_schema_is_bounded():
     docs = tenant_chart_documents()
     claim = next(item for item in docs if item["metadata"]["name"].startswith("tenantresourceclaims."))
