@@ -107,6 +107,20 @@ def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
     legacy = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
     assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig"} for item in legacy)
 
+    external_mcp = [
+        item
+        for path in (
+            ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
+            ROOT / "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
+        )
+        for item in documents(path)
+        if item["kind"] == "MCPServer"
+    ]
+    assert external_mcp
+    assert all(item["spec"]["replicas"] == item["spec"]["backendReplicas"] == 1 for item in external_mcp)
+    assert all(item["spec"]["podTemplateSpec"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"} for item in external_mcp)
+    assert not any("affinity" in item["spec"]["podTemplateSpec"]["spec"] for item in external_mcp)
+
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
 
