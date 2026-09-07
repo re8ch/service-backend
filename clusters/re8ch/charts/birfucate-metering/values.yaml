@@ -26,6 +26,16 @@ tenantPlatform:
   # supply-chain worker is unavailable. Supply-chain tool calls still fail closed.
   tenantReadinessPath: /readyz
   tenants:
+    - name: admin
+      displayName: RE8CH Platform Administration
+      lifecycle: Active
+      deletionPolicy: Retain
+      runtimeNamespaceRef: tenant-infrastructure
+      imagePullSecretRef: harbor-functions-shared-pull
+      harborProjectRef: re8ch
+      identityBindings:
+        - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+      grants: []
     - name: artchais
       displayName: Artchais
       lifecycle: Active
