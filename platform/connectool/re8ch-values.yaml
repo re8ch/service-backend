@@ -16,7 +16,7 @@ toolhive:
     address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
     passwordSecretRef: {name: toolhive-auth-redis, key: password}
   publications:
-    - name: re8ch-cloud-platform
+    - name: re8ch-tools-vmcp
       clientId: re8ch-cloud-platform-tool
       resourceUrl: https://tools.re8ch.com/cloud/mcp
       group: platform-tools-public
@@ -32,6 +32,33 @@ toolhive:
         policies:
           - 'permit(principal, action, resource);'
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
+    - name: re8ch-admin-vmcp
+      clientId: re8ch-platform-admin
+      resourceUrl: https://admin.re8ch.com:8443/mcp
+      group: platform-admin-public
+      createGroup: false
+      replicas: 2
+      session: {database: 1, keyPrefix: "thv:vmcp:admin:"}
+      workloads:
+        - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
+        - {name: admin-api-backend}
+      authorization:
+        groupClaim: groups
+        policies:
+          - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+    - name: tenant-vmcp
+      clientId: re8ch-tenant
+      resourceUrl: https://tools.re8ch.com/tenant/mcp
+      group: tenant-public
+      createGroup: true
+      replicas: 2
+      session: {database: 4, keyPrefix: "thv:tenant:"}
+      workloads:
+        - {name: tenant-api-backend}
+      authorization:
+        groupClaim: groups
+        policies:
+          - 'permit(principal, action, resource);'
 codex:
   marketplace:
     name: re8ch-admin-private
@@ -39,17 +66,27 @@ codex:
     source: https://github.com/re8ch/codex-admin-plugins.git
   plugins:
     - name: re8ch-cloud-platform-tool
-      publication: re8ch-cloud-platform
+      publication: re8ch-tools-vmcp
       category: Productivity
       mcpOwner: true
       skills: [skills/cloud-platform/SKILL.md]
     - name: re8ch-cluster-infra-tool
-      publication: re8ch-cloud-platform
+      publication: re8ch-tools-vmcp
       category: Productivity
       mcpOwner: false
       skills: [skills/cluster-infra/SKILL.md]
     - name: re8ch-agent-orchestra-collab
-      publication: re8ch-cloud-platform
+      publication: re8ch-tools-vmcp
       category: Productivity
       mcpOwner: false
       skills: [skills/agent-orchestra/SKILL.md]
+    - name: re8ch-platform-admin
+      publication: re8ch-admin-vmcp
+      category: Productivity
+      mcpOwner: true
+      skills: []
+    - name: re8ch-tenant
+      publication: tenant-vmcp
+      category: Productivity
+      mcpOwner: true
+      skills: []

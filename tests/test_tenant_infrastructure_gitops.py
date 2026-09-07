@@ -35,7 +35,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
         metadata_urls[env["RE8CH_TOOL_PROFILE"]] = env["PUBLIC_RESOURCE_METADATA_URL"]
-        assert container["image"].endswith("IMAGE_REQUIRES_VERIFIED_DIGEST")
+        assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54"
         assert container["imagePullPolicy"] == "IfNotPresent"
         assert container["startupProbe"]["httpGet"]["path"] == "/livez"
         assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
@@ -82,25 +82,16 @@ def test_artchais_github_team_bindings_have_explicit_roles():
     }
 
 
-def test_artchais_toolhive_publication_uses_signed_runtime_and_opaque_grants():
-    runtime_docs = documents(ROOT / "platform/tenant-infrastructure/artchais-runtime.yaml")
-    server = next(item for item in runtime_docs if item["kind"] == "MCPServer")
-    env = {item["name"]: item["value"] for item in server["spec"]["env"]}
-    assert server["spec"]["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:30bfefb7e126859b32326fa0557be161e2a27e7a426295eeae014468caa80593"
-    assert env["RE8CH_TOOL_PROFILE"] == "tenant-artchais"
-    assert env["RE8CH_TOOL_AUDIENCE"] == "re8ch-artchais-tenant"
-    kubeconfigs = next(item for item in runtime_docs if item["kind"] == "ConfigMap")["data"]
-    serialized = json.dumps(kubeconfigs)
-    for role in ("viewer", "operator", "admin"):
-        assert f"credential://among-clusters/artchais/artc-codex-{role}" in serialized
-    assert "client-key-data" not in serialized
-
-    release = documents(ROOT / "platform/connectool/artchais-release.yaml")[0]
-    publication = release["spec"]["values"]["toolhive"]["publications"][0]
-    assert publication["resourceUrl"] == "https://tools.re8ch.com/tenant/artchais/mcp"
-    assert publication["clientId"] == "re8ch-artchais-tenant"
-    policies = " ".join(publication["authorization"]["policies"])
-    assert all(f"Artchais:tenant-{role}" in policies for role in ("admins", "operators", "viewers"))
+def test_connectool_has_one_generic_tenant_publication():
+    release = documents(ROOT / "platform/connectool/release.yaml")[1]
+    publications = release["spec"]["values"]["toolhive"]["publications"]
+    tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
+    assert tenant["clientId"] == "re8ch-tenant"
+    assert tenant["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
+    assert tenant["workloads"] == [{"name": "tenant-api-backend"}]
+    serialized = json.dumps(publications)
+    for legacy in ("tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "tenant-artchais"):
+        assert legacy not in serialized
 
 
 def test_tenant_resource_claim_schema_is_bounded():
@@ -131,7 +122,8 @@ def test_plugin_definition_is_tenant_self_and_denies_financial_mutation():
 
 def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
     root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
-    assert "platform/tenant-runtime" not in root
+    assert "../../platform/tenant-runtime" in root
+    assert "qwen-tenant-runtime" not in root
     docs = documents(ROOT / "platform/tenant-runtime/runtime.yaml")
     deployments = [item for item in docs if item["kind"] == "Deployment"]
     profiles = {
@@ -139,9 +131,13 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
         for item in deployments
     }
     assert profiles == {"admin", "tenant"}
-    assert all(item["spec"]["template"]["spec"]["containers"][0]["image"].endswith("IMAGE_REQUIRES_VERIFIED_DIGEST") for item in deployments)
-    rendered = (ROOT / "platform/tenant-runtime/runtime.yaml").read_text() + (ROOT / "platform/tenant-runtime/connectool-publication.values.yaml").read_text()
-    assert "qwen" not in rendered.lower()
+    assert all("@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
+    rendered = (ROOT / "platform/tenant-runtime/runtime.yaml").read_text()
+    tenant_publication = next(
+        item for item in documents(ROOT / "platform/connectool/release.yaml")[1]["spec"]["values"]["toolhive"]["publications"]
+        if item["name"] == "tenant-vmcp"
+    )
+    assert "qwen" not in rendered.lower() + json.dumps(tenant_publication).lower()
     assert "tenant-resource" not in rendered
 
 
@@ -160,3 +156,10 @@ def test_tenant_compute_has_controlled_metered_egress_gateway():
     assert policy["spec"]["selectors"][0]["podSelector"]["matchLabels"]["networking.re8ch.com/egress-class"] == "metered-public"
     assert policy["spec"]["egressGateway"]["nodeSelector"]["matchLabels"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     assert "192.0.2.183/8" in policy["spec"]["excludedCIDRs"]
+
+
+def test_tenant_bootstrap_binds_controller_only_inside_runtime_namespace():
+    script = (ROOT / "operations/scripts/bootstrap-tenant-namespace.sh").read_text()
+    assert "name: tenant-resource-provisioner" in script
+    assert "name: tenant-control-controller\n  namespace: tenant-infrastructure" in script
+    assert "kind: ClusterRole\n  name: tenant-resource-provisioner" in script
