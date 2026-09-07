@@ -7,7 +7,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "platform/plugins/headlamp-birfucate-browser"
-BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.1.1.bundle"
+BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.1.2.bundle"
 
 
 def test_plugin_is_explicitly_read_only():
@@ -28,6 +28,10 @@ def test_plugin_queries_birfucate_metrics_through_service_proxy():
     assert "panel-victoria-metrics" not in source
     assert "birfucate_occupancy_units_total" in source
     assert "birfucate_bifurcation_score_total" in source
+    assert "birfucate_metered_cost_total" in source
+    assert "birfucate_tenant_cost_total" in source
+    assert "birfucate_tenant_resource_count" in source
+    assert "Tenant → Resource type → Purpose" in source
     assert "labels.tenant" in source
     assert "labels.resource_ref" in source
 
@@ -45,7 +49,7 @@ def test_bundle_is_digest_pinned_and_contains_runtime_files():
 def test_headlamp_kustomization_includes_bundle():
     document = yaml.safe_load((ROOT / "platform/headlamp/kustomization.yaml").read_text())
     generators = {item["name"]: item for item in document["configMapGenerator"]}
-    assert generators["headlamp-birfucate-browser-v011"]["namespace"] == "headlamp"
-    assert generators["headlamp-birfucate-browser-v011"]["files"] == [
-        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.1.1.bundle"
+    assert generators["headlamp-birfucate-browser-v012"]["namespace"] == "headlamp"
+    assert generators["headlamp-birfucate-browser-v012"]["files"] == [
+        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.1.2.bundle"
     ]

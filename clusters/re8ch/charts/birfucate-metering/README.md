@@ -1,5 +1,11 @@
 # Birfucate Metering
 
+Birfucate exports tenant occupancy, behavioral bifurcation, resource counts,
+and versioned showback cost. Each meter declares a `resourceType` and `purpose`,
+which form the Tenant → Resource type → Purpose flow shown by Headlamp. Pricing
+is opt-in and never posts accounting entries; missing rates stay explicitly
+unpriced instead of being guessed.
+
 `birfucate-metering` is the AI-facing semantic metering layer for infrastructure
 that Kubernetes/OpenCost does not fully price: Ceph, Pigsty and network behavior.
 It consumes existing Prometheus-compatible observations instead of replacing

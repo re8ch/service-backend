@@ -43,6 +43,10 @@ spec:
       enabled: false
     usageSink:
       enabled: false
+    pricing:
+      enabled: true
+      currency: CNY
+      rateCardRef: re8ch-showback-2026-09
     serviceMonitor:
       enabled: false
     vmServiceScrape:

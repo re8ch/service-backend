@@ -82,12 +82,23 @@ tenantLabels:
   tenant: tenant
   resource: resource_ref
 
-# Queries must return tenant and resource_ref labels. Values are rates or
-# occupancy gauges as documented per meter. Pricing is intentionally absent.
+# Showback only: enabling this applies the explicit rate card below to usage
+# events and metrics. It never posts accounting entries.
+pricing:
+  enabled: false
+  currency: CNY
+  rateCardRef: re8ch-showback-2026-09
+
+# Queries must return tenant and resource_ref labels. Each meter declares the
+# resource type and purpose used by the Headlamp flow diagram.
 meters:
   occupancy:
     - name: tenant-claim-cpu-request
       domain: compute
+      resourceType: cpu
+      purpose: workload-runtime
+      pricePerBillingUnit: 0.20
+      billingUnitSize: 3600
       unit: core-second
       valueKind: gauge
       tenantLabel: label_tenant
@@ -95,6 +106,10 @@ meters:
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="cpu"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"})
     - name: tenant-claim-memory-request
       domain: compute
+      resourceType: memory
+      purpose: workload-runtime
+      pricePerBillingUnit: 0.03
+      billingUnitSize: 3600
       unit: GiB-second
       valueKind: gauge
       tenantLabel: label_tenant
@@ -102,6 +117,10 @@ meters:
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: tenant-claim-ephemeral-storage-request
       domain: compute
+      resourceType: ephemeral-storage
+      purpose: workload-scratch
+      pricePerBillingUnit: 0.005
+      billingUnitSize: 3600
       unit: GiB-second
       valueKind: gauge
       tenantLabel: label_tenant
@@ -109,6 +128,10 @@ meters:
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="ephemeral_storage"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: ceph-volume-capacity
       domain: ceph
+      resourceType: block-storage
+      purpose: persistent-data
+      pricePerBillingUnit: 0.002
+      billingUnitSize: 3600
       unit: GiB-second
       valueKind: gauge
       tenantLabel: label_tenant
@@ -116,17 +139,29 @@ meters:
       query: sum by (label_tenant, label_resource_ref) (kube_persistentvolumeclaim_resource_requests_storage_bytes * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: pigsty-database-storage
       domain: pigsty
+      resourceType: database-storage
+      purpose: transactional-data
+      pricePerBillingUnit: 0.003
+      billingUnitSize: 3600
       unit: GiB-second
       valueKind: gauge
       query: sum by (tenant, resource_ref) (pg_database_size_bytes{tenant!=""}) / 1073741824
     - name: network-public-ip
       domain: networks
+      resourceType: public-ip
+      purpose: public-ingress
+      pricePerBillingUnit: 0.01
+      billingUnitSize: 3600
       unit: IP-second
       valueKind: gauge
       query: sum by (tenant, resource_ref) (public_edge_service_info{tenant!=""})
   bifurcation:
     - name: ceph-client-io
       domain: ceph
+      resourceType: storage-io
+      purpose: data-access
+      pricePerBillingUnit: 0.01
+      billingUnitSize: 1000000
       occurrenceUnit: operation
       intensityUnit: byte-per-operation
       referenceIntensity: 4096
@@ -135,6 +170,10 @@ meters:
       fanoutQuery: count by (tenant, resource_ref) (ceph_client_metadata{tenant!=""})
     - name: pigsty-transactions
       domain: pigsty
+      resourceType: database-transaction
+      purpose: transactional-workload
+      pricePerBillingUnit: 0.02
+      billingUnitSize: 1000000
       occurrenceUnit: transaction
       intensityUnit: tuple-per-transaction
       referenceIntensity: 1
@@ -143,6 +182,10 @@ meters:
       fanoutQuery: count by (tenant, resource_ref) (pg_stat_activity_count{tenant!="",state="active"})
     - name: hubble-network-flows
       domain: networks
+      resourceType: network-flow
+      purpose: service-connectivity
+      pricePerBillingUnit: 0.005
+      billingUnitSize: 1000000
       occurrenceUnit: flow
       intensityUnit: byte-per-flow
       referenceIntensity: 1500
@@ -151,6 +194,10 @@ meters:
       fanoutQuery: count by (tenant, resource_ref) (hubble_flows_processed_total{tenant!="",destination!=""})
     - name: hyperglass-route-branches
       domain: networks
+      resourceType: route-branch
+      purpose: public-routing
+      pricePerBillingUnit: 0.005
+      billingUnitSize: 1000000
       occurrenceUnit: route-change
       intensityUnit: path-per-change
       referenceIntensity: 1
