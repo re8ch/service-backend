@@ -62,6 +62,16 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
 
 def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     docs = tenant_chart_documents()
+    admin_tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.") and item["metadata"]["name"] == "admin")
+    assert admin_tenant["spec"]["lifecycle"] == "Active"
+    admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
+    assert admin_binding["spec"] == {
+        "tenantRef": "admin",
+        "issuer": "https://dex.re8ch.com",
+        "group": "re8ch:tenant-admins",
+        "role": "admin",
+        "revoked": False,
+    }
     backend_auth = next(item for item in docs if item["kind"] == "MCPExternalAuthConfig" and item["metadata"]["name"] == "admin-vmcp-backend-auth")
     assert backend_auth["spec"] == {
         "type": "headerInjection",
@@ -133,8 +143,8 @@ def test_tenancy_crds_are_structural_and_status_enabled():
 
 def test_artchais_github_team_bindings_have_explicit_roles():
     docs = tenant_chart_documents()
-    tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.re8ch.com/"))
-    bindings = [item for item in docs if item["kind"] == "TenantIdentityBinding"]
+    tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.re8ch.com/") and item["metadata"]["name"] == "artchais")
+    bindings = [item for item in docs if item["kind"] == "TenantIdentityBinding" and item["spec"]["tenantRef"] == "artchais"]
     assert tenant["metadata"]["name"] == "artchais"
     assert tenant["spec"]["runtimeNamespaceRef"] == "artchais"
     assert tenant["spec"]["imagePullSecretRef"] == "harbor-functions-shared-pull"
