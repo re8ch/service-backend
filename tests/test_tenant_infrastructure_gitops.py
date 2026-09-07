@@ -79,10 +79,17 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     source = policy["spec"]["ingress"][0]["from"][0]
     assert source["podSelector"]["matchLabels"] == {"app": "virtualmcpserver", "toolhive-name": "re8ch-admin-vmcp"}
 
-    encrypted = (ROOT / "clusters/re8ch/secrets/admin-vmcp-backend-auth.sops.yaml").read_text()
-    assert "pending-encryption" not in encrypted
-    assert encrypted.count("ENC[AES256_GCM") >= 2
-    assert "secrets/admin-vmcp-backend-auth.sops.yaml" in (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
+    encrypted_paths = [
+        ROOT / "clusters/re8ch/secrets/admin-vmcp-backend-auth-toolhive.sops.yaml",
+        ROOT / "clusters/re8ch/secrets/admin-vmcp-backend-auth-tenant.sops.yaml",
+    ]
+    for encrypted_path in encrypted_paths:
+        encrypted = encrypted_path.read_text()
+        assert "pending-encryption" not in encrypted
+        assert encrypted.count("ENC[AES256_GCM") >= 2
+        assert encrypted.count("\nsops:\n") == 1
+    root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
+    assert all(str(path.relative_to(ROOT / "clusters/re8ch")) in root for path in encrypted_paths)
 
 
 def test_production_tenant_readiness_degrades_explicitly_while_harbor_worker_is_absent():
