@@ -115,7 +115,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/compocv.git
   connectool:
-    commit: 63f726fc9742a7ad341311b08565df22f266e83c
+    commit: 16c58e6b72e2f3fa4722d944641e6786ee4dd619
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/connectool.git

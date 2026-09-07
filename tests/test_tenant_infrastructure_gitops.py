@@ -181,6 +181,10 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
         for item in deployments
     }
     assert profiles == {"admin", "tenant"}
+    assert all(item["spec"]["replicas"] == 1 for item in deployments)
+    assert all(item["metadata"]["labels"]["ai.connectool.io/mcp-backend"] == "true" for item in deployments)
+    assert all(item["spec"]["template"]["metadata"]["labels"]["ai.connectool.io/mcp-backend"] == "true" for item in deployments)
+    assert all(item["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"} for item in deployments)
     assert all("@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
     rendered = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
     tenant_publication = next(

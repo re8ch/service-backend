@@ -11,7 +11,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.2.2"}
+    assert source["spec"]["ref"] == {"tag": "0.2.3"}
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
     assert release["spec"]["chartRef"] == {"kind": "OCIRepository", "name": "connectool"}
@@ -20,8 +20,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert registry["version"] == "1.5.0"
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
-    tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
-    assert tenant["replicas"] == 1
+    assert {item["replicas"] for item in publications} == {1}
+    assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
 
 
 def test_artifact_hub_uses_registered_repository_id():

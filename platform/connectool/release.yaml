@@ -5,12 +5,12 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/re8ch/charts/connectool
-  ref: {tag: "0.2.2"}
+  ref: {tag: "0.2.3"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/re8ch/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.2\.2$
+        subject: ^https://github\.com/re8ch/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.2\.3$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -38,6 +38,8 @@ spec:
       contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}
     toolhive:
       namespace: toolhive-system
+      placement:
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       registry:
         enabled: true
         name: approved
@@ -83,8 +85,6 @@ spec:
           resourceUrl: https://tools.re8ch.com/cloud/mcp
           group: platform-tools-public
           createGroup: false
-          # One reachable R640-preferred replica is safer than forcing the
-          # current two replicas across a disconnected WSL worker.
           replicas: 1
           session: {database: 2, keyPrefix: "thv:cloud:"}
           workloads:
@@ -101,7 +101,7 @@ spec:
           resourceUrl: https://admin.re8ch.com:8443/mcp
           group: platform-admin-public
           createGroup: false
-          replicas: 2
+          replicas: 1
           session: {database: 1, keyPrefix: "thv:vmcp:admin:"}
           workloads:
             - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
@@ -115,8 +115,6 @@ spec:
           resourceUrl: https://tools.re8ch.com/tenant/mcp
           group: tenant-public
           createGroup: true
-          # PublicEdge currently has one authoritative restricted-node-6dc3f140f9 origin. Keep one
-          # vMCP backend until health-gated multi-origin placement is available.
           replicas: 1
           session: {database: 4, keyPrefix: "thv:tenant:"}
           workloads:
