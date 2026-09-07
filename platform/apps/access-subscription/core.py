@@ -15,7 +15,7 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20260906-la-only-1"
+SHADOWROCKET_PROFILE_REVISION = "20260907-todesk-direct-1"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
 # still recovering. Keep clients on the two independently reachable LA
@@ -39,6 +39,12 @@ CN_CLOUD_DIRECT_DOMAINS = (
     "huaweicloudapis.com",
     "myhuaweicloud.com",
 )
+
+# Remote-control traffic must never inherit the cross-border exit. Process
+# rules cover ToDesk's P2P sessions and dynamic UDP destinations; the domain
+# rule also protects clients that only honor system-proxy bypasses.
+REMOTE_CONTROL_DIRECT_DOMAINS = ("todesk.com",)
+REMOTE_CONTROL_DIRECT_PROCESSES = ("ToDesk", "ToDesk_Service", "ToDesk_Session_Proxy")
 
 
 @dataclass(frozen=True)
@@ -224,7 +230,7 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
     stable = [node for node_id in stable_ids for node in active if node.node_id == node_id]
     stable_names = [json.dumps(node.name, ensure_ascii=False) for node in stable]
     out = ["mixed-port: 7890", "allow-lan: false", "mode: rule", "log-level: warning", "ipv6: false",
-           "unified-delay: true", "tcp-concurrent: true", "proxies:"]
+           "find-process-mode: strict", "unified-delay: true", "tcp-concurrent: true", "proxies:"]
     for node in active:
         out.extend(mihomo_proxy(node, password))
     out.extend(["proxy-groups:", "  - name: PROXY", "    type: select", "    proxies:", "      - CODEX-STABLE", "      - AUTO"])
@@ -255,10 +261,15 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
                 "  direct-nameserver:", "    - https://dns.alidns.com/dns-query", "    - https://doh.pub/dns-query",
                 "  nameserver:", "    - https://1.1.1.1/dns-query#PROXY", "    - https://dns.google/dns-query#PROXY",
                 "  nameserver-policy:",
+                *[line for domain in REMOTE_CONTROL_DIRECT_DOMAINS for line in
+                  (f"    '+.{domain}':", "      - https://dns.alidns.com/dns-query", "      - https://doh.pub/dns-query")],
                 *[line for domain in CN_CLOUD_DIRECT_DOMAINS for line in
                   (f"    '+.{domain}':", "      - https://dns.alidns.com/dns-query", "      - https://doh.pub/dns-query")],
                 "    'rule-set:private,cn,apple,microsoft':", "      - https://dns.alidns.com/dns-query", "      - https://doh.pub/dns-query",
-                "rules:", "  - RULE-SET,private,DIRECT", "  - RULE-SET,private-ip,DIRECT,no-resolve",
+                "rules:",
+                *[f"  - PROCESS-NAME,{process},DIRECT" for process in REMOTE_CONTROL_DIRECT_PROCESSES],
+                *[f"  - DOMAIN-SUFFIX,{domain},DIRECT" for domain in REMOTE_CONTROL_DIRECT_DOMAINS],
+                "  - RULE-SET,private,DIRECT", "  - RULE-SET,private-ip,DIRECT,no-resolve",
                 *[f"  - DOMAIN-SUFFIX,{domain},DIRECT" for domain in CN_CLOUD_DIRECT_DOMAINS],
                 "  - RULE-SET,apple,🍎 Apple", "  - RULE-SET,microsoft,🪟 Microsoft", "  - RULE-SET,openai,🤖 AI",
                 "  - RULE-SET,anthropic,🤖 AI", "  - RULE-SET,google,🔎 Google / YouTube", "  - RULE-SET,youtube,🔎 Google / YouTube",
@@ -288,7 +299,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     stable_names = [node.name for node_id in stable_ids for node in active if node.node_id == node_id]
     config_url = f"{base_url}/s/{token}/shadowrocket.conf?v={SHADOWROCKET_PROFILE_REVISION}"
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
-             "skip-proxy = 192.0.2.148/16, 192.0.2.203/8, 192.0.2.179/12, 127.0.0.0/8, localhost, *.local",
+             "skip-proxy = 192.0.2.148/16, 192.0.2.203/8, 192.0.2.179/12, 127.0.0.0/8, localhost, *.local, todesk.com, *.todesk.com",
              "tun-excluded-routes = 192.0.2.203/8, 192.0.2.225/10, 127.0.0.0/8, 192.0.2.148/16, 192.0.2.179/12, 192.0.2.148/16, 224.0.0.0/4",
              "dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query",
              "fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query",
@@ -316,7 +327,10 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                ("developer", "🧑‍💻 Developer", ""), ("cloud", "☁️ Cloud Storage", ""),
                ("speedtest", "📶 Speed Test", ""), ("games", "🎮 Games", ""),
                ("cn", "DIRECT", ""), ("cn-ip", "DIRECT", ",no-resolve"))
-    lines.extend(["", "[Rule]", "DOMAIN,auth.openai.com,🤖 AI", "DOMAIN-SUFFIX,openai.com,🤖 AI", "DOMAIN-SUFFIX,chatgpt.com,🤖 AI"])
+    lines.extend(["", "[Rule]"])
+    lines.extend(f"PROCESS-NAME,{process},DIRECT" for process in REMOTE_CONTROL_DIRECT_PROCESSES)
+    lines.extend(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in REMOTE_CONTROL_DIRECT_DOMAINS)
+    lines.extend(["DOMAIN,auth.openai.com,🤖 AI", "DOMAIN-SUFFIX,openai.com,🤖 AI", "DOMAIN-SUFFIX,chatgpt.com,🤖 AI"])
     lines.extend(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in CN_CLOUD_DIRECT_DOMAINS)
     for rule_id, policy, option in mapping:
         lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}{option}")
