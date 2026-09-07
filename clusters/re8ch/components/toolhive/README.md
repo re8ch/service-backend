@@ -38,6 +38,11 @@ Keep SSH and the Kubernetes control-plane path available as independent
 break-glass access. Operational MCP must not be the only way to repair its own
 publication or scheduling path.
 
+For OAuth failures, missing plugin authentication, `401`/`403` separation,
+SOPS verification, Secret rotation and protocol-level acceptance, follow
+[`CONNECTOOL-AUTH-RUNBOOK.md`](CONNECTOOL-AUTH-RUNBOOK.md). It records the
+complete 2026-09-07 recovery and the mandatory prevention gates.
+
 ## Install order
 
 1. Restore access to the active K3s API and verify the active server topology.
