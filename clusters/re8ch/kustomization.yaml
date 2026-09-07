@@ -22,6 +22,7 @@ resources:
   - components/public-exposure/external-dns-cloudflare.yaml
   - components/opencost/ui-nginx-config.yaml
   - components/toolhive/external-observe-publication.yaml
+  - components/toolhive/external-privileged-publication.yaml
   - components/toolhive/proxy-scheduling-policy.yaml
   - components/personal-access
   - ../../platform/headlamp
