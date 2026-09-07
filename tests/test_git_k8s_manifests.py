@@ -123,6 +123,8 @@ def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
+    assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
+    assert "components/toolhive/external-privileged-publication.yaml" in root["resources"]
 
 
 def test_embedded_workspace_controller_is_valid_python():
