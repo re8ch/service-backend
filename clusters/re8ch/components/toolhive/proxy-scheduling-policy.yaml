@@ -181,8 +181,10 @@ spec:
         operations: ["CREATE", "UPDATE"]
         resources: ["deployments"]
         resourceNames:
-          - vmcp-re8ch-tools-vmcp
-          - vmcp-tenant-vmcp
+          # ToolHive names Deployments after the VirtualMCPServer object. The
+          # vmcp-* prefix belongs to the generated Service, not the Deployment.
+          - re8ch-tools-vmcp
+          - tenant-vmcp
   matchConditions:
     - name: is-toolhive-vmcp
       expression: >-

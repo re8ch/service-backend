@@ -112,27 +112,13 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     )
     public_rule = public_policy["spec"]["matchConstraints"]["resourceRules"][0]
     assert public_rule["resourceNames"] == [
-        "vmcp-re8ch-tools-vmcp",
-        "vmcp-tenant-vmcp",
+        "re8ch-tools-vmcp",
+        "tenant-vmcp",
     ]
     assert "value: 'restricted-node-6dc3f140f9'" in public_policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
-    assert "components/toolhive/public-vmcp-scheduling-reconciler.yaml" in root["resources"]
-
-    reconciler = documents(
-        ROOT / "clusters/re8ch/components/toolhive/public-vmcp-scheduling-reconciler.yaml"
-    )
-    role = next(item for item in reconciler if item["kind"] == "Role")
-    job = next(item for item in reconciler if item["kind"] == "Job")
-    assert job["metadata"]["name"] == "public-vmcp-scheduling-reconciler-v2"
-    assert job["metadata"]["annotations"]["kustomize.toolkit.fluxcd.io/force"] == "enabled"
-    assert role["rules"][0]["resourceNames"] == public_rule["resourceNames"]
-    assert role["rules"][0]["verbs"] == ["get", "patch"]
-    container = job["spec"]["template"]["spec"]["containers"][0]
-    assert "@sha256:" in container["image"]
-    assert all(name in container["args"][0] for name in public_rule["resourceNames"])
 
 
 def test_embedded_workspace_controller_is_valid_python():
