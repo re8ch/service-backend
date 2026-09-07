@@ -82,7 +82,7 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
         "re8ch-admin-vmcp": 2,
-        "tenant-vmcp": 2,
+        "tenant-vmcp": 1,
     }
 
     policies = documents(
