@@ -84,7 +84,7 @@ def test_connectool_renders_admin_and_tenant_publications():
 def test_dex_reconciler_consumes_connectool_contract_and_retires_split_clients():
     objects = [item for item in yaml.safe_load_all((ROOT / "platform/connectool/dex-client-reconciler.yaml").read_text()) if item]
     job = next(item for item in objects if item["kind"] == "Job")
-    script = next(item for item in objects if item["kind"] == "ConfigMap")["data"]["reconcile.sh"]
+    script = next(item for item in objects if item["kind"] == "ConfigMap")["data"]["reconcile.py"]
     assert "connectool-dex-clients" in script
     assert "re8ch-tenant" not in script.replace('"re8ch-tenant-admin"', '').replace('"re8ch-tenant-registry"', '').replace('"re8ch-tenant-observability"', '').replace('"re8ch-tenant-byoc"', '')
     assert "re8ch-qwen-tenant" in script
