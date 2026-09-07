@@ -35,7 +35,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: public-vmcp-scheduling-reconciler-v1
+  name: public-vmcp-scheduling-reconciler-v2
   namespace: toolhive-system
   annotations:
     kustomize.toolkit.fluxcd.io/force: enabled
@@ -57,7 +57,7 @@ spec:
                 attempt=1
                 until [ "$attempt" -gt 5 ]; do
                   kubectl -n toolhive-system patch deployment "$deployment" --type merge \
-                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"re8ch.com/scheduling-reconcile\":\"v1-$attempt\"}}}}}"
+                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"re8ch.com/scheduling-reconcile\":\"v2-$attempt\"}}}}}"
                   node_selector="$(kubectl -n toolhive-system get deployment "$deployment" -o jsonpath='{.spec.template.spec.nodeSelector.kubernetes\.io/hostname}')"
                   [ "$node_selector" = restricted-node-6dc3f140f9 ] && break
                   attempt=$((attempt + 1))
