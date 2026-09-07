@@ -69,7 +69,10 @@ def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():
     root_namespaces = documents(ROOT / "clusters/re8ch/namespaces.yaml")
     namespace = next(item for item in root_namespaces if item["metadata"]["name"] == "tenant-infrastructure")
     assert namespace["metadata"]["labels"]["saas.re8ch.com/tenant"] == "platform"
-    assert not any(item["kind"] == "Namespace" for item in tenant_chart_documents())
+    chart_docs = tenant_chart_documents()
+    assert not any(item["kind"] == "Namespace" for item in chart_docs)
+    claims = {item["metadata"]["name"] for item in chart_docs if item["kind"] == "PersistentVolumeClaim"}
+    assert "tenant-infrastructure-state" not in claims
 
 
 def test_tenancy_crds_are_structural_and_status_enabled():
