@@ -64,8 +64,11 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     docs = tenant_chart_documents()
     backend_auth = next(item for item in docs if item["kind"] == "MCPExternalAuthConfig" and item["metadata"]["name"] == "admin-vmcp-backend-auth")
     assert backend_auth["spec"] == {
-        "type": "bearerToken",
-        "bearerToken": {"tokenSecretRef": {"name": "admin-vmcp-backend-auth", "key": "token"}},
+        "type": "headerInjection",
+        "headerInjection": {
+            "headerName": "Authorization",
+            "valueSecretRef": {"name": "admin-vmcp-backend-auth", "key": "authorizationHeader"},
+        },
     }
     entry = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "admin-api-backend")
     assert entry["spec"]["externalAuthConfigRef"] == {"name": "admin-vmcp-backend-auth"}

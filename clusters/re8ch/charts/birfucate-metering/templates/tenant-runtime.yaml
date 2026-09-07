@@ -134,9 +134,10 @@ apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata: {name: admin-vmcp-backend-auth, namespace: toolhive-system}
 spec:
-  type: bearerToken
-  bearerToken:
-    tokenSecretRef: {name: admin-vmcp-backend-auth, key: token}
+  type: headerInjection
+  headerInjection:
+    headerName: Authorization
+    valueSecretRef: {name: admin-vmcp-backend-auth, key: authorizationHeader}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
