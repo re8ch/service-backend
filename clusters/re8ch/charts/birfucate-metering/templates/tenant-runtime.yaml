@@ -115,6 +115,16 @@ spec:
   policyTypes: [Ingress]
   ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}]
 ---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: tenant-api-publicedge, namespace: tenant-infrastructure}
+spec:
+  endpointSelector: {matchLabels: {app: tenant-api}}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports: [{port: "19448", protocol: TCP}]
+---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata: {name: admin-api-backend, namespace: toolhive-system}
