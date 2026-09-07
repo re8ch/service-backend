@@ -70,3 +70,16 @@ emits the canonical `groups` claim; ToolHive Cedar policies map the platform
 administrator group to `admin`. Tenant access is resolved from immutable
 `TenantIdentityBinding` records and is never inferred from a product-specific
 group. Authentik is not on the request path.
+
+The canonical platform administrator claim is `re8ch:k8s-admins`, sourced only
+from membership in the `re8ch/k8s-admins` GitHub team (or an explicitly managed
+Dex static identity carrying the same claim). The continuously running Dex
+identity reconciler declares the allowed organization/team mappings; it does
+not infer authorization from email addresses or OAuth scopes.
+
+The admin vMCP validates the end-user Dex JWT and applies Cedar authorization
+once at the public boundary. Its private `admin-api` backend uses a separate,
+rotatable service bearer stored as a SOPS Secret in both namespaces. The
+backend is reachable only from the `re8ch-admin-vmcp` Pod identity. It must not
+start a second interactive OAuth flow or treat the service bearer as an
+end-user credential; end-user attribution remains in the vMCP audit event.
