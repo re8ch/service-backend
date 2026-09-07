@@ -23,7 +23,6 @@ resources:
   - components/opencost/ui-nginx-config.yaml
   - components/toolhive/external-observe-publication.yaml
   - components/toolhive/proxy-scheduling-policy.yaml
-  - components/toolhive/public-vmcp-scheduling-reconciler.yaml
   - components/personal-access
   - ../../platform/headlamp
   - ../../platform/among-clusters
