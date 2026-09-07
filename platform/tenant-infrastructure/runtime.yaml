@@ -85,7 +85,7 @@ spec:
       imagePullSecrets: [{name: harbor-registry-pull}]
       containers:
         - name: controller
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
           command: [python, /app/tenant_control_controller.py]
           envFrom:
             - {secretRef: {name: tenant-registry-supply-chain, optional: true}}
@@ -120,7 +120,7 @@ spec:
       automountServiceAccountToken: false
       initContainers:
         - name: pull
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54
+          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
           imagePullPolicy: IfNotPresent
           command: [sh, -c, "true"]
       containers:

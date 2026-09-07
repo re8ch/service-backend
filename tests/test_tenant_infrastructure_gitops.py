@@ -35,7 +35,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
         metadata_urls[env["RE8CH_TOOL_PROFILE"]] = env["PUBLIC_RESOURCE_METADATA_URL"]
-        assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54"
+        assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d"
         assert container["imagePullPolicy"] == "IfNotPresent"
         assert container["startupProbe"]["httpGet"]["path"] == "/livez"
         assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
@@ -131,7 +131,7 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
         for item in deployments
     }
     assert profiles == {"admin", "tenant"}
-    assert all("@sha256:5b48fb4d5a0c8e5998efa7769a029f782c0ae8b939717f781dfbd8e069639c54" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
+    assert all("@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
     rendered = (ROOT / "platform/tenant-runtime/runtime.yaml").read_text()
     tenant_publication = next(
         item for item in documents(ROOT / "platform/connectool/release.yaml")[1]["spec"]["values"]["toolhive"]["publications"]
