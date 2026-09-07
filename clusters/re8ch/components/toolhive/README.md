@@ -19,12 +19,24 @@ different Kubernetes ServiceAccounts, KSA audiences, NetworkPolicies and
 Kubernetes/SQL proxies and credential-returning tools are not published on any
 default surface.
 
-`proxy-scheduling-policy.yaml` is a narrowly scoped Kubernetes v1 mutating
-admission policy. It pins only the three named ToolHive proxy Deployments to
-`restricted-node-296f36f2fb`, where service and DNS routing are verified. This is required
-because `MCPServer.spec.podTemplateSpec` customizes the backend StatefulSet,
-not the separate proxy-runner Deployment. Manual Deployment patches are not
-durable desired state.
+`proxy-scheduling-policy.yaml` is a label-scoped Kubernetes v1 mutating
+admission policy. Every Deployment and StatefulSet in `toolhive-system` with
+`toolhive=true` is pinned to `kubernetes.io/hostname=restricted-node-6dc3f140f9`. This covers vMCP,
+MCP proxy and backend Pods without referring to operator-generated names.
+ConnecTool also renders the same selector into every `VirtualMCPServer`, while
+direct MCP APIs carry `ai.connectool.io/mcp-backend=true` and an explicit restricted-node-6dc3f140f9
+selector. Redis, Registry, Cloud UI and the ToolHive Operator are outside this
+policy.
+
+restricted-node-6dc3f140f9 is the sole PublicEdge origin, so every publication and direct MCP API is
+single-replica. Multiple replicas on one failure domain are not high
+availability and must never be described as HA. Required pod anti-affinity is
+incompatible with this phase. Multi-node replicas and HA claims may return only
+after a second independent PublicEdge origin is healthy and health-gated.
+
+Keep SSH and the Kubernetes control-plane path available as independent
+break-glass access. Operational MCP must not be the only way to repair its own
+publication or scheduling path.
 
 ## Install order
 
@@ -73,7 +85,15 @@ kubectl -n kagent wait --for=condition=complete \
   job/toolhive-token-rotator-bootstrap --timeout=120s
 ./attach-toolhive-agents.sh
 ./verify-managed-ops.sh
+./verify-r640-placement.sh
 ```
+
+Run `verify-r640-placement.sh` immediately after Flux source, root
+Kustomization and ConnecTool HelmRelease reconciliation. It is the rollout
+health gate: every labeled MCP workload template must select restricted-node-6dc3f140f9, every
+matching Pod must be Ready on restricted-node-6dc3f140f9, and any Pending or off-node Pod fails the
+rollout. Pod readiness alone is insufficient; complete OAuth `initialize` and
+`tools/list` checks for all three public endpoints afterward.
 
 Create the ToolHive Registry database Secret without checking credentials into
 Git, then create the matching logical database and role through an approved DBA
@@ -97,12 +117,6 @@ the former `MCPRegistry` CRD, so it is intentionally not used.
 The registry uses a separate `toolhive_registry` database and role on the
 existing `mcp-registry` PostgreSQL instance. It does not share tables or
 credentials with the compatibility registry.
-
-As of 2026-08-04, restricted-node-6dc3f140f9 reports Ready but cannot reliably create new Pod
-sandboxes. ToolHive proxy-runners and the two integrated KAgent workloads run
-on `restricted-node-296f36f2fb`; managed Ops backends temporarily use the cached approved Python
-image on `rancher-panel`. Move them only after a fresh image-pull and Pod
-sandbox smoke test passes.
 
 The Registry currently uses anonymous authentication only on its ClusterIP.
 Never expose it through an Ingress until Dex/OIDC scopes are configured.
