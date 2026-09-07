@@ -106,6 +106,27 @@ def test_vectors_without_tenant_and_resource_are_dropped():
     assert collector.vector(items, "tenant", "resource_ref") == {("qwen", "service://qwen/x"): 3}
 
 
+def test_showback_pricing_is_explicit_and_never_posts_accounting(tmp_path, monkeypatch):
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "opencost": {"enabled": False}, "pricing": {"enabled": True, "currency": "CNY"},
+        "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
+        "meters": {"occupancy": [{"name": "cpu", "domain": "compute", "resourceType": "cpu", "purpose": "runtime", "unit": "core-second", "valueKind": "gauge", "pricePerBillingUnit": 0.2, "billingUnitSize": 3600, "query": "cpu"}], "bifurcation": []},
+    }
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_: [{"metric": {"tenant": "acme", "resource_ref": "pod/a"}, "value": [0, "2"]}])
+    collector.METRICS.clear()
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 0, 3600)
+    event = outbox.pending()[0][1]
+    assert event["pricingApplied"] is True
+    assert event["accountingPosted"] is False
+    assert event["cost"] == pytest.approx(0.4)
+    rendered = collector.render_metrics().decode()
+    assert 'birfucate_metered_cost_total{currency="CNY"' in rendered
+    assert 'purpose="runtime"' in rendered
+    assert 'birfucate_tenant_cost_total{currency="CNY",tenant="acme"} 0.4' in rendered
+
+
 def test_outbox_delivery_is_idempotent(tmp_path):
     outbox = collector.Outbox(tmp_path / "outbox.db")
     event = {"eventId": "ue_" + "a" * 32}

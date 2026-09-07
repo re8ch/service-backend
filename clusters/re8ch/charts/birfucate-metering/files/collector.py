@@ -31,6 +31,9 @@ BROWSER_METRICS = frozenset({
     "birfucate_bifurcation_intensity",
     "birfucate_bifurcation_fanout",
     "birfucate_bifurcation_score_total",
+    "birfucate_metered_cost_total",
+    "birfucate_tenant_cost_total",
+    "birfucate_tenant_resource_count",
 })
 
 
@@ -125,7 +128,15 @@ class Outbox:
             db.execute("DELETE FROM events WHERE delivered_at IS NOT NULL AND delivered_at < ?", (cutoff,))
 
 
-def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: float, unit: str, start: int, end: int, dimensions: dict[str, Any]) -> dict[str, Any]:
+def price(config: dict[str, Any], meter: dict[str, Any], quantity: float) -> tuple[float, bool, str]:
+    pricing = config.get("pricing") or {}
+    rate = meter.get("pricePerBillingUnit")
+    unit_size = float(meter.get("billingUnitSize", 1))
+    applied = bool(pricing.get("enabled")) and rate is not None and unit_size > 0
+    return (quantity / unit_size * float(rate) if applied else 0.0, applied, str(pricing.get("currency", "CNY")))
+
+
+def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: float, unit: str, start: int, end: int, dimensions: dict[str, Any], cost: float = 0, priced: bool = False, currency: str = "CNY") -> dict[str, Any]:
     stable = [tenant, resource, domain, meter, start, end]
     iso = lambda value: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(value))
     return {
@@ -134,7 +145,8 @@ def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: f
         "meter": meter, "quantity": quantity, "unit": unit, "periodStart": iso(start), "periodEnd": iso(end),
         "regionRef": "meter-source", "sourceOperationId": "birfucate:" + event_id(stable)[3:], "observedAt": iso(end),
         "schemaVersion": "usage.re8ch.com/v1", "dimensions": dimensions,
-        "pricingApplied": False, "accountingPosted": False,
+        "pricingApplied": priced, "accountingPosted": False,
+        "cost": cost, "currency": currency,
     }
 
 
@@ -143,6 +155,8 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
     prom = config["prometheus"]
     tenant_label = config["tenantLabels"]["tenant"]
     resource_label = config["tenantLabels"]["resource"]
+    tenant_resources: set[tuple[str, str, str]] = set()
+    tenant_costs: dict[tuple[str, str], float] = {}
     set_metric("birfucate_dependency_up", {"dependency": "prometheus"}, 1)
     opencost = config.get("opencost") or {}
     if opencost.get("enabled"):
@@ -156,10 +170,16 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         values = vector(prometheus_query(prom["baseURL"], meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
         for (tenant, resource), gauge in values.items():
             quantity = gauge * interval
-            labels = {"tenant": tenant, "resource_ref": resource, "domain": meter["domain"], "meter": meter["name"], "unit": meter["unit"]}
+            resource_type = str(meter.get("resourceType", meter["domain"]))
+            purpose = str(meter.get("purpose", meter["name"]))
+            cost, priced, currency = price(config, meter, quantity)
+            labels = {"tenant": tenant, "resource_ref": resource, "domain": meter["domain"], "resource_type": resource_type, "purpose": purpose, "meter": meter["name"], "unit": meter["unit"]}
             set_metric("birfucate_occupancy_current", labels, gauge)
             add_metric("birfucate_occupancy_units_total", labels, quantity)
-            outbox.put(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, {"gauge": gauge, "durationSeconds": interval}))
+            add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
+            tenant_resources.add((tenant, resource, resource_type))
+            tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
+            outbox.put(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose}, cost, priced, currency))
     for meter in config["meters"].get("bifurcation", []):
         counts = vector(prometheus_query(prom["baseURL"], meter["countQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
         intensities = vector(prometheus_query(prom["baseURL"], meter["intensityQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
@@ -171,12 +191,25 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             reference = max(float(meter.get("referenceIntensity", 1)), 0.000001)
             strength = math.log2(1.0 + intensity / reference)
             score = occurrences * strength * fanout
-            labels = {"tenant": tenant, "resource_ref": resource, "domain": meter["domain"], "meter": meter["name"]}
+            resource_type = str(meter.get("resourceType", meter["domain"]))
+            purpose = str(meter.get("purpose", meter["name"]))
+            cost, priced, currency = price(config, meter, score)
+            labels = {"tenant": tenant, "resource_ref": resource, "domain": meter["domain"], "resource_type": resource_type, "purpose": purpose, "meter": meter["name"]}
             add_metric("birfucate_bifurcation_occurrences_total", {**labels, "unit": meter["occurrenceUnit"]}, occurrences)
             set_metric("birfucate_bifurcation_intensity", {**labels, "unit": meter["intensityUnit"]}, intensity)
             set_metric("birfucate_bifurcation_fanout", labels, fanout)
             add_metric("birfucate_bifurcation_score_total", labels, score)
-            outbox.put(usage_event(tenant, resource, meter["domain"], "bifurcation." + meter["name"], score, "bifurcation-point", start, end, {"occurrences": occurrences, "occurrenceUnit": meter["occurrenceUnit"], "intensity": intensity, "intensityUnit": meter["intensityUnit"], "referenceIntensity": reference, "fanout": fanout, "strength": strength}))
+            add_metric("birfucate_metered_cost_total", {**labels, "unit": "bifurcation-point", "currency": currency, "priced": str(priced).lower()}, cost)
+            tenant_resources.add((tenant, resource, resource_type))
+            tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
+            outbox.put(usage_event(tenant, resource, meter["domain"], "bifurcation." + meter["name"], score, "bifurcation-point", start, end, {"occurrences": occurrences, "occurrenceUnit": meter["occurrenceUnit"], "intensity": intensity, "intensityUnit": meter["intensityUnit"], "referenceIntensity": reference, "fanout": fanout, "strength": strength, "resourceType": resource_type, "purpose": purpose}, cost, priced, currency))
+    counts: dict[tuple[str, str], int] = {}
+    for tenant, _resource, resource_type in tenant_resources:
+        counts[(tenant, resource_type)] = counts.get((tenant, resource_type), 0) + 1
+    for (tenant, resource_type), count in counts.items():
+        set_metric("birfucate_tenant_resource_count", {"tenant": tenant, "resource_type": resource_type}, count)
+    for (tenant, currency), cost in tenant_costs.items():
+        add_metric("birfucate_tenant_cost_total", {"tenant": tenant, "currency": currency}, cost)
 
 
 def deliver(config: dict[str, Any], outbox: Outbox) -> None:

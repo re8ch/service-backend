@@ -25,6 +25,10 @@
       "type": "object", "required": ["enabled", "url"],
       "properties": {"enabled": {"type": "boolean"}, "url": {"type": "string", "pattern": "^https?://"}, "existingSecret": {"type": "string"}, "tokenKey": {"type": "string"}}
     },
+    "pricing": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "currency", "rateCardRef"],
+      "properties": {"enabled": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "rateCardRef": {"type": "string", "minLength": 1}}
+    },
     "meters": {
       "type": "object", "required": ["occupancy", "bifurcation"],
       "properties": {
@@ -39,12 +43,12 @@
     "occupancy": {
       "type": "object", "additionalProperties": false,
       "required": ["name", "domain", "unit", "valueKind", "query"],
-      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "unit": {"type": "string"}, "valueKind": {"const": "gauge"}, "query": {"type": "string", "minLength": 1}, "tenantLabel": {"type": "string"}, "resourceLabel": {"type": "string"}}
+      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "resourceType": {"type": "string"}, "purpose": {"type": "string"}, "pricePerBillingUnit": {"type": "number", "minimum": 0}, "billingUnitSize": {"type": "number", "exclusiveMinimum": 0}, "unit": {"type": "string"}, "valueKind": {"const": "gauge"}, "query": {"type": "string", "minLength": 1}, "tenantLabel": {"type": "string"}, "resourceLabel": {"type": "string"}}
     },
     "bifurcation": {
       "type": "object", "additionalProperties": false,
       "required": ["name", "domain", "occurrenceUnit", "intensityUnit", "referenceIntensity", "countQuery", "intensityQuery", "fanoutQuery"],
-      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "occurrenceUnit": {"type": "string"}, "intensityUnit": {"type": "string"}, "referenceIntensity": {"type": "number", "exclusiveMinimum": 0}, "countQuery": {"type": "string", "minLength": 1}, "intensityQuery": {"type": "string", "minLength": 1}, "fanoutQuery": {"type": "string", "minLength": 1}}
+      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "resourceType": {"type": "string"}, "purpose": {"type": "string"}, "pricePerBillingUnit": {"type": "number", "minimum": 0}, "billingUnitSize": {"type": "number", "exclusiveMinimum": 0}, "occurrenceUnit": {"type": "string"}, "intensityUnit": {"type": "string"}, "referenceIntensity": {"type": "number", "exclusiveMinimum": 0}, "countQuery": {"type": "string", "minLength": 1}, "intensityQuery": {"type": "string", "minLength": 1}, "fanoutQuery": {"type": "string", "minLength": 1}}
     }
   }
 }
