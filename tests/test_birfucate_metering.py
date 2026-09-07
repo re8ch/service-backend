@@ -17,7 +17,7 @@ SPEC.loader.exec_module(collector)
 
 def test_chart_lints_and_renders_restricted_workload():
     subprocess.run(["helm", "lint", str(CHART)], check=True, capture_output=True, text=True)
-    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0"], check=True, capture_output=True, text=True).stdout
+    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds"], check=True, capture_output=True, text=True).stdout
     docs = [item for item in yaml.safe_load_all(rendered) if item]
     deployment = next(item for item in docs if item["kind"] == "Deployment")
     pod = deployment["spec"]["template"]["spec"]
@@ -50,8 +50,8 @@ def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
 
 
 def test_crds_use_status_subresources_cel_and_selectable_fields():
-    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0"], check=True, capture_output=True, text=True).stdout
-    crds = {item["spec"]["names"]["kind"]: item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "CustomResourceDefinition"}
+    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds"], check=True, capture_output=True, text=True).stdout
+    crds = {item["spec"]["names"]["kind"]: item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "CustomResourceDefinition" and item["spec"]["group"] == "finops.re8ch.com"}
     assert set(crds) == {"Consumable", "ServiceShard", "ConsumptionBinding", "BifurcationPath", "Tenant", "ClusterRegistration", "ClusterConnection"}
     for crd in crds.values():
         version = crd["spec"]["versions"][0]
@@ -60,6 +60,8 @@ def test_crds_use_status_subresources_cel_and_selectable_fields():
         assert version["additionalPrinterColumns"]
     consumable_spec = crds["Consumable"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
     assert consumable_spec["x-kubernetes-validations"]
+    assert not any(path.name.endswith("crds.yaml") for path in (CHART / "templates").iterdir())
+    assert {path.name for path in (CHART / "crds").iterdir()} == {"finops.re8ch.com.yaml", "tenancy.re8ch.com.yaml"}
 
 
 def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, monkeypatch):

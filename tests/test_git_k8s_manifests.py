@@ -126,6 +126,7 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     )
     role = next(item for item in reconciler if item["kind"] == "Role")
     job = next(item for item in reconciler if item["kind"] == "Job")
+    assert job["metadata"]["annotations"]["kustomize.toolkit.fluxcd.io/force"] == "enabled"
     assert role["rules"][0]["resourceNames"] == public_rule["resourceNames"]
     assert role["rules"][0]["verbs"] == ["get", "patch"]
     container = job["spec"]["template"]["spec"]["containers"][0]

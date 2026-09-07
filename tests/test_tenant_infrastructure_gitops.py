@@ -15,7 +15,7 @@ def tenant_chart_documents():
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d"
     rendered = subprocess.run(
-        ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"],
+        ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"],
         check=True, capture_output=True, text=True,
     ).stdout
     return [item for item in yaml.safe_load_all(rendered) if item]
@@ -48,6 +48,8 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         metadata_urls[env["RE8CH_TOOL_PROFILE"]] = env["PUBLIC_RESOURCE_METADATA_URL"]
         assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d"
         assert container["imagePullPolicy"] == "IfNotPresent"
+        env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
+        assert env["DEVICE_REGISTRY_PATH"] == "/tmp/devices.db"
         assert container["startupProbe"]["httpGet"]["path"] == "/livez"
         assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
         assert container["livenessProbe"]["httpGet"]["path"] == "/livez"
@@ -56,6 +58,11 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
         "tenant": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
     }
+
+
+def test_production_tenant_readiness_degrades_explicitly_while_harbor_worker_is_absent():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    assert release["spec"]["values"]["tenantPlatform"]["tenantReadinessPath"] == "/livez"
 
 
 def test_tenancy_crds_are_structural_and_status_enabled():
