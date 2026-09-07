@@ -115,7 +115,9 @@ spec:
           resourceUrl: https://tools.re8ch.com/tenant/mcp
           group: tenant-public
           createGroup: true
-          replicas: 2
+          # PublicEdge currently has one authoritative restricted-node-6dc3f140f9 origin. Keep one
+          # vMCP backend until health-gated multi-origin placement is available.
+          replicas: 1
           session: {database: 4, keyPrefix: "thv:tenant:"}
           workloads:
             - {name: tenant-api-backend}

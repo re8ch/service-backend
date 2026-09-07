@@ -77,6 +77,7 @@ def test_connectool_renders_admin_and_tenant_publications():
     vmcps = {item["metadata"]["name"]: item for item in objects if item["kind"] == "VirtualMCPServer"}
     assert {"re8ch-admin-vmcp", "tenant-vmcp"} <= vmcps.keys()
     tenant = vmcps["tenant-vmcp"]
+    assert tenant["spec"]["replicas"] == 1
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
 
