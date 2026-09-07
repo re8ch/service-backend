@@ -24,6 +24,14 @@ LOCK = threading.Lock()
 METRICS: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
 READY = False
 LAST_SUCCESS = 0.0
+BROWSER_METRICS = frozenset({
+    "birfucate_occupancy_current",
+    "birfucate_occupancy_units_total",
+    "birfucate_bifurcation_occurrences_total",
+    "birfucate_bifurcation_intensity",
+    "birfucate_bifurcation_fanout",
+    "birfucate_bifurcation_score_total",
+})
 
 
 def load_config() -> dict[str, Any]:
@@ -38,6 +46,20 @@ def prometheus_query(base_url: str, query: str, timeout: int) -> list[dict[str, 
     if payload.get("status") != "success":
         raise RuntimeError("Prometheus query failed")
     return payload.get("data", {}).get("result", [])
+
+
+def browser_query(config: dict[str, Any], metric: str) -> dict[str, Any]:
+    browser = config.get("browserAPI") or {}
+    if not browser.get("enabled"):
+        raise PermissionError("browser_api_disabled")
+    if metric not in BROWSER_METRICS:
+        raise ValueError("metric_not_allowed")
+    lookback = max(60, min(3600, int(browser.get("lookbackSeconds", 600))))
+    prom = config["prometheus"]
+    result = prometheus_query(
+        prom["baseURL"], f"last_over_time({metric}[{lookback}s])", int(prom["timeoutSeconds"])
+    )
+    return {"status": "success", "data": {"resultType": "vector", "result": result}}
 
 
 def vector(items: list[dict[str, Any]], tenant_label: str, resource_label: str) -> dict[tuple[str, str], float]:
@@ -198,12 +220,25 @@ def publish_metrics(config: dict[str, Any]) -> None:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        if self.path == "/metrics":
+        parsed = urllib.parse.urlsplit(self.path)
+        if parsed.path == "/metrics":
             body, status, content_type = render_metrics(), 200, "text/plain; version=0.0.4"
-        elif self.path == "/healthz":
+        elif parsed.path == "/healthz":
             body, status, content_type = b'{"status":"ok"}', 200, "application/json"
-        elif self.path == "/readyz":
+        elif parsed.path == "/readyz":
             body, status, content_type = (b'{"status":"ready"}', 200, "application/json") if READY else (b'{"status":"not-ready"}', 503, "application/json")
+        elif parsed.path == "/api/v1/browser/query":
+            params = urllib.parse.parse_qs(parsed.query)
+            metric = (params.get("metric") or [""])[0]
+            try:
+                body = json.dumps(browser_query(load_config(), metric), separators=(",", ":")).encode()
+                status, content_type = 200, "application/json"
+            except PermissionError as exc:
+                body, status, content_type = json.dumps({"status": "error", "error": str(exc)}).encode(), 404, "application/json"
+            except ValueError as exc:
+                body, status, content_type = json.dumps({"status": "error", "error": str(exc)}).encode(), 400, "application/json"
+            except (OSError, RuntimeError, urllib.error.URLError) as exc:
+                body, status, content_type = json.dumps({"status": "error", "error": str(exc)}).encode(), 502, "application/json"
         else:
             body, status, content_type = b'{"error":"not_found"}', 404, "application/json"
         self.send_response(status); self.send_header("Content-Type", content_type); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)

@@ -22,6 +22,17 @@ The four API kinds are:
 High-frequency UsageEvents remain in the outbox and metrics/ledger backends;
 Kubernetes stores only declarative intent and bounded status summaries.
 
+The Chart also owns a read-only `/api/v1/browser/query` endpoint for Headlamp.
+It accepts only the six Birfucate metric names and constructs the bounded
+`last_over_time` query itself; the browser is not given the VictoriaMetrics
+address or arbitrary PromQL access.
+
+With `tenantPlatform.enabled`, the same release owns the autonomous tenant
+contract: the `tenancy.re8ch.com` CRDs, controller, digest-pinned runtime,
+`admin` and `tenant` APIs, MCP backend entries, route, and tenant identity
+definitions. Secret values remain external SOPS-managed Kubernetes Secrets and
+are referenced by name only.
+
 ## Two charging facts
 
 - **Occupancy** integrates a resource gauge over time: `quantity = occupied × seconds`.

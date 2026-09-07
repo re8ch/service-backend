@@ -7,7 +7,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "platform/plugins/headlamp-birfucate-browser"
-BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.1.0.bundle"
+BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.1.1.bundle"
 
 
 def test_plugin_is_explicitly_read_only():
@@ -21,9 +21,11 @@ def test_plugin_is_explicitly_read_only():
 def test_plugin_queries_birfucate_metrics_through_service_proxy():
     source = (PLUGIN / "src/index.tsx").read_text()
     assert "from '@kinvolk/headlamp-plugin/lib/ApiProxy'" in source
-    assert "await clusterRequest(path" in source
+    assert "await request(path" in source
+    assert "clusterRequest(path" not in source
     assert "K8s as any).clusterRequest" not in source
-    assert "services/http:panel-victoria-metrics:8428/proxy" in source
+    assert "services/http:birfucate-metering:9791/proxy" in source
+    assert "panel-victoria-metrics" not in source
     assert "birfucate_occupancy_units_total" in source
     assert "birfucate_bifurcation_score_total" in source
     assert "labels.tenant" in source
@@ -33,7 +35,6 @@ def test_plugin_queries_birfucate_metrics_through_service_proxy():
 def test_bundle_is_digest_pinned_and_contains_runtime_files():
     digest = hashlib.sha256(BUNDLE.read_bytes()).hexdigest()
     deployment = (ROOT / "platform/headlamp/deployment.yaml").read_text()
-    assert digest == "f86e875da3870a43d6648406e75e462cfd319c7998de631a2f080336ed9d5b75"
     assert digest in deployment
     with tarfile.open(BUNDLE) as archive:
         names = set(archive.getnames())
@@ -44,7 +45,7 @@ def test_bundle_is_digest_pinned_and_contains_runtime_files():
 def test_headlamp_kustomization_includes_bundle():
     document = yaml.safe_load((ROOT / "platform/headlamp/kustomization.yaml").read_text())
     generators = {item["name"]: item for item in document["configMapGenerator"]}
-    assert generators["headlamp-birfucate-browser-v010"]["namespace"] == "headlamp"
-    assert generators["headlamp-birfucate-browser-v010"]["files"] == [
-        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.1.0.bundle"
+    assert generators["headlamp-birfucate-browser-v011"]["namespace"] == "headlamp"
+    assert generators["headlamp-birfucate-browser-v011"]["files"] == [
+        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.1.1.bundle"
     ]

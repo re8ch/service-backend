@@ -29,7 +29,6 @@ resources:
   - ../../platform/among-clusters
   - ../../platform/scheduling-fabric
   - ../../platform/cloud-platform
-  - ../../platform/tenant-runtime
   - ../../platform/advanced-fabric
   - ../../platform/git-workspaces
   - ../../platform/workspace-controller
@@ -40,7 +39,6 @@ resources:
   - ../../platform/connectool
   - ../../platform/gitlab-runner-r640
   - ../../platform/birfucate-metering
-  - ../../platform/tenant-infrastructure
   - ../../platform/hyperswitch
   - ../../platform/public-edge-manager
   - ../../platform/external-projects

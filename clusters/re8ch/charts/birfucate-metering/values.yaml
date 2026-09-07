@@ -10,6 +10,34 @@ replicaCount: 1
 collectionIntervalSeconds: 60
 lookbackSeconds: 300
 
+# The Headlamp browser talks only to this Chart-owned, read-only endpoint.
+# Metric names are allowlisted in the collector; arbitrary PromQL is rejected.
+browserAPI:
+  enabled: true
+  lookbackSeconds: 600
+
+# The autonomous admin/tenant control plane is packaged with Birfucate so its
+# CRDs, runtime and metering contract advance as one release. Keep disabled in
+# the reusable chart; production enables it with a verified image digest.
+tenantPlatform:
+  enabled: false
+  image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+  tenants:
+    - name: artchais
+      displayName: Artchais
+      lifecycle: Active
+      deletionPolicy: Retain
+      runtimeNamespaceRef: artchais
+      imagePullSecretRef: harbor-functions-shared-pull
+      harborProjectRef: artchais
+      identityBindings:
+        - {name: artchais-github-admins, issuer: https://dex.re8ch.com, group: "Artchais:tenant-admins", role: admin}
+        - {name: artchais-github-operators, issuer: https://dex.re8ch.com, group: "Artchais:tenant-operators", role: operator}
+        - {name: artchais-github-viewers, issuer: https://dex.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
+      grants:
+        - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+        - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+
 prometheus:
   baseURL: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
   writePath: /api/v1/import/prometheus

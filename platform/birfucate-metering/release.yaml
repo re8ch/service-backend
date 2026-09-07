@@ -32,6 +32,9 @@ spec:
       repository: python
       tag: 3.13-alpine@sha256:62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7
       pullPolicy: IfNotPresent
+    tenantPlatform:
+      enabled: true
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
     # Keep the first production reconciliation equivalent to the validated
     # canary: no stateful allocation while Ceph is degraded and no downstream
     # delivery until the tenant usage sink is promoted.

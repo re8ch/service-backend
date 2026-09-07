@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import subprocess
 
 import yaml
 
@@ -8,6 +9,16 @@ ROOT = Path(__file__).parents[1]
 
 def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
+
+
+def tenant_chart_documents():
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d"
+    rendered = subprocess.run(
+        ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    return [item for item in yaml.safe_load_all(rendered) if item]
 
 
 def test_contract_schemas_are_valid_json_and_have_stable_ids():
@@ -19,9 +30,9 @@ def test_contract_schemas_are_valid_json_and_have_stable_ids():
 
 
 def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
-    docs = documents(ROOT / "platform/tenant-runtime/runtime.yaml")
-    deployments = {item["metadata"]["name"]: item for item in docs if item["kind"] == "Deployment"}
+    docs = tenant_chart_documents()
     runtime_names = {"admin-api", "tenant-api"}
+    deployments = {item["metadata"]["name"]: item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] in runtime_names}
     assert runtime_names == deployments.keys()
     profiles = {}
     metadata_urls = {}
@@ -48,7 +59,8 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
 
 
 def test_tenancy_crds_are_structural_and_status_enabled():
-    docs = documents(ROOT / "platform/tenant-infrastructure/tenancy-crds.yaml")
+    docs = tenant_chart_documents()
+    docs = [item for item in docs if item["kind"] == "CustomResourceDefinition" and item["spec"]["group"] == "tenancy.re8ch.com"]
     assert {item["metadata"]["name"] for item in docs} == {
         "tenants.tenancy.re8ch.com",
         "tenantidentitybindings.tenancy.re8ch.com",
@@ -71,15 +83,19 @@ def test_tenancy_crds_are_structural_and_status_enabled():
 
 
 def test_artchais_github_team_bindings_have_explicit_roles():
-    docs = documents(ROOT / "platform/tenant-infrastructure/artchais-tenant.yaml")
-    tenant = next(item for item in docs if item["kind"] == "Tenant")
+    docs = tenant_chart_documents()
+    tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.re8ch.com/"))
     bindings = [item for item in docs if item["kind"] == "TenantIdentityBinding"]
     assert tenant["metadata"]["name"] == "artchais"
+    assert tenant["spec"]["runtimeNamespaceRef"] == "artchais"
+    assert tenant["spec"]["imagePullSecretRef"] == "harbor-functions-shared-pull"
     assert {(item["spec"]["group"], item["spec"]["role"]) for item in bindings} == {
         ("Artchais:tenant-admins", "admin"),
         ("Artchais:tenant-operators", "operator"),
         ("Artchais:tenant-viewers", "viewer"),
     }
+    grants = [item for item in docs if item["kind"] == "TenantGrant"]
+    assert {item["spec"]["consumableRef"] for item in grants} == {"compute.workload.v1", "storage.volume.v1"}
 
 
 def test_connectool_has_one_generic_tenant_publication():
@@ -95,7 +111,7 @@ def test_connectool_has_one_generic_tenant_publication():
 
 
 def test_tenant_resource_claim_schema_is_bounded():
-    docs = documents(ROOT / "platform/tenant-infrastructure/tenancy-crds.yaml")
+    docs = tenant_chart_documents()
     claim = next(item for item in docs if item["metadata"]["name"].startswith("tenantresourceclaims."))
     claim_schema = claim["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
     assert claim_schema["properties"]["spec"]["properties"]["capability"]["enum"] == ["compute.workload.v1", "storage.volume.v1"]
@@ -122,17 +138,18 @@ def test_plugin_definition_is_tenant_self_and_denies_financial_mutation():
 
 def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
     root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
-    assert "../../platform/tenant-runtime" in root
+    assert "../../platform/tenant-runtime" not in root
+    assert "../../platform/tenant-infrastructure" not in root
     assert "qwen-tenant-runtime" not in root
-    docs = documents(ROOT / "platform/tenant-runtime/runtime.yaml")
-    deployments = [item for item in docs if item["kind"] == "Deployment"]
+    docs = tenant_chart_documents()
+    deployments = [item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] in {"admin-api", "tenant-api"}]
     profiles = {
         next(env["value"] for env in item["spec"]["template"]["spec"]["containers"][0]["env"] if env["name"] == "RE8CH_TOOL_PROFILE")
         for item in deployments
     }
     assert profiles == {"admin", "tenant"}
     assert all("@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
-    rendered = (ROOT / "platform/tenant-runtime/runtime.yaml").read_text()
+    rendered = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
     tenant_publication = next(
         item for item in documents(ROOT / "platform/connectool/release.yaml")[1]["spec"]["values"]["toolhive"]["publications"]
         if item["name"] == "tenant-vmcp"

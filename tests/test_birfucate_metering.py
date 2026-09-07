@@ -5,6 +5,7 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parents[1]
@@ -118,3 +119,26 @@ def test_remote_write_render_includes_explicit_millisecond_timestamp():
     assert "birfucate_up 1\n" in local
     assert "birfucate_up 1 1234567890000\n" in remote
     assert 'birfucate_dependency_up{dependency="prometheus"} 1.0 1234567890000' in remote
+
+
+def test_browser_query_is_chart_configured_and_metric_allowlisted(monkeypatch):
+    config = {
+        "browserAPI": {"enabled": True, "lookbackSeconds": 600},
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 3},
+    }
+    captured = {}
+
+    def query(base, expression, timeout):
+        captured.update(base=base, expression=expression, timeout=timeout)
+        return [{"metric": {"tenant": "acme", "resource_ref": "claim-1"}, "value": [0, "2"]}]
+
+    monkeypatch.setattr(collector, "prometheus_query", query)
+    payload = collector.browser_query(config, "birfucate_occupancy_current")
+    assert payload["status"] == "success"
+    assert captured == {
+        "base": "http://metrics",
+        "expression": "last_over_time(birfucate_occupancy_current[600s])",
+        "timeout": 3,
+    }
+    with pytest.raises(ValueError, match="metric_not_allowed"):
+        collector.browser_query(config, "up")

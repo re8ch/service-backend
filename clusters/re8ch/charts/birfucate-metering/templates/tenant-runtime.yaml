@@ -1,3 +1,4 @@
+{{- if .Values.tenantPlatform.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
@@ -25,7 +26,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
+          image: {{ .Values.tenantPlatform.image | quote }}
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: admin}
@@ -61,7 +62,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
+          image: {{ .Values.tenantPlatform.image | quote }}
           imagePullPolicy: IfNotPresent
           envFrom:
             - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
@@ -139,3 +140,4 @@ spec:
       backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
       backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
+{{- end }}
