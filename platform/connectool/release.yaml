@@ -90,7 +90,6 @@ spec:
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
             - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
-            - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
           authorization:
             groupClaim: groups
             policies:
