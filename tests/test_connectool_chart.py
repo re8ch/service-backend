@@ -18,9 +18,10 @@ def render(*extra: str) -> list[dict]:
 
 def test_re8ch_chain_uses_one_identity_end_to_end():
     objects = render()
-    assert not any(item["kind"] == "MCPGroup" for item in objects)
-    oidc = next(item for item in objects if item["kind"] == "MCPOIDCConfig")
-    vmcp = next(item for item in objects if item["kind"] == "VirtualMCPServer")
+    groups = [item for item in objects if item["kind"] == "MCPGroup"]
+    assert [item["metadata"]["name"] for item in groups] == ["tenant-public"]
+    oidc = next(item for item in objects if item["kind"] == "MCPOIDCConfig" and item["metadata"]["name"] == "re8ch-tools-vmcp-issuer")
+    vmcp = next(item for item in objects if item["kind"] == "VirtualMCPServer" and item["metadata"]["name"] == "re8ch-tools-vmcp")
     dex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "dex-static-clients")
     codex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "codex-marketplace")
     registration = json.loads(codex["data"]["re8ch-cloud-platform-tool.mcp.json"])
@@ -71,15 +72,22 @@ def test_cloud_resource_url_has_a_gateway_route():
     assert backends == {"vmcp-re8ch-tools-vmcp"}
 
 
-def test_artchais_dex_reconciler_is_one_shot_and_secret_safe():
-    objects = [item for item in yaml.safe_load_all((ROOT / "platform/connectool/dex-artchais-reconciler.yaml").read_text()) if item]
+def test_connectool_renders_admin_and_tenant_publications():
+    objects = render()
+    vmcps = {item["metadata"]["name"]: item for item in objects if item["kind"] == "VirtualMCPServer"}
+    assert {"re8ch-admin-vmcp", "tenant-vmcp"} <= vmcps.keys()
+    tenant = vmcps["tenant-vmcp"]
+    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
+    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
+
+
+def test_dex_reconciler_consumes_connectool_contract_and_retires_split_clients():
+    objects = [item for item in yaml.safe_load_all((ROOT / "platform/connectool/dex-client-reconciler.yaml").read_text()) if item]
     job = next(item for item in objects if item["kind"] == "Job")
-    role = next(item for item in objects if item["kind"] == "Role")
-    script = next(item for item in objects if item["kind"] == "ConfigMap")["data"]["register.sh"]
-    container = job["spec"]["template"]["spec"]["containers"][0]
-    assert "@sha256:" in container["image"]
-    assert job["spec"]["template"]["spec"]["restartPolicy"] == "Never"
-    assert {rule["resources"][0] for rule in role["rules"]} == {"secrets", "deployments"}
+    script = next(item for item in objects if item["kind"] == "ConfigMap")["data"]["reconcile.sh"]
+    assert "connectool-dex-clients" in script
+    assert "re8ch-tenant" not in script.replace('"re8ch-tenant-admin"', '').replace('"re8ch-tenant-registry"', '').replace('"re8ch-tenant-observability"', '').replace('"re8ch-tenant-byoc"', '')
+    assert "re8ch-qwen-tenant" in script
     assert "re8ch-artchais-tenant" in script
-    assert all(team in script for team in ("tenant-admins", "tenant-operators", "tenant-viewers"))
     assert "print(" not in script
+    assert "@sha256:" in job["spec"]["template"]["spec"]["containers"][0]["image"]

@@ -82,6 +82,7 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
         "re8ch-admin-vmcp": 2,
+        "tenant-vmcp": 2,
     }
 
     policies = documents(
@@ -100,7 +101,7 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     assert policy["spec"]["matchConstraints"]["resourceRules"][0]["resourceNames"] == [
         "vmcp-re8ch-admin-vmcp",
         "vmcp-re8ch-tools-vmcp",
-        "vmcp-artchais-tenant-vmcp",
+        "vmcp-tenant-vmcp",
     ]
 
     public_policy = next(
@@ -112,7 +113,7 @@ def test_public_vmcp_deployments_prefer_r640_with_safe_replica_counts():
     public_rule = public_policy["spec"]["matchConstraints"]["resourceRules"][0]
     assert public_rule["resourceNames"] == [
         "vmcp-re8ch-tools-vmcp",
-        "vmcp-artchais-tenant-vmcp",
+        "vmcp-tenant-vmcp",
     ]
     assert "value: 'restricted-node-6dc3f140f9'" in public_policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
 

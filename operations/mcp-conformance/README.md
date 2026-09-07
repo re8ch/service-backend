@@ -12,6 +12,6 @@ Tokens are read only from the named broker environment reference. Evidence conta
 
 ```sh
 python operations/mcp-conformance/mcp_collection.py \
-  operations/mcp-conformance/collections/tenant-registry-canary.json \
-  --output artifacts/mcp-evidence/tenant-registry-canary.json
+  operations/mcp-conformance/collections/tenant-canary.json \
+  --output artifacts/mcp-evidence/tenant-canary.json
 ```
