@@ -20,6 +20,8 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert registry["version"] == "1.5.0"
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
+    tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
+    assert tenant["replicas"] == 1
 
 
 def test_artifact_hub_uses_registered_repository_id():
