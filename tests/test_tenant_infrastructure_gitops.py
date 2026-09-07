@@ -141,6 +141,11 @@ def test_tenant_public_route_preserves_end_user_identity_at_backend():
         {"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "namespace": "toolhive-system"}
     ]
     assert grant["spec"]["to"] == [{"group": "", "kind": "Service", "name": "tenant-api"}]
+    policy = next(item for item in docs if item["kind"] == "CiliumNetworkPolicy" and item["metadata"]["name"] == "tenant-api-publicedge")
+    assert policy["spec"]["endpointSelector"] == {"matchLabels": {"app": "tenant-api"}}
+    assert policy["spec"]["ingress"] == [
+        {"fromEntities": ["ingress"], "toPorts": [{"ports": [{"port": "19448", "protocol": "TCP"}]}]}
+    ]
 
 
 def test_tenant_resource_claim_schema_is_bounded():
