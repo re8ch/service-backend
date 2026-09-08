@@ -169,10 +169,9 @@ metadata:
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
-  ingressClassName: traefik
-  tls:
-    - hosts: [browser.re8ch.com]
-      secretName: re8ch-wildcard-tls
+  # HTTP is served by ai-operations/steel-browser-public via Cilium Gateway.
+  # Retain this object only as the DNS publication authority.
+  ingressClassName: external-dns-only
   rules:
     - host: browser.re8ch.com
       http:
