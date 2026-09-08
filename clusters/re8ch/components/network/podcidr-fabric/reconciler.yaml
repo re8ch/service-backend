@@ -150,8 +150,11 @@ data:
       # authorizes every remote PodCIDR. Resolve identity-mode leaf PodCIDRs
       # through that transit so the public edge can reach their workloads.
       if [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] && host ip link show wg-pt-a1 >/dev/null 2>&1; then
-        jq -r --arg own "${NODE_NAME}" '.nodes[] | select(.name != $own and .peerMode == "identity") | .podCIDR' /config/inventory.json | while read -r peer_pods; do
+        jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshPodCIDRPeers // []) as $mesh | $root.nodes[] | select(.name != $own and .peerMode == "identity" and (.name as $name | $mesh | index($name) | not)) | .podCIDR' /config/inventory.json | while read -r peer_pods; do
           host vtysh -c 'configure terminal' -c "ip route ${peer_pods} wg-pt-a1 5" -c end
+        done
+        jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshPodCIDRPeers // [])[] as $name | $root.nodes[] | select(.name == $name) | .podCIDR' /config/inventory.json | while read -r peer_pods; do
+          host vtysh -c 'configure terminal' -c "no ip route ${peer_pods} wg-pt-a1 5" -c end
         done
       fi
       if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then
