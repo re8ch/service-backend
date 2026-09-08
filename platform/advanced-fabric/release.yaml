@@ -81,17 +81,7 @@ spec:
         adoption:
           enabled: true
           sourceClassName: traefik
-          exclusions:
-            - agent-collab/teable
-            # No certificate currently covers api-native.jz.ynzs.com. Keep
-            # these on Traefik until cert-manager owns that SAN.
-            - qwen/nuclio-agw-qianwen-prod-native-analytics-client-events
-            - qwen/nuclio-agw-qianwen-prod-native-api-core-login
-            - qwen/nuclio-agw-qianwen-prod-native-feishu-callback
-            - qwen/nuclio-agw-qianwen-prod-native-feishu-callback-code
-            - qwen/nuclio-agw-qianwen-prod-native-homepage
-            - qwen/nuclio-agw-qianwen-prod-native-oss-sts
-            - qwen/nuclio-agw-qianwen-prod-native-tasks-list
+          exclusions: []
       dns:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
