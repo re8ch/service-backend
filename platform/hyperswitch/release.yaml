@@ -56,8 +56,11 @@ spec:
               spec:
                 template:
                   spec:
+                    imagePullSecrets:
+                      - name: harbor-hyperswitch-admin
                     containers:
                       - name: hyperswitch-router
+                        image: registry.re8ch.com/hyperswitch/hyperswitch-router@sha256:10a106c6a144633613529959a6a2f5edcd54fd5786e1ca3e722e27d87c958eb6
                         env:
                           - name: ROUTER__ANALYTICS__CLICKHOUSE__PASSWORD
                             $patch: delete
@@ -193,6 +196,15 @@ spec:
           analytics:
             source: sqlx
             forex_enabled: false
+          connectors:
+            # Alipay offers a real developer sandbox; this release remains
+            # sandbox-only until the enterprise application is certified.
+            alipaycn:
+              base_url: "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
+            # WeChat Pay API v3 has no equivalent general-purpose sandbox.
+            # Signed fixtures cover the connector until a merchant smoke test.
+            wechatpaycn:
+              base_url: "https://api.mch.weixin.qq.com"
           superposition:
             backup_file_path: "/local/config/superposition/superposition_seed.toml"
       services:

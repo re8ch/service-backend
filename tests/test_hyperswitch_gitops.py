@@ -67,6 +67,29 @@ def test_hyperswitch_disables_upstream_root_telemetry_hooks():
     assert "$patch: delete" in patch["patch"]
 
 
+def test_hyperswitch_router_uses_re8ch_connector_image_by_digest():
+    release = next(item for item in objects() if item["kind"] == "HelmRelease")
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    server_patch = next(
+        item for item in patches
+        if item["target"]["name"] == "hyperswitch-hyperswitch-server"
+    )
+    rendered_patch = yaml.safe_load(server_patch["patch"])
+    router = next(
+        container
+        for container in rendered_patch["spec"]["template"]["spec"]["containers"]
+        if container["name"] == "hyperswitch-router"
+    )
+    assert router["image"] == (
+        "registry.re8ch.com/hyperswitch/hyperswitch-router@"
+        "sha256:10a106c6a144633613529959a6a2f5edcd54fd5786e1ca3e722e27d87c958eb6"
+    )
+    assert "@sha256:" in router["image"]
+    assert not router["image"].endswith(":latest")
+    pod_spec = rendered_patch["spec"]["template"]["spec"]
+    assert pod_spec["imagePullSecrets"] == [{"name": "harbor-hyperswitch-admin"}]
+
+
 def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
     namespace = yaml.safe_load(
         (ROOT / "platform/hyperswitch/namespace.yaml").read_text()
@@ -105,6 +128,11 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     cors = app["server"]["configs"]["cors"]
     assert cors["wildcard_origin"] is False
     assert "https://pay.re8ch.com" in cors["origins"]
+    connectors = app["server"]["configs"]["connectors"]
+    assert connectors["alipaycn"]["base_url"].startswith(
+        "https://openapi-sandbox.dl.alipaydev.com/"
+    )
+    assert connectors["wechatpaycn"]["base_url"] == "https://api.mch.weixin.qq.com"
     secretish_keys = {"db" + "_password", "superposition" + "_token", "api" + "_key", "client" + "_secret"}
 
     def visit(value):
