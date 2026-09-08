@@ -148,6 +148,22 @@ spec:
           from: All
     - {name: litellm-https, hostname: litellm.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: supabase-https, hostname: supabase.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: auth-https, hostname: auth.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: codex-https, hostname: codex.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: decision-https, hostname: decision.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: feishu-agent-https, hostname: feishu-agent.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: fleet-https, hostname: fleet.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: image-https, hostname: image.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: ledger-decisions-https, hostname: ledger-decisions.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: neo4j-https, hostname: neo4j.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: phonycenter-https, hostname: phonycenter.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-cand1-https, hostname: api-cand1.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-cand3-https, hostname: api-cand3.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-gz24-https, hostname: api-guangzhou24.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-hz95-https, hostname: api-hangzhou95.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-sh217-https, hostname: api-shanghai217.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-sh77-https, hostname: api-shanghai77.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: api-sh79-https, hostname: api-shanghai79.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: cube-https, hostname: cube.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: dbgui-https, hostname: dbgui.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: api-https, hostname: api.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}

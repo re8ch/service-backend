@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:c986f6eb08b3cd6e313d2062be0b2310e075735d7c45204486b7cb8c3273cb08
+    digest: sha256:d33a1216888da0f5d01705e86c1a46d08c78c744fe34f222c50029a180572a51
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -74,6 +74,20 @@ spec:
         gateway: {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
         publicAddress: 192.0.2.79
         reconcileIntervalSeconds: 15
+        adoption:
+          enabled: true
+          sourceClassName: traefik
+          exclusions:
+            - agent-collab/teable
+            # No certificate currently covers api-native.jz.ynzs.com. Keep
+            # these on Traefik until cert-manager owns that SAN.
+            - qwen/nuclio-agw-qianwen-prod-native-analytics-client-events
+            - qwen/nuclio-agw-qianwen-prod-native-api-core-login
+            - qwen/nuclio-agw-qianwen-prod-native-feishu-callback
+            - qwen/nuclio-agw-qianwen-prod-native-feishu-callback-code
+            - qwen/nuclio-agw-qianwen-prod-native-homepage
+            - qwen/nuclio-agw-qianwen-prod-native-oss-sts
+            - qwen/nuclio-agw-qianwen-prod-native-tasks-list
       dns:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
