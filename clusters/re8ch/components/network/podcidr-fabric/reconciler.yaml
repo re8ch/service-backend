@@ -138,8 +138,11 @@ data:
       # recursive BGP next-hop resolution. This must run before the restricted-node-6dc3f140f9/B1
       # control-plane exception below.
       if [ -n "${identity_iface}" ]; then
-        jq -r --arg own "${NODE_NAME}" '.nodes[] | select(.name != $own and .peerMode == "identity") | .internalIp' /config/inventory.json | while read -r peer_ip; do
+        jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshIdentityPeers // []) as $mesh | $root.nodes[] | select(.name != $own and .peerMode == "identity" and (.name as $name | $mesh | index($name) | not)) | .internalIp' /config/inventory.json | while read -r peer_ip; do
           host vtysh -c 'configure terminal' -c "ip route ${peer_ip}/32 ${identity_iface} 5" -c end
+        done
+        jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshIdentityPeers // [])[] as $name | ($root.routeServers[], $root.nodes[]) | select(.name == $name) | .internalIp' /config/inventory.json | while read -r peer_ip; do
+          host vtysh -c 'configure terminal' -c "no ip route ${peer_ip}/32 ${identity_iface} 5" -c end
         done
       fi
       # restricted-node-6dc3f140f9's ZeroTier membership cannot currently reach the Qwen identity
@@ -162,11 +165,16 @@ data:
         return 0
       fi
       [ -n "${identity_iface}" ] || return 0
-      jq -r --arg own "${NODE_NAME}" '. as $root | .controlPlaneNodes[] | select(. != $own) as $name | ($root.routeServers[], $root.nodes[]) | select(.name == $name) | .internalIp' /config/inventory.json | while read -r api_ip; do
+      jq -c --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshIdentityPeers // []) as $mesh | .controlPlaneNodes[] | select(. != $own) as $name | ($root.routeServers[], $root.nodes[]) | select(.name == $name) | {ip:.internalIp, publicMesh:($mesh | index($name) != null)}' /config/inventory.json | while read -r api_peer; do
+        api_ip="$(printf '%s' "${api_peer}" | jq -r .ip)"
         host ip -o link show | awk -F': ' -v selected="${identity_iface}" '$2 != selected && ($2 ~ /^zt/ || $2 ~ /^re8chzt/) {print $2}' | while read -r stale_iface; do
           host vtysh -c 'configure terminal' -c "no ip route ${api_ip}/32 ${stale_iface} 5" -c end
         done
-        host vtysh -c 'configure terminal' -c "ip route ${api_ip}/32 ${identity_iface} 5" -c end
+        if [ "$(printf '%s' "${api_peer}" | jq -r .publicMesh)" = true ]; then
+          host vtysh -c 'configure terminal' -c "no ip route ${api_ip}/32 ${identity_iface} 5" -c end
+        else
+          host vtysh -c 'configure terminal' -c "ip route ${api_ip}/32 ${identity_iface} 5" -c end
+        fi
       done
     }
 
