@@ -4,13 +4,14 @@ metadata:
   name: supabase-pg-re8ch-studio
   namespace: supabase-pg-re8ch
   annotations:
-    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/target: 1.14.174.244
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/gateway-section: supabase-https
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
-  ingressClassName: traefik
+  ingressClassName: advanced-fabric
   rules:
     - host: supabase.re8ch.com
       http:
