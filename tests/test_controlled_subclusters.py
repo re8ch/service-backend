@@ -81,7 +81,7 @@ def test_cloud_platform_mounts_gitops_ssh_config_and_secret_identity():
         (ROOT / "platform/cloud-platform/runtime.yaml").read_text()
     )
     deployment = next(item for item in documents if item and item.get("kind") == "Deployment")
-    ssh = next(volume for volume in deployment["spec"]["template"]["spec"]["volumes"] if volume["name"] == "ssh")
+    ssh = next(volume for volume in deployment["spec"]["template"]["spec"]["volumes"] if volume["name"] == "ssh-projected")
     sources = ssh["projected"]["sources"]
     assert sources[0]["configMap"] == {
         "name": "ai-operations-ssh-config",

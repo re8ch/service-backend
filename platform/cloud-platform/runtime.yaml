@@ -38,10 +38,13 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
-            - {name: ssh, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
+            - {name: ssh-projected, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
       volumes:
         - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}
-        - name: ssh
+        # A new name is required when migrating the live volume from Secret to
+        # Projected; Kubernetes union volume sources cannot be changed in-place
+        # by server-side apply without briefly producing an invalid object.
+        - name: ssh-projected
           projected:
             defaultMode: 288
             sources:
