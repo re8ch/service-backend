@@ -74,3 +74,20 @@ def test_windows_hosts_use_cross_host_wsl_recovery_paths():
         assert by_name[name]["address"] == name
         assert by_name[name]["credentialRef"] == "node-ssh"
         assert "wsl-lifecycle" in by_name[name]["capabilities"]
+
+
+def test_cloud_platform_mounts_gitops_ssh_config_and_secret_identity():
+    documents = yaml.safe_load_all(
+        (ROOT / "platform/cloud-platform/runtime.yaml").read_text()
+    )
+    deployment = next(item for item in documents if item and item.get("kind") == "Deployment")
+    ssh = next(volume for volume in deployment["spec"]["template"]["spec"]["volumes"] if volume["name"] == "ssh")
+    sources = ssh["projected"]["sources"]
+    assert sources[0]["configMap"] == {
+        "name": "ai-operations-ssh-config",
+        "items": [{"key": "ssh-config", "path": "ssh-config"}],
+    }
+    assert sources[1]["secret"] == {
+        "name": "cloud-platform-runtime",
+        "items": [{"key": "id_ed25519", "path": "id_ed25519"}],
+    }
