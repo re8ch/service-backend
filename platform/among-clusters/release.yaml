@@ -91,7 +91,10 @@ spec:
         publicIP: 192.0.2.138
         deliveryMode: mikrotik-ebgp-transit-dnat
         edgeType: RouterOS
-        lanBackend: 192.0.2.169
+        gatewayVIP: 192.0.2.213
+        gatewayRef: kube-system/re8ch-gateway-canary
+        routingAuthority: AdvancedFabric
+        fallbackLanBackend: 192.0.2.169
       peerBundleSecret: among-clusters-peer-bundle
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.138:8443", hostPort: 8443}
