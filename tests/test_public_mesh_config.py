@@ -41,3 +41,30 @@ def test_fqdn_compatibility_rejects_unknown_source():
 
     with pytest.raises(ValueError, match="invalid disableFqdnCapabilityFrom peer"):
         PUBLIC_MESH.validate(data)
+
+
+def test_r640_and_vm_exchange_pod_cidrs_over_bfd_backed_public_mesh_bgp():
+    data = inventory()
+    restricted-node-6dc3f140f9 = PUBLIC_MESH.select(data, "restricted-node-6dc3f140f9")
+    vm = PUBLIC_MESH.select(data, "vm-20-12-ubuntu")
+
+    r640_frr = PUBLIC_MESH.render_frr(data, restricted-node-6dc3f140f9, stage=0)
+    vm_frr = PUBLIC_MESH.render_frr(data, vm, stage=0)
+    r640_wg = PUBLIC_MESH.render_wireguard(
+        data, restricted-node-6dc3f140f9, {"73": "vm-key"}, stage=0
+    )
+
+    assert "network 192.0.2.18/24" in r640_frr
+    assert "FROM-73 seq 20 permit 192.0.2.224/24" in r640_frr
+    assert "neighbor 192.0.2.248 maximum-prefix 2 90 restart 5" in r640_frr
+    assert "network 192.0.2.224/24" in vm_frr
+    assert "FROM-128 seq 20 permit 192.0.2.18/24" in vm_frr
+    assert "AllowedIPs = 192.0.2.248/32, 192.0.2.67/32, 192.0.2.224/24" in r640_wg
+
+
+def test_pod_cidr_peering_must_be_reciprocal():
+    data = inventory()
+    PUBLIC_MESH.select(data, "restricted-node-6dc3f140f9")["podCIDRPeers"] = []
+
+    with pytest.raises(ValueError, match="non-reciprocal podCIDR peer"):
+        PUBLIC_MESH.validate(data)
