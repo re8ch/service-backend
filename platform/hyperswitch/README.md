@@ -5,13 +5,12 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 
 ## Authority boundary
 
-- FOSSBilling and each product's order projection remain the source of truth
-  for what was sold, invoiced, and fulfilled.
+- Each product remains the source of truth for what the tenant intends to buy
+  and for fulfillment. The shared registry records only payment facts.
 - Hyperswitch owns provider selection and payment attempts: authorize, capture,
   cancel, refund, provider synchronization, and connector webhooks.
-- The RE8CH payment bridge maps an immutable business `order_id` and `order_type`
-  to Hyperswitch `merchant_reference_id` metadata. It never asks Hyperswitch to
-  create product entitlements.
+- The RE8CH payment registry maps an immutable product business reference to a
+  Hyperswitch payment. It never owns a product catalog, invoice, or entitlement.
 - A verified terminal payment event is persisted and acknowledged before a
   separate fulfillment worker consumes it. Webhook retries therefore cannot
   issue duplicate entitlements.
@@ -46,7 +45,9 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   pipeline, and UCS: disabled; Cilium Gateway API owns public exposure
 - Control Center: enabled at `https://pay.re8ch.com`; email login disabled,
   TOTP required, sample data disabled
-- Router: `https://pay-api.re8ch.com`; no credentials are stored in this file
+- Public API: `https://pay-api.re8ch.com/v1` reaches the RE8CH payment registry;
+  unmatched paths continue to reach the internal Hyperswitch router. No
+  credentials are stored in this file.
 - Router source: RE8CH Hyperswitch fork commit
   `d6cfcb2c51861918b4bc2f4a351424e77d16475d`; the deployment is pinned to the
   immutable linux/amd64 image manifest
