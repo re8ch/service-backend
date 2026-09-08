@@ -47,6 +47,12 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 - Control Center: enabled at `https://pay.re8ch.com`; email login disabled,
   TOTP required, sample data disabled
 - Router: `https://pay-api.re8ch.com`; no credentials are stored in this file
+- Router source: RE8CH Hyperswitch fork commit
+  `d6cfcb2c51861918b4bc2f4a351424e77d16475d`; the deployment is pinned to the
+  immutable linux/amd64 image manifest
+  `registry.re8ch.com/hyperswitch/hyperswitch-router@sha256:10a106c6a144633613529959a6a2f5edcd54fd5786e1ca3e722e27d87c958eb6`.
+  The `payments/harbor-hyperswitch-admin` pull secret is managed out of band by
+  the tenant credential broker and is never stored in Git.
 - Placement: restricted-node-6dc3f140f9
 - Database: Pigsty `hyperswitch` with dedicated owner/admin/migrator/runtime/
   read-only/PostgREST roles; the bundled PostgreSQL chart is disabled
@@ -56,3 +62,16 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 Stripe and PayPal should initially use hosted/redirect checkout, so raw card
 data never enters RE8CH services. The existing Nuclio WeChat and Alipay code can
 remain active until equivalent connectors pass replay and reconciliation tests.
+
+## China connector sandbox profile
+
+- `alipaycn` uses Alipay's developer sandbox gateway. Configure an enterprise
+  sandbox application with its App ID, RSA2 application private key and Alipay
+  public key in Control Center; do not commit those values.
+- `wechatpaycn` uses the API v3 endpoint because API v3 does not provide an
+  equivalent general-purpose merchant sandbox. Until an approved merchant is
+  available, request/response signatures, AES-256-GCM notification decryption,
+  replay rejection and payment/refund event mapping are verified with signed
+  fixtures. The first network smoke test must use a dedicated low-value order.
+- Provider notifications terminate at `pay-api.re8ch.com`; fulfillment remains
+  a separate idempotent consumer and is never executed directly by a connector.
