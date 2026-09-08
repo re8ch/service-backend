@@ -110,6 +110,14 @@ data:
     Host restricted-node-296f36f2fb
       HostName 192.0.2.4
       User re8ch-ai
+    Host a1-windows
+      HostName 192.0.2.246
+      User Administrator
+      ProxyJump restricted-node-296f36f2fb
+    Host b1-windows
+      HostName 192.0.2.35
+      User Administrator
+      ProxyJump restricted-node-1eb0570f74
     Host amdwsl-zt
       HostName 192.0.2.10
       User re8ch-ai

@@ -26,6 +26,22 @@ items:
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com, rclone.csi.veloxpack.io], profiles: [ceph-client, ceph-pilot, object-client, ceph-osd]}
       commands: {read: [hostname, uptime, systemctl-status], write: [systemctl-restart], rollback: [systemctl-restart]}
 
+  - metadata: {name: a1-windows}
+    spec:
+      transport: ssh
+      address: a1-windows
+      credentialRef: node-ssh
+      capabilities: [windows-host, wsl-lifecycle, scheduled-task-recovery]
+      commands: {read: [hostname.exe, powershell.exe, schtasks.exe, wsl.exe], write: [powershell.exe, schtasks.exe, wsl.exe], rollback: [powershell.exe, schtasks.exe]}
+
+  - metadata: {name: b1-windows}
+    spec:
+      transport: ssh
+      address: b1-windows
+      credentialRef: node-ssh
+      capabilities: [windows-host, wsl-lifecycle, scheduled-task-recovery]
+      commands: {read: [hostname.exe, powershell.exe, schtasks.exe, wsl.exe], write: [powershell.exe, schtasks.exe, wsl.exe], rollback: [powershell.exe, schtasks.exe]}
+
   - metadata: {name: restricted-node-1eb0570f74}
     spec:
       transport: ssh

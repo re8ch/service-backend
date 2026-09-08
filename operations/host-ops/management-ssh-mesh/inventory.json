@@ -24,7 +24,7 @@
           "addresses": ["192.0.2.246"],
           "port": 22,
           "hostKeyRef": "ssh-hostkeys/a1-windows",
-          "preferredPath": {"mode": "wsl-jump", "jumpAddress": "192.0.2.176", "destinationAddress": "192.0.2.246"},
+          "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.4", "destinationAddress": "192.0.2.246"},
           "legacyDirectAddresses": ["192.0.2.17"]
         },
         "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.176"},
@@ -39,7 +39,7 @@
           "addresses": ["192.0.2.35"],
           "port": 22,
           "hostKeyRef": "ssh-hostkeys/b1-windows",
-          "preferredPath": {"mode": "wsl-jump", "jumpAddress": "192.0.2.4", "destinationAddress": "192.0.2.35"},
+          "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.176", "destinationAddress": "192.0.2.35"},
           "legacyDirectAddresses": ["192.0.2.126"]
         },
         "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.4"},
