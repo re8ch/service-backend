@@ -49,6 +49,17 @@ def validate(inv):
                 errors.append(
                     f'{node["name"]}: invalid disableFqdnCapabilityFrom peer: {source}'
                 )
+        pod_cidr = node.get("podCIDR")
+        if pod_cidr and not ipaddress.ip_network(pod_cidr).subnet_of(
+            ipaddress.ip_network("192.0.2.57/16")
+        ):
+            errors.append(f'{node["name"]}: podCIDR is outside 192.0.2.57/16')
+        for peer_name in node.get("podCIDRPeers", []):
+            peer = next((item for item in inv["nodes"] if item["name"] == peer_name), None)
+            if peer_name == node["name"] or peer is None or not peer.get("podCIDR"):
+                errors.append(f'{node["name"]}: invalid podCIDRPeers peer: {peer_name}')
+            elif node["name"] not in peer.get("podCIDRPeers", []):
+                errors.append(f'{node["name"]}: non-reciprocal podCIDR peer: {peer_name}')
     if len(inv["nodes"]) != 8:
         errors.append("inventory must contain exactly eight public-authority nodes")
     if errors:
@@ -85,12 +96,15 @@ def render_wireguard(inv, node, peers, stage):
             continue
         if peer["id"] not in keys:
             raise ValueError(f'missing public key for peer id {peer["id"]}')
+        allowed = [f'{peer["transportIp"]}/32', f'{peer["ztIp"]}/32']
+        if peer["name"] in node.get("podCIDRPeers", []):
+            allowed.append(peer["podCIDR"])
         lines += [
             "",
             "[Peer]",
             f'# {peer["name"]}',
             f'PublicKey = {keys[peer["id"]]}',
-            f'AllowedIPs = {peer["transportIp"]}/32, {peer["ztIp"]}/32',
+            f'AllowedIPs = {", ".join(allowed)}',
             f'Endpoint = {peer["publicIp"]}:{inv["listenPort"]}',
             "PersistentKeepalive = 15",
         ]
@@ -112,8 +126,12 @@ def render_frr(inv, node, stage):
     for route in node.get("rescueRoutes", []):
         lines.append(f'ip route {route["prefix"]} {route["via"]} {route["distance"]}')
     lines += [f'ip prefix-list SELF seq 10 permit {node["ztIp"]}/32']
+    if node.get("podCIDR"):
+        lines.append(f'ip prefix-list SELF seq 20 permit {node["podCIDR"]}')
     for peer in peers:
         lines.append(f'ip prefix-list FROM-{peer["id"]} seq 10 permit {peer["ztIp"]}/32')
+        if peer["name"] in node.get("podCIDRPeers", []):
+            lines.append(f'ip prefix-list FROM-{peer["id"]} seq 20 permit {peer["podCIDR"]}')
     lines += ["!", f'router bgp {node["asn"]}', f' bgp router-id {node["ztIp"]}', " bgp ebgp-requires-policy", " no bgp default ipv4-unicast"]
     for peer in peers:
         lines += [f' neighbor {peer["transportIp"]} remote-as {peer["asn"]}', f' neighbor {peer["transportIp"]} update-source {node["transportIp"]}', f' neighbor {peer["transportIp"]} disable-connected-check', f' neighbor {peer["transportIp"]} timers 1 3', f' neighbor {peer["transportIp"]} bfd']
@@ -122,15 +140,18 @@ def render_frr(inv, node, stage):
         ):
             lines.append(f' no neighbor {peer["transportIp"]} capability fqdn')
     lines += [" !", " address-family ipv4 unicast", f'  network {node["ztIp"]}/32']
+    if node.get("podCIDR"):
+        lines.append(f'  network {node["podCIDR"]}')
     for peer in peers:
-        lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list SELF out', f'  neighbor {peer["transportIp"]} maximum-prefix 1 90 restart 5']
+        maximum = 2 if peer["name"] in node.get("podCIDRPeers", []) else 1
+        lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list SELF out', f'  neighbor {peer["transportIp"]} maximum-prefix {maximum} 90 restart 5']
     lines += [" exit-address-family", "exit", "!"]
     return "\n".join(lines) + "\n"
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inventory", default="clusters/re8ch/components/network/public-mesh/inventory.json")
+    parser.add_argument("--inventory", default="manifests/k3s/network/public-mesh/inventory.json")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("validate")
     wg = sub.add_parser("wireguard")
