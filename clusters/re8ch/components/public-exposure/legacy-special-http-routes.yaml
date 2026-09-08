@@ -1,0 +1,119 @@
+# Explicit Gateway API translations for the last supported Traefik-only
+# behaviours. These routes contain no proxy hop and are consumed directly by
+# the shared Cilium Gateway/Advanced Fabric data plane.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: codex-app-server-console-public, namespace: codex-platform}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-sh217-https}
+  hostnames: [api-shanghai217.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /codex-console}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: codex-app-server-console, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: codex-session-web-public, namespace: codex-platform}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-sh217-https}
+  hostnames: [api-shanghai217.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /codex}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: codex-session-web, port: 8080}]
+    - matches: [{path: {type: PathPrefix, value: /api}}]
+      backendRefs: [{name: codex-session-web, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: headlamp-http-redirect, namespace: headlamp}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  hostnames: [headlamp.re8ch.com]
+  rules:
+    - filters: [{type: RequestRedirect, requestRedirect: {scheme: https, port: 443, statusCode: 308}}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: grafana-http-redirect, namespace: qianwen-ops}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  hostnames: [grafana.re8ch.com]
+  rules:
+    - filters: [{type: RequestRedirect, requestRedirect: {scheme: https, port: 443, statusCode: 308}}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: ledger-accounting-public, namespace: nuclio}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-sh77-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-sh217-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-gz24-https}
+  hostnames: [api.re8ch.com, api-shanghai77.re8ch.com, api-shanghai217.re8ch.com, api-guangzhou24.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /ledger/accounting-agent}}]
+      backendRefs: [{name: ledger-accounting-agent-edge, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: ledger-accounting-r640-public, namespace: nuclio}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: neo4j-https}
+  hostnames: [neo4j.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /ledger/accounting-agent}}]
+      backendRefs: [{name: ledger-accounting-agent, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: ledger-decision-public, namespace: nuclio}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-sh77-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-sh217-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-gz24-https}
+  hostnames: [api.re8ch.com, api-shanghai77.re8ch.com, api-shanghai217.re8ch.com, api-guangzhou24.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /ledger/decision-analysis}}]
+      backendRefs: [{name: ledger-decision-analysis-edge, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: ledger-decision-r640-public, namespace: nuclio}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: neo4j-https}
+  hostnames: [neo4j.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /ledger/decision-analysis}}]
+      backendRefs: [{name: ledger-decision-analysis, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: vmcp-r640-backends-public, namespace: toolhive-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: admin-https}]
+  hostnames: [admin.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /backend/admin}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: mcp-ops-admin-external, port: 8088}]
+    - matches: [{path: {type: PathPrefix, value: /backend/observe}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: mcp-ops-observe-external, port: 8088}]
+    - matches: [{path: {type: PathPrefix, value: /backend/operate}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: mcp-ops-operate-external, port: 8088}]
