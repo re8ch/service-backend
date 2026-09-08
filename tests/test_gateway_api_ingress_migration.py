@@ -81,3 +81,9 @@ def test_retired_incluster_products_are_not_public_gateway_dependencies():
         if item.get("kind") == "HelmRelease"
     )
     assert advanced["spec"]["values"]["advancedFabric"]["virtualIngress"]["adoption"]["exclusions"] == []
+
+    ai_operations = documents("clusters/re8ch/components/ai-operations/platform.yaml")
+    assert not any(
+        item.get("metadata", {}).get("namespace") == "qwen"
+        for item in ai_operations
+    )
