@@ -122,6 +122,22 @@ data:
       done
     }
 
+    cleanup_retired_panel_api_dnat() {
+      [ "${NODE_NAME}" = vm-20-12-ubuntu ] || return 0
+      # This bootstrap-only redirect makes a connection addressed to restricted-node-6dc3f140f9
+      # register its K3s remotedialer session on A1 instead. Remove only the
+      # exact historical rule; do not alter any other OUTPUT NAT policy.
+      while host iptables -t nat -C OUTPUT \
+        -d 192.0.2.183/32 -p tcp --dport 6443 \
+        -m comment --comment 'RE8CH panel K3s API recovery via A1' \
+        -j DNAT --to-destination 192.0.2.18:6443 2>/dev/null; do
+        host iptables -t nat -D OUTPUT \
+          -d 192.0.2.183/32 -p tcp --dport 6443 \
+          -m comment --comment 'RE8CH panel K3s API recovery via A1' \
+          -j DNAT --to-destination 192.0.2.18:6443
+      done
+    }
+
     reconcile_control_plane_identity_routes() {
       # A host may be joined to several ZeroTier networks. Select the interface
       # which actually owns this Kubernetes InternalIP; interface enumeration
@@ -409,6 +425,7 @@ data:
     reconcile_routeros_boundary
     reconcile_wireguard_allowed_ips
     reconcile_public_mesh_allowed_ips
+    cleanup_retired_panel_api_dnat
     reconcile_r640_identity_transit_nat
     reconcile_control_plane_identity_routes
     cleanup_cilium_direct_routes
