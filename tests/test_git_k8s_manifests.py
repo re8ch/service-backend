@@ -263,6 +263,33 @@ def test_public_edge_uses_the_public_digest_pinned_controller_supply_chain():
     assert "configMapGenerator" not in kustomization
 
 
+def test_public_edge_public_release_requires_fabric_and_node_evidence():
+    resources = documents(ROOT / "platform/public-edge-manager/release.yaml")
+    source = next(item for item in resources if item["kind"] == "OCIRepository")
+    release = next(item for item in resources if item["kind"] == "HelmRelease")
+    assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/public-edge-manager"
+    assert source["spec"]["ref"]["digest"] == (
+        "sha256:47f7edfa17c3d718f7a388d054716d97c70f8e11b957e501591bfbf787385efd"
+    )
+    values = release["spec"]["values"]
+    assert values["image"] == {
+        "repository": "ghcr.io/re8ch/public-edge-manager",
+        "tag": "0.4.2",
+        "digest": "sha256:e22dcd57cb0bea5415dca78ed80145d98860093128f9d1a12f087b1d7bbb03ee",
+        "pullPolicy": "IfNotPresent",
+    }
+    assert values["fabricEvidence"] == {
+        "mode": "Required",
+        "apiGroup": "networking.re8ch.com",
+        "apiVersion": "v1alpha1",
+        "resource": "networkpathassessments",
+        "requireNodeReady": True,
+        "allowedStates": ["Ready", "Partial"],
+        "minConfidence": 0.6,
+        "rankingWeights": {"optimality": 100, "stability": 100, "independence": 50},
+    }
+
+
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
     plan = next(item for item in resources if item["kind"] == "ConfigMap")
