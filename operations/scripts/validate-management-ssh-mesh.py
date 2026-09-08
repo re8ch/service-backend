@@ -16,6 +16,8 @@ def main() -> None:
     expected = {"mikrotik", "a1-windows", "b1-windows"}
     if names != expected:
         raise SystemExit(f"management mesh nodes must be {sorted(expected)}")
+    windows = [node for node in nodes if node["platform"] == "windows-server-2022"]
+    wsl_addresses = {node["wsl"]["nodeName"]: node["wsl"]["nodeAddress"] for node in windows}
 
     for node in nodes:
         ssh = node["ssh"]
@@ -27,18 +29,20 @@ def main() -> None:
             ipaddress.ip_address(address)
         if node["platform"] == "windows-server-2022":
             path = ssh["preferredPath"]
-            if path["mode"] != "wsl-jump":
-                raise SystemExit(f"{node['name']} must use the independent WSL jump path")
+            if path["mode"] != "peer-wsl-jump":
+                raise SystemExit(f"{node['name']} must use the peer WSL recovery path")
             ipaddress.ip_address(path["jumpAddress"])
             ipaddress.ip_address(path["destinationAddress"])
-            if path["jumpAddress"] != node["wsl"]["nodeAddress"]:
-                raise SystemExit(f"{node['name']} jump address must match its WSL node address")
+            peer_name = "restricted-node-296f36f2fb" if node["name"] == "a1-windows" else "restricted-node-1eb0570f74"
+            if path["jumpAddress"] != wsl_addresses[peer_name]:
+                raise SystemExit(f"{node['name']} jump address must match the peer WSL node address")
+            if path["jumpAddress"] == node["wsl"]["nodeAddress"]:
+                raise SystemExit(f"{node['name']} cannot use its own WSL node as its recovery jump")
             if path["destinationAddress"] not in ssh["addresses"]:
                 raise SystemExit(f"{node['name']} destination must be a declared SSH address")
             for address in ssh.get("legacyDirectAddresses", []):
                 ipaddress.ip_address(address)
 
-    windows = [node for node in nodes if node["platform"] == "windows-server-2022"]
     if len(windows) != 2:
         raise SystemExit("exactly two Windows control-plane hosts are required")
     if len({node["peerPriority"] for node in windows}) != 2:

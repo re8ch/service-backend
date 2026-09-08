@@ -16,6 +16,8 @@ nodes:
     cephClient: true
     host:
       platform: Windows Server 2022 / WSL2 NAT
+      cloudPlatformNode: a1-windows
+      sshTarget: Administrator@192.0.2.145
       windowsLanIp: 192.0.2.145
       wslNatCidr: 192.0.2.56/20
       peerHost: restricted-node-296f36f2fb

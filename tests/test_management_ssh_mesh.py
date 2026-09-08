@@ -52,13 +52,16 @@ def test_windows_installer_separates_wsl_owner_from_host_reboot_authority() -> N
     assert "OpenSSH.Server~~~~192.0.2.79" in script
 
 
-def test_windows_management_uses_wsl_jump_and_lan_destination() -> None:
+def test_windows_management_uses_peer_wsl_jump_and_lan_destination() -> None:
     inventory = json.loads((ROOT / "operations/host-ops/management-ssh-mesh/inventory.json").read_text())
     windows = [node for node in inventory["spec"]["nodes"] if node["platform"].startswith("windows")]
+    wsl_addresses = {node["wsl"]["nodeName"]: node["wsl"]["nodeAddress"] for node in windows}
     for node in windows:
         path = node["ssh"]["preferredPath"]
-        assert path["mode"] == "wsl-jump"
-        assert path["jumpAddress"] == node["wsl"]["nodeAddress"]
+        peer_name = "restricted-node-296f36f2fb" if node["name"] == "a1-windows" else "restricted-node-1eb0570f74"
+        assert path["mode"] == "peer-wsl-jump"
+        assert path["jumpAddress"] == wsl_addresses[peer_name]
+        assert path["jumpAddress"] != node["wsl"]["nodeAddress"]
         assert path["destinationAddress"] in node["ssh"]["addresses"]
 
 
