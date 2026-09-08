@@ -188,9 +188,8 @@ metadata:
   namespace: headlamp
 spec:
   parentRefs:
-    - name: re8ch-gateway-canary
-      namespace: kube-system
-      sectionName: http
+    # Public HTTP is owned by headlamp-http-redirect. Keep this origin route on
+    # regional listeners only so it cannot race the canonical 308 redirect.
     - {name: re8ch-region-loudi, namespace: kube-system, sectionName: http}
     - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: http}
     - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: http}
