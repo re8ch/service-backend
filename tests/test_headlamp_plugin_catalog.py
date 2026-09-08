@@ -15,7 +15,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generators = {item["name"]: item for item in kustomization["configMapGenerator"]}
     expected = {
-        "headlamp-public-edge-v011": "re8ch-headlamp-public-edge-0.1.1.bundle",
+        "headlamp-public-edge-v020": "re8ch-headlamp-public-edge-0.2.0.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
     }
     for configmap, filename in expected.items():
