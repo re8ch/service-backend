@@ -41,7 +41,12 @@ spec:
             - {name: ssh, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
       volumes:
         - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}
-        - {name: ssh, secret: {secretName: cloud-platform-runtime, items: [{key: ssh-config, path: ssh-config}, {key: id_ed25519, path: id_ed25519}], defaultMode: 288}}
+        - name: ssh
+          projected:
+            defaultMode: 288
+            sources:
+              - configMap: {name: ai-operations-ssh-config, items: [{key: ssh-config, path: ssh-config}]}
+              - secret: {name: cloud-platform-runtime, items: [{key: id_ed25519, path: id_ed25519}]}
 ---
 apiVersion: v1
 kind: Service
