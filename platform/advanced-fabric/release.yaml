@@ -39,6 +39,10 @@ spec:
       strategy: rollback
   rollback:
     cleanupOnFail: true
+    # Offline edge nodes remain members of the fabric DaemonSet by design.
+    # Do not let their unavailable pods block rollback bookkeeping; traffic
+    # health remains enforced by the Helm test and Advanced Fabric probes.
+    disableWait: true
   test:
     enable: true
     ignoreFailures: false
