@@ -54,7 +54,10 @@ spec:
                     publicIP: {type: string, format: ipv4}
                     authority: {type: string, enum: [RouterOS]}
                     deliveryMode: {type: string, enum: [EBGPTransitAndDNAT]}
-                    lanBackend: {type: string, format: ipv4}
+                    gatewayVIP: {type: string, format: ipv4}
+                    gatewayRef: {type: string}
+                    routingAuthority: {type: string, enum: [AdvancedFabric]}
+                    fallbackLanBackend: {type: string, format: ipv4}
                     requiredForwardPorts:
                       type: array
                       items: {type: integer, minimum: 1, maximum: 65535}
@@ -283,6 +286,15 @@ spec:
   fallbackNextHop: 192.0.2.169
   publicVIPs:
     - {cidr: 192.0.2.213/32, owner: restricted-node-6dc3f140f9, fallbackDistance: 250, healthAuthority: GatewayServiceProbe}
+  publicEdge:
+    publicIP: 192.0.2.138
+    authority: RouterOS
+    deliveryMode: EBGPTransitAndDNAT
+    gatewayVIP: 192.0.2.213
+    gatewayRef: kube-system/re8ch-gateway-canary
+    routingAuthority: AdvancedFabric
+    fallbackLanBackend: 192.0.2.169
+    requiredForwardPorts: [80, 443]
   peers:
     # BFD remains disabled until the matching 192.0.2.240 peer is configured
     # and verified in restricted-node-6dc3f140f9 FRR. The 10/30 BGP timers are the active failure gate.
