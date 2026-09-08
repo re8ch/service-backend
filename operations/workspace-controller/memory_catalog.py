@@ -28,7 +28,8 @@ def public_authority_context(root: Path) -> str:
     return (
         f"Source of truth: `{PUBLIC_AUTHORITY_INVENTORY}` (`restricted-node-6dc3f140f9.publicAuthority`). "
         f"restricted-node-6dc3f140f9 public delivery is provider-owned `{node['publicIp']} -> "
-        f"{authority['type']} DNAT/eBGP -> {authority['lanBackend']}/restricted-node-6dc3f140f9`. "
+        f"{authority['type']} DNAT/eBGP -> {authority['gatewayVIP']}/Cilium Gateway` "
+        f"with `{authority['fallbackLanBackend']}/restricted-node-6dc3f140f9` as the declared fallback. "
         f"The ZeroTier address `{node['ztIp']}` and `re8chzt128` dummy interface are "
         "routing/service identities, not directly attached public endpoints. Before changing "
         "an restricted-node-6dc3f140f9 public IP, route, Gateway, listener, DNAT, eBGP, ZeroTier, or dummy-interface "

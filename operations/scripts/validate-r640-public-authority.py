@@ -25,7 +25,10 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
         "publicIP": restricted-node-6dc3f140f9["publicIp"],
         "deliveryMode": restricted-node-6dc3f140f9["publicMode"],
         "edgeType": authority.get("type"),
-        "lanBackend": authority.get("lanBackend"),
+        "gatewayVIP": authority.get("gatewayVIP"),
+        "gatewayRef": authority.get("gatewayRef"),
+        "routingAuthority": authority.get("routingAuthority"),
+        "fallbackLanBackend": authority.get("fallbackLanBackend"),
     }
     if expected != {
         "ownership": "provider",
@@ -33,7 +36,10 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
         "publicIP": "192.0.2.79",
         "deliveryMode": "mikrotik-ebgp-transit-dnat",
         "edgeType": "RouterOS",
-        "lanBackend": "192.0.2.97",
+        "gatewayVIP": "192.0.2.209",
+        "gatewayRef": "kube-system/re8ch-gateway-canary",
+        "routingAuthority": "AdvancedFabric",
+        "fallbackLanBackend": "192.0.2.97",
     }:
         raise SystemExit(f"unexpected restricted-node-6dc3f140f9 publicAuthority: {expected}")
 
