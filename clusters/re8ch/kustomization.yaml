@@ -23,6 +23,7 @@ resources:
   - components/egress-fabric/identity-egress.yaml
   - components/network/podcidr-fabric
   - components/public-exposure/external-dns-cloudflare.yaml
+  - components/public-exposure/gateway-dns-authorities.yaml
   - components/opencost/ui-nginx-config.yaml
   - components/toolhive/external-observe-publication.yaml
   - components/toolhive/external-privileged-publication.yaml
