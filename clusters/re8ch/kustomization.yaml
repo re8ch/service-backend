@@ -21,6 +21,7 @@ resources:
   - components/ai-operations/platform.yaml
   - components/auth/dex/dex-ha-deployment.yaml
   - components/egress-fabric/identity-egress.yaml
+  - components/network/podcidr-fabric
   - components/public-exposure/external-dns-cloudflare.yaml
   - components/opencost/ui-nginx-config.yaml
   - components/toolhive/external-observe-publication.yaml
