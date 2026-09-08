@@ -59,3 +59,18 @@ def test_gitops_ssh_config_matches_reviewable_template():
         ROOT / "clusters/re8ch/components/ai-operations/ssh_config.template"
     ).read_text()
     assert config["data"]["ssh-config"] == template
+
+
+def test_windows_hosts_use_cross_host_wsl_recovery_paths():
+    template = (
+        ROOT / "clusters/re8ch/components/ai-operations/ssh_config.template"
+    ).read_text()
+    assert "Host a1-windows\n  HostName 192.0.2.246\n  User Administrator\n  ProxyJump restricted-node-296f36f2fb" in template
+    assert "Host b1-windows\n  HostName 192.0.2.35\n  User Administrator\n  ProxyJump restricted-node-1eb0570f74" in template
+
+    targets = yaml.safe_load((ROOT / "inventory/nodes.yaml").read_text())["items"]
+    by_name = {item["metadata"]["name"]: item["spec"] for item in targets}
+    for name in ("a1-windows", "b1-windows"):
+        assert by_name[name]["address"] == name
+        assert by_name[name]["credentialRef"] == "node-ssh"
+        assert "wsl-lifecycle" in by_name[name]["capabilities"]
