@@ -41,6 +41,14 @@ def validate(inv):
                 errors.append(f'{node["name"]}: rescue next hop must be private')
             if not 200 <= int(route["distance"]) <= 254:
                 errors.append(f'{node["name"]}: rescue distance must be 200..254')
+        compatibility = node.get("peerCompatibility", {})
+        disable_from = compatibility.get("disableFqdnCapabilityFrom", [])
+        known_names = {item["name"] for item in inv["nodes"]}
+        for source in disable_from:
+            if source == node["name"] or source not in known_names:
+                errors.append(
+                    f'{node["name"]}: invalid disableFqdnCapabilityFrom peer: {source}'
+                )
     if len(inv["nodes"]) != 8:
         errors.append("inventory must contain exactly eight public-authority nodes")
     if errors:
@@ -109,6 +117,10 @@ def render_frr(inv, node, stage):
     lines += ["!", f'router bgp {node["asn"]}', f' bgp router-id {node["ztIp"]}', " bgp ebgp-requires-policy", " no bgp default ipv4-unicast"]
     for peer in peers:
         lines += [f' neighbor {peer["transportIp"]} remote-as {peer["asn"]}', f' neighbor {peer["transportIp"]} update-source {node["transportIp"]}', f' neighbor {peer["transportIp"]} disable-connected-check', f' neighbor {peer["transportIp"]} timers 1 3', f' neighbor {peer["transportIp"]} bfd']
+        if node["name"] in peer.get("peerCompatibility", {}).get(
+            "disableFqdnCapabilityFrom", []
+        ):
+            lines.append(f' no neighbor {peer["transportIp"]} capability fqdn')
     lines += [" !", " address-family ipv4 unicast", f'  network {node["ztIp"]}/32']
     for peer in peers:
         lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list SELF out', f'  neighbor {peer["transportIp"]} maximum-prefix 1 90 restart 5']
