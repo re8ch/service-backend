@@ -65,13 +65,10 @@ metadata:
     external-dns.alpha.kubernetes.io/target: 192.0.2.138
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
-  ingressClassName: traefik
-  tls:
-    - hosts: [storage.re8ch.com]
-      secretName: re8ch-wildcard-tls
+  # HTTP is served by dataspace/storage-collaborator-public via Cilium Gateway.
+  # Retain this object only as the DNS publication authority.
+  ingressClassName: external-dns-only
   rules:
     - host: storage.re8ch.com
       http:
