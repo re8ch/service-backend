@@ -87,3 +87,43 @@ def test_retired_incluster_products_are_not_public_gateway_dependencies():
         item.get("metadata", {}).get("namespace") == "qwen"
         for item in ai_operations
     )
+
+
+def test_headlamp_public_http_has_one_redirect_owner_and_no_gateway_loop():
+    gateway_resources = documents(
+        "clusters/re8ch/components/cilium/gateway-api-canary.yaml"
+    )
+    headlamp_origin = next(
+        item
+        for item in gateway_resources
+        if item.get("kind") == "HTTPRoute"
+        and item["metadata"]["name"] == "headlamp-edge-origin"
+    )
+    parents = headlamp_origin["spec"]["parentRefs"]
+    assert not any(
+        parent["name"] == "re8ch-gateway-canary"
+        and parent.get("sectionName") == "http"
+        for parent in parents
+    )
+
+    redirects = documents(
+        "clusters/re8ch/components/public-exposure/legacy-special-http-routes.yaml"
+    )
+    headlamp_redirect = next(
+        item
+        for item in redirects
+        if item.get("kind") == "HTTPRoute"
+        and item["metadata"]["name"] == "headlamp-http-redirect"
+    )
+    assert headlamp_redirect["spec"]["rules"][0]["filters"][0] == {
+        "type": "RequestRedirect",
+        "requestRedirect": {"scheme": "https", "port": 443, "statusCode": 308},
+    }
+
+    legacy_shim = documents(
+        "clusters/re8ch/components/cilium/r640-traefik-gateway-shim.yaml"
+    )
+    assert not any(
+        item.get("metadata", {}).get("namespace") == "headlamp"
+        for item in legacy_shim
+    )
