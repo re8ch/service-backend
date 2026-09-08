@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:f498c7edb5c861c6c92d08d537f51defb9a1f8ce71bce48d527a5142ff1a61ec
+    digest: sha256:c986f6eb08b3cd6e313d2062be0b2310e075735d7c45204486b7cb8c3273cb08
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -68,6 +68,12 @@ spec:
       serviceCIDR: 192.0.2.215/24
       controller:
         nodeSelector: {}
+      virtualIngress:
+        enabled: true
+        className: advanced-fabric
+        gateway: {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+        publicAddress: 192.0.2.79
+        reconcileIntervalSeconds: 15
       dns:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d

@@ -147,6 +147,7 @@ spec:
         namespaces:
           from: All
     - {name: litellm-https, hostname: litellm.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: supabase-https, hostname: supabase.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: cube-https, hostname: cube.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: dbgui-https, hostname: dbgui.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: api-https, hostname: api.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
@@ -213,6 +214,9 @@ spec:
     - name: re8ch-gateway-canary
       namespace: kube-system
       sectionName: http
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: supabase-https
     - {name: re8ch-region-loudi, namespace: kube-system, sectionName: http}
     - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: http}
     - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: http}
