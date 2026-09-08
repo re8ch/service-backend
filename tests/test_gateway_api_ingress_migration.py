@@ -59,3 +59,25 @@ def test_batch_one_gateway_routes_remain_declared():
         ("llm-gateway", "litellm-public"),
         ("opensandbox-system", "opensandbox-public"),
     }.issubset(routes)
+
+
+def test_retired_incluster_products_are_not_public_gateway_dependencies():
+    resources = documents("clusters/re8ch/components/cilium/gateway-api-canary.yaml")
+    gateway = next(item for item in resources if item.get("kind") == "Gateway")
+    listener_names = {item["name"] for item in gateway["spec"]["listeners"]}
+    routes = {
+        (item["metadata"].get("namespace"), item["metadata"]["name"])
+        for item in resources
+        if item.get("kind") == "HTTPRoute"
+    }
+
+    assert "teable-https" not in listener_names
+    assert "qianwen-api-https" not in listener_names
+    assert ("qwen", "qianwen-api-public-edge") not in routes
+
+    advanced = next(
+        item
+        for item in documents("platform/advanced-fabric/release.yaml")
+        if item.get("kind") == "HelmRelease"
+    )
+    assert advanced["spec"]["values"]["advancedFabric"]["virtualIngress"]["adoption"]["exclusions"] == []
