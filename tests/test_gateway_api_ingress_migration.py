@@ -17,6 +17,7 @@ def test_batch_one_publications_no_longer_create_traefik_routes():
         ("opensandbox-system", "opensandbox-server"),
     }
     paths = [
+        "clusters/re8ch/components/public-exposure/gateway-dns-authorities.yaml",
         "clusters/re8ch/components/ai-operations/agent-workspace/steel-browser-public.yaml",
         "clusters/re8ch/components/dataspace/gateway.yaml",
         "clusters/re8ch/components/public-exposure/opensandbox-ingress.yaml",
