@@ -9,7 +9,7 @@
     {"name": "restricted-node-296f36f2fb", "internalIp": "192.0.2.208", "transportIp": "192.0.2.20", "rrInterconnectIp": "192.0.2.163", "podCIDR": "192.0.2.26/24", "acceleratedIp": "192.0.2.213", "asn": 4200010125}
   ],
   "nodes": [
-    {"name": "restricted-node-6dc3f140f9", "internalIp": "192.0.2.183", "podCIDR": "192.0.2.18/24", "acceleratedIp": "192.0.2.205", "asn": 4200000128, "peerMode": "transport", "routerOsPeer": "192.0.2.131", "serviceVipExports": ["192.0.2.209/32"]},
+    {"name": "restricted-node-6dc3f140f9", "internalIp": "192.0.2.183", "podCIDR": "192.0.2.18/24", "acceleratedIp": "192.0.2.205", "asn": 4200000128, "peerMode": "transport", "publicMeshIdentityPeers": ["vm-20-12-ubuntu"], "routerOsPeer": "192.0.2.131", "serviceVipExports": ["192.0.2.209/32"]},
     {"name": "amdwsl-zt", "internalIp": "192.0.2.249", "podCIDR": "192.0.2.238/24", "acceleratedIp": "192.0.2.93", "asn": 4200010038, "peerMode": "identity"},
     {"name": "overseas-edge-50", "internalIp": "192.0.2.122", "podCIDR": "192.0.2.208/24", "acceleratedIp": "192.0.2.225", "asn": 4200000050, "peerMode": "identity"},
     {"name": "overseas-kl", "internalIp": "192.0.2.50", "podCIDR": "192.0.2.55/24", "acceleratedIp": "192.0.2.42", "asn": 4200000089, "peerMode": "transport"},
@@ -22,6 +22,6 @@
     {"name": "qwen-1", "internalIp": "192.0.2.115", "podCIDR": "192.0.2.75/24", "acceleratedIp": "192.0.2.29", "asn": 4200010024, "peerMode": "identity"},
     {"name": "qwen-2", "internalIp": "192.0.2.91", "podCIDR": "192.0.2.8/24", "acceleratedIp": "192.0.2.5", "asn": 4200010217, "peerMode": "identity"},
     {"name": "qwen-3", "internalIp": "192.0.2.33", "podCIDR": "192.0.2.52/24", "acceleratedIp": "192.0.2.16", "asn": 4200010047, "peerMode": "identity"},
-    {"name": "vm-20-12-ubuntu", "internalIp": "192.0.2.67", "podCIDR": "192.0.2.224/24", "acceleratedIp": "192.0.2.114", "asn": 4200000073, "peerMode": "identity"}
+    {"name": "vm-20-12-ubuntu", "internalIp": "192.0.2.67", "podCIDR": "192.0.2.224/24", "acceleratedIp": "192.0.2.114", "asn": 4200000073, "peerMode": "identity", "publicMeshIdentityPeers": ["restricted-node-6dc3f140f9"]}
   ]
 }
