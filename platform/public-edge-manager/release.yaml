@@ -5,7 +5,7 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/re8ch/charts/public-edge-manager
-  ref: {digest: sha256:2a3ca6bdcd5b968aca10e636732b80248fa630a3070838dc9f0a158537ee8de4}
+  ref: {digest: sha256:47f7edfa17c3d718f7a388d054716d97c70f8e11b957e501591bfbf787385efd}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -28,8 +28,8 @@ spec:
   values:
     image:
       repository: ghcr.io/re8ch/public-edge-manager
-      tag: "0.3.2"
-      digest: sha256:a630627fcba9eca816db918964781d823974547d19899bea4dcefad9b5189ffd
+      tag: "0.4.2"
+      digest: sha256:e22dcd57cb0bea5415dca78ed80145d98860093128f9d1a12f087b1d7bbb03ee
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -95,7 +95,7 @@ spec:
       connectTimeoutSeconds: 5
       responseTimeoutSeconds: 12
       intervalSeconds: 3
-      userAgent: public-edge-manager/0.3
+      userAgent: public-edge-manager/0.4
     candidateSelection:
       capacityWeight: 10
       localAreaBonus: 100000
@@ -103,6 +103,17 @@ spec:
       latencyDivisorMs: 20
       latencyPenaltyCap: 50
       localNodeBonus: 5
+    # Require fresh Advanced Fabric evidence and the same exact Node Ready=True
+    # eligibility fact used by its path rankings.
+    fabricEvidence:
+      mode: Required
+      apiGroup: networking.re8ch.com
+      apiVersion: v1alpha1
+      resource: networkpathassessments
+      requireNodeReady: true
+      allowedStates: [Ready, Partial]
+      minConfidence: 0.6
+      rankingWeights: {optimality: 100, stability: 100, independence: 50}
     publication:
       enabled: true
       publisherNode: vm-20-12-ubuntu
