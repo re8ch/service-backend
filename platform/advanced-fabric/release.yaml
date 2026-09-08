@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:8e44e266032139641e0987487a6a9f3819a82f9a4eb336df462ecd5e31b2d5c7
+    digest: sha256:cdc1a8f80bb0221965382010e71713bbe2e48554bd71ac128c97253d8cceb06d
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -136,7 +136,6 @@ spec:
         - {name: restricted-node-6dc3f140f9, role: spine, class: A, region: cn-hunan, failureDomain: r640-idc, provider: onprem, internalIP: 192.0.2.183, podCIDR: 192.0.2.18/24, acceleratedIP: 192.0.2.205, asn: 65001, legacyASN: 4200000128, uplinkMbps: 200, publicAuthority: true, inventoryComplete: true}
         - {name: overseas-la, role: spine, class: A, region: us-ca, failureDomain: overseas-la, provider: overseas, internalIP: 192.0.2.55, podCIDR: 192.0.2.15/24, acceleratedIP: 192.0.2.29, asn: 65002, legacyASN: 4200000104, uplinkMbps: 1000, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
         - {name: overseas-kl, role: spine, class: A, region: my-kul, failureDomain: overseas-kl, provider: overseas, internalIP: 192.0.2.50, podCIDR: 192.0.2.55/24, acceleratedIP: 192.0.2.42, asn: 65003, legacyASN: 4200000089, uplinkMbps: 1000, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
-        - {name: overseas-edge-50, role: spine, class: A, region: us-ca, failureDomain: overseas-edge-50, provider: overseas, internalIP: 192.0.2.122, podCIDR: 192.0.2.208/24, acceleratedIP: 192.0.2.225, asn: 65004, legacyASN: 4200000050, uplinkMbps: 1000, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
         - {name: restricted-node-1eb0570f74, role: spine, class: B, region: cn-hunan, failureDomain: a1, provider: local-wsl, internalIP: 192.0.2.18, podCIDR: 192.0.2.109/24, acceleratedIP: 192.0.2.173, asn: 65101, legacyASN: 4200010147, uplinkMbps: 200, publicAuthority: false, inventoryComplete: true}
         - {name: restricted-node-296f36f2fb, role: spine, class: B, region: cn-hunan, failureDomain: b1, provider: local-wsl, internalIP: 192.0.2.208, podCIDR: 192.0.2.26/24, acceleratedIP: 192.0.2.213, asn: 65102, legacyASN: 4200010125, uplinkMbps: 200, publicAuthority: false, inventoryComplete: true}
         - {name: amdwsl-zt, role: spine, class: B, region: cn-hubei, failureDomain: amdwsl, provider: local-wsl, internalIP: 192.0.2.249, podCIDR: 192.0.2.238/24, acceleratedIP: 192.0.2.93, asn: 65103, legacyASN: 4200010038, uplinkMbps: 100, publicAuthority: false, inventoryComplete: true}

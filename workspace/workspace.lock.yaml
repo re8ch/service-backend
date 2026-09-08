@@ -11,7 +11,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/2woodblog.git
   advanced-fabric:
-    commit: 8d6cd089acad2f897dd181b7eb773ed457560e1a
+    commit: 293b0e622bae1b27f219ac7e865c1028b7bf0a07
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/advanced-fabric.git
@@ -141,7 +141,7 @@ modules:
     - garageband-mcp
     repository: https://github.com/re8ch/garageband-mcp-site.git
   headlamp-advanced-fabric:
-    commit: 54914c7b1b87816ec2732f8cb1d32a31c4644709
+    commit: f284b59b086e90bf595ce39685a8c307ab72ef1a
     defaultBranch: main
     dependencies:
     - advanced-fabric
