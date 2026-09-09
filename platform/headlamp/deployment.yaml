@@ -35,12 +35,11 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    # restricted-node-6dc3f140f9 is the durable failover/build node when either WSL
-                    # control-plane node is unavailable. Plugin bundles are
-                    # materialized into each pod from immutable ConfigMaps.
-                    # Run the management UI on the core anchor and a stable
-                    # remote failure domain, not on lifecycle-variable WSL.
-                    values: [restricted-node-6dc3f140f9, domain-ex]
+                    # Plugin bundles are materialized into each pod from
+                    # immutable ConfigMaps. Keep the management UI on two
+                    # healthy, independent nodes; restricted-node-6dc3f140f9 is excluded while its
+                    # kubelet cannot advance newly scheduled Pods.
+                    values: [zan, domain-ex]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
