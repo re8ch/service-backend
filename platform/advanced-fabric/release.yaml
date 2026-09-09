@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:e85d8381e265e706cb6a40666d3742ea36d98f79ab507b95b86032eb331c0f9d
+    digest: sha256:b290e1943f2345871fb9e9acd117692f20cfd3f2271ecca8ddd9cf74e20d524a
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -90,6 +90,10 @@ spec:
         # so a third replica there is permanently unready and blocks rollouts.
         replicas: 2
         pdbMinAvailable: 1
+        # The Helm test must not land on restricted-node-6dc3f140f9 while its pod sandbox path is
+        # independently unhealthy; validate the Service from the healthy DNS
+        # peer instead of making release success scheduler-dependent.
+        testNodeSelector: {kubernetes.io/hostname: zan}
         # Bootstrap by IP, outside both cluster DNS and the lossy Service VIP
         # path. A1/B1 are currently reachable from every authoritative node;
         # restricted-node-6dc3f140f9 remains last-resort until its WG transport IP is in the API cert.

@@ -3,6 +3,8 @@ import ipaddress
 import pathlib
 import unittest
 
+import yaml
+
 
 PATH = pathlib.Path(__file__).parents[1] / "operations" / "scripts" / "advanced_fabric.py"
 SPEC = importlib.util.spec_from_file_location("advanced_fabric", PATH)
@@ -93,6 +95,13 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertNotIn("zto", routes[0])
         self.assertEqual(PODCIDR.control_plane_identity_routes("restricted-node-296f36f2fb"), [])
         self.assertEqual(PODCIDR.control_plane_identity_routes("restricted-node-6dc3f140f9"), [])
+
+    def test_release_pins_dns_helm_test_to_healthy_peer(self):
+        release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"
+        resources = [doc for doc in yaml.safe_load_all(release_path.read_text()) if doc]
+        release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
+        dns = release["spec"]["values"]["advancedFabric"]["dns"]
+        self.assertEqual(dns["testNodeSelector"], {"kubernetes.io/hostname": "zan"})
 
 
 if __name__ == "__main__":
