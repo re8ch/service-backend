@@ -71,7 +71,9 @@ spec:
       acceleratedCIDR: 192.0.2.106/24
       serviceCIDR: 192.0.2.215/24
       controller:
-        nodeSelector: {}
+        # Keep the singleton observation controller off restricted-node-6dc3f140f9 while its kubelet
+        # cannot start newly scheduled Pods. Per-node agents remain unchanged.
+        nodeSelector: {kubernetes.io/hostname: zan}
       virtualIngress:
         enabled: true
         className: advanced-fabric
