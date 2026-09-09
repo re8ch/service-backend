@@ -76,6 +76,37 @@ data:
               source: k3s
               cls: network-economics
 
+      - job_name: advanced-fabric-node-measurements
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [kube-system]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            regex: re8ch-advanced-fabric-agent
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            regex: (.+)
+            target_label: __address__
+            replacement: ${1}:19101
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - target_label: tenant
+            replacement: re8ch
+          - target_label: source
+            replacement: advanced-fabric
+          - target_label: cls
+            replacement: network-tradeoff
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'advanced_fabric_(measurement_state|observable|structural_evidence_coverage)|re8ch_(network_path|dns_probe|doh_probe)_.*'
+            action: keep
+
       - job_name: opencost
         scrape_interval: 60s
         scrape_timeout: 15s
@@ -960,7 +991,7 @@ spec:
           args:
             - -storageDataPath=/victoria-metrics-data
             - -httpListenAddr=:8428
-            - -retentionPeriod=7d
+            - -retentionPeriod=90d
             - -promscrape.config=/etc/victoria-metrics/prometheus.yml
             - -promscrape.fileSDCheckInterval=5s
           ports:
@@ -2556,6 +2587,16 @@ data:
               sum by (namespace, pod, container, node) (
                 rate(container_cpu_usage_seconds_total{namespace="harbor"}[5m])
               )
+          - record: re8ch:advanced_fabric:structural_evidence_coverage
+            expr: |
+              max by (node, latent, collector_epoch, definition) (
+                advanced_fabric_structural_evidence_coverage
+              )
+          - record: re8ch:advanced_fabric:observable
+            expr: |
+              max by (node, symbol, collector_epoch, definition) (
+                advanced_fabric_observable
+              )
       - name: re8ch-headlamp-alert-rules
         interval: 30s
         rules:
@@ -2625,6 +2666,14 @@ data:
               service: observability
             annotations:
               summary: Panel VictoriaMetrics node disk free is below 15 percent
+          - alert: Re8chAdvancedFabricMeasurementScrapeDown
+            expr: count(up{job="advanced-fabric-node-measurements"} == 1) == 0
+            for: 5m
+            labels:
+              severity: warning
+              service: advanced-fabric
+            annotations:
+              summary: Advanced Fabric node measurement scrapes are unavailable
 ---
 apiVersion: apps/v1
 kind: Deployment
