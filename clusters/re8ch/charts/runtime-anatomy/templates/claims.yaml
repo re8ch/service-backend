@@ -1,0 +1,41 @@
+{{- if .Values.provisioning.enabled }}
+{{- $stateClasses := dict }}
+{{- range .Values.stateClasses }}
+{{- $_ := set $stateClasses .name . }}
+{{- end }}
+{{- $backends := dict }}
+{{- range .Values.storage.backends }}
+{{- $_ := set $backends .name . }}
+{{- end }}
+{{- range .Values.provisioning.claims }}
+{{- $claim := . }}
+{{- if not (hasKey $stateClasses $claim.stateClassRef) }}
+{{- fail (printf "claim %s references unknown stateClassRef %s" $claim.name $claim.stateClassRef) }}
+{{- end }}
+{{- $class := get $stateClasses $claim.stateClassRef }}
+{{- if not (hasKey $backends $class.backendRef) }}
+{{- fail (printf "state class %s references unknown backend %s" $class.name $class.backendRef) }}
+{{- end }}
+{{- $backend := get $backends $class.backendRef }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $claim.name }}
+  labels:
+    {{- include "runtime-anatomy.labels" $ | nindent 4 }}
+    anatomy.re8ch.com/state-class: {{ $class.name | quote }}
+    anatomy.re8ch.com/backend: {{ $backend.name | quote }}
+    storage.re8ch.com/replicated-approved: {{ eq $backend.name "replicated-files" | quote }}
+  annotations:
+    helm.sh/resource-policy: keep
+    anatomy.re8ch.com/capture-policy: {{ $class.capturePolicy | quote }}
+spec:
+  accessModes:
+{{ toYaml $class.accessModes | indent 4 }}
+  storageClassName: {{ $backend.storageClassName | quote }}
+  resources:
+    requests:
+      storage: {{ default $class.defaultSize $claim.size | quote }}
+{{- end }}
+{{- end }}

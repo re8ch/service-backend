@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-scope
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+    anatomy.re8ch.com/config-role: final-scope
+  annotations:
+    anatomy.re8ch.com/schema: anatomy.re8ch.com/runtime-scope-v1alpha1
+    anatomy.re8ch.com/ownership-boundary: consumer-only
+data:
+  scope.yaml: |
+    apiVersion: anatomy.re8ch.com/v1alpha1
+    kind: RuntimeScope
+    metadata:
+      name: {{ .Values.scope.name | quote }}
+    spec:
+      lifecycle: {{ .Values.scope.lifecycle | quote }}
+      consistencyDefault: {{ .Values.scope.consistencyDefault | quote }}
+      maxCaptureSkew: {{ .Values.scope.maxCaptureSkew | quote }}
+      manifestStore:
+{{ toYaml .Values.scope.manifestStore | indent 8 }}
+      storageBackends:
+{{ toYaml .Values.storage.backends | indent 8 }}
+      stateClasses:
+{{ toYaml .Values.stateClasses | indent 8 }}
+      images:
+{{ toYaml .Values.images | indent 8 }}
+      integrations:
+{{ toYaml .Values.integrations | indent 8 }}
+      credentials:
+{{ toYaml .Values.credentials | indent 8 }}
+      observation:
+{{ toYaml .Values.observation | indent 8 }}
+      retention:
+{{ toYaml .Values.retention | indent 8 }}
