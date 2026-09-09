@@ -41,7 +41,11 @@ def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
 
     assert deployment["spec"]["replicas"] == 2
     assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
-    assert eligible_nodes == {"zan", "domain-ex"}
+    assert eligible_nodes == {"domain-ex"}
+    pod_anti_affinity = deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"]
+    assert "requiredDuringSchedulingIgnoredDuringExecution" not in pod_anti_affinity
+    preferred = pod_anti_affinity["preferredDuringSchedulingIgnoredDuringExecution"]
+    assert preferred[0]["weight"] == 100
     plugins_volume = next(
         volume for volume in deployment["spec"]["template"]["spec"]["volumes"]
         if volume["name"] == "plugins"

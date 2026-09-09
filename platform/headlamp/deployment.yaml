@@ -36,16 +36,19 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     # Plugin bundles are materialized into each pod from
-                    # immutable ConfigMaps. Keep the management UI on two
-                    # healthy, independent nodes; restricted-node-6dc3f140f9 is excluded while its
-                    # kubelet cannot advance newly scheduled Pods.
-                    values: [zan, domain-ex]
+                    # immutable ConfigMaps. Keep the management UI on the
+                    # healthy node that already has the pinned Headlamp image;
+                    # restricted-node-6dc3f140f9 cannot advance new Pods and zan is currently unable
+                    # to complete this image pull.
+                    values: [domain-ex]
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: headlamp
-              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: headlamp
+                topologyKey: kubernetes.io/hostname
       tolerations:
         - operator: Exists
       initContainers:
