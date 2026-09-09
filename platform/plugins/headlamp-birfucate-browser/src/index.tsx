@@ -250,14 +250,6 @@ function Dashboard() {
         {header:'Resource class',accessorFn:()=> 'compute.workload.v1'},
       ] as any}/>
     </SectionBox>
-    <SectionBox title={`Re8ch Tenant tool coverage (${TENANT_TOOL_COUNT}/56)`}>
-      <Table data={TENANT_TOOL_GROUPS} columns={[
-        {header:'Category',accessorFn:(x:ToolGroup)=><Box><Typography variant="body2">{x.category}</Typography><Typography variant="caption" color="text.secondary">{x.resourceClass}</Typography></Box>},
-        {header:'Flow',accessorFn:(x:ToolGroup)=><StatusLabel status={x.disposition==='retained'?'success':x.disposition==='external'?'warning':'info'}>{x.disposition==='retained'?'储蓄 / 回流':x.disposition==='external'?'外部租户分流':'本租户消耗'}</StatusLabel>},
-        {header:'Tools',accessorFn:(x:ToolGroup)=><Box>{x.tools.map(tool=><Chip key={tool} size="small" variant="outlined" label={tool} sx={{mr:.5,mb:.5}}/>)}</Box>},
-        {header:'Count',accessorFn:(x:ToolGroup)=>x.tools.length},
-      ] as any}/>
-    </SectionBox>
     <SectionBox title={`Resource branches (${visible.length})`}>
       <Table data={visible} columns={[
         {header:'Tenant / Resource',accessorFn:(x:Row)=><Box><Typography variant="body2">{x.tenant}</Typography><Typography variant="caption" color="text.secondary">{x.resource}</Typography></Box>},
