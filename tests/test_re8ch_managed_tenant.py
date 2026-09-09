@@ -48,6 +48,10 @@ def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
     release = next(item for item in objects if item and item.get("kind") == "HelmRelease")
     tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
     re8ch = next(item for item in tenants if item["name"] == "re8ch")
+    assert re8ch["visibility"] == "Private"
+    assert re8ch["hostingMode"] == "platform-managed"
+    assert re8ch["byocAllowed"] is False
+    assert re8ch["businessNamespaces"] == ["ledger", "neo4j", "anysite", "dataspace"]
     grants = {item["consumableRef"] for item in re8ch["grants"]}
     assert "network.among-clusters.v1" in grants
     assert "ai.model-gateway.v1" not in grants

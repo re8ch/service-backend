@@ -12,6 +12,13 @@ spec:
   runtimeNamespaceRef: {{ $tenant.runtimeNamespaceRef }}
   imagePullSecretRef: {{ $tenant.imagePullSecretRef }}
   harborProjectRef: {{ $tenant.harborProjectRef }}
+  visibility: {{ default "Private" $tenant.visibility }}
+  hostingMode: {{ default "platform-managed" $tenant.hostingMode }}
+  byocAllowed: {{ default false $tenant.byocAllowed }}
+  businessNamespaces:
+{{- range $namespace := (default (list $tenant.runtimeNamespaceRef) $tenant.businessNamespaces) }}
+    - {{ $namespace }}
+{{- end }}
 {{- range $binding := $tenant.identityBindings }}
 ---
 apiVersion: tenancy.re8ch.com/v1alpha1
