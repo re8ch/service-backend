@@ -269,25 +269,23 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/public-edge-manager"
     assert source["spec"]["ref"]["digest"] == (
-        "sha256:662c960f79c545c56097c127eebd71000bff7a6e5d3f09ac6aa002550751e8a1"
+        "sha256:8e50f709351d26414f083a3deb21597476b323c3e5a9bc3fceb4ac1529d1d625"
     )
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/re8ch/public-edge-manager",
-        "tag": "0.4.6",
-        "digest": "sha256:f6726b07b55303d2091a0887041f06c184f1c3029ff24ac95b433300af039cf6",
+        "tag": "0.5.0",
+        "digest": "sha256:8e1997d019f26d300e21944ba59d735e66ae5c58cb84a6b70687416c409b32df",
         "pullPolicy": "IfNotPresent",
     }
     assert values["probe"]["maxWorkers"] == 8
     assert values["fabricEvidence"] == {
         "mode": "Required",
         "apiGroup": "networking.re8ch.com",
-        "apiVersion": "v1alpha1",
+        "apiVersion": "v1alpha2",
         "resource": "networkpathassessments",
         "requireNodeReady": True,
         "allowedStates": ["Ready", "Partial"],
-        "minConfidence": 0.6,
-        "rankingWeights": {"optimality": 100, "stability": 100, "independence": 50},
     }
 
 
