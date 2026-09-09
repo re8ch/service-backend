@@ -21,6 +21,9 @@ def test_default_release_is_private_and_has_real_openai_provider():
     providers = config["data"]["providers.json"]
     assert "litellm-openai" in providers
     assert "external-serverless-simulator" not in providers
+    gateway = next(item for item in objects if item.get("kind") == "Deployment" and item["metadata"]["name"] == "runtime-adapter")
+    env = gateway["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert next(item["value"] for item in env if item["name"] == "MAX_REQUEST_BYTES") == "16777216"
 
 
 def test_chart_grants_read_only_fabric_discovery():
@@ -46,4 +49,3 @@ def test_public_edge_route_can_be_rendered_explicitly():
     objects = render("--set", "publicEdge.enabled=true", "--set", "publicEdge.hostname=runtime.example.com")
     route = next(item for item in objects if item.get("kind") == "HTTPRoute")
     assert route["spec"]["hostnames"] == ["runtime.example.com"]
-
