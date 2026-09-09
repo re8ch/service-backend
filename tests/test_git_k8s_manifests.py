@@ -269,13 +269,13 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/public-edge-manager"
     assert source["spec"]["ref"]["digest"] == (
-        "sha256:8e50f709351d26414f083a3deb21597476b323c3e5a9bc3fceb4ac1529d1d625"
+        "sha256:9ebc10f8ccfdaa41741348be1e5623867a5dbd4f2ad9afa6d95c45cab549d929"
     )
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/re8ch/public-edge-manager",
-        "tag": "0.5.0",
-        "digest": "sha256:8e1997d019f26d300e21944ba59d735e66ae5c58cb84a6b70687416c409b32df",
+        "tag": "0.5.1",
+        "digest": "sha256:db30ef6b34c4016478844584de18f4f545e20a3dafd532894602b0117df93432",
         "pullPolicy": "IfNotPresent",
     }
     assert values["probe"]["maxWorkers"] == 8
