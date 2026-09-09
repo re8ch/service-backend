@@ -1,3 +1,4 @@
+import json
 import subprocess
 from pathlib import Path
 
@@ -24,6 +25,7 @@ def test_default_chart_is_configuration_only_and_has_final_scope():
     assert [item["kind"] for item in resources] == ["ConfigMap"]
 
     scope = yaml.safe_load(resources[0]["data"]["scope.yaml"])
+    assert json.loads(resources[0]["data"]["scope.json"]) == scope
     spec = scope["spec"]
     assert scope["kind"] == "RuntimeScope"
     assert spec["lifecycle"] == "Canary"
