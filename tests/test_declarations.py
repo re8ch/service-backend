@@ -40,7 +40,7 @@ def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     )
 
     assert deployment["spec"]["replicas"] == 2
-    assert rolling_update == {"maxSurge": 0, "maxUnavailable": 2}
+    assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
     assert eligible_nodes == {"domain-ex"}
     pod_anti_affinity = deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"]
     assert "requiredDuringSchedulingIgnoredDuringExecution" not in pod_anti_affinity
