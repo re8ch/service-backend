@@ -10,6 +10,11 @@ Service Proxy and renders:
 - Resource branches: meter/domain branches observed for each tenant resource.
 - Tenant contract: lifecycle, visibility, hosting mode, BYOC policy, runtime and
   business namespaces, OIDC group bindings and granted capabilities.
+- Circular resource corridors: owned namespace workloads and granted facilities
+  classified as retained/returned, tenant-local consumption, or external-tenant
+  bifurcation, including observed AmongClusters/BYOC destinations.
+- Complete Re8ch Tenant MCP surface coverage, grouped by resource class; the
+  checked-in catalog is tested against the PluginDefinition allowlist.
 
 The plugin performs only HTTP GET requests. It contains no create, update,
 delete, binding, credential, pricing or billing controls. The tenant selector
