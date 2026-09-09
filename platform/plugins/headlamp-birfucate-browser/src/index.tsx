@@ -19,6 +19,13 @@ const METRICS = [
 
 type Labels = Record<string, string>;
 type Sample = { metric: Labels; value: [number, string] };
+type KubeObject = { metadata?: {name?: string; labels?: Labels}; spec?: Record<string, any>; status?: Record<string, any> };
+type TenantView = {
+  name: string; displayName: string; lifecycle: string; visibility: string;
+  hostingMode: string; byocAllowed: boolean; runtimeNamespace: string;
+  businessNamespaces: string[]; observedNamespaces: string[];
+  identities: KubeObject[]; grants: KubeObject[]; registrations: KubeObject[];
+};
 type Row = {
   tenant: string; resource: string; domain: string; meter: string;
   occupancy: number; occupiedTime: number; occurrences: number;
@@ -43,6 +50,11 @@ async function instantQuery(query: string): Promise<Sample[]> {
   const response: any = await request(path, {method: 'GET'});
   if (response?.status !== 'success') throw new Error(response?.error || 'Birfucate query failed');
   return response?.data?.result || [];
+}
+
+async function apiList(path: string): Promise<KubeObject[]> {
+  const response: any = await request(path, {method: 'GET'});
+  return response?.items || [];
 }
 
 function key(labels: Labels): string {
@@ -82,11 +94,37 @@ function Dashboard() {
   const [resource, setResource] = useState('');
   const [tenantCosts, setTenantCosts] = useState<Sample[]>([]);
   const [tenantResources, setTenantResources] = useState<Sample[]>([]);
+  const [tenantViews, setTenantViews] = useState<TenantView[]>([]);
 
   async function refresh() {
     setLoading(true); setError('');
     try {
-      const results = await Promise.all(METRICS.map(metric => instantQuery(metric)));
+      const [results, tenantObjects, identityObjects, grantObjects, registrations, namespaces] = await Promise.all([
+        Promise.all(METRICS.map(metric => instantQuery(metric))),
+        apiList('/apis/tenancy.re8ch.com/v1alpha1/tenants'),
+        apiList('/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings'),
+        apiList('/apis/tenancy.re8ch.com/v1alpha1/tenantgrants'),
+        apiList('/apis/finops.re8ch.com/v1alpha1/clusterregistrations'),
+        apiList('/api/v1/namespaces'),
+      ]);
+      setTenantViews(tenantObjects.map(item => {
+        const name = item.metadata?.name || '';
+        const spec = item.spec || {};
+        return {
+          name,
+          displayName: spec.displayName || name,
+          lifecycle: spec.lifecycle || 'Unknown',
+          visibility: spec.visibility || 'Private',
+          hostingMode: spec.hostingMode || 'platform-managed',
+          byocAllowed: spec.byocAllowed === true,
+          runtimeNamespace: spec.runtimeNamespaceRef || '-',
+          businessNamespaces: spec.businessNamespaces || [],
+          observedNamespaces: namespaces.filter(namespace => namespace.metadata?.labels?.['saas.re8ch.com/tenant'] === name).map(namespace => namespace.metadata?.name || '').filter(Boolean),
+          identities: identityObjects.filter(binding => binding.spec?.tenantRef === name),
+          grants: grantObjects.filter(grant => grant.spec?.tenantRef === name),
+          registrations: registrations.filter(registration => registration.spec?.tenantRef === name),
+        };
+      }));
       setTenantCosts(results[7]); setTenantResources(results[8]);
       const byKey = new Map<string, Row>();
       results.slice(0, 7).forEach((samples, index) => samples.forEach(sample => {
@@ -110,7 +148,7 @@ function Dashboard() {
   }
 
   useEffect(() => { void refresh(); }, []);
-  const tenants = useMemo(() => [...new Set(rows.map(x => x.tenant))].sort(), [rows]);
+  const tenants = useMemo(() => [...new Set([...rows.map(x => x.tenant), ...tenantViews.map(x => x.name)])].sort(), [rows, tenantViews]);
   const domains = useMemo(() => [...new Set(rows.map(x => x.domain))].sort(), [rows]);
   const visible = rows.filter(x => (!tenant || x.tenant === tenant) && (!domain || x.domain === domain) && (!resource || x.resource.toLowerCase().includes(resource.toLowerCase())));
   const resources = new Set(visible.map(x => `${x.tenant}\u0000${x.resource}`)).size;
@@ -120,6 +158,7 @@ function Dashboard() {
   const selectedTenantCost = tenantCosts.filter(x=>!tenant || x.metric.tenant===tenant).reduce((sum,x)=>sum+n(x.value?.[1]),0);
   const selectedTenantResources = tenantResources.filter(x=>!tenant || x.metric.tenant===tenant).reduce((sum,x)=>sum+n(x.value?.[1]),0);
   const currency = visible.find(x=>x.currency)?.currency || tenantCosts[0]?.metric.currency || 'CNY';
+  const visibleTenantViews = tenantViews.filter(x => !tenant || x.name === tenant);
 
   return <Box sx={{p: 2}}>
     <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:2,mb:1}}>
@@ -134,6 +173,16 @@ function Dashboard() {
       <TextField size="small" label="Resource contains" value={resource} onChange={e=>setResource(e.target.value)}/>
       <Chip label={`${resources} visible resources`}/><Chip label={`${human(selectedTenantResources)} tenant resources`}/><Chip label={`${human(occupancy)} occupancy units`}/><Chip color="primary" label={`${human(score)} bifurcation score`}/><Chip color="secondary" label={`${currency} ${human(cost || selectedTenantCost)} metered cost`}/>
     </Box>
+    <SectionBox title={`Tenant contracts (${visibleTenantViews.length})`}>
+      <Table data={visibleTenantViews} columns={[
+        {header:'Tenant',accessorFn:(x:TenantView)=><Box><Typography variant="body2">{x.displayName}</Typography><Typography variant="caption" color="text.secondary">{x.name} · 业务租户</Typography></Box>},
+        {header:'Lifecycle',accessorFn:(x:TenantView)=><Box><StatusLabel status={x.lifecycle === 'Active' ? 'success' : 'warning'}>{x.lifecycle}</StatusLabel><Typography variant="caption" display="block" color="text.secondary">{x.visibility}</Typography></Box>},
+        {header:'Hosting / BYOC',accessorFn:(x:TenantView)=><Box><Chip size="small" label={x.hostingMode === 'platform-managed' ? '平台托管' : x.hostingMode}/><Typography variant="caption" display="block" color="text.secondary">BYOC {x.byocAllowed ? `允许 · ${x.registrations.length} registrations` : '禁用'}</Typography></Box>},
+        {header:'Namespaces',accessorFn:(x:TenantView)=><Box><Typography variant="body2">runtime: {x.runtimeNamespace}</Typography><Typography variant="caption" color="text.secondary">声明 {x.businessNamespaces.join(', ') || '-'}<br/>已标记 {x.observedNamespaces.join(', ') || '-'}</Typography></Box>},
+        {header:'OIDC identities',accessorFn:(x:TenantView)=><Box>{x.identities.map(binding=><Chip key={binding.metadata?.name} size="small" variant="outlined" label={`${binding.spec?.group} · ${binding.spec?.role}`} sx={{mr:.5,mb:.5}}/>)}<Typography variant="caption" display="block" color="text.secondary">{[...new Set(x.identities.map(binding=>binding.spec?.issuer))].filter(Boolean).join(', ') || '-'}</Typography></Box>},
+        {header:'Granted capabilities',accessorFn:(x:TenantView)=><Box>{x.grants.map(grant=><Chip key={grant.metadata?.name} size="small" label={grant.spec?.consumableRef} sx={{mr:.5,mb:.5}}/>)}</Box>},
+      ] as any}/>
+    </SectionBox>
     <SectionBox title="Tenant → Resource type → Purpose"><FlowDiagram rows={visible}/></SectionBox>
     <SectionBox title={`Resource branches (${visible.length})`}>
       <Table data={visible} columns={[

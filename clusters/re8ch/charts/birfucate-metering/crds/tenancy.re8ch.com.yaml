@@ -64,6 +64,23 @@ spec:
               harborProjectRef:
                 type: string
                 pattern: ^[a-z0-9](?:[._-]?[a-z0-9]+)*$
+              visibility:
+                type: string
+                enum:
+                - Private
+                - Public
+              hostingMode:
+                type: string
+                enum:
+                - platform-managed
+                - byoc
+              byocAllowed:
+                type: boolean
+              businessNamespaces:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
           status:
             type: object
             properties:

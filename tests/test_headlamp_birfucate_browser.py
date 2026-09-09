@@ -7,7 +7,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "platform/plugins/headlamp-birfucate-browser"
-BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.1.2.bundle"
+BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.2.0.bundle"
 
 
 def test_plugin_is_explicitly_read_only():
@@ -36,20 +36,39 @@ def test_plugin_queries_birfucate_metrics_through_service_proxy():
     assert "labels.resource_ref" in source
 
 
+def test_plugin_renders_the_managed_tenant_contract():
+    source = (PLUGIN / "src/index.tsx").read_text()
+    for endpoint in (
+        "/apis/tenancy.re8ch.com/v1alpha1/tenants",
+        "/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings",
+        "/apis/tenancy.re8ch.com/v1alpha1/tenantgrants",
+        "/apis/finops.re8ch.com/v1alpha1/clusterregistrations",
+        "/api/v1/namespaces",
+    ):
+        assert endpoint in source
+    for field in ("hostingMode", "byocAllowed", "businessNamespaces", "OIDC identities"):
+        assert field in source
+
+
 def test_bundle_is_digest_pinned_and_contains_runtime_files():
     digest = hashlib.sha256(BUNDLE.read_bytes()).hexdigest()
     deployment = (ROOT / "platform/headlamp/deployment.yaml").read_text()
     assert digest in deployment
     with tarfile.open(BUNDLE) as archive:
         names = set(archive.getnames())
+        runtime = archive.extractfile("headlamp-birfucate-browser/main.js").read().decode()
+        package = archive.extractfile("headlamp-birfucate-browser/package.json").read().decode()
     assert "headlamp-birfucate-browser/main.js" in names
     assert "headlamp-birfucate-browser/package.json" in names
+    assert '"version": "0.2.0"' in package
+    assert "/apis/tenancy.re8ch.com/v1alpha1/tenants" in runtime
+    assert "/apis/finops.re8ch.com/v1alpha1/clusterregistrations" in runtime
 
 
 def test_headlamp_kustomization_includes_bundle():
     document = yaml.safe_load((ROOT / "platform/headlamp/kustomization.yaml").read_text())
     generators = {item["name"]: item for item in document["configMapGenerator"]}
-    assert generators["headlamp-birfucate-browser-v012"]["namespace"] == "headlamp"
-    assert generators["headlamp-birfucate-browser-v012"]["files"] == [
-        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.1.2.bundle"
+    assert generators["headlamp-birfucate-browser-v020"]["namespace"] == "headlamp"
+    assert generators["headlamp-birfucate-browser-v020"]["files"] == [
+        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.2.0.bundle"
     ]
