@@ -1,0 +1,21 @@
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantPortfolio
+metadata:
+  name: re8ch
+spec:
+  tenantRef: re8ch
+  displayName: RE8CH
+  identityRef: oidc-group:re8ch
+  visibility: Private
+  hostingMode: platform-managed
+  byocAllowed: false
+  businessNamespaces:
+    - ledger
+    - neo4j
+    - anysite
+    - dataspace
+  excludedClasses:
+    - internal-control-plane
+    - shared-infrastructure-product
+    - ai-platform
+  assignmentRule: Business-specific workloads owned by RE8CH are attributed to this tenant; cluster infrastructure and shared AI supply remain platform-owned.

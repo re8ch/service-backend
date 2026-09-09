@@ -36,6 +36,51 @@ spec:
       enabled: true
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
       tenantReadinessPath: /livez
+      tenants:
+        - name: admin
+          displayName: RE8CH Platform Administration
+          lifecycle: Active
+          deletionPolicy: Retain
+          runtimeNamespaceRef: tenant-infrastructure
+          imagePullSecretRef: harbor-functions-shared-pull
+          harborProjectRef: re8ch
+          identityBindings:
+            - {name: admin-github-k8s-admins, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: admin}
+            - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+          grants: []
+        - name: artchais
+          displayName: Artchais
+          lifecycle: Active
+          deletionPolicy: Retain
+          runtimeNamespaceRef: artchais
+          imagePullSecretRef: harbor-functions-shared-pull
+          harborProjectRef: artchais
+          identityBindings:
+            - {name: artchais-github-admins, issuer: https://dex.re8ch.com, group: "Artchais:tenant-admins", role: admin}
+            - {name: artchais-github-operators, issuer: https://dex.re8ch.com, group: "Artchais:tenant-operators", role: operator}
+            - {name: artchais-github-viewers, issuer: https://dex.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
+          grants:
+            - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+            - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+        - name: re8ch
+          displayName: RE8CH
+          lifecycle: Active
+          deletionPolicy: Retain
+          runtimeNamespaceRef: ledger
+          imagePullSecretRef: harbor-functions-shared-pull
+          harborProjectRef: re8ch
+          identityBindings:
+            - {name: re8ch-auth-admins, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:admin", role: admin}
+            - {name: re8ch-auth-operators, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:member", role: operator}
+            - {name: re8ch-auth-billing, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:billing", role: viewer}
+          grants:
+            - {name: re8ch-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-database, consumableRef: database.postgresql.shared.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-network, consumableRef: network.tenant.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-among-clusters, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-observability, consumableRef: observability.grafana.v1, roleRef: viewer, lifecycle: Active}
+            - {name: re8ch-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
     # Keep the first production reconciliation equivalent to the validated
     # canary: no stateful allocation while Ceph is degraded and no downstream
     # delivery until the tenant usage sink is promoted.
