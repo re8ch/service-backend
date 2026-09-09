@@ -10,11 +10,10 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      # Drain both legacy replicas during the affinity migration. Legacy Pods
-      # still carry required anti-affinity and otherwise reject the new
-      # domain-ex-only template before it can start.
+      # Avoid a surge pod while both replicas share the temporary healthy
+      # domain-ex placement; keep one serving replica during later rollouts.
       maxSurge: 0
-      maxUnavailable: 2
+      maxUnavailable: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: headlamp
