@@ -18,7 +18,6 @@ resources:
   - components/cilium/gateway-api-canary.yaml
   - components/farseer/public-web.yaml
   - components/cilium/r640-policy-update-budget.yaml
-  - components/runtime-provider-canary
   - components/ai-operations/platform.yaml
   - components/tenancy/re8ch-managed-business-namespaces.yaml
   - components/auth/dex/dex-ha-deployment.yaml
@@ -48,6 +47,7 @@ resources:
   - ../../platform/birfucate-metering
   - ../../platform/hyperswitch
   - ../../platform/public-edge-manager
+  - ../../platform/runtime-adapter
   - ../../platform/external-projects
 patchesStrategicMerge:
   - retire-legacy-mcp.patch.yaml
