@@ -107,7 +107,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.20.1
+              target=/headlamp/plugins/advanced-fabric-0.20.2
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               rmdir "$lock" 2>/dev/null || true
@@ -117,9 +117,9 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.20.1.new
+              stage=/headlamp/plugins/.advanced-fabric-0.20.2.new
               base64 -d /plugin/plugin.tar.gz.b64 > "$archive"
-              echo '9d65bfb53d08cd34784e1351fa0ee567cea212f8dd2d923b4706ea767367a4c1  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '5bcd55e56eeee0b6a30a8db1dd68518bc23b6b6e4ff176da879aa8531d699bd9  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage" --strip-components=1
@@ -317,7 +317,7 @@ spec:
             name: headlamp-birfucate-browser-v031
         - name: advanced-fabric-plugin
           configMap:
-            name: headlamp-advanced-fabric-v0201
+            name: headlamp-advanced-fabric-v0202
         - name: among-clusters-plugin
           configMap:
             name: headlamp-among-clusters-v036
