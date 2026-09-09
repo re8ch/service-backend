@@ -10,9 +10,11 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      # Two eligible nodes plus required anti-affinity cannot accommodate a surge pod.
+      # Drain both legacy replicas during the affinity migration. Legacy Pods
+      # still carry required anti-affinity and otherwise reject the new
+      # domain-ex-only template before it can start.
       maxSurge: 0
-      maxUnavailable: 1
+      maxUnavailable: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: headlamp
