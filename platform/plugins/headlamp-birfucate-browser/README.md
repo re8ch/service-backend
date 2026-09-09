@@ -8,6 +8,8 @@ Service Proxy and renders:
 - Occupancy: current occupied capacity and accumulated resource-time.
 - Bifurcation: behavior occurrences, intensity, fanout and accumulated score.
 - Resource branches: meter/domain branches observed for each tenant resource.
+- Tenant contract: lifecycle, visibility, hosting mode, BYOC policy, runtime and
+  business namespaces, OIDC group bindings and granted capabilities.
 
 The plugin performs only HTTP GET requests. It contains no create, update,
 delete, binding, credential, pricing or billing controls. The tenant selector

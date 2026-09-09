@@ -69,6 +69,10 @@ spec:
           runtimeNamespaceRef: ledger
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
+          visibility: Private
+          hostingMode: platform-managed
+          byocAllowed: false
+          businessNamespaces: [ledger, neo4j, anysite, dataspace]
           identityBindings:
             - {name: re8ch-auth-admins, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:admin", role: admin}
             - {name: re8ch-auth-operators, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:member", role: operator}
