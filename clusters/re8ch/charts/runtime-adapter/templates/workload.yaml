@@ -26,7 +26,7 @@ spec:
           env:
             - {name: PROVIDERS_FILE, value: /runtime/providers.json}
             - {name: PROVIDER_TIMEOUT_SECONDS, value: {{ .Values.providerTimeoutSeconds | quote }}}
-            - {name: MAX_REQUEST_BYTES, value: {{ .Values.maxRequestBytes | quote }}}
+            - {name: MAX_REQUEST_BYTES, value: {{ printf "%.0f" .Values.maxRequestBytes | quote }}}
             - {name: PYTHONDONTWRITEBYTECODE, value: "1"}
 {{- if .Values.externalAuthorizationSecret.name }}
             - name: EXTERNAL_SERVERLESS_AUTHORIZATION
@@ -82,4 +82,3 @@ spec:
   selector: {app.kubernetes.io/name: runtime-adapter-local}
   ports: [{name: http, port: 8080, targetPort: http}]
 {{- end }}
-
