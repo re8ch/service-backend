@@ -271,7 +271,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "08155e66d6193d3fd698088ca9eca892263b46ca",
+    "commit": "ffeb3635fb23491755ad57ade42102d7d0e95304",
     "id": "advanced-fabric",
     "ownership": "owned",
     "projectType": "network-controller",
@@ -334,7 +334,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "c0561d793a491fd7be419418c3013594c80edaa2",
+    "commit": "932425d77fa6f39ac4025dc3ca4e52682feea964",
     "id": "headlamp-advanced-fabric",
     "ownership": "owned",
     "projectType": "headlamp-plugin",

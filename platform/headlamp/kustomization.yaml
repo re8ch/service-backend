@@ -9,10 +9,10 @@ resources:
   - controlled-cluster-relay.yaml
   - oidc-admin-rbac.yaml
 configMapGenerator:
-  - name: headlamp-advanced-fabric-v0190
+  - name: headlamp-advanced-fabric-v0200
     namespace: headlamp
     files:
-      - plugin.tar.gz.b64=assets/re8ch-headlamp-advanced-fabric-0.19.0.bundle.b64
+      - plugin.tar.gz.b64=assets/re8ch-headlamp-advanced-fabric-0.20.0.bundle.b64
   - name: headlamp-among-clusters-v036
     namespace: headlamp
     files:
