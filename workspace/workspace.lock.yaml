@@ -141,7 +141,7 @@ modules:
     - garageband-mcp
     repository: https://github.com/re8ch/garageband-mcp-site.git
   headlamp-advanced-fabric:
-    commit: 932425d77fa6f39ac4025dc3ca4e52682feea964
+    commit: 18ae3004b5b13e276cf83862e4ca6fc9029332b6
     defaultBranch: main
     dependencies:
     - advanced-fabric
