@@ -1,0 +1,7 @@
+Runtime Anatomy scope {{ .Values.scope.name }} is installed as
+{{ include "runtime-anatomy.fullname" . }}-scope.
+
+This release consumes existing storage and runtime providers. It does not
+install or mutate Rook/Ceph, CSI drivers, StorageClasses or external runtimes.
+PVC provisioning: {{ ternary "enabled" "disabled" .Values.provisioning.enabled }}
+GC mode: {{ .Values.retention.gcMode }}

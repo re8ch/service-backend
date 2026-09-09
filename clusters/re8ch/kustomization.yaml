@@ -48,6 +48,7 @@ resources:
   - ../../platform/hyperswitch
   - ../../platform/public-edge-manager
   - ../../platform/runtime-adapter
+  - ../../platform/runtime-anatomy
   - ../../platform/external-projects
 patchesStrategicMerge:
   - retire-legacy-mcp.patch.yaml
