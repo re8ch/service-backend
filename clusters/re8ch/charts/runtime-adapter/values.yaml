@@ -1,0 +1,66 @@
+fullnameOverride: runtime-adapter
+replicaCount: 1
+image:
+  repository: python
+  digest: sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+  pullPolicy: IfNotPresent
+nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+resources:
+  requests: {cpu: 20m, memory: 32Mi}
+  limits: {cpu: 200m, memory: 96Mi}
+providerTimeoutSeconds: 30
+maxRequestBytes: 16777216
+providers:
+  - name: local-container
+    enabled: true
+    kind: container
+    workloadPrefixes: [canary/]
+    service: {name: runtime-adapter-local, namespace: runtime-adapter, port: 8080}
+    pathPrefix: /invoke/
+    priority: 100
+  - name: litellm-openai
+    enabled: true
+    kind: openai
+    workloadPrefixes: [openai/]
+    service: {name: litellm, namespace: llm-gateway, port: 4000}
+    pathPrefix: /v1/
+    priority: 100
+  - name: spin
+    enabled: false
+    kind: spin
+    workloadPrefixes: [wasm/]
+    service: {name: runtime-adapter-spin, namespace: runtime-adapter, port: 8080}
+    pathPrefix: /
+    priority: 100
+  - name: vllm
+    enabled: false
+    kind: openai
+    workloadPrefixes: [vllm/]
+    service: {name: runtime-adapter-vllm, namespace: runtime-adapter, port: 8000}
+    pathPrefix: /v1/
+    priority: 100
+  - name: external-serverless
+    enabled: false
+    kind: external-serverless
+    workloadPrefixes: [external/]
+    url: ""
+    pathPrefix: /
+    priority: 100
+    authorizationEnv: EXTERNAL_SERVERLESS_AUTHORIZATION
+localCanary:
+  enabled: true
+  replicas: 1
+externalAuthorizationSecret:
+  name: ""
+  key: authorization
+trafficPolicy:
+  enabled: true
+  profile: balanced
+  fallbackProfile: fastest
+publicEdge:
+  enabled: false
+  gatewayName: re8ch-public
+  gatewayNamespace: kube-system
+  hostname: ""
+  sectionName: https
+

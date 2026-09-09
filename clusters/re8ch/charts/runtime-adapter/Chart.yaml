@@ -1,0 +1,10 @@
+apiVersion: v2
+name: runtime-adapter
+description: Provider-neutral runtime gateway for container, Wasm, AI and external Serverless execution.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords: [runtime, serverless, wasm, ai, advanced-fabric, public-edge]
+maintainers:
+  - name: RE8CH Platform
+

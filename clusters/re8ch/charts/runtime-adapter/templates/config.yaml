@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "runtime-adapter.fullname" . }}
+  labels: {{ include "runtime-adapter.labels" . | nindent 4 }}
+data:
+  gateway.py: |
+{{ .Files.Get "files/gateway.py" | indent 4 }}
+  provider.py: |
+{{ .Files.Get "files/provider.py" | indent 4 }}
+  providers.json: {{ .Values.providers | toJson | quote }}
+
