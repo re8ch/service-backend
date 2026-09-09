@@ -1,0 +1,151 @@
+nameOverride: ""
+fullnameOverride: ""
+
+scope:
+  name: re8ch-runtime
+  lifecycle: Canary
+  consistencyDefault: CrashConsistent
+  maxCaptureSkew: 30s
+  manifestStore:
+    type: OCI
+    uri: oci://registry.re8ch.com/runtime-anatomy/commits
+    credentialRef: runtime-anatomy-registry
+    immutableByDigest: true
+
+storage:
+  # This chart consumes storage services. It never installs or mutates Rook,
+  # Ceph pools, CSI drivers, StorageClasses or object-store credentials.
+  backends:
+    - name: replicated-files
+      type: CephFS
+      storageClassName: cephfs-re8ch
+      availabilityClass: replicated-whitelist
+      durability: Replicated
+      reclaimPolicyExpectation: Retain
+      capabilities: [ReadWriteMany, Snapshot, Clone]
+      healthProvider: rook-ceph
+    - name: r640-files
+      type: CephFS
+      storageClassName: cephfs-r640
+      availabilityClass: single-node
+      durability: NodeLocal
+      failureDomains: [restricted-node-6dc3f140f9]
+      reclaimPolicyExpectation: Retain
+      capabilities: [ReadWriteMany, Snapshot]
+      healthProvider: rook-ceph
+    - name: r640-block
+      type: RBD
+      storageClassName: rbd-r640
+      availabilityClass: single-node
+      durability: NodeLocal
+      failureDomains: [restricted-node-6dc3f140f9]
+      reclaimPolicyExpectation: Retain
+      capabilities: [ReadWriteOnce, Snapshot, Clone]
+      healthProvider: rook-ceph
+    - name: object-artifacts
+      type: S3Compatible
+      csiDriverName: rclone.csi.veloxpack.io
+      durability: Remote
+      capabilities: [ObjectManifest, VersionedObject]
+      credentialRef: runtime-anatomy-object-store
+    - name: node-cache
+      type: LocalCache
+      storageClassName: local-path
+      durability: Ephemeral
+      capabilities: [Hydrate, Reconstruct]
+
+stateClasses:
+  - name: workspace
+    componentKind: Filesystem
+    backendRef: replicated-files
+    required: true
+    defaultSize: 20Gi
+    accessModes: [ReadWriteMany]
+    capturePolicy: filesystem-consistent
+  - name: browser-profile
+    componentKind: BrowserProfile
+    backendRef: r640-files
+    required: true
+    defaultSize: 10Gi
+    accessModes: [ReadWriteMany]
+    capturePolicy: application-consistent
+    exclusiveWriter: true
+  - name: runtime-exports
+    componentKind: Filesystem
+    backendRef: r640-files
+    required: false
+    defaultSize: 10Gi
+    accessModes: [ReadWriteMany]
+    capturePolicy: crash-consistent
+  - name: image-cache
+    componentKind: Cache
+    backendRef: node-cache
+    required: false
+    defaultSize: 20Gi
+    accessModes: [ReadWriteOnce]
+    capturePolicy: reconstruct
+
+images:
+  policy:
+    requireDigest: true
+    registryAuthority: registry.re8ch.com
+    recordPlatform: true
+    recordSignature: true
+    recordSbom: true
+    cacheStateClassRef: image-cache
+  catalog:
+    - name: steel-browser-api
+      role: BrowserRuntime
+      reference: ghcr.io/steel-dev/steel-browser-api:latest@sha256:21142907c6f9c4eb671defc9c722ee68e2be48a3490a30f12405f181f61ca0f4
+    - name: steel-browser-ui
+      role: BrowserUI
+      reference: ghcr.io/steel-dev/steel-browser-ui:latest@sha256:d866fe57ec8a883bcedc930d533141ee628d857d570abed72358c140806b07b2
+
+integrations:
+  kubernetes:
+    enabled: true
+    observe: [Pod, PersistentVolumeClaim, VolumeSnapshot, NetworkPolicy]
+  rookCeph:
+    enabled: true
+    namespace: rook-ceph
+    filesystemName: re8ch-files
+  opensandbox:
+    enabled: true
+    namespace: opensandbox-system
+    ownership: ExternalLifecycle
+  steelBrowser:
+    enabled: true
+    namespace: ai-operations
+    serviceName: steel-browser
+    profileStateClassRef: browser-profile
+    ownership: ExternalLifecycle
+  cubeSandbox:
+    enabled: false
+    namespace: cube-trial
+    ownership: ExperimentalExternalLifecycle
+    blockers: [dedicated-xfs, cilium-compatibility, checkpoint-restore-verification]
+
+credentials:
+  captureValues: false
+  restoreMode: ReResolve
+  record: [bindingRef, audience, scopeDigest, issuer, policyVersion, notAfter]
+
+observation:
+  dimensions: [Health, Freshness, Validity, Durability, Restorability, Provenance]
+  volumePlanes: [Declaration, Control, DataPath, Backend, Capacity, Protection, Recovery]
+  unknownIsHealthy: false
+
+retention:
+  gcMode: DryRun
+  gracePeriod: 168h
+  roots: [BranchHead, Tag, ActiveCheckout, LegalHold, Pin]
+  honorBackendRetain: true
+
+# Canary does not allocate bytes until Ceph health and snapshot capability have
+# been observed successfully. Enabling this creates only explicitly listed PVCs.
+provisioning:
+  enabled: false
+  claims: []
+  # - name: runtime-anatomy-canary
+  #   stateClassRef: workspace
+  #   size: 1Gi
