@@ -42,6 +42,20 @@ def test_vmalert_starts_in_observe_only_mode():
     assert vmalert["spec"]["extraArgs"]["notifier.blackhole"] == "true"
 
 
+def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
+    resources = yaml_documents(OBSERVABILITY / "opencost-recovery" / "scrapes.yaml")
+    scrape = next(
+        doc for doc in resources
+        if doc["kind"] == "VMServiceScrape"
+        and doc["metadata"]["name"] == "advanced-fabric-node-measurements"
+    )
+
+    assert scrape["metadata"]["labels"]["observability.re8ch.com/opencost-recovery"] == "true"
+    assert scrape["spec"]["namespaceSelector"]["matchNames"] == ["kube-system"]
+    assert scrape["spec"]["selector"]["matchLabels"]["app.kubernetes.io/name"] == "re8ch-advanced-fabric-node-exporter"
+    assert scrape["spec"]["endpoints"][0]["port"] == "metrics"
+
+
 def test_every_alert_has_ownership_and_runbook_metadata():
     documents = yaml_documents(OBSERVABILITY / "production" / "rules.yaml")
     alerts = [
