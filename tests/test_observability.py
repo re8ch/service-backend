@@ -59,6 +59,29 @@ def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
     assert scrape["spec"]["endpoints"][0]["port"] == "metrics"
 
 
+def test_primary_metrics_scrape_gateway_receive_bytes_per_node():
+    resources = yaml_documents(OBSERVABILITY / "production" / "scrapes.yaml")
+    scrape = next(
+        doc for doc in resources
+        if doc["kind"] == "VMPodScrape"
+        and doc["metadata"]["name"] == "cilium-envoy-gateway"
+    )
+
+    assert scrape["metadata"]["labels"]["observability.re8ch.com/managed"] == "true"
+    assert scrape["spec"]["namespaceSelector"]["matchNames"] == ["kube-system"]
+    assert scrape["spec"]["selector"]["matchLabels"]["k8s-app"] == "cilium-envoy"
+    endpoint = scrape["spec"]["podMetricsEndpoints"][0]
+    assert endpoint["targetPort"] == 9964
+    assert endpoint["path"] == "/metrics"
+    assert {
+        "sourceLabels": ["__meta_kubernetes_pod_node_name"],
+        "targetLabel": "node",
+    } in endpoint["relabelConfigs"]
+    metric_filter = endpoint["metricRelabelConfigs"][0]
+    assert metric_filter["action"] == "keep"
+    assert "listener_downstream_cx_rx_bytes_total" in metric_filter["regex"]
+
+
 def test_every_alert_has_ownership_and_runbook_metadata():
     documents = yaml_documents(OBSERVABILITY / "production" / "rules.yaml")
     alerts = [
