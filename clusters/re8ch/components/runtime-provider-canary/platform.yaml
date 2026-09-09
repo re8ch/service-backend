@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: runtime-provider-canary
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: runtime-provider-gateway, namespace: runtime-provider-canary}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: runtime-provider-gateway}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: runtime-provider-gateway, app.kubernetes.io/part-of: runtime-provider-canary}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/path: /metrics, prometheus.io/port: "8080"}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: gateway
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: [python3, /runtime/gateway.py]
+          env:
+            - {name: RUNTIME_PROVIDERS, value: "http://runtime-provider-local:8080,http://runtime-provider-external-simulator:8080"}
+            - {name: PROVIDER_TIMEOUT_SECONDS, value: "2"}
+            - {name: PYTHONDONTWRITEBYTECODE, value: "1"}
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 10m, memory: 24Mi}, limits: {cpu: 100m, memory: 64Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: runtime-provider-canary-code}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: runtime-provider-gateway, namespace: runtime-provider-canary}
+spec:
+  selector: {app.kubernetes.io/name: runtime-provider-gateway}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: runtime-provider-local, namespace: runtime-provider-canary}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: runtime-provider-local}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: runtime-provider-local, app.kubernetes.io/part-of: runtime-provider-canary}}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: provider
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: [python3, /runtime/provider.py]
+          env: [{name: PROVIDER_NAME, value: local-container}, {name: PROVIDER_KIND, value: container}, {name: PYTHONDONTWRITEBYTECODE, value: "1"}]
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 48Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: runtime-provider-canary-code}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: runtime-provider-local, namespace: runtime-provider-canary}
+spec:
+  selector: {app.kubernetes.io/name: runtime-provider-local}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: runtime-provider-external-simulator, namespace: runtime-provider-canary}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: runtime-provider-external-simulator}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: runtime-provider-external-simulator, app.kubernetes.io/part-of: runtime-provider-canary}}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: provider
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: [python3, /runtime/provider.py]
+          env: [{name: PROVIDER_NAME, value: external-serverless-simulator}, {name: PROVIDER_KIND, value: external-serverless}, {name: PYTHONDONTWRITEBYTECODE, value: "1"}]
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 48Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: runtime-provider-canary-code}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: runtime-provider-external-simulator, namespace: runtime-provider-canary}
+spec:
+  selector: {app.kubernetes.io/name: runtime-provider-external-simulator}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: runtime-provider-canary, namespace: runtime-provider-canary}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {app.kubernetes.io/part-of: runtime-provider-canary}}}]
+      ports: [{protocol: TCP, port: 8080}]
+  egress:
+    - to: [{podSelector: {matchLabels: {app.kubernetes.io/part-of: runtime-provider-canary}}}]
+      ports: [{protocol: TCP, port: 8080}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]

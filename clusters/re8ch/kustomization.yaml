@@ -18,6 +18,7 @@ resources:
   - components/cilium/gateway-api-canary.yaml
   - components/farseer/public-web.yaml
   - components/cilium/r640-policy-update-budget.yaml
+  - components/runtime-provider-canary
   - components/ai-operations/platform.yaml
   - components/auth/dex/dex-ha-deployment.yaml
   - components/egress-fabric/identity-egress.yaml
