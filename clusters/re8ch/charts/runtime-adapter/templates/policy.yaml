@@ -1,0 +1,39 @@
+{{- if .Values.trafficPolicy.enabled }}
+apiVersion: networking.re8ch.com/v1alpha1
+kind: TrafficPolicy
+metadata: {name: runtime-adapter}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: runtime-adapter}}
+  destination: {class: cluster}
+  profile: {{ .Values.trafficPolicy.profile }}
+  fallbackProfile: {{ .Values.trafficPolicy.fallbackProfile }}
+  priority: 500
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: runtime-adapter}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/part-of: runtime-adapter}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/part-of: runtime-adapter}}
+      ports: [{protocol: TCP, port: 8080}]
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: qianwen-ops}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: monitoring}}
+      ports: [{protocol: TCP, port: 8080}]
+{{- if .Values.publicEdge.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: runtime-adapter}
+spec:
+  parentRefs:
+    - {name: {{ .Values.publicEdge.gatewayName }}, namespace: {{ .Values.publicEdge.gatewayNamespace }}, sectionName: {{ .Values.publicEdge.sectionName }}}
+  hostnames: [{{ required "publicEdge.hostname is required when enabled" .Values.publicEdge.hostname | quote }}]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /invoke/}}]
+      backendRefs: [{name: runtime-adapter, port: 8080}]
+{{- end }}

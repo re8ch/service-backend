@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "runtime-adapter.fullname" . }}
+  labels: {{ include "runtime-adapter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector: {matchLabels: {app.kubernetes.io/name: {{ include "runtime-adapter.fullname" . }}}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: {{ include "runtime-adapter.fullname" . }}, app.kubernetes.io/part-of: runtime-adapter}
+      annotations:
+        checksum/config: {{ printf "%s\n%s" (.Files.Get "files/gateway.py") (.Values.providers | toJson) | sha256sum | quote }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: {{ include "runtime-adapter.fullname" . }}
+      nodeSelector: {{ .Values.nodeSelector | toYaml | nindent 8 }}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: gateway
+          image: {{ include "runtime-adapter.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [python3, /runtime/gateway.py]
+          env:
+            - {name: PROVIDERS_FILE, value: /runtime/providers.json}
+            - {name: PROVIDER_TIMEOUT_SECONDS, value: {{ .Values.providerTimeoutSeconds | quote }}}
+            - {name: MAX_REQUEST_BYTES, value: {{ .Values.maxRequestBytes | quote }}}
+            - {name: PYTHONDONTWRITEBYTECODE, value: "1"}
+{{- if .Values.externalAuthorizationSecret.name }}
+            - name: EXTERNAL_SERVERLESS_AUTHORIZATION
+              valueFrom: {secretKeyRef: {name: {{ .Values.externalAuthorizationSecret.name }}, key: {{ .Values.externalAuthorizationSecret.key }}}}
+{{- end }}
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 10}
+          resources: {{ .Values.resources | toYaml | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: {{ include "runtime-adapter.fullname" . }}}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "runtime-adapter.fullname" . }}
+  labels: {{ include "runtime-adapter.labels" . | nindent 4 }}
+spec:
+  selector: {app.kubernetes.io/name: {{ include "runtime-adapter.fullname" . }}}
+  ports: [{name: http, port: 8080, targetPort: http}]
+{{- if .Values.localCanary.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: runtime-adapter-local}
+spec:
+  replicas: {{ .Values.localCanary.replicas }}
+  selector: {matchLabels: {app.kubernetes.io/name: runtime-adapter-local}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: runtime-adapter-local, app.kubernetes.io/part-of: runtime-adapter}}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {{ .Values.nodeSelector | toYaml | nindent 8 }}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: provider
+          image: {{ include "runtime-adapter.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [python3, /runtime/provider.py]
+          env: [{name: PROVIDER_NAME, value: local-container}, {name: PROVIDER_KIND, value: container}, {name: PYTHONDONTWRITEBYTECODE, value: "1"}]
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 48Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: {{ include "runtime-adapter.fullname" . }}}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: runtime-adapter-local}
+spec:
+  selector: {app.kubernetes.io/name: runtime-adapter-local}
+  ports: [{name: http, port: 8080, targetPort: http}]
+{{- end }}
+

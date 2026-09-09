@@ -1,0 +1,25 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: runtime-adapter, namespace: flux-system}
+spec:
+  interval: 10m
+  releaseName: runtime-adapter
+  targetNamespace: runtime-adapter
+  storageNamespace: runtime-adapter
+  chart:
+    spec:
+      chart: ./clusters/re8ch/charts/runtime-adapter
+      interval: 10m
+      reconcileStrategy: Revision
+      sourceRef: {kind: GitRepository, name: service-backend, namespace: flux-system}
+  install:
+    createNamespace: true
+    remediation: {retries: 3}
+  upgrade:
+    cleanupOnFail: true
+    remediation: {retries: 3, strategy: rollback}
+  rollback: {cleanupOnFail: true}
+  values:
+    fullnameOverride: runtime-adapter
+    publicEdge: {enabled: false, hostname: "", gatewayName: re8ch-public, gatewayNamespace: kube-system, sectionName: https}
+
