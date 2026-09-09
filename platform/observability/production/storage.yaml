@@ -5,7 +5,7 @@ metadata:
   namespace: observability-system
   labels: {app.kubernetes.io/part-of: re8ch-observability}
 spec:
-  retentionPeriod: "30d"
+  retentionPeriod: "90d"
   vmstorage:
     replicaCount: 1
     nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
