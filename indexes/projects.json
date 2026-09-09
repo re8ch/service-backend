@@ -271,7 +271,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "ffeb3635fb23491755ad57ade42102d7d0e95304",
+    "commit": "39a717c5c19eaf32faf2d2559df26ed9de0ef385",
     "id": "advanced-fabric",
     "ownership": "owned",
     "projectType": "network-controller",
