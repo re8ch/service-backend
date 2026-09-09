@@ -5,7 +5,7 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/re8ch/charts/public-edge-manager
-  ref: {digest: sha256:8e50f709351d26414f083a3deb21597476b323c3e5a9bc3fceb4ac1529d1d625}
+  ref: {digest: sha256:9ebc10f8ccfdaa41741348be1e5623867a5dbd4f2ad9afa6d95c45cab549d929}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -31,8 +31,8 @@ spec:
   values:
     image:
       repository: ghcr.io/re8ch/public-edge-manager
-      tag: "0.5.0"
-      digest: sha256:8e1997d019f26d300e21944ba59d735e66ae5c58cb84a6b70687416c409b32df
+      tag: "0.5.1"
+      digest: sha256:db30ef6b34c4016478844584de18f4f545e20a3dafd532894602b0117df93432
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -100,7 +100,7 @@ spec:
       responseTimeoutSeconds: 12
       intervalSeconds: 3
       maxWorkers: 8
-      userAgent: public-edge-manager/0.4
+      userAgent: public-edge-manager/0.5.1
     candidateSelection:
       capacityWeight: 10
       localAreaBonus: 100000
