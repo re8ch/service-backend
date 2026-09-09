@@ -29,6 +29,8 @@ spec:
   selectAllByDefault: false
   serviceScrapeSelector:
     matchLabels: {observability.re8ch.com/opencost-recovery: "true"}
+  podScrapeSelector:
+    matchLabels: {observability.re8ch.com/opencost-recovery: "true"}
   nodeScrapeSelector:
     matchLabels: {observability.re8ch.com/opencost-recovery: "true"}
   remoteWrite:

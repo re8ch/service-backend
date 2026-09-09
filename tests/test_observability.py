@@ -59,15 +59,18 @@ def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
     assert scrape["spec"]["endpoints"][0]["port"] == "metrics"
 
 
-def test_primary_metrics_scrape_gateway_receive_bytes_per_node():
-    resources = yaml_documents(OBSERVABILITY / "production" / "scrapes.yaml")
+def test_active_metrics_scrape_gateway_receive_bytes_per_node():
+    resources = yaml_documents(OBSERVABILITY / "opencost-recovery" / "scrapes.yaml")
     scrape = next(
         doc for doc in resources
         if doc["kind"] == "VMPodScrape"
         and doc["metadata"]["name"] == "cilium-envoy-gateway"
     )
 
-    assert scrape["metadata"]["labels"]["observability.re8ch.com/managed"] == "true"
+    assert scrape["metadata"]["labels"] == {
+        "observability.re8ch.com/managed": "true",
+        "observability.re8ch.com/opencost-recovery": "true",
+    }
     assert scrape["spec"]["namespaceSelector"]["matchNames"] == ["kube-system"]
     assert scrape["spec"]["selector"]["matchLabels"]["k8s-app"] == "cilium-envoy"
     endpoint = scrape["spec"]["podMetricsEndpoints"][0]
@@ -80,6 +83,12 @@ def test_primary_metrics_scrape_gateway_receive_bytes_per_node():
     metric_filter = endpoint["metricRelabelConfigs"][0]
     assert metric_filter["action"] == "keep"
     assert "listener_downstream_cx_rx_bytes_total" in metric_filter["regex"]
+
+    runtime = yaml_documents(OBSERVABILITY / "opencost-recovery" / "runtime.yaml")
+    vmagent = next(doc for doc in runtime if doc["kind"] == "VMAgent")
+    assert vmagent["spec"]["podScrapeSelector"]["matchLabels"] == {
+        "observability.re8ch.com/opencost-recovery": "true",
+    }
 
 
 def test_every_alert_has_ownership_and_runbook_metadata():
