@@ -1,3 +1,5 @@
+{{- $spec := dict "lifecycle" .Values.scope.lifecycle "consistencyDefault" .Values.scope.consistencyDefault "maxCaptureSkew" .Values.scope.maxCaptureSkew "manifestStore" .Values.scope.manifestStore "storageBackends" .Values.storage.backends "stateClasses" .Values.stateClasses "images" .Values.images "integrations" .Values.integrations "credentials" .Values.credentials "observation" .Values.observation "retention" .Values.retention }}
+{{- $scope := dict "apiVersion" "anatomy.re8ch.com/v1alpha1" "kind" "RuntimeScope" "metadata" (dict "name" .Values.scope.name) "spec" $spec }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,27 +12,6 @@ metadata:
     anatomy.re8ch.com/ownership-boundary: consumer-only
 data:
   scope.yaml: |
-    apiVersion: anatomy.re8ch.com/v1alpha1
-    kind: RuntimeScope
-    metadata:
-      name: {{ .Values.scope.name | quote }}
-    spec:
-      lifecycle: {{ .Values.scope.lifecycle | quote }}
-      consistencyDefault: {{ .Values.scope.consistencyDefault | quote }}
-      maxCaptureSkew: {{ .Values.scope.maxCaptureSkew | quote }}
-      manifestStore:
-{{ toYaml .Values.scope.manifestStore | indent 8 }}
-      storageBackends:
-{{ toYaml .Values.storage.backends | indent 8 }}
-      stateClasses:
-{{ toYaml .Values.stateClasses | indent 8 }}
-      images:
-{{ toYaml .Values.images | indent 8 }}
-      integrations:
-{{ toYaml .Values.integrations | indent 8 }}
-      credentials:
-{{ toYaml .Values.credentials | indent 8 }}
-      observation:
-{{ toYaml .Values.observation | indent 8 }}
-      retention:
-{{ toYaml .Values.retention | indent 8 }}
+{{ toYaml $scope | indent 4 }}
+  scope.json: |
+{{ toPrettyJson $scope | indent 4 }}
