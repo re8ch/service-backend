@@ -17,6 +17,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     expected = {
         "headlamp-public-edge-v020": "re8ch-headlamp-public-edge-0.2.0.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
+        "headlamp-runtime-anatomy-v010": "re8ch-headlamp-runtime-anatomy-0.1.0.bundle",
     }
     for configmap, filename in expected.items():
         assert generators[configmap]["files"] == [f"plugin.tar.gz=assets/{filename}"]
@@ -39,7 +40,19 @@ def test_plugin_runtime_is_pod_local_and_complete():
         "install-among-clusters-plugin",
         "install-public-edge-plugin",
         "install-mihomos-cluster-plugin",
+        "install-runtime-anatomy-plugin",
         "install-flux-plugin",
     } <= init_names
     plugins = next(volume for volume in pod["volumes"] if volume["name"] == "plugins")
     assert plugins == {"name": "plugins", "emptyDir": {}}
+
+
+def test_runtime_anatomy_plugin_is_read_only_and_uses_scope_contract():
+    source = (ROOT / "platform/plugins/headlamp-runtime-anatomy/src/index.tsx").read_text()
+    assert 'scope.json' in source
+    assert "anatomy.re8ch.com/config-role" in source
+    assert "final-scope" in source
+    assert 'registerSidebarEntry' in source
+    assert 'registerRoute' in source
+    for mutation in ("create(", "update(", "delete(", "patch("):
+        assert mutation not in source

@@ -36,8 +36,8 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     # restricted-node-6dc3f140f9 is the durable failover/build node when either WSL
-                    # control-plane node is unavailable. The plugins PVC is
-                    # CephFS, so the same versioned bundle remains shared.
+                    # control-plane node is unavailable. Plugin bundles are
+                    # materialized into each pod from immutable ConfigMaps.
                     # Run the management UI on the core anchor and a stable
                     # remote failure domain, not on lifecycle-variable WSL.
                     values: [restricted-node-6dc3f140f9, domain-ex]
@@ -50,6 +50,23 @@ spec:
       tolerations:
         - operator: Exists
       initContainers:
+        - name: install-runtime-anatomy-plugin
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/runtime-anatomy-0.1.0
+              archive=/tmp/plugin.tar.gz
+              cp /plugin/plugin.tar.gz "$archive"
+              echo 'd91ff56bd94f8cba545210792e9a4a49aedfc48e00993d0a326218cfb1528c6f  /tmp/plugin.tar.gz' | sha256sum -c -
+              rm -rf "$target.new"
+              mkdir -p "$target.new"
+              tar -xzf "$archive" -C "$target.new" --strip-components=1
+              rm -rf "$target"
+              mv "$target.new" "$target"
+          volumeMounts:
+            - {name: plugins, mountPath: /headlamp/plugins}
+            - {name: runtime-anatomy-plugin, mountPath: /plugin, readOnly: true}
         - name: install-birfucate-browser
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
           command: [/bin/sh, -ec]
@@ -307,6 +324,9 @@ spec:
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v011
+        - name: runtime-anatomy-plugin
+          configMap:
+            name: headlamp-runtime-anatomy-v010
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template
