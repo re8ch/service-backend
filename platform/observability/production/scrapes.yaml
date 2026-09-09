@@ -176,6 +176,29 @@ spec:
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMPodScrape
 metadata:
+  name: cilium-envoy-gateway
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kube-system]}
+  selector: {matchLabels: {k8s-app: cilium-envoy}}
+  podMetricsEndpoints:
+    - targetPort: 9964
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_pod_node_name], targetLabel: node}
+        - {targetLabel: service, replacement: cilium-envoy-gateway}
+        - {targetLabel: signal_domain, replacement: network}
+      metricRelabelConfigs:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: envoy_(listener_downstream_cx_rx_bytes_total|downstream_cx_rx_bytes_total)
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
   name: cilium-operator
   namespace: observability-system
   labels: {observability.re8ch.com/managed: "true"}
