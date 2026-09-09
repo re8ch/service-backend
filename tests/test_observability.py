@@ -27,7 +27,7 @@ def test_retention_and_r640_storage_placement_are_explicit():
     analytics = next(doc for doc in resources if doc["kind"] == "VMSingle")
     traces = next(doc for doc in resources if doc["kind"] == "VTCluster")
 
-    assert metrics["spec"]["retentionPeriod"] == "30d"
+    assert metrics["spec"]["retentionPeriod"] == "90d"
     assert metrics["spec"]["vmstorage"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
     assert analytics["spec"]["retentionPeriod"] == "180d"
     assert analytics["spec"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
@@ -51,8 +51,11 @@ def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
     )
 
     assert scrape["metadata"]["labels"]["observability.re8ch.com/opencost-recovery"] == "true"
+    assert scrape["metadata"]["labels"]["observability.re8ch.com/managed"] == "true"
     assert scrape["spec"]["namespaceSelector"]["matchNames"] == ["kube-system"]
     assert scrape["spec"]["selector"]["matchLabels"]["app.kubernetes.io/name"] == "re8ch-advanced-fabric-node-exporter"
+    regex = scrape["spec"]["endpoints"][0]["metricRelabelConfigs"][0]["regex"]
+    assert "tracking_ready" in regex
     assert scrape["spec"]["endpoints"][0]["port"] == "metrics"
 
 
