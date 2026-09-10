@@ -272,3 +272,32 @@ def test_tenant_bootstrap_binds_controller_only_inside_runtime_namespace():
     assert "name: tenant-resource-provisioner" in script
     assert "name: tenant-control-controller\n  namespace: tenant-infrastructure" in script
     assert "kind: ClusterRole\n  name: tenant-resource-provisioner" in script
+
+
+def test_chart_binds_controller_in_every_declared_runtime_namespace():
+    docs = tenant_chart_documents()
+    tenants = {
+        item["metadata"]["name"]: item["spec"]["runtimeNamespaceRef"]
+        for item in docs
+        if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.")
+    }
+    bindings = {
+        item["metadata"]["namespace"]: item
+        for item in docs
+        if item["kind"] == "RoleBinding" and item["metadata"]["name"] == "tenant-resource-provisioner"
+    }
+
+    assert set(tenants.values()) <= set(bindings)
+    for tenant, namespace in tenants.items():
+        binding = bindings[namespace]
+        assert binding["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == tenant
+        assert binding["subjects"] == [{
+            "kind": "ServiceAccount",
+            "name": "tenant-control-controller",
+            "namespace": "tenant-infrastructure",
+        }]
+        assert binding["roleRef"] == {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "tenant-resource-provisioner",
+        }
