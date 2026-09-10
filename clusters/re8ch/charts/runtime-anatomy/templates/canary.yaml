@@ -18,7 +18,7 @@ metadata:
     storage.re8ch.com/replicated-approved: "true"
   annotations:
     helm.sh/resource-policy: keep
-    anatomy.re8ch.com/cephfs-snapshot-capability: "allow-rws-on-bound-subvolume-path"
+    anatomy.re8ch.com/snapshot-adapter: "csi-volume-snapshot-v1"
 spec:
   accessModes: [ReadWriteMany]
   storageClassName: {{ .Values.canary.storageClassName }}
