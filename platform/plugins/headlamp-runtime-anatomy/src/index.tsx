@@ -1,7 +1,7 @@
 import { ApiProxy, K8s, registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
 import { SectionBox, StatusLabel, Table } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { makeCustomResourceClass } from '@kinvolk/headlamp-plugin/lib/lib/k8s/crd';
-import { Alert, Box, Chip, Tab, Tabs, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 
 const VolumeSnapshot = makeCustomResourceClass({
@@ -31,8 +31,10 @@ function anatomyResource(kind: string, pluralName: string) {
 
 const Runtime = anatomyResource('Runtime', 'runtimes');
 const RuntimeCommit = anatomyResource('RuntimeCommit', 'runtimecommits');
+const RuntimeDiff = anatomyResource('RuntimeDiff', 'runtimediffs');
 const RuntimeBranch = anatomyResource('RuntimeBranch', 'runtimebranches');
 const RuntimeCheckout = anatomyResource('RuntimeCheckout', 'runtimecheckouts');
+const RuntimeGarbageCollection = anatomyResource('RuntimeGarbageCollection', 'runtimegarbagecollections');
 const raw = (item: any) => item?.jsonData || item || {};
 
 type RuntimeScope = {
@@ -98,6 +100,19 @@ function useApiGroups() {
   }, []);
 
   return {groups, error};
+}
+
+function useFinalScope() {
+  const [item, setItem] = useState<any>(null);
+  const [error, setError] = useState<unknown>(null);
+  useEffect(() => {
+    let active = true;
+    ApiProxy.request('/api/v1/namespaces/runtime-anatomy/configmaps/runtime-anatomy-runtime-anatomy-scope', {method: 'GET'})
+      .then(value => { if (active) setItem(value); })
+      .catch(reason => { if (active) setError(reason); });
+    return () => { active = false; };
+  }, []);
+  return {item, error};
 }
 
 function StorageView({spec, claims, claimError, drivers, driverError, snapshotsAvailable}: any) {
@@ -175,11 +190,16 @@ function TimelineView({available}: {available: boolean}) {
 function TimelineResources() {
   const [runtimes, runtimeError] = Runtime.useList({} as any);
   const [commits, commitError] = RuntimeCommit.useList({} as any);
+  const [diffs, diffError] = RuntimeDiff.useList({} as any);
   const [branches, branchError] = RuntimeBranch.useList({} as any);
   const [checkouts, checkoutError] = RuntimeCheckout.useList({} as any);
-  const timelineUnavailable = runtimeError || commitError || branchError || checkoutError;
+  const [collections, collectionError] = RuntimeGarbageCollection.useList({} as any);
+  const timelineUnavailable = runtimeError || commitError || diffError || branchError || checkoutError || collectionError;
+  const runtimeObjects = (runtimes || []).map(raw);
+  const commitObjects = (commits || []).map(raw);
   return <>
     {timelineUnavailable && <Alert severity="warning">Runtime timeline 元数据不可见：{String(timelineUnavailable)}</Alert>}
+    <RuntimeActions runtimes={runtimeObjects} commits={commitObjects}/>
     <SectionBox title={`Runtime commits (${(commits || []).length})`}>
       <Table data={(commits || []).map(raw)} columns={[
         {header: 'Commit', accessorFn: (x: any) => x.metadata?.name || '-'},
@@ -199,13 +219,66 @@ function TimelineResources() {
         {header: 'Updated', accessorFn: (x: any) => x.status?.updatedAt || '-'},
       ] as any}/>
     </SectionBox>
+    <SectionBox title={`Diffs (${(diffs || []).length}) · GC scans ${(collections || []).length}`}>
+      <Table data={(diffs || []).map(raw)} columns={[
+        {header: 'Diff', accessorFn: (x: any) => `${x.metadata?.namespace}/${x.metadata?.name}`},
+        {header: 'Phase', accessorFn: (x: any) => x.status?.phase || 'Pending'},
+        {header: 'Added', accessorFn: (x: any) => (x.status?.added || []).length},
+        {header: 'Modified', accessorFn: (x: any) => (x.status?.modified || []).length},
+        {header: 'Removed', accessorFn: (x: any) => (x.status?.removed || []).length},
+      ] as any}/>
+    </SectionBox>
   </>;
+}
+
+function objectName(prefix: string) {
+  return `${prefix}-${Date.now().toString(36)}`;
+}
+
+async function createAnatomyResource(namespace: string, plural: string, kind: string, spec: any) {
+  const name = objectName(kind.toLowerCase().replace('runtime', 'ra'));
+  await ApiProxy.post(`/apis/anatomy.re8ch.com/v1alpha1/namespaces/${namespace}/${plural}`, {
+    apiVersion: 'anatomy.re8ch.com/v1alpha1', kind, metadata: {name}, spec,
+  });
+  return name;
+}
+
+function RuntimeActions({runtimes, commits}: {runtimes: any[]; commits: any[]}) {
+  const [message, setMessage] = useState('');
+  const runtime = runtimes.find(item => item.metadata?.labels?.['anatomy.re8ch.com/canary'] === 'true');
+  const namespace = runtime?.metadata?.namespace;
+  const sealed = commits.filter(item => item.metadata?.namespace === namespace && item.status?.phase === 'Sealed');
+  const run = async (summary: string, action: () => Promise<string>) => {
+    if (!window.confirm(`${summary}\n\nRuntime Anatomy MVP 只允许 canary 资源；确认创建声明式请求？`)) return;
+    try { setMessage(`已创建 ${await action()}`); } catch (error) { setMessage(`操作失败：${String(error)}`); }
+  };
+  if (!runtime || !namespace) return <Alert severity="info">没有发现带 canary 标签的 Runtime；操作入口保持禁用。</Alert>;
+  const latest = sealed[sealed.length - 1];
+  return <Box sx={{mb: 2}}>
+    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+      <Button variant="contained" onClick={() => run(`Commit ${namespace}/${runtime.metadata.name}`, () =>
+        createAnatomyResource(namespace, 'runtimecommits', 'RuntimeCommit', {runtimeRef: {name: runtime.metadata.name}, consistency: 'FilesystemConsistent'}))}>Commit</Button>
+      <Button disabled={sealed.length < 2} onClick={() => run('Diff 最近两个 sealed commits', () =>
+        createAnatomyResource(namespace, 'runtimediffs', 'RuntimeDiff', {baseRef: {name: sealed[sealed.length - 2].metadata.name}, targetRef: {name: latest.metadata.name}}))}>Diff</Button>
+      <Button disabled={!latest} onClick={() => run(`从 ${latest?.metadata?.name || '-'} 创建 branch`, () =>
+        createAnatomyResource(namespace, 'runtimebranches', 'RuntimeBranch', {runtimeRef: {name: runtime.metadata.name}, commitRef: {name: latest.metadata.name}, expectedHead: ''}))}>Create branch</Button>
+      <Button disabled={!latest} color="warning" onClick={() => {
+        const target = window.prompt('新的 restore PVC 名称', objectName('runtime-restore'));
+        if (target) void run(`Restore ${latest.metadata.name} 到新 PVC ${target}；不会覆盖源 PVC`, () =>
+          createAnatomyResource(namespace, 'runtimecheckouts', 'RuntimeCheckout', {runtimeRef: {name: runtime.metadata.name}, commitRef: {name: latest.metadata.name}, mode: 'Restore', target: {pvcName: target}}));
+      }}>Checkout / Restore</Button>
+      <Button disabled={!latest} onClick={() => run('执行 GC DryRun；不会删除 snapshot、PVC 或文件', () =>
+        createAnatomyResource(namespace, 'runtimegarbagecollections', 'RuntimeGarbageCollection', {mode: 'DryRun'}))}>GC DryRun</Button>
+    </Stack>
+    {message && <Alert severity={message.startsWith('操作失败') ? 'error' : 'success'} sx={{mt: 1}}>{message}</Alert>}
+  </Box>;
 }
 
 function Dashboard() {
   const [tab, setTab] = useState(0);
-  const [scopeMap, scopeError] = K8s.ResourceClasses.ConfigMap.useGet(
-    'runtime-anatomy-runtime-anatomy-scope', 'runtime-anatomy');
+  const {item: scopeMap, error: scopeError} = useFinalScope();
+  const [controller, controllerError] = K8s.ResourceClasses.Deployment.useGet(
+    'runtime-anatomy-runtime-anatomy-controller', 'runtime-anatomy');
   const [claims, claimError] = K8s.ResourceClasses.PersistentVolumeClaim.useList({} as any);
   const [drivers, driverError] = CSIDriver.useList({} as any);
   const {groups: apiGroups, error: discoveryError} = useApiGroups();
@@ -227,6 +300,7 @@ function Dashboard() {
     </Tabs>
 
     {scopeError && <Alert severity="error">无法读取 runtime-anatomy scope：{String(scopeError)}</Alert>}
+    {controllerError && <Alert severity="error">Runtime Anatomy controller 发布门禁失败：{String(controllerError)}</Alert>}
     {!scopeError && !scope && <Alert severity="warning">未发现 final RuntimeScope ConfigMap；这不是健康的空配置。</Alert>}
     {discoveryError && <Alert severity="warning">无法完成 Kubernetes API discovery：{String(discoveryError)}</Alert>}
 
@@ -249,6 +323,14 @@ function Dashboard() {
           {header: 'Namespace', accessorFn: (x: any) => x.namespace || '-'},
           {header: 'Ownership', accessorFn: (x: any) => x.ownership || '-'},
           {header: 'Blockers', accessorFn: (x: any) => <KeyValueChips values={x.blockers || []}/>},
+        ] as any}/>
+      </SectionBox>
+      <SectionBox title="Control plane">
+        <Table data={controller ? [raw(controller)] : []} columns={[
+          {header: 'Controller', accessorFn: (x: any) => x.metadata?.name || '-'},
+          {header: 'Desired', accessorFn: (x: any) => x.spec?.replicas || 0},
+          {header: 'Ready', accessorFn: (x: any) => x.status?.readyReplicas || 0},
+          {header: 'Observed generation', accessorFn: (x: any) => x.status?.observedGeneration || '-'},
         ] as any}/>
       </SectionBox>
       <Typography variant="caption" color="text.secondary">
@@ -289,7 +371,7 @@ function Dashboard() {
     {tab === 4 && <>
       <TimelineView available={timelineAvailable}/>
       <Typography variant="caption" color="text.secondary">
-        v0.1.1 不提供 commit、checkout、restore、branch move 或 GC 按钮；写操作必须经过 planner、独立 RBAC 与确认界面。
+        v0.2.0 的操作只创建声明式 CR；controller 强制 canary 边界，GC 固定为 DryRun。
       </Typography>
     </>}
   </Box>;

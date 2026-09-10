@@ -1,12 +1,14 @@
 # Runtime Anatomy
 
-Status: design draft; no controller or CRD is installed by this directory.
+Status: CephFS file-state canary MVP. The chart installs six alpha CRDs, one
+controller, a labelled canary PVC/runtime, and the final scope ConfigMap.
 
-The initial configuration-only delivery is the
+The initial delivery is the
 [`runtime-anatomy`](../../charts/runtime-anatomy) Helm chart. It publishes one
-final `RuntimeScope` document as a ConfigMap and can optionally provision
-explicit state-class PVCs. The canary release keeps provisioning disabled and
-GC in `DryRun` until storage health and snapshot capabilities are verified.
+final `RuntimeScope` document as a ConfigMap and provisions only an explicitly
+labelled, isolated canary PVC. The controller refuses sources outside that
+boundary. It creates native CephFS `.snap` commits, computes manifest diffs,
+restores into new PVCs, and keeps GC permanently in `DryRun`.
 
 Runtime Anatomy is a Kubernetes-native framework for describing, observing and
 recovering the persistent state of a runtime over time. It does not implement a

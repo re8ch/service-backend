@@ -101,3 +101,16 @@ tenant-mcp-canary:
     - ./operations/mcp-conformance/tenant-canary.sh
   artifacts:
     paths: [tenant-canary.evidence.json, tenant-canary.evidence.json.bundle]
+
+runtime-anatomy-canary:
+  stage: canary
+  tags: [macmini-service-backend-shell]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  before_script: []
+  script:
+    - python operations/scripts/runtime-anatomy-canary.py
+  artifacts:
+    when: always
+    paths: [runtime-anatomy-canary.evidence.json]

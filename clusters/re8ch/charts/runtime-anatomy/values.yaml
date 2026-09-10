@@ -141,6 +141,18 @@ retention:
   roots: [BranchHead, Tag, ActiveCheckout, LegalHold, Pin]
   honorBackendRetain: true
 
+controller:
+  enabled: true
+  image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+  pollIntervalSeconds: 5
+  jobTimeoutSeconds: 300
+
+canary:
+  enabled: false
+  namespace: runtime-anatomy-canary
+  storageClassName: cephfs-re8ch
+  size: 1Gi
+
 # Canary does not allocate bytes until Ceph health and snapshot capability have
 # been observed successfully. Enabling this creates only explicitly listed PVCs.
 provisioning:

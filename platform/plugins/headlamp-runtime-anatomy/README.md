@@ -1,7 +1,7 @@
 # Runtime Anatomy Headlamp plugin
 
-Read-only console for the Runtime Anatomy final scope and future runtime
-timeline resources. Its presentation follows the Rook/Ceph view: backend and
+Console for the Runtime Anatomy final scope and runtime timeline resources. Its
+presentation follows the Rook/Ceph view: backend and
 control-plane health are shown separately from claims, snapshots and recovery
 evidence.
 
@@ -36,9 +36,10 @@ hooks are mounted. An absent VolumeSnapshot or Runtime Anatomy CRD is rendered
 as an unavailable capability without issuing repeated 404 requests. The final
 scope uses an exact namespaced ConfigMap GET rather than a cluster-wide list.
 
-No commit, checkout, restore, branch move or GC action is exposed in v0.1.1.
-Those operations require separate API verbs, planner output and confirmation
-surfaces rather than generic Kubernetes patch controls.
+v0.2.0 can create RuntimeCommit, RuntimeDiff, RuntimeBranch, RuntimeCheckout and
+RuntimeGarbageCollection requests after confirmation. The UI only creates CRs;
+the controller enforces the labelled canary boundary. Restore always targets a
+new PVC and garbage collection is fixed to DryRun.
 
 ```sh
 npm ci

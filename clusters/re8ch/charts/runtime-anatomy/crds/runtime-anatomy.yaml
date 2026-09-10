@@ -1,0 +1,131 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: runtimes.anatomy.re8ch.com}
+spec:
+  group: anatomy.re8ch.com
+  scope: Namespaced
+  names: {kind: Runtime, listKind: RuntimeList, plural: runtimes, singular: runtime}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: runtimecommits.anatomy.re8ch.com}
+spec:
+  group: anatomy.re8ch.com
+  scope: Namespaced
+  names: {kind: RuntimeCommit, listKind: RuntimeCommitList, plural: runtimecommits, singular: runtimecommit}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: runtimediffs.anatomy.re8ch.com}
+spec:
+  group: anatomy.re8ch.com
+  scope: Namespaced
+  names: {kind: RuntimeDiff, listKind: RuntimeDiffList, plural: runtimediffs, singular: runtimediff}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: runtimebranches.anatomy.re8ch.com}
+spec:
+  group: anatomy.re8ch.com
+  scope: Namespaced
+  names: {kind: RuntimeBranch, listKind: RuntimeBranchList, plural: runtimebranches, singular: runtimebranch}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: runtimecheckouts.anatomy.re8ch.com}
+spec:
+  group: anatomy.re8ch.com
+  scope: Namespaced
+  names: {kind: RuntimeCheckout, listKind: RuntimeCheckoutList, plural: runtimecheckouts, singular: runtimecheckout}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: runtimegarbagecollections.anatomy.re8ch.com}
+spec:
+  group: anatomy.re8ch.com
+  scope: Namespaced
+  names: {kind: RuntimeGarbageCollection, listKind: RuntimeGarbageCollectionList, plural: runtimegarbagecollections, singular: runtimegarbagecollection}
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources: {status: {}}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion: {type: string}
+            kind: {type: string}
+            metadata: {type: object}
+            spec: {type: object, x-kubernetes-preserve-unknown-fields: true}
+            status: {type: object, x-kubernetes-preserve-unknown-fields: true}
