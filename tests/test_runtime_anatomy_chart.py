@@ -22,10 +22,14 @@ def render(*args):
 def test_default_chart_is_configuration_only_and_has_final_scope():
     subprocess.run(["helm", "lint", str(CHART)], check=True, capture_output=True, text=True)
     resources = render()
-    assert [item["kind"] for item in resources] == ["ConfigMap"]
+    kinds = [item["kind"] for item in resources]
+    assert "ConfigMap" in kinds
+    assert "Deployment" in kinds
+    assert "ServiceAccount" in kinds
 
-    scope = yaml.safe_load(resources[0]["data"]["scope.yaml"])
-    assert json.loads(resources[0]["data"]["scope.json"]) == scope
+    scope_config = next(item for item in resources if item["kind"] == "ConfigMap" and item["metadata"]["labels"].get("anatomy.re8ch.com/config-role") == "final-scope")
+    scope = yaml.safe_load(scope_config["data"]["scope.yaml"])
+    assert json.loads(scope_config["data"]["scope.json"]) == scope
     spec = scope["spec"]
     assert scope["kind"] == "RuntimeScope"
     assert spec["lifecycle"] == "Canary"
@@ -67,3 +71,18 @@ def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "../../platform/runtime-anatomy" in root["resources"]
+    assert release["spec"]["driftDetection"]["mode"] == "enabled"
+    assert release["spec"]["values"]["canary"]["enabled"] is True
+
+
+def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
+    crds = list(yaml.safe_load_all((CHART / "crds/runtime-anatomy.yaml").read_text()))
+    assert {item["spec"]["names"]["kind"] for item in crds} == {
+        "Runtime", "RuntimeCommit", "RuntimeDiff", "RuntimeBranch", "RuntimeCheckout", "RuntimeGarbageCollection"
+    }
+    resources = render("--set", "canary.enabled=true")
+    runtime = next(item for item in resources if item["kind"] == "Runtime")
+    claim = next(item for item in resources if item["kind"] == "PersistentVolumeClaim")
+    assert runtime["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
+    assert claim["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
+    assert claim["spec"]["storageClassName"] == "cephfs-re8ch"
