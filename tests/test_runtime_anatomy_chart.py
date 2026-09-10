@@ -37,6 +37,8 @@ def test_default_chart_is_configuration_only_and_has_final_scope():
     assert spec["credentials"]["captureValues"] is False
     assert spec["images"]["policy"]["requireDigest"] is True
     assert all("@sha256:" in image["reference"] for image in spec["images"]["catalog"])
+    helpers = (CHART / "templates/_helpers.tpl").read_text()
+    assert 'replace "+" "_"' in helpers
 
     backends = {item["name"]: item for item in spec["storageBackends"]}
     assert backends["replicated-files"]["storageClassName"] == "cephfs-re8ch"
