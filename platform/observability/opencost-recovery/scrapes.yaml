@@ -50,7 +50,10 @@ spec:
       metricRelabelConfigs:
         - action: keep
           sourceLabels: [__name__]
-          regex: envoy_(listener_downstream_cx_rx_bytes_total|downstream_cx_rx_bytes_total)
+          # Cilium Envoy exposes HTTP manager and listener-specific TCP
+          # downstream receive counters. Upstream-response and buffered-byte
+          # families are intentionally excluded so ingress is not double-counted.
+          regex: envoy_(http_downstream_cx_rx_bytes_total|tcp_.+_downstream_cx_rx_bytes_total|listener_downstream_cx_rx_bytes_total)
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
