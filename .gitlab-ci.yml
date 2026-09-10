@@ -119,6 +119,9 @@ runtime-anatomy-canary:
       when: manual
   before_script: []
   script:
+    - export KUBECONFIG="${KUBECONFIG:-/Users/harryneo/.kube/config}"
+    - test -r "$KUBECONFIG"
+    - kubectl config current-context
     - python operations/scripts/runtime-anatomy-canary.py
   artifacts:
     when: always
