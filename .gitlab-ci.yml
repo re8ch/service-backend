@@ -119,9 +119,9 @@ runtime-anatomy-canary:
       when: manual
   before_script: []
   script:
-    - export KUBECONFIG="${KUBECONFIG:-/Users/harryneo/.kube/config}"
-    - test -r "$KUBECONFIG"
-    - kubectl config current-context
+    # This host-only canary must not inherit the context-less CI KUBECONFIG variable.
+    # Keep validation inside the Python entrypoint so failures still produce evidence.
+    - export KUBECONFIG=/Users/harryneo/.kube/config
     - python operations/scripts/runtime-anatomy-canary.py
   artifacts:
     when: always
