@@ -97,3 +97,5 @@ def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
     assert claim["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
     assert claim["spec"]["storageClassName"] == "cephfs-re8ch"
     assert claim["metadata"]["annotations"]["anatomy.re8ch.com/cephfs-snapshot-capability"] == "allow-rws-on-bound-subvolume-path"
+    assert claim["metadata"]["name"] == "runtime-anatomy-source-v2"
+    assert runtime["spec"]["subjectRef"]["name"] == "runtime-anatomy-source-v2"

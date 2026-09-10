@@ -3,7 +3,7 @@ set -eu
 
 mode=${1:---check}
 namespace=runtime-anatomy-canary
-claim=runtime-anatomy-source
+claim=runtime-anatomy-source-v2
 rook_namespace=rook-ceph
 node_secret=rook-csi-cephfs-node
 filesystem=re8ch-files
@@ -32,7 +32,7 @@ if [ "$mode" = --check ]; then
 fi
 
 case "$current" in
-  "allow rw"|"$desired") ;;
+  "allow rw"|"$desired"|"allow rw, allow rws fsname=$filesystem path=/volumes/csi/csi-vol-"*) ;;
   *) echo "refusing to replace unexpected MDS caps: $current" >&2; exit 1;;
 esac
 
