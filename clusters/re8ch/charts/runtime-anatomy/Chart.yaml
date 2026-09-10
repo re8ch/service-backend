@@ -2,8 +2,8 @@ apiVersion: v2
 name: runtime-anatomy
 description: Unified runtime state, persistence, artifact and image scope for RE8CH
 type: application
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.2.1
+appVersion: "0.2.1"
 kubeVersion: ">=1.30.0-0"
 annotations:
   artifacthub.io/license: Apache-2.0
