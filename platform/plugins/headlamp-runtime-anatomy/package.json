@@ -1,6 +1,6 @@
 {
   "name": "@re8ch/headlamp-runtime-anatomy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read-only Runtime Anatomy timeline, state and storage health console for Headlamp",
   "scripts": {
     "build": "headlamp-plugin build",
@@ -8,11 +8,24 @@
     "package": "headlamp-plugin package",
     "tsc": "headlamp-plugin tsc"
   },
-  "keywords": ["headlamp", "runtime", "timeline", "cephfs", "volume", "snapshot", "provenance", "read-only"],
+  "keywords": [
+    "headlamp",
+    "runtime",
+    "timeline",
+    "cephfs",
+    "volume",
+    "snapshot",
+    "provenance",
+    "read-only"
+  ],
   "license": "Apache-2.0",
   "prettier": "@headlamp-k8s/eslint-config/prettier-config",
   "eslintConfig": {
-    "extends": ["@headlamp-k8s", "prettier", "plugin:jsx-a11y/recommended"]
+    "extends": [
+      "@headlamp-k8s",
+      "prettier",
+      "plugin:jsx-a11y/recommended"
+    ]
   },
   "devDependencies": {
     "@kinvolk/headlamp-plugin": "^0.14.0",

@@ -58,10 +58,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/runtime-anatomy-0.1.0
+              target=/headlamp/plugins/runtime-anatomy-0.1.1
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo 'd91ff56bd94f8cba545210792e9a4a49aedfc48e00993d0a326218cfb1528c6f  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '082994cd1dbc833ffd5f386711161c33d57f2ea1ff12efa86643e7bd1d8a34cb  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -329,7 +329,7 @@ spec:
             name: headlamp-mihomos-cluster-v011
         - name: runtime-anatomy-plugin
           configMap:
-            name: headlamp-runtime-anatomy-v010
+            name: headlamp-runtime-anatomy-v011
         - name: qwen-kubeconfig-template
           configMap:
             name: headlamp-qwen-kubeconfig-template

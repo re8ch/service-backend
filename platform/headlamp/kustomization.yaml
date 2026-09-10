@@ -29,7 +29,7 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz=assets/re8ch-headlamp-mihomos-cluster-0.1.1.bundle
-  - name: headlamp-runtime-anatomy-v010
+  - name: headlamp-runtime-anatomy-v011
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-runtime-anatomy-0.1.0.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-runtime-anatomy-0.1.1.bundle
