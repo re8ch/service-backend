@@ -1,0 +1,62 @@
+{{- if .Values.spin.enabled }}
+{{- if not .Values.spin.image.digest }}{{ fail "spin.image.digest is required when spin.enabled=true" }}{{- end }}
+{{- if not .Values.spin.application }}{{ fail "spin.application is required when spin.enabled=true" }}{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: adapter-spin}
+spec:
+  replicas: {{ .Values.spin.replicas }}
+  selector: {matchLabels: {app.kubernetes.io/name: adapter-spin}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: adapter-spin, app.kubernetes.io/part-of: adapter, re8ch.com/runtime-engine: spin}}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {{ .Values.nodeSelector | toYaml | nindent 8 }}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: spin
+          image: {{ printf "%s@%s" .Values.spin.image.repository .Values.spin.image.digest }}
+          imagePullPolicy: {{ .Values.spin.image.pullPolicy }}
+          args: [up, --from-registry, {{ .Values.spin.application | quote }}, --listen, {{ printf "0.0.0.0:%v" .Values.spin.port | quote }}]
+          ports: [{name: http, containerPort: {{ .Values.spin.port }}}]
+          readinessProbe: {tcpSocket: {port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: false, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: adapter-spin}
+spec:
+  selector: {app.kubernetes.io/name: adapter-spin}
+  ports: [{name: http, port: 8080, targetPort: http}]
+{{- end }}
+{{- if .Values.wasmedge.enabled }}
+{{- if not .Values.wasmedge.image.digest }}{{ fail "wasmedge.image.digest is required when wasmedge.enabled=true" }}{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: adapter-wasmedge}
+spec:
+  replicas: {{ .Values.wasmedge.replicas }}
+  selector: {matchLabels: {app.kubernetes.io/name: adapter-wasmedge}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: adapter-wasmedge, app.kubernetes.io/part-of: adapter, re8ch.com/runtime-engine: wasmedge}}
+    spec:
+      automountServiceAccountToken: false
+      runtimeClassName: {{ .Values.wasmedge.runtimeClassName }}
+      containers:
+        - name: wasmedge
+          image: {{ printf "%s@%s" .Values.wasmedge.image.repository .Values.wasmedge.image.digest }}
+          imagePullPolicy: {{ .Values.wasmedge.image.pullPolicy }}
+          ports: [{name: http, containerPort: {{ .Values.wasmedge.port }}}]
+          readinessProbe: {tcpSocket: {port: http}, periodSeconds: 5}
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 200m, memory: 64Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: adapter-wasmedge}
+spec:
+  selector: {app.kubernetes.io/name: adapter-wasmedge}
+  ports: [{name: http, port: 8080, targetPort: http}]
+{{- end }}

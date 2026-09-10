@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: {{ include "adapter.fullname" . }}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: {{ include "adapter.fullname" . }}}
+rules:
+  - apiGroups: [""]
+    resources: [services]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.re8ch.com]
+    resources: [advancedfabrics]
+    verbs: [get, list, watch]
+  - apiGroups: [nuclio.io]
+    resources: [nucliofunctions, nucliofunctions/status, nuclioapigateways]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: {{ include "adapter.fullname" . }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: {{ include "adapter.fullname" . }}}
+subjects: [{kind: ServiceAccount, name: {{ include "adapter.fullname" . }}, namespace: {{ .Release.Namespace }} }]

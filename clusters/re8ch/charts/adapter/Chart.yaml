@@ -1,0 +1,30 @@
+apiVersion: v2
+name: adapter
+description: Provider-neutral runtime gateway for container, Wasm, AI and external Serverless execution.
+type: application
+version: 0.2.1
+appVersion: "0.2.0"
+kubeVersion: ">=1.30.0-0"
+home: https://gitlab.com/reachievellc/service-backend
+sources:
+  - https://gitlab.com/reachievellc/service-backend
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/changes: |
+    - kind: fixed
+      description: Exclude local bytecode from reproducible OCI packages.
+    - kind: added
+      description: First-class Nuclio discovery and metrics.
+    - kind: added
+      description: Digest-gated native Spin and WasmEdge engines.
+  artifacthub.io/links: |
+    - name: Source
+      url: https://gitlab.com/reachievellc/service-backend
+  artifacthub.io/images: |
+    - name: adapter
+      image: python@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+keywords: [runtime, serverless, wasm, ai, advanced-fabric, public-edge]
+maintainers:
+  - name: RE8CH Platform

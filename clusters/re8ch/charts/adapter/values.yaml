@@ -1,10 +1,10 @@
-fullnameOverride: runtime-adapter
+fullnameOverride: adapter
 replicaCount: 1
 image:
   repository: python
   digest: sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
   pullPolicy: IfNotPresent
-nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+nodeSelector: {kubernetes.io/hostname: r640}
 resources:
   requests: {cpu: 20m, memory: 32Mi}
   limits: {cpu: 200m, memory: 96Mi}
@@ -15,7 +15,7 @@ providers:
     enabled: true
     kind: container
     workloadPrefixes: [canary/]
-    service: {name: runtime-adapter-local, namespace: runtime-adapter, port: 8080}
+    service: {name: adapter-local, namespace: adapter, port: 8080}
     pathPrefix: /invoke/
     priority: 100
   - name: litellm-openai
@@ -28,15 +28,32 @@ providers:
   - name: spin
     enabled: false
     kind: spin
-    workloadPrefixes: [wasm/]
-    service: {name: runtime-adapter-spin, namespace: runtime-adapter, port: 8080}
+    workloadPrefixes: [spin/]
+    service: {name: adapter-spin, namespace: adapter, port: 8080}
     pathPrefix: /
-    priority: 100
+    priority: 90
+  - name: nuclio
+    enabled: true
+    kind: nuclio
+    workloadPrefixes: [nuclio/]
+    priority: 110
+    discovery:
+      namespaces: ["*"]
+      cacheSeconds: 5
+      staleSeconds: 60
+      includeScaledToZero: true
+  - name: wasmedge
+    enabled: false
+    kind: wasmedge
+    workloadPrefixes: [wasmedge/]
+    service: {name: adapter-wasmedge, namespace: adapter, port: 8080}
+    pathPrefix: /
+    priority: 90
   - name: vllm
     enabled: false
     kind: openai
     workloadPrefixes: [vllm/]
-    service: {name: runtime-adapter-vllm, namespace: runtime-adapter, port: 8000}
+    service: {name: adapter-vllm, namespace: adapter, port: 8000}
     pathPrefix: /v1/
     priority: 100
   - name: external-serverless
@@ -50,6 +67,25 @@ providers:
 localCanary:
   enabled: true
   replicas: 1
+spin:
+  # A real Spin engine is rendered only after both immutable engine and app
+  # references are supplied. This remains fail-closed in the cluster values.
+  enabled: false
+  image: {repository: ghcr.io/fermyon/spin, digest: "", pullPolicy: IfNotPresent}
+  application: ""
+  replicas: 1
+  port: 8080
+wasmedge:
+  # Requires a node RuntimeClass backed by containerd-shim-wasmedge/runwasi.
+  enabled: false
+  runtimeClassName: wasmedge
+  image: {repository: wasmedge/example-wasi-http, digest: "", pullPolicy: IfNotPresent}
+  replicas: 1
+  port: 8080
+metrics:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
 externalAuthorizationSecret:
   name: ""
   key: authorization
@@ -63,4 +99,3 @@ publicEdge:
   gatewayNamespace: kube-system
   hostname: ""
   sectionName: https
-
