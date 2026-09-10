@@ -13,14 +13,16 @@ def load_controller():
     return module
 
 
-def test_adapter_uses_cephfs_native_snapshot_and_new_target_mount():
+def test_adapter_manifests_a_csi_snapshot_materialization(monkeypatch):
     controller = load_controller()
     commit = controller.adapter_program("commit", "ra-test")
-    restore = controller.adapter_program("restore", "ra-test")
-    assert 'os.path.join(root,".snap",snap)' in commit
-    assert 'os.mkdir(snapdir)' in commit
-    assert 'os.path.join("/source",".snap"' in restore
-    assert 'target="/target"' in restore
+    assert 'root="/source"' in commit
+    assert "os.mkdir" not in commit
+    calls = []
+    monkeypatch.setattr(controller, "request", lambda path, method="GET", body=None, **kwargs: calls.append((path, method, body)) or (None if method == "GET" else body))
+    source = {"spec": {"accessModes": ["ReadWriteMany"], "storageClassName": "cephfs-re8ch", "resources": {"requests": {"storage": "1Gi"}}}}
+    pvc = controller.ensure_snapshot_pvc("runtime-anatomy-canary", "materialized", source, "ra-test")
+    assert pvc["spec"]["dataSource"] == {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": "ra-test"}
 
 
 def test_manifest_entries_are_keyed_for_deterministic_diff():
