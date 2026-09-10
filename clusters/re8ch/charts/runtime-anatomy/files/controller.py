@@ -18,6 +18,7 @@ CTX = ssl.create_default_context(cafile=CA) if os.path.exists(CA) else ssl.creat
 POLL = int(os.getenv("POLL_INTERVAL_SECONDS", "5"))
 TIMEOUT = int(os.getenv("JOB_TIMEOUT_SECONDS", "300"))
 IMAGE = os.getenv("ADAPTER_IMAGE", "python:3.13-alpine")
+SNAPSHOT_CLASS = os.getenv("VOLUME_SNAPSHOT_CLASS", "runtime-anatomy-cephfs")
 CANARY_LABEL = "anatomy.re8ch.com/canary"
 
 
@@ -79,22 +80,21 @@ def validate_runtime(namespace, name):
 
 
 def adapter_program(mode, snapshot=""):
-    if mode == "commit":
-        return f'''import base64,hashlib,json,os
-root="/source"; snap={snapshot!r}; snapdir=os.path.join(root,".snap",snap)
-os.mkdir(snapdir)
+    if mode in ("commit", "manifest"):
+        return '''import base64,hashlib,json,os
+root="/source"
 entries=[]
-for base,dirs,files in os.walk(snapdir):
+for base,dirs,files in os.walk(root):
  dirs[:]=[d for d in dirs if d != ".snap"]
  for name in sorted(files):
-  path=os.path.join(base,name); rel=os.path.relpath(path,snapdir)
+  path=os.path.join(base,name); rel=os.path.relpath(path,root)
   h=hashlib.sha256()
   with open(path,"rb") as stream:
    for chunk in iter(lambda:stream.read(1048576),b""): h.update(chunk)
   entries.append({{"path":rel,"size":os.path.getsize(path),"sha256":h.hexdigest()}})
 entries.sort(key=lambda x:x["path"])
 digest="sha256:"+hashlib.sha256(json.dumps(entries,separators=(",",":"),sort_keys=True).encode()).hexdigest()
-result={{"snapshotName":snap,"manifest":{{"digest":digest,"entries":entries,"fileCount":len(entries)}}}}
+result={"manifest":{"digest":digest,"entries":entries,"fileCount":len(entries)}}
 print("RUNTIME_ANATOMY_RESULT="+base64.b64encode(json.dumps(result,separators=(",",":")).encode()).decode())'''
     return f'''import base64,hashlib,json,os,shutil
 source=os.path.join("/source",".snap",{snapshot!r}); target="/target"
@@ -128,6 +128,31 @@ def ensure_job(namespace, name, source_pvc, mode, snapshot, target_pvc=None):
     if not job:
         return request(f"/apis/batch/v1/namespaces/{namespace}/jobs", "POST", job_body(namespace, name, source_pvc, mode, snapshot, target_pvc))
     return job
+
+
+def ensure_snapshot(namespace, name, pvc_name):
+    path = f"/apis/snapshot.storage.k8s.io/v1/namespaces/{namespace}/volumesnapshots/{name}"
+    snapshot = request(path, allow_404=True)
+    if snapshot:
+        return snapshot
+    body = {"apiVersion": "snapshot.storage.k8s.io/v1", "kind": "VolumeSnapshot", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true"}}, "spec": {"volumeSnapshotClassName": SNAPSHOT_CLASS, "source": {"persistentVolumeClaimName": pvc_name}}}
+    return request(f"/apis/snapshot.storage.k8s.io/v1/namespaces/{namespace}/volumesnapshots", "POST", body)
+
+
+def snapshot_ready(snapshot):
+    status = snapshot.get("status", {})
+    if status.get("error"):
+        raise ValueError("VolumeSnapshot failed: " + status["error"].get("message", "unknown error"))
+    return status.get("readyToUse") is True
+
+
+def ensure_snapshot_pvc(namespace, name, source, snapshot_name):
+    pvc = request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims/{name}", allow_404=True)
+    if pvc:
+        return pvc
+    spec = source["spec"]
+    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/commit-materialization": "true"}}, "spec": {"accessModes": spec["accessModes"], "storageClassName": spec.get("storageClassName"), "dataSource": {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": snapshot_name}, "resources": {"requests": {"storage": spec["resources"]["requests"]["storage"]}}}}
+    return request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims", "POST", body)
 
 
 def job_result(namespace, name):
@@ -164,17 +189,26 @@ def reconcile_commit(obj):
     name = obj["metadata"]["name"]
     try:
         runtime_name = obj.get("spec", {}).get("runtimeRef", {}).get("name")
-        _, pvc_name, _ = validate_runtime(namespace, runtime_name)
+        _, pvc_name, source = validate_runtime(namespace, runtime_name)
         snapshot = "ra-" + obj["metadata"]["uid"][:12]
+        snapshot_obj = ensure_snapshot(namespace, snapshot, pvc_name)
+        if not snapshot_ready(snapshot_obj):
+            patch_status(obj, "runtimecommits", {"phase": "Capturing", "operationID": obj["metadata"]["uid"], "snapshotName": snapshot, "conditions": [condition("Captured", "False", "VolumeSnapshotPending")]})
+            return
+        materialized = "ra-snap-" + obj["metadata"]["uid"][:8]
+        snapshot_pvc = ensure_snapshot_pvc(namespace, materialized, source, snapshot)
+        if snapshot_pvc.get("status", {}).get("phase") != "Bound":
+            patch_status(obj, "runtimecommits", {"phase": "Capturing", "operationID": obj["metadata"]["uid"], "snapshotName": snapshot, "materializedPVC": materialized, "conditions": [condition("Captured", "False", "SnapshotPVCPending")]})
+            return
         job_name = "ra-commit-" + obj["metadata"]["uid"][:8]
-        job = ensure_job(namespace, job_name, pvc_name, "commit", snapshot)
+        ensure_job(namespace, job_name, materialized, "manifest", snapshot)
         result = job_result(namespace, job_name)
         if not result:
             patch_status(obj, "runtimecommits", {"phase": "Capturing", "operationID": obj["metadata"]["uid"], "jobRef": {"name": job_name}, "conditions": [condition("Captured", "False", "AdapterJobRunning")]})
             return
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         digest = result["manifest"]["digest"]
-        patch_status(obj, "runtimecommits", {"phase": "Sealed", "operationID": obj["metadata"]["uid"], "snapshotName": result["snapshotName"], "manifest": result["manifest"], "achievedConsistency": "FilesystemConsistent", "sealedAt": now, "indicators": {"health": "Healthy", "freshness": "Fresh", "validity": "Valid", "durability": "Replicated", "restorability": "Unverified", "provenance": "Verified"}, "conditions": [condition("Captured", "True", "CephFSNativeSnapshot"), condition("Verified", "True", "ManifestDigestVerified"), condition("Ready", "True", "Sealed", digest)]})
+        patch_status(obj, "runtimecommits", {"phase": "Sealed", "operationID": obj["metadata"]["uid"], "snapshotName": snapshot, "materializedPVC": materialized, "manifest": result["manifest"], "achievedConsistency": "FilesystemConsistent", "sealedAt": now, "indicators": {"health": "Healthy", "freshness": "Fresh", "validity": "Valid", "durability": "Replicated", "restorability": "Verified", "provenance": "Verified"}, "conditions": [condition("Captured", "True", "CSIVolumeSnapshot"), condition("Verified", "True", "ManifestDigestVerified"), condition("Ready", "True", "Sealed", digest)]})
     except Exception as error:
         fail(obj, "runtimecommits", "CaptureFailed", str(error))
 
@@ -229,7 +263,7 @@ def quantity_bytes(value):
     return int(text)
 
 
-def ensure_target_pvc(namespace, name, source, requested_size=None):
+def ensure_target_pvc(namespace, name, source, requested_size=None, snapshot_name=None):
     pvc = request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims/{name}", allow_404=True)
     if pvc:
         if pvc.get("metadata", {}).get("labels", {}).get(CANARY_LABEL) != "true":
@@ -240,7 +274,10 @@ def ensure_target_pvc(namespace, name, source, requested_size=None):
     size = requested_size or source_size
     if quantity_bytes(size) < quantity_bytes(source_size):
         raise ValueError(f"target capacity {size} is smaller than source capacity {source_size}")
-    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/restored": "true"}}, "spec": {"accessModes": spec["accessModes"], "storageClassName": spec.get("storageClassName"), "resources": {"requests": {"storage": size}}}}
+    pvc_spec = {"accessModes": spec["accessModes"], "storageClassName": spec.get("storageClassName"), "resources": {"requests": {"storage": size}}}
+    if snapshot_name:
+        pvc_spec["dataSource"] = {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": snapshot_name}
+    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/restored": "true"}}, "spec": pvc_spec}
     return request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims", "POST", body)
 
 
@@ -265,12 +302,12 @@ def reconcile_checkout(obj):
         if requested_size and quantity_bytes(requested_size) < quantity_bytes(source["spec"]["resources"]["requests"]["storage"]):
             patch_status(obj, "runtimecheckouts", {"phase": "Blocked", "targetPVC": target, "conditions": [condition("Ready", "False", "InsufficientTargetCapacity")]})
             return
-        target_pvc = ensure_target_pvc(namespace, target, source, requested_size)
+        target_pvc = ensure_target_pvc(namespace, target, source, requested_size, commit["status"]["snapshotName"])
         if target_pvc.get("status", {}).get("phase") != "Bound":
             patch_status(obj, "runtimecheckouts", {"phase": "Materializing", "targetPVC": target, "conditions": [condition("Ready", "False", "WaitingForTargetPVC")]})
             return
         job_name = "ra-restore-" + obj["metadata"]["uid"][:8]
-        ensure_job(namespace, job_name, source_name, "restore", commit["status"]["snapshotName"], target)
+        ensure_job(namespace, job_name, target, "manifest", commit["status"]["snapshotName"])
         result = job_result(namespace, job_name)
         if not result:
             patch_status(obj, "runtimecheckouts", {"phase": "Materializing", "targetPVC": target, "jobRef": {"name": job_name}, "conditions": [condition("Ready", "False", "AdapterJobRunning")]})

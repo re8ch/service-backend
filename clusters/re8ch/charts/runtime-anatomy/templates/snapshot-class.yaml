@@ -1,0 +1,12 @@
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: {{ .Values.canary.volumeSnapshotClassName }}
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+driver: rook-ceph.cephfs.csi.ceph.com
+deletionPolicy: Retain
+parameters:
+  clusterID: rook-ceph
+  csi.storage.k8s.io/snapshotter-secret-name: rook-csi-cephfs-provisioner
+  csi.storage.k8s.io/snapshotter-secret-namespace: rook-ceph

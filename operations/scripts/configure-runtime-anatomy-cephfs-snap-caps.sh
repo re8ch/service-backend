@@ -22,7 +22,7 @@ entity="client.$user_id"
 tools=$(kubectl -n "$rook_namespace" get pod -l app=rook-ceph-tools -o jsonpath='{.items[0].metadata.name}')
 test -n "$tools"
 current=$(kubectl -n "$rook_namespace" exec "$tools" -- ceph auth get "$entity" -f json | jq -r '.[0].caps.mds')
-desired="allow rwps"
+desired="allow rw"
 
 if [ "$mode" = --check ]; then
   printf 'current mds caps: %s\n' "$current"
