@@ -19,6 +19,23 @@ spec:
 {{- range $namespace := (default (list $tenant.runtimeNamespaceRef) $tenant.businessNamespaces) }}
     - {{ $namespace }}
 {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tenant-resource-provisioner
+  namespace: {{ $tenant.runtimeNamespaceRef }}
+  labels:
+    app.kubernetes.io/part-of: birfucate-metering
+    tenancy.re8ch.com/tenant: {{ $tenant.name }}
+subjects:
+  - kind: ServiceAccount
+    name: tenant-control-controller
+    namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tenant-resource-provisioner
 {{- range $binding := $tenant.identityBindings }}
 ---
 apiVersion: tenancy.re8ch.com/v1alpha1
