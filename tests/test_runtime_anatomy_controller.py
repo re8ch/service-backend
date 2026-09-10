@@ -23,6 +23,7 @@ def test_adapter_manifests_a_csi_snapshot_materialization(monkeypatch):
     source = {"spec": {"accessModes": ["ReadWriteMany"], "storageClassName": "cephfs-re8ch", "resources": {"requests": {"storage": "1Gi"}}}}
     pvc = controller.ensure_snapshot_pvc("runtime-anatomy-canary", "materialized", source, "ra-test")
     assert pvc["spec"]["dataSource"] == {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": "ra-test"}
+    assert pvc["metadata"]["labels"]["storage.re8ch.com/replicated-approved"] == "true"
 
 
 def test_manifest_entries_are_keyed_for_deterministic_diff():

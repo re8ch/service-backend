@@ -151,7 +151,7 @@ def ensure_snapshot_pvc(namespace, name, source, snapshot_name):
     if pvc:
         return pvc
     spec = source["spec"]
-    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/commit-materialization": "true"}}, "spec": {"accessModes": spec["accessModes"], "storageClassName": spec.get("storageClassName"), "dataSource": {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": snapshot_name}, "resources": {"requests": {"storage": spec["resources"]["requests"]["storage"]}}}}
+    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/commit-materialization": "true", "storage.re8ch.com/replicated-approved": "true"}}, "spec": {"accessModes": spec["accessModes"], "storageClassName": spec.get("storageClassName"), "dataSource": {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": snapshot_name}, "resources": {"requests": {"storage": spec["resources"]["requests"]["storage"]}}}}
     return request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims", "POST", body)
 
 
@@ -277,7 +277,7 @@ def ensure_target_pvc(namespace, name, source, requested_size=None, snapshot_nam
     pvc_spec = {"accessModes": spec["accessModes"], "storageClassName": spec.get("storageClassName"), "resources": {"requests": {"storage": size}}}
     if snapshot_name:
         pvc_spec["dataSource"] = {"apiGroup": "snapshot.storage.k8s.io", "kind": "VolumeSnapshot", "name": snapshot_name}
-    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/restored": "true"}}, "spec": pvc_spec}
+    body = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": name, "namespace": namespace, "labels": {"app.kubernetes.io/part-of": "runtime-anatomy", CANARY_LABEL: "true", "anatomy.re8ch.com/restored": "true", "storage.re8ch.com/replicated-approved": "true"}}, "spec": pvc_spec}
     return request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims", "POST", body)
 
 
