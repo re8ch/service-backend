@@ -31,7 +31,12 @@ shown as unavailable data, not as an empty healthy timeline.
 5. Timeline: commits, parent digests, consistency, phase and branch heads once
    the Runtime Anatomy controller/CRDs exist.
 
-No commit, checkout, restore, branch move or GC action is exposed in v0.1.0.
+Optional APIs are discovered through Kubernetes `/apis` before their list/watch
+hooks are mounted. An absent VolumeSnapshot or Runtime Anatomy CRD is rendered
+as an unavailable capability without issuing repeated 404 requests. The final
+scope uses an exact namespaced ConfigMap GET rather than a cluster-wide list.
+
+No commit, checkout, restore, branch move or GC action is exposed in v0.1.1.
 Those operations require separate API verbs, planner output and confirmation
 surfaces rather than generic Kubernetes patch controls.
 
@@ -41,4 +46,3 @@ npm run tsc
 npm run build
 npm run package
 ```
-

@@ -17,7 +17,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     expected = {
         "headlamp-public-edge-v020": "re8ch-headlamp-public-edge-0.2.0.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
-        "headlamp-runtime-anatomy-v010": "re8ch-headlamp-runtime-anatomy-0.1.0.bundle",
+        "headlamp-runtime-anatomy-v011": "re8ch-headlamp-runtime-anatomy-0.1.1.bundle",
     }
     for configmap, filename in expected.items():
         assert generators[configmap]["files"] == [f"plugin.tar.gz=assets/{filename}"]
@@ -52,6 +52,10 @@ def test_runtime_anatomy_plugin_is_read_only_and_uses_scope_contract():
     assert 'scope.json' in source
     assert "anatomy.re8ch.com/config-role" in source
     assert "final-scope" in source
+    assert "ConfigMap.useGet" in source
+    assert "ApiProxy.request('/apis'" in source
+    assert "apiGroups?.has('snapshot.storage.k8s.io/v1')" in source
+    assert "apiGroups?.has('anatomy.re8ch.com/v1alpha1')" in source
     assert 'registerSidebarEntry' in source
     assert 'registerRoute' in source
     for mutation in ("create(", "update(", "delete(", "patch("):
