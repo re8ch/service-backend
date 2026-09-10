@@ -83,6 +83,10 @@ def test_active_metrics_scrape_gateway_receive_bytes_per_node():
     metric_filter = endpoint["metricRelabelConfigs"][0]
     assert metric_filter["action"] == "keep"
     assert "listener_downstream_cx_rx_bytes_total" in metric_filter["regex"]
+    assert "http_downstream_cx_rx_bytes_total" in metric_filter["regex"]
+    assert "tcp_.+_downstream_cx_rx_bytes_total" in metric_filter["regex"]
+    assert "upstream" not in metric_filter["regex"]
+    assert "buffered" not in metric_filter["regex"]
 
     runtime = yaml_documents(OBSERVABILITY / "opencost-recovery" / "runtime.yaml")
     vmagent = next(doc for doc in runtime if doc["kind"] == "VMAgent")
