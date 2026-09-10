@@ -3,7 +3,7 @@ set -eu
 
 mode=${1:---check}
 namespace=runtime-anatomy-canary
-claim=runtime-anatomy-source-v3
+claim=runtime-anatomy-source-v4
 rook_namespace=rook-ceph
 node_secret=rook-csi-cephfs-node
 filesystem=re8ch-files
@@ -22,7 +22,7 @@ entity="client.$user_id"
 tools=$(kubectl -n "$rook_namespace" get pod -l app=rook-ceph-tools -o jsonpath='{.items[0].metadata.name}')
 test -n "$tools"
 current=$(kubectl -n "$rook_namespace" exec "$tools" -- ceph auth get "$entity" -f json | jq -r '.[0].caps.mds')
-desired="allow rws fsname=$filesystem path=$path, allow rw"
+desired="allow rwps"
 
 if [ "$mode" = --check ]; then
   printf 'current mds caps: %s\n' "$current"
