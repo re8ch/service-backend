@@ -65,7 +65,7 @@ def install_failure_evidence(evidence, path):
     sys.excepthook = record
 
 
-def run_pod(name, script, pvc="runtime-anatomy-source-v2"):
+def run_pod(name, script, pvc="runtime-anatomy-source-v3"):
     pod = {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": name, "namespace": NAMESPACE, "labels": {"anatomy.re8ch.com/canary": "true"}}, "spec": {"restartPolicy": "Never", "automountServiceAccountToken": False, "containers": [{"name": "probe", "image": "python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d", "command": ["/bin/sh", "-ec", script], "volumeMounts": [{"name": "data", "mountPath": "/data"}], "securityContext": {"allowPrivilegeEscalation": False, "capabilities": {"drop": ["ALL"]}}}], "volumes": [{"name": "data", "persistentVolumeClaim": {"claimName": pvc}}]}}
     apply(pod)
     kubectl("-n", NAMESPACE, "wait", "--for=jsonpath={.status.phase}=Succeeded", f"pod/{name}", "--timeout=180s")
@@ -90,17 +90,17 @@ def main():
     discovered = [line.split(".")[0] for line in kubectl("api-resources", "--api-group=anatomy.re8ch.com", "-o", "name").splitlines()]
     required = {"runtimes", "runtimecommits", "runtimediffs", "runtimebranches", "runtimecheckouts", "runtimegarbagecollections"}
     assert required <= set(discovered), discovered
-    kubectl("-n", NAMESPACE, "wait", "--for=jsonpath={.status.phase}=Bound", "pvc/runtime-anatomy-source-v2", "--timeout=180s")
+    kubectl("-n", NAMESPACE, "wait", "--for=jsonpath={.status.phase}=Bound", "pvc/runtime-anatomy-source-v3", "--timeout=180s")
     wait_phase("runtimes", "cephfs-canary", {"Ready"})
     evidence["checks"]["preflight"] = "passed"
 
-    run_pod(f"{run}-write-a", f"mkdir -p /data/nested; printf %s {marker_a} > /data/marker; printf alpha > /data/nested/a.txt; printf removed > /data/remove.txt", "runtime-anatomy-source-v2")
+    run_pod(f"{run}-write-a", f"mkdir -p /data/nested; printf %s {marker_a} > /data/marker; printf alpha > /data/nested/a.txt; printf removed > /data/remove.txt", "runtime-anatomy-source-v3")
     commit_a = f"{run}-a"
     apply(resource("RuntimeCommit", commit_a, {"runtimeRef": {"name": "cephfs-canary"}, "consistency": "FilesystemConsistent"}))
     commit_a_obj = wait_phase("runtimecommits", commit_a, {"Sealed", "Failed"})
     assert commit_a_obj["status"]["phase"] == "Sealed", commit_a_obj
 
-    run_pod(f"{run}-write-b", f"printf %s {marker_b} > /data/marker; printf beta > /data/nested/b.txt; rm /data/remove.txt", "runtime-anatomy-source-v2")
+    run_pod(f"{run}-write-b", f"printf %s {marker_b} > /data/marker; printf beta > /data/nested/b.txt; rm /data/remove.txt", "runtime-anatomy-source-v3")
     commit_b = f"{run}-b"
     apply(resource("RuntimeCommit", commit_b, {"runtimeRef": {"name": "cephfs-canary"}, "parents": [commit_a], "consistency": "FilesystemConsistent"}))
     commit_b_obj = wait_phase("runtimecommits", commit_b, {"Sealed", "Failed"})
