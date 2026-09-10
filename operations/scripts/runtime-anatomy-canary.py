@@ -4,6 +4,7 @@ import argparse
 import json
 import secrets
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -12,7 +13,10 @@ GROUP = "anatomy.re8ch.com/v1alpha1"
 
 
 def kubectl(*args, stdin=None, json_output=False):
-    result = subprocess.run(["kubectl", *args], input=stdin, text=True, capture_output=True, check=True)
+    result = subprocess.run(["kubectl", *args], input=stdin, text=True, capture_output=True)
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"kubectl {' '.join(args)} failed ({result.returncode}): {detail[:2000]}")
     return json.loads(result.stdout) if json_output else result.stdout.strip()
 
 
@@ -35,6 +39,32 @@ def wait_phase(plural, name, wanted, timeout=360):
     raise TimeoutError(f"{plural}/{name} did not reach {wanted}")
 
 
+def wait_exists(namespace, kind, name, timeout=600):
+    """Wait across the asynchronous GitOps reconciliation boundary."""
+    deadline = time.time() + timeout
+    last_error = "not observed"
+    while time.time() < deadline:
+        result = subprocess.run(
+            ["kubectl", "-n", namespace, "get", kind, name, "-o", "name"],
+            text=True, capture_output=True,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        last_error = (result.stderr or result.stdout).strip()[:2000]
+        time.sleep(5)
+    raise TimeoutError(f"{kind}/{name} was not created in namespace {namespace}: {last_error}")
+
+
+def install_failure_evidence(evidence, path):
+    def record(exc_type, exc, traceback):
+        evidence["result"] = "failed"
+        evidence["finishedAt"] = int(time.time())
+        evidence["error"] = {"type": exc_type.__name__, "message": str(exc)[:4000]}
+        Path(path).write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
+        sys.__excepthook__(exc_type, exc, traceback)
+    sys.excepthook = record
+
+
 def run_pod(name, script, pvc="runtime-anatomy-source"):
     pod = {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": name, "namespace": NAMESPACE, "labels": {"anatomy.re8ch.com/canary": "true"}}, "spec": {"restartPolicy": "Never", "automountServiceAccountToken": False, "containers": [{"name": "probe", "image": "python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d", "command": ["/bin/sh", "-ec", script], "volumeMounts": [{"name": "data", "mountPath": "/data"}], "securityContext": {"allowPrivilegeEscalation": False, "capabilities": {"drop": ["ALL"]}}}], "volumes": [{"name": "data", "persistentVolumeClaim": {"claimName": pvc}}]}}
     apply(pod)
@@ -45,13 +75,17 @@ def run_pod(name, script, pvc="runtime-anatomy-source"):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence", default="runtime-anatomy-canary.evidence.json")
+    parser.add_argument("--preflight-timeout", type=int, default=600)
     args = parser.parse_args()
     run = "ra" + secrets.token_hex(4)
     marker_a = secrets.token_hex(16)
     marker_b = secrets.token_hex(16)
     evidence = {"schemaVersion": 1, "run": run, "namespace": NAMESPACE, "startedAt": int(time.time()), "checks": {}}
+    install_failure_evidence(evidence, args.evidence)
 
-    kubectl("-n", "runtime-anatomy", "get", "configmap", "runtime-anatomy-runtime-anatomy-scope")
+    wait_exists("flux-system", "helmrelease", "runtime-anatomy", args.preflight_timeout)
+    kubectl("-n", "flux-system", "wait", "--for=condition=Ready", "helmrelease/runtime-anatomy", f"--timeout={args.preflight_timeout}s")
+    wait_exists("runtime-anatomy", "configmap", "runtime-anatomy-runtime-anatomy-scope", args.preflight_timeout)
     kubectl("-n", "runtime-anatomy", "rollout", "status", "deployment/runtime-anatomy-runtime-anatomy-controller", "--timeout=180s")
     discovered = [line.split(".")[0] for line in kubectl("api-resources", "--api-group=anatomy.re8ch.com", "-o", "name").splitlines()]
     required = {"runtimes", "runtimecommits", "runtimediffs", "runtimebranches", "runtimecheckouts", "runtimegarbagecollections"}
@@ -110,6 +144,7 @@ def main():
 
     evidence["checks"].update({"commitA": commit_a_obj["status"], "commitB": commit_b_obj["status"], "diff": diff_obj["status"], "branchCAS": "passed", "insufficientCapacity": blocked_obj["status"], "restore": checkout_obj["status"], "restoreProbe": "passed", "gc": gc_obj["status"]})
     evidence["finishedAt"] = int(time.time())
+    evidence["result"] = "passed"
     Path(args.evidence).write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"result": "passed", "evidence": args.evidence, "run": run}))
 
