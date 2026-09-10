@@ -1,7 +1,9 @@
-Runtime Anatomy scope {{ .Values.scope.name }} is installed as
+Runtime Anatomy v0.2 scope {{ .Values.scope.name }} is installed as
 {{ include "runtime-anatomy.fullname" . }}-scope.
 
 This release consumes existing storage and runtime providers. It does not
-install or mutate Rook/Ceph, CSI drivers, StorageClasses or external runtimes.
+install or mutate Rook/Ceph daemons, CSI drivers, StorageClasses or external
+runtimes. The canary adapter uses only the labelled PVC's `.snap` namespace.
 PVC provisioning: {{ ternary "enabled" "disabled" .Values.provisioning.enabled }}
+Canary: {{ ternary "enabled" "disabled" .Values.canary.enabled }}
 GC mode: {{ .Values.retention.gcMode }}

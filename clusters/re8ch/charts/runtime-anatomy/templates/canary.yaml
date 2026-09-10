@@ -1,0 +1,49 @@
+{{- if .Values.canary.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.canary.namespace }}
+  labels:
+    app.kubernetes.io/part-of: runtime-anatomy
+    anatomy.re8ch.com/canary: "true"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: runtime-anatomy-source
+  namespace: {{ .Values.canary.namespace }}
+  labels:
+    app.kubernetes.io/part-of: runtime-anatomy
+    anatomy.re8ch.com/canary: "true"
+    storage.re8ch.com/replicated-approved: "true"
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: {{ .Values.canary.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.canary.size }}
+---
+apiVersion: anatomy.re8ch.com/v1alpha1
+kind: Runtime
+metadata:
+  name: cephfs-canary
+  namespace: {{ .Values.canary.namespace }}
+  labels:
+    app.kubernetes.io/part-of: runtime-anatomy
+    anatomy.re8ch.com/canary: "true"
+spec:
+  subjectRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: runtime-anatomy-source
+  components:
+    - name: workspace
+      kind: Filesystem
+      adapterRef: {name: cephfs-native}
+      sourceRef: {apiVersion: v1, kind: PersistentVolumeClaim, name: runtime-anatomy-source}
+      required: true
+  commitPolicy:
+    consistency: FilesystemConsistent
+{{- end }}

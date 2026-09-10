@@ -1,0 +1,103 @@
+{{- if .Values.controller.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [anatomy.re8ch.com]
+    resources: [runtimes, runtimecommits, runtimediffs, runtimebranches, runtimecheckouts, runtimegarbagecollections]
+    verbs: [get, list, watch]
+  - apiGroups: [anatomy.re8ch.com]
+    resources: [runtimes/status, runtimecommits/status, runtimediffs/status, runtimebranches/status, runtimecheckouts/status, runtimegarbagecollections/status]
+    verbs: [get, patch, update]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, create, delete]
+  - apiGroups: [""]
+    resources: [pods, pods/log, persistentvolumeclaims]
+    verbs: [get, list, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "runtime-anatomy.fullname" . }}-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "runtime-anatomy.fullname" . }}-controller
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+data:
+  controller.py: |
+{{ .Files.Get "files/controller.py" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "runtime-anatomy.name" . }}-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "runtime-anatomy.name" . }}-controller
+        app.kubernetes.io/part-of: runtime-anatomy
+    spec:
+      serviceAccountName: {{ include "runtime-anatomy.fullname" . }}-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: controller
+          image: {{ .Values.controller.image }}
+          command: [python3, /runtime/controller.py]
+          env:
+            - name: POLL_INTERVAL_SECONDS
+              value: {{ .Values.controller.pollIntervalSeconds | quote }}
+            - name: JOB_TIMEOUT_SECONDS
+              value: {{ .Values.controller.jobTimeoutSeconds | quote }}
+            - name: ADAPTER_IMAGE
+              value: {{ .Values.controller.image | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          volumeMounts:
+            - {name: runtime, mountPath: /runtime, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: runtime
+          configMap: {name: {{ include "runtime-anatomy.fullname" . }}-controller}
+        - name: tmp
+          emptyDir: {}
+{{- end }}

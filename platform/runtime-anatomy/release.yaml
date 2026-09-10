@@ -28,6 +28,8 @@ spec:
       strategy: rollback
   rollback:
     cleanupOnFail: true
+  driftDetection:
+    mode: enabled
   values:
     scope:
       lifecycle: Canary
@@ -35,3 +37,5 @@ spec:
       enabled: false
     retention:
       gcMode: DryRun
+    canary:
+      enabled: true
