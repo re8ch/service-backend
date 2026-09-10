@@ -11,9 +11,9 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     kustomization = (HEADLAMP / "kustomization.yaml").read_text()
     assert "re8ch-headlamp-among-clusters-0.3.6.bundle" in kustomization
     assert "aee9c0fbc3f16d200c866cb8ca41394d5c7070e51b3baa9a27bcb6284dbadcf1" in deployment
-    assert "re8ch-headlamp-advanced-fabric-0.20.2.bundle.b64" in kustomization
-    assert "5bcd55e56eeee0b6a30a8db1dd68518bc23b6b6e4ff176da879aa8531d699bd9" in deployment
-    assert "headlamp-advanced-fabric-v0202" in kustomization
+    assert "re8ch-headlamp-advanced-fabric-0.21.0.bundle.b64" in kustomization
+    assert "a3a2f0c14d692c8374bcae4778e715aab0cd541d2de62aedfdd9cd5179ec127f" in deployment
+    assert "headlamp-advanced-fabric-v0210" in kustomization
     assert "values: [domain-ex]" in deployment
     assert "github.com/re8ch/" not in deployment
     assert not re.search(r"client-certificate-data|client-key-data|Bearer\\s+[A-Za-z0-9]", deployment, re.I)
