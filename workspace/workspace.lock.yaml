@@ -11,7 +11,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/2woodblog.git
   advanced-fabric:
-    commit: 485f8337445f5538cf7e851b5595583183f3a457
+    commit: 98f03cc9e7c5cb12c57bc423f29f3e44e8ff4fed
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/advanced-fabric.git
