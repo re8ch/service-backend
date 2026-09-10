@@ -47,7 +47,7 @@ resources:
   - ../../platform/birfucate-metering
   - ../../platform/hyperswitch
   - ../../platform/public-edge-manager
-  - ../../platform/runtime-adapter
+  - ../../platform/adapter
   - ../../platform/runtime-anatomy
   - ../../platform/external-projects
 patchesStrategicMerge:

@@ -1,0 +1,12 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: {{ include "adapter.fullname" . }}
+  labels: {{ include "adapter.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "adapter.labels" . | nindent 6 }}
+  namespaceSelector: {matchNames: [{{ .Release.Namespace }}]}
+  endpoints: [{port: http, path: /metrics, interval: {{ .Values.metrics.serviceMonitor.interval }}}]
+{{- end }}
