@@ -91,7 +91,7 @@ for base,dirs,files in os.walk(root):
   h=hashlib.sha256()
   with open(path,"rb") as stream:
    for chunk in iter(lambda:stream.read(1048576),b""): h.update(chunk)
-  entries.append({{"path":rel,"size":os.path.getsize(path),"sha256":h.hexdigest()}})
+  entries.append({"path":rel,"size":os.path.getsize(path),"sha256":h.hexdigest()})
 entries.sort(key=lambda x:x["path"])
 digest="sha256:"+hashlib.sha256(json.dumps(entries,separators=(",",":"),sort_keys=True).encode()).hexdigest()
 result={"manifest":{"digest":digest,"entries":entries,"fileCount":len(entries)}}

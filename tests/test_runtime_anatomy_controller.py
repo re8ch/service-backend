@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 from pathlib import Path
 
 
@@ -18,6 +19,7 @@ def test_adapter_manifests_a_csi_snapshot_materialization(monkeypatch):
     commit = controller.adapter_program("commit", "ra-test")
     assert 'root="/source"' in commit
     assert "os.mkdir" not in commit
+    subprocess.run(["python3", "-c", commit], check=True, capture_output=True, text=True)
     calls = []
     monkeypatch.setattr(controller, "request", lambda path, method="GET", body=None, **kwargs: calls.append((path, method, body)) or (None if method == "GET" else body))
     source = {"spec": {"accessModes": ["ReadWriteMany"], "storageClassName": "cephfs-re8ch", "resources": {"requests": {"storage": "1Gi"}}}}
