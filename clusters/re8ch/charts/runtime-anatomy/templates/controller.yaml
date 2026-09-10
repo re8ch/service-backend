@@ -23,6 +23,9 @@ rules:
   - apiGroups: [batch]
     resources: [jobs]
     verbs: [get, list, create, delete]
+  - apiGroups: [snapshot.storage.k8s.io]
+    resources: [volumesnapshots]
+    verbs: [get, list, create]
   - apiGroups: [""]
     resources: [pods, pods/log, persistentvolumeclaims]
     verbs: [get, list, create]
@@ -85,6 +88,8 @@ spec:
               value: {{ .Values.controller.jobTimeoutSeconds | quote }}
             - name: ADAPTER_IMAGE
               value: {{ .Values.controller.image | quote }}
+            - name: VOLUME_SNAPSHOT_CLASS
+              value: {{ .Values.canary.volumeSnapshotClassName | quote }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}

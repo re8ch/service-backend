@@ -151,6 +151,7 @@ canary:
   enabled: false
   namespace: runtime-anatomy-canary
   storageClassName: cephfs-re8ch
+  volumeSnapshotClassName: runtime-anatomy-cephfs
   size: 1Gi
 
 # Canary does not allocate bytes until Ceph health and snapshot capability have

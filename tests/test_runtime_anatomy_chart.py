@@ -65,12 +65,24 @@ def test_canary_claim_uses_state_class_and_retention_guards():
     assert claim["metadata"]["labels"]["storage.re8ch.com/replicated-approved"] == "true"
 
 
-def test_cephfs_snapshot_cap_reconciler_is_path_scoped_and_reversible():
+def test_legacy_cephfs_cap_reconciler_restores_minimal_access():
     script = (ROOT / "operations/scripts/configure-runtime-anatomy-cephfs-snap-caps.sh").read_text()
-    assert 'desired="allow rwps"' in script
+    assert 'desired="allow rw"' in script
     assert "/volumes/csi/csi-vol-*" in script
     assert "--rollback" in script
     assert "allow *" not in script
+
+
+def test_snapshot_controller_is_commit_pinned_and_chart_uses_csi_snapshots():
+    source = yaml.safe_load((ROOT / "platform/runtime-anatomy/snapshot-controller-source.yaml").read_text())
+    assert source["spec"]["ref"]["commit"] == "5aab051d1af135e2c852f6fb7fc27fa709d877bf"
+    resources = render("--set", "canary.enabled=true")
+    snapshot_class = next(item for item in resources if item["kind"] == "VolumeSnapshotClass")
+    assert snapshot_class["driver"] == "rook-ceph.cephfs.csi.ceph.com"
+    assert snapshot_class["deletionPolicy"] == "Retain"
+    controller = (CHART / "files/controller.py").read_text()
+    assert 'snapshot.storage.k8s.io/v1' in controller
+    assert '"dataSource"' in controller
 
 
 def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
@@ -96,6 +108,6 @@ def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
     assert runtime["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
     assert claim["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
     assert claim["spec"]["storageClassName"] == "cephfs-re8ch"
-    assert claim["metadata"]["annotations"]["anatomy.re8ch.com/cephfs-snapshot-capability"] == "allow-rws-on-bound-subvolume-path"
+    assert claim["metadata"]["annotations"]["anatomy.re8ch.com/snapshot-adapter"] == "csi-volume-snapshot-v1"
     assert claim["metadata"]["name"] == "runtime-anatomy-source-v4"
     assert runtime["spec"]["subjectRef"]["name"] == "runtime-anatomy-source-v4"
