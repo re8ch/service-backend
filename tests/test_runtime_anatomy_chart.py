@@ -65,6 +65,14 @@ def test_canary_claim_uses_state_class_and_retention_guards():
     assert claim["metadata"]["labels"]["storage.re8ch.com/replicated-approved"] == "true"
 
 
+def test_cephfs_snapshot_cap_reconciler_is_path_scoped_and_reversible():
+    script = (ROOT / "operations/scripts/configure-runtime-anatomy-cephfs-snap-caps.sh").read_text()
+    assert "allow rw, allow rws fsname=$filesystem path=$path" in script
+    assert "/volumes/csi/csi-vol-*" in script
+    assert "--rollback" in script
+    assert "allow *" not in script
+
+
 def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
     release = yaml.safe_load((ROOT / "platform/runtime-anatomy/release.yaml").read_text())
     assert release["spec"]["chart"]["spec"]["chart"] == "./clusters/re8ch/charts/runtime-anatomy"
@@ -88,3 +96,4 @@ def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
     assert runtime["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
     assert claim["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
     assert claim["spec"]["storageClassName"] == "cephfs-re8ch"
+    assert claim["metadata"]["annotations"]["anatomy.re8ch.com/cephfs-snapshot-capability"] == "allow-rws-on-bound-subvolume-path"

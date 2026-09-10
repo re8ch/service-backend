@@ -10,6 +10,13 @@ labelled, isolated canary PVC. The controller refuses sources outside that
 boundary. It creates native CephFS `.snap` commits, computes manifest diffs,
 restores into new PVCs, and keeps GC permanently in `DryRun`.
 
+The native `.snap` adapter requires the CSI node identity to retain its normal
+`allow rw` MDS capability plus `allow rws fsname=re8ch-files path=<bound canary
+subvolumePath>`. Reconcile and verify that path-scoped grant with
+`operations/scripts/configure-runtime-anatomy-cephfs-snap-caps.sh`. The script
+fails closed on an unexpected driver, subvolume path or existing cap set;
+`--rollback` removes only the canary-specific `rws` grant.
+
 Runtime Anatomy is a Kubernetes-native framework for describing, observing and
 recovering the persistent state of a runtime over time. It does not implement a
 filesystem, object store, CSI driver, container runtime, browser or secret
