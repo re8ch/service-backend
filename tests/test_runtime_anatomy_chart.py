@@ -67,7 +67,7 @@ def test_canary_claim_uses_state_class_and_retention_guards():
 
 def test_cephfs_snapshot_cap_reconciler_is_path_scoped_and_reversible():
     script = (ROOT / "operations/scripts/configure-runtime-anatomy-cephfs-snap-caps.sh").read_text()
-    assert "allow rw, allow rws fsname=$filesystem path=$path" in script
+    assert "allow rws fsname=$filesystem path=$path, allow rw" in script
     assert "/volumes/csi/csi-vol-*" in script
     assert "--rollback" in script
     assert "allow *" not in script
@@ -97,5 +97,5 @@ def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
     assert claim["metadata"]["labels"]["anatomy.re8ch.com/canary"] == "true"
     assert claim["spec"]["storageClassName"] == "cephfs-re8ch"
     assert claim["metadata"]["annotations"]["anatomy.re8ch.com/cephfs-snapshot-capability"] == "allow-rws-on-bound-subvolume-path"
-    assert claim["metadata"]["name"] == "runtime-anatomy-source-v2"
-    assert runtime["spec"]["subjectRef"]["name"] == "runtime-anatomy-source-v2"
+    assert claim["metadata"]["name"] == "runtime-anatomy-source-v3"
+    assert runtime["spec"]["subjectRef"]["name"] == "runtime-anatomy-source-v3"

@@ -3,7 +3,7 @@ set -eu
 
 mode=${1:---check}
 namespace=runtime-anatomy-canary
-claim=runtime-anatomy-source-v2
+claim=runtime-anatomy-source-v3
 rook_namespace=rook-ceph
 node_secret=rook-csi-cephfs-node
 filesystem=re8ch-files
@@ -22,7 +22,7 @@ entity="client.$user_id"
 tools=$(kubectl -n "$rook_namespace" get pod -l app=rook-ceph-tools -o jsonpath='{.items[0].metadata.name}')
 test -n "$tools"
 current=$(kubectl -n "$rook_namespace" exec "$tools" -- ceph auth get "$entity" -f json | jq -r '.[0].caps.mds')
-desired="allow rw, allow rws fsname=$filesystem path=$path"
+desired="allow rws fsname=$filesystem path=$path, allow rw"
 
 if [ "$mode" = --check ]; then
   printf 'current mds caps: %s\n' "$current"
@@ -32,7 +32,7 @@ if [ "$mode" = --check ]; then
 fi
 
 case "$current" in
-  "allow rw"|"$desired"|"allow rw, allow rws fsname=$filesystem path=/volumes/csi/csi-vol-"*) ;;
+  "allow rw"|"$desired"|"allow rws fsname=$filesystem path=/volumes/csi/csi-vol-"*", allow rw") ;;
   *) echo "refusing to replace unexpected MDS caps: $current" >&2; exit 1;;
 esac
 
