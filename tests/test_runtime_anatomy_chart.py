@@ -83,6 +83,8 @@ def test_snapshot_controller_is_commit_pinned_and_chart_uses_csi_snapshots():
     controller = (CHART / "files/controller.py").read_text()
     assert 'snapshot.storage.k8s.io/v1' in controller
     assert '"dataSource"' in controller
+    deployment = next(item for item in resources if item["kind"] == "Deployment")
+    assert len(deployment["spec"]["template"]["metadata"]["annotations"]["checksum/controller"]) == 64
 
 
 def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
