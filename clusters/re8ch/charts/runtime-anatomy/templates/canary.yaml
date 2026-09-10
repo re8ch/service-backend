@@ -10,7 +10,7 @@ metadata:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: runtime-anatomy-source
+  name: runtime-anatomy-source-v2
   namespace: {{ .Values.canary.namespace }}
   labels:
     app.kubernetes.io/part-of: runtime-anatomy
@@ -38,12 +38,12 @@ spec:
   subjectRef:
     apiVersion: v1
     kind: PersistentVolumeClaim
-    name: runtime-anatomy-source
+    name: runtime-anatomy-source-v2
   components:
     - name: workspace
       kind: Filesystem
       adapterRef: {name: cephfs-native}
-      sourceRef: {apiVersion: v1, kind: PersistentVolumeClaim, name: runtime-anatomy-source}
+      sourceRef: {apiVersion: v1, kind: PersistentVolumeClaim, name: runtime-anatomy-source-v2}
       required: true
   commitPolicy:
     consistency: FilesystemConsistent
