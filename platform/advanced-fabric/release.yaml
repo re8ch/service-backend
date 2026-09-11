@@ -155,7 +155,7 @@ spec:
         # The Helm test must not land on restricted-node-6dc3f140f9 while its pod sandbox path is
         # independently unhealthy; validate the Service from the healthy DNS
         # peer instead of making release success scheduler-dependent.
-        testNodeSelector: {kubernetes.io/hostname: zan}
+        testNodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
         # Bootstrap by IP, outside both cluster DNS and the lossy Service VIP
         # path. A1/B1 are currently reachable from every authoritative node;
         # restricted-node-6dc3f140f9 remains last-resort until its WG transport IP is in the API cert.
