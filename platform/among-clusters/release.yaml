@@ -6,7 +6,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-hub
   ref:
-    digest: sha256:71c0e3100bac8c52006ae756ebecf5408fe0dd426fdb2d644cb280678a2ef124
+    digest: sha256:43c9c89801afe04bbb97b89933606a086da34d5e9bb6507d1b89ef4653fc541b
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -24,7 +24,7 @@ spec:
       repository: ghcr.io/re8ch/among-clusters
       # restricted-node-6dc3f140f9 is amd64. Pin the platform manifest rather than the attestation
       # index so containerd pulls an executable image deterministically.
-      digest: sha256:8ef8d840efee72c69f7f49c236d56827d27030ba3a45dc8f585d55417120bb7c
+      digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
     replicaCount: 1
     nodeSelector:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
@@ -50,8 +50,8 @@ spec:
       providerBundleDigest: sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8
       providerBundleSecret: among-clusters-agent-identity
       providerQUICEndpoint: quic://192.0.2.138:8443
-      imageDigest: sha256:d1ac0ac04c8c0728cd2505adaec0de64fc12515706ec7b4c3d2ebe6099d0b946
-      chartVersion: 0.3.24
+      imageDigest: sha256:3a6b90956f55914d595a9e24d8382b1697a8ef0ad51a65e60b77faa76ed7b692
+      chartVersion: 0.3.25
     ciliumPolicy: {enabled: true}
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
@@ -62,7 +62,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/among-clusters-agent
   ref:
-    digest: sha256:cf18bab81142373c1f7e0683e284c7d21f34a56a908cc5e26186d6cc6216829a
+    digest: sha256:e546d8e9056a85b813488524282727a6135a0cc544f39d2dc5a8afe23bb042a3
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -82,7 +82,7 @@ spec:
     hubEndpoint: https://among-clusters.re8ch.com
     image:
       repository: ghcr.io/re8ch/among-clusters
-      digest: sha256:8ef8d840efee72c69f7f49c236d56827d27030ba3a45dc8f585d55417120bb7c
+      digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
     nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
