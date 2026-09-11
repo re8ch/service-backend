@@ -79,7 +79,10 @@ spec:
     clusterID: re8ch
     tenant: byoc-pilot
     trustDomain: re8ch.internal
-    hubEndpoint: https://among-clusters.re8ch.com
+    # The provider agent runs beside the Hub. Use the cluster-local endpoint to
+    # avoid provider-public-IP NAT hairpin failures; BYOC consumers still use
+    # the public onboarding endpoint configured on the Hub release.
+    hubEndpoint: http://among-clusters-hub.among-clusters.svc.cluster.local
     image:
       repository: ghcr.io/re8ch/among-clusters
       digest: sha256:8ef8d840efee72c69f7f49c236d56827d27030ba3a45dc8f585d55417120bb7c
