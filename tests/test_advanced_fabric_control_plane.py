@@ -31,7 +31,6 @@ def test_control_plane_vip_uses_all_three_etcd_hosts_as_guarded_origins():
 
     consumers = {
         "overseas-la": ["wg-pt-b1"],
-        "overseas-kl": ["wg-pt-a1", "wg-pt-b1"],
         "vm-20-12-ubuntu": ["wg-pt-a1", "wg-pt-b1"],
         "suxunji": ["wg-pt-a1", "wg-pt-b1"],
         "muaya-lightweight": ["wg-pt-a1", "wg-pt-b1"],
@@ -41,7 +40,18 @@ def test_control_plane_vip_uses_all_three_etcd_hosts_as_guarded_origins():
     }
     for name, interfaces in consumers.items():
         assert operations[name]["wireguardInterfaces"] == interfaces
-        assert operations[name]["wireguardAllowedPrefixes"] == ["192.0.2.220/32"]
+        assert operations[name]["wireguardAllowedPrefixes"] == [
+            "192.0.2.106/24",
+            "192.0.2.215/24",
+        ]
+
+    assert operations["overseas-kl"]["wireguardInterfaces"] == [
+        "wg-pt-a1",
+        "wg-pt-b1",
+    ]
+    assert operations["overseas-kl"]["wireguardAllowedPrefixes"] == [
+        "192.0.2.220/32"
+    ]
 
 
 def test_control_plane_rollout_does_not_enable_routeros_mutation():
