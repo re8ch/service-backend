@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:3f8aeb326140a7c6e03fc107514754f4a75297828ec694974601503548471533
+    digest: sha256:f474a5a95d2e6c69703c185d000fc0263166722056cea312a0a0d301659ab16a
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
