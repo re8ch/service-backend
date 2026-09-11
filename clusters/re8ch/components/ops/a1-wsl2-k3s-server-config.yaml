@@ -41,3 +41,10 @@ kube-apiserver-arg:
   - "oidc-username-prefix=oidc:"
   - "oidc-groups-claim=groups"
   - "oidc-groups-prefix=oidc:"
+# Advertise etcd membership on the node-owned AdvancedFabrics identity. Keep
+# the ZeroTier identity listening during migration as a local rollback path.
+etcd-arg:
+  - "advertise-client-urls=https://192.0.2.173:2379"
+  - "initial-advertise-peer-urls=https://192.0.2.173:2380"
+  - "listen-client-urls=https://192.0.2.173:2379,https://192.0.2.18:2379,https://127.0.0.1:2379"
+  - "listen-peer-urls=https://192.0.2.173:2380,https://192.0.2.18:2380,https://127.0.0.1:2380"
