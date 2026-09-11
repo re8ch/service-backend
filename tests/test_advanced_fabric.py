@@ -12,7 +12,7 @@ AF = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(AF)
 
 PODCIDR_PATH = pathlib.Path(__file__).parents[1] / "operations" / "scripts" / "frr" / "podcidr_fabric.py"
-PODCIDR_SPEC = importlib.util.spec_from_file_location("podcidr_fabric", PODCIDR_PATH)
+PODCIDR_SPEC = importlib.util.spec_from_file_location("podcidr_fabric_test", PODCIDR_PATH)
 PODCIDR = importlib.util.module_from_spec(PODCIDR_SPEC)
 PODCIDR_SPEC.loader.exec_module(PODCIDR)
 
@@ -95,6 +95,23 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertNotIn("zto", routes[0])
         self.assertEqual(PODCIDR.control_plane_identity_routes("restricted-node-296f36f2fb"), [])
         self.assertEqual(PODCIDR.control_plane_identity_routes("restricted-node-6dc3f140f9"), [])
+
+    def test_transport_spoke_advertises_each_wg_transport_as_next_hop(self):
+        inventory = {
+            "nativeRoutingCIDR": "192.0.2.224/16",
+            "acceleratedCIDR": "192.0.2.106/24",
+            "serviceCIDR": "192.0.2.232/16",
+            "routeServers": [
+                {"name": "a1", "asn": 65001, "internalIp": "192.0.2.18", "transportIp": "192.0.2.183"},
+                {"name": "b1", "asn": 65002, "internalIp": "192.0.2.208", "transportIp": "192.0.2.20"},
+            ],
+            "nodes": [{"name": "leaf", "asn": 65010, "internalIp": "192.0.2.172",
+                       "acceleratedIp": "192.0.2.31", "podCIDR": "192.0.2.26/24", "peerMode": "transport"}],
+        }
+        rendered = PODCIDR.render_spoke(inventory, inventory["nodes"][0])
+        self.assertIn("set ip next-hop 192.0.2.169", rendered)
+        self.assertIn("set ip next-hop 192.0.2.12", rendered)
+        self.assertNotIn("set ip next-hop 192.0.2.172", rendered)
 
     def test_release_pins_dns_helm_test_to_healthy_peer(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"

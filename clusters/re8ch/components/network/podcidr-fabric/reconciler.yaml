@@ -355,9 +355,13 @@ data:
     ip prefix-list POD-FABRIC-SELF seq 10 permit ${pod_cidr}
     ip prefix-list POD-FABRIC-SELF seq 20 permit ${accelerated_ip}/32
     ip prefix-list POD-FABRIC-SELF seq 1000 deny any
-    route-map POD-FABRIC-SELF-NH permit 10
+    route-map POD-FABRIC-SELF-NH-A1 permit 10
     match ip address prefix-list POD-FABRIC-SELF
-    set ip next-hop ${internal_ip}
+    set ip next-hop ${a1_update_source}
+    exit
+    route-map POD-FABRIC-SELF-NH-B1 permit 10
+    match ip address prefix-list POD-FABRIC-SELF
+    set ip next-hop ${b1_update_source}
     exit
     ip route ${pod_cidr} Null0 254
     router bgp ${asn}
@@ -378,12 +382,12 @@ data:
     neighbor ${a1_peer} activate
     neighbor ${a1_peer} prefix-list POD-FABRIC-IN in
     neighbor ${a1_peer} prefix-list POD-FABRIC-SELF out
-    neighbor ${a1_peer} route-map POD-FABRIC-SELF-NH out
+    neighbor ${a1_peer} route-map POD-FABRIC-SELF-NH-A1 out
     neighbor ${a1_peer} maximum-prefix 64 90 restart 5
     neighbor ${b1_peer} activate
     neighbor ${b1_peer} prefix-list POD-FABRIC-IN in
     neighbor ${b1_peer} prefix-list POD-FABRIC-SELF out
-    neighbor ${b1_peer} route-map POD-FABRIC-SELF-NH out
+    neighbor ${b1_peer} route-map POD-FABRIC-SELF-NH-B1 out
     neighbor ${b1_peer} maximum-prefix 64 90 restart 5
     maximum-paths 2
     exit-address-family
