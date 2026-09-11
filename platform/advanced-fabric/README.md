@@ -3,7 +3,7 @@
 The deployment truth is the independently versioned RE8CH Advanced Fabric OCI
 chart registered with Artifact Hub:
 
-`oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric`
+`oci://ghcr.io/re8ch/charts/advanced-fabric`
 
 `cloud-functions` may retain historical migration manifests, but Flux must not
 deploy its vendored chart. The `OCIRepository` is digest pinned, and the
