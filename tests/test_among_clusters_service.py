@@ -3,9 +3,9 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:c0c516eb1995303cfb03ffdd2778b9dc8af8108ed87c4d2aa4eb7199d83c99ae"
-CHART_DIGEST = "sha256:cfb150d285112824f5bc8d10432620544833027045ba350af2fb1ab83ff33aa4"
-AGENT_CHART_DIGEST = "sha256:9197d49ac32c39013bae281f66841b1722ff862a9202adddb1adeadf910cb730"
+IMAGE_DIGEST = "sha256:8ef8d840efee72c69f7f49c236d56827d27030ba3a45dc8f585d55417120bb7c"
+CHART_DIGEST = "sha256:71c0e3100bac8c52006ae756ebecf5408fe0dd426fdb2d644cb280678a2ef124"
+AGENT_CHART_DIGEST = "sha256:cf18bab81142373c1f7e0683e284c7d21f34a56a908cc5e26186d6cc6216829a"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
@@ -22,6 +22,17 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1
     assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert release["spec"]["values"]["onboarding"] == {
+        "enabled": True,
+        "publicEndpoint": "https://among-clusters.re8ch.com",
+        "tenant": "byoc-pilot",
+        "providerSPIFFEID": "spiffe://re8ch.internal/cluster/re8ch",
+        "providerBundleDigest": "sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8",
+        "providerBundleSecret": "among-clusters-agent-identity",
+        "providerQUICEndpoint": "quic://192.0.2.138:8443",
+        "imageDigest": "sha256:d1ac0ac04c8c0728cd2505adaec0de64fc12515706ec7b4c3d2ebe6099d0b946",
+        "chartVersion": "0.3.24",
+    }
     agent_source = next(item for item in objects if item["kind"] == "OCIRepository" and item["metadata"]["name"] == "among-clusters-agent")
     assert agent_source["spec"]["ref"]["digest"] == AGENT_CHART_DIGEST
 

@@ -138,7 +138,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/among-clusters-0.3.6
+              target=/headlamp/plugins/among-clusters-0.3.24
               lock=/headlamp/plugins/.among-clusters-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               # Headlamp currently has one active replica because OAuth state is
@@ -151,9 +151,9 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.among-clusters-0.3.6.new
+              stage=/headlamp/plugins/.among-clusters-0.3.24.new
               cp /plugin/plugin.tar.gz "$archive"
-              echo 'aee9c0fbc3f16d200c866cb8ca41394d5c7070e51b3baa9a27bcb6284dbadcf1  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '47d9658c3e8596e99a13dd86c9dd273078917176fe4529d35467d18d6c59ce4f  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage" --strip-components=1
@@ -320,7 +320,7 @@ spec:
             name: headlamp-advanced-fabric-v0220
         - name: among-clusters-plugin
           configMap:
-            name: headlamp-among-clusters-v036
+            name: headlamp-among-clusters-v0324
         - name: public-edge-plugin
           configMap:
             name: headlamp-public-edge-v020

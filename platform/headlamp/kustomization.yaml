@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - deployment.yaml
+  - among-clusters-onboarding-links.yaml
   - active-elector.yaml
   - availability-policy.yaml
   - qwen-kubeconfig.yaml
@@ -13,10 +14,10 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz.b64=assets/re8ch-headlamp-advanced-fabric-0.22.0.bundle.b64
-  - name: headlamp-among-clusters-v036
+  - name: headlamp-among-clusters-v0324
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-among-clusters-0.3.6.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-among-clusters-0.3.24.bundle
   - name: headlamp-birfucate-browser-v031
     namespace: headlamp
     files:
