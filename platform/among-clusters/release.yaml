@@ -93,6 +93,7 @@ spec:
     peerConfirmations:
       - {peerRef: re8ch-qwen, bundleDigest: sha256:1ca3850085419fd4cb099a0922452e1c1d2ba044396fe64f920f63fd78123357}
       - {peerRef: re8ch-artc, bundleDigest: sha256:72dbab1a10af9585ff65e652c0a26240275f3a7cda3206d1aead6ebf5bf71a8e}
+      - {peerRef: re8ch-sijie, bundleDigest: sha256:5b7c9a2eeb10e11420d73b2000e2e7b859003570a43131c3f2f63b2876e1990f}
     # BYOC peers originate sessions to the provider-owned public authority.
     # Their observations drive link status; restricted-node-6dc3f140f9 never dials customer-private nodes.
     linkObservations: []
@@ -113,6 +114,7 @@ spec:
       peerIdentities:
         re8ch-qwen: ["spiffe://qwen.byoc/cluster/qwen"]
         re8ch-artc: ["spiffe://artc.byoc/cluster/artc"]
+        re8ch-sijie: ["spiffe://sijie.byoc/cluster/sijie"]
       imports:
         - name: qwen-k8s
           port: 22240
