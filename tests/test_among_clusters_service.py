@@ -3,9 +3,9 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:8ef8d840efee72c69f7f49c236d56827d27030ba3a45dc8f585d55417120bb7c"
-CHART_DIGEST = "sha256:71c0e3100bac8c52006ae756ebecf5408fe0dd426fdb2d644cb280678a2ef124"
-AGENT_CHART_DIGEST = "sha256:cf18bab81142373c1f7e0683e284c7d21f34a56a908cc5e26186d6cc6216829a"
+IMAGE_DIGEST = "sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a"
+CHART_DIGEST = "sha256:43c9c89801afe04bbb97b89933606a086da34d5e9bb6507d1b89ef4653fc541b"
+AGENT_CHART_DIGEST = "sha256:e546d8e9056a85b813488524282727a6135a0cc544f39d2dc5a8afe23bb042a3"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
@@ -30,8 +30,8 @@ def test_gitops_consumes_signed_oci_release_by_digest():
         "providerBundleDigest": "sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8",
         "providerBundleSecret": "among-clusters-agent-identity",
         "providerQUICEndpoint": "quic://192.0.2.79:8443",
-        "imageDigest": "sha256:d1ac0ac04c8c0728cd2505adaec0de64fc12515706ec7b4c3d2ebe6099d0b946",
-        "chartVersion": "0.3.24",
+        "imageDigest": "sha256:3a6b90956f55914d595a9e24d8382b1697a8ef0ad51a65e60b77faa76ed7b692",
+        "chartVersion": "0.3.25",
     }
     agent_source = next(item for item in objects if item["kind"] == "OCIRepository" and item["metadata"]["name"] == "among-clusters-agent")
     assert agent_source["spec"]["ref"]["digest"] == AGENT_CHART_DIGEST
