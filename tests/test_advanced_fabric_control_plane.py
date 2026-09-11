@@ -32,3 +32,8 @@ def test_control_plane_vip_uses_all_three_etcd_hosts_as_guarded_origins():
 def test_control_plane_rollout_does_not_enable_routeros_mutation():
     values = release_values()
     assert values["routerOS"]["enabled"] is False
+
+
+def test_controller_runs_on_verified_control_plane_api_path():
+    advanced = release_values()["advancedFabric"]
+    assert advanced["controller"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}

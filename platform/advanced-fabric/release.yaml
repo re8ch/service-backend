@@ -130,9 +130,10 @@ spec:
       weightedEcmp:
         enabled: true
       controller:
-        # Keep the singleton observation controller off restricted-node-6dc3f140f9 while its kubelet
-        # cannot start newly scheduled Pods. Per-node agents remain unchanged.
-        nodeSelector: {kubernetes.io/hostname: zan}
+        # The controller must reach the in-cluster API before it can publish
+        # checksum-bound host transactions. Zan's Pod-to-Service path is
+        # currently unavailable; A1 has a verified direct API path.
+        nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
       virtualIngress:
         enabled: true
         className: advanced-fabric
