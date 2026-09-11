@@ -30,12 +30,15 @@ def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity(
     }
     for filename, address in CONFIGS.items():
         node = filename.removesuffix("-k3s-server-config.yaml").replace("-wsl2", "-wsl-zt")
-        assert operations[node]["sourceIdentityRules"] == [{
+        expected = [{
             "source": address,
             "destination": "192.0.2.106/24",
             "protocol": "tcp",
             "port": 2380,
         }]
+        if node == "restricted-node-6dc3f140f9":
+            expected.append({"source": address, "destination": "192.0.2.224/16"})
+        assert operations[node]["sourceIdentityRules"] == expected
 
 
 def test_etcd_migration_retains_only_legacy_client_listener_for_diagnostics():
