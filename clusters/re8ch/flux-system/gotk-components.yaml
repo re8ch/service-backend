@@ -7242,6 +7242,7 @@ spec:
         - mountPath: /tmp
           name: temp
       nodeSelector:
+        kubernetes.io/hostname: restricted-node-1eb0570f74
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       securityContext:
@@ -11044,6 +11045,7 @@ spec:
         - mountPath: /tmp
           name: temp
       nodeSelector:
+        kubernetes.io/hostname: restricted-node-1eb0570f74
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       securityContext:
