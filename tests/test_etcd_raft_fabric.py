@@ -14,6 +14,7 @@ def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
         config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
         args = set(config["etcd-arg"])
 
+        assert config["node-ip"] == address
         assert f"advertise-client-urls=https://{address}:2379" in args
         assert f"initial-advertise-peer-urls=https://{address}:2380" in args
         assert any(item.startswith("listen-client-urls=") and f"https://{address}:2379" in item for item in args)
@@ -37,7 +38,7 @@ def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity(
         }]
 
 
-def test_etcd_migration_retains_legacy_listeners_for_rollback():
+def test_etcd_migration_retains_only_legacy_client_listener_for_diagnostics():
     legacy = {
         "a1-wsl2-k3s-server-config.yaml": "192.0.2.176",
         "b1-wsl2-k3s-server-config.yaml": "192.0.2.4",
@@ -47,4 +48,4 @@ def test_etcd_migration_retains_legacy_listeners_for_rollback():
         config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
         args = config["etcd-arg"]
         assert any(item.startswith("listen-client-urls=") and f"https://{address}:2379" in item for item in args)
-        assert any(item.startswith("listen-peer-urls=") and f"https://{address}:2380" in item for item in args)
+        assert not any(item.startswith("listen-peer-urls=") and f"https://{address}:2380" in item for item in args)
