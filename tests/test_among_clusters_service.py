@@ -3,8 +3,9 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMAGE_DIGEST = "sha256:593d0c797c5fdfa1ff56e9d96b701599468461a193f24a148b6df4964f5c01ee"
-CHART_DIGEST = "sha256:f008777c22d20e44b95486df52f6307c5809eb8e92a96cdcc79a08cc33bf9484"
+IMAGE_DIGEST = "sha256:c0c516eb1995303cfb03ffdd2778b9dc8af8108ed87c4d2aa4eb7199d83c99ae"
+CHART_DIGEST = "sha256:cfb150d285112824f5bc8d10432620544833027045ba350af2fb1ab83ff33aa4"
+AGENT_CHART_DIGEST = "sha256:9197d49ac32c39013bae281f66841b1722ff862a9202adddb1adeadf910cb730"
 
 
 def test_gitops_consumes_signed_oci_release_by_digest():
@@ -14,13 +15,15 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/among-clusters-hub"
     assert source["spec"]["ref"]["digest"] == CHART_DIGEST
     assert release["spec"]["values"]["image"] == {
-        "repository": "registry.re8ch.com/functions-shared/among-clusters",
+        "repository": "ghcr.io/re8ch/among-clusters",
         "digest": IMAGE_DIGEST,
     }
     assert release["spec"]["values"]["managedAccess"]["enabled"] is True
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1
     assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    agent_source = next(item for item in objects if item["kind"] == "OCIRepository" and item["metadata"]["name"] == "among-clusters-agent")
+    assert agent_source["spec"]["ref"]["digest"] == AGENT_CHART_DIGEST
 
 
 def test_gitops_keeps_human_relay_separate_from_service_health():
@@ -94,7 +97,7 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
 
     policy = next(item for item in objects if item["kind"] == "PeerPolicy" and item["metadata"]["name"] == "re8ch-mihomos-egress")
     assert policy["spec"] == {
-        "peerSelector": {"matchNames": ["re8ch-qwen", "re8ch-artc"]},
+        "peerSelector": {"matchAllReady": True},
         "serviceClasses": ["network.egress.mihomo"],
         "protocols": ["tcp"],
         "ports": [17891],
@@ -107,7 +110,7 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
     assert service["kind"] == "Service"
     assert service["metadata"]["namespace"] == "egress-fabric"
     assert service["metadata"]["labels"]["peering.re8ch.com/advertise"] == "true"
-    assert service["metadata"]["annotations"]["peering.re8ch.com/target-peers"] == "re8ch-qwen,re8ch-artc"
+    assert service["metadata"]["annotations"]["peering.re8ch.com/target-peers"] == "*"
     assert service["spec"]["internalTrafficPolicy"] == "Local"
     assert service["spec"]["clusterIP"] == "192.0.2.78"
     assert service["spec"]["ports"][0]["port"] == 17891
