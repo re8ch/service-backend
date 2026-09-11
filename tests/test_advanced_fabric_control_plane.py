@@ -26,7 +26,22 @@ def test_control_plane_vip_uses_all_three_etcd_hosts_as_guarded_origins():
     assert api["mode"] == "healthy-ecmp"
     assert set(api["eligibleNodes"]) == expected
     assert set(api["guardedNodes"]) == expected
-    assert {item["name"] for item in api["nodeOperations"]} == expected
+    operations = {item["name"]: item for item in api["nodeOperations"]}
+    assert expected.issubset(operations)
+
+    consumers = {
+        "overseas-la": ["wg-pt-b1"],
+        "overseas-kl": ["wg-pt-a1", "wg-pt-b1"],
+        "vm-20-12-ubuntu": ["wg-pt-a1", "wg-pt-b1"],
+        "suxunji": ["wg-pt-a1", "wg-pt-b1"],
+        "muaya-lightweight": ["wg-pt-a1", "wg-pt-b1"],
+        "muaya-ecs": ["wg-pt-a1", "wg-pt-b1"],
+        "zan": ["wg-pt-a1", "wg-pt-b1"],
+        "domain-ex": ["wg-pt-a1", "wg-pt-b1"],
+    }
+    for name, interfaces in consumers.items():
+        assert operations[name]["wireguardInterfaces"] == interfaces
+        assert operations[name]["wireguardAllowedPrefixes"] == ["192.0.2.220/32"]
 
 
 def test_control_plane_rollout_does_not_enable_routeros_mutation():
