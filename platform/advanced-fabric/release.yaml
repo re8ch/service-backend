@@ -94,6 +94,7 @@ spec:
             wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
             sourceIdentityRules:
               - {source: 192.0.2.205, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
+              - {source: 192.0.2.205, destination: 192.0.2.106/24}
               - {source: 192.0.2.205, destination: 192.0.2.224/16}
             fallbackRoutes:
               - {destination: 192.0.2.18/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
@@ -112,6 +113,8 @@ spec:
             wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
             sourceIdentityRules:
               - {source: 192.0.2.173, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
+              - {source: 192.0.2.173, destination: 192.0.2.106/24}
+              - {source: 192.0.2.173, destination: 192.0.2.224/16}
           - name: restricted-node-296f36f2fb
             localAsn: 4200010125
             vipInterface: lo
@@ -124,32 +127,61 @@ spec:
             wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
             sourceIdentityRules:
               - {source: 192.0.2.213, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
+              - {source: 192.0.2.213, destination: 192.0.2.106/24}
+              - {source: 192.0.2.213, destination: 192.0.2.224/16}
           # Non-origin consumers never announce the API VIP. Their guarded=false
           # transactions only authorize cryptokey routing for the ECMP prefix.
           - name: overseas-la
             wireguardInterfaces: [wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.29, destination: 192.0.2.106/24}
+              - {source: 192.0.2.29, destination: 192.0.2.224/16}
           - name: overseas-kl
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
             wireguardAllowedPrefixes: [192.0.2.220/32]
           - name: vm-20-12-ubuntu
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.114, destination: 192.0.2.106/24}
+              - {source: 192.0.2.114, destination: 192.0.2.224/16}
           - name: suxunji
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.145, destination: 192.0.2.106/24}
+              - {source: 192.0.2.145, destination: 192.0.2.224/16}
           - name: muaya-lightweight
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.24, destination: 192.0.2.106/24}
+              - {source: 192.0.2.24, destination: 192.0.2.224/16}
           - name: muaya-ecs
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.46, destination: 192.0.2.106/24}
+              - {source: 192.0.2.46, destination: 192.0.2.224/16}
           - name: zan
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.63, destination: 192.0.2.106/24}
+              - {source: 192.0.2.63, destination: 192.0.2.224/16}
           - name: domain-ex
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.31, destination: 192.0.2.106/24}
+              - {source: 192.0.2.31, destination: 192.0.2.224/16}
+          - name: amdwsl-zt
+            wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
+            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.93, destination: 192.0.2.106/24}
+              - {source: 192.0.2.93, destination: 192.0.2.224/16}
         primaryTransport: wireguard
         fallbackTransport: zerotier
         healthCheck:
