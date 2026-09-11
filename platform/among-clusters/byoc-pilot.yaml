@@ -70,7 +70,10 @@ apiVersion: peering.re8ch.com/v1alpha1
 kind: PeerPolicy
 metadata: {name: re8ch-mihomos-egress, namespace: byoc-pilot, labels: {app.kubernetes.io/part-of: among-clusters}}
 spec:
-  peerSelector: {matchNames: [re8ch-qwen, re8ch-artc]}
+  # Service access follows the authenticated Peer lifecycle. This does not
+  # admit anonymous clients: the Hub expands only Ready, non-suspended Peers,
+  # and the Gateway still requires a certificate from its peer trust bundle.
+  peerSelector: {matchAllReady: true}
   serviceClasses: [network.egress.mihomo]
   protocols: [tcp]
   ports: [17891]
