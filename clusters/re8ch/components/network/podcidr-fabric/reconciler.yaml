@@ -90,6 +90,10 @@ data:
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
         remote_pods="$(jq -r --arg own "${pod_cidr}" '.routeServers[], .nodes[] | .podCIDR | select(. != $own)' /config/inventory.json | paste -sd, -)"
+        if [ "${peer_mode}" = transport ]; then
+          if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=192.0.2.160/24; else transport_cidr=192.0.2.90/24; fi
+          case ",${allowed}," in *",${transport_cidr},"*) : ;; *) allowed="${allowed},${transport_cidr}" ;; esac
+        fi
         host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${remote_pods}"
       done
     }

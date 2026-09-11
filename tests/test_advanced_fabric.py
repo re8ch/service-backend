@@ -113,6 +113,12 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertIn("set ip next-hop 192.0.2.12", rendered)
         self.assertNotIn("set ip next-hop 192.0.2.172", rendered)
 
+    def test_transport_leaf_allows_route_server_transit_sources(self):
+        reconciler = (pathlib.Path(__file__).parents[1] / "clusters/re8ch/components/network/podcidr-fabric/reconciler.yaml").read_text()
+        self.assertIn("transport_cidr=192.0.2.160/24", reconciler)
+        self.assertIn("transport_cidr=192.0.2.90/24", reconciler)
+        self.assertIn('[ "${peer_mode}" = transport ]', reconciler)
+
     def test_release_pins_dns_helm_test_to_healthy_peer(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"
         resources = [doc for doc in yaml.safe_load_all(release_path.read_text()) if doc]
