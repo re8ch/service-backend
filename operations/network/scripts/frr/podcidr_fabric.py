@@ -52,6 +52,14 @@ def neighbor_address(node, route_server):
     return route_server["transportIp"] if node["peerMode"] == "transport" else route_server["internalIp"]
 
 
+def spoke_next_hop(node, route_server):
+    if node["peerMode"] != "transport":
+        return node["internalIp"]
+    transport_octet = route_server["transportIp"].split(".")[2]
+    node_octet = node["internalIp"].split(".")[3]
+    return f"172.31.{transport_octet}.{node_octet}"
+
+
 def render_spoke(inventory, node):
     lines = [
         "configure terminal",
@@ -64,10 +72,6 @@ def render_spoke(inventory, node):
         f"ip prefix-list POD-FABRIC-SELF seq 10 permit {node['podCIDR']}",
         f"ip prefix-list POD-FABRIC-SELF seq 20 permit {node['acceleratedIp']}/32",
         "ip prefix-list POD-FABRIC-SELF seq 1000 deny any",
-        "route-map POD-FABRIC-SELF-NH permit 10",
-        "match ip address prefix-list POD-FABRIC-SELF",
-        f"set ip next-hop {node['internalIp']}",
-        "exit",
         f"ip route {node['podCIDR']} Null0 254",
         f"router bgp {node['asn']}",
         "bgp ebgp-requires-policy",
@@ -79,11 +83,19 @@ def render_spoke(inventory, node):
     ]
     for route_server in inventory["routeServers"]:
         neighbor = neighbor_address(node, route_server)
+        route_map = f"POD-FABRIC-SELF-NH-{route_server['name'].upper()}"
         lines += [
+            "exit-address-family",
+            f"route-map {route_map} permit 10",
+            "match ip address prefix-list POD-FABRIC-SELF",
+            f"set ip next-hop {spoke_next_hop(node, route_server)}",
+            "exit",
+            f"router bgp {node['asn']}",
+            "address-family ipv4 unicast",
             f"neighbor {neighbor} activate",
             f"neighbor {neighbor} prefix-list POD-FABRIC-IN in",
             f"neighbor {neighbor} prefix-list POD-FABRIC-SELF out",
-            f"neighbor {neighbor} route-map POD-FABRIC-SELF-NH out",
+            f"neighbor {neighbor} route-map {route_map} out",
             f"neighbor {neighbor} maximum-prefix 64 90 restart 5",
         ]
     lines += ["maximum-paths 2", "exit-address-family", "end", "write memory"]

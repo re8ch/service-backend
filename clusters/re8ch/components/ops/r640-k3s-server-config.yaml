@@ -1,5 +1,5 @@
 node-name: restricted-node-6dc3f140f9
-node-ip: 192.0.2.178
+node-ip: 192.0.2.179
 node-external-ip: 192.0.2.138
 cluster-dns: 192.0.2.149
 advertise-address: 192.0.2.179
@@ -41,4 +41,4 @@ etcd-arg:
   - "advertise-client-urls=https://192.0.2.179:2379"
   - "initial-advertise-peer-urls=https://192.0.2.179:2380"
   - "listen-client-urls=https://192.0.2.179:2379,https://192.0.2.178:2379,https://127.0.0.1:2379,https://192.0.2.169:2379"
-  - "listen-peer-urls=https://192.0.2.179:2380,https://192.0.2.178:2380,https://127.0.0.1:2380,https://192.0.2.169:2380"
+  - "listen-peer-urls=https://192.0.2.179:2380,https://127.0.0.1:2380"
