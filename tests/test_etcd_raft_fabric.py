@@ -35,10 +35,23 @@ def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity(
             "destination": "192.0.2.65/24",
             "protocol": "tcp",
             "port": 2380,
-        }]
-        if node == "restricted-node-6dc3f140f9":
-            expected.append({"source": address, "destination": "192.0.2.57/16"})
+        }, {"source": address, "destination": "192.0.2.65/24"},
+            {"source": address, "destination": "192.0.2.57/16"}]
         assert operations[node]["sourceIdentityRules"] == expected
+
+
+def test_reachable_nodes_receive_full_advanced_fabric_identity_transactions():
+    release = list(yaml.safe_load_all((ROOT / "platform/advanced-fabric/release.yaml").read_text()))
+    values = next(document for document in release if document["kind"] == "HelmRelease")["spec"]["values"]
+    operations = {item["name"]: item for item in values["advancedFabric"]["controlPlaneApi"]["nodeOperations"]}
+    identities = {"amdwsl-zt": "192.0.2.117", "domain-ex": "192.0.2.46", "muaya-ecs": "192.0.2.32",
+                  "muaya-lightweight": "192.0.2.160", "overseas-la": "192.0.2.147", "suxunji": "192.0.2.246",
+                  "vm-20-12-ubuntu": "192.0.2.223", "zan": "192.0.2.152"}
+    for node, identity in identities.items():
+        assert operations[node]["wireguardAllowedPrefixes"] == ["192.0.2.65/24", "192.0.2.121/24"]
+        assert {"source": identity, "destination": "192.0.2.65/24"} in operations[node]["sourceIdentityRules"]
+        assert {"source": identity, "destination": "192.0.2.57/16"} in operations[node]["sourceIdentityRules"]
+    assert operations["overseas-kl"]["wireguardAllowedPrefixes"] == ["192.0.2.116/32"]
 
 
 def test_etcd_migration_retains_only_legacy_client_listener_for_diagnostics():
