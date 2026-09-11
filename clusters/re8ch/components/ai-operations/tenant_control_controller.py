@@ -214,9 +214,11 @@ def reconcile_service_instance(instance):
     existing = instance.get("status", {}); lifecycle = spec.get("lifecycle")
     base = {**existing, "observedGeneration": meta.get("generation", 1), "operationId": existing.get("operationId") or "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24]}
     if lifecycle == "Suspended":
-        status = {**base, "phase": "Suspended", "conditions": [condition("Ready", False, "InstanceSuspended")]}
+        result = supply_chain_request("/v1/registry/reconcile", {"tenant": spec["tenantRef"], **(spec.get("parameters") or {}), "action": "suspend"})
+        status = {**base, **result, "conditions": [condition("Ready", False, "InstanceSuspended")]}
     elif lifecycle == "Deleting":
-        status = {**base, "phase": "Deleting", "conditions": [condition("Ready", False, "CleanupPending", "artifacts are retained") ]}
+        result = supply_chain_request("/v1/registry/reconcile", {"tenant": spec["tenantRef"], **(spec.get("parameters") or {}), "action": "delete"})
+        status = {**base, **result, "conditions": [condition("Ready", False, "CredentialsRevoked", "project and artifacts are retained") ]}
     else:
         result = supply_chain_request("/v1/registry/reconcile", {"tenant": spec["tenantRef"], **(spec.get("parameters") or {})})
         status = {**base, **result, "bindings": [result["credentialRef"], f"service://{spec['tenantRef']}/{meta['name']}"], "conditions": [condition("Ready", True, "HarborVerified")]}
