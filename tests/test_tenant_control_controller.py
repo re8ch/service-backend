@@ -51,8 +51,29 @@ def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
 def test_groups_spanning_tenants_are_denied(monkeypatch):
     bindings = [group_binding("artchais", "Artchais:tenant-admins", "admin"), group_binding("other", "Other:tenant-admins", "admin")]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais"), tenant("other")]))
-    with pytest.raises(PermissionError):
+    with pytest.raises(PermissionError, match="multiple_tenant_conflict"):
         controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
+
+
+def test_identity_failure_reasons_are_distinct(monkeypatch):
+    monkeypatch.setattr(controller, "KUBE", FakeKube([], [tenant("acme")]))
+    with pytest.raises(PermissionError, match="binding_missing"):
+        controller.resolve("https://dex.re8ch.com", "sha256:" + "a" * 64)
+    monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
+    with pytest.raises(PermissionError, match="issuer_mismatch"):
+        controller.resolve("https://other.example", "sha256:" + "a" * 64)
+    monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme", "Suspended")]))
+    with pytest.raises(PermissionError, match="tenant_inactive"):
+        controller.resolve("https://dex.re8ch.com", "sha256:" + "a" * 64)
+
+
+def test_registry_instance_is_tenant_scoped():
+    body = {"spec": {"serviceClass": "registry.harbor.v1", "plan": "standard", "parameters": {"project": "acme", "quotaGiB": 10, "robotDurationDays": 30}}}
+    value = controller.service_instance_body("acme", "registry", body)
+    assert value["spec"]["tenantRef"] == "acme"
+    body["spec"]["parameters"]["project"] = "other"
+    with pytest.raises(PermissionError):
+        controller.service_instance_body("acme", "registry", body)
 
 
 def test_controller_exposes_only_admin_and_tenant_callers():

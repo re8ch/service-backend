@@ -807,7 +807,22 @@ def tenant_service_store() -> ServiceStore:
 
 
 def tenant_catalog_for_profile() -> list[dict[str, Any]]:
-    return service_catalog()
+    values = service_catalog()
+    try:
+        with urllib.request.urlopen(SUPPLY_CHAIN_URL + "/readyz", timeout=3) as response:
+            registry_ready = response.status == 200
+    except Exception:
+        registry_ready = False
+    for value in values:
+        if value.get("serviceClass") == "registry.harbor.v1":
+            value["availability"] = "Available" if registry_ready else "Unavailable"
+            value["reason"] = "DependenciesReady" if registry_ready else "HarborSupplyChainUnavailable"
+            value["dependencies"] = {"harbor": registry_ready, "credentialBroker": registry_ready, "supplyChainWorker": registry_ready}
+    return values
+
+
+def crd_service_spec(spec: dict[str, Any], lifecycle: str | None = None) -> dict[str, Any]:
+    return {"serviceClass": spec["serviceClass"], "plan": spec.get("plan", "standard"), "lifecycle": lifecycle or ({"Suspended": "Suspended", "Deleted": "Deleting"}.get(spec.get("desiredState"), "Active")), "parameters": spec.get("parameters") or {}}
 
 
 def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
@@ -939,7 +954,7 @@ def readiness() -> tuple[bool, dict[str, str]]:
     targets = {"dex": "https://dex.re8ch.com/.well-known/openid-configuration"}
     if TENANT_CONTROL_URL:
         targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
-    if PROFILE == "tenant": targets["supplyChain"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
+    if PROFILE == "tenant": targets["supplyChain"] = SUPPLY_CHAIN_URL.rstrip("/") + "/readyz"
     if PROFILE == "tenant" and not TENANT_CLAIM_SERVICE_TOKEN:
         checks["claimServiceCredential"] = "failed"
     for name, url in targets.items():
@@ -1792,20 +1807,21 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         if name == "service_instance_plan":
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
-            return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
+            return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": crd_service_spec(args["spec"]), "idempotencyKey": args["idempotency_key"]})
         if name == "service_instance_get":
-            return store.get(tenant, args["resource_ref"])
+            instance_name = args["resource_ref"].rstrip("/").split("/")[-1]
+            return tenant_control_request("/v1/services/" + urllib.parse.quote(instance_name, safe=""), tenant)
         if name == "service_instance_list":
-            return {"tenantRef": tenant, "instances": store.list(tenant)}
+            return {"tenantRef": tenant, "instances": tenant_control_request("/v1/services", tenant).get("items", [])}
         if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
-            current = store.get(tenant, args["resource_ref"])
-            spec = dict(args.get("spec") or current["spec"])
-            if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
+            instance_name = args["resource_ref"].rstrip("/").split("/")[-1]
+            current = tenant_control_request("/v1/services/" + urllib.parse.quote(instance_name, safe=""), tenant)
+            current_spec = current.get("spec", {})
+            spec = dict(args.get("spec") or current_spec)
+            if args.get("spec") and spec.get("serviceClass") != current_spec.get("serviceClass"):
                 raise ServiceError("serviceClass is immutable")
-            desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}.get(name)
-            if desired:
-                spec["desiredState"] = desired
-            return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
+            lifecycle = {"service_instance_suspend": "Suspended", "service_instance_resume": "Active", "service_instance_delete": "Deleting"}.get(name)
+            return tenant_control_request("/v1/services/" + urllib.parse.quote(instance_name, safe=""), tenant, {"spec": crd_service_spec(spec, lifecycle), "idempotencyKey": args["idempotency_key"]})
         if name == "service_binding_create":
             return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
         if name == "service_binding_list":

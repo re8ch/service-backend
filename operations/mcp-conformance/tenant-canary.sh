@@ -30,33 +30,14 @@ anonymous_status=$(curl --silent --show-error --output "$response_file" --write-
   "$endpoint")
 case "$anonymous_status" in 401|403) ;; *) echo "tenant MCP did not fail closed: HTTP $anonymous_status" >&2; exit 1 ;; esac
 
-if [ -n "${TENANT_CANARY_REFRESH_TOKEN:-}" ]; then
-  export DEX_REFRESH_TOKEN="$TENANT_CANARY_REFRESH_TOKEN"
-  export DEX_CLIENT_ID=re8ch-tenant
-  export DEX_RESOURCE="$endpoint"
-  export TENANT_CANARY_TOKEN="$(./operations/mcp-conformance/dex-refresh-token.sh)"
-  python3 operations/mcp-conformance/mcp_collection.py \
-    operations/mcp-conformance/collections/tenant-canary.json --output "$evidence"
-  unset TENANT_CANARY_TOKEN DEX_REFRESH_TOKEN
-else
-  ENDPOINT="$endpoint" METADATA_URL="$metadata_url" ANONYMOUS_STATUS="$anonymous_status" \
-    python3 - "$evidence" <<'PY'
-import json
-import os
-import sys
-
-value = {
-    "apiVersion": "evidence.re8ch.com/v1alpha1",
-    "kind": "MCPEvidence",
-    "collection": "tenant-canary",
-    "mode": "bootstrap-fail-closed",
-    "endpoint": os.environ["ENDPOINT"],
-    "protectedResourceMetadata": os.environ["METADATA_URL"],
-    "anonymousStatus": int(os.environ["ANONYMOUS_STATUS"]),
-    "gitRevision": os.getenv("CI_COMMIT_SHA", "unknown"),
-    "sensitiveMaterialPersisted": False,
-}
-open(sys.argv[1], "w").write(json.dumps(value, indent=2, sort_keys=True) + "\n")
-PY
-  cosign sign-blob --yes --identity-token "$MCP_EVIDENCE_SIGSTORE_ID_TOKEN" --bundle "$evidence.bundle" "$evidence"
+if [ -z "${TENANT_CANARY_REFRESH_TOKEN:-}" ]; then
+  echo "TENANT_CANARY_REFRESH_TOKEN is required for authenticated conformance" >&2
+  exit 2
 fi
+export DEX_REFRESH_TOKEN="$TENANT_CANARY_REFRESH_TOKEN"
+export DEX_CLIENT_ID=re8ch-tenant
+export DEX_RESOURCE="$endpoint"
+export TENANT_CANARY_TOKEN="$(./operations/mcp-conformance/dex-refresh-token.sh)"
+python3 operations/mcp-conformance/mcp_collection.py \
+  operations/mcp-conformance/collections/tenant-canary.json --output "$evidence"
+unset TENANT_CANARY_TOKEN DEX_REFRESH_TOKEN

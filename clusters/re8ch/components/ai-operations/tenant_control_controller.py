@@ -12,6 +12,7 @@ import hmac
 import importlib.util
 import json
 import os
+import re
 import ssl
 import socket
 import sys
@@ -45,6 +46,7 @@ IDENTITY = os.getenv("POD_NAME", socket.gethostname())
 LEASE_NAME = "tenant-control-controller"
 IMAGE_POLICY_URL = os.getenv("IMAGE_POLICY_URL", "").rstrip("/")
 IMAGE_POLICY_TOKEN = os.getenv("IMAGE_POLICY_TOKEN", os.getenv("HARBOR_SUPPLY_CHAIN_TOKEN", ""))
+SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", IMAGE_POLICY_URL).rstrip("/")
 CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
@@ -156,25 +158,69 @@ ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
 def resolve(issuer, subject_hash, groups=None):
     matches = []
     groups = {str(group) for group in (groups or []) if isinstance(group, str)}
-    for binding in kube().list("tenantidentitybindings"):
+    bindings = kube().list("tenantidentitybindings")
+    issuer_candidates = []
+    for binding in bindings:
         spec = binding.get("spec", {})
-        if spec.get("revoked") or spec.get("issuer", "").rstrip("/") != issuer.rstrip("/"):
+        if spec.get("revoked"):
             continue
         subject_match = bool(subject_hash and spec.get("subjectHash") and hmac.compare_digest(spec["subjectHash"], subject_hash))
         group_match = bool(spec.get("group") and spec["group"] in groups)
         if subject_match or group_match:
+            issuer_candidates.append(binding)
+        if spec.get("issuer", "").rstrip("/") != issuer.rstrip("/"):
+            continue
+        if subject_match or group_match:
             matches.append((spec.get("tenantRef"), spec.get("role", "viewer")))
     tenants_matched = sorted(set(tenant for tenant, _ in matches if tenant))
+    if not matches:
+        reason = "issuer_mismatch" if issuer_candidates else "binding_missing"
+        raise PermissionError(reason)
     if len(tenants_matched) != 1:
-        raise PermissionError("identity must resolve to exactly one active tenant")
+        raise PermissionError("multiple_tenant_conflict")
     tenants = {item["metadata"]["name"]: item for item in kube().list("tenants")}
     tenant = tenants.get(tenants_matched[0])
     if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
-        raise PermissionError("tenant is not active")
+        raise PermissionError("tenant_inactive")
     role = max((role for tenant_ref, role in matches if tenant_ref == tenants_matched[0]), key=lambda value: ROLE_ORDER.get(value, 0))
     if role not in ROLE_ORDER:
-        raise PermissionError("identity binding has an invalid role")
+        raise PermissionError("binding_role_invalid")
     return {"tenantRef": tenants_matched[0], "role": role}
+
+
+def service_instance_body(tenant, name, body):
+    spec = body.get("spec") or {}
+    service_class = str(spec.get("serviceClass", ""))
+    if service_class != "registry.harbor.v1": raise ValueError("unsupported serviceClass")
+    parameters = spec.get("parameters") or {}
+    project = str(parameters.get("project") or tenant)
+    if project != tenant: raise PermissionError("registry project must equal authenticated tenant")
+    quota = int(parameters.get("quotaGiB", 0)); duration = int(parameters.get("robotDurationDays", 0))
+    if quota < 1 or not 0 < duration <= 365: raise ValueError("invalid registry parameters")
+    lifecycle = str(spec.get("lifecycle") or "Requested")
+    if lifecycle not in {"Requested", "Active", "Suspended", "Deleting"}: raise ValueError("invalid lifecycle")
+    return {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantServiceInstance", "metadata": {"name": name, "namespace": NAMESPACE}, "spec": {"tenantRef": tenant, "serviceClass": service_class, "plan": str(spec.get("plan") or "standard"), "lifecycle": lifecycle, "parameters": {**parameters, "project": project}}}
+
+
+def supply_chain_request(path, body):
+    if not SUPPLY_CHAIN_URL or not IMAGE_POLICY_TOKEN: raise RuntimeError("supply_chain_unavailable")
+    request = urllib.request.Request(SUPPLY_CHAIN_URL + path, data=json.dumps(body).encode(), method="POST", headers={"Content-Type": "application/json", "Authorization": "Bearer " + IMAGE_POLICY_TOKEN})
+    with urllib.request.urlopen(request, timeout=30) as response: return json.load(response)
+
+
+def reconcile_service_instance(instance):
+    meta, spec = instance["metadata"], instance["spec"]
+    if spec.get("serviceClass") != "registry.harbor.v1": return
+    existing = instance.get("status", {}); lifecycle = spec.get("lifecycle")
+    base = {**existing, "observedGeneration": meta.get("generation", 1), "operationId": existing.get("operationId") or "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24]}
+    if lifecycle == "Suspended":
+        status = {**base, "phase": "Suspended", "conditions": [condition("Ready", False, "InstanceSuspended")]}
+    elif lifecycle == "Deleting":
+        status = {**base, "phase": "Deleting", "conditions": [condition("Ready", False, "CleanupPending", "artifacts are retained") ]}
+    else:
+        result = supply_chain_request("/v1/registry/reconcile", {"tenant": spec["tenantRef"], **(spec.get("parameters") or {})})
+        status = {**base, **result, "bindings": [result["credentialRef"], f"service://{spec['tenantRef']}/{meta['name']}"], "conditions": [condition("Ready", True, "HarborVerified")]}
+    kube().patch_status("tenantserviceinstances", meta["name"], status, meta.get("namespace", NAMESPACE))
 
 
 def utcnow():
@@ -408,6 +454,12 @@ def reconcile_loop():
                     if item.get("status", {}).get("observedGeneration") != status["observedGeneration"]:
                         kube().patch_status(plural, meta["name"], status)
             tenants = [item for item in kube().list("tenants") if item.get("spec", {}).get("lifecycle") == "Active"]
+            for instance in kube().list("tenantserviceinstances", NAMESPACE):
+                try:
+                    reconcile_service_instance(instance)
+                except Exception as exc:
+                    status = {**instance.get("status", {}), "observedGeneration": instance["metadata"].get("generation", 1), "phase": "Unavailable", "conditions": [condition("Ready", False, "DependencyUnavailable", str(exc))]}
+                    kube().patch_status("tenantserviceinstances", instance["metadata"]["name"], status, NAMESPACE)
             for tenant in tenants:
                 namespace = tenant.get("spec", {}).get("runtimeNamespaceRef")
                 if namespace:
@@ -431,10 +483,27 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         if path == "/livez": self.send_json(200, {"status": "ok"}); return
         if path == "/readyz":
-            try: kube().list("tenants"); self.send_json(200, {"status": "ready"})
-            except Exception: self.send_json(503, {"status": "not-ready"})
+            try:
+                kube().list("tenants")
+                if not SUPPLY_CHAIN_URL: raise RuntimeError("supply_chain_unconfigured")
+                request = urllib.request.Request(SUPPLY_CHAIN_URL + "/readyz")
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    if response.status != 200: raise RuntimeError("supply_chain_unavailable")
+                self.send_json(200, {"status": "ready"})
+            except Exception as exc: self.send_json(503, {"status": "not-ready", "reason": str(exc)[:256]})
             return
         service_token = self.headers.get("X-Tenant-Service-Token", "")
+        if path.startswith("/v1/services") and self.headers.get("X-Tenant-Caller", "") == "tenant" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            try:
+                tenant = self.headers["X-Tenant-Ref"]
+                values = [item for item in kube().list("tenantserviceinstances", NAMESPACE) if item.get("spec", {}).get("tenantRef") == tenant]
+                suffix = path.removeprefix("/v1/services").strip("/")
+                if suffix:
+                    values = [item for item in values if item.get("metadata", {}).get("name") == suffix]
+                    if not values: self.send_json(404, {"error": "service_instance_not_found"}); return
+                    self.send_json(200, values[0]); return
+                self.send_json(200, {"items": values}); return
+            except Exception as exc: self.send_json(503, {"error": "cluster_api_error", "reason": str(exc)[:256]}); return
         if not path.startswith("/v1/claims") or self.headers.get("X-Tenant-Caller", "") != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
@@ -484,6 +553,24 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, resolve(issuer, subject_hash, groups))
                 return
             tenant = self.headers["X-Tenant-Ref"]
+            if path == "/v1/services":
+                name = str(body.get("name", ""))
+                if not name or not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", name): raise ValueError("invalid service instance name")
+                value = service_instance_body(tenant, name, body)
+                try: created = kube().create("tenantserviceinstances", value, NAMESPACE); code = 201
+                except urllib.error.HTTPError as exc:
+                    if exc.code != 409: raise
+                    current = kube().get("tenantserviceinstances", name, NAMESPACE)
+                    if current.get("spec") != value["spec"]: raise PermissionError("service instance name is already in use")
+                    created, code = current, 200
+                self.send_json(code, created); return
+            if path.startswith("/v1/services/"):
+                name = path.removeprefix("/v1/services/").strip("/")
+                current = kube().get("tenantserviceinstances", name, NAMESPACE)
+                if current.get("spec", {}).get("tenantRef") != tenant: raise PermissionError("service instance is outside authenticated tenant")
+                value = service_instance_body(tenant, name, body)
+                created = kube().patch("tenantserviceinstances", name, {"spec": value["spec"]}, NAMESPACE)
+                self.send_json(200, created); return
             namespace = runtime_namespace(tenant)
             if path == "/v1/claims/plan":
                 grant = active_grant(tenant, body["claim"]["spec"]["capability"])
