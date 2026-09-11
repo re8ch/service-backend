@@ -9,6 +9,11 @@ CONFIGS = {
     "b1-wsl2-k3s-server-config.yaml": "192.0.2.213",
     "r640-k3s-server-config.yaml": "192.0.2.205",
 }
+TRANSPORT_SANS = {
+    "a1-wsl2-k3s-server-config.yaml": {"192.0.2.59", "192.0.2.183"},
+    "b1-wsl2-k3s-server-config.yaml": {"192.0.2.163", "192.0.2.20"},
+    "r640-k3s-server-config.yaml": {"192.0.2.231", "192.0.2.142"},
+}
 
 
 def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
@@ -21,6 +26,12 @@ def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
         assert any(item.startswith("listen-client-urls=") and f"https://{address}:2379" in item for item in args)
         assert any(item.startswith("listen-peer-urls=") and f"https://{address}:2380" in item for item in args)
         assert address in config["tls-san"]
+
+
+def test_etcd_peer_certificates_cover_advanced_fabric_transport_sources():
+    for filename, addresses in TRANSPORT_SANS.items():
+        config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
+        assert addresses <= set(config["tls-san"])
 
 
 def test_etcd_migration_retains_legacy_listeners_for_rollback():
