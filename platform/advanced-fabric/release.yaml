@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:006bd04bf3746c3563457bcd204566598a0c25809577599a8d8c21a938f29795
+    digest: sha256:3f8aeb326140a7c6e03fc107514754f4a75297828ec694974601503548471533
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -92,6 +92,8 @@ spec:
               - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 192.0.2.4/32, destination: 192.0.2.116/32, protocol: tcp, port: 6443}
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.179, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
             fallbackRoutes:
               - {destination: 192.0.2.176/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
               - {destination: 192.0.2.4/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
@@ -107,6 +109,8 @@ spec:
                 peer: pEho3VmmtSBsMbUglwD3/NDi8Vw2sFvRVEvToqWypx8=
                 allowedPrefixes: [192.0.2.4/32]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.242, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
           - name: restricted-node-296f36f2fb
             localAsn: 4200010125
             vipInterface: lo
@@ -117,6 +121,8 @@ spec:
               - {list: POD-FABRIC-OUT, sequence: 30, prefix: 192.0.2.140/24}
             wireguardInterfaces: [wg-wsl-lan]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
+            sourceIdentityRules:
+              - {source: 192.0.2.1, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
           # Non-origin consumers never announce the API VIP. Their guarded=false
           # transactions only authorize cryptokey routing for the ECMP prefix.
           - name: overseas-la
