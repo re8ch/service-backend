@@ -13,7 +13,7 @@ metadata: {name: public-edge-manager, namespace: flux-system}
 spec:
   interval: 10m
   dependsOn:
-    - name: re8ch-advanced-fabric
+    - name: advanced-fabric
       namespace: flux-system
   releaseName: public-edge-manager
   targetNamespace: regional-routing
