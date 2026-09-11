@@ -112,7 +112,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
 
 def test_production_tenant_readiness_degrades_explicitly_while_harbor_worker_is_absent():
     release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
-    assert release["spec"]["values"]["tenantPlatform"]["tenantReadinessPath"] == "/livez"
+    assert release["spec"]["values"]["tenantPlatform"]["tenantReadinessPath"] == "/readyz"
 
 
 def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():
