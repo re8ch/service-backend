@@ -77,6 +77,7 @@ data:
         if [ "${peer_mode}" = transport ]; then
           if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=192.0.2.160/24; else transport_cidr=192.0.2.90/24; fi
           case ",${allowed}," in *",${transport_cidr},"*) : ;; *) allowed="${allowed},${transport_cidr}" ;; esac
+          host vtysh -c 'configure terminal' -c "ip route ${transport_cidr} ${iface} 5" -c end
         fi
         host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${remote_pods}"
       done
