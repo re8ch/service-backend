@@ -8,7 +8,7 @@ spec:
   provider: generic
   url: oci://ghcr.io/re8ch/charts/re8ch-advanced-fabric
   ref:
-    digest: sha256:d60fbd746010a2c4939a34b94f4a40323884eb10ffb24005496bb63ca10cf622
+    digest: sha256:962f78634a8b13366b117e3f9e4e60a1b91bb16a95f75b2e265b37920952e343
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -94,6 +94,7 @@ spec:
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
             sourceIdentityRules:
               - {source: 192.0.2.179, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
+              - {source: 192.0.2.179, destination: 192.0.2.57/16}
             fallbackRoutes:
               - {destination: 192.0.2.176/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
               - {destination: 192.0.2.4/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
