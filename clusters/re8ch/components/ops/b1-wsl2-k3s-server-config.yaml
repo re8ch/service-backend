@@ -8,6 +8,9 @@ advertise-address: 192.0.2.1
 tls-san:
   - 192.0.2.116
   - 192.0.2.1
+  # AdvancedFabrics transport sources used by etcd peer mTLS.
+  - 192.0.2.12
+  - 192.0.2.101
   - 192.0.2.178
   - 192.0.2.176
   - 192.0.2.4
