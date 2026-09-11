@@ -6,9 +6,6 @@ advertise-address: 192.0.2.205
 tls-san:
   - 192.0.2.220
   - 192.0.2.205
-  # AdvancedFabrics transport sources used by etcd peer mTLS.
-  - 192.0.2.231
-  - 192.0.2.142
   - 192.0.2.183
   - 192.0.2.97
   - k3s-api.internal.re8ch.com

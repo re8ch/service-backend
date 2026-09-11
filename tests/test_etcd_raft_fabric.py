@@ -9,13 +9,6 @@ CONFIGS = {
     "b1-wsl2-k3s-server-config.yaml": "192.0.2.213",
     "r640-k3s-server-config.yaml": "192.0.2.205",
 }
-TRANSPORT_SANS = {
-    "a1-wsl2-k3s-server-config.yaml": {"192.0.2.59", "192.0.2.183"},
-    "b1-wsl2-k3s-server-config.yaml": {"192.0.2.163", "192.0.2.20"},
-    "r640-k3s-server-config.yaml": {"192.0.2.231", "192.0.2.142"},
-}
-
-
 def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
     for filename, address in CONFIGS.items():
         config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
@@ -28,10 +21,20 @@ def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
         assert address in config["tls-san"]
 
 
-def test_etcd_peer_certificates_cover_advanced_fabric_transport_sources():
-    for filename, addresses in TRANSPORT_SANS.items():
-        config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
-        assert addresses <= set(config["tls-san"])
+def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity():
+    release = list(yaml.safe_load_all((ROOT / "platform/advanced-fabric/release.yaml").read_text()))
+    values = next(document for document in release if document["kind"] == "HelmRelease")["spec"]["values"]
+    operations = {
+        item["name"]: item for item in values["advancedFabric"]["controlPlaneApi"]["nodeOperations"]
+    }
+    for filename, address in CONFIGS.items():
+        node = filename.removesuffix("-k3s-server-config.yaml").replace("-wsl2", "-wsl-zt")
+        assert operations[node]["sourceIdentityRules"] == [{
+            "source": address,
+            "destination": "192.0.2.106/24",
+            "protocol": "tcp",
+            "port": 2380,
+        }]
 
 
 def test_etcd_migration_retains_legacy_listeners_for_rollback():
