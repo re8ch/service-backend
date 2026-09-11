@@ -38,5 +38,7 @@ kube-apiserver-arg:
 embedded-registry: true
 cluster-init: true
 etcd-arg:
+  - "advertise-client-urls=https://192.0.2.179:2379"
+  - "initial-advertise-peer-urls=https://192.0.2.179:2380"
   - "listen-client-urls=https://192.0.2.179:2379,https://192.0.2.178:2379,https://127.0.0.1:2379,https://192.0.2.169:2379"
   - "listen-peer-urls=https://192.0.2.179:2380,https://192.0.2.178:2380,https://127.0.0.1:2380,https://192.0.2.169:2380"
