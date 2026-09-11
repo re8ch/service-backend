@@ -1,0 +1,18 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: advfab-node-ip-suxunji
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: suxunji
+  defaults:
+    # The AdvFab node identity is a /32 on loopback, so Cilium cannot infer a
+    # direct-routing device after K3s adopts 192.0.2.145 as its InternalIP.
+    # Pin the primary private-transit leg while FRR retains route selection and
+    # wg-pt-b1 remains the ECMP/failure-path peer.
+    devices: wg-pt-a1,wg-pt-b1
+    direct-routing-device: wg-pt-a1
+    auto-direct-node-routes: "false"
+    direct-routing-skip-unreachable: "false"
