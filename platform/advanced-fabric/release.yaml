@@ -35,14 +35,9 @@ spec:
     disableWait: true
     preserveValues: false
     remediation:
-      retries: 3
-      strategy: rollback
-  rollback:
-    cleanupOnFail: true
-    # Offline edge nodes remain members of the fabric DaemonSet by design.
-    # Do not let their unavailable pods block rollback bookkeeping; traffic
-    # health remains enforced by the Helm test and Advanced Fabric probes.
-    disableWait: true
+      # Public API migrations are forward-only. Stop on incompatibility so the
+      # producer and consumer contracts cannot silently diverge.
+      retries: 0
   test:
     enable: true
     ignoreFailures: false
