@@ -27,12 +27,22 @@ spec:
   suspended: false
 ---
 apiVersion: peering.re8ch.com/v1alpha1
+kind: Peer
+metadata: {name: re8ch-sijie, namespace: byoc-pilot, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  localIdentityRef: re8ch
+  remoteIdentityRef: sijie
+  invitationRef: re8ch-sijie-onboarding
+  transports: [quic-mtls]
+  suspended: false
+---
+apiVersion: peering.re8ch.com/v1alpha1
 kind: AuthenticatedLink
 metadata: {name: re8ch-qwen, namespace: byoc-pilot, labels: {app.kubernetes.io/part-of: among-clusters}}
 spec:
   peerRef: re8ch-qwen
   transport: quic-mtls
-  localGateway: quic://192.0.2.79:8443
+  localGateway: quic://223.159.210.222:8443
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
 ---
 apiVersion: peering.re8ch.com/v1alpha1
@@ -41,7 +51,16 @@ metadata: {name: re8ch-artc, namespace: byoc-pilot, labels: {app.kubernetes.io/p
 spec:
   peerRef: re8ch-artc
   transport: quic-mtls
-  localGateway: quic://192.0.2.79:8443
+  localGateway: quic://223.159.210.222:8443
+  sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
+---
+apiVersion: peering.re8ch.com/v1alpha1
+kind: AuthenticatedLink
+metadata: {name: re8ch-sijie, namespace: byoc-pilot, labels: {app.kubernetes.io/part-of: among-clusters}}
+spec:
+  peerRef: re8ch-sijie
+  transport: quic-mtls
+  localGateway: quic://223.159.210.222:8443
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
 ---
 apiVersion: peering.re8ch.com/v1alpha1
