@@ -4,7 +4,7 @@ metadata: {name: connectool, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: github, url: 'https://github.com/re8ch/connectool.git', defaultBranch: main, owner: re8ch}
+  repository: {provider: github, url: 'https://github.com/among-clusters/connectool.git', defaultBranch: main, owner: re8ch}
   projectType: ai-tool-distribution
   writePolicy: github-pr
   knowledge: [README.md, docs/]

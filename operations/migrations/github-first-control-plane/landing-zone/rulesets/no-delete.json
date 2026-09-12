@@ -1,0 +1,10 @@
+{
+  "name": "NO DELETE",
+  "target": "repository",
+  "enforcement": "active",
+  "conditions": {
+    "repository_name": {"include": ["~ALL"], "exclude": []}
+  },
+  "rules": [{"type": "repository_delete"}],
+  "bypass_actors": []
+}

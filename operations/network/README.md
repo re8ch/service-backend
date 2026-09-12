@@ -2,7 +2,7 @@
 
 This directory is the site-specific operations boundary for the RE8CH cluster
 network. It intentionally remains separate from the public
-[`re8ch/advanced-fabric`](https://github.com/re8ch/advanced-fabric) product
+[`re8ch/advanced-fabric`](https://github.com/advanced-fabrics/core) product
 repository.
 
 ## Contents

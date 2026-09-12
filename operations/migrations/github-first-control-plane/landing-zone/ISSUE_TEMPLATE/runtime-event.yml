@@ -1,0 +1,39 @@
+name: Runtime event
+description: Create an actionable, deduplicated projection of a runtime event
+title: "[event] "
+labels: ["type/alert", "status/triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not paste raw logs, metrics, credentials, customer data, or secrets. Link redacted evidence in its system of record.
+  - type: dropdown
+    id: event_type
+    attributes:
+      label: Event type
+      options: [Alert, Drift, Deployment failure, Security event, Capacity anomaly, Customer incident]
+    validations: {required: true}
+  - type: input
+    id: component
+    attributes: {label: Component, placeholder: flux/source-controller}
+    validations: {required: true}
+  - type: input
+    id: dedupe_key
+    attributes: {label: Dedupe key, placeholder: "sha256:..."}
+    validations: {required: true}
+  - type: textarea
+    id: impact
+    attributes: {label: Impact}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: Redacted evidence links}
+    validations: {required: true}
+  - type: textarea
+    id: acceptance
+    attributes: {label: Acceptance criteria}
+    validations: {required: true}
+  - type: textarea
+    id: rollback
+    attributes: {label: Rollback}
+    validations: {required: true}
+

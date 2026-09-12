@@ -1,0 +1,44 @@
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: CollaborationContract
+metadata:
+  name: github-first
+spec:
+  issue:
+    requiredFields: [event_id, source, service, severity, environment, dedupe_key, occurred_at, evidence, acceptance]
+    requiredSections: [Summary, Impact, Evidence, Acceptance criteria, Rollback, Audit]
+  pullRequest:
+    requiredSections: [Change, Why, Risk, Validation, Rollout, Rollback, Issue, Audit]
+    branchPatterns: ["feature/<issue>-<slug>", "fix/<issue>-<slug>", "agent/<issue>-<slug>"]
+  commit:
+    conventionalPattern: "^(feat|fix|docs|refactor|test|build|ci|chore|revert)\\([a-z0-9-]+\\): .+$"
+    requiredTrailers: [Issue, Change-Id, Actor-Class]
+    signatureRequired: true
+  labels:
+    type: [task, incident, alert, feedback, decision, change, agent-task]
+    status: [triage, ready, claimed, blocked, review, done, cancelled]
+    priority: [p0, p1, p2, p3]
+    area: [control-plane, network, storage, observability, security, developer-experience]
+    actor: [human, agent, automation, customer]
+    risk: [low, medium, high, critical]
+  projectFields:
+    - {name: Status, source: "label:status/*"}
+    - {name: Priority, source: "label:priority/*"}
+    - {name: Service, source: "issue.service.component"}
+    - {name: Environment, source: "issue.environment"}
+    - {name: Risk, source: "label:risk/*"}
+    - {name: Owner, source: assignees}
+    - {name: Target date, source: "issue.target_date"}
+    - {name: Change ID, source: "pr.audit.change_id"}
+  eventEnvelope:
+    required: [specversion, id, source, type, subject, time, data]
+    dedupeKey: [provider, delivery_id]
+    retention: immutable-audit-store
+  transitions:
+    triage: [ready, cancelled]
+    ready: [claimed, blocked, cancelled]
+    claimed: [review, blocked, ready]
+    blocked: [ready, cancelled]
+    review: [claimed, done, blocked]
+    done: []
+    cancelled: []
+

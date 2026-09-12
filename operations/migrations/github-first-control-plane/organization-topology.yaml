@@ -1,0 +1,52 @@
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: OrganizationTopology
+metadata:
+  enterprise: re8ch
+  enterpriseDisplayName: Reachieve LLC
+  observedAt: "2026-09-12"
+spec:
+  principle: Git for Everything in Collaboration, Kubernetes for Runtime, Flux for Convergence, Headlamp for Inspection
+  githubRole: universal-coordination-event-bus
+  runtime:
+    authority: kubernetes
+    distribution: k3s
+    reconciliation: flux
+    inspection: headlamp
+    rawObservability: [prometheus, metrics-backend, logs-backend, traces-backend]
+  organizations:
+    - login: advanced-fabrics
+      displayName: Advanced Fabrics
+      state: enrolled-in-enterprise
+      repositories:
+        - {source: advanced-fabrics/core, target: advanced-fabrics/core, state: already-moved}
+        - {source: advanced-fabrics/headlamp-advanced-fabric, target: advanced-fabrics/headlamp-advanced-fabric, state: already-moved}
+        - {source: advanced-fabrics/spec, target: advanced-fabrics/spec, state: existing}
+        - {source: advanced-fabrics/api, target: advanced-fabrics/api, state: existing}
+        - {source: advanced-fabrics/conformance, target: advanced-fabrics/conformance, state: existing}
+    - login: among-clusters
+      displayName: Among Clusters
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/among-clusters, target: among-clusters/among-clusters, state: transferred}
+        - {source: re8ch/connectool, target: among-clusters/connectool, state: transferred}
+        - {source: "embedded:platform/plugins/headlamp-birfucate-browser", target: among-clusters/headlamp-birfucate, state: extracted-with-history}
+    - login: public-edge
+      displayName: Public Edge
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/public-edge-manager, target: public-edge/public-edge-manager, state: transferred}
+        - {source: re8ch/headlamp-public-edge, target: public-edge/headlamp-public-edge, state: pilot-complete}
+        - {source: re8ch/mihomos-cluster, target: public-edge/mihomos-cluster, state: transferred}
+        - {source: re8ch/headlamp-mihomos-cluster, target: public-edge/headlamp-mihomos-cluster, state: pilot-complete}
+  retainedAuthorities:
+    - {repository: re8ch/service-backend, role: aggregate-gitops-authority, until: github-provider-cutover}
+    - {repository: re8ch/cloud-functions, role: platform-runtime-controller, until: post-cutover-boundary-review}
+  eventProjection:
+    accepts: [alert, drift, deployment-failure, security-event, capacity-anomaly, customer-incident]
+    emits: [issue, pull-request, check, deployment, discussion]
+    forbidsInGit: [raw-metrics, raw-logs, raw-traces, credentials, unredacted-customer-data]
+  identity:
+    human: enterprise-sso-scim-team
+    automation: github-app-installation-token
+    workload: github-actions-oidc
+    staticPersonalAccessTokens: forbidden

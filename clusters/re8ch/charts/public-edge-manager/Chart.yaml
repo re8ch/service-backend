@@ -7,8 +7,8 @@ appVersion: "0.3.1"
 keywords: [public-edge, dns, external-dns, gateway-api, cilium, geo-routing]
 maintainers:
   - name: RE8CH Platform
-home: https://github.com/re8ch/public-edge-manager
-sources: [https://github.com/re8ch/public-edge-manager]
+home: https://github.com/public-edge/public-edge-manager
+sources: [https://github.com/public-edge/public-edge-manager]
 annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/category: networking

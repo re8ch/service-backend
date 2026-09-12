@@ -4,7 +4,7 @@ metadata:
   name: advanced-fabric-network-operations
 spec:
   publicProduct:
-    repository: https://github.com/re8ch/advanced-fabric
+    repository: https://github.com/advanced-fabrics/core
     chartPath: charts/re8ch-advanced-fabric
     contains:
       - helm-chart

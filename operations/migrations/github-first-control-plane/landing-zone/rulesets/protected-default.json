@@ -1,0 +1,26 @@
+{
+  "name": "Protected default branch",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "repository_name": {"include": ["~ALL"], "exclude": [".github"]},
+    "ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}
+  },
+  "rules": [
+    {"type": "deletion"},
+    {"type": "non_fast_forward"},
+    {"type": "required_signatures"},
+    {
+      "type": "pull_request",
+      "parameters": {
+        "allowed_merge_methods": ["squash", "merge"],
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": true,
+        "require_last_push_approval": true,
+        "required_approving_review_count": 1,
+        "required_review_thread_resolution": true
+      }
+    }
+  ],
+  "bypass_actors": []
+}

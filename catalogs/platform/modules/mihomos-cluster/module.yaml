@@ -4,7 +4,7 @@ metadata: {name: mihomos-cluster, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: github, url: 'https://github.com/re8ch/mihomos-cluster.git', defaultBranch: main, owner: re8ch}
+  repository: {provider: github, url: 'https://github.com/public-edge/mihomos-cluster.git', defaultBranch: main, owner: re8ch}
   projectType: kubernetes-network-controller
   writePolicy: github-pr
   knowledge: [README.md]

@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-09-12T06:17:00Z'
-  generation: 1789193820
+  generatedAt: '2026-09-12T11:48:45Z'
+  generation: 1789213725
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -21,10 +21,10 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/aesthete.git
   among-clusters:
-    commit: 2763fa3bdae203a0818cfd6bc64fbb8b7846a4f3
+    commit: 9393b40a1cfc0a06e5f296792915188afc45a781
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/among-clusters.git
+    repository: https://github.com/among-clusters/among-clusters.git
   anycam:
     commit: 51151cc9d7d4395d47fcdf27b32c015ac2d34e31
     defaultBranch: main
@@ -118,7 +118,7 @@ modules:
     commit: 16c58e6b72e2f3fa4722d944641e6786ee4dd619
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/connectool.git
+    repository: https://github.com/among-clusters/connectool.git
   director-engines:
     commit: 012ebfd676464b062e986758548c3215d2f12b24
     defaultBranch: main
@@ -146,6 +146,12 @@ modules:
     dependencies:
     - advanced-fabric
     repository: https://github.com/advanced-fabrics/headlamp-advanced-fabric.git
+  headlamp-birfucate:
+    commit: c51f725562532dc1fcc259315d5554e3f3a7e32e
+    defaultBranch: main
+    dependencies:
+    - among-clusters
+    repository: https://github.com/among-clusters/headlamp-birfucate.git
   image-website:
     commit: 2b178d3664e6a0d63f8bf886dcad79ae8c18470a
     defaultBranch: main
@@ -181,7 +187,7 @@ modules:
     commit: 59eb7bf217e769facb0db6868d13031e518642a1
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/mihomos-cluster.git
+    repository: https://github.com/public-edge/mihomos-cluster.git
   motor-muscle-sim:
     commit: ba37d6cf9b82c71e1bda20e291382f1dc72c14d1
     defaultBranch: main
