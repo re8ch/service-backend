@@ -6,6 +6,8 @@ resources:
   - flux-system/verification-keys.yaml
   - flux-system/sops-canary.sops.yaml
   - flux-system/gotk-sync.yaml
+  - flux-system/github-control-plane.yaml
+  - flux-system/github-canary
   - gitlab-agent/agent.yaml
   - secrets/stalwart-recovery-admin.sops.yaml
   - secrets/among-clusters-hub-admin.sops.yaml

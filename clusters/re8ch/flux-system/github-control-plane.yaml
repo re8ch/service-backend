@@ -1,0 +1,91 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: service-backend-github
+  namespace: flux-system
+  labels:
+    collaboration.re8ch.com/control-plane: github
+spec:
+  suspend: true
+  interval: 5m
+  provider: github
+  url: https://github.com/re8ch/service-backend.git
+  ref:
+    branch: main
+  secretRef:
+    name: service-backend-github-app-auth
+  verify:
+    mode: HEAD
+    secretRef:
+      name: service-backend-verification-keys
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: service-backend-github-canary
+  namespace: flux-system
+  labels:
+    collaboration.re8ch.com/control-plane: github
+spec:
+  suspend: true
+  interval: 10m
+  path: ./clusters/re8ch/flux-system/github-canary
+  prune: true
+  wait: true
+  timeout: 2m
+  sourceRef:
+    kind: GitRepository
+    name: service-backend-github
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: service-backend-github
+  namespace: flux-system
+  labels:
+    collaboration.re8ch.com/control-plane: github
+spec:
+  suspend: true
+  type: github
+  events: [ping, push]
+  secretRef:
+    name: service-backend-github-webhook
+  resources:
+    - apiVersion: source.toolkit.fluxcd.io/v1
+      kind: GitRepository
+      name: service-backend-github
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: service-backend-github-status
+  namespace: flux-system
+  labels:
+    collaboration.re8ch.com/control-plane: github
+spec:
+  suspend: true
+  type: github
+  address: https://github.com/re8ch/service-backend
+  secretRef:
+    name: service-backend-github-status
+  commitStatusExpr: "('flux/' + event.involvedObject.kind + '/' + event.involvedObject.name).lowerAscii()"
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: service-backend-github-status
+  namespace: flux-system
+  labels:
+    collaboration.re8ch.com/control-plane: github
+spec:
+  suspend: true
+  providerRef:
+    name: service-backend-github-status
+  eventSeverity: info
+  eventSources:
+    - kind: GitRepository
+      name: service-backend-github
+    - kind: Kustomization
+      name: service-backend-github-canary
+    - kind: Kustomization
+      name: service-backend
