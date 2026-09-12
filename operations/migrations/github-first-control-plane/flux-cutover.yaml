@@ -1,0 +1,45 @@
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: FluxControlPlaneCutover
+metadata:
+  name: re8ch-github
+spec:
+  desiredSource:
+    provider: github
+    repository: https://github.com/re8ch/service-backend.git
+    branch: main
+    authentication: github-app
+    verification: signed-head
+  currentSource:
+    provider: gitlab
+    repository: https://gitlab.com/reachievellc/service-backend.git
+    compatibilityRole: rollback-only
+  rollout:
+    - id: provision
+      gate: GitHub App installed only on re8ch/service-backend and SOPS secrets reconciled
+      resources: [service-backend-github-app-auth, service-backend-github-webhook, service-backend-github-status]
+    - id: canary
+      gate: GitRepository and isolated Kustomization Ready at the same signed main SHA
+      enable: [GitRepository/service-backend-github, Kustomization/service-backend-github-canary]
+    - id: reaction
+      gate: GitHub push webhook triggers reconciliation and Flux reports a GitHub commit status
+      enable: [Receiver/service-backend-github, Provider/service-backend-github-status, Alert/service-backend-github-status]
+    - id: root-cutover
+      gate: canary and reaction evidence attached to the migration Issue
+      mutate:
+        GitRepository/flux-system/service-backend:
+          provider: github
+          url: https://github.com/re8ch/service-backend.git
+          secretRef: service-backend-github-app-auth
+    - id: retire
+      gate: rollback window elapsed with GitHub reconciliation healthy
+      remove: [gitlab-agent, gitlab-runner-r640]
+  rollback:
+    source: https://gitlab.com/reachievellc/service-backend.git
+    secretRef: service-backend-flux-auth
+    maximumDecisionTime: 15m
+  invariants:
+    - Kubernetes remains the runtime API
+    - Flux is the only desired-state reconciliation engine
+    - GitHub stores decisions and evidence references, never raw telemetry
+    - GitHub App installation tokens are short-lived and repository-scoped
+    - No GitLab component is removed before the root-cutover verification gate
