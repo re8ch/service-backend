@@ -5,6 +5,14 @@ metadata: {name: gitlab-agent}
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: advfab-system
+  labels:
+    app.kubernetes.io/part-of: advanced-fabrics
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: tenant-infrastructure
   labels: {saas.re8ch.com/tenant: platform}
 ---

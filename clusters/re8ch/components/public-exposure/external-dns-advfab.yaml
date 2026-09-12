@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: external-dns-advfab, namespace: advfab-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: external-dns-advfab}
+rules:
+  - apiGroups: [""]
+    resources: [services]
+    verbs: [get, list, watch]
+  - apiGroups: ["networking.k8s.io"]
+    resources: [ingresses]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: external-dns-advfab}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: external-dns-advfab}
+subjects: [{kind: ServiceAccount, name: external-dns-advfab, namespace: advfab-system}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns-advfab
+  namespace: advfab-system
+  labels: {app.kubernetes.io/name: external-dns, app.kubernetes.io/instance: advfab-public-edge}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: external-dns, app.kubernetes.io/instance: advfab-public-edge}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: external-dns, app.kubernetes.io/instance: advfab-public-edge}
+    spec:
+      serviceAccountName: external-dns-advfab
+      containers:
+        - name: external-dns
+          image: registry.k8s.io/external-dns/external-dns:v0.21.0@sha256:f53faaf71cb270d1ca9dce6ea0c94bfebf1a18696263487f0fbc74b9bf2bd7ff
+          args:
+            - --source=service
+            - --source=ingress
+            - --provider=cloudflare
+            - --domain-filter=advfab.org
+            - --zone-id-filter=3f2022acc23ec9fa69c5d7acd99c34d9
+            - --label-filter=networking.advfab.org/dns-authority=public-edge
+            - --exclude-target-net=192.0.2.183/8
+            - --exclude-target-net=192.0.2.33/12
+            - --exclude-target-net=192.0.2.136/16
+            - --policy=upsert-only
+            - --registry=txt
+            - --txt-owner-id=advanced-fabrics-public-edge
+            - --txt-prefix=_advfab-external-dns.
+            - --interval=1m
+            - --events
+            - --log-format=json
+          env:
+            - name: CF_API_TOKEN
+              valueFrom: {secretKeyRef: {name: cloudflare-advfab-dns-token, key: CF_API_TOKEN}}
+          resources:
+            requests: {cpu: 10m, memory: 48Mi}
+            limits: {cpu: 150m, memory: 192Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+      securityContext: {seccompProfile: {type: RuntimeDefault}}
