@@ -10,8 +10,8 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     documents = list(yaml.safe_load_all((ROOT / "platform/connectool/release.yaml").read_text()))
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
-    assert source["spec"]["url"] == "oci://ghcr.io/re8ch/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.2.3"}
+    assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
+    assert source["spec"]["ref"] == {"tag": "0.2.5"}
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
     assert release["spec"]["chartRef"] == {"kind": "OCIRepository", "name": "connectool"}
@@ -30,9 +30,25 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         {"name": "ops-admin-vmcp-internal", "toolConfigRef": "ops-admin-tools"},
         {"name": "admin-api-backend"},
     ]
+    assert by_name["re8ch-tools-vmcp"]["outgoingAuth"]["default"] == {
+        "type": "externalAuthConfigRef",
+        "externalAuthConfigRef": {"name": "vmcp-internal-backend"},
+    }
+    assert by_name["re8ch-admin-vmcp"]["outgoingAuth"]["backends"]["admin-api-backend"] == {
+        "type": "externalAuthConfigRef",
+        "externalAuthConfigRef": {"name": "admin-vmcp-backend-auth"},
+    }
+    assert all(
+        item["operational"]["failureHandling"]["partialFailureMode"] == "best_effort"
+        for item in publications
+    )
     assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
         "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
     }
+    plugins = release["spec"]["values"]["codex"]["plugins"]
+    tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
+    assert tenant_admin["publication"] == "re8ch-admin-vmcp"
+    assert tenant_admin["mcpOwner"] is False
 
 
 def test_artifact_hub_uses_registered_repository_id():

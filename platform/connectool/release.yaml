@@ -4,13 +4,13 @@ metadata: {name: connectool, namespace: flux-system}
 spec:
   interval: 10m
   provider: generic
-  url: oci://ghcr.io/re8ch/charts/connectool
-  ref: {tag: "0.2.3"}
+  url: oci://ghcr.io/among-clusters/charts/connectool
+  ref: {tag: "0.2.5"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/re8ch/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.2\.3$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.2\.5$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -90,6 +90,16 @@ spec:
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
             - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
+          outgoingAuth:
+            source: inline
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-internal-backend}}
+          operational:
+            failureHandling:
+              partialFailureMode: best_effort
+              healthCheckInterval: 30s
+              healthCheckTimeout: 10s
+              unhealthyThreshold: 3
+              circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}
           authorization:
             groupClaim: groups
             policies:
@@ -105,6 +115,18 @@ spec:
           workloads:
             - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
             - {name: admin-api-backend}
+          outgoingAuth:
+            source: inline
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-internal-backend}}
+            backends:
+              admin-api-backend: {type: externalAuthConfigRef, externalAuthConfigRef: {name: admin-vmcp-backend-auth}}
+          operational:
+            failureHandling:
+              partialFailureMode: best_effort
+              healthCheckInterval: 30s
+              healthCheckTimeout: 10s
+              unhealthyThreshold: 3
+              circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}
           authorization:
             groupClaim: groups
             policies:
@@ -118,6 +140,13 @@ spec:
           session: {database: 4, keyPrefix: "thv:tenant:"}
           workloads:
             - {name: tenant-api-backend}
+          operational:
+            failureHandling:
+              partialFailureMode: best_effort
+              healthCheckInterval: 30s
+              healthCheckTimeout: 10s
+              unhealthyThreshold: 3
+              circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}
           authorization:
             groupClaim: groups
             policies:
@@ -131,4 +160,5 @@ spec:
         - {name: re8ch-cluster-infra-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/cluster-infra/SKILL.md]}
         - {name: re8ch-agent-orchestra-collab, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/agent-orchestra/SKILL.md]}
         - {name: re8ch-platform-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: true, skills: []}
+        - {name: re8ch-tenant-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: false, skills: [skills/tenant-admin/SKILL.md]}
         - {name: re8ch-tenant, publication: tenant-vmcp, category: Productivity, mcpOwner: true, skills: []}
