@@ -116,7 +116,7 @@
 	branch = main
 [submodule "platform/advanced-fabric"]
 	path = catalogs/platform/modules/advanced-fabric/source
-	url = https://github.com/re8ch/advanced-fabric.git
+	url = https://github.com/advanced-fabrics/core.git
 	branch = main
 [submodule "platform/brand-assets"]
 	path = catalogs/platform/modules/brand-assets/source
@@ -136,7 +136,7 @@
 	branch = main
 [submodule "platform/headlamp-advanced-fabric"]
 	path = catalogs/platform/modules/headlamp-advanced-fabric/source
-	url = https://github.com/re8ch/headlamp-advanced-fabric.git
+	url = https://github.com/advanced-fabrics/headlamp-advanced-fabric.git
 	branch = main
 [submodule "platform/image-website"]
 	path = catalogs/platform/modules/image-website/source

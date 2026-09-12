@@ -594,7 +594,7 @@ metadata:
 spec:
   accountRef: advanced-fabric-maintain
   projectRef: advanced-fabric
-  repository: https://github.com/re8ch/advanced-fabric.git
+  repository: https://github.com/advanced-fabrics/core.git
   folder: catalogs/platform/modules/advanced-fabric/source
   branchPrefix: workspace/advanced-fabric-maintain/
 ---
@@ -762,7 +762,7 @@ metadata:
 spec:
   accountRef: headlamp-advanced-fabric-maintain
   projectRef: headlamp-advanced-fabric
-  repository: https://github.com/re8ch/headlamp-advanced-fabric.git
+  repository: https://github.com/advanced-fabrics/headlamp-advanced-fabric.git
   folder: catalogs/platform/modules/headlamp-advanced-fabric/source
   branchPrefix: workspace/headlamp-advanced-fabric-maintain/
 ---

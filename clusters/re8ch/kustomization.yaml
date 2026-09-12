@@ -15,6 +15,7 @@ resources:
   - secrets/tenant-registry-supply-chain.sops.yaml
   - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
   - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
+  - secrets/cloudflare-advfab-dns-token.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/cilium/advfab-worker-node-ips.yaml
   - components/farseer/public-web.yaml
@@ -25,6 +26,7 @@ resources:
   - components/egress-fabric/identity-egress.yaml
   - components/network/podcidr-fabric
   - components/public-exposure/external-dns-cloudflare.yaml
+  - components/public-exposure/external-dns-advfab.yaml
   - components/public-exposure/gateway-dns-authorities.yaml
   - components/public-exposure/legacy-special-http-routes.yaml
   - components/opencost/ui-nginx-config.yaml

@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-09-09T13:25:48Z'
-  generation: 1788960348
+  generatedAt: '2026-09-12T06:17:00Z'
+  generation: 1789193820
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -14,7 +14,7 @@ modules:
     commit: 98f03cc9e7c5cb12c57bc423f29f3e44e8ff4fed
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/advanced-fabric.git
+    repository: https://github.com/advanced-fabrics/core.git
   aesthete:
     commit: 1e06ed1aebca1067a1b1c07bc24833bfb70a2ef3
     defaultBranch: main
@@ -145,7 +145,7 @@ modules:
     defaultBranch: main
     dependencies:
     - advanced-fabric
-    repository: https://github.com/re8ch/headlamp-advanced-fabric.git
+    repository: https://github.com/advanced-fabrics/headlamp-advanced-fabric.git
   image-website:
     commit: 2b178d3664e6a0d63f8bf886dcad79ae8c18470a
     defaultBranch: main

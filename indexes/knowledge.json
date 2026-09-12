@@ -625,7 +625,7 @@
     "kind": "agent-memory",
     "module": "advanced-fabric",
     "ref": "catalogs/platform/modules/advanced-fabric/MEMORY.md",
-    "sha256": "8d7408d68ddae60a09ddb9db95350d68f7d200f1a48e6b5c1ea0d96741708ae6"
+    "sha256": "74e1f64e200e0cfeab2bddc9877cfb4521747a023b9f98c29985a38b6c678146"
   },
   {
     "module": "among-clusters",
@@ -777,7 +777,7 @@
     "kind": "agent-memory",
     "module": "headlamp-advanced-fabric",
     "ref": "catalogs/platform/modules/headlamp-advanced-fabric/MEMORY.md",
-    "sha256": "0d626856328ab63c2e59db6844a289be649d07922be28e87c9a7a416e1207a5e"
+    "sha256": "4ace6e26e9d63d2adab92c747f7f48655d25e6f30d36bcbb3e6de1b75f0bad69"
   },
   {
     "module": "image-website",
