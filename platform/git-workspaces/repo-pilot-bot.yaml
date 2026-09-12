@@ -27,7 +27,7 @@ metadata: {name: repo-pilot-bot, namespace: git-workspaces}
 spec:
   accountRef: repo-pilot-bot
   projectRef: advanced-fabric
-  repository: https://github.com/re8ch/advanced-fabric.git
+  repository: https://github.com/advanced-fabrics/core.git
   folder: catalogs/platform/modules/advanced-fabric/source
   branchPrefix: workspace/repo-pilot-bot/
 ---

@@ -275,7 +275,7 @@
     "id": "advanced-fabric",
     "ownership": "owned",
     "projectType": "network-controller",
-    "repository": "https://github.com/re8ch/advanced-fabric.git",
+    "repository": "https://github.com/advanced-fabrics/core.git",
     "source": "catalogs/platform/modules/advanced-fabric/source"
   },
   {
@@ -338,7 +338,7 @@
     "id": "headlamp-advanced-fabric",
     "ownership": "owned",
     "projectType": "headlamp-plugin",
-    "repository": "https://github.com/re8ch/headlamp-advanced-fabric.git",
+    "repository": "https://github.com/advanced-fabrics/headlamp-advanced-fabric.git",
     "source": "catalogs/platform/modules/headlamp-advanced-fabric/source"
   },
   {
