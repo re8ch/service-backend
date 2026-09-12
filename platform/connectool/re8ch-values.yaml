@@ -28,6 +28,11 @@ toolhive:
       workloads:
         - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
         - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
+      outgoingAuth:
+        source: inline
+        default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-internal-backend}}
+      operational:
+        failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
       authorization:
         groupClaim: groups
         policies:
@@ -43,6 +48,13 @@ toolhive:
       workloads:
         - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
         - {name: admin-api-backend}
+      outgoingAuth:
+        source: inline
+        default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-internal-backend}}
+        backends:
+          admin-api-backend: {type: externalAuthConfigRef, externalAuthConfigRef: {name: admin-vmcp-backend-auth}}
+      operational:
+        failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
       authorization:
         groupClaim: groups
         policies:
@@ -56,6 +68,8 @@ toolhive:
       session: {database: 4, keyPrefix: "thv:tenant:"}
       workloads:
         - {name: tenant-api-backend}
+      operational:
+        failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
       authorization:
         groupClaim: groups
         policies:
@@ -86,6 +100,11 @@ codex:
       category: Productivity
       mcpOwner: true
       skills: []
+    - name: re8ch-tenant-admin
+      publication: re8ch-admin-vmcp
+      category: Productivity
+      mcpOwner: false
+      skills: [skills/tenant-admin/SKILL.md]
     - name: re8ch-tenant
       publication: tenant-vmcp
       category: Productivity
