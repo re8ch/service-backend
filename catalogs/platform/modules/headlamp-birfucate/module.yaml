@@ -1,0 +1,22 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: headlamp-birfucate, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository:
+    provider: github
+    url: https://github.com/among-clusters/headlamp-birfucate.git
+    defaultBranch: main
+    owner: among-clusters
+  projectType: headlamp-plugin
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [npm, kubectl]
+  dependencies: [among-clusters]
+  source: {kind: submodule, path: source, metadataPolicy: in-repository}
+  identity:
+    maintainerAddress: headlamp-birfucate-maintain@phonaid.com
+    accountClass: project-maintainer
+  clusterIndex: {path: .re8ch/cluster-resources.yaml}
+

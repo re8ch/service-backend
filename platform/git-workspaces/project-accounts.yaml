@@ -714,7 +714,7 @@ metadata:
 spec:
   accountRef: connectool-maintain
   projectRef: connectool
-  repository: https://github.com/re8ch/connectool.git
+  repository: https://github.com/among-clusters/connectool.git
   folder: catalogs/platform/modules/connectool/source
   branchPrefix: workspace/connectool-maintain/
 ---
@@ -738,7 +738,7 @@ metadata:
 spec:
   accountRef: among-clusters-maintain
   projectRef: among-clusters
-  repository: https://github.com/re8ch/among-clusters.git
+  repository: https://github.com/among-clusters/among-clusters.git
   folder: catalogs/platform/modules/among-clusters/source
   branchPrefix: workspace/among-clusters-maintain/
 ---
@@ -765,6 +765,30 @@ spec:
   repository: https://github.com/advanced-fabrics/headlamp-advanced-fabric.git
   folder: catalogs/platform/modules/headlamp-advanced-fabric/source
   branchPrefix: workspace/headlamp-advanced-fabric-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: headlamp-birfucate-maintain
+  namespace: git-workspaces
+spec:
+  email: headlamp-birfucate-maintain@phonaid.com
+  provider: github
+  project: headlamp-birfucate
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: headlamp-birfucate-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: headlamp-birfucate-maintain
+  projectRef: headlamp-birfucate
+  repository: https://github.com/among-clusters/headlamp-birfucate.git
+  folder: catalogs/platform/modules/headlamp-birfucate/source
+  branchPrefix: workspace/headlamp-birfucate-maintain/
 ---
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
@@ -810,7 +834,7 @@ metadata:
 spec:
   accountRef: mihomos-cluster-maintain
   projectRef: mihomos-cluster
-  repository: https://github.com/re8ch/mihomos-cluster.git
+  repository: https://github.com/public-edge/mihomos-cluster.git
   folder: catalogs/platform/modules/mihomos-cluster/source
   branchPrefix: workspace/mihomos-cluster-maintain/
 ---

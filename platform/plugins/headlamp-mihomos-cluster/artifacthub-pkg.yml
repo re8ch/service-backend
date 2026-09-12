@@ -4,10 +4,10 @@ displayName: Mihomos Cluster
 createdAt: "2026-08-20T15:00:00Z"
 description: Observe Mihomos Cluster consumers, CN/global exit providers, real public geography and service reachability.
 license: Apache-2.0
-homeURL: https://github.com/re8ch/headlamp-mihomos-cluster
+homeURL: https://github.com/public-edge/headlamp-mihomos-cluster
 containersImages: []
 annotations:
-  headlamp/plugin/archive-url: https://github.com/re8ch/headlamp-mihomos-cluster/releases/download/v0.1.1/re8ch-headlamp-mihomos-cluster-0.1.1.tar.gz
+  headlamp/plugin/archive-url: https://github.com/public-edge/headlamp-mihomos-cluster/releases/download/v0.1.1/re8ch-headlamp-mihomos-cluster-0.1.1.tar.gz
   headlamp/plugin/archive-checksum: SHA256:4b1b7e36cd3b1887e95650ac292e71cb7ef312d675b44455dda8f63190ab743c
   headlamp/plugin/version-compat: ">=0.42.0"
   headlamp/plugin/distro-compat: in-cluster,web,docker-desktop,desktop

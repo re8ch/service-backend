@@ -4,9 +4,9 @@ description: Bidirectional CN/global Mihomo egress fabric with per-node consumer
 type: application
 version: 0.1.1
 appVersion: "1.19.29"
-home: https://github.com/re8ch/mihomos-cluster
+home: https://github.com/public-edge/mihomos-cluster
 icon: https://raw.githubusercontent.com/MetaCubeX/mihomo/Meta/docs/logo.png
-sources: [https://github.com/re8ch/mihomos-cluster, https://github.com/MetaCubeX/mihomo]
+sources: [https://github.com/public-edge/mihomos-cluster, https://github.com/MetaCubeX/mihomo]
 keywords: [mihomo, egress, geo-routing, kubernetes, headlamp]
 maintainers:
   - {name: RE8CH Platform}

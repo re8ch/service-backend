@@ -148,7 +148,7 @@
 	branch = main
 [submodule "platform/mihomos-cluster"]
 	path = catalogs/platform/modules/mihomos-cluster/source
-	url = https://github.com/re8ch/mihomos-cluster.git
+	url = https://github.com/public-edge/mihomos-cluster.git
 	branch = main
 [submodule "platform/observable-website"]
 	path = catalogs/platform/modules/observable-website/source
@@ -208,13 +208,16 @@
 	branch = main
 [submodule "platform/among-clusters"]
 	path = catalogs/platform/modules/among-clusters/source
-	url = https://github.com/re8ch/among-clusters.git
+	url = https://github.com/among-clusters/among-clusters.git
 	branch = main
 [submodule "platform/connectool"]
 	path = catalogs/platform/modules/connectool/source
-	url = https://github.com/re8ch/connectool.git
+	url = https://github.com/among-clusters/connectool.git
 	branch = main
 [submodule "farseer/farseer"]
 	path = catalogs/farseer/modules/farseer/source
 	url = https://github.com/re8ch/farseer.git
 	branch = main
+[submodule "platform/headlamp-birfucate"]
+	path = catalogs/platform/modules/headlamp-birfucate/source
+	url = https://github.com/among-clusters/headlamp-birfucate.git

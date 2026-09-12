@@ -18,4 +18,4 @@ chips to the services relevant to that role. The Consumer panel contains every
 node and both probe families because exit nodes are consumers as well.
 
 Release archives and Artifact Hub metadata are published from
-https://github.com/re8ch/headlamp-mihomos-cluster.
+https://github.com/public-edge/headlamp-mihomos-cluster.

@@ -1,0 +1,20 @@
+name: reusable-infra-validate
+on:
+  workflow_call:
+    inputs:
+      component:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reject raw telemetry and credentials
+        shell: bash
+        run: |
+          test -n "${{ inputs.component }}"
+          ! git ls-files | grep -E '\.(log|prom|trace)$'
+          ! git grep -IlE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' -- .

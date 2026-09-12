@@ -1,0 +1,71 @@
+apiVersion: collaboration.re8ch.com/v1alpha1
+kind: MigrationExecution
+metadata:
+  startedAt: "2026-09-12"
+spec:
+  currentWave: 1
+status:
+  checks:
+    workspaceDoctor: passed
+    enterprise:
+      slug: re8ch
+      displayName: Reachieve LLC
+      plan: enterprise-trial
+      trialRemainingAtObservation: 30-days
+      organizations: [re8ch, advanced-fabrics, among-clusters, public-edge]
+    authentication:
+      githubUser: Woomou
+      enterpriseOwner: true
+      scopes: [admin:enterprise, admin:org, repo, workflow]
+    organizations:
+      advanced-fabrics: enrolled-in-enterprise
+      among-clusters: created-in-enterprise
+      public-edge: created-in-enterprise
+    landingZone:
+      among-clusters: bootstrapped
+      public-edge: bootstrapped
+    pilot:
+      repositories:
+        - public-edge/headlamp-public-edge
+        - public-edge/headlamp-mihomos-cluster
+      sourceRefIntegrity: passed
+      releasesPreserved: passed
+      backups: .artifacts/github-first-control-plane/pilot
+    repositoryWave:
+      transferred:
+        - among-clusters/among-clusters
+        - among-clusters/connectool
+        - public-edge/public-edge-manager
+        - public-edge/mihomos-cluster
+      sourceRefIntegrity: passed
+      releasesAndPullRequestsPreserved: passed
+      backups: .artifacts/github-first-control-plane/wave-1
+    birfucate:
+      standaloneRepository: https://github.com/among-clusters/headlamp-birfucate
+      currentSource: platform/plugins/headlamp-birfucate-browser
+      historyExtraction: passed
+      compatibilityCopyRetained: true
+      workspaceModuleLocked: true
+    validation:
+      workspaceDoctor: passed
+      pytest: 308-passed
+      githubActions: passed
+    governance:
+      organizationMembers:
+        advanced-fabrics: [Woomou]
+        among-clusters: [Woomou]
+        public-edge: [Woomou]
+      publicRepositoryOutsideReviewer: r13h-invited
+      reviewerLicenseImpact: no-enterprise-seat
+      protectedPullRequests: awaiting-r13h-acceptance-and-review
+      commitSignature: github-verified
+  blockers:
+    - id: cluster-tool-entrypoint
+      action: Expose the RE8CH Cloud Platform MCP/ConnecTool server before the Flux source cutover
+    - id: independent-reviewer
+      action: r13h must accept the public-repository collaborator invitations and approve the protected pull requests
+  prohibitedUntilCutoverGate:
+    - change Flux GitRepository source
+    - disable GitLab CI or GitLab agent
+    - enable production OIDC mutation
+    - dual-write collaboration state

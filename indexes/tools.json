@@ -260,6 +260,14 @@
     "ref": "kubectl"
   },
   {
+    "module": "headlamp-birfucate",
+    "ref": "npm"
+  },
+  {
+    "module": "headlamp-birfucate",
+    "ref": "kubectl"
+  },
+  {
     "module": "image-website",
     "ref": "npm"
   },

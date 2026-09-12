@@ -284,7 +284,7 @@
     "id": "among-clusters",
     "ownership": "owned",
     "projectType": "kubernetes-controller",
-    "repository": "https://github.com/re8ch/among-clusters.git",
+    "repository": "https://github.com/among-clusters/among-clusters.git",
     "source": "catalogs/platform/modules/among-clusters/source"
   },
   {
@@ -329,7 +329,7 @@
     "id": "connectool",
     "ownership": "owned",
     "projectType": "ai-tool-distribution",
-    "repository": "https://github.com/re8ch/connectool.git",
+    "repository": "https://github.com/among-clusters/connectool.git",
     "source": "catalogs/platform/modules/connectool/source"
   },
   {
@@ -340,6 +340,15 @@
     "projectType": "headlamp-plugin",
     "repository": "https://github.com/advanced-fabrics/headlamp-advanced-fabric.git",
     "source": "catalogs/platform/modules/headlamp-advanced-fabric/source"
+  },
+  {
+    "catalog": "platform",
+    "commit": "c51f725562532dc1fcc259315d5554e3f3a7e32e",
+    "id": "headlamp-birfucate",
+    "ownership": "owned",
+    "projectType": "headlamp-plugin",
+    "repository": "https://github.com/among-clusters/headlamp-birfucate.git",
+    "source": "catalogs/platform/modules/headlamp-birfucate/source"
   },
   {
     "catalog": "platform",
@@ -365,7 +374,7 @@
     "id": "mihomos-cluster",
     "ownership": "owned",
     "projectType": "kubernetes-network-controller",
-    "repository": "https://github.com/re8ch/mihomos-cluster.git",
+    "repository": "https://github.com/public-edge/mihomos-cluster.git",
     "source": "catalogs/platform/modules/mihomos-cluster/source"
   },
   {
@@ -410,7 +419,7 @@
     "id": "service-backend",
     "ownership": "owned",
     "projectType": "gitops-control-plane",
-    "repository": "git@gitlab.com:reachievellc/service-backend.git",
+    "repository": "https://github.com/re8ch/service-backend.git",
     "source": "."
   },
   {

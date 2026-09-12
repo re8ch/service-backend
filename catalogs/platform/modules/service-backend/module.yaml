@@ -4,7 +4,7 @@ metadata: {name: service-backend, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: gitlab, url: 'git@gitlab.com:reachievellc/service-backend.git', defaultBranch: main, owner: reachievellc}
+  repository: {provider: github, url: 'https://github.com/re8ch/service-backend.git', defaultBranch: main, owner: re8ch}
   projectType: gitops-control-plane
   writePolicy: github-pr
   knowledge: [README.md, runbooks/, clusters/, operations/]

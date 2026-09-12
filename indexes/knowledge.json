@@ -645,7 +645,7 @@
     "kind": "agent-memory",
     "module": "among-clusters",
     "ref": "catalogs/platform/modules/among-clusters/MEMORY.md",
-    "sha256": "32e43ffaab3ab46de0753ee5e1047f26e6aa1f42ad4b0a144bde00dc6890e0ae"
+    "sha256": "80352c3f3ef03378e362636dd83d49cc47c05879601a475174aa2b032ac79b0c"
   },
   {
     "module": "brand-assets",
@@ -757,7 +757,7 @@
     "kind": "agent-memory",
     "module": "connectool",
     "ref": "catalogs/platform/modules/connectool/MEMORY.md",
-    "sha256": "52c8c80e3595ed0fc958620cbf8d0df580dc94f17d44a2b482cecbf7ed1c1847"
+    "sha256": "5391a36a7c3ce09a10bda170c8ae2b20050b1153438d937c617cad730f97ce2a"
   },
   {
     "module": "headlamp-advanced-fabric",
@@ -778,6 +778,26 @@
     "module": "headlamp-advanced-fabric",
     "ref": "catalogs/platform/modules/headlamp-advanced-fabric/MEMORY.md",
     "sha256": "4ace6e26e9d63d2adab92c747f7f48655d25e6f30d36bcbb3e6de1b75f0bad69"
+  },
+  {
+    "module": "headlamp-birfucate",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "headlamp-birfucate",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "headlamp-birfucate",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "headlamp-birfucate",
+    "ref": "catalogs/platform/modules/headlamp-birfucate/MEMORY.md",
+    "sha256": "196e041540d62422a10a2b7648bd88fe6db9b401a1e1bc2ea0364abbe3918680"
   },
   {
     "module": "image-website",
@@ -837,7 +857,7 @@
     "kind": "agent-memory",
     "module": "mihomos-cluster",
     "ref": "catalogs/platform/modules/mihomos-cluster/MEMORY.md",
-    "sha256": "459ff18a5ebcf7084e0d4ec6a8610adb03c329f318b43a272e613449f320bd1b"
+    "sha256": "e1be12426aa1177592e895233aa345fa38b45de817455dbf51ea2fdc0cdc99ea"
   },
   {
     "module": "observable-website",
