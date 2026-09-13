@@ -64,7 +64,7 @@ metadata:
   labels:
     collaboration.re8ch.com/control-plane: github
 spec:
-  suspend: true
+  suspend: false
   type: github
   address: https://github.com/re8ch/service-backend
   secretRef:
@@ -79,7 +79,7 @@ metadata:
   labels:
     collaboration.re8ch.com/control-plane: github
 spec:
-  suspend: true
+  suspend: false
   providerRef:
     name: service-backend-github-status
   eventSeverity: info
