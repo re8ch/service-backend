@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Authenticated control plane for the restricted-node-6dc3f140f9 FreeSWITCH voice gateway."""
+"""Authenticated control plane for the R640 FreeSWITCH voice gateway."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import urllib.request
 from urllib.parse import urlparse
 
 
@@ -103,6 +104,9 @@ class Store:
           seq INTEGER PRIMARY KEY AUTOINCREMENT, call_id TEXT NOT NULL, type TEXT NOT NULL,
           source TEXT NOT NULL, idempotency_key TEXT UNIQUE NOT NULL,
           created_at INTEGER NOT NULL, payload TEXT NOT NULL)""")
+        self.db.execute("""CREATE TABLE IF NOT EXISTS call_context (
+          call_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, recipient_id TEXT NOT NULL,
+          destination_verified INTEGER NOT NULL DEFAULT 0)""")
         self.db.commit()
         self.lock = threading.Lock()
 
@@ -140,6 +144,15 @@ class Store:
                 call_id, kind, source, idem or str(uuid.uuid4()), int(time.time()), json.dumps(payload)))
             self.db.commit()
 
+    def set_context(self, call_id: str, incident_id: str, recipient_id: str, destination_verified: bool) -> None:
+        with self.lock:
+            self.db.execute("INSERT OR REPLACE INTO call_context VALUES(?,?,?,?)", (call_id, incident_id, recipient_id, int(destination_verified)))
+            self.db.commit()
+
+    def context(self, call_id: str) -> dict:
+        row = self.db.execute("SELECT incident_id,recipient_id,destination_verified FROM call_context WHERE call_id=?", (call_id,)).fetchone()
+        return {"incident_id": row[0], "recipient_id": row[1], "destination_verified": bool(row[2])} if row else {}
+
     def events(self, after: int) -> list[dict]:
         rows = self.db.execute("SELECT seq,call_id,type,source,created_at,payload FROM events WHERE seq>? ORDER BY seq LIMIT 200", (after,)).fetchall()
         return [{"seq": r[0], "call_id": r[1], "type": r[2], "source": r[3], "created_at": r[4], "payload": json.loads(r[5])} for r in rows]
@@ -152,6 +165,23 @@ class App:
         self.esl = ESLClient("127.0.0.1", 8021, os.environ["FREESWITCH_ESL_PASSWORD"])
         self.allowed_tenants = set(filter(None, os.getenv("VOICE_ALLOWED_TENANTS", "").split(",")))
         self.allowed_lines = set(f"line{i:02d}" for i in range(1, 9))
+        self.event_webhook = os.getenv("VOICE_EVENT_WEBHOOK", "")
+
+    def emit(self, call_id: str, kind: str, source: str, payload: dict, idem: str | None = None) -> None:
+        self.store.event(call_id, kind, source, payload, idem)
+        context = self.store.context(call_id)
+        if not self.event_webhook or not context:
+            return
+        event = {"call_id": call_id, "type": kind, "observed_at": int(time.time()), **context, **payload}
+        try:
+            request = urllib.request.Request(
+                self.event_webhook, data=json.dumps(event).encode(), method="POST",
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(request, timeout=5) as response:
+                response.read()
+        except Exception as exc:
+            self.store.event(call_id, "webhook.failed", "voice-api", {"error": str(exc)[:300], "target": "secretary"})
 
     def background(self, command: str) -> str:
         return getattr(self.esl, "bgapi", self.esl.api)(command)
@@ -199,7 +229,9 @@ class App:
         now = int(time.time())
         call = Call(str(uuid.uuid4()), str(data["request_id"]), tenant, str(data["destination"]), line, agents, "originating", now, now)
         self.store.create(call)
-        self.store.event(call.call_id, "call.state", "voice-api", {"status": call.status}, f"{call.request_id}:created")
+        if data.get("incident_id"):
+            self.store.set_context(call.call_id, str(data["incident_id"]), str(data.get("recipient_id", "unknown")), bool(data.get("destination_verified")))
+        self.emit(call.call_id, "call.state", "voice-api", {"status": call.status}, f"{call.request_id}:created")
         try:
             dial_line = "line01" if line == "auto" else line
             fs_uuid = str(uuid.uuid4())
@@ -214,7 +246,7 @@ class App:
         except Exception as exc:
             call.status, call.failure, call.updated_at = "failed", str(exc)[:500], int(time.time())
         self.store.update(call)
-        self.store.event(call.call_id, "call.state", "voice-api", {"status": call.status, "failure": call.failure})
+        self.emit(call.call_id, "call.state", "voice-api", {"status": call.status, "failure": call.failure})
         return call
 
 
@@ -250,7 +282,7 @@ class Handler(BaseHTTPRequestHandler):
         APP.authenticate(self.headers, raw)
         if self.command == "POST" and parsed.path == "/v1/voice/calls":
             return self.send_json(200, asdict(APP.create_call(json.loads(raw))))
-        match = re.fullmatch(r"/v1/voice/calls/([0-9a-f-]+)(?:/(hangup)|/agents/([^/]+)/(join|leave))?", parsed.path)
+        match = re.fullmatch(r"/v1/voice/calls/([0-9a-f-]+)(?:/(hangup|dtmf)|/agents/([^/]+)/(join|leave))?", parsed.path)
         if match:
             call = APP.store.get(match.group(1))
             if self.command == "GET" and not match.group(2) and not match.group(3):
@@ -258,8 +290,14 @@ class Handler(BaseHTTPRequestHandler):
             if self.command == "POST" and match.group(2) == "hangup":
                 if call.fs_uuid: APP.esl.api(f"uuid_kill {call.fs_uuid} NORMAL_CLEARING")
                 call.status, call.updated_at = "ended", int(time.time()); APP.store.update(call)
-                APP.store.event(call.call_id, "call.state", "voice-api", {"status": "ended"})
+                APP.emit(call.call_id, "call.state", "voice-api", {"status": "ended"})
                 return self.send_json(200, asdict(call))
+            if self.command == "POST" and match.group(2) == "dtmf":
+                data = json.loads(raw)
+                digit = str(data.get("digit", ""))
+                if digit not in {"1", "2", "3"}: raise ApiError(400, "unsupported DTMF digit")
+                APP.emit(call.call_id, "call.dtmf", "freeswitch", {"digit": digit, "seq": str(data.get("seq") or uuid.uuid4())})
+                return self.send_json(202, {"accepted": True, "digit": digit})
             if self.command == "POST" and match.group(3):
                 agent, action = match.group(3), match.group(4)
                 if not AGENT_RE.fullmatch(agent): raise ApiError(400, "invalid agent")
@@ -271,7 +309,7 @@ class Handler(BaseHTTPRequestHandler):
                     APP.esl.api(f"uuid_kill {APP.agent_uuid(call.call_id, agent)} NORMAL_CLEARING")
                     call.agents.remove(agent)
                 call.updated_at = int(time.time()); APP.store.update(call)
-                APP.store.event(call.call_id, f"agent.{action}", "voice-api", {"agent_id": agent})
+                APP.emit(call.call_id, f"agent.{action}", "voice-api", {"agent_id": agent})
                 return self.send_json(200, asdict(call))
         if self.command == "GET" and parsed.path == "/v1/voice/events":
             after = int(self.headers.get("Last-Event-ID", "0")); events = APP.store.events(after)
