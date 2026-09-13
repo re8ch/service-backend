@@ -8,7 +8,6 @@ identity/status fields before writing GitOps manifests.
 
 from __future__ import annotations
 
-import base64
 import json
 import subprocess
 from pathlib import Path
@@ -55,7 +54,6 @@ LEDGER_ACTIVE = {
     "ledger-api-gateway-local",
     "ledger-gnucash-report-runner-local",
     "ledger-wechat-auth-local",
-    "ledger-wechat-auth-agent-token-20260727",
     "allow-public-ledger",
     "ledger-public",
 }
@@ -64,7 +62,7 @@ LEDGER_ACTIVE = {
 def kubectl_json(namespace: str, kinds: list[str]) -> dict:
     command = [
         "ssh",
-        "restricted-node-6dc3f140f9",
+        "r640",
         "sudo",
         "k3s",
         "kubectl",
@@ -106,11 +104,6 @@ def clean(item: dict) -> dict:
             spec.pop(key, None)
     elif item["kind"] == "PersistentVolumeClaim":
         item["spec"].pop("volumeName", None)
-    elif item["kind"] == "ConfigMap" and metadata["name"] == "ledger-wechat-auth-agent-token-20260727":
-        item["binaryData"] = {
-            key: base64.b64encode(value.encode()).decode()
-            for key, value in item.pop("data", {}).items()
-        }
     return item
 
 
