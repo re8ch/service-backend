@@ -445,6 +445,8 @@ def dex_identity(token: str) -> dict[str, Any] | None:
 
 
 def allowed(identity: dict[str, Any]) -> bool:
+    if identity.get("auth_type") == "service" and identity.get("subject"):
+        return True
     if PROFILE == "admin":
         return "re8ch:tenant-admins" in set(identity.get("groups", []))
     if ALLOW_AUTHENTICATED_DEX and identity.get("auth_type") in {"dex", "device"} and identity.get("subject"):

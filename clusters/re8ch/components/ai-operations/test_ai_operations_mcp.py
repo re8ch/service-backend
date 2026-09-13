@@ -284,6 +284,12 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(identity["subject"], "service:litellm")
         self.assertTrue(m.allowed(identity))
 
+        tenant = load("tenant")
+        tenant.SERVICE_API_TOKEN = "tenant-service-test-token"
+        tenant_handler = object.__new__(tenant.Handler)
+        tenant_handler.headers = {"Authorization": "Bearer tenant-service-test-token"}
+        self.assertTrue(tenant.allowed(tenant_handler.identity()))
+
     def test_capsule_is_signed_one_time_and_broker_hides_material(self):
         m = load("cloud")
         identity = {"subject": "user-1", "groups": [], "device_id": "dev-test", "auth_type": "device"}
