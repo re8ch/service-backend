@@ -81,6 +81,9 @@ spec:
           byocAllowed: false
           businessNamespaces: [ledger, neo4j, anysite, dataspace]
           identityBindings:
+            # The same GitHub identity is deliberately projected differently by
+            # audience: ordinary re8ch operator here, protected admin above.
+            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: operator}
             # Dex GitHub connector uses the immutable GitHub numeric user ID as
             # `sub`. This is an ordinary re8ch tenant binding, not admin access.
             - {name: re8ch-dex-woomou-operator, issuer: https://dex.re8ch.com, subjectHash: "sha256:8cd4777c62df7072fe9ea18fcedc0fc473f7d8a19d2fed9555c2714dac57a669", role: operator}
