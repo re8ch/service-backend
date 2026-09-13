@@ -35,7 +35,12 @@ spec:
     tenantPlatform:
       enabled: true
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:7bb0fb9142e4e68a50eece9b0a84c06eec6e6618fb270d5cb239dd85fca7a66e
-      tenantReadinessPath: /livez
+      tenantReadinessPath: /readyz
+      state:
+        storageClassName: rbd-r640
+        size: 1Gi
+      supplyChain:
+        required: false
       tenants:
         - name: admin
           displayName: RE8CH Platform Administration
@@ -48,6 +53,7 @@ spec:
             - {name: admin-github-k8s-admins, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: admin}
             - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
           grants: []
+          nativeAccess: false
         - name: artchais
           displayName: Artchais
           lifecycle: Active
@@ -62,6 +68,7 @@ spec:
           grants:
             - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+          nativeAccess: true
         - name: re8ch
           displayName: RE8CH
           lifecycle: Active
@@ -85,6 +92,7 @@ spec:
             - {name: re8ch-among-clusters, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-observability, consumableRef: observability.grafana.v1, roleRef: viewer, lifecycle: Active}
             - {name: re8ch-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+          nativeAccess: true
     # Keep the first production reconciliation equivalent to the validated
     # canary: no stateful allocation while Ceph is degraded and no downstream
     # delivery until the tenant usage sink is promoted.

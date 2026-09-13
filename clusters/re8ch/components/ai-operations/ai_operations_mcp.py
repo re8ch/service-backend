@@ -64,6 +64,7 @@ HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-opera
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
+SUPPLY_CHAIN_REQUIRED = os.getenv("HARBOR_SUPPLY_CHAIN_REQUIRED", "false").lower() == "true"
 TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
 ARTCHAIS_TENANT_REF = os.getenv("ARTCHAIS_TENANT_REF", "artchais")
 TENANT_CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
@@ -821,7 +822,7 @@ def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
     ]
     if PROFILE == "admin":
         records.extend([
-            ("re8ch://admin/tenants", "Tenants", {"tenants": store.tenants()}),
+            ("re8ch://admin/tenants", "Tenants", {"tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}),
             ("re8ch://admin/byoc/registrations", "BYOC registrations", {"registrations": store.registrations()}),
             ("re8ch://admin/byoc/connections", "BYOC connections", {"connections": store.connections()}),
         ])
@@ -897,7 +898,7 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
 def authenticated_tenant(identity: dict[str, Any]) -> str:
     return authenticated_tenant_context(identity)["tenantRef"]
 
-def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | None = None, method: str | None = None) -> dict[str, Any]:
+def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | None = None, method: str | None = None, caller: str = "tenant") -> dict[str, Any]:
     if not TENANT_CONTROL_URL:
         raise RuntimeError("tenant claim controller is unavailable")
     body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
@@ -905,7 +906,7 @@ def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | Non
         TENANT_CONTROL_URL + path,
         data=body,
         method=method or ("POST" if body is not None else "GET"),
-        headers={"Accept": "application/json", "Content-Type": "application/json", "X-Tenant-Caller": "tenant", "X-Tenant-Ref": tenant, "X-Tenant-Service-Token": TENANT_CLAIM_SERVICE_TOKEN},
+        headers={"Accept": "application/json", "Content-Type": "application/json", "X-Tenant-Caller": caller, "X-Tenant-Ref": tenant, "X-Tenant-Service-Token": TENANT_CLAIM_SERVICE_TOKEN},
     )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -938,6 +939,12 @@ def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> di
 
 def readiness() -> tuple[bool, dict[str, str]]:
     checks = {}
+    try:
+        with tenant_service_store().connect() as db:
+            db.execute("SELECT 1").fetchone()
+        checks["stateStore"] = "ok"
+    except Exception:
+        checks["stateStore"] = "failed"
     targets = {"dex": "https://dex.re8ch.com/.well-known/openid-configuration"}
     if TENANT_CONTROL_URL:
         targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
@@ -950,7 +957,8 @@ def readiness() -> tuple[bool, dict[str, str]]:
                 checks[name] = "ok" if response.status < 400 else "failed"
         except Exception:
             checks[name] = "failed"
-    return all(value == "ok" for value in checks.values()), checks
+    required = {name: value for name, value in checks.items() if name != "supplyChain" or SUPPLY_CHAIN_REQUIRED}
+    return all(value == "ok" for value in required.values()), checks
 
 
 def tenant_client(tenant: str, reference: str) -> tuple[HarborClient, str]:
@@ -1275,9 +1283,10 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         tenant = authenticated_tenant(identity)
         if name == "tenant_capabilities_list":
             return {"tenantRef": tenant, "capabilities": [
-                {"name": "compute.workload.v1", "kinds": ["Job", "Deployment"], "resources": ["cpu", "memory", "ephemeralStorage"], "publicExposure": "anonymous-deployment-only", "imagePolicy": "tenant Harbor signed digest with scan, SBOM and provenance", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
+                {"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": False, "imagePolicy": "tenant-selected", "interfaces": ["Kubernetes API", "Helm", "GitOps"]},
+                {"name": "compute.workload.v1", "access": "optional-managed-claim", "kinds": ["Job", "Deployment"], "resources": ["cpu", "memory", "ephemeralStorage"], "publicExposure": "shared-service-opt-in", "imagePolicy": "managed claims use the optional supply-chain policy", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
                 {"name": "storage.volume.v1", "plans": ["rbd", "cephfs"], "lifecycle": "independent-retained", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
-            ], "requiresApproval": False, "pricingIncluded": False}
+            ], "requiresApproval": False, "operationalReadiness": readiness()[1], "pricingIncluded": False}
         if name == "tenant_claim_plan":
             return tenant_control_request("/v1/claims/plan", tenant, {"claim": args["claim"]})
         if name == "tenant_claim_create":
@@ -1768,7 +1777,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         if name == "tenant_create":
             return store.create_tenant(args["tenant_ref"], args["display_name"], args["identity_ref"])
         if name == "tenant_list":
-            return {"tenantRef": tenant, "tenants": store.tenants()}
+            return {"tenantRef": tenant, "tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}
         if name == "tenant_grant_create":
             return store.create_grant(args["tenant_ref"], args["consumable_ref"], args["role_ref"], args["visibility"], args.get("constraints") or {})
         if name == "tenant_visibility_update":
