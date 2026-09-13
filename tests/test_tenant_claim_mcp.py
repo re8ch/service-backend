@@ -45,6 +45,16 @@ def test_native_apply_rejects_cross_tenant_namespace(monkeypatch):
         module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo", "namespace": "other"}}, "apply": False}, {"subject": "agent"})
 
 
+def test_native_delete_uses_supported_name_output(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    calls = []
+    monkeypatch.setattr(module, "command_result", lambda argv, stdin, timeout: calls.append(argv) or {"exit_code": 0, "stdout": "deployment.apps/demo", "stderr": ""})
+    value = module.call_tool("tenant_kubernetes_delete", {"kind": "deployment", "name": "demo", "apply": True}, {"subject": "agent"})
+    assert value["deleted"] is True
+    assert calls == [["kubectl", "--namespace", "tenant-acme", "delete", "deployment", "demo", "-o", "name"]]
+
+
 def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
