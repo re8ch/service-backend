@@ -30,7 +30,7 @@ rules:
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [roles]
     resourceNames: [tenant-native-owner]
-    verbs: [escalate]
+    verbs: [escalate, bind]
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [clusterroles]
     resourceNames: [tenant-resource-provisioner]
