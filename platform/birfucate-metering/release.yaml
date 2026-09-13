@@ -18,9 +18,11 @@ spec:
         name: service-backend
         namespace: flux-system
   install:
+    crds: CreateReplace
     remediation:
       retries: 3
   upgrade:
+    crds: CreateReplace
     cleanupOnFail: true
     remediation:
       retries: 3
@@ -131,6 +133,9 @@ spec:
             allowCreate: true
             allowDelete: true
             bootstrapNamespaces: [tenant-ci-default]
+          # Compatibility bridge for clusters whose pre-autonomy Tenant CRD
+          # still requires this field while Helm upgrades the CRD in-place.
+          runtimeNamespaceRef: tenant-ci-default
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: tenant-ci
           identityBindings:

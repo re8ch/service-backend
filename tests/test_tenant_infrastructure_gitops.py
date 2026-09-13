@@ -118,6 +118,8 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
 
 def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    assert release["spec"]["install"]["crds"] == "CreateReplace"
+    assert release["spec"]["upgrade"]["crds"] == "CreateReplace"
     tenant = release["spec"]["values"]["tenantPlatform"]
     assert tenant["tenantReadinessPath"] == "/readyz"
     assert tenant["supplyChain"] == {"required": False}
@@ -150,6 +152,9 @@ def test_tenancy_crds_are_structural_and_status_enabled():
         version = crd["spec"]["versions"][0]
         assert version["subresources"] == {"status": {}}
         assert version["schema"]["openAPIV3Schema"]["type"] == "object"
+    tenant = next(item for item in docs if item["metadata"]["name"] == "tenants.tenancy.re8ch.com")
+    tenant_spec = tenant["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+    assert "runtimeNamespaceRef" not in tenant_spec["required"]
     identity = next(item for item in docs if item["metadata"]["name"].startswith("tenantidentitybindings."))
     validations = identity["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["x-kubernetes-validations"]
     rules = " ".join(item["rule"] for item in validations)
