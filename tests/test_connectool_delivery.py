@@ -38,6 +38,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "type": "externalAuthConfigRef",
         "externalAuthConfigRef": {"name": "admin-vmcp-backend-auth"},
     }
+    assert by_name["tenant-vmcp"]["outgoingAuth"]["default"] == {
+        "type": "externalAuthConfigRef",
+        "externalAuthConfigRef": {"name": "admin-vmcp-backend-auth"},
+    }
     assert all(
         item["operational"]["failureHandling"]["partialFailureMode"] == "best_effort"
         for item in publications

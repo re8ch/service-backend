@@ -140,6 +140,9 @@ spec:
           session: {database: 4, keyPrefix: "thv:tenant:"}
           workloads:
             - {name: tenant-api-backend}
+          outgoingAuth:
+            source: inline
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: admin-vmcp-backend-auth}}
           operational:
             failureHandling:
               partialFailureMode: best_effort

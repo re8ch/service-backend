@@ -93,6 +93,11 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     admin = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "admin-api")
     service_token = next(item for item in admin["spec"]["template"]["spec"]["containers"][0]["env"] if item["name"] == "SERVICE_API_TOKEN")
     assert service_token["valueFrom"]["secretKeyRef"] == {"name": "admin-vmcp-backend-auth", "key": "token"}
+    tenant_entry = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "tenant-api-backend")
+    assert tenant_entry["spec"]["externalAuthConfigRef"] == {"name": "admin-vmcp-backend-auth"}
+    tenant_api = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-api")
+    tenant_service_token = next(item for item in tenant_api["spec"]["template"]["spec"]["containers"][0]["env"] if item["name"] == "SERVICE_API_TOKEN")
+    assert tenant_service_token["valueFrom"]["secretKeyRef"] == {"name": "admin-vmcp-backend-auth", "key": "token"}
     policy = next(item for item in docs if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "admin-api")
     source = policy["spec"]["ingress"][0]["from"][0]
     assert source["podSelector"]["matchLabels"] == {"app": "virtualmcpserver", "toolhive-name": "re8ch-admin-vmcp"}

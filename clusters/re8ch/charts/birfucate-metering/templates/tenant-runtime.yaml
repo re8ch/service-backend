@@ -73,6 +73,7 @@ spec:
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant}
+            - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/mcp"}
@@ -155,6 +156,7 @@ spec:
   groupRef: {name: tenant-public}
   remoteUrl: http://tenant-api.tenant-infrastructure.svc/mcp
   transport: streamable-http
+  externalAuthConfigRef: {name: admin-vmcp-backend-auth}
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
