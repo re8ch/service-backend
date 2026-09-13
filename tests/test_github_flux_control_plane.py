@@ -11,17 +11,18 @@ def objects():
     return {item["kind"]: item for item in yaml.safe_load_all(path.read_text())}
 
 
-def test_github_flux_canary_is_enabled_before_promotion():
+def test_github_flux_reactions_target_promoted_source():
     docs = objects()
-    source = docs["GitRepository"]
-    assert source["spec"]["suspend"] is False
-    assert source["spec"]["provider"] == "github"
-    assert source["spec"]["url"] == "https://github.com/re8ch/service-backend.git"
-    assert source["spec"]["verify"]["mode"] == "HEAD"
-    assert docs["Kustomization"]["spec"]["suspend"] is False
     assert docs["Receiver"]["spec"]["suspend"] is False
+    assert docs["Receiver"]["spec"]["resources"] == [
+        {"apiVersion": "source.toolkit.fluxcd.io/v1", "kind": "GitRepository", "name": "service-backend"}
+    ]
     assert docs["Provider"]["spec"]["suspend"] is False
     assert docs["Alert"]["spec"]["suspend"] is False
+    assert docs["Alert"]["spec"]["eventSources"] == [
+        {"kind": "GitRepository", "name": "service-backend"},
+        {"kind": "Kustomization", "name": "service-backend"},
+    ]
 
 
 def test_root_source_is_github_authoritative_after_promotion():
