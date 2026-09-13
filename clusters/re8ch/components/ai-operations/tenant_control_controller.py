@@ -165,7 +165,7 @@ def condition(kind, ok, reason, message=""):
 ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
 
 
-def resolve(issuer, subject_hash, groups=None):
+def resolve(issuer, subject_hash, groups=None, caller="tenant"):
     matches = []
     groups = {str(group) for group in (groups or []) if isinstance(group, str)}
     for binding in kube().list("tenantidentitybindings"):
@@ -174,6 +174,14 @@ def resolve(issuer, subject_hash, groups=None):
             continue
         subject_match = bool(subject_hash and spec.get("subjectHash") and hmac.compare_digest(spec["subjectHash"], subject_hash))
         group_match = bool(spec.get("group") and spec["group"] in groups)
+        tenant_ref = spec.get("tenantRef")
+        # Admin and ordinary tenant publications are separate trust domains.
+        # A subject may belong to both, but each publication resolves only the
+        # bindings appropriate for its own audience.
+        if caller == "admin" and tenant_ref != "admin":
+            continue
+        if caller == "tenant" and tenant_ref == "admin":
+            continue
         if subject_match or group_match:
             matches.append((spec.get("tenantRef"), spec.get("role", "viewer")))
     tenants_matched = sorted(set(tenant for tenant, _ in matches if tenant))
@@ -520,7 +528,7 @@ class Handler(BaseHTTPRequestHandler):
                 if subject_hash and not subject_hash.startswith("sha256:"): raise ValueError()
                 if not isinstance(groups, list) or len(groups) > 128 or any(not isinstance(group, str) or len(group) > 256 for group in groups): raise ValueError()
                 if not subject_hash and not groups: raise ValueError()
-                self.send_json(200, resolve(issuer, subject_hash, groups))
+                self.send_json(200, resolve(issuer, subject_hash, groups, caller=caller))
                 return
             tenant = self.headers["X-Tenant-Ref"]
             namespace = runtime_namespace(tenant)
