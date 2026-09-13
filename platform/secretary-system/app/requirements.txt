@@ -1,0 +1,7 @@
+fastapi==0.116.1
+hypercorn==0.17.3
+neo4j==5.28.2
+psycopg[binary]==3.2.10
+restate-sdk==1.0.5
+uvicorn==0.35.0
+
