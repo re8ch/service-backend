@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: github-flux-webhook
+  namespace: flux-system
+  labels:
+    collaboration.re8ch.com/control-plane: github
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: hooks.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/dns-authority: public-edge-manager
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: hooks-https
+  hostnames: [hooks.re8ch.com]
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /hook/}
+      backendRefs:
+        - name: webhook-receiver
+          port: 80
