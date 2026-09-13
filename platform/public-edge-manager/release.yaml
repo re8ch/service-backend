@@ -28,6 +28,21 @@ spec:
     disableTakeOwnership: false
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              group: apps
+              version: v1
+              kind: DaemonSet
+              name: public-edge-manager
+            patch: |
+              - op: add
+                path: /spec/template/spec/containers/0/env/-
+                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.178"}
+              - op: add
+                path: /spec/template/spec/containers/0/env/-
+                value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
   values:
     image:
       repository: ghcr.io/re8ch/public-edge-manager
