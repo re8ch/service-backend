@@ -959,7 +959,7 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
     preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "deleted": False, "kind": kind, "name": resource_name}
     if not args.get("apply"):
         return preview
-    result = command_result(["kubectl", "--namespace", namespace, "delete", kind, resource_name, "-o", "json"], None, 120)
+    result = command_result(["kubectl", "--namespace", namespace, "delete", kind, resource_name, "-o", "name"], None, 120)
     if result["exit_code"] != 0:
         raise PermissionError(result["stderr"] or "tenant Kubernetes delete was denied")
     return {**preview, "deleted": True, "result": result}
