@@ -64,3 +64,33 @@ def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
     assert native == {"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": False, "imagePolicy": "tenant-selected", "interfaces": ["Kubernetes API", "Helm", "GitOps"]}
     assert value["requiresApproval"] is False
     assert value["pricingIncluded"] is False
+
+
+def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default", "runtimeNamespaceRef": "re8ch-default"})
+    calls = []
+    monkeypatch.setattr(module, "tenant_control_request", lambda path, tenant, payload=None, method=None, caller="tenant": calls.append((path, tenant, payload, method)) or {"status": "accepted"})
+    value = module.call_tool("tenant_namespace_create", {"namespace": "re8ch-demo"}, {"subject": "agent"})
+    assert value == {"status": "accepted"}
+    assert calls == [("/v1/namespaces", "re8ch", {"namespaceName": "re8ch-demo"}, None)]
+
+
+def test_explicit_workload_namespace_must_be_ready_and_owned(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default", "runtimeNamespaceRef": "re8ch-default"})
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": [{"spec": {"tenantRef": "re8ch", "namespaceName": "re8ch-demo", "operation": "EnsurePresent"}, "status": {"phase": "Ready"}}]})
+    value = module.call_tool("tenant_kubernetes_apply", {"namespace": "re8ch-demo", "object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo"}}, "apply": False}, {"subject": "agent"})
+    assert value["namespace"] == "re8ch-demo"
+    with __import__("pytest").raises(PermissionError, match="Ready namespace"):
+        module.call_tool("tenant_kubernetes_apply", {"namespace": "re8ch-other", "object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo"}}, "apply": False}, {"subject": "agent"})
+
+
+def test_native_workload_security_boundaries(monkeypatch):
+    module = load(monkeypatch)
+    base = {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {"template": {"spec": {"containers": [{"name": "demo", "image": "nginx", "securityContext": {"privileged": True}}]}}}}
+    with __import__("pytest").raises(PermissionError, match="privileged"):
+        module.validate_tenant_kubernetes_object(base, "re8ch-default")
+    service = {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "public"}, "spec": {"type": "NodePort"}}
+    with __import__("pytest").raises(PermissionError, match="PublicEdge"):
+        module.validate_tenant_kubernetes_object(service, "re8ch-default")

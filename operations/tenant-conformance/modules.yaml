@@ -1,0 +1,60 @@
+apiVersion: testing.re8ch.com/v1alpha1
+kind: TenantConformanceModules
+modules:
+  tenant-core:
+    owns:
+      - clusters/re8ch/charts/birfucate-metering/crds/tenancy.re8ch.com.yaml
+      - clusters/re8ch/charts/birfucate-metering/templates/tenant-*.yaml
+      - clusters/re8ch/components/ai-operations/tenant_control_controller.py
+      - inventory/platform/consumability/*tenant*.yaml
+      - plugins/tenant.yaml
+    tests:
+      - tests/test_tenant_control_controller.py
+      - tests/test_tenant_infrastructure_gitops.py
+      - tests/test_re8ch_managed_tenant.py
+  tenant-kubernetes:
+    dependsOn: [tenant-core]
+    owns:
+      - clusters/re8ch/components/ai-operations/ai_operations_mcp.py
+      - operations/tenant-broker/**
+      - platform/external-projects/**
+    tests:
+      - tests/test_tenant_claim_mcp.py
+      - tests/test_tenant_claim_rendering.py
+      - tests/test_tenant_broker.py
+  tenant-registry:
+    dependsOn: [tenant-core]
+    owns:
+      - clusters/re8ch/components/ai-operations/harbor*.py
+      - platform/tenant-infrastructure/harbor-*.yaml
+      - operations/mcp-conformance/collections/tenant-registry-*.json
+    tests:
+      - tests/test_harbor_integration.py
+      - tests/test_harbor_supply_chain.py
+  tenant-database:
+    dependsOn: [tenant-core]
+    owns:
+      - plugins/tenant-database.yaml
+      - operations/mcp-conformance/collections/tenant-database-*.json
+    tests:
+      - tests/test_tenant_infrastructure.py
+  tenant-observability:
+    dependsOn: [tenant-core]
+    owns:
+      - plugins/tenant-observability.yaml
+      - operations/mcp-conformance/collections/tenant-observability-*.json
+      - platform/observability/**
+    tests:
+      - tests/test_observability.py
+      - tests/test_headlamp_birfucate_browser.py
+  tenant-byoc:
+    dependsOn: [tenant-core]
+    owns:
+      - clusters/re8ch/charts/birfucate-metering/templates/byoc-*.yaml
+      - plugins/tenant-byoc.yaml
+    tests:
+      - tests/test_tenant_infrastructure.py
+shared:
+  - operations/tenant-conformance/**
+  - clusters/re8ch/charts/birfucate-metering/templates/_helpers.tpl
+  - .github/workflows/ci.yml

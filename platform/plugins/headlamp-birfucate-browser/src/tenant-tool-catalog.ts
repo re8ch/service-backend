@@ -7,6 +7,10 @@ export type ToolGroup = {
 
 export const TENANT_TOOL_GROUPS: ToolGroup[] = [
   {
+    category: 'Tenant namespaces & native Kubernetes', resourceClass: 'kubernetes.namespace.v1', disposition: 'local',
+    tools: ['tenant-namespace-list', 'tenant-namespace-create', 'tenant-namespace-delete', 'tenant-kubernetes-get', 'tenant-kubernetes-apply', 'tenant-kubernetes-delete'],
+  },
+  {
     category: 'Workloads & volumes', resourceClass: 'compute.workload.v1 / storage.volume.v1', disposition: 'local',
     tools: ['tenant-capabilities-list', 'tenant-claim-plan', 'tenant-claim-create', 'tenant-claim-get', 'tenant-claim-list', 'tenant-claim-update', 'tenant-claim-renew', 'tenant-claim-cancel', 'tenant-usage-summary-get'],
   },

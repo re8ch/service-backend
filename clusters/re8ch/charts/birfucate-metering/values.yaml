@@ -33,6 +33,13 @@ tenantPlatform:
       displayName: RE8CH Platform Administration
       lifecycle: Active
       deletionPolicy: Retain
+      namespacePolicy:
+        defaultNamespace: tenant-infrastructure
+        allowedPrefixes: [admin-]
+        maxNamespaces: 1
+        allowCreate: false
+        allowDelete: false
+        bootstrapNamespaces: []
       runtimeNamespaceRef: tenant-infrastructure
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: re8ch
@@ -45,6 +52,13 @@ tenantPlatform:
       displayName: Artchais
       lifecycle: Active
       deletionPolicy: Retain
+      namespacePolicy:
+        defaultNamespace: artchais-default
+        allowedPrefixes: [artchais-]
+        maxNamespaces: 20
+        allowCreate: true
+        allowDelete: true
+        bootstrapNamespaces: [artchais-default]
       runtimeNamespaceRef: artchais
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: artchais
@@ -55,6 +69,25 @@ tenantPlatform:
       grants:
         - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
         - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+      nativeAccess: true
+    - name: tenant-ci
+      displayName: Tenant Conformance Canary
+      lifecycle: Active
+      deletionPolicy: RevokeThenDelete
+      namespacePolicy:
+        defaultNamespace: tenant-ci-default
+        allowedPrefixes: [tenant-ci-]
+        maxNamespaces: 10
+        allowCreate: true
+        allowDelete: true
+        bootstrapNamespaces: [tenant-ci-default]
+      imagePullSecretRef: harbor-functions-shared-pull
+      harborProjectRef: tenant-ci
+      identityBindings:
+        - {name: tenant-ci-github-actions, issuer: https://dex.re8ch.com, group: "re8ch:tenant-ci", role: operator}
+      grants:
+        - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+        - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
       nativeAccess: true
 
 prometheus:

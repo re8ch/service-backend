@@ -9,16 +9,37 @@ spec:
   displayName: {{ $tenant.displayName | quote }}
   lifecycle: {{ $tenant.lifecycle }}
   deletionPolicy: {{ $tenant.deletionPolicy }}
+  namespacePolicy:
+    defaultNamespace: {{ $tenant.namespacePolicy.defaultNamespace }}
+    allowedPrefixes:
+{{- range $prefix := $tenant.namespacePolicy.allowedPrefixes }}
+      - {{ $prefix | quote }}
+{{- end }}
+    maxNamespaces: {{ $tenant.namespacePolicy.maxNamespaces }}
+    allowCreate: {{ $tenant.namespacePolicy.allowCreate }}
+    allowDelete: {{ $tenant.namespacePolicy.allowDelete }}
+{{- if $tenant.runtimeNamespaceRef }}
+  # Deprecated read-only compatibility for claims created before namespace autonomy.
   runtimeNamespaceRef: {{ $tenant.runtimeNamespaceRef }}
+{{- end }}
   imagePullSecretRef: {{ $tenant.imagePullSecretRef }}
   harborProjectRef: {{ $tenant.harborProjectRef }}
   visibility: {{ default "Private" $tenant.visibility }}
   hostingMode: {{ default "platform-managed" $tenant.hostingMode }}
   byocAllowed: {{ default false $tenant.byocAllowed }}
-  businessNamespaces:
-{{- range $namespace := (default (list $tenant.runtimeNamespaceRef) $tenant.businessNamespaces) }}
-    - {{ $namespace }}
+{{- range $namespace := $tenant.namespacePolicy.bootstrapNamespaces }}
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantNamespace
+metadata:
+  name: {{ printf "%s-%s" $tenant.name (sha256sum $namespace | trunc 16) }}
+  labels: {app.kubernetes.io/part-of: birfucate-metering, tenancy.re8ch.com/tenant: {{ $tenant.name }}}
+spec:
+  tenantRef: {{ $tenant.name }}
+  namespaceName: {{ $namespace }}
+  operation: EnsurePresent
 {{- end }}
+{{- if $tenant.runtimeNamespaceRef }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -36,57 +57,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: tenant-resource-provisioner
-{{- if $tenant.nativeAccess }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tenant-native-operator
-  namespace: {{ $tenant.runtimeNamespaceRef }}
-  labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
-automountServiceAccountToken: false
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: tenant-native-owner
-  namespace: {{ $tenant.runtimeNamespaceRef }}
-  labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
-rules:
-  - apiGroups: [""]
-    resources: [pods, pods/log, pods/exec, services, endpoints, persistentvolumeclaims, configmaps, secrets, serviceaccounts, events]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [apps]
-    resources: [deployments, deployments/scale, statefulsets, statefulsets/scale, daemonsets, replicasets]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [batch]
-    resources: [jobs, cronjobs]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [autoscaling]
-    resources: [horizontalpodautoscalers]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [policy]
-    resources: [poddisruptionbudgets]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [rbac.authorization.k8s.io]
-    resources: [roles, rolebindings]
-    verbs: [get, list, watch, create, update, patch, delete]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: tenant-native-owner
-  namespace: {{ $tenant.runtimeNamespaceRef }}
-  labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
-subjects:
-{{- range $binding := $tenant.identityBindings }}
-{{- if and $binding.group (or (eq $binding.role "admin") (eq $binding.role "operator")) }}
-  - {apiGroup: rbac.authorization.k8s.io, kind: Group, name: {{ $binding.group | quote }}}
-{{- end }}
-{{- end }}
-  - {kind: ServiceAccount, name: tenant-native-operator, namespace: {{ $tenant.runtimeNamespaceRef }}}
-  - {kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}
-roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-native-owner}
 {{- end }}
 {{- range $binding := $tenant.identityBindings }}
 ---

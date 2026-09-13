@@ -665,9 +665,12 @@ TENANT_CLAIM_TOOLS = [
     {"name": "tenant_usage_summary_get", "description": "Return auditable, unpriced showback records joined by tenant claim UID.", "inputSchema": schema({"claim_name": {"type": "string"}})},
 ]
 TENANT_KUBERNETES_TOOLS = [
-    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from the authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}}, ["kind"])},
-    {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in the authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "apply": {"type": "boolean"}}, ["object"])},
-    {"name": "tenant_kubernetes_delete", "description": "Preview or delete one allowlisted object from the authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "apply": {"type": "boolean"}}, ["kind", "name"])},
+    {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
+    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy.", "inputSchema": schema({"namespace": {"type": "string"}}, ["namespace"])},
+    {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
+    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
+    {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
+    {"name": "tenant_kubernetes_delete", "description": "Preview or delete one allowlisted object from an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["kind", "name"])},
 ]
 
 TENANT_KUBERNETES_KINDS = {
@@ -678,6 +681,8 @@ TENANT_KUBERNETES_KINDS = {
     ("rbac.authorization.k8s.io/v1", "Role"), ("rbac.authorization.k8s.io/v1", "RoleBinding"),
 }
 TENANT_KUBERNETES_READ_KINDS = {kind.lower(): (api_version, kind) for api_version, kind in TENANT_KUBERNETES_KINDS}
+TENANT_KUBERNETES_READ_KINDS.update({kind: ("v1", kind) for kind in ("pod", "pods", "event", "events", "endpoint", "endpoints")})
+TENANT_KUBERNETES_READ_KINDS.update({kind: ("apps/v1", kind) for kind in ("replicaset", "replicasets")})
 TENANT_BYOC_TOOLS = [
     {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},
     {"name": "byoc_registration_list", "description": "List cluster registrations visible to the current plane.", "inputSchema": schema({"tenant_ref": {"type": "string"}})},
@@ -901,10 +906,10 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
             if tenant:
                 if PROFILE == "admin" and (tenant != "admin" or "re8ch:tenant-admins" not in groups):
                     raise PermissionError("admin runtime requires the protected admin tenant and group")
-                namespace = str(resolved.get("runtimeNamespaceRef") or "")
+                namespace = str(resolved.get("defaultNamespace") or resolved.get("runtimeNamespaceRef") or "")
                 if not namespace:
                     raise RuntimeError("tenant runtime namespace is unavailable")
-                return {"tenantRef": tenant, "role": role, "runtimeNamespaceRef": namespace}
+                return {"tenantRef": tenant, "role": role, "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
         except urllib.error.HTTPError as exc:
             raise PermissionError("identity is not bound to an active tenant") from exc
         except (urllib.error.URLError, ValueError) as exc:
@@ -916,10 +921,58 @@ def authenticated_tenant(identity: dict[str, Any]) -> str:
     return authenticated_tenant_context(identity)["tenantRef"]
 
 
+def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> None:
+    kind = str(obj.get("kind") or "")
+    metadata = obj.get("metadata") or {}
+    if metadata.get("namespace") not in (None, "", namespace):
+        raise PermissionError("object namespace is outside the authenticated tenant")
+    if kind == "RoleBinding":
+        for subject in obj.get("subjects") or []:
+            if subject.get("kind") == "ServiceAccount" and subject.get("namespace") not in (None, "", namespace):
+                raise PermissionError("cross-namespace service account binding is denied")
+        if (obj.get("roleRef") or {}).get("kind") != "Role":
+            raise PermissionError("binding ClusterRoles through the tenant publication is denied")
+    if kind == "Service" and (obj.get("spec") or {}).get("type") in {"NodePort", "LoadBalancer", "ExternalName"}:
+        raise PermissionError("public or external service types require the shared PublicEdge service")
+    pod_spec = obj.get("spec") or {}
+    if kind == "CronJob":
+        pod_spec = pod_spec.get("jobTemplate", {}).get("spec", {}).get("template", {}).get("spec", {})
+    elif kind in {"Deployment", "StatefulSet", "DaemonSet", "Job"}:
+        pod_spec = pod_spec.get("template", {}).get("spec", {})
+    if any(pod_spec.get(field) for field in ("hostNetwork", "hostPID", "hostIPC")):
+        raise PermissionError("host namespaces are denied")
+    if any("hostPath" in volume for volume in pod_spec.get("volumes", [])):
+        raise PermissionError("hostPath volumes are denied")
+    for container in pod_spec.get("containers", []) + pod_spec.get("initContainers", []):
+        security = container.get("securityContext") or {}
+        if security.get("privileged") or security.get("allowPrivilegeEscalation") is True:
+            raise PermissionError("privileged containers are denied")
+
+
 def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> dict[str, Any]:
     context = authenticated_tenant_context(identity)
-    namespace = valid_kubernetes_name(context["runtimeNamespaceRef"])
     role = context["role"]
+    tenant = context["tenantRef"]
+    if name == "tenant_namespace_list":
+        value = tenant_control_request("/v1/namespaces", tenant)
+        return {"tenantRef": tenant, **value}
+    if role not in {"operator", "admin"} and name != "tenant_kubernetes_get":
+        raise PermissionError("operator or admin role is required")
+    if name == "tenant_namespace_create":
+        namespace = valid_kubernetes_name(str(args["namespace"]))
+        return tenant_control_request("/v1/namespaces", tenant, {"namespaceName": namespace})
+    if name == "tenant_namespace_delete":
+        namespace = valid_kubernetes_name(str(args["namespace"]))
+        preview = {"tenantRef": tenant, "namespace": namespace, "deleted": False}
+        if not args.get("apply"):
+            return preview
+        return {**preview, "deleted": True, "operation": tenant_control_request("/v1/namespaces/" + urllib.parse.quote(namespace, safe=""), tenant, method="DELETE")}
+    namespace = valid_kubernetes_name(str(args.get("namespace") or context.get("defaultNamespace") or context["runtimeNamespaceRef"]))
+    if "defaultNamespace" in context:
+        owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
+        ready_namespaces = {item.get("spec", {}).get("namespaceName") for item in owned if item.get("spec", {}).get("operation") == "EnsurePresent" and item.get("status", {}).get("phase") == "Ready"}
+        if namespace not in ready_namespaces:
+            raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
         kind = str(args["kind"]).lower()
         if kind not in TENANT_KUBERNETES_READ_KINDS:
@@ -936,14 +989,7 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
         if not isinstance(obj, dict) or (str(obj.get("apiVersion") or ""), str(obj.get("kind") or "")) not in TENANT_KUBERNETES_KINDS:
             raise PermissionError("object kind is not in the tenant workload allowlist")
         metadata = obj.get("metadata") or {}
-        if metadata.get("namespace") not in (None, "", namespace):
-            raise PermissionError("object namespace is outside the authenticated tenant")
-        if str(obj.get("kind")) == "RoleBinding":
-            for subject in obj.get("subjects") or []:
-                if subject.get("kind") == "ServiceAccount" and subject.get("namespace") not in (None, "", namespace):
-                    raise PermissionError("cross-namespace service account binding is denied")
-            if (obj.get("roleRef") or {}).get("kind") != "Role":
-                raise PermissionError("binding ClusterRoles through the tenant publication is denied")
+        validate_tenant_kubernetes_object(obj, namespace)
         obj = {**obj, "metadata": {**metadata, "namespace": namespace}}
         preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "applied": False, "object": obj}
         if not args.get("apply"):

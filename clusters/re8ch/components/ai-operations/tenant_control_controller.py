@@ -50,6 +50,7 @@ CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
 LOG = logging.getLogger("tenant-control-controller")
+RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
 
 
 class Kubernetes:
@@ -111,8 +112,16 @@ class Kubernetes:
 
     def apply(self, value):
         mapping = {
+            ("v1", "Namespace"): ("api/v1", "namespaces"),
+            ("v1", "ConfigMap"): ("api/v1", "configmaps"),
+            ("v1", "Secret"): ("api/v1", "secrets"),
+            ("v1", "ServiceAccount"): ("api/v1", "serviceaccounts"),
+            ("v1", "ResourceQuota"): ("api/v1", "resourcequotas"),
+            ("v1", "LimitRange"): ("api/v1", "limitranges"),
             ("v1", "PersistentVolumeClaim"): ("api/v1", "persistentvolumeclaims"),
             ("v1", "Service"): ("api/v1", "services"),
+            ("rbac.authorization.k8s.io/v1", "Role"): ("apis/rbac.authorization.k8s.io/v1", "roles"),
+            ("rbac.authorization.k8s.io/v1", "RoleBinding"): ("apis/rbac.authorization.k8s.io/v1", "rolebindings"),
             ("apps/v1", "Deployment"): ("apis/apps/v1", "deployments"),
             ("batch/v1", "Job"): ("apis/batch/v1", "jobs"),
             ("networking.k8s.io/v1", "NetworkPolicy"): ("apis/networking.k8s.io/v1", "networkpolicies"),
@@ -120,7 +129,8 @@ class Kubernetes:
         }
         api, plural = mapping[(value["apiVersion"], value["kind"])]
         meta = value["metadata"]
-        path = f"/{api}/namespaces/{meta['namespace']}/{plural}/{meta['name']}?fieldManager=tenant-control-controller&force=true"
+        scope = f"/namespaces/{meta['namespace']}" if meta.get("namespace") else ""
+        path = f"/{api}{scope}/{plural}/{meta['name']}?fieldManager=tenant-control-controller&force=true"
         return self.request("PATCH", path, value, "application/apply-patch+yaml")
 
     def patch_status(self, plural, name, status, namespace=None):
@@ -194,10 +204,13 @@ def resolve(issuer, subject_hash, groups=None, caller="tenant"):
     role = max((role for tenant_ref, role in matches if tenant_ref == tenants_matched[0]), key=lambda value: ROLE_ORDER.get(value, 0))
     if role not in ROLE_ORDER:
         raise PermissionError("identity binding has an invalid role")
+    policy = tenant.get("spec", {}).get("namespacePolicy", {})
+    default_namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or tenants_matched[0]
     return {
         "tenantRef": tenants_matched[0],
         "role": role,
-        "runtimeNamespaceRef": tenant.get("spec", {}).get("runtimeNamespaceRef") or tenants_matched[0],
+        "defaultNamespace": default_namespace,
+        "runtimeNamespaceRef": default_namespace,
     }
 
 
@@ -217,10 +230,111 @@ def tenant_definition(tenant_ref):
 
 
 def runtime_namespace(tenant_ref):
-    value = tenant_definition(tenant_ref).get("spec", {}).get("runtimeNamespaceRef")
+    spec = tenant_definition(tenant_ref).get("spec", {})
+    value = spec.get("namespacePolicy", {}).get("defaultNamespace") or spec.get("runtimeNamespaceRef")
     if value:
         return value
     raise PermissionError("active tenant runtime namespace is unavailable")
+
+
+def namespace_policy(tenant_ref):
+    spec = tenant_definition(tenant_ref).get("spec", {})
+    policy = spec.get("namespacePolicy") or {}
+    return {
+        "defaultNamespace": policy.get("defaultNamespace") or spec.get("runtimeNamespaceRef"),
+        "allowedPrefixes": policy.get("allowedPrefixes") or [tenant_ref + "-"],
+        "maxNamespaces": int(policy.get("maxNamespaces", 20)),
+        "allowCreate": bool(policy.get("allowCreate", False)),
+        "allowDelete": bool(policy.get("allowDelete", False)),
+    }
+
+
+def validate_tenant_namespace(tenant_ref, namespace, operation):
+    policy = namespace_policy(tenant_ref)
+    if namespace in RESERVED_NAMESPACES or not any(namespace.startswith(prefix) for prefix in policy["allowedPrefixes"]):
+        raise PermissionError("namespace is outside the authenticated tenant prefix")
+    if operation == "EnsurePresent" and not policy["allowCreate"]:
+        raise PermissionError("tenant namespace creation is disabled")
+    if operation == "EnsureAbsent" and not policy["allowDelete"]:
+        raise PermissionError("tenant namespace deletion is disabled")
+    return policy
+
+
+def tenant_namespace_name(tenant_ref, namespace):
+    return f"{tenant_ref}-{hashlib.sha256(namespace.encode()).hexdigest()[:16]}"
+
+
+def tenant_groups(tenant_ref):
+    groups = []
+    for binding in kube().list("tenantidentitybindings"):
+        spec = binding.get("spec", {})
+        if spec.get("tenantRef") == tenant_ref and not spec.get("revoked") and spec.get("group") and spec.get("role") in {"operator", "admin"}:
+            groups.append(spec["group"])
+    return sorted(set(groups))
+
+
+def tenant_namespace_resources(tenant, namespace):
+    tenant_ref = tenant["metadata"]["name"]
+    tenant_uid = tenant["metadata"]["uid"]
+    labels = {"tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-control-controller"}
+    annotation = {"tenancy.re8ch.com/tenant-uid": tenant_uid}
+    owner_rules = [
+        {"apiGroups": [""], "resources": ["pods", "pods/log", "pods/exec", "services", "endpoints", "persistentvolumeclaims", "configmaps", "secrets", "serviceaccounts", "events"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+        {"apiGroups": ["apps"], "resources": ["deployments", "deployments/scale", "statefulsets", "statefulsets/scale", "daemonsets", "replicasets"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+        {"apiGroups": ["batch"], "resources": ["jobs", "cronjobs"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+        {"apiGroups": ["autoscaling"], "resources": ["horizontalpodautoscalers"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+        {"apiGroups": ["policy"], "resources": ["poddisruptionbudgets"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+        {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["roles", "rolebindings"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+    ]
+    subjects = [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
+    subjects += [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": group} for group in tenant_groups(tenant_ref)]
+    return [
+        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": labels, "annotations": annotation}},
+        {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "tenant-boundary", "namespace": namespace, "labels": labels}, "spec": {"hard": {"pods": "100", "requests.cpu": "20", "requests.memory": "64Gi", "requests.storage": "1Ti"}}},
+        {"apiVersion": "v1", "kind": "LimitRange", "metadata": {"name": "tenant-defaults", "namespace": namespace, "labels": labels}, "spec": {"limits": [{"type": "Container", "defaultRequest": {"cpu": "25m", "memory": "64Mi"}, "default": {"cpu": "2", "memory": "4Gi"}}]}},
+        {"apiVersion": "v1", "kind": "ServiceAccount", "metadata": {"name": "tenant-native-operator", "namespace": namespace, "labels": labels}, "automountServiceAccountToken": False},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "rules": owner_rules},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "subjects": subjects, "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-native-owner"}},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-resource-provisioner", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-control-controller", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "tenant-resource-provisioner"}},
+        {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-default-deny-cross-tenant", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"tenancy.re8ch.com/tenant": tenant_ref}}}]}]}},
+    ]
+
+
+def reconcile_tenant_namespace(resource, tenants):
+    meta, spec = resource["metadata"], resource["spec"]
+    tenant_ref, namespace = spec["tenantRef"], spec["namespaceName"]
+    tenant = tenants.get(tenant_ref)
+    if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
+        raise PermissionError("tenant is not active")
+    validate_tenant_namespace(tenant_ref, namespace, spec["operation"])
+    operation_id = "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24]
+    if spec["operation"] == "EnsureAbsent":
+        kube().delete("namespaces", namespace, api="api/v1")
+        try:
+            live = kube().get("namespaces", namespace, api="api/v1")
+            phase, uid = "Terminating", live.get("metadata", {}).get("uid")
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise
+            phase, uid = "Ready", None
+        status = {"observedGeneration": meta.get("generation", 1), "operationId": operation_id, "phase": phase, "namespaceUID": uid, "reason": "NamespaceAbsent" if not uid else "NamespaceTerminating", "conditions": [condition("Ready", not uid, "NamespaceAbsent" if not uid else "NamespaceTerminating")]}
+    else:
+        current = None
+        try:
+            current = kube().get("namespaces", namespace, api="api/v1")
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise
+        if current:
+            annotations = current.get("metadata", {}).get("annotations", {})
+            labels = current.get("metadata", {}).get("labels", {})
+            if annotations.get("tenancy.re8ch.com/tenant-uid") not in {None, tenant["metadata"]["uid"]} or labels.get("tenancy.re8ch.com/tenant") not in {None, tenant_ref}:
+                raise PermissionError("existing namespace is owned by another tenant")
+        for value in tenant_namespace_resources(tenant, namespace):
+            kube().apply(value)
+        live = kube().get("namespaces", namespace, api="api/v1")
+        status = {"observedGeneration": meta.get("generation", 1), "operationId": operation_id, "phase": "Ready", "namespaceUID": live["metadata"]["uid"], "reason": "NamespaceReady", "conditions": [condition("Ready", True, "NamespaceReady")]}
+    kube().patch_status("tenantnamespaces", meta["name"], status)
 
 
 def image_pull_secret(tenant_ref):
@@ -424,17 +538,34 @@ def reconcile_loop():
             if not kube().claim_lease():
                 time.sleep(5)
                 continue
-            for plural in ("tenants", "tenantidentitybindings", "tenantgrants"):
+            for plural in ("tenantidentitybindings", "tenantgrants"):
                 for item in kube().list(plural):
                     meta = item["metadata"]
                     status = {"observedGeneration": meta.get("generation", 1), "operationId": "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24],
                               "conditions": [condition("Ready", True, "DeclarationAccepted")]}
                     if item.get("status", {}).get("observedGeneration") != status["observedGeneration"]:
                         kube().patch_status(plural, meta["name"], status)
-            tenants = [item for item in kube().list("tenants") if item.get("spec", {}).get("lifecycle") == "Active"]
-            for tenant in tenants:
-                namespace = tenant.get("spec", {}).get("runtimeNamespaceRef")
-                if namespace:
+            tenants = {item["metadata"]["name"]: item for item in kube().list("tenants") if item.get("spec", {}).get("lifecycle") == "Active"}
+            for item in kube().list("tenantnamespaces"):
+                try:
+                    reconcile_tenant_namespace(item, tenants)
+                except Exception as exc:
+                    status = {"observedGeneration": item["metadata"].get("generation", 1), "operationId": "op_" + hashlib.sha256(item["metadata"]["uid"].encode()).hexdigest()[:24], "phase": "Failed", "reason": str(exc)[:1024], "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
+                    kube().patch_status("tenantnamespaces", item["metadata"]["name"], status)
+            namespace_items = kube().list("tenantnamespaces")
+            for tenant_ref, tenant in tenants.items():
+                managed = sorted(item["spec"]["namespaceName"] for item in namespace_items if item.get("spec", {}).get("tenantRef") == tenant_ref and item.get("spec", {}).get("operation") == "EnsurePresent")
+                meta = tenant["metadata"]
+                policy = namespace_policy(tenant_ref)
+                namespaces_ready = not policy["allowCreate"] or policy["defaultNamespace"] in managed
+                status = {"observedGeneration": meta.get("generation", 1), "operationId": "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24], "managedNamespaces": managed, "conditions": [condition("Ready", namespaces_ready, "NamespacesReady" if namespaces_ready else "DefaultNamespacePending")]}
+                if tenant.get("status", {}).get("observedGeneration") != status["observedGeneration"] or tenant.get("status", {}).get("managedNamespaces") != managed:
+                    kube().patch_status("tenants", tenant_ref, status)
+                claim_namespaces = set(managed)
+                legacy = tenant.get("spec", {}).get("runtimeNamespaceRef")
+                if legacy:
+                    claim_namespaces.add(legacy)
+                for namespace in claim_namespaces:
                     for claim in kube().list("tenantresourceclaims", namespace):
                         try:
                             reconcile_claim(claim)
@@ -474,6 +605,8 @@ class Handler(BaseHTTPRequestHandler):
                     items.append({
                         "tenantRef": meta.get("name"), "displayName": spec.get("displayName"),
                         "visibility": spec.get("visibility", "Private"), "state": spec.get("lifecycle"),
+                        "defaultNamespace": (spec.get("namespacePolicy") or {}).get("defaultNamespace") or spec.get("runtimeNamespaceRef"),
+                        "managedNamespaces": status.get("managedNamespaces", []),
                         "runtimeNamespaceRef": spec.get("runtimeNamespaceRef"),
                         "ready": bool(ready and ready.get("status") == "True"),
                         "observedGeneration": status.get("observedGeneration"),
@@ -482,6 +615,10 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 LOG.exception("tenant inventory read failed: %s", exc)
                 self.send_json(503, {"error": "tenant inventory is unavailable"}); return
+        if caller == "tenant" and path == "/v1/namespaces" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            tenant = self.headers.get("X-Tenant-Ref", "")
+            items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
+            self.send_json(200, {"items": items}); return
         if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
@@ -532,6 +669,22 @@ class Handler(BaseHTTPRequestHandler):
                 return
             tenant = self.headers["X-Tenant-Ref"]
             namespace = runtime_namespace(tenant)
+            if path == "/v1/namespaces":
+                namespace = str(body["namespaceName"])
+                policy = validate_tenant_namespace(tenant, namespace, "EnsurePresent")
+                active = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("operation") == "EnsurePresent"]
+                if namespace not in {item["spec"]["namespaceName"] for item in active} and len(active) >= policy["maxNamespaces"]:
+                    raise PermissionError("tenant namespace quota exceeded")
+                name = tenant_namespace_name(tenant, namespace)
+                desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantNamespace", "metadata": {"name": name, "labels": {"tenancy.re8ch.com/tenant": tenant}}, "spec": {"tenantRef": tenant, "namespaceName": namespace, "operation": "EnsurePresent"}}
+                try:
+                    value = kube().create("tenantnamespaces", desired)
+                except urllib.error.HTTPError as exc:
+                    if exc.code != 409:
+                        raise
+                    value = kube().patch("tenantnamespaces", name, {"spec": {"operation": "EnsurePresent"}})
+                self.send_json(202, value)
+                return
             if path == "/v1/claims/plan":
                 grant = active_grant(tenant, body["claim"]["spec"]["capability"])
                 result = plan(body["claim"], authenticated_tenant=tenant, harbor_project=harbor_project(tenant))
@@ -615,6 +768,32 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             if mutation_locked:
                 CLAIM_MUTATION_LOCK.release()
+
+    def do_DELETE(self):
+        path = urllib.parse.urlparse(self.path).path
+        service_token = self.headers.get("X-Tenant-Service-Token", "")
+        if not path.startswith("/v1/namespaces/") or self.headers.get("X-Tenant-Caller") != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            self.send_json(404, {"error": "not_found"}); return
+        try:
+            tenant = self.headers["X-Tenant-Ref"]
+            namespace = urllib.parse.unquote(path.removeprefix("/v1/namespaces/"))
+            policy = validate_tenant_namespace(tenant, namespace, "EnsureAbsent")
+            if namespace == policy["defaultNamespace"]:
+                raise PermissionError("the tenant default namespace cannot be deleted")
+            name = tenant_namespace_name(tenant, namespace)
+            current = kube().get("tenantnamespaces", name)
+            if current.get("spec", {}).get("tenantRef") != tenant or current.get("spec", {}).get("namespaceName") != namespace:
+                raise PermissionError("namespace is outside the authenticated tenant")
+            value = kube().patch("tenantnamespaces", name, {"spec": {"operation": "EnsureAbsent"}})
+            self.send_json(202, value)
+        except KeyError:
+            self.send_json(400, {"error": "tenant context is required"})
+        except PermissionError as exc:
+            self.send_json(403, {"error": str(exc)})
+        except urllib.error.HTTPError as exc:
+            self.send_json(exc.code, {"error": "namespace_not_found" if exc.code == 404 else "cluster_api_error"})
+        except Exception as exc:
+            self.send_json(400, {"error": str(exc)})
 
     def log_message(self, *_): pass
 
