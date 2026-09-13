@@ -80,7 +80,7 @@ metadata:
   labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
 subjects:
 {{- range $binding := $tenant.identityBindings }}
-{{- if or (eq $binding.role "admin") (eq $binding.role "operator") }}
+{{- if and $binding.group (or (eq $binding.role "admin") (eq $binding.role "operator")) }}
   - {apiGroup: rbac.authorization.k8s.io, kind: Group, name: {{ $binding.group | quote }}}
 {{- end }}
 {{- end }}
