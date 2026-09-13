@@ -25,6 +25,16 @@ rules:
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [roles, rolebindings]
     verbs: [get, list, watch, create, update, patch, delete]
+  # Kubernetes prevents delegated RBAC creation unless the reconciler may
+  # escalate/bind the exact roles it owns. Keep both exceptions name-scoped.
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles]
+    resourceNames: [tenant-native-owner]
+    verbs: [escalate]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles]
+    resourceNames: [tenant-resource-provisioner]
+    verbs: [bind]
   - apiGroups: [networking.k8s.io]
     resources: [networkpolicies]
     verbs: [get, list, watch, create, update, patch, delete]
