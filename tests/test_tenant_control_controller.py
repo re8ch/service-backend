@@ -36,7 +36,7 @@ def tenant(name, lifecycle="Active"):
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
-    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer"}
+    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "runtimeNamespaceRef": "acme"}
 
 
 def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
@@ -46,7 +46,7 @@ def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
     ]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
     result = controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-viewers", "Artchais:tenant-operators"])
-    assert result == {"tenantRef": "artchais", "role": "operator"}
+    assert result == {"tenantRef": "artchais", "role": "operator", "runtimeNamespaceRef": "artchais"}
 
 
 def test_groups_spanning_tenants_are_denied(monkeypatch):

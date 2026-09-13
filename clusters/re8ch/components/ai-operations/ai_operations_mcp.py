@@ -664,6 +664,20 @@ TENANT_CLAIM_TOOLS = [
     {"name": "tenant_claim_cancel", "description": "Release compute children; independent volume data remains retained.", "inputSchema": schema({"name": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}}, ["name", "idempotency_key"])},
     {"name": "tenant_usage_summary_get", "description": "Return auditable, unpriced showback records joined by tenant claim UID.", "inputSchema": schema({"claim_name": {"type": "string"}})},
 ]
+TENANT_KUBERNETES_TOOLS = [
+    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from the authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}}, ["kind"])},
+    {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in the authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "apply": {"type": "boolean"}}, ["object"])},
+    {"name": "tenant_kubernetes_delete", "description": "Preview or delete one allowlisted object from the authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "apply": {"type": "boolean"}}, ["kind", "name"])},
+]
+
+TENANT_KUBERNETES_KINDS = {
+    ("v1", "ConfigMap"), ("v1", "PersistentVolumeClaim"), ("v1", "Service"),
+    ("v1", "ServiceAccount"), ("apps/v1", "Deployment"), ("apps/v1", "StatefulSet"),
+    ("apps/v1", "DaemonSet"), ("batch/v1", "Job"), ("batch/v1", "CronJob"),
+    ("autoscaling/v2", "HorizontalPodAutoscaler"), ("policy/v1", "PodDisruptionBudget"),
+    ("rbac.authorization.k8s.io/v1", "Role"), ("rbac.authorization.k8s.io/v1", "RoleBinding"),
+}
+TENANT_KUBERNETES_READ_KINDS = {kind.lower(): (api_version, kind) for api_version, kind in TENANT_KUBERNETES_KINDS}
 TENANT_BYOC_TOOLS = [
     {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},
     {"name": "byoc_registration_list", "description": "List cluster registrations visible to the current plane.", "inputSchema": schema({"tenant_ref": {"type": "string"}})},
@@ -701,7 +715,7 @@ def tools() -> list[dict[str, Any]]:
     if PROFILE == "tenant":
         base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
         byoc = [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
-        return base + HARBOR_TENANT_TOOLS + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + ARTCHAIS_CLUSTER_TOOLS
+        return base + HARBOR_TENANT_TOOLS + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + TENANT_KUBERNETES_TOOLS + ARTCHAIS_CLUSTER_TOOLS
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS}.get(PROFILE, [])
 
 
@@ -887,7 +901,10 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
             if tenant:
                 if PROFILE == "admin" and (tenant != "admin" or "re8ch:tenant-admins" not in groups):
                     raise PermissionError("admin runtime requires the protected admin tenant and group")
-                return {"tenantRef": tenant, "role": role}
+                namespace = str(resolved.get("runtimeNamespaceRef") or "")
+                if not namespace:
+                    raise RuntimeError("tenant runtime namespace is unavailable")
+                return {"tenantRef": tenant, "role": role, "runtimeNamespaceRef": namespace}
         except urllib.error.HTTPError as exc:
             raise PermissionError("identity is not bound to an active tenant") from exc
         except (urllib.error.URLError, ValueError) as exc:
@@ -897,6 +914,55 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
 
 def authenticated_tenant(identity: dict[str, Any]) -> str:
     return authenticated_tenant_context(identity)["tenantRef"]
+
+
+def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> dict[str, Any]:
+    context = authenticated_tenant_context(identity)
+    namespace = valid_kubernetes_name(context["runtimeNamespaceRef"])
+    role = context["role"]
+    if name == "tenant_kubernetes_get":
+        kind = str(args["kind"]).lower()
+        if kind not in TENANT_KUBERNETES_READ_KINDS:
+            raise PermissionError("kind is not in the non-secret tenant read allowlist")
+        argv = ["kubectl", "--namespace", namespace, "get", kind]
+        if args.get("name"):
+            argv.append(valid_kubernetes_name(str(args["name"])))
+        argv += ["-o", "json"]
+        return {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, **command_result(argv, None, 120)}
+    if role not in {"operator", "admin"}:
+        raise PermissionError("operator or admin role is required")
+    if name == "tenant_kubernetes_apply":
+        obj = args["object"]
+        if not isinstance(obj, dict) or (str(obj.get("apiVersion") or ""), str(obj.get("kind") or "")) not in TENANT_KUBERNETES_KINDS:
+            raise PermissionError("object kind is not in the tenant workload allowlist")
+        metadata = obj.get("metadata") or {}
+        if metadata.get("namespace") not in (None, "", namespace):
+            raise PermissionError("object namespace is outside the authenticated tenant")
+        if str(obj.get("kind")) == "RoleBinding":
+            for subject in obj.get("subjects") or []:
+                if subject.get("kind") == "ServiceAccount" and subject.get("namespace") not in (None, "", namespace):
+                    raise PermissionError("cross-namespace service account binding is denied")
+            if (obj.get("roleRef") or {}).get("kind") != "Role":
+                raise PermissionError("binding ClusterRoles through the tenant publication is denied")
+        obj = {**obj, "metadata": {**metadata, "namespace": namespace}}
+        preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "applied": False, "object": obj}
+        if not args.get("apply"):
+            return preview
+        result = command_result(["kubectl", "--namespace", namespace, "apply", "--server-side", "--field-manager=re8ch-tenant-api", "-f", "-", "-o", "json"], json.dumps(obj, separators=(",", ":")), 180)
+        if result["exit_code"] != 0:
+            raise PermissionError(result["stderr"] or "tenant Kubernetes apply was denied")
+        return {**preview, "applied": True, "result": result}
+    kind = str(args["kind"]).lower()
+    if kind not in TENANT_KUBERNETES_READ_KINDS:
+        raise PermissionError("kind is not in the tenant workload allowlist")
+    resource_name = valid_kubernetes_name(str(args["name"]))
+    preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "deleted": False, "kind": kind, "name": resource_name}
+    if not args.get("apply"):
+        return preview
+    result = command_result(["kubectl", "--namespace", namespace, "delete", kind, resource_name, "-o", "json"], None, 120)
+    if result["exit_code"] != 0:
+        raise PermissionError(result["stderr"] or "tenant Kubernetes delete was denied")
+    return {**preview, "deleted": True, "result": result}
 
 def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | None = None, method: str | None = None, caller: str = "tenant") -> dict[str, Any]:
     if not TENANT_CONTROL_URL:
@@ -1277,6 +1343,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         raise PermissionError("tool is not published in this profile")
     if PROFILE == "tenant" and name in {tool["name"] for tool in ARTCHAIS_CLUSTER_TOOLS}:
         return call_artc_cluster_tool(name, args, identity)
+    if PROFILE == "tenant" and name in {tool["name"] for tool in TENANT_KUBERNETES_TOOLS}:
+        return call_tenant_kubernetes_tool(name, args, identity)
     if PROFILE == "tenant" and name in {tool["name"] for tool in GRAFANA_TENANT_TOOLS}:
         return call_grafana_tenant_tool(name, args, identity)
     if PROFILE == "tenant" and name in {tool["name"] for tool in TENANT_CLAIM_TOOLS}:
