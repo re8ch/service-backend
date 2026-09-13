@@ -43,6 +43,9 @@ spec:
               - op: add
                 path: /spec/template/spec/containers/0/env/-
                 value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
+              - op: add
+                path: /spec/template/spec/containers/0/env/-
+                value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
   values:
     image:
       repository: ghcr.io/re8ch/public-edge-manager
