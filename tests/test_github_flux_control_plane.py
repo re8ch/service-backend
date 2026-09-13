@@ -11,14 +11,14 @@ def objects():
     return {item["kind"]: item for item in yaml.safe_load_all(path.read_text())}
 
 
-def test_github_flux_lane_is_safe_by_default():
+def test_github_flux_canary_is_enabled_before_promotion():
     docs = objects()
     source = docs["GitRepository"]
-    assert source["spec"]["suspend"] is True
+    assert source["spec"]["suspend"] is False
     assert source["spec"]["provider"] == "github"
     assert source["spec"]["url"] == "https://github.com/re8ch/service-backend.git"
     assert source["spec"]["verify"]["mode"] == "HEAD"
-    assert docs["Kustomization"]["spec"]["suspend"] is True
+    assert docs["Kustomization"]["spec"]["suspend"] is False
     assert docs["Receiver"]["spec"]["suspend"] is True
     assert docs["Provider"]["spec"]["suspend"] is True
     assert docs["Alert"]["spec"]["suspend"] is True

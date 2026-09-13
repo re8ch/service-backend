@@ -6,7 +6,7 @@ metadata:
   labels:
     collaboration.re8ch.com/control-plane: github
 spec:
-  suspend: true
+  suspend: false
   interval: 5m
   provider: github
   url: https://github.com/re8ch/service-backend.git
@@ -27,7 +27,7 @@ metadata:
   labels:
     collaboration.re8ch.com/control-plane: github
 spec:
-  suspend: true
+  suspend: false
   interval: 10m
   path: ./clusters/re8ch/flux-system/github-canary
   prune: true
