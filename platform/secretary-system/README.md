@@ -10,7 +10,7 @@ Secretary is the durable incident responsibility and evidence control plane. It 
 - Neo4j is a rebuildable evidence graph projection.
 - BlueBubbles and the restricted-node-6dc3f140f9 Voice Gateway are degraded notification adapters, never fact authorities by themselves.
 
-Release tag `v0.1.5` resolves to immutable digest `sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34`; GitOps deploys that digest. Its build carries provenance and SBOM attestations, is signed by the public key in `cosign.pub`, and passed the Harbor scan with no critical vulnerabilities. The managed database bundle supplies `secretary-db-credentials/DATABASE_URL_RW`. Create the `secretary-runtime` Secret out of band with keys `webhook-secret`, `bluebubbles-webhook-token`, `voice-webhook-token`, `identity-bindings-json`, `neo4j-uri`, `neo4j-user`, `neo4j-password`, and `litellm-api-key`; no secret values belong in Git. `identity-bindings-json` maps channel identities such as `imessage:+8613800138000` to stable recipient IDs.
+Release tag `v0.2.0` resolves to immutable digest `sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8`; GitOps deploys that digest. Its build carries provenance and SBOM attestations, is signed by the public key in `cosign.pub`, and passed the Harbor scan with no critical vulnerabilities. The managed database bundle supplies `secretary-db-credentials/DATABASE_URL_RW`. Create the `secretary-runtime` Secret out of band with keys `webhook-secret`, `query-token`, `bluebubbles-webhook-token`, `voice-webhook-token`, `identity-bindings-json`, `neo4j-uri`, `neo4j-user`, `neo4j-password`, and `litellm-api-key`; no secret values belong in Git. The out-of-band `secretary-email` Secret supplies the Stalwart application credentials, pinned TLS fingerprint, recipient address, and stable recipient ID. `identity-bindings-json` maps channel identities such as `imessage:+8613800138000` to stable recipient IDs.
 
 Configure BlueBubbles to send `new-message`, `updated-message`, and `message-send-error` webhooks to:
 
@@ -27,6 +27,12 @@ VOICE_EVENT_WEBHOOK=https://tools.re8ch.com/v1/channels/voice/<voice-webhook-tok
 ```
 
 FreeSWITCH event handling must call the authenticated Voice Gateway endpoint `POST /v1/voice/calls/{call_id}/dtmf` with digit `1`, `2`, or `3`; Secretary maps only digit `1` from a pre-bound verified destination to an ACK.
+
+Email is the first production canary channel. The API submits through the existing Stalwart account and records separate `responsibility.assigned`, `delivery.accepted`, and `delivery.provider_accepted` facts. SMTP acceptance is not treated as device delivery, reading, acknowledgement, or task completion. The message links to a confirmation page; only the explicit form submission with its incident-bound action code creates `responsibility.acknowledged`.
+
+Create an incident with `POST /v1/incidents` and include `notification_email` with `recipient_id`, `to`, `subject`, and `text`. Query the append-only stream with `GET /v1/event-stream?after_seq=<n>&limit=<n>` and the `X-Secretary-Query-Token` header. The stream returns a monotonic PostgreSQL sequence cursor plus the original fact event.
+
+`secretary-cluster-watcher` observes Kubernetes Node Ready conditions and configured public HTTPS probes. Each failure transition has a deterministic incident and idempotency key, so polling does not create duplicate mail or facts.
 
 Run the dependency-free policy tests with:
 
