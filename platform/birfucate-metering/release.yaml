@@ -34,7 +34,7 @@ spec:
       pullPolicy: IfNotPresent
     tenantPlatform:
       enabled: true
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:bafffbd479ae3f742a0d933e8375e4ac07b88c487ffadc9e8799d04a2adb6042
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:38a110386b1341b93dd0e6a868dcf8ec0de14d0b47ef3bc355e6d4adc4837a7d
       tenantReadinessPath: /readyz
       state:
         storageClassName: rbd-r640
