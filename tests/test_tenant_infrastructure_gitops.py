@@ -13,7 +13,7 @@ def documents(path):
 
 def tenant_chart_documents():
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
-    image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:7bb0fb9142e4e68a50eece9b0a84c06eec6e6618fb270d5cb239dd85fca7a66e"
+    image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:803fa4cdf5e4eac0c66c8a04fd1fd00f85c90860a6449dba453f9f40583adda6"
     rendered = subprocess.run(
         ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"],
         check=True, capture_output=True, text=True,
@@ -46,7 +46,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
         metadata_urls[env["RE8CH_TOOL_PROFILE"]] = env["PUBLIC_RESOURCE_METADATA_URL"]
-        assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:7bb0fb9142e4e68a50eece9b0a84c06eec6e6618fb270d5cb239dd85fca7a66e"
+        assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:803fa4cdf5e4eac0c66c8a04fd1fd00f85c90860a6449dba453f9f40583adda6"
         assert container["imagePullPolicy"] == "IfNotPresent"
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         assert env["DEVICE_REGISTRY_PATH"].startswith("/var/lib/tenant-platform/")
@@ -250,7 +250,7 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
     assert all(item["metadata"]["labels"]["ai.connectool.io/mcp-backend"] == "true" for item in deployments)
     assert all(item["spec"]["template"]["metadata"]["labels"]["ai.connectool.io/mcp-backend"] == "true" for item in deployments)
     assert all(item["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"} for item in deployments)
-    assert all("@sha256:7bb0fb9142e4e68a50eece9b0a84c06eec6e6618fb270d5cb239dd85fca7a66e" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
+    assert all("@sha256:803fa4cdf5e4eac0c66c8a04fd1fd00f85c90860a6449dba453f9f40583adda6" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
     rendered = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
     tenant_publication = next(
         item for item in documents(ROOT / "platform/connectool/release.yaml")[1]["spec"]["values"]["toolhive"]["publications"]
