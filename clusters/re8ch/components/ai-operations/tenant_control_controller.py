@@ -130,7 +130,8 @@ class Kubernetes:
 
     def claim_lease(self):
         path = f"/apis/coordination.k8s.io/v1/namespaces/{NAMESPACE}/leases/{LEASE_NAME}"
-        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        # LeaseSpec uses Kubernetes MicroTime, which requires fractional seconds.
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         try:
             lease = self.request("GET", path)
             holder = lease.get("spec", {}).get("holderIdentity")
@@ -442,7 +443,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         if path == "/livez": self.send_json(200, {"status": "ok"}); return
         if path == "/readyz":
-            try: kube().list("tenants"); self.send_json(200, {"status": "ready"})
+            try:
+                kube().list("tenants")
+                kube().get("leases", LEASE_NAME, NAMESPACE, "apis/coordination.k8s.io/v1")
+                self.send_json(200, {"status": "ready"})
             except Exception: self.send_json(503, {"status": "not-ready"})
             return
         service_token = self.headers.get("X-Tenant-Service-Token", "")

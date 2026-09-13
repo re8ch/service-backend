@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import re
 
 import pytest
 
@@ -57,6 +58,24 @@ def test_groups_spanning_tenants_are_denied(monkeypatch):
 
 def test_controller_exposes_only_admin_and_tenant_callers():
     assert controller.ALLOWED_CALLERS == {"admin", "tenant"}
+
+
+def test_lease_creation_uses_kubernetes_microtime(monkeypatch):
+    client = controller.Kubernetes.__new__(controller.Kubernetes)
+    requests = []
+
+    def request(method, path, body=None, content_type="application/json"):
+        requests.append((method, path, body))
+        if method == "GET":
+            raise controller.urllib.error.HTTPError(path, 404, "not found", {}, None)
+        return {}
+
+    monkeypatch.setattr(client, "request", request)
+    assert client.claim_lease() is True
+    body = requests[-1][2]
+    microtime = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$")
+    assert microtime.fullmatch(body["spec"]["acquireTime"])
+    assert microtime.fullmatch(body["spec"]["renewTime"])
 
 
 @pytest.mark.parametrize(
