@@ -34,7 +34,7 @@ spec:
       pullPolicy: IfNotPresent
     tenantPlatform:
       enabled: true
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:443d9e822230ab0daf59f6c6344caa69843c45d0bb9e78330f34f1d9e3305c6d
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:7bb0fb9142e4e68a50eece9b0a84c06eec6e6618fb270d5cb239dd85fca7a66e
       tenantReadinessPath: /livez
       tenants:
         - name: admin
