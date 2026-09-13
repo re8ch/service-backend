@@ -195,6 +195,18 @@ RESOURCE_PATHS = {
     "podmetrics": "/apis/metrics.k8s.io/v1beta1/namespaces/%s/pods",
 }
 
+# Explicit cluster-control reads for the platform observe profile. These aliases
+# avoid accepting an arbitrary namespace or API path from the caller while still
+# exposing the Flux reconciliation state needed for GitHub-first operations.
+PLATFORM_RESOURCE_PATHS = {
+    "fluxdeployments": "/apis/apps/v1/namespaces/flux-system/deployments",
+    "fluxgitrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/gitrepositories",
+    "fluxkustomizations": "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-system/kustomizations",
+    "fluxreceivers": "/apis/notification.toolkit.fluxcd.io/v1/namespaces/flux-system/receivers",
+    "fluxproviders": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/flux-system/providers",
+    "fluxalerts": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/flux-system/alerts",
+}
+
 RESOURCE_KINDS = {
     "pods": "Pod",
     "services": "Service",
@@ -215,6 +227,12 @@ RESOURCE_KINDS = {
     "podmetrics": "PodMetrics",
     "nodes": "Node",
     "nodemetrics": "NodeMetrics",
+    "fluxdeployments": "Deployment",
+    "fluxgitrepositories": "GitRepository",
+    "fluxkustomizations": "Kustomization",
+    "fluxreceivers": "Receiver",
+    "fluxproviders": "Provider",
+    "fluxalerts": "Alert",
 }
 
 GUIDE = """Ops MCP for re8ch/qwen
@@ -685,6 +703,10 @@ def resource_path(kind):
         return "/api/v1/nodes"
     if kind == "nodemetrics":
         return "/apis/metrics.k8s.io/v1beta1/nodes"
+    if kind in PLATFORM_RESOURCE_PATHS:
+        if OPS_TOOL_PROFILE not in ("observe", "admin"):
+            raise PermissionError("Flux control-plane reads require the platform observe profile")
+        return PLATFORM_RESOURCE_PATHS[kind]
     if kind not in RESOURCE_PATHS:
         raise ValueError("unsupported kind: %s" % kind)
     return RESOURCE_PATHS[kind] % current_namespace()
@@ -724,6 +746,26 @@ def simplify_resource(item, default_kind=None):
         out["message"] = item.get("message")
         out["type"] = item.get("type")
         out["lastTimestamp"] = item.get("lastTimestamp") or item.get("eventTime")
+    elif kind in ("GitRepository", "Kustomization", "Receiver", "Provider", "Alert"):
+        out["suspended"] = bool(spec.get("suspend", False))
+        out["conditions"] = [
+            {key: condition.get(key) for key in ("type", "status", "reason", "message")}
+            for condition in status.get("conditions", [])
+        ]
+        if kind == "GitRepository":
+            out["url"] = spec.get("url")
+            out["revision"] = status.get("artifact", {}).get("revision")
+        elif kind == "Kustomization":
+            out["lastAppliedRevision"] = status.get("lastAppliedRevision")
+            out["sourceRef"] = spec.get("sourceRef")
+        elif kind == "Receiver":
+            out["webhookPath"] = status.get("webhookPath")
+            out["receiverType"] = spec.get("type")
+        elif kind == "Provider":
+            out["providerType"] = spec.get("type")
+            out["address"] = spec.get("address")
+        elif kind == "Alert":
+            out["providerRef"] = spec.get("providerRef")
     else:
         out["status"] = status if status else None
     return out
@@ -1492,7 +1534,14 @@ def get_agent_runtime_status():
                 "unready": desired > ready,
             })
     workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
-    remotes = kube_request("GET", "/apis/kagent.dev/v1alpha2/namespaces/kagent/remotemcpservers").get("items", [])
+    group = kube_request("GET", "/apis/kagent.dev")
+    version = (group.get("preferredVersion") or {}).get("version")
+    if not version:
+        versions = [entry.get("version") for entry in group.get("versions", [])]
+        version = next((item for item in versions if item), None)
+    if not version or not re.fullmatch(r"v[0-9]+(?:alpha|beta)?[0-9]*", version):
+        raise RuntimeError("kagent.dev discovery returned no supported API version")
+    remotes = kube_request("GET", "/apis/kagent.dev/%s/namespaces/kagent/remotemcpservers" % version).get("items", [])
     remote_rows = []
     for item in remotes:
         conditions = item.get("status", {}).get("conditions", [])
