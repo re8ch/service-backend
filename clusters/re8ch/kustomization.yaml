@@ -28,6 +28,7 @@ resources:
   - components/cilium/r640-policy-update-budget.yaml
   - components/ai-operations/platform.yaml
   - components/tenancy/re8ch-managed-business-namespaces.yaml
+  - components/re8ch-business-namespaces
   - components/auth/dex/dex-ha-deployment.yaml
   - components/egress-fabric/identity-egress.yaml
   - components/network/podcidr-fabric
