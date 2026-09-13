@@ -22,9 +22,12 @@ browserAPI:
 tenantPlatform:
   enabled: false
   image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
-  # Use /livez only as an explicit degraded mode while the isolated Harbor
-  # supply-chain worker is unavailable. Supply-chain tool calls still fail closed.
   tenantReadinessPath: /readyz
+  state:
+    storageClassName: rbd-r640
+    size: 1Gi
+  supplyChain:
+    required: false
   tenants:
     - name: admin
       displayName: RE8CH Platform Administration
@@ -37,6 +40,7 @@ tenantPlatform:
         - {name: admin-github-k8s-admins, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: admin}
         - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
       grants: []
+      nativeAccess: false
     - name: artchais
       displayName: Artchais
       lifecycle: Active
@@ -51,6 +55,7 @@ tenantPlatform:
       grants:
         - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
         - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+      nativeAccess: true
 
 prometheus:
   baseURL: http://vmsingle-opencost.observability-system.svc.cluster.local:8428

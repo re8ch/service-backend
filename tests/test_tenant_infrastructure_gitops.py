@@ -41,7 +41,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         assert deployment["spec"]["strategy"] == {"type": "RollingUpdate", "rollingUpdate": {"maxUnavailable": 0, "maxSurge": 1}}
         pod = deployment["spec"]["template"]["spec"]
         assert pod["automountServiceAccountToken"] is False
-        assert not any("persistentVolumeClaim" in volume for volume in pod.get("volumes", []))
+        assert pod["volumes"] == [{"name": "runtime-state", "persistentVolumeClaim": {"claimName": "tenant-platform-state"}}]
         container = pod["containers"][0]
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
@@ -49,7 +49,8 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:7bb0fb9142e4e68a50eece9b0a84c06eec6e6618fb270d5cb239dd85fca7a66e"
         assert container["imagePullPolicy"] == "IfNotPresent"
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
-        assert env["DEVICE_REGISTRY_PATH"] == "/tmp/devices.db"
+        assert env["DEVICE_REGISTRY_PATH"].startswith("/var/lib/tenant-platform/")
+        assert env["TENANT_SERVICE_DB"] == "/var/lib/tenant-platform/tenant-services.db"
         assert container["startupProbe"]["httpGet"]["path"] == "/livez"
         assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
         assert container["livenessProbe"]["httpGet"]["path"] == "/livez"
@@ -115,9 +116,11 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     assert all(str(path.relative_to(ROOT / "clusters/re8ch")) in root for path in encrypted_paths)
 
 
-def test_production_tenant_readiness_degrades_explicitly_while_harbor_worker_is_absent():
+def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
-    assert release["spec"]["values"]["tenantPlatform"]["tenantReadinessPath"] == "/livez"
+    tenant = release["spec"]["values"]["tenantPlatform"]
+    assert tenant["tenantReadinessPath"] == "/readyz"
+    assert tenant["supplyChain"] == {"required": False}
 
 
 def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():
@@ -127,7 +130,9 @@ def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():
     chart_docs = tenant_chart_documents()
     assert not any(item["kind"] == "Namespace" for item in chart_docs)
     claims = {item["metadata"]["name"] for item in chart_docs if item["kind"] == "PersistentVolumeClaim"}
-    assert "tenant-infrastructure-state" not in claims
+    assert "tenant-platform-state" in claims
+    state = next(item for item in chart_docs if item["kind"] == "PersistentVolumeClaim" and item["metadata"]["name"] == "tenant-platform-state")
+    assert state["metadata"]["annotations"]["helm.sh/resource-policy"] == "keep"
 
 
 def test_tenancy_crds_are_structural_and_status_enabled():
@@ -306,3 +311,19 @@ def test_chart_binds_controller_in_every_declared_runtime_namespace():
             "kind": "ClusterRole",
             "name": "tenant-resource-provisioner",
         }
+
+
+def test_native_tenant_owner_is_namespaced_and_does_not_own_platform_boundaries():
+    docs = tenant_chart_documents()
+    roles = [item for item in docs if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-native-owner"]
+    assert {item["metadata"]["namespace"] for item in roles} == {"artchais"}
+    role = roles[0]
+    serialized = json.dumps(role["rules"])
+    for forbidden in ("resourcequotas", "limitranges", "networkpolicies", "nodes", "namespaces", "clusterroles", "persistentvolumes"):
+        assert forbidden not in serialized
+    assert {"deployments", "statefulsets", "daemonsets"} <= {
+        resource for rule in role["rules"] for resource in rule["resources"]
+    }
+    binding = next(item for item in docs if item["kind"] == "RoleBinding" and item["metadata"]["name"] == "tenant-native-owner")
+    groups = {item["name"] for item in binding["subjects"] if item["kind"] == "Group"}
+    assert groups == {"Artchais:tenant-admins", "Artchais:tenant-operators"}

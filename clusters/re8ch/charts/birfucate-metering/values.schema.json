@@ -9,11 +9,19 @@
       "properties": {"enabled": {"type": "boolean"}, "lookbackSeconds": {"type": "integer", "minimum": 60, "maximum": 3600}}
     },
     "tenantPlatform": {
-      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "tenantReadinessPath", "tenants"],
+      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "tenantReadinessPath", "state", "supplyChain", "tenants"],
       "properties": {
         "enabled": {"type": "boolean"},
         "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
         "tenantReadinessPath": {"enum": ["/readyz", "/livez"]},
+        "state": {
+          "type": "object", "additionalProperties": false, "required": ["storageClassName", "size"],
+          "properties": {"storageClassName": {"type": "string", "minLength": 1}, "size": {"type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi)$"}}
+        },
+        "supplyChain": {
+          "type": "object", "additionalProperties": false, "required": ["required"],
+          "properties": {"required": {"type": "boolean"}}
+        },
         "tenants": {"type": "array", "items": {"type": "object"}}
       }
     },

@@ -1,5 +1,16 @@
 {{- if .Values.tenantPlatform.enabled }}
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tenant-platform-state
+  namespace: tenant-infrastructure
+  annotations: {helm.sh/resource-policy: keep}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ .Values.tenantPlatform.state.storageClassName }}
+  resources: {requests: {storage: {{ .Values.tenantPlatform.state.size }}}}
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
 automountServiceAccountToken: false
@@ -23,7 +34,7 @@ spec:
       automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       imagePullSecrets: [{name: harbor-registry-pull}]
-      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
           image: {{ .Values.tenantPlatform.image | quote }}
@@ -36,16 +47,18 @@ spec:
             - {name: PUBLIC_MCP_URL, value: "https://admin.re8ch.com:8443/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
-            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
-            - {name: DEVICE_REGISTRY_PATH, value: /tmp/devices.db}
+            - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
+            - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/admin-devices.db}
+          envFrom:
+            - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
           ports: [{name: http, containerPort: 19449}]
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
           readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
-      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+          volumeMounts: [{name: runtime-state, mountPath: /var/lib/tenant-platform}]
+      volumes: [{name: runtime-state, persistentVolumeClaim: {claimName: tenant-platform-state}}]
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -61,7 +74,7 @@ spec:
       automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       imagePullSecrets: [{name: harbor-registry-pull}]
-      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
           image: {{ .Values.tenantPlatform.image | quote }}
@@ -80,16 +93,17 @@ spec:
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
-            - {name: TENANT_SERVICE_DB, value: /tmp/tenant-services.db}
-            - {name: DEVICE_REGISTRY_PATH, value: /tmp/devices.db}
+            - {name: HARBOR_SUPPLY_CHAIN_REQUIRED, value: {{ .Values.tenantPlatform.supplyChain.required | quote }}}
+            - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
+            - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
           ports: [{name: http, containerPort: 19448}]
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2}
           readinessProbe: {httpGet: {path: {{ .Values.tenantPlatform.tenantReadinessPath }}, port: http}, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 15}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: runtime-state, mountPath: /tmp}]
-      volumes: [{name: runtime-state, emptyDir: {sizeLimit: 64Mi}}]
+          volumeMounts: [{name: runtime-state, mountPath: /var/lib/tenant-platform}]
+      volumes: [{name: runtime-state, persistentVolumeClaim: {claimName: tenant-platform-state}}]
 ---
 apiVersion: v1
 kind: Service

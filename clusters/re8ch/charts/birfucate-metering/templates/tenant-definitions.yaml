@@ -36,6 +36,57 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: tenant-resource-provisioner
+{{- if $tenant.nativeAccess }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tenant-native-operator
+  namespace: {{ $tenant.runtimeNamespaceRef }}
+  labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenant-native-owner
+  namespace: {{ $tenant.runtimeNamespaceRef }}
+  labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/log, pods/exec, services, endpoints, persistentvolumeclaims, configmaps, secrets, serviceaccounts, events]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments, deployments/scale, statefulsets, statefulsets/scale, daemonsets, replicasets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tenant-native-owner
+  namespace: {{ $tenant.runtimeNamespaceRef }}
+  labels: {tenancy.re8ch.com/tenant: {{ $tenant.name }}}
+subjects:
+{{- range $binding := $tenant.identityBindings }}
+{{- if or (eq $binding.role "admin") (eq $binding.role "operator") }}
+  - {apiGroup: rbac.authorization.k8s.io, kind: Group, name: {{ $binding.group | quote }}}
+{{- end }}
+{{- end }}
+  - {kind: ServiceAccount, name: tenant-native-operator, namespace: {{ $tenant.runtimeNamespaceRef }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-native-owner}
+{{- end }}
 {{- range $binding := $tenant.identityBindings }}
 ---
 apiVersion: tenancy.re8ch.com/v1alpha1

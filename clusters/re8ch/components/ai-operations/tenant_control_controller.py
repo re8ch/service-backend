@@ -17,6 +17,7 @@ import socket
 import sys
 import threading
 import time
+import logging
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -48,6 +49,7 @@ IMAGE_POLICY_TOKEN = os.getenv("IMAGE_POLICY_TOKEN", os.getenv("HARBOR_SUPPLY_CH
 CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
+LOG = logging.getLogger("tenant-control-controller")
 
 
 class Kubernetes:
@@ -59,14 +61,23 @@ class Kubernetes:
         self.ssl = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 
     def request(self, method, path, body=None, content_type="application/json"):
-        req = urllib.request.Request(
-            self.base + path,
-            data=json.dumps(body).encode() if body is not None else None,
-            method=method,
-            headers={"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": content_type},
-        )
-        with urllib.request.urlopen(req, context=self.ssl, timeout=5) as response:
-            return json.load(response)
+        payload = json.dumps(body).encode() if body is not None else None
+        last_error = None
+        for attempt in range(3):
+            req = urllib.request.Request(
+                self.base + path, data=payload, method=method,
+                headers={"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": content_type},
+            )
+            try:
+                with urllib.request.urlopen(req, context=self.ssl, timeout=10) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError:
+                raise
+            except (TimeoutError, urllib.error.URLError, ConnectionError) as exc:
+                last_error = exc
+                if attempt < 2:
+                    time.sleep(0.25 * (2 ** attempt))
+        raise RuntimeError("Kubernetes API remained unavailable after retries") from last_error
 
     def list(self, plural, namespace=None, api=f"apis/{GROUP}/{VERSION}"):
         prefix = f"/{api}"
@@ -417,8 +428,8 @@ def reconcile_loop():
                         except Exception as exc:
                             status = {**claim.get("status", {}), "observedGeneration": claim["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
                             kube().patch_status("tenantresourceclaims", claim["metadata"]["name"], status, namespace)
-        except Exception:
-            pass
+        except Exception as exc:
+            LOG.exception("reconcile iteration failed: %s", exc)
         time.sleep(10)
 
 
@@ -435,7 +446,27 @@ class Handler(BaseHTTPRequestHandler):
             except Exception: self.send_json(503, {"status": "not-ready"})
             return
         service_token = self.headers.get("X-Tenant-Service-Token", "")
-        if not path.startswith("/v1/claims") or self.headers.get("X-Tenant-Caller", "") != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        caller = self.headers.get("X-Tenant-Caller", "")
+        if path == "/v1/tenants":
+            if caller != "admin" or self.headers.get("X-Tenant-Ref", "") != "admin" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+                self.send_json(403, {"error": "protected admin tenant is required"}); return
+            try:
+                items = []
+                for item in kube().list("tenants"):
+                    meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+                    ready = next((c for c in status.get("conditions", []) if c.get("type") == "Ready"), None)
+                    items.append({
+                        "tenantRef": meta.get("name"), "displayName": spec.get("displayName"),
+                        "visibility": spec.get("visibility", "Private"), "state": spec.get("lifecycle"),
+                        "runtimeNamespaceRef": spec.get("runtimeNamespaceRef"),
+                        "ready": bool(ready and ready.get("status") == "True"),
+                        "observedGeneration": status.get("observedGeneration"),
+                    })
+                self.send_json(200, {"items": items}); return
+            except Exception as exc:
+                LOG.exception("tenant inventory read failed: %s", exc)
+                self.send_json(503, {"error": "tenant inventory is unavailable"}); return
+        if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
             tenant = self.headers["X-Tenant-Ref"]

@@ -32,6 +32,8 @@ def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
     value = module.call_tool("tenant_capabilities_list", {}, {"subject": "agent"})
-    assert {item["name"] for item in value["capabilities"]} == {"compute.workload.v1", "storage.volume.v1"}
+    assert {item["name"] for item in value["capabilities"]} == {"kubernetes.namespace.v1", "compute.workload.v1", "storage.volume.v1"}
+    native = next(item for item in value["capabilities"] if item["name"] == "kubernetes.namespace.v1")
+    assert native == {"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": False, "imagePolicy": "tenant-selected", "interfaces": ["Kubernetes API", "Helm", "GitOps"]}
     assert value["requiresApproval"] is False
     assert value["pricingIncluded"] is False
