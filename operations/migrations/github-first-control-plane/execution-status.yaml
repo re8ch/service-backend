@@ -3,7 +3,7 @@ kind: MigrationExecution
 metadata:
   startedAt: "2026-09-12"
 spec:
-  currentWave: 1
+  currentWave: github-flux-authority
 status:
   checks:
     workspaceDoctor: passed
@@ -59,13 +59,21 @@ status:
       reviewerLicenseImpact: no-enterprise-seat
       protectedPullRequests: awaiting-r13h-acceptance-and-review
       commitSignature: github-verified
-  blockers:
-    - id: cluster-tool-entrypoint
-      action: Expose the RE8CH Cloud Platform MCP/ConnecTool server before the Flux source cutover
-    - id: independent-reviewer
-      action: r13h must accept the public-repository collaborator invitations and approve the protected pull requests
-  prohibitedUntilCutoverGate:
-    - change Flux GitRepository source
-    - disable GitLab CI or GitLab agent
-    - enable production OIDC mutation
-    - dual-write collaboration state
+    githubFluxAuthority:
+      repository: re8ch/service-backend
+      sourceAppId: 4927865
+      sourceInstallationId: 161304178
+      reactionAppId: 4927936
+      reactionInstallationId: 161304877
+      source: ready
+      receiver: ready
+      reactionStatus: verified
+      rootReconciliation: verified-twice
+      canary: removed-after-promotion
+      rulesetId: 23148035
+      ruleset: active
+      gitlabCompatibility: read-only-24h-rollback-window
+  blockers: []
+  deferred:
+    - id: production-oidc-broker
+      reason: No production broker issuer, audience, or exchange endpoint is declared; fail closed and do not issue production OIDC until that trust contract exists.

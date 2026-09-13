@@ -23,6 +23,22 @@ Contents read and Metadata read. A separate reaction installation/token may writ
 Commit statuses, Deployments, Issues, Checks, and pull-request comments; it does
 not receive Administration permission.
 
+## Repeatable App registration
+
+GitHub does not expose a normal REST endpoint that lets `gh api` silently create
+a GitHub App. Use the GitHub App Manifest flow with
+`github-app-manifests/flux-source.json` or `flux-reaction.json`: submit the
+manifest to the organization manifest page, approve the single browser prompt,
+then exchange the one-time `code` through the manifest conversion endpoint.
+Everything after that approval (installation selection, repository restriction,
+webhook creation, permission verification and ruleset verification) is automated
+with `gh api`.
+
+Never add a manifest conversion response to shell output: it contains the App
+private key and webhook secret. Write it to a mode-0600 temporary file, encrypt
+the required values directly into SOPS, and securely remove the temporary file.
+The committed manifests contain permissions only and are safe to reuse.
+
 ## Promotion gates
 
 1. Use the Cloud Platform MCP entrypoint to observe the existing GitLab source,

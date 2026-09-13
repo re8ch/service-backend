@@ -1,0 +1,18 @@
+{
+  "name": "re8ch-flux-reaction",
+  "url": "https://github.com/re8ch/service-backend",
+  "public": false,
+  "hook_attributes": {
+    "active": false
+  },
+  "default_permissions": {
+    "checks": "write",
+    "contents": "read",
+    "deployments": "write",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "statuses": "write"
+  },
+  "default_events": []
+}
