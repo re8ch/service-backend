@@ -149,10 +149,25 @@ class Kubernetes:
             renewed = calendar.timegm(time.strptime(renew[:19] + "Z", "%Y-%m-%dT%H:%M:%SZ"))
             if holder not in (None, IDENTITY) and time.time() - renewed < 20:
                 return False
-            body = {"metadata": {"resourceVersion": lease["metadata"]["resourceVersion"]}, "spec": {"holderIdentity": IDENTITY, "leaseDurationSeconds": 20, "renewTime": now}}
+            body = {
+                "apiVersion": "coordination.k8s.io/v1",
+                "kind": "Lease",
+                "metadata": {
+                    "name": LEASE_NAME,
+                    "namespace": NAMESPACE,
+                    "resourceVersion": lease["metadata"]["resourceVersion"],
+                },
+                "spec": {
+                    "holderIdentity": IDENTITY,
+                    "leaseDurationSeconds": 20,
+                    "acquireTime": lease.get("spec", {}).get("acquireTime", now),
+                    "renewTime": now,
+                },
+            }
             self.request("PUT", path, body)
         except urllib.error.HTTPError as exc:
             if exc.code != 404:
+                LOG.warning("leader lease request failed with HTTP %s", exc.code)
                 return False
             self.request("POST", f"/apis/coordination.k8s.io/v1/namespaces/{NAMESPACE}/leases", {"apiVersion": "coordination.k8s.io/v1", "kind": "Lease", "metadata": {"name": LEASE_NAME, "namespace": NAMESPACE}, "spec": {"holderIdentity": IDENTITY, "leaseDurationSeconds": 20, "acquireTime": now, "renewTime": now}})
         return True
