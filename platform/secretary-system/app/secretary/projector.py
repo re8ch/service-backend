@@ -10,7 +10,6 @@ from .model import FactEvent
 
 def main() -> None:
     ledger = PostgresLedger(os.environ["SECRETARY_DATABASE_URL"])
-    ledger.migrate()
     graph = Neo4jProjector(os.environ["NEO4J_URI"], os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"])
     while True:
         pending = ledger.pending("neo4j")
