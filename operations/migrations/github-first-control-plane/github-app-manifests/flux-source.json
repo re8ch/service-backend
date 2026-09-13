@@ -1,0 +1,13 @@
+{
+  "name": "re8ch-flux-source",
+  "url": "https://github.com/re8ch/service-backend",
+  "public": false,
+  "hook_attributes": {
+    "active": false
+  },
+  "default_permissions": {
+    "contents": "read",
+    "metadata": "read"
+  },
+  "default_events": []
+}
