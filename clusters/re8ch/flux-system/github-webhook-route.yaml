@@ -7,7 +7,7 @@ metadata:
     collaboration.re8ch.com/control-plane: github
   annotations:
     external-dns.alpha.kubernetes.io/hostname: hooks.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/dns-authority: public-edge-manager
@@ -36,7 +36,7 @@ metadata:
     networking.re8ch.com/dns-authority: public-edge
   annotations:
     external-dns.alpha.kubernetes.io/hostname: hooks.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/provider: public-edge-manager
@@ -52,3 +52,18 @@ spec:
               service:
                 name: webhook-receiver
                 port: {number: 80}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: github-flux-webhook-from-gateway
+  namespace: flux-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: notification-controller
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports:
+            - {port: "9292", protocol: TCP}
