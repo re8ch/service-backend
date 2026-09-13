@@ -36,5 +36,11 @@ class VoiceGatewayTest(unittest.TestCase):
     def test_rejects_tenant(self):
         with self.assertRaises(vg.ApiError): self.app.create_call(self.payload(tenant="other"))
 
+    def test_secretary_context_is_bound_to_call(self):
+        call = self.app.create_call(self.payload(incident_id="inc_test", recipient_id="human-1", destination_verified=True))
+        self.assertEqual(self.app.store.context(call.call_id), {
+            "incident_id": "inc_test", "recipient_id": "human-1", "destination_verified": True,
+        })
+
 
 if __name__ == "__main__": unittest.main()

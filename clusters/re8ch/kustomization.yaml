@@ -61,6 +61,7 @@ resources:
   - ../../platform/public-edge-manager
   - ../../platform/adapter
   - ../../platform/runtime-anatomy
+  - ../../platform/secretary-system
   - ../../platform/external-projects
 patchesStrategicMerge:
   - retire-legacy-mcp.patch.yaml
