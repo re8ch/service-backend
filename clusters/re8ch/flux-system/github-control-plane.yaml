@@ -67,7 +67,7 @@ spec:
   type: github
   address: https://github.com/re8ch/service-backend
   secretRef:
-    name: service-backend-github-status
+    name: service-backend-github-reaction-auth
   commitStatusExpr: "('flux/' + event.involvedObject.kind + '/' + event.involvedObject.name).lowerAscii()"
 ---
 apiVersion: notification.toolkit.fluxcd.io/v1beta3

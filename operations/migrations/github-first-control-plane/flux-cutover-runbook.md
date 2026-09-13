@@ -13,8 +13,10 @@ Secret values are created outside Git and committed only as SOPS ciphertext.
   `githubAppPrivateKey`.
 - `service-backend-github-webhook`: a random `token` shared only with the GitHub
   repository webhook.
-- `service-backend-github-status`: a short-lived `token` minted for the status
-  publisher. A long-lived user PAT is prohibited.
+- `service-backend-github-reaction-auth`: `githubAppID`, exactly one of
+  `githubAppInstallationOwner` or `githubAppInstallationID`, and
+  `githubAppPrivateKey` for the separately installed reaction App. A long-lived
+  user PAT is prohibited.
 
 The GitHub App is installed only on `re8ch/service-backend`. Source access needs
 Contents read and Metadata read. A separate reaction installation/token may write
@@ -36,7 +38,7 @@ not receive Administration permission.
    signed PR. Keep its name stable so every existing Kustomization continues to
    reference the same object.
 6. Observe two successful root reconciliations before removing the canary. Retain
-   GitLab auth and agent resources for the rollback window; remove them in a later
+   GitLab auth and agent resources for the 24-hour rollback window; remove them in a later
    PR, never in the source-switch PR.
 
 ## Rollback

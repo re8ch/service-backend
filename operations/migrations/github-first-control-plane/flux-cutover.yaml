@@ -16,7 +16,7 @@ spec:
   rollout:
     - id: provision
       gate: GitHub App installed only on re8ch/service-backend and SOPS secrets reconciled
-      resources: [service-backend-github-app-auth, service-backend-github-webhook, service-backend-github-status]
+      resources: [service-backend-github-app-auth, service-backend-github-webhook, service-backend-github-reaction-auth]
     - id: canary
       gate: GitRepository and isolated Kustomization Ready at the same signed main SHA
       enable: [GitRepository/service-backend-github, Kustomization/service-backend-github-canary]
