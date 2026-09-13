@@ -51,7 +51,9 @@ CREATE TABLE IF NOT EXISTS secretary_incident_projection (
 class PostgresLedger:
     def __init__(self, dsn: str):
         import psycopg
-        self.db = psycopg.connect(dsn, autocommit=False)
+        # Reads must not leave an implicit outer transaction open: write methods
+        # already establish their own atomic transaction blocks below.
+        self.db = psycopg.connect(dsn, autocommit=True)
 
     def migrate(self) -> None:
         with self.db.transaction(), self.db.cursor() as cur:
