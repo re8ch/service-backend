@@ -334,7 +334,7 @@ def test_native_tenant_owner_is_reconciled_and_does_not_own_platform_boundaries(
     assert all(resource in serialized for resource in ("deployments", "statefulsets", "daemonsets"))
     cluster_role = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-control-controller")
     delegated = {(tuple(rule.get("resources", [])), tuple(rule.get("resourceNames", []))): set(rule["verbs"]) for rule in cluster_role["rules"]}
-    assert delegated[(("roles",), ("tenant-native-owner",))] == {"escalate"}
+    assert delegated[(("roles",), ("tenant-native-owner",))] == {"escalate", "bind"}
     assert delegated[(("clusterroles",), ("tenant-resource-provisioner",))] == {"bind"}
     assert all(
         rule.get("resourceNames") == ["tenant-resource-provisioner"] and rule["verbs"] == ["bind"]
