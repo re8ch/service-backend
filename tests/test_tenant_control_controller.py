@@ -136,6 +136,31 @@ def test_lease_creation_uses_kubernetes_microtime(monkeypatch):
     assert microtime.fullmatch(body["spec"]["renewTime"])
 
 
+def test_lease_renewal_sends_a_complete_replace_document(monkeypatch):
+    client = controller.Kubernetes.__new__(controller.Kubernetes)
+    requests = []
+
+    def request(method, path, body=None, content_type="application/json"):
+        requests.append((method, path, body))
+        if method == "GET":
+            return {
+                "apiVersion": "coordination.k8s.io/v1",
+                "kind": "Lease",
+                "metadata": {"name": controller.LEASE_NAME, "namespace": controller.NAMESPACE, "resourceVersion": "42"},
+                "spec": {"holderIdentity": controller.IDENTITY, "acquireTime": "2026-09-13T00:00:00.000000Z", "renewTime": "2026-09-13T00:00:00.000000Z"},
+            }
+        return {}
+
+    monkeypatch.setattr(client, "request", request)
+    assert client.claim_lease() is True
+    method, _, body = requests[-1]
+    assert method == "PUT"
+    assert body["apiVersion"] == "coordination.k8s.io/v1"
+    assert body["kind"] == "Lease"
+    assert body["metadata"] == {"name": controller.LEASE_NAME, "namespace": controller.NAMESPACE, "resourceVersion": "42"}
+    assert body["spec"]["acquireTime"] == "2026-09-13T00:00:00.000000Z"
+
+
 @pytest.mark.parametrize(
     "bindings,tenants",
     [
