@@ -96,7 +96,11 @@ metadata: {name: {{ $binding.name }}}
 spec:
   tenantRef: {{ $tenant.name }}
   issuer: {{ $binding.issuer }}
+{{- if $binding.subjectHash }}
+  subjectHash: {{ $binding.subjectHash | quote }}
+{{- else }}
   group: {{ $binding.group | quote }}
+{{- end }}
   role: {{ $binding.role }}
   revoked: false
 {{- end }}
