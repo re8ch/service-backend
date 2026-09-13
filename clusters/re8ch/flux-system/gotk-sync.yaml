@@ -3,9 +3,11 @@ kind: GitRepository
 metadata: {name: service-backend, namespace: flux-system}
 spec:
   interval: 5m
-  url: https://gitlab.com/reachievellc/service-backend.git
+  timeout: 5m
+  provider: github
+  url: https://github.com/re8ch/service-backend.git
   ref: {branch: main}
-  secretRef: {name: service-backend-flux-auth}
+  secretRef: {name: service-backend-github-app-auth}
   verify:
     mode: HEAD
     secretRef: {name: service-backend-verification-keys}

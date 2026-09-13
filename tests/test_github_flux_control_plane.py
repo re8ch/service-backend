@@ -24,11 +24,12 @@ def test_github_flux_canary_is_enabled_before_promotion():
     assert docs["Alert"]["spec"]["suspend"] is False
 
 
-def test_existing_root_source_remains_rollback_capable_until_promotion():
+def test_root_source_is_github_authoritative_after_promotion():
     current = list(yaml.safe_load_all((ROOT / "clusters/re8ch/flux-system/gotk-sync.yaml").read_text()))[0]
     assert current["kind"] == "GitRepository"
-    assert current["spec"]["url"] == "https://gitlab.com/reachievellc/service-backend.git"
-    assert current["spec"]["secretRef"]["name"] == "service-backend-flux-auth"
+    assert current["spec"]["provider"] == "github"
+    assert current["spec"]["url"] == "https://github.com/re8ch/service-backend.git"
+    assert current["spec"]["secretRef"]["name"] == "service-backend-github-app-auth"
 
 
 def test_no_secret_values_are_committed_in_control_plane_manifest():
