@@ -83,6 +83,7 @@ spec:
           identityBindings:
             # The same GitHub identity is deliberately projected differently by
             # audience: ordinary re8ch operator here, protected admin above.
+            - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: operator}
             - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: operator}
             # Dex GitHub connector uses the immutable GitHub numeric user ID as
             # `sub`. This is an ordinary re8ch tenant binding, not admin access.
