@@ -44,6 +44,13 @@ spec:
     admissionWebhooks:
       enabled: true
     replicaCount: 2
+    # Required pod anti-affinity needs one old replica removed before its
+    # replacement can occupy the same two-node control-plane pool.
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 0
+        maxUnavailable: 1
     podDisruptionBudget:
       enabled: true
       minAvailable: 1
