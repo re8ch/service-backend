@@ -82,6 +82,35 @@ class ToolProfileTests(unittest.TestCase):
         safety = " ".join(workflow["safety"]).lower()
         self.assertNotIn("confirmation for every", safety)
 
+    def test_platform_observe_exposes_only_fixed_flux_read_paths(self):
+        module = load_profile("observe")
+        self.assertEqual(
+            module.resource_path("fluxgitrepositories"),
+            "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/gitrepositories",
+        )
+        self.assertEqual(
+            module.resource_path("fluxkustomizations"),
+            "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-system/kustomizations",
+        )
+        with self.assertRaises(ValueError):
+            module.resource_path("flux-system/secrets")
+
+    def test_agent_runtime_discovers_kagent_api_version(self):
+        module = load_profile("observe")
+        requested = []
+
+        def fake_request(_method, path, _body=None, _content_type="application/json"):
+            requested.append(path)
+            if path == "/apis/kagent.dev":
+                return {"preferredVersion": {"version": "v1alpha3"}}
+            return {"items": []}
+
+        module.kube_request = fake_request
+        module.probe_http = lambda *args: {"name": args[0], "ready": True}
+        result = module.get_agent_runtime_status()
+        self.assertIn("/apis/kagent.dev/v1alpha3/namespaces/kagent/remotemcpservers", requested)
+        self.assertEqual(result["remoteMCPServers"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

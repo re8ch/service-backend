@@ -33,6 +33,7 @@ resources:
   - components/public-exposure/legacy-special-http-routes.yaml
   - components/opencost/ui-nginx-config.yaml
   - components/toolhive/external-observe-publication.yaml
+  - components/toolhive/external-observe-rbac.yaml
   - components/toolhive/external-privileged-publication.yaml
   - components/toolhive/proxy-scheduling-policy.yaml
   - components/personal-access
@@ -57,3 +58,10 @@ resources:
   - ../../platform/external-projects
 patchesStrategicMerge:
   - retire-legacy-mcp.patch.yaml
+configMapGenerator:
+  - name: ops-mcp-server-code
+    namespace: toolhive-system
+    files:
+      - app.py=components/ops/ops-mcp-server-app.py
+generatorOptions:
+  disableNameSuffixHash: true

@@ -109,7 +109,7 @@ spec:
     limits: {cpu: 250m, memory: 256Mi}
   podTemplateSpec:
     metadata:
-      annotations: {re8ch.com/code-revision: scalable-vmcp-v2}
+      annotations: {re8ch.com/code-revision: github-flux-observe-v1}
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext:
