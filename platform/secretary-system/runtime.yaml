@@ -63,7 +63,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           command: [python, -c]
           args: ["import os; from secretary.ledger import PostgresLedger; PostgresLedger(os.environ['SECRETARY_DATABASE_URL']).migrate()"]
           env:
@@ -71,7 +71,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           ports: [{name: service, containerPort: 9080}]
           env:
             - {name: LITELLM_URL, value: "http://litellm.llm-gateway.svc.cluster.local:4000"}
@@ -90,7 +90,7 @@ spec:
 ---
 apiVersion: batch/v1
 kind: Job
-metadata: {name: secretary-register-v0-1-5, namespace: secretary-system}
+metadata: {name: secretary-register-v0-2-0, namespace: secretary-system}
 spec:
   backoffLimit: 8
   template:
@@ -99,7 +99,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: register
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           command: [python, -c]
           args:
             - |
@@ -128,7 +128,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           command: [python, -c]
           args: ["import os; from secretary.ledger import PostgresLedger; PostgresLedger(os.environ['SECRETARY_DATABASE_URL']).migrate()"]
           env:
@@ -136,15 +136,24 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
       containers:
         - name: api
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           command: [uvicorn, secretary.api:app, --host, 0.0.0.0, --port, "8081"]
           env:
             - {name: RESTATE_INGRESS_URL, value: "http://restate:8080"}
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_RW}}}
             - {name: SECRETARY_WEBHOOK_SECRET, valueFrom: {secretKeyRef: {name: secretary-runtime, key: webhook-secret}}}
+            - {name: SECRETARY_QUERY_TOKEN, valueFrom: {secretKeyRef: {name: secretary-runtime, key: query-token}}}
             - {name: BLUEBUBBLES_WEBHOOK_TOKEN, valueFrom: {secretKeyRef: {name: secretary-runtime, key: bluebubbles-webhook-token}}}
             - {name: VOICE_WEBHOOK_TOKEN, valueFrom: {secretKeyRef: {name: secretary-runtime, key: voice-webhook-token}}}
             - {name: SECRETARY_IDENTITY_BINDINGS, valueFrom: {secretKeyRef: {name: secretary-runtime, key: identity-bindings-json}}}
+            - {name: SECRETARY_PUBLIC_BASE_URL, value: "https://tools.re8ch.com"}
+            - {name: SMTP_HOST, value: "stalwart.mail-system.svc.cluster.local"}
+            - {name: SMTP_PORT, value: "587"}
+            - {name: SMTP_STARTTLS, value: "true"}
+            - {name: SMTP_FROM, valueFrom: {secretKeyRef: {name: secretary-email, key: email}}}
+            - {name: SMTP_USERNAME, valueFrom: {secretKeyRef: {name: secretary-email, key: username}}}
+            - {name: SMTP_PASSWORD, valueFrom: {secretKeyRef: {name: secretary-email, key: password}}}
+            - {name: SMTP_TLS_FINGERPRINT_SHA256, valueFrom: {secretKeyRef: {name: secretary-email, key: tls-fingerprint-sha256}}}
           ports: [{name: http, containerPort: 8081}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 5}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
@@ -170,7 +179,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           command: [python, -c]
           args: ["import os; from secretary.ledger import PostgresLedger; PostgresLedger(os.environ['SECRETARY_DATABASE_URL']).migrate()"]
           env:
@@ -178,7 +187,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
       containers:
         - name: projector
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:314f75733c5432b10253fccbdc3170b5556db8b5f34963d00b796b7982336d34
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
           command: [python, -m, secretary.projector]
           env:
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_RW}}}
@@ -193,6 +202,50 @@ kind: ServiceAccount
 metadata: {name: secretary, namespace: secretary-system}
 automountServiceAccountToken: false
 imagePullSecrets: [{name: harbor-secretary-system-admin}]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: secretary-cluster-observer, namespace: secretary-system}
+imagePullSecrets: [{name: harbor-secretary-system-admin}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: secretary-cluster-observer}
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: secretary-cluster-observer}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: secretary-cluster-observer}
+subjects: [{kind: ServiceAccount, name: secretary-cluster-observer, namespace: secretary-system}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: secretary-cluster-watcher, namespace: secretary-system}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: secretary-cluster-watcher}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: secretary-cluster-watcher}}
+    spec:
+      serviceAccountName: secretary-cluster-observer
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: watcher
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:3e5e8e438aad540af105699565ebc00e38aa23445d82084a68fb1f478d1e33d8
+          command: [python, -m, secretary.cluster_watcher]
+          env:
+            - {name: SECRETARY_API_URL, value: "http://secretary-api/v1/incidents"}
+            - {name: SECRETARY_WEBHOOK_SECRET, valueFrom: {secretKeyRef: {name: secretary-runtime, key: webhook-secret}}}
+            - {name: SECRETARY_NOTIFY_TO, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient}}}
+            - {name: SECRETARY_NOTIFY_RECIPIENT_ID, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient-id}}}
+            - name: SECRETARY_PUBLIC_PROBES_JSON
+              value: '[{"name":"harbor","url":"https://registry.re8ch.com/api/v2.0/health","severity":"high","failure_threshold":3},{"name":"stalwart-jmap","url":"https://collab.tools.re8ch.com/.well-known/jmap","severity":"high","failure_threshold":3}]'
+          resources: {requests: {cpu: 20m, memory: 64Mi}, limits: {cpu: 200m, memory: 192Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -233,4 +286,6 @@ spec:
   hostnames: [tools.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /v1/channels/}}]
+      backendRefs: [{name: secretary-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /v1/event-stream}}]
       backendRefs: [{name: secretary-api, port: 80}]

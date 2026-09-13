@@ -86,6 +86,15 @@ class PostgresLedger:
             cur.execute("SELECT event_json FROM secretary_incident_event WHERE incident_id=%s ORDER BY seq", (incident_id,))
             return [FactEvent.from_dict(row[0]) for row in cur.fetchall()]
 
+    def stream(self, after_seq: int = 0, incident_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+        limit = max(1, min(limit, 1000))
+        with self.db.cursor() as cur:
+            if incident_id:
+                cur.execute("SELECT seq,event_json FROM secretary_incident_event WHERE seq>%s AND incident_id=%s ORDER BY seq LIMIT %s", (after_seq, incident_id, limit))
+            else:
+                cur.execute("SELECT seq,event_json FROM secretary_incident_event WHERE seq>%s ORDER BY seq LIMIT %s", (after_seq, limit))
+            return [{"seq": row[0], "event": row[1]} for row in cur.fetchall()]
+
     def pending(self, destination: str, limit: int = 100) -> list[dict[str, Any]]:
         with self.db.cursor() as cur:
             cur.execute("""SELECT o.seq,e.event_json FROM secretary_outbox o

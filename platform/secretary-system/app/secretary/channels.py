@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
 import os
+import smtplib
+import ssl
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from email.message import EmailMessage
 from typing import Any
 
 from .model import ChannelCapabilities
@@ -16,6 +21,7 @@ CHANNEL_CAPABILITIES = {
     "human_delegate": ChannelCapabilities(True, False, False, False, True, True, True, "human-delegate"),
     "discord": ChannelCapabilities(True, True, True, False, True, True, True, "discord"),
     "wechat": ChannelCapabilities(True, True, False, False, True, True, True, "wechat-business"),
+    "email": ChannelCapabilities(True, True, False, False, True, True, True, "stalwart"),
 }
 
 
@@ -57,3 +63,43 @@ class VoiceGatewayAdapter:
         )
         with urllib.request.urlopen(request, timeout=10) as response:
             return json.loads(response.read())
+
+
+@dataclass
+class EmailAdapter:
+    host: str
+    port: int
+    username: str
+    password: str
+    sender: str
+    starttls: bool = True
+    tls_fingerprint_sha256: str = ""
+
+    def send(self, *, recipient: str, subject: str, text: str, message_id: str) -> dict[str, Any]:
+        message = EmailMessage()
+        message["From"] = self.sender
+        message["To"] = recipient
+        message["Subject"] = subject
+        message["Message-ID"] = message_id
+        message["Auto-Submitted"] = "auto-generated"
+        message.set_content(text)
+        with smtplib.SMTP(self.host, self.port, timeout=15) as smtp:
+            smtp.ehlo()
+            if self.starttls:
+                context = ssl.create_default_context()
+                if self.tls_fingerprint_sha256:
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
+                smtp.starttls(context=context)
+                if self.tls_fingerprint_sha256:
+                    certificate = smtp.sock.getpeercert(binary_form=True)
+                    actual = hashlib.sha256(certificate).hexdigest()
+                    if not hmac.compare_digest(actual, self.tls_fingerprint_sha256.lower()):
+                        raise ssl.SSLError("SMTP TLS certificate fingerprint mismatch")
+                smtp.ehlo()
+            if self.username:
+                smtp.login(self.username, self.password)
+            refused = smtp.send_message(message)
+        if refused:
+            raise RuntimeError("SMTP refused one or more recipients")
+        return {"provider": "stalwart", "message_id": message_id, "accepted": True}
