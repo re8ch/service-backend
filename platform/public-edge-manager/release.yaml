@@ -58,6 +58,7 @@ spec:
       collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
       stalwart-admin.tools.re8ch.com.: {service: stalwart-admin, class: web, probePath: /admin, acceptedStatuses: [200, 302]}
       supabase.re8ch.com.: {service: supabase, class: web, probePath: /, acceptedStatuses: [200, 401]}
+      hooks.re8ch.com.: {service: hooks, class: web, probePath: /hook/, acceptedStatuses: [400, 404]}
     publicEdges:
       - name: guangzhou-zan
         area: CN
@@ -131,6 +132,7 @@ spec:
         collab: {namespace: mail-system, name: stalwart-collaboration-public}
         stalwart-admin: {namespace: mail-system, name: stalwart-admin-public}
         supabase: {namespace: supabase-pg-re8ch, name: supabase-pg-re8ch-studio}
+        hooks: {namespace: flux-system, name: github-flux-webhook-dns-authority}
     rbac: {mutateIngresses: true}
     service: {type: ClusterIP, annotations: {}, externalTrafficPolicy: ""}
     resources:

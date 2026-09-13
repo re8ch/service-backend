@@ -23,3 +23,32 @@ spec:
       backendRefs:
         - name: webhook-receiver
           port: 80
+---
+# DNS publication remains a separate, explicit authority object. The
+# public-edge-manager selects and audits the edge; this Ingress is never used
+# for runtime HTTP routing.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: github-flux-webhook-dns-authority
+  namespace: flux-system
+  labels:
+    networking.re8ch.com/dns-authority: public-edge
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: hooks.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: hooks.re8ch.com
+      http:
+        paths:
+          - path: /hook/
+            pathType: Prefix
+            backend:
+              service:
+                name: webhook-receiver
+                port: {number: 80}

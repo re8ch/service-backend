@@ -19,7 +19,7 @@ def test_github_flux_canary_is_enabled_before_promotion():
     assert source["spec"]["url"] == "https://github.com/re8ch/service-backend.git"
     assert source["spec"]["verify"]["mode"] == "HEAD"
     assert docs["Kustomization"]["spec"]["suspend"] is False
-    assert docs["Receiver"]["spec"]["suspend"] is True
+    assert docs["Receiver"]["spec"]["suspend"] is False
     assert docs["Provider"]["spec"]["suspend"] is True
     assert docs["Alert"]["spec"]["suspend"] is True
 
