@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: service-backend-github-proxy
+    namespace: flux-system
+stringData:
+    address: ENC[AES256_GCM,data:6sH4K4j2N3we41ttnDTP1/rzeerQ+BEN97i8AHTAO6MSEzCWjV0tqMOqPrC4pQxhVVES,iv:6lniVb1yTWS/CyZgRJbB4OLEfE0UESyG9raYycQ7uyI=,tag:z7sqmu9/dWHgOgLUv7AnAw==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBRWmwvUTlSdk13eFUrMGtT
+            cHJqT3VCa3Q2YnFzclMyS052MnVzSlNoSkZVCjh5MGhyVFdyeUJySFZrQmJZY0xV
+            N1VwS0J2Wm5CelF0YjRhOGlpSEpmeFkKLS0tIDN2N3ByQjluN3hPNUFEZ0lLcDRk
+            bnNaN3FUelpqZVMxaTlhTTlhUUZJSjQKugcgurbgXgIkmLW/ATyXtYiqm1dfIn2t
+            JOiae3joYWQ2zX1wTeGZMPhitpn56OWtJG7Sbmg0MITgbf3xMSZmkA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-09-13T08:05:11Z"
+    mac: ENC[AES256_GCM,data:FCaKfx4vaEOKfo3XzWNxy59JnteuEvxiNt17ynDT/ROYifyUM5RPOuMn4dYkU5FPqqCL0YMO6KO800Ot9MW0q3IdiThBeDoNQ3+OITBbxP38N0f47OAwbeJZWtUBtmJj6cEAV+YhHZIKHcxJVIGMzB4/mJeb/7FpdRbE2HTMFXA=,iv:uDrDV5bhEjEPCbxv8FZmp08J82OT7X+itBL27xnVRBA=,tag:q/hOLoFiMQJn8kP9oAQWIw==,type:str]
+    version: 3.13.3
