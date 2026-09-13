@@ -57,6 +57,17 @@ def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
     assert "ai.model-gateway.v1" not in grants
     assert "sandbox.runtime.v1" not in grants
     assert not any("byoc" in value for value in grants)
+    admin_audience_projection = next(
+        item
+        for item in re8ch["identityBindings"]
+        if item["name"] == "re8ch-tenant-admins-as-operators"
+    )
+    assert admin_audience_projection == {
+        "name": "re8ch-tenant-admins-as-operators",
+        "issuer": "https://dex.re8ch.com",
+        "group": "re8ch:tenant-admins",
+        "role": "operator",
+    }
     audience_binding = next(
         item
         for item in re8ch["identityBindings"]
@@ -82,7 +93,7 @@ def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
     application_bindings = [
         item
         for item in re8ch["identityBindings"]
-        if item not in (woomou, audience_binding)
+        if item not in (woomou, audience_binding, admin_audience_projection)
     ]
     assert all(
         item["issuer"] == "https://api.re8ch.com/auth"
