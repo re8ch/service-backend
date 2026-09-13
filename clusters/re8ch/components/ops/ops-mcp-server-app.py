@@ -1534,14 +1534,24 @@ def get_agent_runtime_status():
                 "unready": desired > ready,
             })
     workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
-    group = kube_request("GET", "/apis/kagent.dev")
-    version = (group.get("preferredVersion") or {}).get("version")
-    if not version:
-        versions = [entry.get("version") for entry in group.get("versions", [])]
-        version = next((item for item in versions if item), None)
-    if not version or not re.fullmatch(r"v[0-9]+(?:alpha|beta)?[0-9]*", version):
-        raise RuntimeError("kagent.dev discovery returned no supported API version")
-    remotes = kube_request("GET", "/apis/kagent.dev/%s/namespaces/kagent/remotemcpservers" % version).get("items", [])
+    version = None
+    kagent_api = {"available": False, "version": None}
+    try:
+        group = kube_request("GET", "/apis/kagent.dev")
+        version = (group.get("preferredVersion") or {}).get("version")
+        if not version:
+            versions = [entry.get("version") for entry in group.get("versions", [])]
+            version = next((item for item in versions if item), None)
+        if version and re.fullmatch(r"v[0-9]+(?:alpha|beta)?[0-9]*", version):
+            kagent_api = {"available": True, "version": version}
+        else:
+            version = None
+    except RuntimeError as exc:
+        if "404" not in str(exc):
+            raise
+    remotes = []
+    if version:
+        remotes = kube_request("GET", "/apis/kagent.dev/%s/namespaces/kagent/remotemcpservers" % version).get("items", [])
     remote_rows = []
     for item in remotes:
         conditions = item.get("status", {}).get("conditions", [])
@@ -1578,6 +1588,7 @@ def get_agent_runtime_status():
             "acceptedRemoteMCPServers": sum(item["accepted"] for item in remote_rows),
         },
         "workloads": workloads,
+        "kagentAPI": kagent_api,
         "remoteMCPServers": remote_rows,
         "sandboxResources": sandbox_kinds,
         "protectedNativeAPIs": ["Agent prompts/memory/conversations", "model/provider credentials", "sandbox files/processes/commands/output", "Codex session contents and credentials"],
