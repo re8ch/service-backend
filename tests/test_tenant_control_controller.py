@@ -49,6 +49,24 @@ def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
     assert result == {"tenantRef": "artchais", "role": "operator", "runtimeNamespaceRef": "artchais"}
 
 
+def test_tenant_publication_excludes_admin_binding(monkeypatch):
+    bindings = [
+        group_binding("admin", "re8ch:tenant-admins", "admin"),
+        group_binding("artchais", "Artchais:tenant-operators", "operator"),
+    ]
+    monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("admin"), tenant("artchais")]))
+    groups = ["re8ch:tenant-admins", "Artchais:tenant-operators"]
+    assert controller.resolve("https://dex.re8ch.com", "", groups, caller="tenant")["tenantRef"] == "artchais"
+    assert controller.resolve("https://dex.re8ch.com", "", groups, caller="admin")["tenantRef"] == "admin"
+
+
+def test_tenant_publication_rejects_admin_only_identity(monkeypatch):
+    monkeypatch.setattr(controller, "KUBE", FakeKube([group_binding("admin", "re8ch:tenant-admins", "admin")], [tenant("admin")]))
+    import pytest
+    with pytest.raises(PermissionError, match="exactly one"):
+        controller.resolve("https://dex.re8ch.com", "", ["re8ch:tenant-admins"], caller="tenant")
+
+
 def test_groups_spanning_tenants_are_denied(monkeypatch):
     bindings = [group_binding("artchais", "Artchais:tenant-admins", "admin"), group_binding("other", "Other:tenant-admins", "admin")]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais"), tenant("other")]))
