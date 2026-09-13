@@ -39,7 +39,7 @@ spec:
   namespaceName: {{ $namespace }}
   operation: EnsurePresent
 {{- end }}
-{{- if $tenant.runtimeNamespaceRef }}
+{{- if and $tenant.runtimeNamespaceRef (not (has $tenant.runtimeNamespaceRef $tenant.namespacePolicy.bootstrapNamespaces)) }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

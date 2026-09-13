@@ -296,6 +296,11 @@ def test_chart_binds_controller_in_every_declared_runtime_namespace():
         item["metadata"]["name"]: item["spec"]["runtimeNamespaceRef"]
         for item in docs
         if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.") and item["spec"].get("runtimeNamespaceRef")
+        and item["spec"]["runtimeNamespaceRef"] not in next(
+            tenant["namespacePolicy"]["bootstrapNamespaces"]
+            for tenant in documents(ROOT / "clusters/re8ch/charts/birfucate-metering/values.yaml")[0]["tenantPlatform"]["tenants"]
+            if tenant["name"] == item["metadata"]["name"]
+        )
     }
     bindings = {
         item["metadata"]["namespace"]: item
