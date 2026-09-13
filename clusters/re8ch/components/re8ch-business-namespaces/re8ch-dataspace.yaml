@@ -1,0 +1,197 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dataspace-gateway
+  namespace: re8ch-dataspace
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: dataspace-gateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: dataspace-gateway
+    spec:
+      containers:
+      - env:
+        - name: DATASPACE_STORAGE_ROOT
+          value: /data
+        - name: DATASPACE_OIDC_ISSUER
+          value: https://dex.re8ch.com
+        - name: DATASPACE_OIDC_AUDIENCE
+          value: storage-collaborator
+        - name: DATASPACE_DEVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: device-token
+              name: dataspace-gateway
+        - name: DATASPACE_POSTGREST_RO_URL
+          value: https://db-ro.re8ch.com/dataspace
+        - name: DATASPACE_POSTGREST_RW_URL
+          value: https://db-rw.re8ch.com/dataspace
+        image: ghcr.io/woomou/storage-collaborator-gateway:0.2.0-oidc
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: gateway
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: '1'
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: files
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        storage.re8ch.com/ceph-client: 'true'
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: files
+        persistentVolumeClaim:
+          claimName: dataspace-files
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dataspace-gateway
+  namespace: re8ch-dataspace
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: dataspace-gateway
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: dataspace-files
+  namespace: re8ch-dataspace
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: cephfs-r640
+  volumeMode: Filesystem
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-public-gateway
+  namespace: re8ch-dataspace
+spec:
+  ingress:
+  - ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: dataspace-gateway
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: 'false'
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: '60'
+  labels:
+    kustomize.toolkit.fluxcd.io/name: service-backend
+    kustomize.toolkit.fluxcd.io/namespace: flux-system
+    public.re8ch.com/external-dns: enabled
+  name: storage-collaborator
+  namespace: re8ch-dataspace
+spec:
+  ingressClassName: external-dns-only
+  rules:
+  - host: storage.re8ch.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: dataspace-gateway
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: storage-collaborator-public
+  namespace: re8ch-dataspace
+spec:
+  hostnames:
+  - storage.re8ch.com
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: storage-https
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: dataspace-gateway
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /

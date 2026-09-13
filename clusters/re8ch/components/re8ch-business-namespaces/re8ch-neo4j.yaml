@@ -1,0 +1,770 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/name: ledger-casegraph
+    app.kubernetes.io/part-of: ledger
+  name: ledger-casegraph
+  namespace: re8ch-neo4j
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ledger-casegraph
+      app.kubernetes.io/part-of: ledger
+  serviceName: ledger-casegraph
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: '2026-07-19T01:42:48+08:00'
+      labels:
+        app.kubernetes.io/name: ledger-casegraph
+        app.kubernetes.io/part-of: ledger
+    spec:
+      containers:
+      - env:
+        - name: NEO4J_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: NEO4J_AUTH
+              name: ledger-casegraph-auth
+        - name: NEO4J_PLUGINS
+          value: '["apoc"]'
+        - name: NEO4J_server_memory_heap_initial__size
+          value: 2G
+        - name: NEO4J_server_memory_heap_max__size
+          value: 4G
+        - name: NEO4J_server_memory_pagecache_size
+          value: 4G
+        - name: NEO4J_server_default__listen__address
+          value: 0.0.0.0
+        - name: NEO4J_dbms_security_procedures_allowlist
+          value: apoc.*
+        - name: NEO4J_dbms_security_procedures_unrestricted
+          value: apoc.*
+        - name: NEO4J_apoc_export_file_enabled
+          value: 'true'
+        image: neo4j:2026.06.0-community
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          successThreshold: 1
+          tcpSocket:
+            port: bolt
+          timeoutSeconds: 1
+        name: neo4j
+        ports:
+        - containerPort: 7474
+          name: http
+          protocol: TCP
+        - containerPort: 7687
+          name: bolt
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: '3'
+            memory: 12Gi
+          requests:
+            cpu: 500m
+            memory: 6Gi
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /var/lib/neo4j/import/backups
+          name: backups
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 7474
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - name: backups
+        persistentVolumeClaim:
+          claimName: ledger-casegraph-backups
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Gi
+      storageClassName: local-path
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/name: ledger-economicsgraph
+    app.kubernetes.io/part-of: ledger
+  name: ledger-economicsgraph
+  namespace: re8ch-neo4j
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ledger-economicsgraph
+      app.kubernetes.io/part-of: ledger
+  serviceName: ledger-economicsgraph
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ledger-economicsgraph
+        app.kubernetes.io/part-of: ledger
+    spec:
+      containers:
+      - env:
+        - name: NEO4J_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: NEO4J_AUTH
+              name: ledger-economicsgraph-auth
+        - name: NEO4J_PLUGINS
+          value: '["apoc"]'
+        - name: NEO4J_server_memory_heap_initial__size
+          value: 1G
+        - name: NEO4J_server_memory_heap_max__size
+          value: 2G
+        - name: NEO4J_server_memory_pagecache_size
+          value: 2G
+        - name: NEO4J_server_default__listen__address
+          value: 0.0.0.0
+        - name: NEO4J_dbms_security_procedures_allowlist
+          value: apoc.*
+        - name: NEO4J_apoc_export_file_enabled
+          value: 'true'
+        image: neo4j:2026.06.0-community
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          successThreshold: 1
+          tcpSocket:
+            port: bolt
+          timeoutSeconds: 1
+        name: neo4j
+        ports:
+        - containerPort: 7474
+          name: http
+          protocol: TCP
+        - containerPort: 7687
+          name: bolt
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: '2'
+            memory: 6Gi
+          requests:
+            cpu: 250m
+            memory: 3Gi
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /var/lib/neo4j/import/backups
+          name: backups
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 7474
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - name: backups
+        persistentVolumeClaim:
+          claimName: ledger-economicsgraph-backups
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 50Gi
+      storageClassName: local-path
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/part-of: re8ch-knowledge-graph
+  name: neo4j
+  namespace: re8ch-neo4j
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: neo4j
+  serviceName: neo4j
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: neo4j
+        app.kubernetes.io/part-of: re8ch-knowledge-graph
+    spec:
+      containers:
+      - env:
+        - name: NEO4J_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: NEO4J_AUTH
+              name: neo4j-auth
+        - name: NEO4J_PLUGINS
+          value: '["apoc","graph-data-science","genai"]'
+        - name: NEO4J_server_memory_heap_initial__size
+          value: 4G
+        - name: NEO4J_server_memory_heap_max__size
+          value: 4G
+        - name: NEO4J_server_memory_pagecache_size
+          value: 4G
+        - name: NEO4J_dbms_security_procedures_allowlist
+          value: apoc.*,gds.*,genai.*
+        - name: NEO4J_dbms_security_procedures_unrestricted
+          value: apoc.*,gds.*,genai.*
+        - name: NEO4J_server_default__listen__address
+          value: 0.0.0.0
+        - name: NEO4J_server_default__advertised__address
+          value: neo4j.re8ch.com
+        - name: NEO4J_server_bolt_advertised__address
+          value: neo4j.re8ch.com:7687
+        - name: NEO4J_server_http_advertised__address
+          value: neo4j.re8ch.com:7474
+        image: neo4j:2026.06.0-community
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - grep
+            - 1D32
+            - /proc/net/tcp6
+          failureThreshold: 3
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: neo4j
+        ports:
+        - containerPort: 7474
+          name: http
+          protocol: TCP
+        - containerPort: 7687
+          name: bolt
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - grep
+            - 1D32
+            - /proc/net/tcp6
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: '4'
+            memory: 16Gi
+          requests:
+            cpu: '1'
+            memory: 10Gi
+        startupProbe:
+          exec:
+            command:
+            - grep
+            - 1D32
+            - /proc/net/tcp6
+          failureThreshold: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /plugins
+          name: plugins
+        - mountPath: /logs
+          name: logs
+        - mountPath: /conf/apoc.conf
+          name: config
+          readOnly: true
+          subPath: apoc.conf
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 7474
+        fsGroupChangePolicy: OnRootMismatch
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: neo4j-config
+        name: config
+      - emptyDir: {}
+        name: logs
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Gi
+      storageClassName: local-path
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: plugins
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: local-path
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: ledger-casegraph
+    app.kubernetes.io/part-of: ledger
+  name: ledger-casegraph
+  namespace: re8ch-neo4j
+spec:
+  ports:
+  - name: http
+    port: 7474
+    protocol: TCP
+    targetPort: http
+  - name: bolt
+    port: 7687
+    protocol: TCP
+    targetPort: bolt
+  selector:
+    app.kubernetes.io/name: ledger-casegraph
+    app.kubernetes.io/part-of: ledger
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: ledger-economicsgraph
+    app.kubernetes.io/part-of: ledger
+  name: ledger-economicsgraph
+  namespace: re8ch-neo4j
+spec:
+  ports:
+  - name: http
+    port: 7474
+    protocol: TCP
+    targetPort: http
+  - name: bolt
+    port: 7687
+    protocol: TCP
+    targetPort: bolt
+  selector:
+    app.kubernetes.io/name: ledger-economicsgraph
+    app.kubernetes.io/part-of: ledger
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: neo4j
+  name: neo4j
+  namespace: re8ch-neo4j
+spec:
+  ports:
+  - name: http
+    port: 7474
+    protocol: TCP
+    targetPort: http
+  - name: bolt
+    port: 7687
+    protocol: TCP
+    targetPort: bolt
+  selector:
+    app.kubernetes.io/name: neo4j
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+data:
+  apoc.conf: 'apoc.export.file.enabled=true
+
+    apoc.import.file.enabled=true
+
+    apoc.import.file.use_neo4j_config=true
+
+    apoc.http.timeout.connect=10000
+
+    apoc.http.timeout.read=60000
+
+    '
+  postgrest-sources.json: "[\n  {\n    \"name\": \"compocv\",\n    \"readBaseUrl\"\
+    : \"https://db-ro.re8ch.com/compocv\",\n    \"writeBaseUrl\": \"https://db-rw.re8ch.com/compocv\"\
+    ,\n    \"openApiUrl\": \"https://db-ro.re8ch.com/compocv/\"\n  },\n  {\n    \"\
+    name\": \"image\",\n    \"readBaseUrl\": \"https://db-ro.re8ch.com/image\",\n\
+    \    \"writeBaseUrl\": \"https://db-rw.re8ch.com/image\",\n    \"openApiUrl\"\
+    : \"https://db-ro.re8ch.com/image/\"\n  },\n  {\n    \"name\": \"ledger\",\n \
+    \   \"readBaseUrl\": \"https://db-ro.re8ch.com/ledger\",\n    \"writeBaseUrl\"\
+    : \"https://db-rw.re8ch.com/ledger\",\n    \"openApiUrl\": \"https://db-ro.re8ch.com/ledger/\"\
+    \n  }\n]\n"
+kind: ConfigMap
+metadata:
+  name: neo4j-config
+  namespace: re8ch-neo4j
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: data-ledger-casegraph-0
+  namespace: re8ch-neo4j
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: rbd-r640
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: data-ledger-economicsgraph-0
+  namespace: re8ch-neo4j
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: rbd-r640
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: data-neo4j-0
+  namespace: re8ch-neo4j
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: rbd-r640
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: ledger-casegraph-backups
+  namespace: re8ch-neo4j
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: local-path
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: ledger-economicsgraph-backups
+  namespace: re8ch-neo4j
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: plugins-neo4j-0
+  namespace: re8ch-neo4j
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+  volumeMode: Filesystem
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-casegraph-backup
+  namespace: re8ch-neo4j
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 1
+      template:
+        metadata: {}
+        spec:
+          containers:
+          - args:
+            - "user=\"${NEO4J_AUTH%%/*}\"\npassword=\"${NEO4J_AUTH#*/}\"\nstamp=\"\
+              $(date -u +%Y%m%dT%H%M%SZ)\"\n/var/lib/neo4j/bin/cypher-shell \\\n \
+              \ -a neo4j://ledger-casegraph.neo4j.svc.cluster.local:7687 \\\n  -u\
+              \ \"$user\" -p \"$password\" \\\n  \"CALL apoc.export.cypher.all('backups/ledger-casegraph-${stamp}.cypher',{format:'cypher-shell'})\"\
+              \n"
+            command:
+            - /bin/bash
+            - -ceu
+            env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  key: NEO4J_AUTH
+                  name: ledger-casegraph-auth
+            image: neo4j:2026.06.0-community
+            imagePullPolicy: IfNotPresent
+            name: logical-backup
+            resources: {}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+  schedule: 17 2 * * *
+  successfulJobsHistoryLimit: 3
+  suspend: false
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ledger-economicsgraph-backup
+  namespace: re8ch-neo4j
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 1
+      template:
+        metadata: {}
+        spec:
+          containers:
+          - args:
+            - "user=\"${NEO4J_AUTH%%/*}\"\npassword=\"${NEO4J_AUTH#*/}\"\nstamp=\"\
+              $(date -u +%Y%m%dT%H%M%SZ)\"\n/var/lib/neo4j/bin/cypher-shell \\\n \
+              \ -a neo4j://ledger-economicsgraph.neo4j.svc.cluster.local:7687 \\\n\
+              \  -u \"$user\" -p \"$password\" \\\n  \"CALL apoc.export.cypher.all('backups/ledger-economicsgraph-${stamp}.cypher',{format:'cypher-shell'})\"\
+              \n"
+            command:
+            - /bin/bash
+            - -ceu
+            env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  key: NEO4J_AUTH
+                  name: ledger-economicsgraph-auth
+            image: neo4j:2026.06.0-community
+            imagePullPolicy: IfNotPresent
+            name: logical-backup
+            resources: {}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: /var/lib/neo4j/import/backups
+              name: backups
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - name: backups
+            persistentVolumeClaim:
+              claimName: ledger-economicsgraph-backups
+  schedule: 37 2 * * *
+  successfulJobsHistoryLimit: 3
+  suspend: false
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-public-neo4j
+  namespace: re8ch-neo4j
+spec:
+  ingress:
+  - ports:
+    - port: 7474
+      protocol: TCP
+    - port: 7687
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: neo4j
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/part-of: re8ch-knowledge-graph
+  name: neo4j-browser
+  namespace: re8ch-neo4j
+spec:
+  ingressClassName: advanced-fabric
+  rules:
+  - host: neo4j.re8ch.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: neo4j
+            port:
+              number: 7474
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - neo4j.re8ch.com
