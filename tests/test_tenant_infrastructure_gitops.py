@@ -40,7 +40,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         deployment = deployments[name]
         assert deployment["spec"]["strategy"] == {"type": "RollingUpdate", "rollingUpdate": {"maxUnavailable": 0, "maxSurge": 1}}
         pod = deployment["spec"]["template"]["spec"]
-        assert pod["automountServiceAccountToken"] is False
+        assert pod["automountServiceAccountToken"] is (name == "tenant-api")
         assert pod["volumes"] == [{"name": "runtime-state", "persistentVolumeClaim": {"claimName": "tenant-platform-state"}}]
         container = pod["containers"][0]
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}

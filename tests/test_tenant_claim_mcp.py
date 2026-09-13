@@ -26,6 +26,23 @@ def test_tenant_profile_includes_claim_api(monkeypatch):
         "tenant_claim_get", "tenant_claim_list", "tenant_claim_update",
         "tenant_claim_renew", "tenant_claim_cancel", "tenant_usage_summary_get",
     } <= {tool["name"] for tool in module.tools()}
+    assert {"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"} <= {tool["name"] for tool in module.tools()}
+
+
+def test_native_apply_forces_resolved_namespace(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    value = module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {}}, "apply": False}, {"subject": "agent"})
+    assert value["namespace"] == "tenant-acme"
+    assert value["object"]["metadata"]["namespace"] == "tenant-acme"
+
+
+def test_native_apply_rejects_cross_tenant_namespace(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    import pytest
+    with pytest.raises(PermissionError, match="outside"):
+        module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo", "namespace": "other"}}, "apply": False}, {"subject": "agent"})
 
 
 def test_capability_list_is_approval_free_and_unpriced(monkeypatch):

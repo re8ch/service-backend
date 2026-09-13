@@ -85,6 +85,7 @@ subjects:
 {{- end }}
 {{- end }}
   - {kind: ServiceAccount, name: tenant-native-operator, namespace: {{ $tenant.runtimeNamespaceRef }}}
+  - {kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-native-owner}
 {{- end }}
 {{- range $binding := $tenant.identityBindings }}

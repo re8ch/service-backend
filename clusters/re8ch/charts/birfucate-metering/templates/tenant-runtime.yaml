@@ -71,7 +71,7 @@ spec:
     metadata: {labels: {app: tenant-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: tenant-api
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}

@@ -186,7 +186,11 @@ def resolve(issuer, subject_hash, groups=None):
     role = max((role for tenant_ref, role in matches if tenant_ref == tenants_matched[0]), key=lambda value: ROLE_ORDER.get(value, 0))
     if role not in ROLE_ORDER:
         raise PermissionError("identity binding has an invalid role")
-    return {"tenantRef": tenants_matched[0], "role": role}
+    return {
+        "tenantRef": tenants_matched[0],
+        "role": role,
+        "runtimeNamespaceRef": tenant.get("spec", {}).get("runtimeNamespaceRef") or tenants_matched[0],
+    }
 
 
 def utcnow():
