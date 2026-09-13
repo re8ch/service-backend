@@ -46,7 +46,7 @@ metadata:
   labels:
     collaboration.re8ch.com/control-plane: github
 spec:
-  suspend: true
+  suspend: false
   type: github
   events: [ping, push]
   secretRef:
