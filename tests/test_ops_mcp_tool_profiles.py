@@ -109,6 +109,21 @@ class ToolProfileTests(unittest.TestCase):
         module.probe_http = lambda *args: {"name": args[0], "ready": True}
         result = module.get_agent_runtime_status()
         self.assertIn("/apis/kagent.dev/v1alpha3/namespaces/kagent/remotemcpservers", requested)
+        self.assertEqual(result["kagentAPI"], {"available": True, "version": "v1alpha3"})
+        self.assertEqual(result["remoteMCPServers"], [])
+
+    def test_agent_runtime_tolerates_missing_kagent_api_group(self):
+        module = load_profile("observe")
+
+        def fake_request(_method, path, _body=None, _content_type="application/json"):
+            if path == "/apis/kagent.dev":
+                raise RuntimeError("kubernetes GET /apis/kagent.dev failed: 404")
+            return {"items": []}
+
+        module.kube_request = fake_request
+        module.probe_http = lambda *args: {"name": args[0], "ready": False}
+        result = module.get_agent_runtime_status()
+        self.assertEqual(result["kagentAPI"], {"available": False, "version": None})
         self.assertEqual(result["remoteMCPServers"], [])
 
 
