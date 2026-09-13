@@ -24,7 +24,6 @@ def db() -> PostgresLedger:
     global ledger
     if ledger is None:
         ledger = PostgresLedger(os.environ["SECRETARY_DATABASE_URL"])
-        ledger.migrate()
     return ledger
 
 
