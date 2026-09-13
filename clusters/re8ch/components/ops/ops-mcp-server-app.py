@@ -1564,12 +1564,18 @@ def get_agent_runtime_status():
     remote_rows.sort(key=lambda item: item["name"] or "")
     sandbox_kinds = {}
     for plural in ("batchsandboxes", "pools", "sandboxsnapshots"):
-        items = kube_request("GET", "/apis/sandbox.opensandbox.io/v1alpha1/%s" % plural).get("items", [])
+        try:
+            items = kube_request("GET", "/apis/sandbox.opensandbox.io/v1alpha1/%s" % plural).get("items", [])
+        except RuntimeError as exc:
+            if "404" in str(exc) or "429" in str(exc):
+                sandbox_kinds[plural] = {"available": False, "total": 0, "phases": {}}
+                continue
+            raise
         phases = {}
         for item in items:
             phase = item.get("status", {}).get("phase") or item.get("status", {}).get("state") or "unknown"
             phases[phase] = phases.get(phase, 0) + 1
-        sandbox_kinds[plural] = {"total": len(items), "phases": phases}
+        sandbox_kinds[plural] = {"available": True, "total": len(items), "phases": phases}
     probe_specs = [
         ("kagent-controller", "agent-control", "http://kagent-controller.kagent.svc.cluster.local:8083/healthz", "KAgent controller reachability"),
         ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability"),

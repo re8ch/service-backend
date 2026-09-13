@@ -126,6 +126,22 @@ class ToolProfileTests(unittest.TestCase):
         self.assertEqual(result["kagentAPI"], {"available": False, "version": None})
         self.assertEqual(result["remoteMCPServers"], [])
 
+    def test_agent_runtime_tolerates_reinitializing_sandbox_storage(self):
+        module = load_profile("observe")
+
+        def fake_request(_method, path, _body=None, _content_type="application/json"):
+            if path == "/apis/kagent.dev":
+                return {"versions": []}
+            if path.endswith("/pools"):
+                raise RuntimeError("failed: 429 storage is (re)initializing")
+            return {"items": []}
+
+        module.kube_request = fake_request
+        module.probe_http = lambda *args: {"name": args[0], "ready": False}
+        result = module.get_agent_runtime_status()
+        self.assertFalse(result["sandboxResources"]["pools"]["available"])
+        self.assertTrue(result["sandboxResources"]["batchsandboxes"]["available"])
+
 
 if __name__ == "__main__":
     unittest.main()
