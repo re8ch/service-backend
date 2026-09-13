@@ -6,5 +6,9 @@ metadata:
 spec:
   interval: 1h
   url: https://github.com/kubernetes-csi/external-snapshotter.git
+  # Reuse the credential-free global egress path used by the authoritative
+  # control-plane source. GitHub credentials remain isolated in its App Secret.
+  proxySecretRef:
+    name: service-backend-github-proxy
   ref:
     commit: 5aab051d1af135e2c852f6fb7fc27fa709d877bf
