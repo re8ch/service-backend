@@ -8,6 +8,7 @@ resources:
   - flux-system/service-backend-github-app-auth.sops.yaml
   - flux-system/service-backend-github-reaction-auth.sops.yaml
   - flux-system/service-backend-github-webhook.sops.yaml
+  - flux-system/service-backend-github-proxy.sops.yaml
   - flux-system/gotk-sync.yaml
   - flux-system/github-control-plane.yaml
   - flux-system/github-webhook-route.yaml

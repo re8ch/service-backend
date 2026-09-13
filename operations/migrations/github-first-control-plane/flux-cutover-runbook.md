@@ -17,6 +17,10 @@ Secret values are created outside Git and committed only as SOPS ciphertext.
   `githubAppInstallationOwner` or `githubAppInstallationID`, and
   `githubAppPrivateKey` for the separately installed reaction App. A long-lived
   user PAT is prohibited.
+- `service-backend-github-proxy`: an optional credential-free SOCKS5 address for
+  the vendor-neutral Mihomos global egress service. It is used when direct
+  cluster egress to a Git provider is unhealthy; GitHub credentials remain in
+  the separate App Secret.
 
 The GitHub App is installed only on `re8ch/service-backend`. Source access needs
 Contents read and Metadata read. A separate reaction installation/token may write
