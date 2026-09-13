@@ -88,7 +88,9 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    # restricted-node-6dc3f140f9 is the break-glass placement while the A/B workers
+                    # are unavailable or lack a registered CephFS CSI driver.
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
       containers:
         - name: postgresql
           image: postgres:16.9-alpine
