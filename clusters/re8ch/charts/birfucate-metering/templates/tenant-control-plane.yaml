@@ -8,14 +8,26 @@ kind: ClusterRole
 metadata: {name: tenant-control-controller}
 rules:
   - apiGroups: [tenancy.re8ch.com]
-    resources: [tenants, tenantidentitybindings, tenantgrants, tenantserviceinstances]
+    resources: [tenants, tenantnamespaces, tenantidentitybindings, tenantgrants, tenantserviceinstances]
     verbs: [get, list, watch, create, update, patch, delete]
   - apiGroups: [tenancy.re8ch.com]
-    resources: [tenants/status, tenantidentitybindings/status, tenantgrants/status, tenantserviceinstances/status]
+    resources: [tenants/status, tenantnamespaces/status, tenantidentitybindings/status, tenantgrants/status, tenantserviceinstances/status]
     verbs: [get, update, patch]
   - apiGroups: [coordination.k8s.io]
     resources: [leases]
     verbs: [get, list, watch, create, update, patch]
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [resourcequotas, limitranges, serviceaccounts]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch, create, update, patch, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

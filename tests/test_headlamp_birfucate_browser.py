@@ -84,7 +84,7 @@ def test_complete_tenant_tool_surface_is_counted_once():
     declared = yaml.safe_load((ROOT / "plugins/tenant.yaml").read_text())["spec"]["policy"]["allowedOperations"]
     grouped = re.findall(r"tools: \[(.*?)\]", catalog, re.DOTALL)
     counted = re.findall(r"'([a-z][a-z0-9-]+)'", "\n".join(grouped))
-    assert len(counted) == 56
+    assert len(counted) == 62
     assert len(counted) == len(set(counted))
     assert set(counted) == set(declared)
 

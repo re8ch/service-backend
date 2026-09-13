@@ -9,11 +9,14 @@ spec:
   visibility: Private
   hostingMode: platform-managed
   byocAllowed: false
-  businessNamespaces:
-    - ledger
-    - neo4j
-    - anysite
-    - dataspace
+  namespacePolicy:
+    defaultNamespace: re8ch-default
+    allowedPrefixes: [re8ch-]
+  legacyNamespaceMigration:
+    ledger: re8ch-ledger
+    neo4j: re8ch-neo4j
+    anysite: re8ch-anysite
+    dataspace: re8ch-dataspace
   excludedClasses:
     - internal-control-plane
     - shared-infrastructure-product

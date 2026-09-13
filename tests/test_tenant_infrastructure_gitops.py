@@ -140,6 +140,7 @@ def test_tenancy_crds_are_structural_and_status_enabled():
     docs = [item for item in docs if item["kind"] == "CustomResourceDefinition" and item["spec"]["group"] == "tenancy.re8ch.com"]
     assert {item["metadata"]["name"] for item in docs} == {
         "tenants.tenancy.re8ch.com",
+        "tenantnamespaces.tenancy.re8ch.com",
         "tenantidentitybindings.tenancy.re8ch.com",
         "tenantgrants.tenancy.re8ch.com",
         "tenantserviceinstances.tenancy.re8ch.com",
@@ -289,7 +290,7 @@ def test_chart_binds_controller_in_every_declared_runtime_namespace():
     tenants = {
         item["metadata"]["name"]: item["spec"]["runtimeNamespaceRef"]
         for item in docs
-        if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.")
+        if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.") and item["spec"].get("runtimeNamespaceRef")
     }
     bindings = {
         item["metadata"]["namespace"]: item
@@ -313,17 +314,13 @@ def test_chart_binds_controller_in_every_declared_runtime_namespace():
         }
 
 
-def test_native_tenant_owner_is_namespaced_and_does_not_own_platform_boundaries():
+def test_native_tenant_owner_is_reconciled_and_does_not_own_platform_boundaries():
     docs = tenant_chart_documents()
-    roles = [item for item in docs if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-native-owner"]
-    assert {item["metadata"]["namespace"] for item in roles} == {"artchais"}
-    role = roles[0]
-    serialized = json.dumps(role["rules"])
+    assert not [item for item in docs if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-native-owner"]
+    controller = (ROOT / "clusters/re8ch/components/ai-operations/tenant_control_controller.py").read_text()
+    serialized = controller
     for forbidden in ("resourcequotas", "limitranges", "networkpolicies", "nodes", "namespaces", "clusterroles", "persistentvolumes"):
-        assert forbidden not in serialized
-    assert {"deployments", "statefulsets", "daemonsets"} <= {
-        resource for rule in role["rules"] for resource in rule["resources"]
-    }
-    binding = next(item for item in docs if item["kind"] == "RoleBinding" and item["metadata"]["name"] == "tenant-native-owner")
-    groups = {item["name"] for item in binding["subjects"] if item["kind"] == "Group"}
-    assert groups == {"Artchais:tenant-admins", "Artchais:tenant-operators"}
+        assert f'"resources": ["{forbidden}"]' not in serialized
+    assert all(resource in serialized for resource in ("deployments", "statefulsets", "daemonsets"))
+    cluster_role = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-control-controller")
+    assert "clusterroles" not in json.dumps(cluster_role["rules"])

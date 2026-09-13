@@ -34,7 +34,7 @@ spec:
       pullPolicy: IfNotPresent
     tenantPlatform:
       enabled: true
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:38a110386b1341b93dd0e6a868dcf8ec0de14d0b47ef3bc355e6d4adc4837a7d
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:53f791e980b77c6600ea84ae4d819c910a2ac1b69259d5f2337b552e89a08b6f
       tenantReadinessPath: /readyz
       state:
         storageClassName: rbd-r640
@@ -46,6 +46,13 @@ spec:
           displayName: RE8CH Platform Administration
           lifecycle: Active
           deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: tenant-infrastructure
+            allowedPrefixes: [admin-]
+            maxNamespaces: 1
+            allowCreate: false
+            allowDelete: false
+            bootstrapNamespaces: []
           runtimeNamespaceRef: tenant-infrastructure
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
@@ -58,6 +65,13 @@ spec:
           displayName: Artchais
           lifecycle: Active
           deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: artchais-default
+            allowedPrefixes: [artchais-]
+            maxNamespaces: 20
+            allowCreate: true
+            allowDelete: true
+            bootstrapNamespaces: [artchais-default]
           runtimeNamespaceRef: artchais
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: artchais
@@ -73,13 +87,19 @@ spec:
           displayName: RE8CH
           lifecycle: Active
           deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: re8ch-default
+            allowedPrefixes: [re8ch-]
+            maxNamespaces: 20
+            allowCreate: true
+            allowDelete: true
+            bootstrapNamespaces: [re8ch-default, re8ch-ledger, re8ch-neo4j, re8ch-anysite, re8ch-dataspace]
           runtimeNamespaceRef: ledger
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
           visibility: Private
           hostingMode: platform-managed
           byocAllowed: false
-          businessNamespaces: [ledger, neo4j, anysite, dataspace]
           identityBindings:
             # The same GitHub identity is deliberately projected differently by
             # audience: ordinary re8ch operator here, protected admin above.
@@ -99,6 +119,25 @@ spec:
             - {name: re8ch-among-clusters, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-observability, consumableRef: observability.grafana.v1, roleRef: viewer, lifecycle: Active}
             - {name: re8ch-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+          nativeAccess: true
+        - name: tenant-ci
+          displayName: Tenant Conformance Canary
+          lifecycle: Active
+          deletionPolicy: RevokeThenDelete
+          namespacePolicy:
+            defaultNamespace: tenant-ci-default
+            allowedPrefixes: [tenant-ci-]
+            maxNamespaces: 10
+            allowCreate: true
+            allowDelete: true
+            bootstrapNamespaces: [tenant-ci-default]
+          imagePullSecretRef: harbor-functions-shared-pull
+          harborProjectRef: tenant-ci
+          identityBindings:
+            - {name: tenant-ci-github-actions, issuer: https://dex.re8ch.com, group: "re8ch:tenant-ci", role: operator}
+          grants:
+            - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+            - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
     # Keep the first production reconciliation equivalent to the validated
     # canary: no stateful allocation while Ceph is degraded and no downstream

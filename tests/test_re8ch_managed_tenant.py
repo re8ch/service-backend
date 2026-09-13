@@ -25,6 +25,7 @@ def test_only_business_namespaces_are_attributed_to_re8ch():
         labels = item["metadata"]["labels"]
         assert labels["saas.re8ch.com/tenant"] == "re8ch"
         assert labels["saas.re8ch.com/layer"] == "prod"
+        assert item["metadata"]["annotations"]["tenancy.re8ch.com/migration-target"] == f"re8ch-{item['metadata']['name']}"
 
     forbidden = {
         "among-clusters",
@@ -51,7 +52,15 @@ def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
     assert re8ch["visibility"] == "Private"
     assert re8ch["hostingMode"] == "platform-managed"
     assert re8ch["byocAllowed"] is False
-    assert re8ch["businessNamespaces"] == ["ledger", "neo4j", "anysite", "dataspace"]
+    assert re8ch["namespacePolicy"] == {
+        "defaultNamespace": "re8ch-default",
+        "allowedPrefixes": ["re8ch-"],
+        "maxNamespaces": 20,
+        "allowCreate": True,
+        "allowDelete": True,
+        "bootstrapNamespaces": ["re8ch-default", "re8ch-ledger", "re8ch-neo4j", "re8ch-anysite", "re8ch-dataspace"],
+    }
+    assert "businessNamespaces" not in re8ch
     grants = {item["consumableRef"] for item in re8ch["grants"]}
     assert "network.among-clusters.v1" in grants
     assert "ai.model-gateway.v1" not in grants

@@ -36,7 +36,7 @@ def tenant(name, lifecycle="Active"):
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
-    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "runtimeNamespaceRef": "acme"}
+    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "defaultNamespace": "acme", "runtimeNamespaceRef": "acme"}
 
 
 def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
@@ -46,7 +46,7 @@ def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
     ]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
     result = controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-viewers", "Artchais:tenant-operators"])
-    assert result == {"tenantRef": "artchais", "role": "operator", "runtimeNamespaceRef": "artchais"}
+    assert result == {"tenantRef": "artchais", "role": "operator", "defaultNamespace": "artchais", "runtimeNamespaceRef": "artchais"}
 
 
 def test_tenant_publication_excludes_admin_binding(monkeypatch):
@@ -72,13 +72,39 @@ def test_admin_identity_projects_to_re8ch_operator_in_tenant_publication(monkeyp
     assert controller.resolve("https://dex.re8ch.com", "", groups, caller="tenant") == {
         "tenantRef": "re8ch",
         "role": "operator",
+        "defaultNamespace": "re8ch",
         "runtimeNamespaceRef": "re8ch",
     }
     assert controller.resolve("https://dex.re8ch.com", "", groups, caller="admin") == {
         "tenantRef": "admin",
         "role": "admin",
+        "defaultNamespace": "admin",
         "runtimeNamespaceRef": "admin",
     }
+
+
+def test_namespace_policy_rejects_foreign_and_reserved_names(monkeypatch):
+    value = tenant("re8ch")
+    value["spec"]["namespacePolicy"] = {"defaultNamespace": "re8ch-default", "allowedPrefixes": ["re8ch-"], "maxNamespaces": 20, "allowCreate": True, "allowDelete": True}
+    monkeypatch.setattr(controller, "KUBE", FakeKube([], [value]))
+    assert controller.validate_tenant_namespace("re8ch", "re8ch-demo", "EnsurePresent")["maxNamespaces"] == 20
+    with pytest.raises(PermissionError, match="outside"):
+        controller.validate_tenant_namespace("re8ch", "ledger", "EnsurePresent")
+    with pytest.raises(PermissionError, match="outside"):
+        controller.validate_tenant_namespace("re8ch", "artchais-demo", "EnsurePresent")
+
+
+def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
+    value = tenant("re8ch")
+    value["metadata"]["uid"] = "tenant-uid"
+    monkeypatch.setattr(controller, "KUBE", FakeKube([group_binding("re8ch", "re8ch:tenant-admins", "operator")], [value]))
+    resources = controller.tenant_namespace_resources(value, "re8ch-demo")
+    namespace = resources[0]
+    assert namespace["metadata"]["annotations"]["tenancy.re8ch.com/tenant-uid"] == "tenant-uid"
+    assert namespace["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == "re8ch"
+    role = next(item for item in resources if item["kind"] == "Role")
+    assert "namespaces" not in str(role["rules"])
+    assert "clusterroles" not in str(role["rules"])
 
 
 def test_groups_spanning_tenants_are_denied(monkeypatch):
