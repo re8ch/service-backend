@@ -217,7 +217,7 @@ spec:
               target=/headlamp/plugins/secretary-0.1.0
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '934318657941dbffdfa83f6b2cbae4d4324b3d5a6e17e2e3a08e97f96d5e6585  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '8a685745dc2502297b03251b6e5aba372cf3af3b95141fe972fbb90f306b49eb  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1

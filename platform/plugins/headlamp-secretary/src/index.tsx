@@ -23,7 +23,6 @@ function Dashboard() {
   const [deployments, deploymentError] = K8s.ResourceClasses.Deployment.useList({namespace:NS} as any);
   const [pods, podError] = K8s.ResourceClasses.Pod.useList({namespace:NS} as any);
   const [services] = K8s.ResourceClasses.Service.useList({namespace:NS} as any);
-  const [secrets] = K8s.ResourceClasses.Secret.useList({namespace:NS} as any);
   const [networkPolicies] = K8s.ResourceClasses.NetworkPolicy.useList({namespace:NS} as any);
   const [token, setToken] = React.useState(()=>sessionStorage.getItem('re8ch-secretary-query-token') || '');
   const [items, setItems] = React.useState<any[]>([]);
@@ -46,10 +45,19 @@ function Dashboard() {
     finally { setLoading(false); }
   }
 
+  const referencedSecretKeys = new Map<string,Set<string>>();
+  for (const deployment of deployments || []) {
+    const containers=[...(deployment.spec?.template?.spec?.containers || []), ...(deployment.spec?.template?.spec?.initContainers || [])];
+    for (const container of containers) for (const env of container.env || []) {
+      const ref=env.valueFrom?.secretKeyRef;
+      if (!ref?.name || !ref?.key) continue;
+      if (!referencedSecretKeys.has(ref.name)) referencedSecretKeys.set(ref.name,new Set());
+      referencedSecretKeys.get(ref.name)!.add(ref.key);
+    }
+  }
   const secretRows = Object.entries(SECRET_KEYS).map(([name, expected])=>{
-    const secret=(secrets || []).find((x:any)=>x.metadata?.name===name);
-    const keys=new Set(Object.keys(secret?.data || {}));
-    return {name, configured:expected.filter(x=>keys.has(x)).length, expected:expected.length,
+    const keys=referencedSecretKeys.get(name) || new Set<string>();
+    return {name, referenced:expected.filter(x=>keys.has(x)).length, expected:expected.length,
       missing:expected.filter(x=>!keys.has(x))};
   });
   const eventRows=[...items].reverse();
@@ -78,7 +86,7 @@ function Dashboard() {
     <SectionBox title="Configuration readiness (values hidden)">
       <Table data={secretRows} columns={[
         {header:'Secret',accessorKey:'name'},
-        {header:'Configured keys',accessorFn:(x:any)=><StatusLabel status={x.configured===x.expected?'success':'warning'}>{x.configured}/{x.expected}</StatusLabel>},
+        {header:'Referenced keys',accessorFn:(x:any)=><StatusLabel status={x.referenced===x.expected?'success':'warning'}>{x.referenced}/{x.expected}</StatusLabel>},
         {header:'Missing',accessorFn:(x:any)=>x.missing.join(', ') || 'None'},
       ] as any}/>
     </SectionBox>
