@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: re8ch-ontology-microscope
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    tenancy.re8ch.com/tenant: re8ch
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantNamespace
+metadata:
+  name: re8ch-ontology-microscope
+  labels:
+    tenancy.re8ch.com/tenant: re8ch
+spec:
+  tenantRef: re8ch
+  namespaceName: re8ch-ontology-microscope
+  operation: EnsurePresent
