@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - .github/workflows/macmini-audit.yml
       - catalogs/**
       - indexes/**
       - workspace/**
@@ -22,6 +23,5 @@ jobs:
       - run: |
           test -d /Volumes/A1/service-backend
           curl -fsS http://127.0.0.1:19640/healthz
-          /Volumes/A1/service-backend/.venv/bin/python \
-            "$GITHUB_WORKSPACE/operations/workspace-controller/workspace.py" \
+          python3 "$GITHUB_WORKSPACE/operations/workspace-controller/workspace.py" \
             --root "$GITHUB_WORKSPACE" memory-audit
