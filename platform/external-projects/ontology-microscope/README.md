@@ -21,14 +21,14 @@ service while Flux creates and verifies the replacement stack:
 
 Published immutable images:
 
-- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:5b09f5a43e91c9402abd1b6f4c93cd97ee8e6d6c354afa86d1accc7f51bed6e3`
-- migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:37141efee09a7e6b63bc1d4833d2023c5e7cfe837891d9c73c8062f8a973f08c`
-- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:0797f9bb1254ca3f05c0d24583d5177c0f11691b7fc9f297657bacdf8cdf7584`
+- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:47ae146379b94833a05318fb856f0bad35fa92390a93c3dd0812a7c4c255a30f`
+- migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c`
+- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:1e62d513bd344a9d04940df2a7c693ddb34f8055e0cea57b81a7d90afc74d3d4`
 
-These manifests preserve the builder layer digests (`--preserve-digests` and
-uncompressed OCI layers). This avoids a Harbor recompression path that made
-restricted-node-6dc3f140f9 pull a second, registry-specific copy of the same content while retaining
-immutable manifest references.
+These manifests were exported from the verified restricted-node-6dc3f140f9 containerd content store
+as compressed OCI archives and uploaded with `--preserve-digests`. This avoids
+Harbor recompression and lets the runtime reuse the exact verified layers while
+retaining immutable manifest references.
 
 The Neuronpedia build has no upstream UI source changes. It applies an exact
 `maplibre-gl 6.9.0` dependency override for `GHSA-jrc7-96c5-q579` and fails on
