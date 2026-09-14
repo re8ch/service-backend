@@ -5,7 +5,7 @@ metadata:
 spec:
   parent:
     catalog: qianwen
-    repository: git@gitlab.com:reachievellc/service-backend.git
+    repository: https://github.com/re8ch/service-backend.git
     catalogPath: catalogs/qianwen/modules/qianwen-ios
     submodulePath: catalogs/qianwen/modules/qianwen-ios/source
   identity:

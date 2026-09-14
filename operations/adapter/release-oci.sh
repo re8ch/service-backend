@@ -8,8 +8,8 @@ dist_dir="$(mktemp -d)"
 trap 'rm -rf "$dist_dir"' EXIT
 
 chart_version="$(helm show chart "$chart_dir" | sed -n 's/^version: //p')"
-if [[ -n "${CI_COMMIT_TAG:-}" && "$CI_COMMIT_TAG" != "adapter-v${chart_version}" ]]; then
-  echo "tag $CI_COMMIT_TAG does not match adapter chart version $chart_version" >&2
+if [[ -n "${GITHUB_REF_NAME:-}" && "$GITHUB_REF_NAME" != "adapter-v${chart_version}" ]]; then
+  echo "tag $GITHUB_REF_NAME does not match adapter chart version $chart_version" >&2
   exit 1
 fi
 

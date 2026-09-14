@@ -1,0 +1,67 @@
+name: tenant-release
+on:
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: Rebuild even when release inputs did not change
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - clusters/re8ch/components/ai-operations/**
+      - operations/mcp-conformance/release-tenant-infrastructure.sh
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+concurrency:
+  group: tenant-release-production
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          TENANT_IMAGE_BUILDER: default
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tenant-release-${{ github.sha }}
+          path: |
+            tenant-infrastructure.image
+            tenant-infrastructure.spdx.json
+          if-no-files-found: error
+  canary:
+    needs: release
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - run: ./operations/mcp-conformance/tenant-canary.sh
+        env:
+          TENANT_CANARY_REFRESH_TOKEN: ${{ secrets.TENANT_CANARY_REFRESH_TOKEN }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tenant-canary-${{ github.sha }}
+          path: |
+            tenant-canary.evidence.json
+            tenant-canary.evidence.json.bundle
+          if-no-files-found: error

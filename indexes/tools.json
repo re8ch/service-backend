@@ -301,7 +301,7 @@
   },
   {
     "module": "service-backend",
-    "ref": "glab"
+    "ref": "gh"
   },
   {
     "module": "service-backend",

@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 
 
-CONTROL_PLANE_REPOSITORY = "git@gitlab.com:reachievellc/service-backend.git"
+CONTROL_PLANE_REPOSITORY = "https://github.com/re8ch/service-backend.git"
 
 
 def load_modules(root: Path) -> list[tuple[Path, dict]]:

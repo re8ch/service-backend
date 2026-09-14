@@ -4,7 +4,7 @@ metadata:
   name: qianwen-app
 spec:
   controlPlane:
-    repository: git@gitlab.com:reachievellc/service-backend.git
+    repository: https://github.com/re8ch/service-backend.git
     revision: main
     indexPath: indexes/deployments.json
   lookup:

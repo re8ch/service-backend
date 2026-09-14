@@ -44,6 +44,13 @@ for path in ROOT.rglob("*"):
         value = line[match.end(1) :].split(":", 1)[1].strip()
         if SAFE_VALUE.match(value):
             continue
+        # GitHub expression references name a secret but do not contain its
+        # value. Accept only the exact `secrets.NAME` expression form.
+        if re.fullmatch(
+            r'''["']?\$\{\{\s*secrets\.[A-Z_][A-Z0-9_]*\s*\}\}["']?,?''',
+            value,
+        ):
+            continue
         violations.append(f"{path.relative_to(ROOT)}:{number}")
 if violations:
     raise SystemExit("possible plaintext secrets: " + ", ".join(violations))

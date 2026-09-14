@@ -1,0 +1,4 @@
+self-hosted-runner:
+  labels:
+    - macmini-a1
+    - trusted-audit

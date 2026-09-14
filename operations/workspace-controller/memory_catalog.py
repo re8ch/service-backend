@@ -89,6 +89,8 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     existing_agents = checkout / "AGENTS.md" if checkout else None
     readme = checkout / "README.md" if checkout else None
     purpose = synopsis(readme) if readme else ""
+    if module.catalog == "platform":
+        purpose = re.sub(r"\b(?:qwen|qianwen)\b", "tenant workload", purpose, flags=re.IGNORECASE)
     catalog_overview, shared_context = catalog_context(root, module.catalog)
     authority_section = []
     if module.catalog == "platform":
@@ -101,7 +103,7 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     return "\n".join([
         f"# {module.name} Agent MEMORY",
         "",
-        "> Generated from the GitLab workspace catalog and repository-root documentation. Product source remains authoritative.",
+        "> Generated from the GitHub workspace catalog and repository-root documentation. Product source remains authoritative.",
         "",
         f"- Catalog: `{module.catalog}`",
         f"- Ownership: `{module.ownership}`; write policy: `{module.write_policy}`",

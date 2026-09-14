@@ -10,7 +10,10 @@ for tool in docker python3 cosign; do
 done
 docker info >/dev/null
 docker buildx version >/dev/null
-docker sbom version >/dev/null
+if ! docker sbom version >/dev/null 2>&1 && ! command -v syft >/dev/null; then
+  echo "Missing docker sbom or syft" >&2
+  exit 127
+fi
 
 # The Macmini runner may keep a remote restricted-node-6dc3f140f9 builder selected even while its
 # local tunnel is down. Release correctness does not depend on that builder:
@@ -31,7 +34,7 @@ if [[ "${1:-}" == "--check" ]]; then
 fi
 
 : "${TENANT_IMAGE_REPOSITORY:=registry.re8ch.com/image/re8ch-ai-operations}"
-: "${TENANT_IMAGE_TAG:=${CI_COMMIT_SHA:-$(git rev-parse HEAD)}}"
+: "${TENANT_IMAGE_TAG:=${GITHUB_SHA:-$(git rev-parse HEAD)}}"
 dockerfile=clusters/re8ch/components/ai-operations/Dockerfile
 image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
@@ -58,18 +61,23 @@ while ! docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/a
 done
 digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$metadata")
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
-docker sbom --platform linux/amd64 --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
+if docker sbom version >/dev/null 2>&1; then
+  docker sbom --platform linux/amd64 --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
+else
+  syft "$immutable" -o spdx-json > tenant-infrastructure.spdx.json
+fi
 if [[ -n "${COSIGN_KEY:-}" ]]; then
   cosign sign --yes --key "$COSIGN_KEY" "$immutable"
   cosign verify --key "${COSIGN_PUBLIC_KEY:-$COSIGN_KEY}" "$immutable" >/dev/null
-elif [[ -n "${SIGSTORE_ID_TOKEN:-}" ]]; then
-  cosign sign --yes --identity-token "$SIGSTORE_ID_TOKEN" "$immutable"
+elif [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  certificate_identity="${SIGSTORE_CERTIFICATE_IDENTITY:-https://github.com/re8ch/service-backend/.github/workflows/tenant-release.yml@refs/heads/main}"
+  cosign sign --yes "$immutable"
   cosign verify \
-    --certificate-identity "${CI_PROJECT_URL}//.gitlab-ci.yml@refs/heads/${CI_COMMIT_REF_NAME}" \
-    --certificate-oidc-issuer "$CI_SERVER_URL" \
+    --certificate-identity "$certificate_identity" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
     "$immutable" >/dev/null
 else
-  echo "COSIGN_KEY or GitLab SIGSTORE_ID_TOKEN is required" >&2
+  echo "COSIGN_KEY or GitHub Actions OIDC is required" >&2
   exit 1
 fi
 printf '%s\n' "$immutable" | tee tenant-infrastructure.image

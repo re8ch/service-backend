@@ -65,7 +65,7 @@ flow to `admin-api`.
 
 ## Prerequisites
 
-- GitLab permission to create and merge signed service-backend changes.
+- GitHub permission to create and merge signed service-backend changes.
 - GitHub organization permission for the canonical teams.
 - Macmini workspace and SOPS age key access.
 - Break-glass SSH access to `restricted-node-6dc3f140f9` with passwordless `sudo -n k3s kubectl`.
@@ -81,8 +81,8 @@ git status --short
 ```
 
 Use an isolated worktree at `origin/main`. Preserve unrelated user changes.
-All desired-state changes require signed commits, successful CI, a merge
-request, and Flux application. Direct cluster writes are limited to diagnosis,
+All desired-state changes require signed commits, successful CI, a GitHub
+pull request, and Flux application. Direct cluster writes are limited to diagnosis,
 reconcile triggers, and exact operational recovery actions.
 
 ## Fast triage
@@ -321,7 +321,7 @@ successful calls matter more than an exact count.
 
 Rollback must preserve the single public identity boundary.
 
-1. Revert the offending Git commit through a signed MR.
+1. Revert the offending Git commit through a signed GitHub pull request.
 2. Let Flux apply the revert and verify its exact revision.
 3. If rotating credentials, update both standalone SOPS Secrets atomically and
    restart both consumers.
@@ -368,4 +368,3 @@ Secret content.
 - Keep all ConnecTool publications and MCP backends on restricted-node-6dc3f140f9 during the
   single-PublicEdge phase.
 - Never describe multiple replicas on one node as high availability.
-

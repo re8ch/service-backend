@@ -1,0 +1,22 @@
+name: adapter-release
+on:
+  push:
+    tags: ['adapter-v*.*.*']
+permissions:
+  contents: read
+concurrency:
+  group: adapter-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: |
+          printf '%s' "$ADAPTER_REGISTRY_PASSWORD" | helm registry login registry.re8ch.com \
+            --username "$ADAPTER_REGISTRY_USERNAME" --password-stdin
+          ./operations/adapter/release-oci.sh
+        env:
+          ADAPTER_REGISTRY_USERNAME: ${{ secrets.ADAPTER_REGISTRY_USERNAME }}
+          ADAPTER_REGISTRY_PASSWORD: ${{ secrets.ADAPTER_REGISTRY_PASSWORD }}

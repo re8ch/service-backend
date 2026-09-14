@@ -5,7 +5,7 @@ metadata:
 spec:
   parent:
     catalog: aesthete
-    repository: git@gitlab.com:reachievellc/service-backend.git
+    repository: https://github.com/re8ch/service-backend.git
     catalogPath: catalogs/aesthete/modules/z-anatomy-models
     submodulePath: catalogs/aesthete/modules/z-anatomy-models/source
   identity:

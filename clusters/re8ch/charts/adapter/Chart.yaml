@@ -5,9 +5,9 @@ type: application
 version: 0.2.1
 appVersion: "0.2.0"
 kubeVersion: ">=1.30.0-0"
-home: https://gitlab.com/reachievellc/service-backend
+home: https://github.com/re8ch/service-backend
 sources:
-  - https://gitlab.com/reachievellc/service-backend
+  - https://github.com/re8ch/service-backend
 annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/category: integration-delivery
@@ -21,7 +21,7 @@ annotations:
       description: Digest-gated native Spin and WasmEdge engines.
   artifacthub.io/links: |
     - name: Source
-      url: https://gitlab.com/reachievellc/service-backend
+      url: https://github.com/re8ch/service-backend
   artifacthub.io/images: |
     - name: adapter
       image: python@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
