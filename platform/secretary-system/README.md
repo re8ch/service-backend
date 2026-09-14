@@ -2,6 +2,8 @@
 
 Secretary is the durable incident responsibility and evidence control plane. It does not treat a provider `200`, delivered/read receipt, or model statement as proof that a human accepted responsibility or that a service recovered.
 
+The runtime is tenant-scoped in `re8ch-secretary`. Its single-node Restate deployment keeps the stable node identity `restate-865f85bb68-j7bdt` so the retained data volume continues the existing durable journals after the namespace migration.
+
 ## Runtime
 
 - Restate `IncidentWorkflow`, `RecipientObject`, `ChannelObject`, and `InvestigatorService` run from the same image.
