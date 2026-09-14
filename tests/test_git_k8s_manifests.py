@@ -181,7 +181,7 @@ def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
         for rule in route["spec"]["rules"]
         for match in rule.get("matches", [])
     }
-    assert paths == {"/", "/admin", "/api", "/login", "/auth", "/.well-known"}
+    assert paths == {"/", "/admin", "/api", "/jmap", "/login", "/auth", "/.well-known"}
     assert route["metadata"]["annotations"]["governance.re8ch.com/exposure"] == (
         "stalwart-admin-authentication-required"
     )
