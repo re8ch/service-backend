@@ -1,0 +1,26 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ontology-microscope
+  namespace: re8ch-ontology-microscope
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}
+  hostnames: [ontology.apps.re8ch.com]
+  rules:
+    - backendRefs: [{name: ontology-microscope, port: 80}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ontology-microscope-public-ingress
+  namespace: re8ch-ontology-microscope
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ontology-microscope
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports:
+            - {port: "8080", protocol: TCP}
