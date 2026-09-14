@@ -41,6 +41,21 @@ spec:
   test:
     enable: true
     ignoreFailures: false
+  postRenderers:
+    - kustomize:
+        patches:
+          # DNS is replicated across distant failure domains. Prefer the
+          # node-local endpoint so a transient cross-node fabric fault cannot
+          # stall workload startup; nodes without a local replica still fall
+          # back to another ready endpoint.
+          - target:
+              version: v1
+              kind: Service
+              name: kube-dns
+            patch: |-
+              - op: add
+                path: /spec/trafficDistribution
+                value: PreferSameNode
   values:
     # preserveValues keeps the pre-Flux service-vip-fabric settings. Declare
     # newly schema-required optional components explicitly so chart upgrades do

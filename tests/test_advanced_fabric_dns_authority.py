@@ -24,6 +24,11 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
     assert release["spec"]["test"] == {"enable": True, "ignoreFailures": False}
     assert release["spec"]["values"]["advancedFabric"]["networkQuality"]["victoriaMetricsServiceScrape"] is False
 
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    kube_dns_patch = next(item for item in patches if item["target"]["name"] == "kube-dns")
+    assert "trafficDistribution" in kube_dns_patch["patch"]
+    assert "PreferSameNode" in kube_dns_patch["patch"]
+
 
 def test_every_managed_server_uses_fixed_cluster_dns():
     configs = sorted((ROOT / "clusters/re8ch/components/ops").glob("*k3s-server-config.yaml"))

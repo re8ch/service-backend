@@ -54,13 +54,13 @@ spec:
           ports:
             - {name: webapp, containerPort: 3000, protocol: TCP}
           readinessProbe:
-            httpGet: {path: /api/global, port: webapp}
+            httpGet: {path: /, port: webapp}
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 12
           livenessProbe:
-            httpGet: {path: /api/global, port: webapp}
+            httpGet: {path: /icon.ico, port: webapp}
             initialDelaySeconds: 45
             periodSeconds: 20
             timeoutSeconds: 5

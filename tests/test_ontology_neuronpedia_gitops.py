@@ -61,9 +61,18 @@ def test_neuronpedia_signin_is_disabled_and_adapter_waits_for_database():
     containers = {item["name"]: item for item in deployment["spec"]["template"]["spec"]["containers"]}
     env = {item["name"]: item.get("value") for item in containers["webapp"]["env"]}
     assert env["NEXT_PUBLIC_ENABLE_SIGNIN"] == "false"
+    assert containers["webapp"]["readinessProbe"]["httpGet"]["path"] == "/"
+    assert containers["webapp"]["livenessProbe"]["httpGet"]["path"] == "/icon.ico"
     assert deployment["spec"]["template"]["spec"]["initContainers"][0]["args"] == ["migrate", "deploy"]
 
     adapter = next(doc for doc in documents("adapter.yaml") if doc["kind"] == "Deployment")
     adapter_container = adapter["spec"]["template"]["spec"]["containers"][0]
     assert adapter_container["readinessProbe"]["httpGet"]["path"] == "/api/health"
     assert any(item["name"] == "NEURONPEDIA_DATABASE_URL" for item in adapter_container["env"])
+
+    adapter_egress = next(
+        doc
+        for doc in documents("adapter.yaml")
+        if doc["kind"] == "CiliumNetworkPolicy"
+    )
+    assert adapter_egress["spec"]["egress"] == [{"toEntities": ["cluster"]}]

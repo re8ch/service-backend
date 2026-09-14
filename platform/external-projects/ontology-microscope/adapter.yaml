@@ -68,3 +68,15 @@ spec:
     app.kubernetes.io/name: ontology-microscope-adapter
   ports:
     - {name: http, port: 4318, targetPort: http, protocol: TCP}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ontology-microscope-adapter-egress
+  namespace: re8ch-ontology-microscope
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: ontology-microscope-adapter
+  egress:
+    - toEntities: [cluster]
