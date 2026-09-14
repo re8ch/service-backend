@@ -3,7 +3,7 @@ kind: MigrationExecution
 metadata:
   startedAt: "2026-09-12"
 spec:
-  currentWave: github-flux-authority
+  currentWave: complete
 status:
   checks:
     workspaceDoctor: passed
@@ -48,8 +48,12 @@ status:
       workspaceModuleLocked: true
     validation:
       workspaceDoctor: passed
-      pytest: 308-passed
-      githubActions: passed
+      pytest: 338-passed
+      githubActions:
+        controlPlaneCI: passed
+        macminiAudit: passed
+        tenantRelease: passed
+        tenantCanary: passed
     governance:
       organizationMembers:
         advanced-fabrics: [Woomou]
@@ -69,10 +73,29 @@ status:
       receiver: ready
       reactionStatus: verified
       rootReconciliation: verified-twice
+      verifiedRevisionBeforeCloseout: main@sha1:510ec959a4839264fd60955edc776a1eae68aca7
       canary: removed-after-promotion
       rulesetId: 23148035
       ruleset: active
-      gitlabCompatibility: read-only-24h-rollback-window
+      gitlabCompatibility: retired-archived-read-only
+    gitlabRetirement:
+      project: reachievellc/service-backend
+      projectId: 85655827
+      archived: true
+      clusterAgentCount: 0
+      projectRunnerCount: 0
+      clusterRuntimeRemoved: true
+      fluxReceiverRemoved: true
+      cutoffPipelineId: 2846215015
+      pipelines: 1172
+      jobs: 7112
+      artifacts: 206
+      missingArtifacts: 0
+      exportErrors: 0
+      validatedAssets: 9662
+      archiveRepository: https://github.com/re8ch/gitlab-pipeline-archive
+      archiveRelease: https://github.com/re8ch/gitlab-pipeline-archive/releases/tag/gitlab-service-backend-20260914T131042Z
+      encryption: age
   blockers: []
   deferred:
     - id: production-oidc-broker

@@ -20,7 +20,6 @@ spec:
     internal-control-plane:
       consumable: false
       namespaces:
-        - gitlab-agent
         - ai-operations
         - auth
         - cert-manager

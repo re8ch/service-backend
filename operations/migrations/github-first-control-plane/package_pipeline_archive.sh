@@ -14,10 +14,13 @@ release="gitlab-service-backend-${stamp}"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
-tar -C "$archive_dir" -cf - . | zstd -19 -T0 | age -r "$age_recipient" -o "$stage/archive.tar.zst.age"
-split -b 1900m -d -a 4 "$stage/archive.tar.zst.age" "$stage/${release}.part-"
+tar -C "$archive_dir" -cf - . | zstd -19 -T0 | age -r "$age_recipient" | \
+  split -b 1900m -d -a 4 - "$stage/${release}.part-"
 cp "$archive_dir/manifest.json" "$stage/${release}.manifest.json"
-shasum -a 256 "$stage"/* > "$stage/${release}.sha256"
+(
+  cd "$stage"
+  shasum -a 256 "${release}.manifest.json" "${release}.part-"* > "${release}.sha256"
+)
 
 gh release create "$release" "$stage"/* \
   --repo re8ch/gitlab-pipeline-archive \

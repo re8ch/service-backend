@@ -239,7 +239,6 @@ Generated; do not edit.
 | function-routing | Deployment | function-placement-controller | 1/1 ready |
 | function-routing | Service | function-gateway-anchor | ClusterIP ports=80 |
 | git-workspaces | Deployment | git-workspace-controller | 1/1 ready |
-| gitlab-agent | Deployment | gitlab-agent | 1/1 ready |
 | harbor | Deployment | harbor-core | 1/1 ready |
 | harbor | Deployment | harbor-jobservice | 1/1 ready |
 | harbor | Deployment | harbor-log | 1/1 ready |

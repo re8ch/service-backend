@@ -5,10 +5,14 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
+import subprocess
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 
@@ -43,6 +47,42 @@ class GitLab:
             with urllib.request.urlopen(request, timeout=120) as response:
                 yield from json.loads(response.read())
                 page = int(response.headers.get("X-Next-Page") or 0)
+
+
+class Glab:
+    """Use glab as an OAuth/DPoP-aware transport without exposing its token."""
+
+    @staticmethod
+    def _endpoint(path, query=None):
+        if query:
+            return f"{path}?{urllib.parse.urlencode(query)}"
+        return path
+
+    def request(self, path, *, query=None, binary=False):
+        process = subprocess.run(
+            ["glab", "api", self._endpoint(path, query)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if process.returncode:
+            message = process.stderr.decode(errors="replace")
+            if "404" in message:
+                return None
+            raise RuntimeError(message[:1000])
+        return process.stdout if binary else json.loads(process.stdout)
+
+    def pages(self, path, *, query=None):
+        page = 1
+        while True:
+            items = self.request(
+                path,
+                query={**(query or {}), "per_page": 100, "page": page},
+            )
+            yield from items
+            if len(items) < 100:
+                return
+            page += 1
 
 
 def sha256(path):
@@ -125,13 +165,17 @@ def main():
     parser.add_argument("--base-url", default="https://gitlab.com/api/v4")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--metadata-only", action="store_true")
+    parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args()
     token = os.environ.get("GITLAB_TOKEN")
-    if not token:
-        raise SystemExit("GITLAB_TOKEN must be provided through the environment")
+    if token:
+        client = GitLab(args.base_url, token)
+    elif shutil.which("glab"):
+        client = Glab()
+    else:
+        raise SystemExit("GITLAB_TOKEN or an authenticated glab CLI is required")
     args.output.mkdir(parents=True, exist_ok=True)
     project_id = urllib.parse.quote(args.project, safe="")
-    client = GitLab(args.base_url, token)
     pipelines = {}
     for source in (None, "parent_pipeline"):
         query = {"source": source} if source else None
@@ -140,11 +184,34 @@ def main():
     assets = []
     exported = []
     errors = []
-    for pipeline_id in sorted(pipelines):
-        try:
-            exported.append(export_pipeline(client, project_id, pipelines[pipeline_id], args.output, assets, args.metadata_only))
-        except Exception as error:  # preserve partial evidence and identify the exact pipeline
-            errors.append({"pipelineId": pipeline_id, "type": type(error).__name__, "message": str(error)[:1000]})
+    pipeline_ids = sorted(pipelines)
+
+    def export_one(pipeline_id):
+        pipeline_assets = []
+        result = export_pipeline(
+            client,
+            project_id,
+            pipelines[pipeline_id],
+            args.output,
+            pipeline_assets,
+            args.metadata_only,
+        )
+        return result, pipeline_assets
+
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as executor:
+        futures = {executor.submit(export_one, pipeline_id): pipeline_id for pipeline_id in pipeline_ids}
+        for completed, future in enumerate(as_completed(futures), 1):
+            pipeline_id = futures[future]
+            try:
+                pipeline, pipeline_assets = future.result()
+                exported.append(pipeline)
+                assets.extend(pipeline_assets)
+            except Exception as error:  # preserve partial evidence and identify the exact pipeline
+                errors.append({"pipelineId": pipeline_id, "type": type(error).__name__, "message": str(error)[:1000]})
+            if completed % 25 == 0 or completed == len(futures):
+                print(f"exported {completed}/{len(futures)} pipelines", file=sys.stderr, flush=True)
+    exported.sort(key=lambda pipeline: pipeline["id"])
+    assets.sort(key=lambda asset: asset["path"])
     job_count = sum(len(pipeline["jobs"]) for pipeline in exported)
     downloaded = sum(len(job["artifacts"]) for pipeline in exported for job in pipeline["jobs"])
     missing = sum("missingReason" in job for pipeline in exported for job in pipeline["jobs"])
