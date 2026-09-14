@@ -27,7 +27,9 @@ spec:
   upgrade: {remediation: {retries: 3, remediateLastFailure: true}}
   values:
     fullnameOverride: re8ch-kube-state-metrics
-    replicas: 3
+    # Bootstrap must remain schedulable while A1/B1 are Cilium-tainted.
+    replicas: 1
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     customLabels:
       observability.re8ch.com/component: inventory
     collectors:
@@ -60,17 +62,6 @@ spec:
       - persistentvolumeclaims=[app.kubernetes.io/name,app.kubernetes.io/component]
     metricAnnotationsAllowList:
       - services=[observability.re8ch.com/owner,observability.re8ch.com/runbook,observability.re8ch.com/metrics-doc,observability.re8ch.com/slo]
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
-      podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels: {app.kubernetes.io/name: kube-state-metrics}
-            topologyKey: kubernetes.io/hostname
     resources:
       requests: {cpu: 100m, memory: 256Mi}
       limits: {cpu: "1", memory: 1Gi}
