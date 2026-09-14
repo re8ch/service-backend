@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: restate-data, namespace: secretary-system}
+metadata: {name: restate-data, namespace: re8ch-secretary}
 spec:
+  storageClassName: local-path
+  volumeName: pvc-3d6ed56d-57c7-4d29-8cfa-2a2b1df17a5f
   accessModes: [ReadWriteOnce]
   resources: {requests: {storage: 10Gi}}
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: restate, namespace: secretary-system}
+metadata: {name: restate, namespace: re8ch-secretary}
 spec:
   replicas: 1
   strategy: {type: Recreate}
@@ -35,7 +37,7 @@ spec:
 ---
 apiVersion: v1
 kind: ConfigMap
-metadata: {name: restate-config, namespace: secretary-system}
+metadata: {name: restate-config, namespace: re8ch-secretary}
 data:
   restate.toml: |
     roles = ["worker", "admin", "metadata-server", "log-server", "http-ingress"]
@@ -43,7 +45,7 @@ data:
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: restate, namespace: secretary-system}
+metadata: {name: restate, namespace: re8ch-secretary}
 spec:
   selector: {app.kubernetes.io/name: restate}
   ports:
@@ -52,7 +54,7 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: secretary-runtime, namespace: secretary-system}
+metadata: {name: secretary-runtime, namespace: re8ch-secretary}
 spec:
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: secretary-runtime}}
@@ -83,14 +85,14 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: secretary-runtime, namespace: secretary-system}
+metadata: {name: secretary-runtime, namespace: re8ch-secretary}
 spec:
   selector: {app.kubernetes.io/name: secretary-runtime}
   ports: [{name: service, port: 9080, targetPort: service}]
 ---
 apiVersion: batch/v1
 kind: Job
-metadata: {name: secretary-register-v0-2-0, namespace: secretary-system}
+metadata: {name: secretary-register-v0-2-0, namespace: re8ch-secretary}
 spec:
   backoffLimit: 8
   template:
@@ -117,7 +119,7 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: secretary-api, namespace: secretary-system}
+metadata: {name: secretary-api, namespace: re8ch-secretary}
 spec:
   replicas: 2
   selector: {matchLabels: {app.kubernetes.io/name: secretary-api}}
@@ -162,14 +164,14 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: secretary-api, namespace: secretary-system}
+metadata: {name: secretary-api, namespace: re8ch-secretary}
 spec:
   selector: {app.kubernetes.io/name: secretary-api}
   ports: [{name: http, port: 80, targetPort: http}]
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: secretary-projector, namespace: secretary-system}
+metadata: {name: secretary-projector, namespace: re8ch-secretary}
 spec:
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: secretary-projector}}
@@ -200,13 +202,13 @@ spec:
 ---
 apiVersion: v1
 kind: ServiceAccount
-metadata: {name: secretary, namespace: secretary-system}
+metadata: {name: secretary, namespace: re8ch-secretary}
 automountServiceAccountToken: false
 imagePullSecrets: [{name: harbor-secretary-system-admin}]
 ---
 apiVersion: v1
 kind: ServiceAccount
-metadata: {name: secretary-cluster-observer, namespace: secretary-system}
+metadata: {name: secretary-cluster-observer, namespace: re8ch-secretary}
 imagePullSecrets: [{name: harbor-secretary-system-admin}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -221,11 +223,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata: {name: secretary-cluster-observer}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: secretary-cluster-observer}
-subjects: [{kind: ServiceAccount, name: secretary-cluster-observer, namespace: secretary-system}]
+subjects: [{kind: ServiceAccount, name: secretary-cluster-observer, namespace: re8ch-secretary}]
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: secretary-cluster-watcher, namespace: secretary-system}
+metadata: {name: secretary-cluster-watcher, namespace: re8ch-secretary}
 spec:
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: secretary-cluster-watcher}}
@@ -250,7 +252,7 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: secretary-default-deny, namespace: secretary-system}
+metadata: {name: secretary-default-deny, namespace: re8ch-secretary}
 spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
@@ -273,7 +275,7 @@ spec:
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
-metadata: {name: secretary-cluster-watcher-kube-api, namespace: secretary-system}
+metadata: {name: secretary-cluster-watcher-kube-api, namespace: re8ch-secretary}
 spec:
   endpointSelector:
     matchLabels: {app.kubernetes.io/name: secretary-cluster-watcher}
@@ -286,7 +288,7 @@ spec:
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
-metadata: {name: secretary-api-gateway-ingress, namespace: secretary-system}
+metadata: {name: secretary-api-gateway-ingress, namespace: re8ch-secretary}
 spec:
   endpointSelector:
     matchLabels: {app.kubernetes.io/name: secretary-api}
@@ -298,14 +300,14 @@ spec:
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
-metadata: {name: secretary-api, namespace: secretary-system}
+metadata: {name: secretary-api, namespace: re8ch-secretary}
 spec:
   minAvailable: 1
   selector: {matchLabels: {app.kubernetes.io/name: secretary-api}}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: {name: secretary-channel-webhooks, namespace: secretary-system}
+metadata: {name: secretary-channel-webhooks, namespace: re8ch-secretary}
 spec:
   parentRefs:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}
