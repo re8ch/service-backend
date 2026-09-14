@@ -95,6 +95,40 @@ class PostgresLedger:
                 cur.execute("SELECT seq,event_json FROM secretary_incident_event WHERE seq>%s ORDER BY seq LIMIT %s", (after_seq, limit))
             return [{"seq": row[0], "event": row[1]} for row in cur.fetchall()]
 
+    def latest(self, limit: int = 100) -> list[dict[str, Any]]:
+        limit = max(1, min(limit, 1000))
+        with self.db.cursor() as cur:
+            cur.execute("SELECT seq,event_json FROM secretary_incident_event ORDER BY seq DESC LIMIT %s", (limit,))
+            return [{"seq": row[0], "event": row[1]} for row in cur.fetchall()]
+
+    def unresolved_delivery_attempts(self, older_than_seconds: int, limit: int = 100) -> list[FactEvent]:
+        with self.db.cursor() as cur:
+            cur.execute(
+                """SELECT attempted.event_json
+                   FROM secretary_incident_event attempted
+                  WHERE attempted.event_type='delivery.attempted'
+                    AND attempted.observed_at < now() - (%s * interval '1 second')
+                    AND NOT EXISTS (
+                      SELECT 1 FROM secretary_incident_event outcome
+                       WHERE outcome.incident_id=attempted.incident_id
+                         AND outcome.seq > attempted.seq
+                         AND outcome.event_type IN (
+                           'delivery.provider_accepted','delivery.device_delivered',
+                           'delivery.human_seen','delivery.failed','delivery.unknown')
+                         AND (
+                           outcome.event_json->>'causation_id'=attempted.event_id::text
+                           OR outcome.event_json->'data'->>'attempt_event_id'=attempted.event_id::text
+                           OR (
+                             attempted.event_json->'data'->>'request_key' IS NOT NULL
+                             AND outcome.event_json->'data'->>'request_key'=
+                                 attempted.event_json->'data'->>'request_key'))
+                    )
+                  ORDER BY attempted.seq
+                  LIMIT %s""",
+                (max(1, older_than_seconds), max(1, min(limit, 1000))),
+            )
+            return [FactEvent.from_dict(row[0]) for row in cur.fetchall()]
+
     def pending(self, destination: str, limit: int = 100) -> list[dict[str, Any]]:
         with self.db.cursor() as cur:
             cur.execute("""SELECT o.seq,e.event_json FROM secretary_outbox o
