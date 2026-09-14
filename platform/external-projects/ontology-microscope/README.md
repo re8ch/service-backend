@@ -21,9 +21,14 @@ service while Flux creates and verifies the replacement stack:
 
 Published immutable images:
 
-- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:822f8583ae073a397429a6d723cd8d67d7c23f4662837e3785178956c2d80be6`
-- migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:18f0c988c73a309babda165cd30f35c0e16ff925398896f77a8980a62618da00`
-- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:5151b968e5632f550353f8d550626b8d80ae3bb8abbe3885cbf5d33776e28589`
+- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:5b09f5a43e91c9402abd1b6f4c93cd97ee8e6d6c354afa86d1accc7f51bed6e3`
+- migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:37141efee09a7e6b63bc1d4833d2023c5e7cfe837891d9c73c8062f8a973f08c`
+- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:0797f9bb1254ca3f05c0d24583d5177c0f11691b7fc9f297657bacdf8cdf7584`
+
+These manifests preserve the builder layer digests (`--preserve-digests` and
+uncompressed OCI layers). This avoids a Harbor recompression path that made
+restricted-node-6dc3f140f9 pull a second, registry-specific copy of the same content while retaining
+immutable manifest references.
 
 The Neuronpedia build has no upstream UI source changes. It applies an exact
 `maplibre-gl 6.9.0` dependency override for `GHSA-jrc7-96c5-q579` and fails on
