@@ -209,6 +209,23 @@ spec:
           volumeMounts:
             - name: plugins
               mountPath: /headlamp/plugins
+        - name: install-secretary-plugin
+          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/secretary-0.1.0
+              archive=/tmp/plugin.tar.gz
+              cp /plugin/plugin.tar.gz "$archive"
+              echo '934318657941dbffdfa83f6b2cbae4d4324b3d5a6e17e2e3a08e97f96d5e6585  /tmp/plugin.tar.gz' | sha256sum -c -
+              rm -rf "$target.new"
+              mkdir -p "$target.new"
+              tar -xzf "$archive" -C "$target.new" --strip-components=1
+              rm -rf "$target"
+              mv "$target.new" "$target"
+          volumeMounts:
+            - {name: plugins, mountPath: /headlamp/plugins}
+            - {name: secretary-plugin, mountPath: /plugin, readOnly: true}
         - name: render-qwen-kubeconfig
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
@@ -327,6 +344,9 @@ spec:
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v011
+        - name: secretary-plugin
+          configMap:
+            name: headlamp-secretary-v010
         - name: runtime-anatomy-plugin
           configMap:
             name: headlamp-runtime-anatomy-v020

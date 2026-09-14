@@ -17,6 +17,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     expected = {
         "headlamp-public-edge-v020": "re8ch-headlamp-public-edge-0.2.0.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
+        "headlamp-secretary-v010": "re8ch-headlamp-secretary-0.1.0.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
     }
     for configmap, filename in expected.items():
@@ -42,6 +43,7 @@ def test_plugin_runtime_is_pod_local_and_complete():
         "install-mihomos-cluster-plugin",
         "install-runtime-anatomy-plugin",
         "install-flux-plugin",
+        "install-secretary-plugin",
     } <= init_names
     plugins = next(volume for volume in pod["volumes"] if volume["name"] == "plugins")
     assert plugins == {"name": "plugins", "emptyDir": {}}
