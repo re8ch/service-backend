@@ -22,7 +22,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:37141efee09a7e6b63bc1d4833d2023c5e7cfe837891d9c73c8062f8a973f08c
+          image: registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c
           imagePullPolicy: IfNotPresent
           args: [migrate, deploy]
           envFrom:
@@ -38,7 +38,7 @@ spec:
             - {name: tmp, mountPath: /tmp}
       containers:
         - name: webapp
-          image: registry.re8ch.com/re8ch/neuronpedia@sha256:5b09f5a43e91c9402abd1b6f4c93cd97ee8e6d6c354afa86d1accc7f51bed6e3
+          image: registry.re8ch.com/re8ch/neuronpedia@sha256:47ae146379b94833a05318fb856f0bad35fa92390a93c3dd0812a7c4c255a30f
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef: {name: ontology-microscope-db}
