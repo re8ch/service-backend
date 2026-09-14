@@ -191,7 +191,7 @@ def run(path: Path, output: Path) -> dict[str, Any]:
         "tokenAudience": token_audience,
         "serverIdentity": initialized.get("serverInfo"), "toolCount": len(tools), "toolSchemaHash": digest(tools),
         "resourceCount": len(resources), "resourcePages": pages, "resources": resource_hashes, "calls": calls,
-        "imageDigest": os.getenv("MCP_SERVER_IMAGE_DIGEST", "unknown"), "gitRevision": os.getenv("CI_COMMIT_SHA", "unknown"),
+        "imageDigest": os.getenv("MCP_SERVER_IMAGE_DIGEST", "unknown"), "gitRevision": os.getenv("GITHUB_SHA", "unknown"),
         "sensitiveMaterialPersisted": False,
     }
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -20,6 +20,7 @@ spec:
     internal-control-plane:
       consumable: false
       namespaces:
+        - gitlab-agent
         - ai-operations
         - auth
         - cert-manager
@@ -29,7 +30,6 @@ spec:
         - flux-system
         - function-routing
         - git-workspaces
-        - gitlab-agent
         - headlamp
         - image
         - kube-system

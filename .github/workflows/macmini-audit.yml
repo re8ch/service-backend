@@ -1,0 +1,27 @@
+name: macmini-audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - catalogs/**
+      - indexes/**
+      - workspace/**
+      - operations/workspace-controller/**
+permissions:
+  contents: read
+concurrency:
+  group: macmini-audit
+  cancel-in-progress: true
+jobs:
+  audit:
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1, trusted-audit]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: |
+          test -d /Volumes/A1/service-backend
+          curl -fsS http://127.0.0.1:19640/healthz
+          /Volumes/A1/service-backend/.venv/bin/python \
+            "$GITHUB_WORKSPACE/operations/workspace-controller/workspace.py" \
+            --root "$GITHUB_WORKSPACE" memory-audit

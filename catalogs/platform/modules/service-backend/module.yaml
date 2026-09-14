@@ -8,8 +8,8 @@ spec:
   projectType: gitops-control-plane
   writePolicy: github-pr
   knowledge: [README.md, runbooks/, clusters/, operations/]
-  tools: [glab, flux, re8ch-workspace, kubectl, helm]
-  deployments: [gitlab.com/reachievellc/service-backend, k3s/re8ch]
+  tools: [gh, flux, re8ch-workspace, kubectl, helm]
+  deployments: [github.com/re8ch/service-backend, k3s/re8ch]
   source:
     kind: root
     path: .

@@ -5,7 +5,7 @@ metadata:
 spec:
   parent:
     catalog: platform
-    repository: git@gitlab.com:reachievellc/service-backend.git
+    repository: https://github.com/re8ch/service-backend.git
     catalogPath: catalogs/platform/modules/mcp-registry
     submodulePath: catalogs/platform/modules/mcp-registry/source
   identity:

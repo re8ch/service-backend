@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/collaboration/pipeline-archive-v1.schema.json",
+  "title": "GitLab pipeline archive manifest",
+  "type": "object",
+  "required": ["schema", "sourceProject", "exportedAt", "pipelines", "assets", "summary"],
+  "properties": {
+    "schema": {"const": "collaboration.re8ch.com/pipeline-archive/v1"},
+    "sourceProject": {"type": "string", "minLength": 1},
+    "exportedAt": {"type": "string", "format": "date-time"},
+    "cutoffPipelineId": {"type": ["integer", "null"], "minimum": 1},
+    "pipelines": {"type": "array", "items": {"$ref": "#/$defs/pipeline"}},
+    "assets": {"type": "array", "items": {"$ref": "#/$defs/asset"}},
+    "summary": {
+      "type": "object",
+      "required": ["pipelineCount", "jobCount", "downloadedArtifacts", "missingArtifacts", "errors"],
+      "properties": {
+        "pipelineCount": {"type": "integer", "minimum": 0},
+        "jobCount": {"type": "integer", "minimum": 0},
+        "downloadedArtifacts": {"type": "integer", "minimum": 0},
+        "missingArtifacts": {"type": "integer", "minimum": 0},
+        "errors": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "asset": {
+      "type": "object",
+      "required": ["path", "size", "sha256", "kind"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "kind": {"enum": ["trace", "artifact", "test-report", "metadata"]}
+      },
+      "additionalProperties": false
+    },
+    "job": {
+      "type": "object",
+      "required": ["id", "name", "stage", "status", "trace", "artifacts"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "name": {"type": "string"},
+        "stage": {"type": "string"},
+        "status": {"type": "string"},
+        "trace": {"type": ["string", "null"]},
+        "artifacts": {"type": "array", "items": {"type": "string"}},
+        "missingReason": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "pipeline": {
+      "type": "object",
+      "required": ["id", "sha", "ref", "source", "status", "webUrl", "jobs"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "sha": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+        "ref": {"type": ["string", "null"]},
+        "source": {"type": ["string", "null"]},
+        "status": {"type": "string"},
+        "webUrl": {"type": "string"},
+        "createdAt": {"type": ["string", "null"]},
+        "updatedAt": {"type": ["string", "null"]},
+        "jobs": {"type": "array", "items": {"$ref": "#/$defs/job"}}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

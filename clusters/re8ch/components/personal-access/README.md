@@ -94,7 +94,7 @@ NodeLocal DNS are unchanged.
 
 ## Bootstrap
 
-Run these only after the GitLab change is merged and before reconciling Flux:
+Run these only after the GitHub pull request is merged and before reconciling Flux:
 
 ```sh
 clusters/re8ch/components/personal-access/bootstrap-runtime-secrets.sh

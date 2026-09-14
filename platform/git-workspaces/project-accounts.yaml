@@ -601,6 +601,30 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: among-clusters-maintain
+  namespace: git-workspaces
+spec:
+  email: among-clusters-maintain@phonaid.com
+  provider: github
+  project: among-clusters
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: among-clusters-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: among-clusters-maintain
+  projectRef: among-clusters
+  repository: https://github.com/among-clusters/among-clusters.git
+  folder: catalogs/platform/modules/among-clusters/source
+  branchPrefix: workspace/among-clusters-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: brand-assets-maintain
   namespace: git-workspaces
 spec:
@@ -717,30 +741,6 @@ spec:
   repository: https://github.com/among-clusters/connectool.git
   folder: catalogs/platform/modules/connectool/source
   branchPrefix: workspace/connectool-maintain/
----
-apiVersion: governance.re8ch.com/v1alpha1
-kind: GitAccount
-metadata:
-  name: among-clusters-maintain
-  namespace: git-workspaces
-spec:
-  email: among-clusters-maintain@phonaid.com
-  provider: github
-  project: among-clusters
-  mailbox: stalwart
-  googleWorkspace: eligible
----
-apiVersion: governance.re8ch.com/v1alpha1
-kind: GitWorkspace
-metadata:
-  name: among-clusters-maintain
-  namespace: git-workspaces
-spec:
-  accountRef: among-clusters-maintain
-  projectRef: among-clusters
-  repository: https://github.com/among-clusters/among-clusters.git
-  folder: catalogs/platform/modules/among-clusters/source
-  branchPrefix: workspace/among-clusters-maintain/
 ---
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
@@ -941,7 +941,7 @@ metadata:
   namespace: git-workspaces
 spec:
   email: service-backend-maintain@phonaid.com
-  provider: gitlab
+  provider: github
   project: service-backend
   mailbox: stalwart
   googleWorkspace: eligible
@@ -954,7 +954,7 @@ metadata:
 spec:
   accountRef: service-backend-maintain
   projectRef: service-backend
-  repository: git@gitlab.com:reachievellc/service-backend.git
+  repository: https://github.com/re8ch/service-backend.git
   folder: .
   branchPrefix: workspace/service-backend-maintain/
 ---

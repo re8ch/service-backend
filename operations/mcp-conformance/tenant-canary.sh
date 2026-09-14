@@ -53,10 +53,14 @@ value = {
     "endpoint": os.environ["ENDPOINT"],
     "protectedResourceMetadata": os.environ["METADATA_URL"],
     "anonymousStatus": int(os.environ["ANONYMOUS_STATUS"]),
-    "gitRevision": os.getenv("CI_COMMIT_SHA", "unknown"),
+    "gitRevision": os.getenv("GITHUB_SHA", "unknown"),
     "sensitiveMaterialPersisted": False,
 }
 open(sys.argv[1], "w").write(json.dumps(value, indent=2, sort_keys=True) + "\n")
 PY
-  cosign sign-blob --yes --identity-token "$MCP_EVIDENCE_SIGSTORE_ID_TOKEN" --bundle "$evidence.bundle" "$evidence"
+  if [ -n "${MCP_EVIDENCE_SIGSTORE_ID_TOKEN:-}" ]; then
+    cosign sign-blob --yes --identity-token "$MCP_EVIDENCE_SIGSTORE_ID_TOKEN" --bundle "$evidence.bundle" "$evidence"
+  else
+    cosign sign-blob --yes --bundle "$evidence.bundle" "$evidence"
+  fi
 fi

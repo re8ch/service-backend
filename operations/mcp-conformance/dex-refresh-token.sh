@@ -2,7 +2,7 @@
 set -eu
 
 # Print only the short-lived access token. The rotating refresh token remains a
-# protected GitLab variable and is never written to an artifact or command log.
+# protected GitHub environment secret and is never written to an artifact or command log.
 : "${DEX_REFRESH_TOKEN:?DEX_REFRESH_TOKEN is required}"
 : "${DEX_CLIENT_ID:?DEX_CLIENT_ID is required}"
 : "${DEX_RESOURCE:?DEX_RESOURCE is required}"
