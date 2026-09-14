@@ -51,7 +51,7 @@ spec:
           - target:
               version: v1
               kind: Service
-              name: kube-dns
+              name: advanced-fabric-dns
             patch: |-
               - op: add
                 path: /spec/trafficDistribution
