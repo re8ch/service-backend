@@ -9,7 +9,7 @@ spec:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}
   hostnames: [ontology.re8ch.com, ontology.apps.re8ch.com]
   rules:
-    - backendRefs: [{name: ontology-microscope, port: 80}]
+    - backendRefs: [{name: ontology-microscope-neuronpedia, port: 80}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -33,7 +33,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ontology-microscope
+                name: ontology-microscope-neuronpedia
                 port: {number: 80}
     - host: ontology.apps.re8ch.com
       http:
@@ -42,7 +42,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ontology-microscope
+                name: ontology-microscope-neuronpedia
                 port: {number: 80}
 ---
 apiVersion: cilium.io/v2
