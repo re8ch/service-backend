@@ -21,7 +21,7 @@ spec:
       containers:
         - name: restate
           image: docker.restate.dev/restatedev/restate:1.7.0
-          args: [--config-file, /etc/restate/restate.toml]
+          args: [--config-file, /etc/restate/restate.toml, --node-name, restate-865f85bb68-j7bdt]
           ports:
             - {name: ingress, containerPort: 8080}
             - {name: admin, containerPort: 9070}
