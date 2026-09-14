@@ -21,7 +21,7 @@ metadata:
     external-dns.alpha.kubernetes.io/hostname: ontology.apps.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   ingressClassName: external-dns-only
   rules:
