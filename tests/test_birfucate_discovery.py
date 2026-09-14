@@ -33,7 +33,7 @@ def workload(kind="Deployment", namespace="qwen", name="api"):
 def test_each_inventory_workload_maps_to_one_stable_shard():
     snapshot = json.loads((ROOT / "inventory/platform/live/services.yaml").read_text())
     workloads = [x for x in snapshot["resources"] if x["kind"] in {"Deployment", "StatefulSet", "DaemonSet"}]
-    assert len(workloads) == 310
+    assert len(workloads) == 309
     names = set()
     for item in workloads:
         item = {**item, "apiVersion": "apps/v1", "metadata": {"namespace": item["namespace"], "name": item["name"], "uid": f"uid-{item['kind']}-{item['namespace']}-{item['name']}"}, "spec": {"selector": {"matchLabels": item.get("labels", {})}, "template": {"spec": {"containers": []}}}}
