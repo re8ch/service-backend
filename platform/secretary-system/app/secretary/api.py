@@ -188,6 +188,13 @@ def event_stream(after_seq: int = 0, incident_id: str | None = None, limit: int 
     return {"items": items, "next_after_seq": items[-1]["seq"] if items else after_seq}
 
 
+@app.get("/v1/headlamp/event-stream")
+def headlamp_event_stream(after_seq: int = 0, incident_id: str | None = None, limit: int = 100) -> dict[str, Any]:
+    """Read model published only on the administrator-authenticated Headlamp host."""
+    items = db().stream(after_seq=after_seq, incident_id=incident_id, limit=limit)
+    return {"items": items, "next_after_seq": items[-1]["seq"] if items else after_seq}
+
+
 @app.get("/v1/channels/email/ack", response_class=HTMLResponse)
 def email_ack_form(incident_id: str, recipient_id: str, code: str) -> str:
     if not valid_action_code(incident_id, recipient_id, code):
