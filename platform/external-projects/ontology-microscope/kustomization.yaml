@@ -3,6 +3,9 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - workload.yaml
+  - database.yaml
+  - adapter.yaml
+  - neuronpedia.yaml
   - public.yaml
 labels:
   - pairs:
