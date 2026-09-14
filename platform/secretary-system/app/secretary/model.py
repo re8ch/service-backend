@@ -16,6 +16,8 @@ Severity = Literal["info", "warning", "high", "critical"]
 
 EVENT_TYPES = {
     "health.failed", "health.recovered", "probe.observed",
+    "alert.observed", "alert.grouped", "alert.silenced", "alert.inhibited", "alert.resolved",
+    "delivery.planned", "delivery.attempted", "delivery.unknown",
     "delivery.accepted", "delivery.provider_accepted", "delivery.device_delivered",
     "delivery.human_seen", "delivery.failed",
     "responsibility.assigned", "responsibility.acknowledged", "responsibility.released",
@@ -153,4 +155,3 @@ class ChannelCapabilities:
     can_collect_ack: bool
     can_collect_structured_result: bool
     independent_failure_domain: str
-

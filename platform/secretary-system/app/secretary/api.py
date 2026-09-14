@@ -78,6 +78,105 @@ def fact(incident_id: str, event_type: str, subject: str, *, actor_kind: str, ac
     })
 
 
+def alert_incident_id(fingerprint: str, starts_at: str) -> str:
+    """Keep Alertmanager retries in one incident without merging a later recurrence."""
+    material = f"{fingerprint}:{starts_at}".encode()
+    return f"inc_alert_{hashlib.sha256(material).hexdigest()[:24]}"
+
+
+def alertmanager_events(payload: dict[str, Any]) -> list[FactEvent]:
+    """Translate Alertmanager webhook claims into delivery-management facts.
+
+    A webhook proves that Alertmanager invoked this receiver. Delivery facts are
+    emitted separately, and only when Secretary invokes an outbound channel.
+    """
+    status = str(payload.get("status") or "firing")
+    receiver = str(payload.get("receiver") or "unknown")
+    group_key = str(payload.get("groupKey") or "unknown")
+    external_url = str(payload.get("externalURL") or "")
+    results: list[FactEvent] = []
+    for alert in payload.get("alerts") or []:
+        labels = {str(k): str(v) for k, v in (alert.get("labels") or {}).items()}
+        annotations = {str(k): str(v) for k, v in (alert.get("annotations") or {}).items()}
+        fingerprint = str(alert.get("fingerprint") or hashlib.sha256(json.dumps(labels, sort_keys=True).encode()).hexdigest())
+        starts_at = str(alert.get("startsAt") or "unknown")
+        incident_id = alert_incident_id(fingerprint, starts_at)
+        subject = labels.get("service") or labels.get("alertname") or fingerprint
+        common = {
+            "alert_fingerprint": fingerprint,
+            "group_key": group_key,
+            "receiver_id": receiver,
+            "namespace": labels.get("namespace", ""),
+            "service": labels.get("service", ""),
+            "severity": labels.get("severity", "warning"),
+            "owner": labels.get("owner", ""),
+            "policy_id": labels.get("policy_id", "platform-default"),
+            "starts_at": starts_at,
+            "ends_at": str(alert.get("endsAt") or ""),
+            "generator_url": str(alert.get("generatorURL") or ""),
+            "external_url": external_url,
+            "annotations": annotations,
+        }
+        observed_type = "alert.resolved" if status == "resolved" else "alert.observed"
+        observed = fact(
+            incident_id, observed_type, subject,
+            actor_kind="system", actor_id="re8ch-alertmanager", source="alertmanager",
+            authority="tool_observation", strength="authoritative",
+            failure_domain="observability-alertmanager", method="alertmanager-webhook",
+            idempotency_key=f"alertmanager:{fingerprint}:{starts_at}:{status}", data=common,
+        )
+        results.append(observed)
+    return results
+
+
+def start_alert_workflow(event: FactEvent) -> bool:
+    severity = str(event.data.get("severity") or "warning")
+    recipient_id = os.environ.get("SECRETARY_NOTIFY_RECIPIENT_ID", "cluster-owner")
+    task = fact(
+        event.incident_id, "task.started", event.subject,
+        actor_kind="system", actor_id="secretary", source="secretary",
+        authority="authenticated_action", strength="authoritative",
+        failure_domain="secretary-system", method="alert-intake",
+        idempotency_key=f"{event.idempotency_key}:task", causation_id=event.event_id,
+        data={
+            "severity": severity,
+            "responsibility_contract": {
+                "objective": str(event.data.get("annotations", {}).get("summary") or event.subject),
+                "assignee_id": recipient_id,
+                "allowed_tools": ["read-only-cluster-observation", "prometheus-query", "kubernetes-logs"],
+                "forbidden_actions": ["cluster-write", "incident-close-without-evidence"],
+                "required_evidence": ["human-ack", "two-independent-recovery-observations"],
+                "deadline_seconds": 3600,
+                "max_model_cost_usd": 1,
+                "max_phone_calls": 0,
+                "escalation_target": recipient_id,
+                "completion_definition": "verified recovery",
+            },
+        },
+    )
+    inserted = db().append(task)
+    if not inserted:
+        task = next(item for item in db().events(event.incident_id) if item.idempotency_key == f"{event.idempotency_key}:task")
+    try:
+        restate_signal(event.incident_id, "run/send", {
+            "severity": severity,
+            "responsibility_contract": task.data["responsibility_contract"],
+            "ack_timeout_seconds": int(os.environ.get("SECRETARY_ACK_TIMEOUT_SECONDS", "900")),
+            "investigation_timeout_seconds": 3600,
+        })
+    except Exception as exc:
+        db().append(fact(
+            event.incident_id, "task.progressed", event.subject,
+            actor_kind="system", actor_id="secretary", source="secretary",
+            authority="tool_observation", strength="supporting",
+            failure_domain="secretary-restate", method="workflow-dispatch",
+            idempotency_key=f"{event.idempotency_key}:workflow-dispatch-failed:{type(exc).__name__}",
+            causation_id=task.event_id,
+            data={"state": "workflow_dispatch_pending", "error_class": type(exc).__name__},
+        ))
+    return inserted
+
+
 def send_email_notification(incident_id: str, body: dict[str, Any]) -> dict[str, Any]:
     request_key = str(body["idempotency_key"])
     recipient_id, recipient_email = str(body["recipient_id"]), str(body["to"])
@@ -94,11 +193,18 @@ def send_email_notification(incident_id: str, body: dict[str, Any]) -> dict[str,
     if not db().append(assignment):
         assignment = next(event for event in db().events(incident_id) if event.idempotency_key == f"{request_key}:assignment")
 
-    accepted = fact(incident_id, "delivery.accepted", recipient_email, actor_kind="system", actor_id="secretary",
+    planned = fact(incident_id, "delivery.planned", recipient_email, actor_kind="system", actor_id="secretary",
         source="secretary", authority="authenticated_action", strength="authoritative", failure_domain="secretary-system",
-        method="email-dispatch", idempotency_key=f"{request_key}:accepted", causation_id=assignment.event_id,
-        data={"channel": "email", "recipient_id": recipient_id, "request_key": request_key})
-    db().append(accepted)
+        method="delivery-plan", idempotency_key=f"{request_key}:planned", causation_id=assignment.event_id,
+        data={"channel": "email", "recipient_id": recipient_id, "request_key": request_key, "delivery_state": "planned"})
+    if not db().append(planned):
+        planned = next(event for event in db().events(incident_id) if event.idempotency_key == f"{request_key}:planned")
+    attempted = fact(incident_id, "delivery.attempted", recipient_email, actor_kind="system", actor_id="secretary",
+        source="secretary", authority="authenticated_action", strength="authoritative", failure_domain="secretary-system",
+        method="smtp-request", idempotency_key=f"{request_key}:attempted", causation_id=planned.event_id,
+        data={"channel": "email", "recipient_id": recipient_id, "request_key": request_key, "delivery_state": "attempted"})
+    if not db().append(attempted):
+        attempted = next(event for event in db().events(incident_id) if event.idempotency_key == f"{request_key}:attempted")
     public_base = os.environ.get("SECRETARY_PUBLIC_BASE_URL", "https://tools.re8ch.com").rstrip("/")
     query = urllib.parse.urlencode({"incident_id": incident_id, "recipient_id": recipient_id, "code": code})
     ack_url = f"{public_base}/v1/channels/email/ack?{query}"
@@ -112,14 +218,14 @@ def send_email_notification(incident_id: str, body: dict[str, Any]) -> dict[str,
             message_id=message_id)
         provider = fact(incident_id, "delivery.provider_accepted", recipient_email, actor_kind="provider", actor_id="stalwart",
             source="stalwart", authority="provider_callback", strength="supporting", failure_domain="stalwart",
-            method="smtp-250", idempotency_key=f"{request_key}:provider-accepted", causation_id=accepted.event_id,
+            method="smtp-250", idempotency_key=f"{request_key}:provider-accepted", causation_id=attempted.event_id,
             data={"channel": "email", "recipient_id": recipient_id, "request_key": request_key, "message_id": result["message_id"]})
         db().append(provider)
         return {"accepted": True, "replayed": False, "event_id": provider.event_id}
     except Exception as exc:
         failed = fact(incident_id, "delivery.failed", recipient_email, actor_kind="provider", actor_id="stalwart",
             source="stalwart", authority="provider_callback", strength="supporting", failure_domain="stalwart",
-            method="smtp", idempotency_key=f"{request_key}:failed:{uuid.uuid4()}", causation_id=accepted.event_id,
+            method="smtp", idempotency_key=f"{request_key}:failed:{uuid.uuid4()}", causation_id=attempted.event_id,
             data={"channel": "email", "recipient_id": recipient_id, "request_key": request_key, "error_class": type(exc).__name__})
         db().append(failed)
         raise HTTPException(502, "email provider rejected notification") from exc
@@ -128,6 +234,41 @@ def send_email_notification(incident_id: str, body: dict[str, Any]) -> dict[str,
 @app.get("/healthz")
 def health() -> dict[str, bool]:
     return {"ok": True}
+
+
+@app.post("/v1/integrations/alertmanager", status_code=202)
+async def alertmanager_webhook(request: Request) -> dict[str, Any]:
+    """Internal-only receiver; network policy limits callers to observability-system."""
+    payload = await request.json()
+    events = alertmanager_events(payload)
+    inserted = 0
+    notifications: list[dict[str, Any]] = []
+    for event in events:
+        if db().append(event):
+            inserted += 1
+        if event.type != "alert.observed":
+            continue
+        start_alert_workflow(event)
+        recipient_id = os.environ.get("SECRETARY_NOTIFY_RECIPIENT_ID", "cluster-owner")
+        notification = send_email_notification(event.incident_id, {
+            "recipient_id": recipient_id,
+            "to": os.environ["SECRETARY_NOTIFY_TO"],
+            "subject": f"[Secretary/{str(event.data.get('severity', 'warning')).upper()}] {event.subject}",
+            "text": str(event.data.get("annotations", {}).get("summary") or f"Alertmanager observed {event.subject}."),
+            "idempotency_key": f"{event.idempotency_key}:email",
+        })
+        notifications.append(notification)
+    return {"events": len(events), "inserted": inserted, "notifications": notifications}
+
+
+@app.get("/v1/headlamp/delivery-summary")
+def headlamp_delivery_summary(limit: int = 500) -> dict[str, Any]:
+    items = db().latest(limit=limit)
+    counts: dict[str, int] = {}
+    for item in items:
+        event_type = str(item["event"].get("type") or "unknown")
+        counts[event_type] = counts.get(event_type, 0) + 1
+    return {"counts": counts, "latest_seq": items[0]["seq"] if items else 0, "items": items}
 
 
 @app.post("/v1/events", status_code=202)
@@ -189,10 +330,12 @@ def event_stream(after_seq: int = 0, incident_id: str | None = None, limit: int 
 
 
 @app.get("/v1/headlamp/event-stream")
-def headlamp_event_stream(after_seq: int = 0, incident_id: str | None = None, limit: int = 100) -> dict[str, Any]:
+def headlamp_event_stream(after_seq: int = 0, incident_id: str | None = None, limit: int = 100,
+                          latest: bool = False) -> dict[str, Any]:
     """Read model published only on the administrator-authenticated Headlamp host."""
-    items = db().stream(after_seq=after_seq, incident_id=incident_id, limit=limit)
-    return {"items": items, "next_after_seq": items[-1]["seq"] if items else after_seq}
+    items = db().latest(limit=limit) if latest and not incident_id else db().stream(after_seq=after_seq, incident_id=incident_id, limit=limit)
+    next_seq = max((item["seq"] for item in items), default=after_seq)
+    return {"items": items, "next_after_seq": next_seq}
 
 
 @app.get("/v1/channels/email/ack", response_class=HTMLResponse)

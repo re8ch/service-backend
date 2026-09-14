@@ -27,7 +27,7 @@ spec:
   upgrade: {remediation: {retries: 3, remediateLastFailure: true}}
   values:
     fullnameOverride: re8ch-kube-state-metrics
-    replicas: 2
+    replicas: 3
     customLabels:
       observability.re8ch.com/component: inventory
     collectors:
@@ -65,7 +65,7 @@ spec:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:

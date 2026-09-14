@@ -1,0 +1,57 @@
+apiVersion: operator.victoriametrics.com/v1
+kind: VLSingle
+metadata:
+  name: re8ch-logs
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability, observability.re8ch.com/managed: "true"}
+spec:
+  retentionPeriod: 14d
+  nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+  storage:
+    accessModes: [ReadWriteOnce]
+    storageClassName: rbd-r640
+    resources: {requests: {storage: 100Gi}}
+  extraArgs:
+    retention.maxDiskSpaceUsageBytes: 90GiB
+    loggerFormat: json
+  resources:
+    requests: {cpu: "1", memory: 2Gi}
+    limits: {cpu: "2", memory: 4Gi}
+---
+apiVersion: operator.victoriametrics.com/v1
+kind: VLAgent
+metadata:
+  name: re8ch
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability, observability.re8ch.com/managed: "true"}
+spec:
+  k8sCollector:
+    enabled: true
+    extraFields: '{"cluster":"re8ch","environment":"production"}'
+  remoteWrite:
+    - url: http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428
+      maxDiskUsage: 1GiB
+  remoteWriteSettings:
+    maxDiskUsagePerURL: 1GiB
+  extraArgs:
+    loggerFormat: json
+    remoteWrite.showURL: "false"
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: victoria-logs
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [observability-system]}
+  selector:
+    matchExpressions:
+      - {key: app.kubernetes.io/name, operator: In, values: [vlsingle, vlagent]}
+  endpoints:
+    - port: http
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {targetLabel: signal_domain, replacement: observability}
+        - {targetLabel: owner, replacement: platform-observability}
