@@ -38,7 +38,7 @@ spec:
             - {name: tmp, mountPath: /tmp}
       containers:
         - name: webapp
-          image: registry.re8ch.com/re8ch/neuronpedia@sha256:47ae146379b94833a05318fb856f0bad35fa92390a93c3dd0812a7c4c255a30f
+          image: registry.re8ch.com/re8ch/neuronpedia@sha256:4fffb48bfd442d0887ab6df4298ccc622d82af04c87c046bfd7dc899a56434f4
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef: {name: ontology-microscope-db}
@@ -162,3 +162,5 @@ spec:
       toPorts:
         - ports:
             - {port: "8080", protocol: TCP}
+  egress:
+    - toEntities: [cluster]
