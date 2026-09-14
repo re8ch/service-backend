@@ -5,10 +5,12 @@ in `re8ch-ontology-microscope`. The public endpoint remains protected by the
 existing `ontology-microscope-basic-auth` Secret; credential material is never
 stored in Git.
 
-## Neuronpedia canary
+## Neuronpedia production stack
 
-The first rollout deliberately leaves the public `HTTPRoute` on the legacy
-service while Flux creates and verifies the replacement stack:
+The public `HTTPRoute` and DNS-authority references resolve to the authenticated
+`ontology-microscope-neuronpedia` Service after the replacement stack passed
+database migration, projection, homepage, feature-page, and auth-boundary
+canaries:
 
 - unmodified Neuronpedia `v2.6.0` UI at upstream commit
   `599cd3f18a05912fb905643a8af2b34daf04ca1b`;
@@ -16,7 +18,7 @@ service while Flux creates and verifies the replacement stack:
   `rbd-r640` volume;
 - the RE8CH projection/intervention adapter from product revision
   `3a80110c2436d26cf0c33d15a8b122f48c39fa3b`;
-- an internal authenticated canary Service named
+- an authenticated Service named
   `ontology-microscope-neuronpedia`.
 
 Published immutable images:
@@ -37,9 +39,6 @@ NextAuth secret are SOPS-encrypted in the cluster overlay.
 
 ## Cutover and rollback
 
-After PostgreSQL migration, adapter projection, Neuronpedia API, authenticated
-Service, and feature-page canaries pass, a second PR changes only the
-`HTTPRoute` and DNS-authority backend references to
-`ontology-microscope-neuronpedia`. The legacy Deployment and Service remain
-intact for the rollback window. Rollback is the inverse backend-only change;
-it does not delete PostgreSQL data or its retained PVC.
+The legacy Deployment and Service remain intact for the rollback window.
+Rollback is the inverse backend-only change; it does not delete PostgreSQL data
+or its retained PVC.

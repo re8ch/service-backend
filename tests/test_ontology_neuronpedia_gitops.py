@@ -35,10 +35,17 @@ def test_neuronpedia_canary_is_parallel_and_digest_pinned():
             assert "@sha256:" in container["image"]
 
 
-def test_public_route_stays_on_legacy_service_during_canary():
+def test_public_route_and_dns_authority_use_neuronpedia_service():
     route = next(doc for doc in documents("public.yaml") if doc["kind"] == "HTTPRoute")
     backends = route["spec"]["rules"][0]["backendRefs"]
-    assert backends == [{"name": "ontology-microscope", "port": 80}]
+    assert backends == [{"name": "ontology-microscope-neuronpedia", "port": 80}]
+
+    authority = next(doc for doc in documents("public.yaml") if doc["kind"] == "Ingress")
+    authority_backends = {
+        rule["http"]["paths"][0]["backend"]["service"]["name"]
+        for rule in authority["spec"]["rules"]
+    }
+    assert authority_backends == {"ontology-microscope-neuronpedia"}
 
 
 def test_database_is_retained_and_secret_is_sops_encrypted():
