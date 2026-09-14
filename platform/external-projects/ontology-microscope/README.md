@@ -21,7 +21,7 @@ service while Flux creates and verifies the replacement stack:
 
 Published immutable images:
 
-- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:47ae146379b94833a05318fb856f0bad35fa92390a93c3dd0812a7c4c255a30f`
+- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:4fffb48bfd442d0887ab6df4298ccc622d82af04c87c046bfd7dc899a56434f4`
 - migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c`
 - adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:1e62d513bd344a9d04940df2a7c693ddb34f8055e0cea57b81a7d90afc74d3d4`
 
