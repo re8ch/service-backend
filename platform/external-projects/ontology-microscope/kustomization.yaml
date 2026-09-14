@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - workload.yaml
+  - public.yaml
 labels:
   - pairs:
       app.kubernetes.io/part-of: ontology-microscope
