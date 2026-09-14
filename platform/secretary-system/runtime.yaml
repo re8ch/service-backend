@@ -17,6 +17,7 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: restate}}
     spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: restate
@@ -62,6 +63,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-runtime}}
     spec:
       serviceAccountName: secretary
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
@@ -179,6 +181,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-projector}}
     spec:
       serviceAccountName: secretary
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
@@ -235,6 +238,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-cluster-watcher}}
     spec:
       serviceAccountName: secretary-cluster-observer
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: watcher
