@@ -108,6 +108,7 @@ spec:
         gatewayRef: kube-system/re8ch-gateway-canary
         routingAuthority: AdvancedFabric
         fallbackLanBackend: 192.0.2.97
+        requiredForwardPorts: [25, 80, 443, 465, 587, 993, 4190]
       peerBundleSecret: among-clusters-peer-bundle
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.79:8443", hostPort: 8443}

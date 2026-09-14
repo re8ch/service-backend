@@ -321,6 +321,51 @@ def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_
     assert "@sha256:" in container["image"]
 
 
+def test_stalwart_provisioner_models_shared_groups_and_distribution_lists():
+    resources = documents(ROOT / "platform/stalwart/mailbox-provisioner.yaml")
+    config = next(item for item in resources if item["kind"] == "ConfigMap")
+    script = config["data"]["provision.py"]
+    assert '"@type": "Group"' in script
+    assert '"object": "MailingList"' in script
+    assert '"name": "maintainers"' in script
+    assert '"name": "postmaster"' in script
+    cronjob = next(item for item in resources if item["kind"] == "CronJob")
+    pod_spec = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]
+    assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+
+
+def test_stalwart_cloudflare_token_is_mirrored_without_committing_credential_material():
+    resources = documents(ROOT / "platform/stalwart/cloudflare-token-sync.yaml")
+    config = next(item for item in resources if item["kind"] == "ConfigMap")
+    script = config["data"]["sync.py"]
+    assert "cloudflare-pg-dns-controller-secret" in script
+    assert "stalwart-cloudflare-dns-token" in script
+    assert "CF_API_TOKEN" in script
+    assert "Secret" not in [item["kind"] for item in resources]
+    stateful_set = next(
+        item for item in documents(ROOT / "platform/stalwart/stalwart.yaml") if item["kind"] == "StatefulSet"
+    )
+    pod_spec = stateful_set["spec"]["template"]["spec"]
+    token_volume = next(item for item in pod_spec["volumes"] if item["name"] == "cloudflare-token")
+    assert token_volume["secret"]["optional"] is True
+
+
+def test_stalwart_public_mail_uses_declared_gateway_tcp_listeners():
+    routes = documents(ROOT / "platform/stalwart/public-mail.yaml")
+    expected = {
+        "stalwart-smtp-public": ("mail-smtp", 25),
+        "stalwart-smtps-public": ("mail-smtps", 465),
+        "stalwart-submission-public": ("mail-submission", 587),
+        "stalwart-imaps-public": ("mail-imaps", 993),
+        "stalwart-sieve-public": ("mail-sieve", 4190),
+    }
+    assert {item["metadata"]["name"] for item in routes} == set(expected)
+    for route in routes:
+        listener, port = expected[route["metadata"]["name"]]
+        assert route["spec"]["parentRefs"][0]["sectionName"] == listener
+        assert route["spec"]["rules"][0]["backendRefs"] == [{"name": "stalwart", "port": port}]
+
+
 def test_opensandbox_proxy_health_is_local_and_embedded_python_compiles():
     resources = documents(ROOT / "platform/agent-onboarding-runtime/opensandbox-orchestra-proxy.yaml")
     config = next(item for item in resources if item["kind"] == "ConfigMap")

@@ -114,10 +114,42 @@ data:
         item for item in kube("GET", ACCOUNTS_PATH)["items"]
         if (item.get("spec") or {}).get("mailbox") == "stalwart"
     ]
+    group_projects = {
+        "platform-shared": {
+            "advanced-fabric", "among-clusters", "brand-assets", "cloud-functions", "cluster-website",
+            "codex-admin-plugins", "connectool", "farseer", "headlamp-advanced-fabric",
+            "headlamp-birfucate", "image-website", "mihomos-cluster", "observable-website",
+            "product-public-data", "re8ch-core", "registry-product-site", "service-backend",
+            "tool-distribution",
+        },
+        "anycam-shared": {"anycam", "anycam-backend", "anycam-ios", "anycam-website"},
+        "anysiteonearth-shared": {"anysiteonearth", "anysiteonearth-website"},
+        "baozou-ppt-studio-shared": {"baozou-ppt-studio", "director-engines"},
+        "garageband-shared": {"garageband-mcp", "garageband-mcp-site"},
+        "ledger-shared": {"ledger", "ledger-dashboard", "ledger-site"},
+        "phonaid-shared": {"phonaid-android", "phonaid-service", "phonaid-website"},
+    }
     domain_rows = [json.loads(line) for line in cli("query", "Domain", "--fields", "id,name", "--json").splitlines()]
     domain = next((row for row in domain_rows if row.get("name") == "phonaid.com"), None)
     if not domain:
         raise RuntimeError("phonaid.com domain is not provisioned")
+
+    group_plan = []
+    for index, name in enumerate(group_projects):
+        group_plan.append({
+            "@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
+            "value": {"group-" + str(index): {
+                "@type": "Group", "name": name, "domainId": domain["id"],
+                "description": name.removesuffix("-shared").replace("-", " ").title() + " shared workspace",
+                "roles": {"@type": "Default"}, "permissions": {"@type": "Inherit"},
+                "quotas": {}, "aliases": {},
+            }},
+        })
+    cli("apply", "--stdin", "--json", stdin="\n".join(json.dumps(item) for item in group_plan) + "\n")
+    group_rows = [json.loads(line) for line in cli("query", "Account", "--fields", "id,name", "--json").splitlines()]
+    group_ids = {row["name"]: row["id"] for row in group_rows if row.get("name") in group_projects}
+    if set(group_ids) != set(group_projects):
+        raise RuntimeError("Stalwart group reconciliation is incomplete")
 
     admin_email = "admin@phonaid.com"
     admin_account = {
@@ -138,7 +170,13 @@ data:
             "description": "Stalwart Administrator",
             "credentials": {"0": {"@type": "Password", "secret": admin_password}},
             "roles": {"@type": "Admin"}, "permissions": {"@type": "Inherit"},
-            "memberGroupIds": {}, "quotas": {}, "aliases": {},
+            "memberGroupIds": {}, "quotas": {},
+            "aliases": {
+                "0": {"name": "postmaster", "domainId": domain["id"], "enabled": True},
+                "1": {"name": "abuse", "domainId": domain["id"], "enabled": True},
+                "2": {"name": "dmarc", "domainId": domain["id"], "enabled": True},
+                "3": {"name": "tls-reports", "domainId": domain["id"], "enabled": True},
+            },
             "encryptionAtRest": {"@type": "Disabled"},
         }},
     }]
@@ -150,6 +188,10 @@ data:
             if separator != "@" or domain_name != "phonaid.com" or not local:
                 raise RuntimeError("invalid canonical mailbox address")
             password = load_or_create_password(account, email)
+            project = account["spec"].get("project")
+            memberships = {
+                group_ids[name]: True for name, projects in group_projects.items() if project in projects
+            }
             plan.append({
                 "@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
                 "value": {"account-" + str(index): {
@@ -157,7 +199,7 @@ data:
                     "description": account["spec"].get("displayName") or account["metadata"]["name"],
                     "credentials": {"0": {"@type": "Password", "secret": password}},
                     "roles": {"@type": "User"}, "permissions": {"@type": "Inherit"},
-                    "memberGroupIds": {}, "quotas": {}, "aliases": {},
+                    "memberGroupIds": memberships, "quotas": {}, "aliases": {},
                     "encryptionAtRest": {"@type": "Disabled"},
                 }},
             })
@@ -165,6 +207,30 @@ data:
         except Exception:
             patch_status(account, "Failed", "CredentialProvisioningFailed")
 
+    list_plan = []
+    for index, (group_name, projects) in enumerate(group_projects.items()):
+        list_name = group_name.removesuffix("-shared")
+        recipients = {
+            account["spec"]["email"]: True for account in accounts
+            if account["spec"].get("project") in projects
+        }
+        list_plan.append({
+            "@type": "upsert", "object": "MailingList", "matchOn": ["name", "domainId"],
+            "value": {"list-" + str(index): {
+                "name": list_name, "domainId": domain["id"],
+                "description": list_name.replace("-", " ").title() + " maintainers",
+                "recipients": recipients, "aliases": {},
+            }},
+        })
+    list_plan.append({
+        "@type": "upsert", "object": "MailingList", "matchOn": ["name", "domainId"],
+        "value": {"list-all": {
+            "name": "maintainers", "domainId": domain["id"],
+            "description": "All repository maintainers",
+            "recipients": {account["spec"]["email"]: True for account in accounts}, "aliases": {},
+        }},
+    })
+    plan.extend(list_plan)
     if plan:
         try:
             cli("apply", "--stdin", "--json", stdin="\n".join(json.dumps(item) for item in plan) + "\n")
@@ -194,7 +260,7 @@ spec:
         spec:
           serviceAccountName: stalwart-mailbox-provisioner
           restartPolicy: Never
-          nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
           securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
           containers:
             - name: provision

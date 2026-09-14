@@ -5,5 +5,7 @@ resources:
   - desired-mail-domain.yaml
   - bootstrap-plan.yaml
   - mailbox-provisioner.yaml
+  - cloudflare-token-sync.yaml
+  - public-mail.yaml
   - public-collaboration.yaml
   - bot-access-contract.yaml
