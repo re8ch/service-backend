@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ontology-microscope-adapter
+  namespace: re8ch-ontology-microscope
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ontology-microscope-adapter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ontology-microscope-adapter
+        saas.re8ch.com/tenant: re8ch
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: adapter
+          image: registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:5151b968e5632f550353f8d550626b8d80ae3bb8abbe3885cbf5d33776e28589
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: NODE_ENV, value: production}
+            - {name: HOST, value: 0.0.0.0}
+            - {name: PORT, value: "4318"}
+            - {name: GRAPH_REPOSITORY, value: memory}
+            - {name: REASONING_ADAPTER, value: mock}
+            - {name: NEURONPEDIA_SYNC_ON_START, value: "true"}
+            - name: NEURONPEDIA_DATABASE_URL
+              valueFrom:
+                secretKeyRef: {name: ontology-microscope-db, key: POSTGRES_URL_NON_POOLING}
+          ports:
+            - {name: http, containerPort: 4318, protocol: TCP}
+          readinessProbe:
+            httpGet: {path: /api/health, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /api/health, port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 750m, memory: 768Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {sizeLimit: 64Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ontology-microscope-adapter
+  namespace: re8ch-ontology-microscope
+spec:
+  selector:
+    app.kubernetes.io/name: ontology-microscope-adapter
+  ports:
+    - {name: http, port: 4318, targetPort: http, protocol: TCP}
