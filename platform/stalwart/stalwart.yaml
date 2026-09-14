@@ -97,9 +97,15 @@ spec:
             - {name: config, mountPath: /etc/stalwart, readOnly: true}
             - {name: data, mountPath: /var/lib/stalwart}
             - {name: tmp, mountPath: /tmp}
+            - {name: cloudflare-token, mountPath: /var/run/stalwart-secrets/cloudflare, readOnly: true}
       volumes:
         - {name: config, configMap: {name: stalwart-config}}
         - {name: tmp, emptyDir: {}}
+        - name: cloudflare-token
+          secret:
+            secretName: stalwart-cloudflare-dns-token
+            optional: true
+            items: [{key: CF_API_TOKEN, path: token}]
   volumeClaimTemplates:
     - metadata: {name: data}
       spec:

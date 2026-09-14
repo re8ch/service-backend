@@ -29,6 +29,7 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
         "gatewayRef": authority.get("gatewayRef"),
         "routingAuthority": authority.get("routingAuthority"),
         "fallbackLanBackend": authority.get("fallbackLanBackend"),
+        "requiredForwardPorts": authority.get("requiredForwardPorts"),
     }
     if expected != {
         "ownership": "provider",
@@ -40,6 +41,7 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
         "gatewayRef": "kube-system/re8ch-gateway-canary",
         "routingAuthority": "AdvancedFabric",
         "fallbackLanBackend": "192.0.2.169",
+        "requiredForwardPorts": [25, 80, 443, 465, 587, 993, 4190],
     }:
         raise SystemExit(f"unexpected restricted-node-6dc3f140f9 publicAuthority: {expected}")
 

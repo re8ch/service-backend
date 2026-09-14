@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: stalwart-cloudflare-token-sync, namespace: mail-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: stalwart-cloudflare-token-source, namespace: qianwen-ops}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [cloudflare-pg-dns-controller-secret]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: stalwart-cloudflare-token-source, namespace: qianwen-ops}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-cloudflare-token-source}
+subjects: [{kind: ServiceAccount, name: stalwart-cloudflare-token-sync, namespace: mail-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: stalwart-cloudflare-token-target, namespace: mail-system}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [stalwart-cloudflare-dns-token]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: stalwart-cloudflare-token-target, namespace: mail-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-cloudflare-token-target}
+subjects: [{kind: ServiceAccount, name: stalwart-cloudflare-token-sync, namespace: mail-system}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-cloudflare-token-sync, namespace: mail-system}
+data:
+  sync.py: |
+    import json, os, ssl, urllib.error, urllib.request
+
+    root = "/var/run/secrets/kubernetes.io/serviceaccount"
+    bearer = open(root + "/token", encoding="utf-8").read().strip()
+    api = "https://%s:%s" % (os.environ["KUBERNETES_SERVICE_HOST"], os.environ["KUBERNETES_SERVICE_PORT_HTTPS"])
+    context = ssl.create_default_context(cafile=root + "/ca.crt")
+    headers = {"Authorization": "Bearer " + bearer, "Content-Type": "application/json"}
+
+    def request(method, path, body=None):
+        payload = None if body is None else json.dumps(body, separators=(",", ":")).encode()
+        req = urllib.request.Request(api + path, data=payload, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, context=context, timeout=15) as response:
+                return json.load(response) if response.length else {}
+        except urllib.error.HTTPError as error:
+            if error.code == 404:
+                return None
+            raise
+
+    source = request("GET", "/api/v1/namespaces/qianwen-ops/secrets/cloudflare-pg-dns-controller-secret")
+    encoded = (source.get("data") or {}).get("CF_API_TOKEN") if source else None
+    if not encoded:
+        raise RuntimeError("Cloudflare credential source is unavailable")
+
+    target_path = "/api/v1/namespaces/mail-system/secrets/stalwart-cloudflare-dns-token"
+    current = request("GET", target_path)
+    body = {
+        "apiVersion": "v1", "kind": "Secret",
+        "metadata": {
+            "name": "stalwart-cloudflare-dns-token", "namespace": "mail-system",
+            "labels": {"app.kubernetes.io/managed-by": "stalwart-cloudflare-token-sync"},
+        },
+        "type": "Opaque", "data": {"CF_API_TOKEN": encoded},
+    }
+    if current:
+        body["metadata"]["resourceVersion"] = current["metadata"]["resourceVersion"]
+        request("PUT", target_path, body)
+    else:
+        request("POST", "/api/v1/namespaces/mail-system/secrets", body)
+    print(json.dumps({"synced": True, "target": "mail-system/stalwart-cloudflare-dns-token"}))
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: stalwart-cloudflare-token-sync, namespace: mail-system}
+spec:
+  schedule: "7 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 604800
+      template:
+        spec:
+          serviceAccountName: stalwart-cloudflare-token-sync
+          restartPolicy: OnFailure
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+          containers:
+            - name: sync
+              image: docker.1ms.run/library/python@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+              command: [python3, /app/sync.py]
+              resources:
+                requests: {cpu: 10m, memory: 32Mi}
+                limits: {cpu: 100m, memory: 64Mi}
+              securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+              volumeMounts: [{name: app, mountPath: /app, readOnly: true}]
+          volumes: [{name: app, configMap: {name: stalwart-cloudflare-token-sync}}]

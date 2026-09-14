@@ -65,6 +65,11 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - {name: mail-smtp, protocol: TCP, port: 25, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
+    - {name: mail-smtps, protocol: TCP, port: 465, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
+    - {name: mail-submission, protocol: TCP, port: 587, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
+    - {name: mail-imaps, protocol: TCP, port: 993, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
+    - {name: mail-sieve, protocol: TCP, port: 4190, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
     - name: apps-wildcard-https
       hostname: "*.apps.re8ch.com"
       protocol: HTTPS

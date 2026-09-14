@@ -1,0 +1,34 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata: {name: stalwart-smtp-public, namespace: mail-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mail-smtp}]
+  rules: [{backendRefs: [{name: stalwart, port: 25}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata: {name: stalwart-smtps-public, namespace: mail-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mail-smtps}]
+  rules: [{backendRefs: [{name: stalwart, port: 465}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata: {name: stalwart-submission-public, namespace: mail-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mail-submission}]
+  rules: [{backendRefs: [{name: stalwart, port: 587}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata: {name: stalwart-imaps-public, namespace: mail-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mail-imaps}]
+  rules: [{backendRefs: [{name: stalwart, port: 993}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata: {name: stalwart-sieve-public, namespace: mail-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mail-sieve}]
+  rules: [{backendRefs: [{name: stalwart, port: 4190}]}]

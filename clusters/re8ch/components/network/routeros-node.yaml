@@ -279,7 +279,7 @@ spec:
     gatewayRef: kube-system/re8ch-gateway-canary
     routingAuthority: AdvancedFabric
     fallbackLanBackend: 192.0.2.169
-    requiredForwardPorts: [80, 443]
+    requiredForwardPorts: [25, 80, 443, 465, 587, 993, 4190]
   peers:
     # BFD remains disabled until the matching 192.0.2.240 peer is configured
     # and verified in restricted-node-6dc3f140f9 FRR. The 10/30 BGP timers are the active failure gate.
