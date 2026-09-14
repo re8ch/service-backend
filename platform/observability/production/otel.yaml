@@ -11,7 +11,7 @@ spec:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
@@ -53,7 +53,7 @@ spec:
       otlphttp/traces:
         endpoint: http://vtinsert-re8ch-traces.observability-system.svc:10481/insert/opentelemetry
       otlphttp/logs:
-        endpoint: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/insert/opentelemetry
+        endpoint: http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428/insert/opentelemetry
     service:
       pipelines:
         traces:
@@ -158,10 +158,18 @@ metadata:
   namespace: observability-system
 spec:
   mode: deployment
-  replicas: 1
+  replicas: 2
   serviceAccount: re8ch-event-collector
-  nodeSelector:
-    kubernetes.io/hostname: restricted-node-1eb0570f74
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector: {matchLabels: {app.kubernetes.io/name: re8ch-event-collector-collector}}
+          topologyKey: kubernetes.io/hostname
   resources:
     requests: {cpu: 50m, memory: 128Mi}
     limits: {cpu: 500m, memory: 512Mi}
@@ -180,7 +188,7 @@ spec:
       batch: {timeout: 5s}
     exporters:
       otlphttp/logs:
-        endpoint: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/insert/opentelemetry
+        endpoint: http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428/insert/opentelemetry
     service:
       pipelines:
         logs:

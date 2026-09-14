@@ -63,7 +63,7 @@ data:
             labels: {severity: critical, alert_layer: grafana, owner: platform-observability}
             annotations:
               summary: A critical service is degraded across multiple signals
-              runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+              runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
             data:
               - refId: A
                 relativeTimeRange: {from: 600, to: 0}

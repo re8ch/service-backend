@@ -46,112 +46,112 @@ spec:
         - alert: Re8chObservabilityContractMissing
           expr: up{namespace!="",service!="",owner=""} == 1 or up{namespace!="",service!="",tier=""} == 1 or up{namespace!="",service!="",metrics_doc=""} == 1
           for: 30m
-          labels: {severity: info, owner: platform-observability, service: observability-governance, tier: standard, alert_layer: prometheus}
+          labels: {severity: info, owner: platform-observability, service: observability-governance, tier: standard, alert_layer: prometheus, policy_id: platform-default}
           annotations:
             summary: Scraped target is missing its observability contract
             description: "{{ $labels.namespace }}/{{ $labels.service }} must publish owner, tier, metrics documentation, SLO and runbook metadata."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
         - alert: Re8chCriticalMetricsTargetDown
           expr: up{tier="critical"} == 0
           for: 5m
-          labels: {severity: critical, owner: platform-observability, service: metrics-ingestion, tier: critical, alert_layer: prometheus}
+          labels: {severity: critical, owner: platform-observability, service: metrics-ingestion, tier: critical, alert_layer: prometheus, policy_id: platform-default}
           annotations:
             summary: Critical service metrics target is unreachable
             description: "{{ $labels.namespace }}/{{ $labels.service }} on {{ $labels.node }} has not been scrapeable for five minutes."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/platform/observability/README.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
         - alert: Re8chNodeInventoryNotReady
           expr: kube_node_status_condition{condition="Ready",status="true"} != 1
           for: 5m
-          labels: {severity: critical, owner: platform-infra, service: kubernetes-node, tier: critical, alert_layer: prometheus}
+          labels: {severity: critical, owner: platform-infra, service: kubernetes-node, tier: critical, alert_layer: prometheus, policy_id: platform-default}
           annotations:
             summary: Inventory node is not Ready
             description: "Node {{ $labels.node }} is not Ready and every workload mapped to it must be checked."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/inventory/platform/generated/PLATFORM-INVENTORY.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/inventory/platform/generated/PLATFORM-INVENTORY.md
     - name: re8ch.storage.alerts
       interval: 30s
       rules:
         - alert: Re8chCephHealthError
           expr: ceph_health_status > 1
           for: 2m
-          labels: {severity: critical, owner: platform-storage, service: ceph, tier: critical, alert_layer: prometheus, signal_domain: storage}
+          labels: {severity: critical, owner: platform-storage, service: ceph, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: storage}
           annotations:
             summary: Ceph reports HEALTH_ERR
             description: Ceph has a health error; do not provision or migrate observability storage until unfound and damaged PG conditions are resolved.
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/ceph-storage-gate-2026-08-25.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/ceph-storage-gate-2026-08-25.md
         - alert: Re8chCephOSDDown
           expr: ceph_osd_up == 0 or ceph_osd_in == 0
           for: 5m
-          labels: {severity: critical, owner: platform-storage, service: ceph-osd, tier: critical, alert_layer: prometheus, signal_domain: storage}
+          labels: {severity: critical, owner: platform-storage, service: ceph-osd, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: storage}
           annotations:
             summary: Ceph OSD is down or out
             description: "OSD {{ $labels.ceph_daemon }} is down or out."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/ceph-storage-gate-2026-08-25.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/ceph-storage-gate-2026-08-25.md
         - alert: Re8chCephPoolNearFull
           expr: ceph_pool_percent_used > 80
           for: 15m
-          labels: {severity: warning, owner: platform-storage, service: ceph-pool, tier: critical, alert_layer: prometheus, signal_domain: storage}
+          labels: {severity: warning, owner: platform-storage, service: ceph-pool, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: storage}
           annotations:
             summary: Ceph pool usage exceeds 80 percent
             description: "Pool {{ $labels.name }} usage is {{ $value }} percent."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/ceph-storage-gate-2026-08-25.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/ceph-storage-gate-2026-08-25.md
         - alert: Re8chPVCNearlyFull
           expr: re8ch:pvc:used_ratio > 0.85
           for: 15m
-          labels: {severity: warning, owner: platform-storage, service: kubernetes-pvc, tier: high, alert_layer: prometheus, signal_domain: storage}
+          labels: {severity: warning, owner: platform-storage, service: kubernetes-pvc, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: storage}
           annotations:
             summary: Persistent volume is more than 85 percent full
             description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} on {{ $labels.node }} is nearly full."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/platform/observability/README.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
         - alert: Re8chPVCPending
           expr: kube_persistentvolumeclaim_status_phase{phase="Pending"} == 1
           for: 10m
-          labels: {severity: warning, owner: platform-storage, service: kubernetes-pvc, tier: high, alert_layer: prometheus, signal_domain: storage}
+          labels: {severity: warning, owner: platform-storage, service: kubernetes-pvc, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: storage}
           annotations:
             summary: PersistentVolumeClaim remains Pending
             description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has not bound."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/platform/observability/README.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
     - name: re8ch.network.alerts
       interval: 30s
       rules:
         - alert: Re8chCiliumAgentMissing
           expr: count by (node) (up{service="cilium-agent"} == 1) < 1
           for: 5m
-          labels: {severity: critical, owner: platform-network, service: cilium, tier: critical, alert_layer: prometheus, signal_domain: network}
+          labels: {severity: critical, owner: platform-network, service: cilium, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: network}
           annotations:
             summary: Cilium agent metrics are missing on a node
             description: "Cilium metrics are unavailable for {{ $labels.node }}."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/k3s-cilium-gateway-operations-runbook-2026-08-16.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/platform-history/k3s-cilium-gateway-operations-runbook-2026-08-16.md
         - alert: Re8chHubbleDropBurst
           expr: sum by (source_namespace, destination_namespace, reason) (rate(hubble_drop_total[5m])) > 5
           for: 5m
-          labels: {severity: warning, owner: platform-network, service: hubble, tier: high, alert_layer: prometheus, signal_domain: network}
+          labels: {severity: warning, owner: platform-network, service: hubble, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: network}
           annotations:
             summary: Hubble observes sustained dropped traffic
             description: "Drop reason {{ $labels.reason }} exceeds five packets per second between namespaces."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/network-routing-cost-observability-2026-08-02.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/platform-history/network-routing-cost-observability-2026-08-02.md
         - alert: Re8chAdvancedFabricDNSFailureRatio
           expr: sum(rate(advanced_fabric_dns_failures_total[5m])) / clamp_min(sum(rate(advanced_fabric_dns_queries_total[5m])), 0.001) > 0.02
           for: 10m
-          labels: {severity: warning, owner: platform-network, service: advanced-fabric-dns, tier: critical, alert_layer: prometheus, signal_domain: network}
+          labels: {severity: warning, owner: platform-network, service: advanced-fabric-dns, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: network}
           annotations:
             summary: Advanced Fabric DNS failure ratio exceeds two percent
             description: DNS failures have remained elevated for ten minutes.
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/k3s-cilium-gateway-operations-runbook-2026-08-16.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/platform-history/k3s-cilium-gateway-operations-runbook-2026-08-16.md
         - alert: Re8chNodeNetworkErrors
           expr: sum by (node, device) (rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m])) > 1
           for: 10m
-          labels: {severity: warning, owner: platform-network, service: node-network, tier: high, alert_layer: prometheus, signal_domain: network}
+          labels: {severity: warning, owner: platform-network, service: node-network, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: network}
           annotations:
             summary: Node interface reports sustained errors
             description: "{{ $labels.node }}/{{ $labels.device }} exceeds one error per second."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/platform-history/network-routing-cost-observability-2026-08-02.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/platform-history/network-routing-cost-observability-2026-08-02.md
     - name: re8ch.stateful.alerts
       interval: 60s
       rules:
         - alert: Re8chPostgreSQLExporterDown
           expr: pg_up == 0 or pg_exporter_last_scrape_error != 0
           for: 5m
-          labels: {severity: critical, owner: platform-data, service: pigsty-postgresql, tier: critical, alert_layer: prometheus, signal_domain: stateful}
+          labels: {severity: critical, owner: platform-data, service: pigsty-postgresql, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateful}
           annotations:
             summary: Pigsty PostgreSQL instance or exporter is unhealthy
             description: "PostgreSQL instance {{ $labels.ins }} on {{ $labels.ip }} is not reporting healthy metrics."
@@ -159,7 +159,7 @@ spec:
         - alert: Re8chPostgreSQLReplicationLag
           expr: pg_replication_lag > 300
           for: 10m
-          labels: {severity: warning, owner: platform-data, service: pigsty-postgresql, tier: critical, alert_layer: prometheus, signal_domain: stateful}
+          labels: {severity: warning, owner: platform-data, service: pigsty-postgresql, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateful}
           annotations:
             summary: PostgreSQL replication lag exceeds five minutes
             description: "Instance {{ $labels.ins }} replication lag is {{ $value }} seconds."
@@ -167,43 +167,61 @@ spec:
         - alert: Re8chStatefulSetUnavailable
           expr: kube_statefulset_replicas - kube_statefulset_status_replicas_ready > 0
           for: 10m
-          labels: {severity: warning, owner: platform-data, service: kubernetes-statefulset, tier: high, alert_layer: prometheus, signal_domain: stateful}
+          labels: {severity: warning, owner: platform-data, service: kubernetes-statefulset, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateful}
           annotations:
             summary: StatefulSet has unavailable replicas
             description: "{{ $labels.namespace }}/{{ $labels.statefulset }} is missing ready replicas."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/platform/observability/README.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
     - name: re8ch.stateless.alerts
       interval: 30s
       rules:
         - alert: Re8chApplicationHealthFailed
           expr: min by (namespace, service, owner, tier, dependency) (re8ch_service_health) < 1
           for: 3m
-          labels: {severity: critical, owner: platform-products, service: application-health, tier: high, alert_layer: prometheus, signal_domain: stateless}
+          labels: {severity: critical, owner: platform-products, service: application-health, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateless}
           annotations:
             summary: Application reports a failed dependency
             description: "{{ $labels.namespace }}/{{ $labels.service }} reports {{ $labels.dependency }} unhealthy."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
         - alert: Re8chApplicationHighErrorRatio
           expr: re8ch:service:http_errors:ratio5m > 0.05 and on (cluster, namespace, service, app, owner, tier) re8ch:service:http_requests:rate5m > 0.1
           for: 10m
-          labels: {severity: warning, owner: platform-products, service: application-http, tier: high, alert_layer: prometheus, signal_domain: stateless}
+          labels: {severity: warning, owner: platform-products, service: application-http, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateless}
           annotations:
             summary: Application HTTP 5xx ratio exceeds five percent
             description: "{{ $labels.namespace }}/{{ $labels.service }} has sustained elevated errors."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
         - alert: Re8chApplicationHighLatency
           expr: re8ch:service:http_latency:p95_5m > 1
           for: 10m
-          labels: {severity: warning, owner: platform-products, service: application-http, tier: high, alert_layer: prometheus, signal_domain: stateless}
+          labels: {severity: warning, owner: platform-products, service: application-http, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateless}
           annotations:
             summary: Application p95 latency exceeds one second
             description: "{{ $labels.namespace }}/{{ $labels.service }} p95 latency is {{ $value }} seconds."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
         - alert: Re8chApplicationSaturated
           expr: re8ch:service:saturation:max5m > 0.90
           for: 15m
-          labels: {severity: warning, owner: platform-products, service: application-capacity, tier: high, alert_layer: prometheus, signal_domain: stateless}
+          labels: {severity: warning, owner: platform-products, service: application-capacity, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateless}
           annotations:
             summary: Application reports saturation above 90 percent
             description: "{{ $labels.namespace }}/{{ $labels.service }} resource {{ $labels.resource }} is saturated."
-            runbook_url: https://gitlab.com/reachievellc/service-backend/-/blob/main/runbooks/observability/application-observability-contract.md
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
+    - name: re8ch.alerting.delivery-management
+      interval: 30s
+      rules:
+        - alert: Re8chAlertingWatchdog
+          expr: vector(1)
+          labels: {severity: warning, owner: platform-observability, service: alerting-watchdog, namespace: observability-system, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: observability}
+          annotations:
+            summary: RE8CH alerting delivery-management watchdog
+            description: This continuously firing alert proves the rule-to-Alertmanager-to-Secretary observation path when its periodic delivery attempt appears in the Secretary ledger.
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
+        - alert: Re8chAlertmanagerNotificationFailures
+          expr: sum by (integration) (increase(alertmanager_notifications_failed_total[10m])) > 0
+          for: 2m
+          labels: {severity: high, owner: platform-observability, service: alertmanager, namespace: observability-system, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: observability}
+          annotations:
+            summary: Alertmanager receiver requests are failing
+            description: Alertmanager integration {{ $labels.integration }} has failed one or more notification attempts in the last ten minutes.
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
