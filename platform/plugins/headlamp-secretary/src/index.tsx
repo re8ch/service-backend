@@ -1,6 +1,6 @@
 import { K8s, registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
 import { SectionBox, StatusLabel, Table } from '@kinvolk/headlamp-plugin/lib/components/common';
-import { Alert, Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material';
 import React from 'react';
 
 const NS = 're8ch-secretary';
@@ -24,26 +24,25 @@ function Dashboard() {
   const [pods, podError] = K8s.ResourceClasses.Pod.useList({namespace:NS} as any);
   const [services] = K8s.ResourceClasses.Service.useList({namespace:NS} as any);
   const [networkPolicies] = K8s.ResourceClasses.NetworkPolicy.useList({namespace:NS} as any);
-  const [token, setToken] = React.useState(()=>sessionStorage.getItem('re8ch-secretary-query-token') || '');
   const [items, setItems] = React.useState<any[]>([]);
   const [cursor, setCursor] = React.useState(0);
   const [streamError, setStreamError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
-  async function load(reset=false) {
-    if (!token) { setStreamError('请输入 Secretary query token。'); return; }
+  const load = React.useCallback(async (reset=false) => {
     setLoading(true); setStreamError('');
     try {
-      sessionStorage.setItem('re8ch-secretary-query-token', token);
       const after = reset ? 0 : cursor;
-      const response = await fetch(`${STREAM_URL}?after_seq=${after}&limit=200`, {headers:{'X-Secretary-Query-Token':token}});
+      const response = await fetch(`${STREAM_URL}?after_seq=${after}&limit=200`, {credentials:'same-origin'});
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      setItems(reset ? data.items : [...items, ...data.items]);
+      setItems(current=>reset ? data.items : [...current, ...data.items]);
       setCursor(data.next_after_seq || after);
     } catch (error) { setStreamError(`事件流读取失败：${String(error)}`); }
     finally { setLoading(false); }
-  }
+  }, [cursor]);
+
+  React.useEffect(()=>{ void load(true); }, []);
 
   const referencedSecretKeys = new Map<string,Set<string>>();
   for (const deployment of deployments || []) {
@@ -92,10 +91,8 @@ function Dashboard() {
     </SectionBox>
     <SectionBox title="Authoritative event stream">
       <Stack direction={{xs:'column',md:'row'}} spacing={1} sx={{mb:2}}>
-        <TextField size="small" type="password" label="Secretary query token" value={token} onChange={e=>setToken(e.target.value)} sx={{minWidth:360}}/>
-        <Button variant="contained" disabled={loading} onClick={()=>load(true)}>Load latest</Button>
+        <Button variant="contained" disabled={loading} onClick={()=>load(true)}>Refresh</Button>
         <Button variant="outlined" disabled={loading || !cursor} onClick={()=>load(false)}>Load next</Button>
-        <Button color="inherit" onClick={()=>{sessionStorage.removeItem('re8ch-secretary-query-token');setToken('');setItems([]);setCursor(0);}}>Forget token</Button>
       </Stack>
       {streamError && <Alert severity="error" sx={{mb:1}}>{streamError}</Alert>}
       <Table data={eventRows} columns={[
@@ -107,7 +104,7 @@ function Dashboard() {
         {header:'Source',accessorFn:(x:any)=>x.event?.source || '-'},
         {header:'Observed',accessorFn:(x:any)=>fmtTime(x.event?.observed_at)},
       ] as any}/>
-      <Typography variant="caption" color="text.secondary">Cursor: {cursor || '-'} · loaded facts: {items.length}. Query token stays in this browser tab session.</Typography>
+      <Typography variant="caption" color="text.secondary">Cursor: {cursor || '-'} · loaded facts: {items.length}. Access is inherited from the authenticated Headlamp administrator session.</Typography>
     </SectionBox>
   </Box>;
 }
