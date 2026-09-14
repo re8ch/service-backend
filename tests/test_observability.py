@@ -35,11 +35,28 @@ def test_retention_and_r640_storage_placement_are_explicit():
     assert traces["spec"]["storage"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
 
 
-def test_vmalert_starts_in_observe_only_mode():
+def test_vmalert_uses_ha_alertmanager_notifier():
     resources = yaml_documents(OBSERVABILITY / "production" / "collectors.yaml")
     vmalert = next(doc for doc in resources if doc["kind"] == "VMAlert")
 
-    assert vmalert["spec"]["extraArgs"]["notifier.blackhole"] == "true"
+    assert "extraArgs" not in vmalert["spec"] or "notifier.blackhole" not in vmalert["spec"]["extraArgs"]
+    selector = vmalert["spec"]["notifiers"][0]["selector"]
+    assert selector["namespaceSelector"]["matchNames"] == ["observability-system"]
+    assert selector["labelSelector"]["matchLabels"]["usage"] == "re8ch-platform-alerting"
+
+
+def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
+    logs = yaml_documents(OBSERVABILITY / "production" / "logs.yaml")
+    vlsingle = next(doc for doc in logs if doc["kind"] == "VLSingle")
+    vlagent = next(doc for doc in logs if doc["kind"] == "VLAgent")
+    alerting = yaml_documents(OBSERVABILITY / "production" / "alertmanager.yaml")
+    alertmanager = next(doc for doc in alerting if doc["kind"] == "VMAlertmanager")
+
+    assert vlsingle["spec"]["retentionPeriod"] == "14d"
+    assert vlsingle["spec"]["storage"]["storageClassName"] == "rbd-r640"
+    assert vlagent["spec"]["k8sCollector"]["enabled"] is True
+    assert alertmanager["spec"]["replicaCount"] == 3
+    assert alertmanager["spec"]["configNamespaceSelector"] == {}
 
 
 def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
@@ -107,8 +124,9 @@ def test_every_alert_has_ownership_and_runbook_metadata():
 
     assert alerts
     for alert in alerts:
-        assert {"severity", "owner", "service", "tier", "alert_layer"} <= alert["labels"].keys()
+        assert {"severity", "owner", "service", "tier", "alert_layer", "policy_id"} <= alert["labels"].keys()
         assert {"summary", "description", "runbook_url"} <= alert["annotations"].keys()
+        assert "gitlab.com" not in alert["annotations"]["runbook_url"]
 
 
 def test_dashboard_files_are_dense_and_have_stable_ids():

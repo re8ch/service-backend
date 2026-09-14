@@ -4,3 +4,4 @@ resources:
   - namespace.yaml
   - victoria-metrics-operator.yaml
   - kube-state-metrics.yaml
+  - opentelemetry-operator.yaml

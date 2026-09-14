@@ -1,6 +1,16 @@
 # RE8CH Secretary System
 
-Secretary is the durable incident responsibility and evidence control plane. It does not treat a provider `200`, delivered/read receipt, or model statement as proof that a human accepted responsibility or that a service recovered.
+Secretary is the durable delivery-management, incident responsibility and
+evidence control plane. It does not guarantee delivery. It records what each
+channel can actually prove, manages retries and escalation, and leaves missing
+evidence unknown. It never treats a provider `200`, delivered/read receipt, or
+model statement as proof that a human accepted responsibility or that a service
+recovered.
+
+Alertmanager posts firing and resolved groups to the internal-only endpoint
+`/v1/integrations/alertmanager`. A received webhook creates `alert.observed` and
+`delivery.attempted`; it cannot by itself create provider acceptance, device
+delivery, human attention or acknowledgement facts.
 
 The runtime is tenant-scoped in `re8ch-secretary`. Its single-node Restate deployment keeps the stable node identity `restate-865f85bb68-j7bdt` so the retained data volume continues the existing durable journals after the namespace migration.
 
@@ -12,7 +22,7 @@ The runtime is tenant-scoped in `re8ch-secretary`. Its single-node Restate deplo
 - Neo4j is a rebuildable evidence graph projection.
 - BlueBubbles and the restricted-node-6dc3f140f9 Voice Gateway are degraded notification adapters, never fact authorities by themselves.
 
-Release tag `v0.2.1` resolves to immutable digest `sha256:84386d2d4cdbf5e56e48b111d05f8d7ab5367597d5250f38c7153f36d20a2969`; GitOps deploys that digest. Its build carries provenance and SBOM attestations. The managed database bundle supplies `secretary-db-credentials/DATABASE_URL_RW`. Create the `secretary-runtime` Secret out of band with keys `webhook-secret`, `query-token`, `bluebubbles-webhook-token`, `voice-webhook-token`, `identity-bindings-json`, `neo4j-uri`, `neo4j-user`, `neo4j-password`, and `litellm-api-key`; no secret values belong in Git. The out-of-band `secretary-email` Secret supplies the Stalwart application credentials, pinned TLS fingerprint, recipient address, and stable recipient ID. `identity-bindings-json` maps channel identities such as `imessage:+8613800138000` to stable recipient IDs.
+Release tag `v0.2.2` resolves to immutable linux/amd64 digest `sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d`; GitOps deploys that digest. Its build carries provenance and SBOM attestations. The managed database bundle supplies `secretary-db-credentials/DATABASE_URL_RW`. Create the `secretary-runtime` Secret out of band with keys `webhook-secret`, `query-token`, `bluebubbles-webhook-token`, `voice-webhook-token`, `identity-bindings-json`, `neo4j-uri`, `neo4j-user`, `neo4j-password`, and `litellm-api-key`; no secret values belong in Git. The out-of-band `secretary-email` Secret supplies the Stalwart application credentials, pinned TLS fingerprint, recipient address, and stable recipient ID. `identity-bindings-json` maps channel identities such as `imessage:+8613800138000` to stable recipient IDs.
 
 Configure BlueBubbles to send `new-message`, `updated-message`, and `message-send-error` webhooks to:
 

@@ -5,7 +5,7 @@ metadata:
   namespace: observability-system
   labels: {app.kubernetes.io/part-of: re8ch-observability}
 spec:
-  replicaCount: 2
+  replicaCount: 3
   externalLabelName: vmagent_ha
   selectAllByDefault: false
   serviceScrapeSelector:
@@ -30,7 +30,7 @@ spec:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
@@ -47,7 +47,7 @@ metadata:
   namespace: observability-system
   labels: {app.kubernetes.io/part-of: re8ch-observability}
 spec:
-  replicaCount: 2
+  replicaCount: 3
   datasource:
     url: http://vmselect-re8ch-metrics.observability-system.svc:8481/select/0/prometheus
   remoteRead:
@@ -57,14 +57,16 @@ spec:
   evaluationInterval: 30s
   ruleSelector:
     matchLabels: {observability.re8ch.com/managed: "true"}
-  extraArgs:
-    notifier.blackhole: "true"
+  notifiers:
+    - selector:
+        namespaceSelector: {matchNames: [observability-system]}
+        labelSelector: {matchLabels: {usage: re8ch-platform-alerting}}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:

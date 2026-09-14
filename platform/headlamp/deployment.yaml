@@ -214,10 +214,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/secretary-0.1.0
+              target=/headlamp/plugins/secretary-0.2.0
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '0e2835ca8c17d17e4a23a73e0522afeb61e607f9b7a62cc9966047a1306694cb  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'a8a613ceb3af688d0bf189054dbca8dff99ca419f69bf4facc4e1626858f1b19  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -346,7 +346,7 @@ spec:
             name: headlamp-mihomos-cluster-v011
         - name: secretary-plugin
           configMap:
-            name: headlamp-secretary-v010
+            name: headlamp-secretary-v020
         - name: runtime-anatomy-plugin
           configMap:
             name: headlamp-runtime-anatomy-v020
