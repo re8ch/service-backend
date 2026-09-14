@@ -2,7 +2,7 @@
 
 Ontology Microscope is a normal workload owned by the `re8ch` tenant. Flux
 deploys it into `re8ch-ontology-microscope`. Its authenticated public endpoint
-is `https://ontology.apps.re8ch.com`; the Basic Auth material is held only in
+is `https://ontology.re8ch.com`; the Basic Auth material is held only in
 the `ontology-microscope-basic-auth` Kubernetes Secret.
 
 - Product source: `https://github.com/re8ch/thiking-machine.git`

@@ -5,8 +5,9 @@ metadata:
   namespace: re8ch-ontology-microscope
 spec:
   parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: ontology-https}
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}
-  hostnames: [ontology.apps.re8ch.com]
+  hostnames: [ontology.re8ch.com, ontology.apps.re8ch.com]
   rules:
     - backendRefs: [{name: ontology-microscope, port: 80}]
 ---
@@ -18,13 +19,22 @@ metadata:
   labels:
     networking.re8ch.com/dns-authority: public-edge
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: ontology.apps.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: ontology.re8ch.com,ontology.apps.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   ingressClassName: external-dns-only
   rules:
+    - host: ontology.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ontology-microscope
+                port: {number: 80}
     - host: ontology.apps.re8ch.com
       http:
         paths:
