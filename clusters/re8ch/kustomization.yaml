@@ -21,6 +21,7 @@ resources:
   - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
   - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
   - secrets/cloudflare-advfab-dns-token.sops.yaml
+  - secrets/ontology-microscope-db.sops.yaml
   - components/cilium/gateway-api-canary.yaml
   - components/cilium/advfab-worker-node-ips.yaml
   - components/farseer/public-web.yaml
