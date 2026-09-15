@@ -1,0 +1,3 @@
+version: 1
+# Activated only after signed bootstrap publication and ownership review.
+modules: []

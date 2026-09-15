@@ -18,6 +18,7 @@ always_tests:
   - tests/test_incremental_ci.py
   - tests/test_release_codenames.py
   - tests/test_domain_oci_release.py
+  - tests/test_domain_publication.py
 
 domains:
   control-plane:

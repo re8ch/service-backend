@@ -46,3 +46,14 @@ def test_full_includes_every_test_file():
 
 def test_changed_test_is_not_silently_skipped():
     assert "tests/test_pipeline_archive.py" in impact.select(["tests/test_pipeline_archive.py"])["tests"]
+
+
+def test_digest_promotion_does_not_trigger_overall_regression():
+    plan = impact.select(["releases/platform-adapter.yaml", "clusters/re8ch/domain-sources/platform-adapter.yaml", "operations/releases/codenames.yaml"])
+    assert plan["domains"] == ["delivery"]
+    assert plan["roots"] == ["platform/adapter"]
+    assert not plan["full"]
+
+
+def test_codename_history_alone_fails_closed():
+    assert impact.select(["operations/releases/codenames.yaml"])["full"]
