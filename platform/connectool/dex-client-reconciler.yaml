@@ -94,11 +94,12 @@ data:
         raise RuntimeError("the canonical GitHub connector is missing")
     github_config = github.setdefault("config", {})
     github_config["teamNameField"] = "slug"
-    github_config["loadAllGroups"] = False
-    github_config["orgs"] = [
-        {"name": "re8ch", "teams": ["k8s-admins", "qwen-operators"]},
-        {"name": "Artchais", "teams": ["tenant-admins", "tenant-operators", "tenant-viewers"]},
-    ]
+    # Authentication discovers identity; publications and TenantIdentityBinding
+    # decide access. orgs/teams filtering suppresses bare organization claims
+    # and prevents members without a role team from enrolling as tenants.
+    github_config.pop("org", None)
+    github_config.pop("orgs", None)
+    github_config["loadAllGroups"] = True
     if config == original:
         logging.info("Dex clients and canonical GitHub group claims already match desired state")
         raise SystemExit(0)

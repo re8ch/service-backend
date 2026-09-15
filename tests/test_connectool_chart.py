@@ -94,10 +94,64 @@ def test_dex_reconciler_consumes_connectool_contract_and_retires_split_clients()
     assert "re8ch-tenant" not in script.replace('"re8ch-tenant-admin"', '').replace('"re8ch-tenant-registry"', '').replace('"re8ch-tenant-observability"', '').replace('"re8ch-tenant-byoc"', '')
     assert "re8ch-qwen-tenant" in script
     assert "re8ch-artchais-tenant" in script
-    assert '{"name": "re8ch", "teams": ["k8s-admins", "qwen-operators"]}' in script
-    assert 'github_config["loadAllGroups"] = False' in script
+    assert 'github_config.pop("orgs", None)' in script
+    assert 'github_config["loadAllGroups"] = True' in script
     assert "config == original" in script
     assert "print(" not in script
     assert "@sha256:" in deployment["spec"]["template"]["spec"]["containers"][0]["image"]
     assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     assert not any(item["kind"] in {"Job", "CronJob"} for item in objects)
+
+
+def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idempotent():
+    import base64
+    import copy
+    import logging
+    import time
+    import urllib
+    import urllib.error
+
+    objects = list(yaml.safe_load_all((ROOT / "platform/connectool/dex-client-reconciler.yaml").read_text()))
+    script = next(item for item in objects if item["kind"] == "ConfigMap")["data"]["reconcile.py"]
+    # Execute the real reconciliation against a fake API, without pod credentials.
+    body = script[script.index("contract = None"):]
+    config = {"connectors": [{"type": "github", "config": {
+        "clientSecret": "test-only-secret", "org": "legacy",
+        "orgs": [{"name": "Artchais", "teams": ["tenant-viewers"]}],
+    }}], "staticClients": []}
+    secret = {"data": {"config.yaml": base64.b64encode(yaml.safe_dump(config).encode()).decode()}}
+    writes = []
+
+    def request(path, method="GET", value=None, content_type="application/json"):
+        if method == "GET" and path.endswith("connectool-dex-clients"):
+            return {"data": {"clients.yaml": yaml.safe_dump({"staticClients": [{"id": "re8ch-tenant", "name": "Tenant"}]})}}
+        if method == "GET" and path.endswith("dex-config"):
+            return copy.deepcopy(secret)
+        writes.append((method, path))
+        if method == "PATCH" and path.endswith("dex-config"):
+            secret["data"].update(value["data"])
+        return {}
+
+    scope = dict(base64=base64, copy=copy, yaml=yaml, logging=logging, time=time, urllib=urllib, request=request)
+    exec(compile(body, "dex-reconcile-test", "exec"), scope)
+    updated = yaml.safe_load(base64.b64decode(secret["data"]["config.yaml"]))
+    github = updated["connectors"][0]["config"]
+    assert github["clientSecret"] == "test-only-secret"
+    assert github["loadAllGroups"] is True
+    assert "org" not in github and "orgs" not in github
+    assert any(path.endswith("deployments/dex") for _, path in writes)
+    writes.clear()
+    import pytest
+    with pytest.raises(SystemExit) as stopped:
+        exec(compile(body, "dex-reconcile-test", "exec"), scope)
+    assert stopped.value.code == 0
+    assert writes == []
+
+
+def test_cloud_publication_does_not_authorize_bare_external_organization():
+    objects = list(yaml.safe_load_all((ROOT / "platform/connectool/release.yaml").read_text()))
+    release = next(item for item in objects if item["kind"] == "HelmRelease")
+    publication = next(item for item in release["spec"]["values"]["toolhive"]["publications"] if item["name"] == "re8ch-tools-vmcp")
+    policies = publication["authorization"]["policies"]
+    assert 'permit(principal, action, resource);' not in policies
+    assert all('THVGroup::"re8ch:' in policy for policy in policies)
