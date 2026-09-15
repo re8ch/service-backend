@@ -1,0 +1,5 @@
+version: 1
+# Explicit onboarding only: map each module root to the exact trusted workflow
+# subject and issuer after its signed OCI publication workflow is verified.
+# The promoter must never edit this file as part of an automatic digest bump.
+modules: {}

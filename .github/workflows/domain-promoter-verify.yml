@@ -1,0 +1,36 @@
+name: domain-promoter-verify
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create narrowly scoped read-only installation token
+        id: app
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.DOMAIN_PROMOTER_APP_ID }}
+          private-key: ${{ secrets.DOMAIN_PROMOTER_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: service-backend
+          permission-contents: read
+          permission-checks: read
+      - name: Verify installation identity and repository scope
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          INSTALLATION_ID: ${{ steps.app.outputs.installation-id }}
+        run: |
+          test "$APP_SLUG" = re8ch-domain-promoter
+          test "$INSTALLATION_ID" = 161846815
+          gh api installation/repositories --jq '[.repositories[].full_name] | sort' > "$RUNNER_TEMP/repositories.json"
+          python - <<'PY'
+          import json, os
+          with open(os.environ["RUNNER_TEMP"] + "/repositories.json") as handle:
+              repos = json.load(handle)
+          if repos != ["re8ch/service-backend"]:
+              raise SystemExit("unexpected installation repository scope")
+          PY
+          echo 'Promoter authentication verified; token restricted to service-backend and revoked after this job.' >> "$GITHUB_STEP_SUMMARY"

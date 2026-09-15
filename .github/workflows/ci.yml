@@ -1,104 +1,159 @@
 name: control-plane-ci
 on:
   pull_request:
-  push:
-    branches: [main]
-permissions:
-  contents: read
+  workflow_dispatch:
+    inputs:
+      full: {description: Run every domain, type: boolean, default: false}
+permissions: {contents: read}
 concurrency:
-  group: control-plane-${{ github.ref }}
+  group: control-plane-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
+  impact:
+    runs-on: ubuntu-latest
+    outputs:
+      domains: ${{ steps.plan.outputs.domains }}
+      tests: ${{ steps.plan.outputs.tests }}
+      roots: ${{ steps.plan.outputs.roots }}
+      submodules: ${{ steps.plan.outputs.submodules }}
+      run: ${{ steps.plan.outputs.run }}
+      full: ${{ steps.plan.outputs.full }}
+      plan: ${{ steps.plan.outputs.plan }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {fetch-depth: 0}
+      - run: python -m pip install 'PyYAML>=6.0.2'
+      - id: plan
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          FORCE_FULL: ${{ inputs.full || 'false' }}
+        run: |
+          args=(--base "$BASE" --head "${{ github.sha }}")
+          if [[ "$FORCE_FULL" == "true" ]]; then args+=(--full); fi
+          python operations/ci/impact.py "${args[@]}"
+      - env: {PLAN: "${{ steps.plan.outputs.plan }}"}
+        run: |
+          {
+            echo '### Incremental CI plan'
+            echo '```json'
+            python -m json.tool <<<"$PLAN"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   contract:
+    needs: impact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
-      - run: python operations/workspace-controller/workspace.py doctor
-  schema:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - run: python -m pip install 'PyYAML>=6.0.2'
       - run: |
+          python operations/workspace-controller/workspace.py doctor
+          python operations/ci/impact.py --path README.md >/dev/null
+
+  schema:
+    needs: impact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - if: needs.impact.outputs.run == 'true'
+        run: |
           python tests/validate_schemas.py
           python operations/scripts/validate-r640-public-authority.py
+
   unit:
+    needs: impact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: git submodule update --init catalogs/platform/modules/connectool/source
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
-      - run: python operations/tenant-conformance/select.py --non-tenant-tests | xargs pytest -q
+      - name: Initialize selected product gitlinks
+        env: {SUBMODULES: "${{ needs.impact.outputs.submodules }}"}
+        run: |
+          python - <<'PY' | xargs -r git submodule update --init --
+          import json, os
+          print(*json.loads(os.environ["SUBMODULES"]), sep="\n")
+          PY
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
+      - name: Run selected domain tests
+        env: {TESTS: "${{ needs.impact.outputs.tests }}"}
+        run: |
+          python - <<'PY' | xargs -r pytest -q
+          import json, os
+          print(*json.loads(os.environ["TESTS"]), sep="\n")
+          PY
+
   render:
+    needs: impact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
-      - run: |
-          kubectl kustomize clusters/re8ch >/tmp/rendered.yaml
-          kubectl kustomize platform/observability/bootstrap >/tmp/observability-bootstrap.yaml
-          kubectl kustomize platform/observability/production >/tmp/observability-production.yaml
-          test -s /tmp/rendered.yaml
-          test -s /tmp/observability-bootstrap.yaml
-          test -s /tmp/observability-production.yaml
+      - name: Render only affected deployable roots
+        env: {ROOTS: "${{ needs.impact.outputs.roots }}"}
+        run: |
+          python - <<'PY' > "$RUNNER_TEMP/roots"
+          import json, os
+          print(*json.loads(os.environ["ROOTS"]), sep="\n")
+          PY
+          while IFS= read -r root; do
+            [[ -z "$root" ]] || kubectl kustomize "$root" >/dev/null
+          done < "$RUNNER_TEMP/roots"
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python tests/check_no_plaintext_secrets.py
+
   dependency-review:
+    needs: impact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Scan repository dependencies
+      - name: Scan dependencies for shared CI changes
+        if: needs.impact.outputs.full == 'true'
         run: |
-          docker run --rm \
-            --volume "$PWD:/work:ro" \
-            --volume "$RUNNER_TEMP:/out" \
-            --workdir /work \
-            ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
-            fs --scanners vuln --format json --output /out/trivy-dependencies.json .
-      - name: Enforce reviewed vulnerability baseline
-        run: |
-          python operations/ci/check_dependency_vulnerabilities.py \
-            --report "$RUNNER_TEMP/trivy-dependencies.json" \
-            --baseline operations/ci/dependency-vulnerability-baseline.json
-      - name: Retain vulnerability evidence
-        if: always()
+          docker run --rm --volume "$PWD:/work:ro" --volume "$RUNNER_TEMP:/out" --workdir /work ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 fs --scanners vuln --format json --output /out/trivy-dependencies.json .
+          python operations/ci/check_dependency_vulnerabilities.py --report "$RUNNER_TEMP/trivy-dependencies.json" --baseline operations/ci/dependency-vulnerability-baseline.json
+      - if: always() && needs.impact.outputs.full == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dependency-vulnerability-report
-          path: ${{ runner.temp }}/trivy-dependencies.json
-          if-no-files-found: error
-          retention-days: 14
+        with: {name: dependency-vulnerability-report, path: "${{ runner.temp }}/trivy-dependencies.json", if-no-files-found: error, retention-days: 14}
+
   supply-chain:
+    needs: impact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: git submodule update --init catalogs/platform/modules/connectool/source
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'pytest>=8.3'
-      - run: pytest -q tests/test_connectool_delivery.py tests/test_tenant_release_signing.py
+      - if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
+        run: git submodule update --init catalogs/platform/modules/connectool/source
+      - run: python -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
+      - if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
+        run: pytest -q tests/test_connectool_delivery.py tests/test_tenant_release_signing.py
+
   policy:
+    needs: impact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
-      - run: |
+      - run: python -m pip install 'PyYAML>=6.0.2'
+      - if: contains(needs.impact.outputs.domains, 'control-plane') || needs.impact.outputs.full == 'true'
+        run: |
           python operations/workspace-controller/workspace.py index --write
           git diff --exit-code -- indexes catalogs/platform/modules/service-backend/MEMORY.md
+
   tenant-select:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.select.outputs.matrix }}
+    outputs: {matrix: "${{ steps.select.outputs.matrix }}"}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: 0}
       - id: select
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        env: {BASE: "${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}"}
         run: python operations/tenant-conformance/select.py --base "$BASE" --head "${{ github.sha }}"
+
   tenant-contract:
     needs: tenant-select
     if: needs.tenant-select.outputs.matrix != '[]'
@@ -110,38 +165,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
       - run: pytest -q ${{ matrix.tests }}
+
   validate:
     if: always()
-    needs:
-      - contract
-      - schema
-      - unit
-      - render
-      - secret-scan
-      - dependency-review
-      - supply-chain
-      - policy
-      - tenant-select
-      - tenant-contract
+    needs: [impact, contract, schema, unit, render, secret-scan, dependency-review, supply-chain, policy, tenant-select, tenant-contract]
     runs-on: ubuntu-latest
     steps:
-      - name: Enforce required checks
-        env:
-          RESULTS: ${{ toJSON(needs) }}
+      - env: {RESULTS: "${{ toJSON(needs) }}"}
         run: |
           python - <<'PY'
-          import json
-          import os
-
-          allowed = {"success", "skipped"}
-          results = json.loads(os.environ["RESULTS"])
-          failed = {
-              name: result["result"]
-              for name, result in results.items()
-              if result["result"] not in allowed
-          }
-          if failed:
-              raise SystemExit(f"required jobs did not pass: {failed}")
+          import json, os
+          failed = {k: v["result"] for k, v in json.loads(os.environ["RESULTS"]).items() if v["result"] not in {"success", "skipped"}}
+          if failed: raise SystemExit(f"required jobs did not pass: {failed}")
           PY
