@@ -133,6 +133,8 @@ modules:
     releases:
     - codename: cascade
       digest: sha256:125a237825778decd80cb0fc7b82b17e2d85e1e904cb164553c2bb817326e53a
+    - codename: confluence
+      digest: sha256:33e186c357887b70becad8abfb80b6c351db9bcc9c3cce809047b13fd019fbfc
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -151,6 +153,8 @@ modules:
     releases:
     - codename: atoll
       digest: sha256:a7a22277ee62ac0f866dc9d5b19bfe98b81e5d0c88e1b18769ed27477c9ea00d
+    - codename: canopy
+      digest: sha256:99d634ac29f80efe87663edaefd5005a5a27072ad10442e4bfefde4918af4f24
   platform/secretary-system:
     releases:
     - codename: aegis
