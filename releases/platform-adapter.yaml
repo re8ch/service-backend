@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/adapter
-codename: anchor
+codename: beacon
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-adapter
-  digest: sha256:24febec3bd020a1e51071cd25acb0a496411b57a9f7974e6fc770167d3fd43c1
+  digest: sha256:9c190d0a01f21569e6034aa091c97398cbf4b8cefc9675b29f0a634679c2e21a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
