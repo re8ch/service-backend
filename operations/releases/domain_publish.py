@@ -122,6 +122,17 @@ def bootstrap_ownership(modules):
     return owners
 
 
+def revoke_orphan(run_id):
+    if not run_id.isdigit():
+        raise ValueError("invalid orphan workflow run id")
+    name = "robot$" + PROJECT + "+flux-domain-reader-" + run_id
+    _, robots = harbor("GET", "robots?q=" + urllib.parse.quote("name=" + name, safe=""))
+    for robot in robots:
+        if robot["name"] == name and robot.get("description") == "Flux read-only GitOps OCI source":
+            harbor("DELETE", "robots/" + str(robot["id"]))
+            print("Revoked unused bootstrap robot id=" + str(robot["id"]))
+
+
 def provision_reader(out):
     status, project = harbor("GET", "projects/" + PROJECT)
     if status == 404:
@@ -138,11 +149,16 @@ def provision_reader(out):
               "type": "kubernetes.io/dockerconfigjson", "stringData": {".dockerconfigjson": json.dumps(config)}}
     # The only persisted credential artifact is encrypted to the existing Flux
     # age recipient. No decrypted Secret or robot token reaches logs/artifacts.
-    encrypted = subprocess.check_output(["sops", "encrypt", "--input-type", "yaml", "--output-type", "yaml",
+    (out / "robot-reference.json").write_text(json.dumps({"id": robot["id"], "name": robot["name"], "project": PROJECT}))
+    try:
+      encrypted = subprocess.check_output(["sops", "encrypt", "--input-type", "yaml", "--output-type", "yaml",
+        "--filename-override", "clusters/re8ch/flux-system/gitops-oci-reader.sops.yaml",
         "--age", "age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj",
         "--encrypted-regex", "^(data|stringData)$", "/dev/stdin"], input=yaml.safe_dump(secret).encode())
+    except subprocess.CalledProcessError:
+        harbor("DELETE", "robots/" + str(robot["id"]))
+        raise
     (out / "gitops-oci-reader.sops.yaml").write_bytes(encrypted)
-    (out / "robot-reference.json").write_text(json.dumps({"id": robot["id"], "name": robot["name"], "project": PROJECT}))
 
 
 def publish(modules, out, bootstrap=False):
@@ -192,14 +208,19 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--base")
     parser.add_argument("--module", help="explicitly republish one already activated module")
+    parser.add_argument("--revoke-orphan-run")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     status, project = harbor("GET", "projects/" + PROJECT)
     if status != 404 and project["metadata"].get("public") != "false":
         raise RuntimeError("refusing to publish private declarations to a public project")
     if args.bootstrap:
+        if yaml.safe_load((ROOT / "operations/releases/active.yaml").read_text())["modules"]:
+            raise RuntimeError("bootstrap is forbidden after activation")
         modules = initial_modules()
         bootstrap_ownership(modules)
+        if args.revoke_orphan_run:
+            revoke_orphan(args.revoke_orphan_run)
         provision_reader(args.output)
     else:
         config = yaml.safe_load((ROOT / "operations/releases/active.yaml").read_text())

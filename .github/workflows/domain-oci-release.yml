@@ -4,6 +4,7 @@ on:
     inputs:
       bootstrap: {description: Publish initial bundles and encrypted read-only registry credential, type: boolean, default: false}
       module: {description: Explicitly republish one activated module root, type: string, default: ''}
+      revoke_orphan_run: {description: Revoke unused bootstrap robot from this exact failed run, type: string, default: ''}
   push:
     branches: [main]
     paths: ['platform/**', 'clusters/re8ch/components/**']
@@ -41,10 +42,12 @@ jobs:
           BOOTSTRAP: ${{ inputs.bootstrap || 'false' }}
           BASE: ${{ github.event.before || 'HEAD' }}
           MODULE: ${{ inputs.module || '' }}
+          ORPHAN_RUN: ${{ inputs.revoke_orphan_run || '' }}
         run: |
           args=(--output "$RUNNER_TEMP/domain-release" --base "$BASE")
           if [[ "$BOOTSTRAP" == true ]]; then args+=(--bootstrap); fi
           if [[ -n "$MODULE" ]]; then args+=(--module "$MODULE"); fi
+          if [[ -n "$ORPHAN_RUN" ]]; then args+=(--revoke-orphan-run "$ORPHAN_RUN"); fi
           python operations/releases/domain_publish.py "${args[@]}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
