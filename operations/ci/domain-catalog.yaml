@@ -1,0 +1,176 @@
+version: 1
+
+# Every deployable Kustomize root belongs to exactly one domain.  `impact.py`
+# validates this inventory before selecting tests, so a new root cannot silently
+# bypass CI.
+shared_paths:
+  - .github/workflows/**
+  - operations/ci/**
+  - operations/workspace-controller/**
+  - schemas/**
+  - tests/validate_schemas.py
+  - clusters/re8ch/kustomization.yaml
+  - clusters/re8ch/flux-system/**
+
+always_tests:
+  - tests/test_git_k8s_manifests.py
+  - tests/test_git_governance_gate.py
+  - tests/test_incremental_ci.py
+  - tests/test_release_codenames.py
+  - tests/test_domain_oci_release.py
+
+domains:
+  control-plane:
+    theme: constellations
+    paths:
+      - catalogs/**
+      - indexes/**
+      - workspace.yaml
+      - platform/workspace-controller/**
+      - platform/git-workspaces/**
+      - clusters/re8ch/components/codex-app-server-console/**
+    roots:
+      - platform/workspace-controller
+      - platform/git-workspaces
+      - clusters/re8ch/components/codex-app-server-console
+    tests:
+      - tests/test_workspace_controller.py
+      - tests/test_workspace_mirror.py
+      - tests/test_declarations.py
+
+  networking:
+    theme: winds
+    paths:
+      - operations/network/**
+      - platform/advanced-fabric/**
+      - platform/among-clusters/**
+      - platform/public-edge-manager/**
+      - clusters/re8ch/components/egress-fabric/**
+      - clusters/re8ch/components/multicloud-functions-dns/**
+      - clusters/re8ch/components/network/**
+      - clusters/re8ch/components/regional-routing/**
+    roots:
+      - platform/advanced-fabric
+      - platform/among-clusters
+      - platform/public-edge-manager
+      - clusters/re8ch/components/egress-fabric
+      - clusters/re8ch/components/multicloud-functions-dns/anycam
+      - clusters/re8ch/components/multicloud-functions-dns/base
+      - clusters/re8ch/components/multicloud-functions-dns/ledger
+      - clusters/re8ch/components/network/podcidr-fabric
+      - clusters/re8ch/components/regional-routing
+    tests:
+      - tests/test_advanced_fabric.py
+      - tests/test_advanced_fabric_control_plane.py
+      - tests/test_advanced_fabric_dns_authority.py
+      - tests/test_among_clusters.py
+      - tests/test_among_clusters_service.py
+      - tests/test_gateway_api_ingress_migration.py
+      - tests/test_private_transit_config.py
+      - tests/test_public_mesh_config.py
+      - tests/test_public_mesh_identity_routes.py
+      - tests/test_r640_public_authority.py
+
+  identity-access:
+    theme: guardians
+    paths:
+      - platform/agent-onboarding-runtime/**
+      - platform/apps/access-subscription/**
+      - platform/secretary-system/**
+      - clusters/re8ch/components/netbird-access/**
+      - clusters/re8ch/components/personal-access/**
+      - clusters/re8ch/components/re8ch-business-namespaces/**
+    roots:
+      - platform/agent-onboarding-runtime
+      - platform/apps/access-subscription
+      - platform/secretary-system
+      - clusters/re8ch/components/netbird-access
+      - clusters/re8ch/components/personal-access
+      - clusters/re8ch/components/re8ch-business-namespaces
+    tests:
+      - tests/test_dex_egress.py
+      - tests/test_identity_egress.py
+      - tests/test_native_mcp_oauth_gitops.py
+
+  observability:
+    theme: lenses
+    paths:
+      - platform/observability-source/**
+      - platform/observability/**
+    roots:
+      - platform/observability-source
+      - platform/observability/bootstrap
+      - platform/observability/opencost-recovery
+      - platform/observability/production
+    tests:
+      - tests/test_observability.py
+
+  tenant-runtime:
+    theme: habitats
+    paths:
+      - operations/tenant-conformance/**
+      - platform/cloud-platform/**
+      - platform/runtime-anatomy/**
+      - platform/scheduling-fabric/**
+      - clusters/re8ch/components/plugin-runtime/**
+    roots:
+      - platform/cloud-platform
+      - platform/runtime-anatomy
+      - platform/scheduling-fabric
+      - platform/scheduling-fabric/resources
+      - clusters/re8ch/components/plugin-runtime
+    tests:
+      - tests/test_cloud_platform.py
+      - tests/test_cloud_platform_manifest.py
+      - tests/test_runtime_anatomy_canary_script.py
+      - tests/test_runtime_anatomy_chart.py
+      - tests/test_runtime_anatomy_controller.py
+      - tests/test_tenant_broker.py
+      - tests/test_tenant_control_controller.py
+      - tests/test_tenant_infrastructure.py
+      - tests/test_tenant_infrastructure_gitops.py
+
+  delivery:
+    theme: waypoints
+    paths:
+      - platform/adapter/**
+      - platform/connectool/**
+      - platform/external-projects/**
+      - platform/hyperswitch/**
+    roots:
+      - platform/adapter
+      - platform/connectool
+      - platform/external-projects
+      - platform/external-projects/ontology-microscope
+      - platform/hyperswitch
+    tests:
+      - tests/test_adapter.py
+      - tests/test_adapter_chart.py
+      - tests/test_connectool_chart.py
+      - tests/test_connectool_delivery.py
+      - tests/test_hyperswitch_gitops.py
+      - tests/test_ontology_neuronpedia_gitops.py
+    submodules:
+      - catalogs/platform/modules/connectool/source
+
+  operations-ui:
+    theme: beacons
+    paths:
+      - platform/headlamp/**
+      - platform/stalwart/**
+    roots:
+      - platform/headlamp
+      - platform/stalwart
+    tests:
+      - tests/test_headlamp_birfucate_browser.py
+      - tests/test_headlamp_plugin_catalog.py
+
+  metering:
+    theme: currents
+    paths:
+      - platform/birfucate-metering/**
+    roots:
+      - platform/birfucate-metering
+    tests:
+      - tests/test_birfucate_discovery.py
+      - tests/test_birfucate_metering.py

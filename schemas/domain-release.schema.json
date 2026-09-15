@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://re8ch.com/schemas/domain-release-v1.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "module", "codename", "bundle", "images"],
+  "properties": {
+    "apiVersion": {"const": "delivery.re8ch.com/v1alpha1"},
+    "kind": {"const": "DomainRelease"},
+    "module": {"type": "string", "pattern": "^(platform|clusters)/.+"},
+    "codename": {"type": "string", "pattern": "^[a-z]+(?:-[a-z]+)?$"},
+    "semver": {"type": "string", "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+].+)?$"},
+    "bundle": {
+      "type": "object",
+      "required": ["url", "digest", "signature"],
+      "properties": {
+        "url": {"type": "string", "pattern": "^oci://"},
+        "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "signature": {"enum": ["cosign-keyless", "cosign-key", "notation"]}
+        ,"identity": {"type": "string", "minLength": 1}
+        ,"issuer": {"type": "string", "const": "https://token.actions.githubusercontent.com"}
+      },
+      "additionalProperties": false,
+      "allOf": [{"if": {"properties": {"signature": {"const": "cosign-keyless"}}}, "then": {"required": ["identity", "issuer"]}}]
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["name", "tag", "digest"],
+        "properties": {
+          "name": {"type": "string"},
+          "tag": {"type": "string", "pattern": "^[a-z]+(?:-[a-z]+)?$"},
+          "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "sbom": {"type": "string"},
+    "provenance": {"type": "string"}
+  },
+  "additionalProperties": false
+}

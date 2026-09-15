@@ -1,0 +1,15 @@
+version: 1
+# Vocabularies are intentionally finite and reviewed. Each module has its own
+# cursor, so releases advance independently even when modules share a theme.
+themes:
+  constellations: [andromeda, aquila, carina, cygnus, lyra, orion, vela]
+  winds: [bora, chinook, etesian, mistral, sirocco, tramontane, zephyr]
+  guardians: [aegis, bastion, citadel, sentinel, shield, ward, watchtower]
+  lenses: [aperture, focus, prism, spectrum, telescope, viewport, zenith]
+  habitats: [atoll, canopy, delta, grove, reef, tundra, wetland]
+  waypoints: [anchor, beacon, compass, harbor, meridian, passage, trailhead]
+  beacons: [aurora, flare, lantern, lighthouse, signal, starfire, torch]
+  currents: [cascade, confluence, eddy, gulfstream, riptide, springtide, tideway]
+revision_words: [amber, copper, indigo, jade, pearl, silver, umber]
+modules: {}
+
