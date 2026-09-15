@@ -178,6 +178,22 @@ def provision_reader(out):
     (out / "gitops-oci-reader.sops.yaml").write_bytes(encrypted)
 
 
+def immutable_target(module, state, allocator, repository, revision):
+    while True:
+        codename = allocator.proposed(module, state)
+        status, existing = harbor("GET", "projects/" + PROJECT + "/repositories/" + module.replace("/", "-") + "/artifacts/" + codename)
+        if status == 404 or (existing.get("annotations") or {}).get("delivery.re8ch.com/revision") == revision:
+            return codename, existing
+        # A publication can become stale while its promotion waits for main.
+        # Preserve the already verified immutable name as an unused historical
+        # claim, then allocate the next name. Never overwrite or deploy it.
+        reference = repository + "@" + existing["digest"]
+        subprocess.run(["cosign", "verify", "--certificate-identity", IDENTITY,
+                        "--certificate-oidc-issuer", ISSUER, reference], check=True, stdout=subprocess.DEVNULL)
+        state["modules"].setdefault(module, {"releases": []})["releases"].append({"codename": codename, "digest": existing["digest"]})
+        print("Preserved unused verified codename: " + module + ":" + codename, flush=True)
+
+
 def publish(modules, out, bootstrap=False):
     allocator = load_module("names", "operations/releases/allocate_codename.py")
     state = yaml.safe_load(allocator.STATE.read_text())
@@ -187,11 +203,8 @@ def publish(modules, out, bootstrap=False):
     for entry in modules:
         module = entry["module"]
         slug = module.replace("/", "-")
-        codename = allocator.proposed(module, state)
         repository = REGISTRY + "/" + PROJECT + "/" + slug
-        status, existing = harbor("GET", "projects/" + PROJECT + "/repositories/" + slug + "/artifacts/" + codename)
-        if status != 404 and (existing.get("annotations") or {}).get("delivery.re8ch.com/revision") != revision:
-            raise RuntimeError(f"immutable codename already exists at another revision: {module}:{codename}")
+        codename, existing = immutable_target(module, state, allocator, repository, revision)
         if existing:
             digest = existing["digest"]
         else:

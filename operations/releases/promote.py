@@ -9,6 +9,8 @@ import os
 import urllib.request
 from pathlib import Path
 import yaml
+import copy
+import re
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "re8ch/service-backend"
@@ -47,14 +49,18 @@ def changes(directory):
         release = yaml.safe_load(path.read_text())
         generator.manifests(release) # schema, owner and trusted signer validation
         module = release["module"]
-        if release["codename"] != allocator.proposed(module, current):
-            raise ValueError("promotion must claim the module's next reviewed codename")
         if path.stem != module.replace("/", "-"):
             raise ValueError("unexpected release filename")
         previous = current["modules"].get(module, {}).get("releases", [])
         next_releases = proposed["modules"][module]["releases"]
-        if next_releases[:-1] != previous or len(next_releases) != len(previous) + 1:
+        if next_releases[:len(previous)] != previous or len(next_releases) <= len(previous):
             raise ValueError("codename history must be append-only")
+        validation = copy.deepcopy(current)
+        validation["modules"].setdefault(module, {"releases": []})
+        for record in next_releases[len(previous):]:
+            if set(record) != {"codename", "digest"} or record["codename"] != allocator.proposed(module, validation) or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
+                raise ValueError("promotion must preserve the module's reviewed codename sequence and digest claims")
+            validation["modules"][module]["releases"].append(record)
         if next_releases[-1] != {"codename": release["codename"], "digest": release["bundle"]["digest"]}:
             raise ValueError("release descriptor and codename history differ")
         source_path = ROOT / "clusters/re8ch/domain-sources" / path.name
