@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/among-clusters
+codename: bora
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
+  digest: sha256:b285c878e7f95b2f3191a3e090b28a79d9af24a363463fcb80e63dd078f306aa
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

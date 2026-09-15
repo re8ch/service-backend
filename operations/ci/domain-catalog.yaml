@@ -1,5 +1,11 @@
 version: 1
 
+external_inputs:
+  platform/runtime-anatomy:
+    - clusters/re8ch/charts/runtime-anatomy/**
+  platform/birfucate-metering:
+    - clusters/re8ch/charts/birfucate-metering/**
+
 # Every deployable Kustomize root belongs to exactly one domain.  `impact.py`
 # validates this inventory before selecting tests, so a new root cannot silently
 # bypass CI.
@@ -10,6 +16,7 @@ shared_paths:
   - schemas/**
   - tests/validate_schemas.py
   - clusters/re8ch/kustomization.yaml
+  - clusters/re8ch/domain-sources/kustomization.yaml
   - clusters/re8ch/flux-system/**
 
 always_tests:
@@ -19,6 +26,7 @@ always_tests:
   - tests/test_release_codenames.py
   - tests/test_domain_oci_release.py
   - tests/test_domain_publication.py
+  - tests/test_live_domain_sources.py
 
 domains:
   control-plane:

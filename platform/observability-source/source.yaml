@@ -5,13 +5,17 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./platform/observability/bootstrap
+  path: ./
   prune: false
   wait: true
   timeout: 10m
   sourceRef:
-    kind: GitRepository
-    name: service-backend
+    kind: OCIRepository
+    name: domain-platform-observability-bootstrap
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -20,16 +24,18 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./platform/observability/opencost-recovery
+  path: ./
   prune: false
   wait: true
   timeout: 10m
   sourceRef:
-    kind: GitRepository
-    name: service-backend
+    kind: OCIRepository
+    name: domain-platform-observability-opencost-recovery
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
 ---
-# Production stays explicitly suspended until Ceph has no unfound objects and
-# the operator bootstrap has completed. This is the cutover safety gate.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -38,12 +44,16 @@ metadata:
 spec:
   suspend: true
   interval: 10m
-  path: ./platform/observability/production
+  path: ./
   prune: false
   wait: true
   timeout: 15m
   dependsOn:
-    - name: observability-bootstrap
+  - name: observability-bootstrap
   sourceRef:
-    kind: GitRepository
-    name: service-backend
+    kind: OCIRepository
+    name: domain-platform-observability-production
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

@@ -1,74 +1,55 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - namespaces.yaml
-  - flux-system/gotk-components.yaml
-  - flux-system/verification-keys.yaml
-  - flux-system/sops-canary.sops.yaml
-  - flux-system/service-backend-github-app-auth.sops.yaml
-  - flux-system/service-backend-github-reaction-auth.sops.yaml
-  - flux-system/service-backend-github-webhook.sops.yaml
-  - flux-system/service-backend-github-proxy.sops.yaml
-  - flux-system/gotk-sync.yaml
-  - flux-system/github-control-plane.yaml
-  - flux-system/github-webhook-route.yaml
-  - secrets/stalwart-recovery-admin.sops.yaml
-  - secrets/among-clusters-hub-admin.sops.yaml
-  - secrets/hyperswitch-runtime-values.sops.yaml
-  - secrets/hyperswitch-bootstrap-admin.sops.yaml
-  - secrets/tenant-claim-internal-auth.sops.yaml
-  - secrets/tenant-registry-supply-chain.sops.yaml
-  - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
-  - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
-  - secrets/cloudflare-advfab-dns-token.sops.yaml
-  - secrets/ontology-microscope-db.sops.yaml
-  - components/cilium/gateway-api-canary.yaml
-  - components/cilium/advfab-worker-node-ips.yaml
-  - components/farseer/public-web.yaml
-  - components/cilium/r640-policy-update-budget.yaml
-  - components/ai-operations/platform.yaml
-  - components/tenancy/re8ch-managed-business-namespaces.yaml
-  - components/re8ch-business-namespaces
-  - components/auth/dex/dex-ha-deployment.yaml
-  - components/egress-fabric/identity-egress.yaml
-  - components/network/podcidr-fabric
-  - components/public-exposure/external-dns-cloudflare.yaml
-  - components/public-exposure/external-dns-advfab.yaml
-  - components/public-exposure/gateway-dns-authorities.yaml
-  - components/public-exposure/legacy-special-http-routes.yaml
-  - components/opencost/ui-nginx-config.yaml
-  - components/mcp-registry/registry.yaml
-  - components/toolhive/external-observe-publication.yaml
-  - components/toolhive/external-observe-rbac.yaml
-  - components/toolhive/external-privileged-publication.yaml
-  - components/toolhive/proxy-scheduling-policy.yaml
-  - components/toolhive/registry.yaml
-  - components/personal-access
-  - ../../platform/headlamp
-  - ../../platform/among-clusters
-  - ../../platform/scheduling-fabric
-  - ../../platform/cloud-platform
-  - ../../platform/advanced-fabric
-  - ../../platform/git-workspaces
-  - ../../platform/workspace-controller
-  - ../../platform/agent-onboarding-runtime
-  - ../../platform/stalwart
-  - ../../platform/apps/access-subscription
-  - ../../platform/observability-source
-  - ../../platform/connectool
-  - ../../platform/birfucate-metering
-  - ../../platform/hyperswitch
-  - ../../platform/public-edge-manager
-  - ../../platform/adapter
-  - ../../platform/runtime-anatomy
-  - ../../platform/secretary-system
-  - ../../platform/external-projects
+- namespaces.yaml
+- flux-system/gotk-components.yaml
+- flux-system/verification-keys.yaml
+- flux-system/sops-canary.sops.yaml
+- flux-system/service-backend-github-app-auth.sops.yaml
+- flux-system/service-backend-github-reaction-auth.sops.yaml
+- flux-system/service-backend-github-webhook.sops.yaml
+- flux-system/service-backend-github-proxy.sops.yaml
+- flux-system/gotk-sync.yaml
+- flux-system/github-control-plane.yaml
+- flux-system/github-webhook-route.yaml
+- secrets/stalwart-recovery-admin.sops.yaml
+- secrets/among-clusters-hub-admin.sops.yaml
+- secrets/hyperswitch-runtime-values.sops.yaml
+- secrets/hyperswitch-bootstrap-admin.sops.yaml
+- secrets/tenant-claim-internal-auth.sops.yaml
+- secrets/tenant-registry-supply-chain.sops.yaml
+- secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
+- secrets/admin-vmcp-backend-auth-tenant.sops.yaml
+- secrets/cloudflare-advfab-dns-token.sops.yaml
+- secrets/ontology-microscope-db.sops.yaml
+- components/cilium/gateway-api-canary.yaml
+- components/cilium/advfab-worker-node-ips.yaml
+- components/farseer/public-web.yaml
+- components/cilium/r640-policy-update-budget.yaml
+- components/ai-operations/platform.yaml
+- components/tenancy/re8ch-managed-business-namespaces.yaml
+- components/auth/dex/dex-ha-deployment.yaml
+- components/egress-fabric/identity-egress.yaml
+- components/public-exposure/external-dns-cloudflare.yaml
+- components/public-exposure/external-dns-advfab.yaml
+- components/public-exposure/gateway-dns-authorities.yaml
+- components/public-exposure/legacy-special-http-routes.yaml
+- components/opencost/ui-nginx-config.yaml
+- components/mcp-registry/registry.yaml
+- components/toolhive/external-observe-publication.yaml
+- components/toolhive/external-observe-rbac.yaml
+- components/toolhive/external-privileged-publication.yaml
+- components/toolhive/proxy-scheduling-policy.yaml
+- components/toolhive/registry.yaml
+- ../../platform/observability-source
+- flux-system/gitops-oci-reader.sops.yaml
+- domain-sources
 patchesStrategicMerge:
-  - retire-legacy-mcp.patch.yaml
+- retire-legacy-mcp.patch.yaml
 configMapGenerator:
-  - name: ops-mcp-server-code
-    namespace: toolhive-system
-    files:
-      - app.py=components/ops/ops-mcp-server-app.py
+- name: ops-mcp-server-code
+  namespace: toolhive-system
+  files:
+  - app.py=components/ops/ops-mcp-server-app.py
 generatorOptions:
   disableNameSuffixHash: true

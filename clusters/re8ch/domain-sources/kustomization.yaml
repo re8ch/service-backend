@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- clusters-re8ch-components-re8ch-business-namespaces.yaml
+- clusters-re8ch-components-network-podcidr-fabric.yaml
+- clusters-re8ch-components-personal-access.yaml
+- platform-headlamp.yaml
+- platform-among-clusters.yaml
+- platform-scheduling-fabric.yaml
+- platform-cloud-platform.yaml
+- platform-advanced-fabric.yaml
+- platform-git-workspaces.yaml
+- platform-workspace-controller.yaml
+- platform-agent-onboarding-runtime.yaml
+- platform-stalwart.yaml
+- platform-apps-access-subscription.yaml
+- platform-connectool.yaml
+- platform-birfucate-metering.yaml
+- platform-hyperswitch.yaml
+- platform-public-edge-manager.yaml
+- platform-adapter.yaml
+- platform-runtime-anatomy.yaml
+- platform-secretary-system.yaml
+- platform-external-projects.yaml
+- platform-observability-bootstrap.yaml
+- platform-observability-opencost-recovery.yaml
+- platform-observability-production.yaml

@@ -79,8 +79,10 @@ def load_catalog() -> dict:
         for tree in (ROOT / "clusters", ROOT / "platform")
         for path in tree.rglob("kustomization.yaml")
     )
-    missing = sorted(set(actual) - set(declared) - {"clusters/re8ch", "clusters/re8ch/flux-system/github-canary"})
+    missing = sorted(set(actual) - set(declared) - {"clusters/re8ch", "clusters/re8ch/flux-system/github-canary", "clusters/re8ch/domain-sources"})
     stale = sorted(set(declared) - set(actual))
+    if set(catalog.get("external_inputs", {})) - set(declared):
+        raise SystemExit("external input has no reviewed deployable root owner")
     if duplicates or missing or stale:
         raise SystemExit(f"invalid root ownership: duplicates={duplicates}, missing={missing}, stale={stale}")
     return catalog
@@ -93,6 +95,11 @@ def select(paths: list[str], full: bool = False) -> dict:
     mapped = []
     has_release_lock = False
     for path in paths:
+        chart_owners = [root for root, patterns in catalog.get("external_inputs", {}).items()
+                        if any(matches(path, pattern) for pattern in patterns)]
+        if chart_owners:
+            mapped.extend(root + "/.external-input" for root in chart_owners)
+            continue
         if path.startswith(("releases/", "clusters/re8ch/domain-sources/")) and path.split("/")[-1] in release_roots:
             mapped.append(release_roots[path.split("/")[-1]] + "/.release-lock")
             has_release_lock = True

@@ -94,7 +94,10 @@ def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
     assert release["spec"]["values"]["retention"]["gcMode"] == "DryRun"
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "../../platform/runtime-anatomy" in root["resources"]
+    assert "../../platform/runtime-anatomy" not in root["resources"]
+    assert "domain-sources" in root["resources"]
+    source, reconciliation = list(yaml.safe_load_all((ROOT / "clusters/re8ch/domain-sources/platform-runtime-anatomy.yaml").read_text()))
+    assert reconciliation["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
     assert release["spec"]["driftDetection"]["mode"] == "enabled"
     assert release["spec"]["values"]["canary"]["enabled"] is True
 

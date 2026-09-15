@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/hyperswitch
+codename: anchor
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
+  digest: sha256:907391f32eb6250273d7b1c151e7f122d62455b3829aaf09931f153e77fe701b
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

@@ -1,5 +1,74 @@
 version: 1
-# Explicit onboarding only: map each module root to the exact trusted workflow
-# subject and issuer after its signed OCI publication workflow is verified.
-# The promoter must never edit this file as part of an automatic digest bump.
-modules: {}
+modules:
+  clusters/re8ch/components/re8ch-business-namespaces:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  clusters/re8ch/components/network/podcidr-fabric:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  clusters/re8ch/components/personal-access:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/headlamp:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/among-clusters:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/scheduling-fabric:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/cloud-platform:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/advanced-fabric:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/git-workspaces:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/workspace-controller:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/agent-onboarding-runtime:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/stalwart:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/apps/access-subscription:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/connectool:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/birfucate-metering:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/hyperswitch:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/public-edge-manager:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/adapter:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/runtime-anatomy:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/secretary-system:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/external-projects:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/observability/bootstrap:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/observability/opencost-recovery:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  platform/observability/production:
+    identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com

@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/observability/production
+codename: aperture
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
+  digest: sha256:fa0c1a93e6414d29df5ab465ecf67edec53a4563592d8dde2f582f6a6a12794c
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []
