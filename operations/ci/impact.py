@@ -89,6 +89,18 @@ def load_catalog() -> dict:
 def select(paths: list[str], full: bool = False) -> dict:
     catalog = load_catalog()
     domains = catalog["domains"]
+    release_roots = {root.replace("/", "-") + ".yaml": root for config in domains.values() for root in config["roots"]}
+    mapped = []
+    has_release_lock = False
+    for path in paths:
+        if path.startswith(("releases/", "clusters/re8ch/domain-sources/")) and path.split("/")[-1] in release_roots:
+            mapped.append(release_roots[path.split("/")[-1]] + "/.release-lock")
+            has_release_lock = True
+        else:
+            mapped.append(path)
+    if has_release_lock:
+        mapped = [path for path in mapped if path != "operations/releases/codenames.yaml"]
+    paths = mapped
     shared = full or any(matches(path, pattern) for path in paths for pattern in catalog["shared_paths"])
     selected = set(domains) if shared else {
         name
