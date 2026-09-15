@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: anchor
+    delivery.re8ch.com/codename: beacon
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:af1a1724573424d46410d6e4382d79e233df3b60874b606d39b2588e58973545
+    digest: sha256:6e3a683d9afb70ef8c6fa3406b619147ff219f2d4db84068aa0b7b29d37ad3ea
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: anchor
+    delivery.re8ch.com/codename: beacon
 spec:
   interval: 10m
   retryInterval: 1m
