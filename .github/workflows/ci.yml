@@ -52,10 +52,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-      - if: github.event_name != 'pull_request'
-        run: echo 'Dependency review applies to pull requests; push accepted.'
+      - name: Scan repository dependencies
+        run: |
+          docker run --rm \
+            --volume "$PWD:/work:ro" \
+            --volume "$RUNNER_TEMP:/out" \
+            --workdir /work \
+            ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
+            fs --scanners vuln --format json --output /out/trivy-dependencies.json .
+      - name: Enforce reviewed vulnerability baseline
+        run: |
+          python operations/ci/check_dependency_vulnerabilities.py \
+            --report "$RUNNER_TEMP/trivy-dependencies.json" \
+            --baseline operations/ci/dependency-vulnerability-baseline.json
+      - name: Retain vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dependency-vulnerability-report
+          path: ${{ runner.temp }}/trivy-dependencies.json
+          if-no-files-found: error
+          retention-days: 14
   supply-chain:
     runs-on: ubuntu-latest
     steps:
