@@ -78,6 +78,7 @@ spec:
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: artchais
           identityBindings:
+            - {name: artchais-github-members, issuer: https://dex.re8ch.com, group: "Artchais", role: viewer}
             - {name: artchais-github-admins, issuer: https://dex.re8ch.com, group: "Artchais:tenant-admins", role: admin}
             - {name: artchais-github-operators, issuer: https://dex.re8ch.com, group: "Artchais:tenant-operators", role: operator}
             - {name: artchais-github-viewers, issuer: https://dex.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}

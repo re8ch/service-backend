@@ -36,7 +36,8 @@ toolhive:
       authorization:
         groupClaim: groups
         policies:
-          - 'permit(principal, action, resource);'
+          - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+          - 'permit(principal in THVGroup::"re8ch:qwen-operators", action, resource);'
           - 'forbid(principal, action == Action::"call_tool", resource == Tool::"restart_managed_platform_deployment") unless { principal in THVGroup::"re8ch:qwen-operators" || principal in THVGroup::"re8ch:k8s-admins" };'
     - name: re8ch-admin-vmcp
       clientId: re8ch-platform-admin

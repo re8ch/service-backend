@@ -174,3 +174,19 @@ def test_missing_ambiguous_revoked_or_inactive_identity_is_denied(monkeypatch, b
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, tenants))
     with pytest.raises(PermissionError):
         controller.resolve("https://dex.re8ch.com", "sha256:" + "a" * 64)
+
+
+def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
+    import yaml
+    docs = list(yaml.safe_load_all((ROOT / "platform/birfucate-metering/release.yaml").read_text()))
+    release = next(item for item in docs if item["kind"] == "HelmRelease")
+    tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
+    artchais = next(item for item in tenants if item["name"] == "artchais")
+    bindings = [group_binding("artchais", item["group"], item["role"]) for item in artchais["identityBindings"]]
+    monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
+    assert controller.resolve("https://dex.re8ch.com", "", ["Artchais"])["role"] == "viewer"
+    assert controller.resolve("https://dex.re8ch.com", "", ["Artchais", "Artchais:tenant-admins"])["role"] == "admin"
+    with pytest.raises(PermissionError):
+        controller.resolve("https://dex.re8ch.com", "", ["OtherOrganization"])
+    with pytest.raises(PermissionError):
+        controller.resolve("https://dex.re8ch.com", "", ["Artchais"], caller="admin")
