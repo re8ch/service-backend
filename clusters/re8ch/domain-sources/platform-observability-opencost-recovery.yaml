@@ -1,0 +1,20 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-observability-opencost-recovery
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/observability/opencost-recovery
+    delivery.re8ch.com/codename: aperture
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
+  ref:
+    digest: sha256:00b28236efe7c7a551981526d5baa1ce7ee650cafd9a98373267391c781c478d
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader

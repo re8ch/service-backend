@@ -17,8 +17,9 @@ def test_production_reconciliation_is_safely_suspended():
     production = next(doc for doc in resources if doc["metadata"]["name"] == "observability-production")
 
     assert production["spec"]["suspend"] is True
-    assert production["spec"]["sourceRef"]["name"] == "service-backend"
-    assert production["spec"]["path"] == "./platform/observability/production"
+    source = yaml_documents(ROOT / "clusters/re8ch/domain-sources/platform-observability-production.yaml")[0]
+    assert production["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
+    assert production["spec"]["path"] == "./"
 
 
 def test_retention_and_r640_storage_placement_are_explicit():

@@ -1,0 +1,43 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-git-workspaces
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/git-workspaces
+    delivery.re8ch.com/codename: andromeda
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-git-workspaces
+  ref:
+    digest: sha256:c5d91bfe5bad45f5160b2bf6900befb2aea5bbd6e6dd3ab39b4c02ea185855ef
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: domain-platform-git-workspaces
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/git-workspaces
+    delivery.re8ch.com/codename: andromeda
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  path: ./
+  prune: false
+  wait: false
+  sourceRef:
+    kind: OCIRepository
+    name: domain-platform-git-workspaces
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

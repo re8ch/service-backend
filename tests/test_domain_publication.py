@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import pytest
 import yaml
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("publication", ROOT / "operations/releases/domain_publish.py")
@@ -35,3 +36,24 @@ def test_public_harbor_project_is_rejected_before_robot_creation(monkeypatch, tm
     with pytest.raises(RuntimeError, match="private"):
         publication.provision_reader(tmp_path)
     assert calls == ["GET"]
+
+
+@pytest.mark.parametrize("module", ["platform/runtime-anatomy", "platform/birfucate-metering"])
+def test_local_chart_sources_are_module_local_commit_pinned_and_signed(module):
+    documents = publication.bundle_documents(module)
+    release = next(doc for doc in documents if doc["kind"] == "HelmRelease")
+    chart_source_name = release["spec"]["chart"]["spec"]["sourceRef"]["name"]
+    source = next(doc for doc in documents if doc["kind"] == "GitRepository" and doc["metadata"]["name"] == chart_source_name)
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    assert source["spec"]["ref"] == {"commit": head}
+    assert source["spec"]["verify"]["mode"] == "HEAD"
+    assert source["spec"]["secretRef"] == {"name": "service-backend-github-app-auth"}
+    assert release["spec"]["chart"]["spec"]["sourceRef"]["name"] == source["metadata"]["name"]
+    assert source["metadata"]["name"] != "service-backend"
+
+
+def test_global_ci_change_does_not_republish_all_modules():
+    entries = [{"module": "platform/adapter"}, {"module": "platform/runtime-anatomy"}]
+    assert publication.affected_modules(entries, ["operations/ci/domain-catalog.yaml", ".github/workflows/ci.yml"]) == []
+    assert publication.affected_modules(entries, ["platform/adapter/release.yaml"]) == [entries[0]]
+    assert publication.affected_modules(entries, ["clusters/re8ch/charts/runtime-anatomy/Chart.yaml"]) == [entries[1]]

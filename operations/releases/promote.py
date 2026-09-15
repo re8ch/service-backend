@@ -34,6 +34,9 @@ def changes(directory):
     spec = importlib.util.spec_from_file_location("flux_oci", ROOT / "operations/releases/flux_oci.py")
     generator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator)
+    allocator_spec = importlib.util.spec_from_file_location("promotion_names", ROOT / "operations/releases/allocate_codename.py")
+    allocator = importlib.util.module_from_spec(allocator_spec)
+    allocator_spec.loader.exec_module(allocator)
     additions = []
     current = yaml.safe_load((ROOT / "operations/releases/codenames.yaml").read_text())
     proposed = yaml.safe_load((directory / "codenames.yaml").read_text())
@@ -44,6 +47,8 @@ def changes(directory):
         release = yaml.safe_load(path.read_text())
         generator.manifests(release) # schema, owner and trusted signer validation
         module = release["module"]
+        if release["codename"] != allocator.proposed(module, current):
+            raise ValueError("promotion must claim the module's next reviewed codename")
         if path.stem != module.replace("/", "-"):
             raise ValueError("unexpected release filename")
         previous = current["modules"].get(module, {}).get("releases", [])
@@ -59,6 +64,9 @@ def changes(directory):
             raise ValueError("automatic promotion cannot change registry authority")
         source["spec"]["ref"] = {"digest": release["bundle"]["digest"]}
         source["metadata"]["annotations"]["delivery.re8ch.com/codename"] = release["codename"]
+        for document in documents:
+            if document["kind"] == "Kustomization":
+                document["metadata"]["annotations"]["delivery.re8ch.com/codename"] = release["codename"]
         additions.extend([(str(source_path.relative_to(ROOT)), yaml.safe_dump_all(documents, sort_keys=False)),
                           ("releases/" + path.name, path.read_text())])
         updated.add(module)
@@ -82,7 +90,7 @@ def main():
     head = api("repos/" + REPO + "/git/ref/heads/main")["object"]["sha"]
     if head != os.environ["GITHUB_SHA"]:
         raise RuntimeError("main advanced since publication; refusing stale automatic promotion")
-    branch = "promote/domain-" + os.environ["GITHUB_RUN_ID"]
+    branch = "codex/promote-domain-" + os.environ["GITHUB_RUN_ID"]
     api("repos/" + REPO + "/git/refs", {"ref": "refs/heads/" + branch, "sha": head})
     query = "mutation($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){commit{oid}}}"
     result = graphql(query, {"input": {"branch": {"repositoryNameWithOwner": REPO, "branchName": branch},

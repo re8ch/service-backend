@@ -1,0 +1,43 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-adapter
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/adapter
+    delivery.re8ch.com/codename: anchor
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-adapter
+  ref:
+    digest: sha256:24febec3bd020a1e51071cd25acb0a496411b57a9f7974e6fc770167d3fd43c1
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: domain-platform-adapter
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/adapter
+    delivery.re8ch.com/codename: anchor
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  path: ./
+  prune: false
+  wait: false
+  sourceRef:
+    kind: OCIRepository
+    name: domain-platform-adapter
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

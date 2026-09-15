@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/runtime-anatomy
+codename: atoll
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-runtime-anatomy
+  digest: sha256:a7a22277ee62ac0f866dc9d5b19bfe98b81e5d0c88e1b18769ed27477c9ea00d
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

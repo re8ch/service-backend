@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/workspace-controller
+codename: andromeda
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-workspace-controller
+  digest: sha256:84ba4d3168b92f864acf0a5978f13b4893b5fdeae0817b1a5571c86e2c9e1190
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

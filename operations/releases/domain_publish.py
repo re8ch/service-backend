@@ -85,6 +85,23 @@ def bundle_documents(module, bootstrap=False):
         # rather than resurrecting objects filtered by the original root.
         effective = effective_root()
         documents = [effective[identity(doc)] for doc in documents if identity(doc) in effective]
+    if not bootstrap:
+        # Local Helm charts must not follow every unrelated main commit. Each
+        # published module gets a signed, commit-pinned chart source inside its
+        # own immutable bundle; it advances only when this module is republished.
+        local_charts = [doc for doc in documents if doc["kind"] == "HelmRelease"
+            and doc.get("spec", {}).get("chart", {}).get("spec", {}).get("sourceRef", {}).get("kind") == "GitRepository"
+            and doc["spec"]["chart"]["spec"]["sourceRef"].get("name") == "service-backend"]
+        if local_charts:
+            generator = load_module("chart_source_names", "operations/releases/flux_oci.py")
+            name = generator.source_name(module + "-chart")
+            source = copy.deepcopy(next(doc for doc in yaml.safe_load_all((ROOT / "clusters/re8ch/flux-system/gotk-sync.yaml").read_text()) if doc["kind"] == "GitRepository"))
+            source["metadata"] = {"name": name, "namespace": "flux-system"}
+            revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+            source["spec"]["ref"] = {"commit": revision}
+            documents.append(source)
+            for release in local_charts:
+                release["spec"]["chart"]["spec"]["sourceRef"] = {"kind": "GitRepository", "name": name, "namespace": "flux-system"}
     return documents
 
 
@@ -202,12 +219,20 @@ def publish(modules, out, bootstrap=False):
     (out / "active.yaml").write_text(yaml.safe_dump({"version": 1, "modules": modules}, sort_keys=False))
 
 
+def affected_modules(entries, paths):
+    impact = load_module("publication_impact", "operations/ci/impact.py")
+    catalog = impact.load_catalog()
+    return [entry for entry in entries if impact.root_affected(entry["module"], paths)
+        or any(impact.matches(path, pattern) for path in paths
+               for pattern in catalog.get("external_inputs", {}).get(entry["module"], []))]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bootstrap", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--base")
-    parser.add_argument("--module", help="explicitly republish one already activated module")
+    parser.add_argument("--module", help="comma-separated explicit activated module roots")
     parser.add_argument("--revoke-orphan-run")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
@@ -225,12 +250,16 @@ def main():
     else:
         config = yaml.safe_load((ROOT / "operations/releases/active.yaml").read_text())
         impact = load_module("impact", "operations/ci/impact.py")
-        selected = impact.select(impact.changed_paths(args.base, "HEAD"))
-        modules = [entry for entry in config["modules"] if entry["module"] in selected["roots"]]
+        paths = impact.changed_paths(args.base, "HEAD")
+        # Global CI/governance changes can require full tests without publishing
+        # every module. Publishing scope follows actual module/chart inputs,
+        # not the CI plan's conservative full-regression fallback.
+        modules = affected_modules(config["modules"], paths)
         if args.module:
-            modules = [entry for entry in config["modules"] if entry["module"] == args.module]
-            if len(modules) != 1:
-                raise RuntimeError("explicit module is not activated")
+            requested = [module.strip() for module in args.module.split(",")]
+            modules = [entry for entry in config["modules"] if entry["module"] in requested]
+            if len(modules) != len(requested) or len(requested) != len(set(requested)):
+                raise RuntimeError("explicit modules must be unique activated roots")
     publish(modules, args.output, args.bootstrap)
 
 

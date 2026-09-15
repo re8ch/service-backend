@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/agent-onboarding-runtime
+codename: aegis
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-agent-onboarding-runtime
+  digest: sha256:49c58ae6c88d4c6040e2b58002b7da9f659f4aa3763341df990d54c3aabb3d6f
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

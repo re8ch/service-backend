@@ -1,3 +1,61 @@
 version: 1
-# Activated only after signed bootstrap publication and ownership review.
-modules: []
+modules:
+- module: clusters/re8ch/components/re8ch-business-namespaces
+  wait: false
+- module: clusters/re8ch/components/network/podcidr-fabric
+  wait: false
+- module: clusters/re8ch/components/personal-access
+  wait: false
+- module: platform/headlamp
+  wait: false
+- module: platform/among-clusters
+  wait: false
+- module: platform/scheduling-fabric
+  wait: false
+- module: platform/cloud-platform
+  wait: false
+- module: platform/advanced-fabric
+  wait: false
+- module: platform/git-workspaces
+  wait: false
+- module: platform/workspace-controller
+  wait: false
+- module: platform/agent-onboarding-runtime
+  wait: false
+- module: platform/stalwart
+  wait: false
+- module: platform/apps/access-subscription
+  wait: false
+- module: platform/connectool
+  wait: false
+- module: platform/birfucate-metering
+  wait: false
+- module: platform/hyperswitch
+  wait: false
+- module: platform/public-edge-manager
+  wait: false
+- module: platform/adapter
+  wait: false
+- module: platform/runtime-anatomy
+  wait: false
+- module: platform/secretary-system
+  wait: false
+- module: platform/external-projects
+  wait: false
+- module: platform/observability/bootstrap
+  name: observability-bootstrap
+  wait: true
+  suspend: false
+  timeout: 10m
+- module: platform/observability/opencost-recovery
+  name: observability-opencost-recovery
+  wait: true
+  suspend: false
+  timeout: 10m
+- module: platform/observability/production
+  name: observability-production
+  wait: true
+  suspend: true
+  timeout: 15m
+  dependsOn:
+  - name: observability-bootstrap

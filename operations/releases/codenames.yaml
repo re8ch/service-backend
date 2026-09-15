@@ -1,15 +1,171 @@
 version: 1
-# Vocabularies are intentionally finite and reviewed. Each module has its own
-# cursor, so releases advance independently even when modules share a theme.
 themes:
-  constellations: [andromeda, aquila, carina, cygnus, lyra, orion, vela]
-  winds: [bora, chinook, etesian, mistral, sirocco, tramontane, zephyr]
-  guardians: [aegis, bastion, citadel, sentinel, shield, ward, watchtower]
-  lenses: [aperture, focus, prism, spectrum, telescope, viewport, zenith]
-  habitats: [atoll, canopy, delta, grove, reef, tundra, wetland]
-  waypoints: [anchor, beacon, compass, harbor, meridian, passage, trailhead]
-  beacons: [aurora, flare, lantern, lighthouse, signal, starfire, torch]
-  currents: [cascade, confluence, eddy, gulfstream, riptide, springtide, tideway]
-revision_words: [amber, copper, indigo, jade, pearl, silver, umber]
-modules: {}
-
+  constellations:
+  - andromeda
+  - aquila
+  - carina
+  - cygnus
+  - lyra
+  - orion
+  - vela
+  winds:
+  - bora
+  - chinook
+  - etesian
+  - mistral
+  - sirocco
+  - tramontane
+  - zephyr
+  guardians:
+  - aegis
+  - bastion
+  - citadel
+  - sentinel
+  - shield
+  - ward
+  - watchtower
+  lenses:
+  - aperture
+  - focus
+  - prism
+  - spectrum
+  - telescope
+  - viewport
+  - zenith
+  habitats:
+  - atoll
+  - canopy
+  - delta
+  - grove
+  - reef
+  - tundra
+  - wetland
+  waypoints:
+  - anchor
+  - beacon
+  - compass
+  - harbor
+  - meridian
+  - passage
+  - trailhead
+  beacons:
+  - aurora
+  - flare
+  - lantern
+  - lighthouse
+  - signal
+  - starfire
+  - torch
+  currents:
+  - cascade
+  - confluence
+  - eddy
+  - gulfstream
+  - riptide
+  - springtide
+  - tideway
+revision_words:
+- amber
+- copper
+- indigo
+- jade
+- pearl
+- silver
+- umber
+modules:
+  clusters/re8ch/components/re8ch-business-namespaces:
+    releases:
+    - codename: aegis
+      digest: sha256:16e4a40b21a1c59d28575b3f79de4dc7ae889fb0bb39c8c2738e131a5bfc915a
+  clusters/re8ch/components/network/podcidr-fabric:
+    releases:
+    - codename: bora
+      digest: sha256:d9618f3acc84b8f753326df3f2dc055fdbf3c8e9bbe7d5f47c746e0ff48c9ee9
+  clusters/re8ch/components/personal-access:
+    releases:
+    - codename: aegis
+      digest: sha256:f47b5cf2ef132c9b792edf41aedcf49c292c51c39414271f4d9e240865104109
+  platform/headlamp:
+    releases:
+    - codename: aurora
+      digest: sha256:aa047053e814c04993e629ba53be98a77da0663b485189bc0fc772335562bb82
+  platform/among-clusters:
+    releases:
+    - codename: bora
+      digest: sha256:b285c878e7f95b2f3191a3e090b28a79d9af24a363463fcb80e63dd078f306aa
+  platform/scheduling-fabric:
+    releases:
+    - codename: atoll
+      digest: sha256:fc128757d136f6c865dc199da3b119850335d9865d9a66ce3e2dbf96b6d24647
+  platform/cloud-platform:
+    releases:
+    - codename: atoll
+      digest: sha256:0241c7d79b94b15c0578acee47ee36af67c022c2cf546c71c12f8d5db993e0b8
+  platform/advanced-fabric:
+    releases:
+    - codename: bora
+      digest: sha256:7c93648377b0ce28bc497dfdcef3457fc95e23bbd7a9c4e04ef39b602760f073
+  platform/git-workspaces:
+    releases:
+    - codename: andromeda
+      digest: sha256:c5d91bfe5bad45f5160b2bf6900befb2aea5bbd6e6dd3ab39b4c02ea185855ef
+  platform/workspace-controller:
+    releases:
+    - codename: andromeda
+      digest: sha256:84ba4d3168b92f864acf0a5978f13b4893b5fdeae0817b1a5571c86e2c9e1190
+  platform/agent-onboarding-runtime:
+    releases:
+    - codename: aegis
+      digest: sha256:49c58ae6c88d4c6040e2b58002b7da9f659f4aa3763341df990d54c3aabb3d6f
+  platform/stalwart:
+    releases:
+    - codename: aurora
+      digest: sha256:81ca8f053f2efeb39a944a04ca9e173223c0d2269513efb69546176f2587ed44
+  platform/apps/access-subscription:
+    releases:
+    - codename: aegis
+      digest: sha256:3365c567600c7b774470d73f8b576bdef85853640aaa33e294a0f1a06a62e072
+  platform/connectool:
+    releases:
+    - codename: anchor
+      digest: sha256:af1a1724573424d46410d6e4382d79e233df3b60874b606d39b2588e58973545
+  platform/birfucate-metering:
+    releases:
+    - codename: cascade
+      digest: sha256:125a237825778decd80cb0fc7b82b17e2d85e1e904cb164553c2bb817326e53a
+  platform/hyperswitch:
+    releases:
+    - codename: anchor
+      digest: sha256:907391f32eb6250273d7b1c151e7f122d62455b3829aaf09931f153e77fe701b
+  platform/public-edge-manager:
+    releases:
+    - codename: bora
+      digest: sha256:1b69b59ece52ee66eddb6517ec8f637671ffda2aa95e2e087e1258d0ac8980c4
+  platform/adapter:
+    releases:
+    - codename: anchor
+      digest: sha256:24febec3bd020a1e51071cd25acb0a496411b57a9f7974e6fc770167d3fd43c1
+  platform/runtime-anatomy:
+    releases:
+    - codename: atoll
+      digest: sha256:a7a22277ee62ac0f866dc9d5b19bfe98b81e5d0c88e1b18769ed27477c9ea00d
+  platform/secretary-system:
+    releases:
+    - codename: aegis
+      digest: sha256:59607d05fbd418c2e6ea3c7bb7ed34607fd86fda60e99492b26c9c49840ac1f5
+  platform/external-projects:
+    releases:
+    - codename: anchor
+      digest: sha256:c061a0e392a9c8b19baf5051f42deea533b5d06e5c7a205d097e12586d356ea7
+  platform/observability/bootstrap:
+    releases:
+    - codename: aperture
+      digest: sha256:c684b6e37cac499530e5beac00ef42d5ac167513f533d4e0c0039c3ea9e14a75
+  platform/observability/opencost-recovery:
+    releases:
+    - codename: aperture
+      digest: sha256:00b28236efe7c7a551981526d5baa1ce7ee650cafd9a98373267391c781c478d
+  platform/observability/production:
+    releases:
+    - codename: aperture
+      digest: sha256:fa0c1a93e6414d29df5ab465ecf67edec53a4563592d8dde2f582f6a6a12794c

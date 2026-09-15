@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/external-projects
+codename: anchor
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
+  digest: sha256:c061a0e392a9c8b19baf5051f42deea533b5d06e5c7a205d097e12586d356ea7
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

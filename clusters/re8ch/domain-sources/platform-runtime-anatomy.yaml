@@ -1,0 +1,43 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-runtime-anatomy
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/runtime-anatomy
+    delivery.re8ch.com/codename: atoll
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-runtime-anatomy
+  ref:
+    digest: sha256:a7a22277ee62ac0f866dc9d5b19bfe98b81e5d0c88e1b18769ed27477c9ea00d
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: domain-platform-runtime-anatomy
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/runtime-anatomy
+    delivery.re8ch.com/codename: atoll
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  path: ./
+  prune: false
+  wait: false
+  sourceRef:
+    kind: OCIRepository
+    name: domain-platform-runtime-anatomy
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

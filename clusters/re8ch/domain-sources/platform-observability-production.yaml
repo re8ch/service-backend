@@ -1,0 +1,20 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-observability-production
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/observability/production
+    delivery.re8ch.com/codename: aperture
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
+  ref:
+    digest: sha256:fa0c1a93e6414d29df5ab465ecf67edec53a4563592d8dde2f582f6a6a12794c
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader

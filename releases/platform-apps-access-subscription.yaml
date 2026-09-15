@@ -1,0 +1,11 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: DomainRelease
+module: platform/apps/access-subscription
+codename: aegis
+bundle:
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
+  digest: sha256:3365c567600c7b774470d73f8b576bdef85853640aaa33e294a0f1a06a62e072
+  signature: cosign-keyless
+  identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
+  issuer: https://token.actions.githubusercontent.com
+images: []

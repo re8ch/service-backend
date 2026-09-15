@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: gitops-oci-reader
+    namespace: flux-system
+stringData:
+    .dockerconfigjson: ENC[AES256_GCM,data:DmY3xvsZBL/eDdFwOvhZUTXvo7rTqMXfjNzJJAhWFKmhiNS3Ug6Ih8jZws9qw6jxt+eGhbHwUy75ns6kGSJpUae/yLizBhYsTCeoOEuD6TYm7Ad4dnTeOcbfYWc50IpKpoOzj+mO0x9n7c6/wuaPOjivgHh3qZipDwa7UGEJxlYUrgk6Qtjj26yiWORA+KX8cxWDGzMJo7kCdj0ZvHYHKdAkAfTwmS0=,iv:MvZKuY3r9srFuhUeiIAKIHkCWM56nu5si92M6z5vODo=,tag:Y5GYBmUTRfjOIDoO0+VnLQ==,type:str]
+type: kubernetes.io/dockerconfigjson
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA3U1lMVEhLMGJlUENGOTVw
+            WU1IbnM0dUMzVUtmSk1kWmJYUERBTXVaUHhzClBYR0E2K2psRVZaQWhOMEJ0VHlG
+            ZFdBcjY3WTRqaDBaMTlwQmgxajZXZ0kKLS0tIEJ6Z0RYbUUvQmZycVprek55ZS9Q
+            dDM5emdieUZ1bE4xQVdSRS9VMjY0TU0K/fA9jQ49bQGfHR5n1v7hQdEB8l2Zq6g8
+            s4G+N1lJNJ175az4Hbc8LzMv4EGaz+qTpBWtN5j/U8xMeUP8F56xTg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-09-15T09:42:19Z"
+    mac: ENC[AES256_GCM,data:4Ae+Wa86LMDBMFu96r/3fcSJjYIRbg3+ToeuoJJkuTEtXAoN0MZff1OuFnuygTgxrkq3u99o3aNbzHmOD3a9wk6xz1/N090gSlwL3g5KnlnSITocNUhDAhq4Y487fom/zTfeIGUNQDxiLPt7UEJ0B2l5eBma+NCZmhiiiUzBlHw=,iv:ZtvXPuDcNB+O3PJL2gT+zg4hCgI7jlrqKK/TN3ynj8k=,tag:HVEw979AIcEhqsoKYAsrxw==,type:str]
+    version: 3.13.1

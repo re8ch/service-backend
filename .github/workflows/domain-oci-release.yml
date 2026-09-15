@@ -3,11 +3,11 @@ on:
   workflow_dispatch:
     inputs:
       bootstrap: {description: Publish initial bundles and encrypted read-only registry credential, type: boolean, default: false}
-      module: {description: Explicitly republish one activated module root, type: string, default: ''}
+      module: {description: Comma-separated activated module roots to explicitly republish, type: string, default: ''}
       revoke_orphan_run: {description: Revoke unused bootstrap robot from this exact failed run, type: string, default: ''}
   push:
     branches: [main]
-    paths: ['platform/**', 'clusters/re8ch/components/**']
+    paths: ['platform/**', 'clusters/re8ch/components/**', 'clusters/re8ch/charts/**']
 permissions: {contents: read, id-token: write}
 concurrency: {group: domain-oci-production, cancel-in-progress: false}
 jobs:

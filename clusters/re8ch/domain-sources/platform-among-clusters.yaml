@@ -1,0 +1,43 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-among-clusters
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/among-clusters
+    delivery.re8ch.com/codename: bora
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
+  ref:
+    digest: sha256:b285c878e7f95b2f3191a3e090b28a79d9af24a363463fcb80e63dd078f306aa
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: domain-platform-among-clusters
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/among-clusters
+    delivery.re8ch.com/codename: bora
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  path: ./
+  prune: false
+  wait: false
+  sourceRef:
+    kind: OCIRepository
+    name: domain-platform-among-clusters
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

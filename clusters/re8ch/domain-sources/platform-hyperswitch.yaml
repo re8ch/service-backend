@@ -1,0 +1,43 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: domain-platform-hyperswitch
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/hyperswitch
+    delivery.re8ch.com/codename: anchor
+spec:
+  interval: 10m
+  url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
+  ref:
+    digest: sha256:907391f32eb6250273d7b1c151e7f122d62455b3829aaf09931f153e77fe701b
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+    - issuer: ^https://token\.actions\.githubusercontent\.com$
+      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+  secretRef:
+    name: gitops-oci-reader
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: domain-platform-hyperswitch
+  namespace: flux-system
+  annotations:
+    delivery.re8ch.com/module: platform/hyperswitch
+    delivery.re8ch.com/codename: anchor
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  path: ./
+  prune: false
+  wait: false
+  sourceRef:
+    kind: OCIRepository
+    name: domain-platform-hyperswitch
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
