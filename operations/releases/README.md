@@ -35,9 +35,9 @@ resource inclusion in the same reviewed migration that adds this source pair.
 
 Unit tests cover numeric/mutable tags, unknown modules, digest pins, exact signer
 matching and source isolation. Integration CI renders affected local roots.
-Outstanding live smoke tests are registry signature verification, Flux source
-readiness and workload health after an explicit ownership cutover. Until those
-pass, the new manifests are not applied to the cluster.
+ Live cutover verification checks registry signatures, private Flux source
+ readiness and each unsuspended Kustomization's applied digest. Workload health
+ remains a separate check; `wait:false` is not a promise that every Pod is healthy.
 
 ## Live ownership and promotion
 
@@ -70,3 +70,20 @@ The two local Helm charts (`runtime-anatomy`, `birfucate-metering`) are packaged
 with module-local GitRepository sources pinned to the publisher's signed commit.
 Their chart inputs map explicitly to the corresponding deployable module; an
 unrelated main commit cannot advance these chart sources after that promotion.
+
+## Verified activation
+
+[Bootstrap publication](https://github.com/re8ch/service-backend/actions/runs/34953923374)
+and [signed cutover PR #88](https://github.com/re8ch/service-backend/pull/88)
+activated 24 private sources. All 24 passed live source/signature verification;
+23 unsuspended reconciliations applied their OCI digest, and production
+observability remained suspended. [Post-cutover full regression](https://github.com/re8ch/service-backend/actions/runs/34955481301)
+passed 376 tests. [App-authored promotion PR #89](https://github.com/re8ch/service-backend/pull/89)
+changed only adapter's lock/source and append-only codename state; its CI plan
+selected only `platform/adapter`, domain `delivery`, with `full:false`.
+
+If main advances during publication, stale automatic deployment is refused.
+A later publication can preserve an existing, signature-verified unused tag as
+an append-only historical claim, then allocate the next codename. It neither
+overwrites that tag nor deploys the stale bundle. An unverifiable existing tag
+is rejected and requires an explicit recovery decision.
