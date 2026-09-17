@@ -325,7 +325,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "b415959ec87dd613faa72d93ce2dd86cc93fb386",
+    "commit": "58787899dd7cad6d6a99d9820fee97bd48778b86",
     "id": "connectool",
     "ownership": "owned",
     "projectType": "ai-tool-distribution",

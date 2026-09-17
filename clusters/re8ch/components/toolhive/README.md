@@ -14,25 +14,22 @@ reviewed desired state.
 | `platform-admin` | platform-admin agents after explicit approval | identity, tenant, Harbor and Pigsty provisioning | Headlamp, Harbor, CloudBeaver, Grafana |
 
 The three surfaces run isolated ToolHive-managed `MCPServer` backends with
-different Kubernetes ServiceAccounts, KSA audiences, NetworkPolicies and
-`MCPToolConfig` allowlists. Do not merge them into one virtual MCP. Generic
-Kubernetes/SQL proxies and credential-returning tools are not published on any
-default surface.
+different Kubernetes ServiceAccounts, NetworkPolicies and `MCPToolConfig`
+allowlists. ConnecTool aggregates only the explicitly reviewed backends into
+the cloud, admin and tenant vMCPs. Generic Kubernetes/SQL proxies and
+credential-returning tools are not published on a default surface.
 
-`proxy-scheduling-policy.yaml` is a label-scoped Kubernetes v1 mutating
-admission policy. Every Deployment and StatefulSet in `toolhive-system` with
-`toolhive=true` is pinned to `kubernetes.io/hostname=restricted-node-6dc3f140f9`. This covers vMCP,
-MCP proxy and backend Pods without referring to operator-generated names.
-ConnecTool also renders the same selector into every `VirtualMCPServer`, while
-direct MCP APIs carry `ai.connectool.io/mcp-backend=true` and an explicit restricted-node-6dc3f140f9
-selector. Redis, Registry, Cloud UI and the ToolHive Operator are outside this
-policy.
+ConnecTool owns the label-scoped runtime policy for ToolHive-generated child
+resources. Every `toolhive=true` workload is restricted to `restricted-node-1eb0570f74` and
+`restricted-node-296f36f2fb`, spread one replica per hostname, given bounded rollout settings,
+and exposed through Services that prefer same-node endpoints. Each public vMCP
+and each private backend/proxy has two replicas. Memory-backed sessions use
+`ClientIP` affinity; clients reconnect after a node failure instead of making a
+shared Redis instance part of the availability path.
 
-restricted-node-6dc3f140f9 is the sole PublicEdge origin, so every publication and direct MCP API is
-single-replica. Multiple replicas on one failure domain are not high
-availability and must never be described as HA. Required pod anti-affinity is
-incompatible with this phase. Multi-node replicas and HA claims may return only
-after a second independent PublicEdge origin is healthy and health-gated.
+restricted-node-6dc3f140f9 remains the PublicEdge transport authority, but it is not an MCP compute,
+control, or session-state node. The direct external and managed MCPServer
+generations are retired; ConnecTool vMCP is the only public MCP publication.
 
 Keep SSH and the Kubernetes control-plane path available as independent
 break-glass access. Operational MCP must not be the only way to repair its own
@@ -53,56 +50,35 @@ complete 2026-09-07 recovery and the mandatory prevention gates.
    The verifier checks the fixed `192.0.2.149` Service IP, desired replicas and
    actual Pod Ready conditions. It requires three genuinely Ready authoritative
    DNS Pods on distinct eligible nodes.
-2. Install the CRD and operator charts at the same pinned ToolHive version.
-3. Run `apply-managed-ops.sh`; it syncs the reviewed Ops source ConfigMap,
-   admin-only Harbor credential, common policy objects, proxy scheduling
-   admission policy, and three MCPServers. It refreshes backends before
-   proxy-runners so the published tool schema changes atomically for clients.
-4. Apply `kagent-integration.yaml`, run the token-rotator Job once, then run
-   `attach-toolhive-agents.sh` after the target Agent image is available.
+2. Ensure the ToolHive CRDs are at the pinned version. Flux adopts and manages
+   the existing `toolhive-operator` Helm release from `operator-release.yaml`.
+3. Reconcile ConnecTool and the three private MCPServers through Flux. The
+   signed chart supplies vMCP placement, session, PDB and child-runtime policy.
+4. Verify A1/B1 placement and public OAuth initialization before retiring a
+   previous chart or workload generation.
 5. Create the isolated Registry database/role on the existing MCP Registry
-   PostgreSQL instance, apply its NetworkPolicy from `registry.yaml`, and
-   install the Registry Server chart with
-   `registry-values.yaml`.
+   PostgreSQL instance. Flux manages its NetworkPolicy and Registry Server
+   release through ConnecTool.
 6. Use `kubectl auth can-i` and MCP `tools/list` to execute the acceptance
-   matrix in `PERMISSIONS.md` before connecting KAgent.
+   matrix in `PERMISSIONS.md`.
 
 ```bash
 helm upgrade --install toolhive-crds \
   oci://ghcr.io/stacklok/toolhive/toolhive-operator-crds \
   --version 0.41.0
 
-helm upgrade --install toolhive-operator \
-  oci://ghcr.io/stacklok/toolhive/toolhive-operator \
-  --version 0.41.0 \
-  --namespace toolhive-system --create-namespace \
-  --values operator-values.yaml
+# The operator itself is reconciled by Flux from operator-release.yaml.
 ```
 
-Deploy or update the managed Ops surfaces without printing credentials:
-
-```bash
-./apply-managed-ops.sh
-kubectl apply -f kagent-integration.yaml
-kubectl -n kagent create job --from=cronjob/toolhive-token-rotator \
-  toolhive-token-rotator-bootstrap
-kubectl -n kagent wait --for=condition=complete \
-  job/toolhive-token-rotator-bootstrap --timeout=120s
-./attach-toolhive-agents.sh
-./verify-managed-ops.sh
-./verify-r640-placement.sh
-```
-
-Run `verify-r640-placement.sh` immediately after Flux source, root
-Kustomization and ConnecTool HelmRelease reconciliation. It is the rollout
-health gate: every labeled MCP workload template must select restricted-node-6dc3f140f9, every
-matching Pod must be Ready on restricted-node-6dc3f140f9, and any Pending or off-node Pod fails the
-rollout. Pod readiness alone is insufficient; complete OAuth `initialize` and
-`tools/list` checks for all three public endpoints afterward.
+After Flux source, root Kustomization and ConnecTool HelmRelease reconciliation,
+verify that every MCP backend, proxy and vMCP has one Ready replica on A1 and
+one on B1. Any restricted-node-6dc3f140f9 MCP Pod, Pending replica, Redis dependency, downstream 401,
+or public 503 fails the rollout. Pod readiness alone is insufficient; complete
+OAuth `initialize` and `tools/list` checks for all three public endpoints.
 
 Create the ToolHive Registry database Secret without checking credentials into
 Git, then create the matching logical database and role through an approved DBA
-session:
+session. Do not install a second manual Registry Helm release:
 
 ```bash
 REGISTRY_DB_PASSWORD=$(openssl rand -hex 24)
@@ -110,16 +86,12 @@ kubectl -n toolhive-system create secret generic toolhive-registry-database \
   --from-literal=password="$REGISTRY_DB_PASSWORD" --dry-run=client -o yaml | kubectl apply -f -
 unset REGISTRY_DB_PASSWORD
 kubectl apply -f registry.yaml
-helm upgrade --install toolhive-registry-server \
-  oci://ghcr.io/stacklok/toolhive-registry-server \
-  --version 1.5.0 --namespace toolhive-system \
-  --values registry-values.yaml
 ```
 
 The Helm-managed Registry Server is authoritative. ToolHive 0.41 deprecates
 the former `MCPRegistry` CRD, so it is intentionally not used.
 
-The registry uses a separate `toolhive_registry` database and role on the
+The registry uses a separate `toolhive-registry` database and role on the
 existing `mcp-registry` PostgreSQL instance. It does not share tables or
 credentials with the compatibility registry.
 
@@ -143,8 +115,8 @@ ToolHive operator permission would make publication review ineffective.
   `Re8chToolHiveToolCallErrors`; the first covers missing proxy targets and the
   second is limited to non-2xx `tools/call` traffic so unsupported MCP
   notifications do not create false tool-failure alerts.
-- ToolHive emits audit logs and OTLP traces/metrics to the existing collector.
-  KAgent session history remains the human tool-argument/result audit trail.
+- ToolHive emits audit logs for MCP requests. Registry OTLP remains disabled
+  until a stable in-cluster collector Service is declared.
 - CloudBeaver remains a human SQL GUI and must use database roles, never the
   Ops MCP admin credential.
 
@@ -169,9 +141,6 @@ resource intentionally returns an RFC 9728 bearer
 challenge when no token is supplied; MCP clients use that challenge to start
 their OAuth flow and must not receive a browser-login redirect there.
 
-`external-observe-publication.template.yaml` records the OIDC and RFC 9728
-fields for a future, separate read-only public surface. It is fully commented,
-so accidental `kubectl apply` cannot alter the working internal identities.
 Authentik is retired at zero replicas and is not on the production request
 path. Its Secrets and PVCs are retained only as rollback data. The legacy
 bootstrap requires an explicit `ALLOW_RETIRED_AUTHENTIK_ROLLBACK=true` opt-in;
@@ -183,7 +152,7 @@ surface rather than the internal observe allowlist. It needs RFC 9728 resource
 metadata, OAuth 2.1 authorization code + PKCE, exact resource/audience binding,
 per-tool OAuth security schemes, domain verification, public legal/support
 pages, reviewer credentials without MFA, and five positive plus three negative
-tests. See `EXTERNAL-PUBLICATION.md`.
+tests.
 
 Run the non-mutating readiness checker at any time:
 

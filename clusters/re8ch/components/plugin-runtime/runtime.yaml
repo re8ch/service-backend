@@ -6,6 +6,7 @@ metadata:
   labels: {app.kubernetes.io/name: re8ch-plugin-runtime, app.kubernetes.io/part-of: toolhive}
 spec:
   replicas: 2
+  progressDeadlineSeconds: 180
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   selector: {matchLabels: {app.kubernetes.io/name: re8ch-plugin-runtime}}
   template:
@@ -55,7 +56,15 @@ kind: Service
 metadata: {name: re8ch-plugin-runtime, namespace: toolhive-system}
 spec:
   selector: {app.kubernetes.io/name: re8ch-plugin-runtime}
+  trafficDistribution: PreferSameNode
   ports: [{name: mcp, port: 8088, targetPort: mcp}]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: re8ch-plugin-runtime, namespace: toolhive-system}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-plugin-runtime}}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

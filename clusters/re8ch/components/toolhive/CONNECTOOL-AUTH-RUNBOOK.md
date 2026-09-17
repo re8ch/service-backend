@@ -14,15 +14,15 @@ Use this runbook for the three public MCP resources:
 | Cloud | `https://tools.re8ch.com/cloud/mcp` | `re8ch-cloud-platform-tool` |
 
 Do not use an operational MCP to repair its own publication. Keep SSH and the
-restricted-node-6dc3f140f9 Kubernetes control-plane path available as break-glass access.
+R640 Kubernetes control-plane path available as break-glass access.
 
 ## Success criteria
 
 Recovery is complete only when all of the following are true:
 
 1. Flux applied the exact reviewed `main` SHA.
-2. Every `toolhive=true` Pod is Running and Ready on restricted-node-6dc3f140f9, with no Pending or
-   off-node workload.
+2. Every MCP backend, proxy, vMCP and ToolHive control Pod is Running and Ready
+   on A1/B1, with one replica per node for each HA component and none on R640.
 3. A newly issued JWT has the exact resource audience and required `groups`.
 4. Each endpoint completes `initialize -> notifications/initialized ->
    tools/list`.
@@ -46,7 +46,7 @@ Dex ---- GitHub team membership -> canonical groups claim
     v
 ToolHive vMCP ---- audience validation + Cedar authorization + user audit
     |
-    | private static Authorization header; not the user JWT
+    | private static service header; not the user JWT
     v
 admin-api ---- TenantIdentityBinding -> protected admin tenant
 ```
@@ -68,7 +68,7 @@ flow to `admin-api`.
 - GitHub permission to create and merge signed service-backend changes.
 - GitHub organization permission for the canonical teams.
 - Macmini workspace and SOPS age key access.
-- Break-glass SSH access to `restricted-node-6dc3f140f9` with passwordless `sudo -n k3s kubectl`.
+- Break-glass SSH access to `r640` with passwordless `sudo -n k3s kubectl`.
 - The public authority invariant in
   `operations/network/manifests/network/public-mesh/inventory.json` has been
   read before changing any PublicEdge network state.
@@ -92,7 +92,7 @@ Classify the failure before changing credentials:
 | Observation | Likely layer | First check |
 | --- | --- | --- |
 | No Authenticate button or MCP tools absent from the session | Plugin/MCP capability exposure | `codex mcp list`; restart/reconnect after server recovery |
-| OAuth metadata discovery `503` | PublicEdge, route, or upstream availability | protected-resource URL and restricted-node-6dc3f140f9 route/controller health |
+| OAuth metadata discovery `503` | PublicEdge, route, or upstream availability | protected-resource URL and R640 route/controller health |
 | OAuth completes but JWT has no groups | Dex GitHub connector/team mapping or stale token | decode claims safely; inspect reconciled Dex connector |
 | MCP returns `401 invalid_token` | signature/audience, forwarded credential, literal SOPS ciphertext, or stale Secret env | JWT audience; backend/vMCP logs; Secret relationship; Pod start time |
 | MCP returns `403` | Cedar or tenancy authorization | JWT groups and `TenantIdentityBinding` resolution |
@@ -107,17 +107,18 @@ been inspected. Never respond to an `invalid_token` by broadening Cedar policy.
 ### 1. Establish GitOps and placement truth
 
 ```bash
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl -n flux-system get \
+ssh r640 'sudo -n k3s kubectl -n flux-system get \
   gitrepository/service-backend kustomization/service-backend -o wide'
 
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl get pods -A -l toolhive=true \
+ssh r640 'sudo -n k3s kubectl get pods -A -l toolhive=true \
   -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,NODE:.spec.nodeName,PHASE:.status.phase,READY:.status.containerStatuses[0].ready'
 ```
 
-All matching Pods must be on `restricted-node-6dc3f140f9`. Use
-`clusters/re8ch/components/toolhive/verify-r640-placement.sh` as the formal
-placement gate. Repair GitOps declarations instead of adding ad-hoc scheduler
-patches or name-based policies.
+All MCP compute and ToolHive control Pods must resolve to `a1-wsl-zt` or
+`b1-wsl-zt`; every two-replica component must have one Ready Pod on each node.
+R640 may remain the public transport/control-plane access path, but must not
+host MCP sessions or compute. Repair GitOps declarations instead of adding
+ad-hoc scheduler patches or name-based policies.
 
 ### 2. Verify OAuth discovery independently
 
@@ -135,8 +136,8 @@ The continuously running `dex-identity-reconciler` owns the client contract and
 GitHub connector mapping. Confirm it is healthy and idempotent:
 
 ```bash
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl -n dex get deploy dex dex-identity-reconciler -o wide'
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl -n dex logs deploy/dex-identity-reconciler --tail=30'
+ssh r640 'sudo -n k3s kubectl -n dex get deploy dex dex-identity-reconciler -o wide'
+ssh r640 'sudo -n k3s kubectl -n dex logs deploy/dex-identity-reconciler --tail=30'
 ```
 
 The canonical mappings are declared in
@@ -189,7 +190,7 @@ The admin publication aggregates `ops-admin-vmcp-internal` and
 `admin-api-backend`:
 
 ```bash
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl -n toolhive-system logs \
+ssh r640 'sudo -n k3s kubectl -n toolhive-system logs \
   deploy/re8ch-admin-vmcp --since=10m | \
   grep -E "admin-api-backend|invalid_token|unsupported auth|unhealthy|healthy"'
 ```
@@ -237,7 +238,7 @@ Secret-backed environment variables are read at process start. Updating the
 Secret does not update an existing container. After a reviewed rotation:
 
 ```bash
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl -n tenant-infrastructure rollout restart deployment/admin-api'
+ssh r640 'sudo -n k3s kubectl -n tenant-infrastructure rollout restart deployment/admin-api'
 ```
 
 The ToolHive operator owns the vMCP Deployment and may reconcile away a manual
@@ -245,13 +246,14 @@ Deployment annotation before replacing the Pod. Verify the Pod start time. If
 it did not change, resolve the exact admin vMCP Pod and recycle only that Pod:
 
 ```bash
-ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl -n toolhive-system get pod \
+ssh r640 'sudo -n k3s kubectl -n toolhive-system get pod \
   -l app=virtualmcpserver,toolhive-name=re8ch-admin-vmcp -o wide'
 ```
 
-Delete only the verified Pod after confirming the controller has one desired
-replica and the restricted-node-6dc3f140f9 selector. Wait for its replacement to become Ready. This
-is a brief single-origin outage and must be reported as such.
+Delete only the verified Pod after confirming the controller has two desired
+replicas, the A1/B1 affinity contract and one Ready peer on the other node.
+Wait for its replacement to become Ready and confirm the client can reconnect
+with a fresh in-memory MCP session.
 
 ### 8. Reconcile reviewed desired state
 
@@ -347,7 +349,7 @@ Escalate when:
 - the installed ToolHive controller and CRD advertise incompatible auth
   capabilities;
 - a tenant identity maps to zero or multiple active tenants;
-- any MCP workload cannot run on restricted-node-6dc3f140f9.
+- any MCP workload cannot run on both A1 and B1 under the declared affinity.
 
 Attach sanitized protocol evidence, exact Git/Flux revisions, affected backend
 IDs and relevant controller messages. Never attach credentials or decrypted
@@ -365,6 +367,6 @@ Secret content.
 - Keep Dex group mappings and `TenantIdentityBinding` declarations under
   continuous reconciliation.
 - Alert on skipped vMCP backends even when the aggregate remains Ready.
-- Keep all ConnecTool publications and MCP backends on restricted-node-6dc3f140f9 during the
-  single-PublicEdge phase.
+- Keep all ConnecTool publications, MCP backends and ToolHive controls spread
+  across A1/B1; R640 is only the existing PublicEdge transport authority.
 - Never describe multiple replicas on one node as high availability.

@@ -44,13 +44,11 @@ config:
     - name: approved
       sources: [managed-workloads, re8ch-managed]
   database:
-    # Keep the known database endpoint during the DNS authority migration. Move
-    # back to the Service FQDN after the Advanced Fabric DNS health gate passes.
-    host: 192.0.2.150
+    host: postgresql.mcp-registry.svc.cluster.local
     port: 5432
     user: mcpregistry
     migrationUser: mcpregistry
-    database: mcp-registry
+    database: toolhive-registry
     sslMode: disable
     maxOpenConns: 10
   auth:
@@ -58,16 +56,16 @@ config:
   audit:
     enabled: true
   telemetry:
-    enabled: true
+    # No stable OTLP collector Service currently exists. Do not couple Registry
+    # readiness to the former hard-coded ClusterIP.
+    enabled: false
     serviceName: re8ch-toolhive-registry
-    # Temporary Service IP for the same cluster-DNS incident described above.
-    endpoint: 192.0.2.161:4318
     insecure: true
     tracing:
-      enabled: true
+      enabled: false
       sampling: 0.1
     metrics:
-      enabled: true
+      enabled: false
 
 extraEnv:
   - name: THV_REGISTRY_DATABASE_PASSWORD

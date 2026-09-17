@@ -1,163 +1,89 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: toolhive-auth-redis
-  namespace: toolhive-system
-spec:
-  clusterIP: None
-  selector: {app.kubernetes.io/name: toolhive-auth-redis-ab}
-  ports: [{name: redis, port: 6379, targetPort: redis}]
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: toolhive-auth-redis-ab
-  namespace: toolhive-system
-spec:
-  serviceName: toolhive-auth-redis
-  replicas: 1
-  selector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis-ab}}
-  template:
-    metadata:
-      labels: {app.kubernetes.io/name: toolhive-auth-redis-ab, app.kubernetes.io/part-of: toolhive}
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-      securityContext: {fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
-      containers:
-        - name: redis
-          image: docker.io/library/redis:7-alpine
-          args: [redis-server, --appendonly, "yes", --requirepass, $(REDIS_PASSWORD)]
-          env:
-            - name: REDIS_PASSWORD
-              valueFrom: {secretKeyRef: {name: toolhive-auth-redis, key: password}}
-          ports: [{name: redis, containerPort: 6379}]
-          volumeMounts: [{name: data, mountPath: /data}]
-          resources:
-            requests: {cpu: 25m, memory: 64Mi}
-            limits: {cpu: 250m, memory: 256Mi}
-          readinessProbe: {tcpSocket: {port: redis}, periodSeconds: 5, failureThreshold: 6}
-          livenessProbe: {tcpSocket: {port: redis}, periodSeconds: 10, failureThreshold: 6}
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities: {drop: [ALL]}
-  volumeClaimTemplates:
-    - metadata: {name: data}
-      spec:
-        accessModes: [ReadWriteMany]
-        # ToolHive session state is a stable control-plane dependency and must
-        # remain on the distributed CephFS data path, independent of A1/B1.
-        storageClassName: cephfs-re8ch
-        resources: {requests: {storage: 2Gi}}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata: {name: toolhive-auth-redis, namespace: toolhive-system}
-spec:
-  podSelector: {matchLabels: {app.kubernetes.io/name: toolhive-auth-redis-ab}}
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - podSelector: {matchLabels: {app.kubernetes.io/name: virtualmcpserver}}
-        - podSelector: {matchLabels: {app.kubernetes.io/name: mcpserver}}
-      ports: [{protocol: TCP, port: 6379}]
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata: {name: vmcp-backend-strip-prefix, namespace: toolhive-system}
-spec:
-  stripPrefixRegex:
-    regex: ['^/backend/(admin|observe|operate)']
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: vmcp-r640-backends
-  namespace: toolhive-system
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.middlewares: toolhive-system-vmcp-backend-strip-prefix@kubernetescrd
-spec:
-  ingressClassName: traefik
-  tls:
-    - hosts: [admin.re8ch.com]
-      secretName: re8ch-wildcard-tls
-  rules:
-    - host: admin.re8ch.com
-      http:
-        paths:
-          - {path: /backend/admin, pathType: Prefix, backend: {service: {name: mcp-ops-admin-external, port: {number: 8088}}}}
-          - {path: /backend/observe, pathType: Prefix, backend: {service: {name: mcp-ops-observe-external, port: {number: 8088}}}}
-          - {path: /backend/operate, pathType: Prefix, backend: {service: {name: mcp-ops-operate-external, port: {number: 8088}}}}
----
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPGroup
 metadata: {name: platform-admin-public, namespace: toolhive-system}
-spec: {description: "External admin tools published only through the admin vMCP."}
+spec: {description: "Admin tools aggregated only through the ConnecTool vMCP."}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPGroup
 metadata: {name: platform-tools-public, namespace: toolhive-system}
-spec: {description: "External observe and operate tools aggregated through the tools vMCP."}
+spec: {description: "Observe and operate tools aggregated only through the ConnecTool vMCP."}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPToolConfig
+metadata: {name: ops-operate-tools, namespace: toolhive-system}
+spec:
+  toolsFilter:
+    - get_managed_platform_operation_status
+    - restart_managed_platform_deployment
+    - scale_managed_platform_deployment
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPToolConfig
+metadata: {name: ops-admin-tools, namespace: toolhive-system}
+spec:
+  toolsFilter:
+    - list_dex_users
+    - get_dex_hash_instructions
+    - create_dex_user
+    - grant_user_namespace
+    - get_tenancy_admin_workflow
+    - generate_pg_tenant_database_plan
+    - ensure_tenant_database_secrets
+    - ensure_tenant_database_bundle
+    - ensure_tenant_access
+    - ensure_harbor_tenant
+    - set_tool_publication_stage
+    - get_tenant_secret_refs
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPTelemetryConfig
+metadata: {name: platform-tools-telemetry, namespace: toolhive-system}
+spec:
+  # Prometheus remains local to each proxy. OTLP stays disabled until a stable
+  # in-cluster collector Service is part of the declared platform contract.
+  openTelemetry: {enabled: false}
+  prometheus: {enabled: true}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
-metadata: {name: vmcp-internal-backend, namespace: toolhive-system}
-spec: {type: unauthenticated}
----
-# vMCP terminates end-user OIDC once. These entries use the backend Services,
-# not their user-facing OAuth proxies, avoiding a second interactive auth hop.
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPServerEntry
-metadata: {name: ops-admin-vmcp-backend, namespace: toolhive-system}
+metadata: {name: vmcp-observe-backend-auth, namespace: toolhive-system}
 spec:
-  groupRef: {name: platform-admin}
-  remoteUrl: https://admin.re8ch.com:8443/backend/admin/mcp
-  transport: streamable-http
-  externalAuthConfigRef: {name: vmcp-internal-backend}
+  type: headerInjection
+  headerInjection:
+    headerName: X-Ops-Token
+    valueSecretRef: {name: ops-mcp-observe-upstream, key: x-ops-token}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPServerEntry
-metadata: {name: ops-observe-vmcp-backend, namespace: toolhive-system}
+kind: MCPExternalAuthConfig
+metadata: {name: vmcp-admin-backend-auth, namespace: toolhive-system}
 spec:
-  groupRef: {name: platform-observe}
-  remoteUrl: https://admin.re8ch.com:8443/backend/observe/mcp
-  transport: streamable-http
-  externalAuthConfigRef: {name: vmcp-internal-backend}
+  type: headerInjection
+  headerInjection:
+    headerName: X-Ops-Token
+    valueSecretRef: {name: ops-mcp-admin-upstream, key: x-ops-token}
 ---
-apiVersion: toolhive.stacklok.dev/v1beta1
-kind: MCPServerEntry
-metadata: {name: ops-operate-vmcp-backend, namespace: toolhive-system}
-spec:
-  groupRef: {name: platform-operate}
-  remoteUrl: https://admin.re8ch.com:8443/backend/operate/mcp
-  transport: streamable-http
-  externalAuthConfigRef: {name: vmcp-internal-backend}
----
-# vMCP's user-facing listener authenticates once. These private MCPServer
-# workloads deliberately have no oidcConfigRef; their proxy Services are
-# ClusterIP-only and are consumed only by the vMCP aggregation groups.
+# Each internal workload has two backend and proxy replicas. ConnecTool's
+# runtime policy spreads operator-generated children one per A1/B1 node and
+# configures their Services to prefer a same-node endpoint.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
-metadata: {name: ops-admin-vmcp-internal, namespace: toolhive-system, labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}}
+metadata:
+  name: ops-admin-vmcp-internal
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}
 spec:
   groupRef: {name: platform-admin-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 1
-  backendReplicas: 1
+  replicas: 2
+  backendReplicas: 2
+  sessionAffinity: ClientIP
+  sessionStorage: {provider: memory}
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
   serviceAccount: ops-mcp-admin
+  secrets:
+    - {name: ops-mcp-admin-upstream, key: x-ops-token, targetEnvName: OPS_ADMIN_TOKEN}
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: admin}
@@ -167,9 +93,19 @@ spec:
   toolConfigRef: {name: ops-admin-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-admin-vmcp-internal}
   audit: {enabled: true}
+  resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {toolhive-name: ops-admin-vmcp-internal}}
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: mcp
           command: [python, /app/app.py]
@@ -182,16 +118,23 @@ spec:
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
-metadata: {name: ops-observe-vmcp-internal, namespace: toolhive-system, labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}}
+metadata:
+  name: ops-observe-vmcp-internal
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 1
-  backendReplicas: 1
+  replicas: 2
+  backendReplicas: 2
+  sessionAffinity: ClientIP
+  sessionStorage: {provider: memory}
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
   serviceAccount: ops-mcp-public
+  secrets:
+    - {name: ops-mcp-observe-upstream, key: x-ops-token, targetEnvName: OPS_TOKEN}
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: observe}
@@ -199,60 +142,84 @@ spec:
     - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
     - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
     - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
-    - {name: METRICS_URL, value: "http://192.0.2.178:30428"}
+    - {name: METRICS_URL, value: "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428"}
   toolConfigRef: {name: ops-public-read-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-observe-vmcp-internal}
   audit: {enabled: true}
+  resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {toolhive-name: ops-observe-vmcp-internal}}
+              topologyKey: kubernetes.io/hostname
       containers:
-        - {name: mcp, command: [python, /app/app.py], resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}, volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
+        - name: mcp
+          command: [python, /app/app.py]
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}
+          volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]
       volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
-metadata: {name: ops-operate-vmcp-internal, namespace: toolhive-system, labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}}
+metadata:
+  name: ops-operate-vmcp-internal
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 1
-  backendReplicas: 1
+  replicas: 2
+  backendReplicas: 2
+  sessionAffinity: ClientIP
+  sessionStorage: {provider: memory}
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
   serviceAccount: ops-mcp-operate
+  secrets:
+    - {name: ops-mcp-admin-upstream, key: x-ops-token, targetEnvName: OPS_ADMIN_TOKEN}
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: operate}
   toolConfigRef: {name: ops-operate-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-operate-vmcp-internal}
   audit: {enabled: true}
+  resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {toolhive-name: ops-operate-vmcp-internal}}
+              topologyKey: kubernetes.io/hostname
       containers:
-        - {name: mcp, command: [python, /app/app.py], resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}, volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
+        - name: mcp
+          command: [python, /app/app.py]
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}
+          volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]
       volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: {name: ops-external-backends-from-vmcp, namespace: toolhive-system}
+metadata: {name: vmcp-internal-backends, namespace: toolhive-system}
 spec:
   podSelector:
     matchExpressions:
-      - {key: app, operator: In, values: [ops-admin-external, ops-observe-external, ops-operate-external]}
+      - {key: toolhive-name, operator: In, values: [ops-admin-vmcp-internal, ops-observe-vmcp-internal, ops-operate-vmcp-internal]}
   policyTypes: [Ingress]
   ingress:
     - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
-          podSelector: {matchLabels: {app.kubernetes.io/name: traefik}}
-      ports: [{protocol: TCP, port: 8088}]
-    - from:
-        - podSelector:
-            matchExpressions:
-              - {key: toolhive-name, operator: In, values: [re8ch-admin-vmcp, re8ch-tools-vmcp]}
-      ports: [{protocol: TCP, port: 8088}]
-    - from:
-        - podSelector: {matchLabels: {app.kubernetes.io/name: mcpserver}}
+        - podSelector: {matchLabels: {app: mcpserver, toolhive: "true"}}
       ports: [{protocol: TCP, port: 8088}]

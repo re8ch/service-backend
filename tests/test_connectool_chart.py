@@ -30,7 +30,9 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
-    assert vmcp["spec"]["replicas"] == 1
+    assert vmcp["spec"]["replicas"] == 2
+    assert vmcp["spec"]["sessionAffinity"] == "ClientIP"
+    assert vmcp["spec"]["sessionStorage"] == {"provider": "memory"}
     assert "public: true" in dex["data"]["clients.yaml"]
 
 
@@ -78,13 +80,27 @@ def test_connectool_renders_admin_and_tenant_publications():
     vmcps = {item["metadata"]["name"]: item for item in objects if item["kind"] == "VirtualMCPServer"}
     assert {"re8ch-admin-vmcp", "tenant-vmcp"} <= vmcps.keys()
     tenant = vmcps["tenant-vmcp"]
-    assert {item["spec"]["replicas"] for item in vmcps.values()} == {1}
-    assert {
-        item["spec"]["podTemplateSpec"]["spec"]["nodeSelector"]["kubernetes.io/hostname"]
-        for item in vmcps.values()
-    } == {"restricted-node-6dc3f140f9"}
+    assert {item["spec"]["replicas"] for item in vmcps.values()} == {2}
+    assert all(item["spec"]["sessionAffinity"] == "ClientIP" for item in vmcps.values())
+    assert all(item["spec"]["sessionStorage"] == {"provider": "memory"} for item in vmcps.values())
+    for item in vmcps.values():
+        expressions = item["spec"]["podTemplateSpec"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
+        assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
+
+
+def test_connectool_renders_ab_runtime_and_disruption_contracts():
+    objects = render()
+    pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
+    assert pdbs == {"re8ch-tools-vmcp-pdb", "re8ch-admin-vmcp-pdb", "tenant-vmcp-pdb"}
+    policies = [item for item in objects if item["kind"] == "MutatingAdmissionPolicy"]
+    assert len(policies) == 2
+    serialized = yaml.safe_dump_all(policies)
+    assert "PreferSameNode" in serialized
+    assert "progressDeadlineSeconds" in serialized
+    assert "/spec/template/spec/nodeSelector/kubernetes.io~1hostname" in serialized
+    assert "restricted-node-1eb0570f74" in serialized and "restricted-node-296f36f2fb" in serialized
 
 
 def test_dex_reconciler_consumes_connectool_contract_and_retires_split_clients():
