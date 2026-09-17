@@ -54,7 +54,10 @@ spec:
                   Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution{
                     labelSelector:
                       Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector{
-                        matchLabels: {'toolhive-name': object.metadata.labels['toolhive-name']}
+                        matchLabels: {
+                          'toolhive-name': object.metadata.labels['toolhive-name'],
+                          'app': object.metadata.labels['app']
+                        }
                       },
                     topologyKey: 'kubernetes.io/hostname'
                   }

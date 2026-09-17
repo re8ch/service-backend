@@ -101,6 +101,7 @@ def test_all_toolhive_mcp_workloads_are_ha_scheduled_across_a1_b1():
     assert "object.metadata.labels['toolhive'] == 'true'" in policy["spec"]["matchConditions"][0]["expression"]
     assert "'restricted-node-1eb0570f74', 'restricted-node-296f36f2fb'" in expression
     assert "object.metadata.labels['toolhive-name']" in expression
+    assert "object.metadata.labels['app']" in expression
     assert "podAntiAffinity" in expression
     serialized = (ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml").read_text()
     assert "restricted-node-6dc3f140f9" not in serialized
