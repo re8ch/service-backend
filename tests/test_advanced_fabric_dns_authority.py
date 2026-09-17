@@ -17,6 +17,8 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
 
     assert dns["enabled"] is True
     assert dns["testNodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
+    hostnames = dns["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert hostnames == {"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}
     assert dns["service"] == {"name": "advanced-fabric-dns", "clusterIP": "192.0.2.149"}
     assert dns["conditionalForwarders"]["zt.re8ch.com"] == [
         "192.0.2.192", "192.0.2.138", "192.0.2.74"
