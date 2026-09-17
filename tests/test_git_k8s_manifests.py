@@ -137,8 +137,9 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert "ops-observe-external" in retirement
     assert "ops-operate-external" in retirement
     assert "ops-admin-external" in retirement
-    assert "retire-kagent-legacy-mcp-v3" in retirement
+    assert "retire-kagent-legacy-mcp-v4" in retirement
     assert "toolhive-mcp-r640.re8ch.com" in retirement
+    assert "clear-operator-r640-selector" in retirement
 
 
 def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
