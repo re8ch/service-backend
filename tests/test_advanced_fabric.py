@@ -1,5 +1,6 @@
 import importlib.util
 import ipaddress
+import json
 import pathlib
 import unittest
 
@@ -119,6 +120,24 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertIn("transport_cidr=192.0.2.208/24", reconciler)
         self.assertIn('[ "${peer_mode}" = transport ]', reconciler)
         self.assertIn('ip route ${transport_cidr} ${iface} 5', reconciler)
+
+    def test_control_plane_readiness_requires_both_route_servers_and_fib(self):
+        root = pathlib.Path(__file__).parents[1]
+        inventory = json.loads(
+            (root / "clusters/re8ch/components/network/podcidr-fabric/inventory.json").read_text()
+        )
+        reconciler = (
+            root / "clusters/re8ch/components/network/podcidr-fabric/reconciler.yaml"
+        ).read_text()
+
+        self.assertEqual(
+            inventory["readinessPodCIDRs"],
+            ["192.0.2.140/24", "192.0.2.48/24", "192.0.2.234/24"],
+        )
+        self.assertIn('.peers[$peer].state == "Established"', reconciler)
+        self.assertIn('.peers[$a1].state == "Established"', reconciler)
+        self.assertIn('.peers[$b1].state == "Established"', reconciler)
+        self.assertIn('ip -4 route show exact "${prefix}"', reconciler)
 
     def test_release_pins_dns_helm_test_to_healthy_peer(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"

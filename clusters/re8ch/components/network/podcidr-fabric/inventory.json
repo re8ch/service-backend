@@ -3,6 +3,7 @@
   "acceleratedCIDR": "192.0.2.65/24",
   "serviceCIDR": "192.0.2.121/24",
   "removeCiliumDirectRoutes": true,
+  "readinessPodCIDRs": ["192.0.2.140/24", "192.0.2.48/24", "192.0.2.234/24"],
   "controlPlaneNodes": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
   "routeServers": [
     {"name": "restricted-node-1eb0570f74", "internalIp": "192.0.2.176", "transportIp": "192.0.2.178", "rrInterconnectIp": "192.0.2.148", "podCIDR": "192.0.2.48/24", "acceleratedIp": "192.0.2.242", "asn": 4200010147},
