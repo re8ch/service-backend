@@ -133,6 +133,8 @@ modules:
       digest: sha256:6e3a683d9afb70ef8c6fa3406b619147ff219f2d4db84068aa0b7b29d37ad3ea
     - codename: compass
       digest: sha256:e7ab908a7bc3371a07223a866d39ab07405dcc42a0e505e307dab3d10a2dab4a
+    - codename: harbor
+      digest: sha256:b316e11fd5b942663e7c8bbba8b49e2ff266da4155189e6d83042c971ba478ba
   platform/birfucate-metering:
     releases:
     - codename: cascade
