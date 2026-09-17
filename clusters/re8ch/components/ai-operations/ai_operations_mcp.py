@@ -859,6 +859,14 @@ def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, Any]:
+    # ToolHive validates every backend by completing the MCP handshake and
+    # listing resources with the backend service credential.  That credential
+    # proves the caller is the in-cluster vMCP, but deliberately carries no
+    # end-user TenantIdentityBinding.  Returning an empty inventory keeps the
+    # health check non-privileged; tenant-scoped reads and every tool call still
+    # require the authenticated end-user identity on the direct tenant route.
+    if PROFILE == "tenant" and identity.get("auth_type") == "service":
+        return {"resources": []}
     page_size = max(1, min(int(os.getenv("MCP_RESOURCE_PAGE_SIZE", "50")), 200))
     try:
         offset = int(cursor or "0")

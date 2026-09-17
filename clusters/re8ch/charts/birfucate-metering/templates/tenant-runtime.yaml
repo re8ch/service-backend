@@ -25,14 +25,27 @@ kind: Deployment
 metadata: {name: admin-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated, ai.connectool.io/mcp-backend: "true"}}
 spec:
   replicas: 1
-  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  # Both runtimes share one RWO SQLite state volume. Recreate prevents a surge
+  # pod from racing the existing writer while the pair moves between A1/B1.
+  strategy: {type: Recreate}
   selector: {matchLabels: {app: admin-api}}
   template:
     metadata: {labels: {app: admin-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: admin-api
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: {{ .Values.tenantPlatform.placement.nodeNames | toJson }}}
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector: {matchLabels: {app: tenant-api}}
+                topologyKey: kubernetes.io/hostname
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
@@ -65,14 +78,23 @@ kind: Deployment
 metadata: {name: tenant-api, namespace: tenant-infrastructure, labels: {re8ch.com/publication-stage: release-gated, ai.connectool.io/mcp-backend: "true"}}
 spec:
   replicas: 1
-  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  strategy: {type: Recreate}
   selector: {matchLabels: {app: tenant-api}}
   template:
     metadata: {labels: {app: tenant-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: tenant-api
       automountServiceAccountToken: true
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: {{ .Values.tenantPlatform.placement.nodeNames | toJson }}}
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: admin-api}}
+              topologyKey: kubernetes.io/hostname
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
