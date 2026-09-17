@@ -135,6 +135,8 @@ modules:
       digest: sha256:e7ab908a7bc3371a07223a866d39ab07405dcc42a0e505e307dab3d10a2dab4a
     - codename: harbor
       digest: sha256:b316e11fd5b942663e7c8bbba8b49e2ff266da4155189e6d83042c971ba478ba
+    - codename: meridian
+      digest: sha256:eef713f70573a4831b0d277d3dea48fb688543bb28511c2d8a0f73041e281726
   platform/birfucate-metering:
     releases:
     - codename: cascade
