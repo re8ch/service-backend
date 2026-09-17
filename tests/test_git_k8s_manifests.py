@@ -86,6 +86,7 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert toolhive["placement"]["nodeSelector"] == {}
     assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
+    assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"
 
     internal = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
     assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig", "MCPServerEntry"} for item in internal)
@@ -104,7 +105,7 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.57/16"
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.3"
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.4"
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
