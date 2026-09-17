@@ -77,13 +77,23 @@ kind: Deployment
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
 spec:
   replicas: 2
-  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 1}}
+  progressDeadlineSeconds: 180
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   selector: {matchLabels: {app: tenant-control-controller}}
   template:
     metadata: {labels: {app: tenant-control-controller, saas.re8ch.com/tenant: platform}}
     spec:
       serviceAccountName: tenant-control-controller
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: {{ .Values.tenantPlatform.placement.nodeNames | toJson }}}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: tenant-control-controller}}
+              topologyKey: kubernetes.io/hostname
       imagePullSecrets: [{name: harbor-registry-pull}]
       containers:
         - name: controller
@@ -107,7 +117,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
-spec: {selector: {app: tenant-control-controller}, ports: [{name: http, port: 80, targetPort: http}]}
+spec: {trafficDistribution: PreferSameNode, selector: {app: tenant-control-controller}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
+spec: {minAvailable: 1, selector: {matchLabels: {app: tenant-control-controller}}}
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -117,7 +132,12 @@ spec:
   template:
     metadata: {labels: {app: tenant-runtime-image-cache}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: {{ .Values.tenantPlatform.placement.nodeNames | toJson }}}
       imagePullSecrets: [{name: harbor-registry-pull}]
       automountServiceAccountToken: false
       initContainers:

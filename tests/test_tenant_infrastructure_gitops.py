@@ -66,6 +66,67 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert tenant_affinity["requiredDuringSchedulingIgnoredDuringExecution"][0]["labelSelector"]["matchLabels"] == {"app": "admin-api"}
 
 
+def test_tenant_control_plane_is_ab_ha_and_prefers_local_traffic():
+    docs = tenant_chart_documents()
+    controller = next(
+        item
+        for item in docs
+        if item["kind"] == "Deployment"
+        and item["metadata"]["name"] == "tenant-control-controller"
+    )
+    assert controller["spec"]["replicas"] == 2
+    assert controller["spec"]["progressDeadlineSeconds"] == 180
+    assert controller["spec"]["strategy"]["rollingUpdate"] == {
+        "maxUnavailable": 1,
+        "maxSurge": 0,
+    }
+    pod_spec = controller["spec"]["template"]["spec"]
+    assert "nodeSelector" not in pod_spec
+    expression = pod_spec["affinity"]["nodeAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert expression == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+    }
+    anti_affinity = pod_spec["affinity"]["podAntiAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ][0]
+    assert anti_affinity["labelSelector"]["matchLabels"] == {
+        "app": "tenant-control-controller"
+    }
+    assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
+
+    service = next(
+        item
+        for item in docs
+        if item["kind"] == "Service"
+        and item["metadata"]["name"] == "tenant-control-controller"
+    )
+    assert service["spec"]["trafficDistribution"] == "PreferSameNode"
+    pdb = next(
+        item
+        for item in docs
+        if item["kind"] == "PodDisruptionBudget"
+        and item["metadata"]["name"] == "tenant-control-controller"
+    )
+    assert pdb["spec"]["minAvailable"] == 1
+
+    image_cache = next(
+        item
+        for item in docs
+        if item["kind"] == "DaemonSet"
+        and item["metadata"]["name"] == "tenant-runtime-image-cache"
+    )
+    cache_spec = image_cache["spec"]["template"]["spec"]
+    assert "nodeSelector" not in cache_spec
+    cache_expression = cache_spec["affinity"]["nodeAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert cache_expression["values"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+
+
 def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     docs = tenant_chart_documents()
     admin_tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.") and item["metadata"]["name"] == "admin")
