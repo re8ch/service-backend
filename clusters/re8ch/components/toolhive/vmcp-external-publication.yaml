@@ -154,8 +154,8 @@ metadata: {name: ops-admin-vmcp-internal, namespace: toolhive-system, labels: {r
 spec:
   groupRef: {name: platform-admin-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 1
-  backendReplicas: 1
+  replicas: 2
+  backendReplicas: 2
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
@@ -171,7 +171,16 @@ spec:
   audit: {enabled: true}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {toolhive-name: ops-admin-vmcp-internal}}
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: mcp
           command: [python, /app/app.py]
@@ -188,8 +197,8 @@ metadata: {name: ops-observe-vmcp-internal, namespace: toolhive-system, labels: 
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 1
-  backendReplicas: 1
+  replicas: 2
+  backendReplicas: 2
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
@@ -207,7 +216,16 @@ spec:
   audit: {enabled: true}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {toolhive-name: ops-observe-vmcp-internal}}
+              topologyKey: kubernetes.io/hostname
       containers:
         - {name: mcp, command: [python, /app/app.py], resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}, volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
       volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
@@ -218,8 +236,8 @@ metadata: {name: ops-operate-vmcp-internal, namespace: toolhive-system, labels: 
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 1
-  backendReplicas: 1
+  replicas: 2
+  backendReplicas: 2
   transport: streamable-http
   mcpPort: 8088
   proxyPort: 8080
@@ -232,7 +250,16 @@ spec:
   audit: {enabled: true}
   podTemplateSpec:
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {toolhive-name: ops-operate-vmcp-internal}}
+              topologyKey: kubernetes.io/hostname
       containers:
         - {name: mcp, command: [python, /app/app.py], resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}, volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
       volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
