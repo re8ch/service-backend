@@ -38,8 +38,11 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     metadata_urls = {}
     for name in runtime_names:
         deployment = deployments[name]
-        assert deployment["spec"]["strategy"] == {"type": "RollingUpdate", "rollingUpdate": {"maxUnavailable": 0, "maxSurge": 1}}
+        assert deployment["spec"]["strategy"] == {"type": "Recreate"}
         pod = deployment["spec"]["template"]["spec"]
+        node_terms = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
+        assert node_terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]}]
+        assert "nodeSelector" not in pod
         assert pod["automountServiceAccountToken"] is (name == "tenant-api")
         assert pod["volumes"] == [{"name": "runtime-state", "persistentVolumeClaim": {"claimName": "tenant-platform-state"}}]
         container = pod["containers"][0]
@@ -59,6 +62,8 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
         "tenant": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
     }
+    tenant_affinity = deployments["tenant-api"]["spec"]["template"]["spec"]["affinity"]["podAffinity"]
+    assert tenant_affinity["requiredDuringSchedulingIgnoredDuringExecution"][0]["labelSelector"]["matchLabels"] == {"app": "admin-api"}
 
 
 def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
@@ -255,7 +260,12 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
     assert all(item["spec"]["replicas"] == 1 for item in deployments)
     assert all(item["metadata"]["labels"]["ai.connectool.io/mcp-backend"] == "true" for item in deployments)
     assert all(item["spec"]["template"]["metadata"]["labels"]["ai.connectool.io/mcp-backend"] == "true" for item in deployments)
-    assert all(item["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"} for item in deployments)
+    assert all("nodeSelector" not in item["spec"]["template"]["spec"] for item in deployments)
+    assert all(
+        item["spec"]["template"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
+        == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        for item in deployments
+    )
     assert all("@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
     rendered = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
     tenant_publication = next(

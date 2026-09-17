@@ -252,7 +252,7 @@ class RegistryTests(unittest.TestCase):
         class Response:
             def __enter__(self): return self
             def __exit__(self, *_args): return None
-            def read(self): return b'{"tenantRef":"research-a"}'
+            def read(self): return b'{"tenantRef":"research-a","runtimeNamespaceRef":"research-a"}'
         m.urllib.request.urlopen = lambda *_args, **_kwargs: Response()
         identity = {
             "auth_type": "dex", "issuer": "https://dex.re8ch.com",
@@ -289,6 +289,12 @@ class RegistryTests(unittest.TestCase):
         tenant_handler = object.__new__(tenant.Handler)
         tenant_handler.headers = {"Authorization": "Bearer tenant-service-test-token"}
         self.assertTrue(tenant.allowed(tenant_handler.identity()))
+
+    def test_tenant_vmcp_service_health_lists_no_tenant_resources(self):
+        tenant = load("tenant")
+        identity = {"subject": "service:litellm", "groups": [], "auth_type": "service"}
+        tenant.authenticated_tenant = lambda _identity: self.fail("service health must not resolve a tenant")
+        self.assertEqual(tenant.resources_list(identity, None), {"resources": []})
 
     def test_capsule_is_signed_one_time_and_broker_hides_material(self):
         m = load("cloud")
