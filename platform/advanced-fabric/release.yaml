@@ -122,10 +122,11 @@ spec:
                 peer: pEho3VmmtSBsMbUglwD3/NDi8Vw2sFvRVEvToqWypx8=
                 allowedPrefixes: [192.0.2.4/32]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
+            # Preserve 10.42/16 pod sources across the A/B native-routing path
+            # so Cilium can enforce the originating workload identity.
             sourceIdentityRules:
               - {source: 192.0.2.242, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.242, destination: 192.0.2.65/24}
-              - {source: 192.0.2.242, destination: 192.0.2.57/16}
           - name: restricted-node-296f36f2fb
             localAsn: 4200010125
             vipInterface: lo
@@ -136,10 +137,11 @@ spec:
               - {list: POD-FABRIC-OUT, sequence: 30, prefix: 192.0.2.140/24}
             wireguardInterfaces: [wg-wsl-lan]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
+            # Preserve 10.42/16 pod sources across the A/B native-routing path
+            # so Cilium can enforce the originating workload identity.
             sourceIdentityRules:
               - {source: 192.0.2.1, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.1, destination: 192.0.2.65/24}
-              - {source: 192.0.2.1, destination: 192.0.2.57/16}
           # Non-origin consumers never announce the API VIP. Their guarded=false
           # transactions only authorize cryptokey routing for the ECMP prefix.
           - name: overseas-la
