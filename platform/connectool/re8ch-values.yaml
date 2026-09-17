@@ -22,6 +22,7 @@ toolhive:
     enabled: true
     nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
     trafficDistribution: PreferSameNode
+    backendSessionAffinity: None
     proxyResources:
       requests: {cpu: 25m, memory: 64Mi}
       limits: {cpu: 250m, memory: 256Mi}

@@ -5,12 +5,12 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.4.3"}
+  ref: {tag: "0.4.4"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.4\.3$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.4\.4$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -55,6 +55,7 @@ spec:
         enabled: true
         nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
         trafficDistribution: PreferSameNode
+        backendSessionAffinity: None
         proxyResources:
           requests: {cpu: 25m, memory: 64Mi}
           limits: {cpu: 250m, memory: 256Mi}
