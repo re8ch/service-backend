@@ -19,6 +19,7 @@ rules:
       - ops-observe-managed
       - ops-operate-managed
       - ops-admin-managed
+      - cluster-infra-plugins-runtime
     verbs: [get, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31,7 +32,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retire-kagent-legacy-mcp-v1
+  name: retire-kagent-legacy-mcp-v2
   namespace: flux-system
   annotations:
     governance.re8ch.com/change: retire-kagent-and-consolidate-mcp-under-connectool
@@ -43,7 +44,7 @@ spec:
     spec:
       serviceAccountName: retire-kagent-legacy-mcp
       restartPolicy: OnFailure
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
       initContainers:
         - &deleteMCP
           name: delete-observe-external
@@ -67,6 +68,9 @@ spec:
         - <<: *deleteMCP
           name: delete-admin-managed
           args: [--namespace, toolhive-system, delete, mcpserver.toolhive.stacklok.dev, ops-admin-managed, --ignore-not-found=true, --wait=false]
+        - <<: *deleteMCP
+          name: delete-cluster-infra-plugin-wrapper
+          args: [--namespace, toolhive-system, delete, mcpserver.toolhive.stacklok.dev, cluster-infra-plugins-runtime, --ignore-not-found=true, --wait=false]
       containers:
         - name: kubectl
           image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250

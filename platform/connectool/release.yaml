@@ -5,12 +5,12 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.2.5"}
+  ref: {tag: "0.4.1"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.2\.5$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.4\.1$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -39,7 +39,26 @@ spec:
     toolhive:
       namespace: toolhive-system
       placement:
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        nodeSelector: {}
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+        tolerations: []
+        topologySpreadConstraints: []
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 256Mi}
+      runtimePolicy:
+        enabled: true
+        nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        trafficDistribution: PreferSameNode
+        proxyResources:
+          requests: {cpu: 25m, memory: 64Mi}
+          limits: {cpu: 250m, memory: 256Mi}
+        rollout: {maxUnavailable: 1, maxSurge: 0, progressDeadlineSeconds: 180}
       registry:
         enabled: true
         name: approved
@@ -66,33 +85,44 @@ spec:
                 - {name: re8ch-managed, managed: {}}
               registries:
                 - {name: approved, sources: [managed-workloads, re8ch-managed]}
-              database: {host: 192.0.2.90, port: 5432, user: mcpregistry, migrationUser: mcpregistry, database: toolhive-registry, sslMode: disable, maxOpenConns: 10}
+              database: {host: postgresql.mcp-registry.svc.cluster.local, port: 5432, user: mcpregistry, migrationUser: mcpregistry, database: toolhive-registry, sslMode: disable, maxOpenConns: 10}
               auth: {mode: anonymous}
               audit: {enabled: true}
-              telemetry: {enabled: true, serviceName: re8ch-toolhive-registry, endpoint: "192.0.2.147:4318", insecure: true, tracing: {enabled: true, sampling: 0.1}, metrics: {enabled: true}}
+              telemetry: {enabled: false, serviceName: re8ch-toolhive-registry, insecure: true, tracing: {enabled: false, sampling: 0.1}, metrics: {enabled: false}}
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-registry-server}}
+                    topologyKey: kubernetes.io/hostname
             extraEnv:
               - name: THV_REGISTRY_DATABASE_PASSWORD
                 valueFrom: {secretKeyRef: {name: toolhive-registry-database, key: migration-password}}
               - name: THV_REGISTRY_DATABASE_MIGRATIONPASSWORD
                 valueFrom: {secretKeyRef: {name: toolhive-registry-database, key: migration-password}}
       sessionStorage:
-        provider: redis
-        address: toolhive-auth-redis.toolhive-system.svc.cluster.local:6379
-        passwordSecretRef: {name: toolhive-auth-redis, key: password}
+        provider: memory
+        sessionAffinity: ClientIP
       publications:
         - name: re8ch-tools-vmcp
           clientId: re8ch-cloud-platform-tool
           resourceUrl: https://tools.re8ch.com/cloud/mcp
           group: platform-tools-public
           createGroup: false
-          replicas: 1
-          session: {database: 2, keyPrefix: "thv:cloud:"}
+          replicas: 2
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
             - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
           outgoingAuth:
             source: inline
-            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-internal-backend}}
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
+            backends:
+              ops-observe-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
+              ops-operate-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
           operational:
             failureHandling:
               partialFailureMode: best_effort
@@ -111,14 +141,13 @@ spec:
           resourceUrl: https://admin.re8ch.com:8443/mcp
           group: platform-admin-public
           createGroup: false
-          replicas: 1
-          session: {database: 1, keyPrefix: "thv:vmcp:admin:"}
+          replicas: 2
           workloads:
             - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
             - {name: admin-api-backend}
           outgoingAuth:
             source: inline
-            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-internal-backend}}
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
             backends:
               admin-api-backend: {type: externalAuthConfigRef, externalAuthConfigRef: {name: admin-vmcp-backend-auth}}
           operational:
@@ -137,8 +166,7 @@ spec:
           resourceUrl: https://tools.re8ch.com/tenant/mcp
           group: tenant-public
           createGroup: true
-          replicas: 1
-          session: {database: 4, keyPrefix: "thv:tenant:"}
+          replicas: 2
           workloads:
             - {name: tenant-api-backend}
           outgoingAuth:

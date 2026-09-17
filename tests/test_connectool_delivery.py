@@ -11,7 +11,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.2.5"}
+    assert source["spec"]["ref"] == {"tag": "0.4.1"}
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
     assert release["spec"]["chartRef"] == {"kind": "OCIRepository", "name": "connectool"}
@@ -20,7 +20,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert registry["version"] == "1.5.0"
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
-    assert {item["replicas"] for item in publications} == {1}
+    assert {item["replicas"] for item in publications} == {2}
     by_name = {item["name"]: item for item in publications}
     assert by_name["re8ch-tools-vmcp"]["workloads"] == [
         {"name": "ops-observe-vmcp-internal", "toolConfigRef": "ops-public-read-tools"},
@@ -32,7 +32,21 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     ]
     assert by_name["re8ch-tools-vmcp"]["outgoingAuth"]["default"] == {
         "type": "externalAuthConfigRef",
-        "externalAuthConfigRef": {"name": "vmcp-internal-backend"},
+        "externalAuthConfigRef": {"name": "vmcp-observe-backend-auth"},
+    }
+    assert by_name["re8ch-tools-vmcp"]["outgoingAuth"]["backends"] == {
+        "ops-observe-vmcp-internal": {
+            "type": "externalAuthConfigRef",
+            "externalAuthConfigRef": {"name": "vmcp-observe-backend-auth"},
+        },
+        "ops-operate-vmcp-internal": {
+            "type": "externalAuthConfigRef",
+            "externalAuthConfigRef": {"name": "vmcp-admin-backend-auth"},
+        },
+    }
+    assert by_name["re8ch-admin-vmcp"]["outgoingAuth"]["default"] == {
+        "type": "externalAuthConfigRef",
+        "externalAuthConfigRef": {"name": "vmcp-admin-backend-auth"},
     }
     assert by_name["re8ch-admin-vmcp"]["outgoingAuth"]["backends"]["admin-api-backend"] == {
         "type": "externalAuthConfigRef",
@@ -46,9 +60,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         item["operational"]["failureHandling"]["partialFailureMode"] == "best_effort"
         for item in publications
     )
-    assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
-    }
+    toolhive = release["spec"]["values"]["toolhive"]
+    assert toolhive["sessionStorage"] == {"provider": "memory", "sessionAffinity": "ClientIP"}
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
     assert tenant_admin["publication"] == "re8ch-admin-vmcp"

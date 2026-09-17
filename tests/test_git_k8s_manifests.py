@@ -70,7 +70,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
+def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -78,44 +78,84 @@ def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
     )
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
-        "re8ch-tools-vmcp": 1,
-        "re8ch-admin-vmcp": 1,
-        "tenant-vmcp": 1,
+        "re8ch-tools-vmcp": 2,
+        "re8ch-admin-vmcp": 2,
+        "tenant-vmcp": 2,
     }
-    assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    toolhive = release["spec"]["values"]["toolhive"]
+    assert toolhive["placement"]["nodeSelector"] == {}
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
+
+    internal = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
+    assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig", "MCPServerEntry"} for item in internal)
+    servers = [item for item in internal if item["kind"] == "MCPServer"]
+    assert {item["metadata"]["name"] for item in servers} == {
+        "ops-admin-vmcp-internal",
+        "ops-observe-vmcp-internal",
+        "ops-operate-vmcp-internal",
     }
+    for server in servers:
+        spec = server["spec"]
+        assert spec["replicas"] == 2
+        assert spec["backendReplicas"] == 2
+        assert spec["sessionAffinity"] == "ClientIP"
+        assert spec["sessionStorage"] == {"provider": "memory"}
+        pod_spec = spec["podTemplateSpec"]["spec"]
+        assert "nodeSelector" not in pod_spec
+        expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+        assert expression == {"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}
 
-    policies = documents(
-        ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml"
-    )
-    assert len(policies) == 2
-    policy = next(item for item in policies if item["kind"] == "MutatingAdmissionPolicy")
-    assert policy["metadata"]["name"] == "toolhive-mcp-r640.re8ch.com"
-    expression = policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
-    rule = policy["spec"]["matchConstraints"]["resourceRules"][0]
-    assert rule["resources"] == ["deployments", "statefulsets"]
-    assert "resourceNames" not in rule
-    assert "object.metadata.labels['toolhive'] == 'true'" in policy["spec"]["matchConditions"][0]["expression"]
-    assert "value: 'restricted-node-6dc3f140f9'" in expression
-    serialized = (ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml").read_text()
-    assert "podAntiAffinity" not in serialized
-    assert "@sha256:" not in serialized
-
-    legacy = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
-    assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig"} for item in legacy)
+    auth = {item["metadata"]["name"]: item for item in internal if item["kind"] == "MCPExternalAuthConfig"}
+    assert auth["vmcp-observe-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {
+        "name": "ops-mcp-observe-upstream", "key": "x-ops-token"
+    }
+    assert auth["vmcp-admin-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {
+        "name": "ops-mcp-admin-upstream", "key": "x-ops-token"
+    }
+    observe = next(item for item in servers if item["metadata"]["name"] == "ops-observe-vmcp-internal")
+    metrics = next(item["value"] for item in observe["spec"]["env"] if item["name"] == "METRICS_URL")
+    assert metrics == "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428"
+    tool_configs = {item["metadata"]["name"] for item in internal if item["kind"] == "MCPToolConfig"}
+    assert tool_configs == {"ops-operate-tools", "ops-admin-tools"}
+    telemetry = next(item for item in internal if item["kind"] == "MCPTelemetryConfig")
+    assert telemetry["spec"] == {"openTelemetry": {"enabled": False}, "prometheus": {"enabled": True}}
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
+    assert "components/toolhive/proxy-scheduling-policy.yaml" not in root["resources"]
+    assert "components/toolhive/legacy-session-redis.yaml" in root["resources"]
     assert "components/toolhive/vmcp-external-publication.yaml" in root["resources"]
     assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
     assert "components/toolhive/external-privileged-publication.yaml" in root["resources"]
     assert "components/toolhive/retire-kagent-legacy-mcp.yaml" in root["resources"]
+    assert "components/toolhive/operator-release.yaml" in root["resources"]
+    assert "components/plugin-runtime/runtime.yaml" in root["resources"]
+    assert "components/plugin-runtime/rbac.yaml" in root["resources"]
 
-    retirement = (ROOT / "clusters/re8ch/retire-legacy-mcp.patch.yaml").read_text()
-    assert "name: ops-observe-external" in retirement
-    assert "name: ops-operate-external" in retirement
-    assert "name: ops-admin-external" in retirement
+    retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-kagent-legacy-mcp.yaml").read_text()
+    assert "ops-observe-external" in retirement
+    assert "ops-operate-external" in retirement
+    assert "ops-admin-external" in retirement
+
+
+def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
+    operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
+    source = next(item for item in operator if item["kind"] == "OCIRepository")
+    release = next(item for item in operator if item["kind"] == "HelmRelease")
+    assert source["spec"]["ref"] == {"digest": "sha256:f1a3147e5b16bd24da45150f93d1b9ebfcfa26ef62ef654734025b793c0fe570"}
+    values = release["spec"]["values"]["operator"]
+    assert values["replicaCount"] == 2
+    expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
+    assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]
+
+    runtime = documents(ROOT / "clusters/re8ch/components/plugin-runtime/runtime.yaml")
+    deployment = next(item for item in runtime if item["kind"] == "Deployment")
+    service = next(item for item in runtime if item["kind"] == "Service")
+    pdb = next(item for item in runtime if item["kind"] == "PodDisruptionBudget")
+    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["progressDeadlineSeconds"] == 180
+    assert service["spec"]["trafficDistribution"] == "PreferSameNode"
+    assert pdb["spec"]["minAvailable"] == 1
 
 
 def test_embedded_workspace_controller_is_valid_python():

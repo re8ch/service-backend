@@ -41,11 +41,14 @@ resources:
 - components/toolhive/external-observe-publication.yaml
 - components/toolhive/external-observe-rbac.yaml
 - components/toolhive/external-privileged-publication.yaml
-# ConnecTool aggregates these private, single-replica ToolHive workloads.
+# ConnecTool aggregates these private A1/B1 ToolHive workloads.
 - components/toolhive/vmcp-external-publication.yaml
 - components/toolhive/retire-kagent-legacy-mcp.yaml
-- components/toolhive/proxy-scheduling-policy.yaml
+- components/toolhive/legacy-session-redis.yaml
 - components/toolhive/registry.yaml
+- components/toolhive/operator-release.yaml
+- components/plugin-runtime/runtime.yaml
+- components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources
@@ -56,5 +59,13 @@ configMapGenerator:
   namespace: toolhive-system
   files:
   - app.py=components/ops/ops-mcp-server-app.py
+- name: re8ch-plugin-definitions
+  namespace: toolhive-system
+  files:
+  - advanced-fabrics.json=components/plugin-runtime/plugins/advanced-fabrics.json
+  - cilium.json=components/plugin-runtime/plugins/cilium.json
+  - mihomos-cluster.json=components/plugin-runtime/plugins/mihomos-cluster.json
+  - public-edge.json=components/plugin-runtime/plugins/public-edge.json
+  - rook-ceph.json=components/plugin-runtime/plugins/rook-ceph.json
 generatorOptions:
   disableNameSuffixHash: true
