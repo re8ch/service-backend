@@ -9,3 +9,27 @@ spec:
       backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/cloud}}]
       backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
+---
+# DNS authority is deliberately separate from the data-plane route. ExternalDNS
+# consumes this object, while Cilium Gateway remains the only request path.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: connectool-tools-re8ch-com
+  namespace: toolhive-system
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: tools.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: vmcp-re8ch-tools-vmcp, port: {number: 4483}}}

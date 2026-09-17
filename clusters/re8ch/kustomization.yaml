@@ -40,6 +40,9 @@ resources:
 - components/toolhive/external-observe-publication.yaml
 - components/toolhive/external-observe-rbac.yaml
 - components/toolhive/external-privileged-publication.yaml
+# ConnecTool aggregates these private, single-replica ToolHive workloads.
+- components/toolhive/vmcp-external-publication.yaml
+- components/toolhive/retire-kagent-legacy-mcp.yaml
 - components/toolhive/proxy-scheduling-policy.yaml
 - components/toolhive/registry.yaml
 - ../../platform/observability-source
