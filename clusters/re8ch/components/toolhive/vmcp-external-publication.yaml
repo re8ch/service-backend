@@ -50,9 +50,7 @@ spec:
             runAsUser: 1000
             capabilities: {drop: [ALL]}
   volumeClaimTemplates:
-    - metadata:
-        name: data
-        labels: {storage.re8ch.com/replicated-approved: "true"}
+    - metadata: {name: data}
       spec:
         accessModes: [ReadWriteMany]
         # ToolHive session state is a stable control-plane dependency and must
