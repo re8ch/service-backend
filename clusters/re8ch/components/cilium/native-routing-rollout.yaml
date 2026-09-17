@@ -7,6 +7,10 @@ spec:
   nodeSelector:
     matchLabels:
       networking.re8ch.com/native-routing-canary: enabled
+    matchExpressions:
+      - key: kubernetes.io/hostname
+        operator: NotIn
+        values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
   defaults:
     routing-mode: native
     ipv4-native-routing-cidr: 192.0.2.57/16
@@ -14,6 +18,28 @@ spec:
     # service, policy and Gateway dataplane without installing competing routes.
     auto-direct-node-routes: "false"
     direct-routing-skip-unreachable: "false"
+---
+# WSL control-plane nodes keep their routable node identity on ZeroTier while
+# the synthetic 10.250.0.x address lives on loopback. Cilium cannot infer a
+# direct-routing device from that loopback address after a cold boot, so pin
+# the stable ZeroTier interface explicitly for these two nodes.
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: native-routing-wsl-control-plane
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchExpressions:
+      - key: kubernetes.io/hostname
+        operator: In
+        values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+  defaults:
+    routing-mode: native
+    ipv4-native-routing-cidr: 192.0.2.57/16
+    auto-direct-node-routes: "false"
+    direct-routing-skip-unreachable: "false"
+    direct-routing-device: zto5uhdriy
 ---
 # Promotion is label-driven and gated by two Established route-server sessions
 # plus a complete retained-node PodCIDR RIB on every selected node.
