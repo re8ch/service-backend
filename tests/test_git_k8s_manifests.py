@@ -178,6 +178,42 @@ def test_mcp_registry_database_is_ab_only():
     ]["claimName"]
     assert claim == "mcp-registry-postgresql-ab"
 
+    registry = next(
+        item
+        for item in resources
+        if item["kind"] == "Deployment"
+        and item["metadata"]["name"] == "mcp-registry"
+    )
+    assert registry["spec"]["replicas"] == 2
+    assert registry["spec"]["progressDeadlineSeconds"] == 180
+    assert registry["spec"]["strategy"]["rollingUpdate"] == {
+        "maxUnavailable": 1,
+        "maxSurge": 0,
+    }
+    registry_expression = registry["spec"]["template"]["spec"]["affinity"][
+        "nodeAffinity"
+    ]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0][
+        "matchExpressions"
+    ][0]
+    assert registry_expression == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+    }
+    service = next(
+        item
+        for item in resources
+        if item["kind"] == "Service" and item["metadata"]["name"] == "mcp-registry"
+    )
+    assert service["spec"]["trafficDistribution"] == "PreferSameNode"
+    pdb = next(
+        item
+        for item in resources
+        if item["kind"] == "PodDisruptionBudget"
+        and item["metadata"]["name"] == "mcp-registry"
+    )
+    assert pdb["spec"]["minAvailable"] == 1
+
 
 def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
     operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
