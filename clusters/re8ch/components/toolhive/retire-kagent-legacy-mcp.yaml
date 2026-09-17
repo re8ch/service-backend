@@ -21,6 +21,10 @@ rules:
       - ops-admin-managed
       - cluster-infra-plugins-runtime
     verbs: [get, delete]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [mutatingadmissionpolicies, mutatingadmissionpolicybindings]
+    resourceNames: [toolhive-mcp-r640.re8ch.com]
+    verbs: [get, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -32,7 +36,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retire-kagent-legacy-mcp-v2
+  name: retire-kagent-legacy-mcp-v3
   namespace: flux-system
   annotations:
     governance.re8ch.com/change: retire-kagent-and-consolidate-mcp-under-connectool
@@ -46,13 +50,23 @@ spec:
       restartPolicy: OnFailure
       nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
       initContainers:
+        - &deleteAdmission
+          name: delete-r640-policy-binding
+          image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
+          command: [kubectl]
+          args: [delete, mutatingadmissionpolicybinding.admissionregistration.k8s.io, toolhive-mcp-r640.re8ch.com, --ignore-not-found=true, --wait=false]
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 64Mi}}
+          securityContext: &securityContext {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+        - <<: *deleteAdmission
+          name: delete-r640-policy
+          args: [delete, mutatingadmissionpolicy.admissionregistration.k8s.io, toolhive-mcp-r640.re8ch.com, --ignore-not-found=true, --wait=false]
         - &deleteMCP
           name: delete-observe-external
           image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
           command: [kubectl]
           args: [--namespace, toolhive-system, delete, mcpserver.toolhive.stacklok.dev, ops-observe-external, --ignore-not-found=true, --wait=false]
           resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 64Mi}}
-          securityContext: &securityContext {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+          securityContext: *securityContext
         - <<: *deleteMCP
           name: delete-operate-external
           args: [--namespace, toolhive-system, delete, mcpserver.toolhive.stacklok.dev, ops-operate-external, --ignore-not-found=true, --wait=false]
