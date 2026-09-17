@@ -102,6 +102,7 @@ def test_connectool_renders_ab_runtime_and_disruption_contracts():
     assert "/spec/template/spec/nodeSelector/kubernetes.io~1hostname" in serialized
     assert "Object.spec.template.spec.affinity.nodeAffinity{" in serialized
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
+    assert "'app': object.metadata.labels['app']" in serialized
     assert "restricted-node-1eb0570f74" in serialized and "restricted-node-296f36f2fb" in serialized
 
 

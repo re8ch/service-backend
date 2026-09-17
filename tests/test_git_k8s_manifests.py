@@ -101,7 +101,7 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
         assert spec["backendReplicas"] == 2
         assert spec["sessionAffinity"] == "ClientIP"
         assert spec["sessionStorage"] == {"provider": "memory"}
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.2"
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.3"
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
