@@ -21,18 +21,20 @@ default surface.
 
 `proxy-scheduling-policy.yaml` is a label-scoped Kubernetes v1 mutating
 admission policy. Every Deployment and StatefulSet in `toolhive-system` with
-`toolhive=true` is pinned to `kubernetes.io/hostname=restricted-node-6dc3f140f9`. This covers vMCP,
-MCP proxy and backend Pods without referring to operator-generated names.
-ConnecTool also renders the same selector into every `VirtualMCPServer`, while
-direct MCP APIs carry `ai.connectool.io/mcp-backend=true` and an explicit restricted-node-6dc3f140f9
-selector. Redis, Registry, Cloud UI and the ToolHive Operator are outside this
-policy.
+`toolhive=true` receives required node affinity for `restricted-node-1eb0570f74` and
+`restricted-node-296f36f2fb`. This covers vMCP, MCP proxy and backend Pods without referring to
+operator-generated names. ConnecTool renders the same affinity and a strict
+hostname topology spread into every `VirtualMCPServer`. Direct MCP APIs run two
+proxy and two backend replicas with workload-specific required pod
+anti-affinity, giving one replica on each subsystem. Redis, Registry, Cloud UI
+and the ToolHive Operator remain independently managed.
 
-restricted-node-6dc3f140f9 is the sole PublicEdge origin, so every publication and direct MCP API is
-single-replica. Multiple replicas on one failure domain are not high
-availability and must never be described as HA. Required pod anti-affinity is
-incompatible with this phase. Multi-node replicas and HA claims may return only
-after a second independent PublicEdge origin is healthy and health-gated.
+The scheduler chooses either eligible subsystem for the first replica; the
+anti-affinity/spread contract places the second on the other subsystem. restricted-node-6dc3f140f9
+remains the PublicEdge/control-plane origin but is no longer the MCP execution
+node. Keep requests small (`64Mi` for direct MCP and `128Mi` for vMCP) and do
+not weaken `DoNotSchedule`: loss of one subsystem should reduce capacity, not
+silently collapse both replicas onto one failure domain.
 
 Keep SSH and the Kubernetes control-plane path available as independent
 break-glass access. Operational MCP must not be the only way to repair its own
@@ -90,15 +92,15 @@ kubectl -n kagent wait --for=condition=complete \
   job/toolhive-token-rotator-bootstrap --timeout=120s
 ./attach-toolhive-agents.sh
 ./verify-managed-ops.sh
-./verify-r640-placement.sh
+./verify-a1-b1-placement.sh
 ```
 
-Run `verify-r640-placement.sh` immediately after Flux source, root
+Run `verify-a1-b1-placement.sh` immediately after Flux source, root
 Kustomization and ConnecTool HelmRelease reconciliation. It is the rollout
-health gate: every labeled MCP workload template must select restricted-node-6dc3f140f9, every
-matching Pod must be Ready on restricted-node-6dc3f140f9, and any Pending or off-node Pod fails the
-rollout. Pod readiness alone is insufficient; complete OAuth `initialize` and
-`tools/list` checks for all three public endpoints afterward.
+health gate: every labeled MCP workload must require A1/B1, both replicas must
+be Ready and split across the two nodes, and any Pending or off-node Pod fails
+the rollout. Pod readiness alone is insufficient; complete OAuth `initialize`
+and `tools/list` checks for all three public endpoints afterward.
 
 Create the ToolHive Registry database Secret without checking credentials into
 Git, then create the matching logical database and role through an approved DBA

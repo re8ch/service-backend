@@ -15,7 +15,8 @@ The supported composition is:
 5. Kubernetes ServiceAccounts/RBAC and each managed service's native roles are
    the final authorization boundary.
 
-All external backend and proxy-runner replicas are pinned to restricted-node-6dc3f140f9. vMCP reaches
+All external backend and proxy-runner workloads run as two replicas split
+across A1 and B1 with required hostname anti-affinity. vMCP reaches
 the raw backend through `https://admin.re8ch.com:8443/backend/...`: ToolHive
 rejects `cluster.local` MCPServerEntry URLs as SSRF protection, and this Traefik
 route terminates TLS before forwarding directly to the backend Service. It does

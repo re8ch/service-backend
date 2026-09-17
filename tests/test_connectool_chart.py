@@ -30,7 +30,7 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
-    assert vmcp["spec"]["replicas"] == 1
+    assert vmcp["spec"]["replicas"] == 2
     assert "public: true" in dex["data"]["clients.yaml"]
 
 
@@ -78,11 +78,12 @@ def test_connectool_renders_admin_and_tenant_publications():
     vmcps = {item["metadata"]["name"]: item for item in objects if item["kind"] == "VirtualMCPServer"}
     assert {"re8ch-admin-vmcp", "tenant-vmcp"} <= vmcps.keys()
     tenant = vmcps["tenant-vmcp"]
-    assert {item["spec"]["replicas"] for item in vmcps.values()} == {1}
-    assert {
-        item["spec"]["podTemplateSpec"]["spec"]["nodeSelector"]["kubernetes.io/hostname"]
-        for item in vmcps.values()
-    } == {"restricted-node-6dc3f140f9"}
+    assert {item["spec"]["replicas"] for item in vmcps.values()} == {2}
+    for item in vmcps.values():
+        pod_spec = item["spec"]["podTemplateSpec"]["spec"]
+        expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+        assert expression["values"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        assert pod_spec["containers"][0]["resources"]["requests"]["memory"] == "128Mi"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
 
