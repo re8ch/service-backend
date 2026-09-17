@@ -124,6 +124,10 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert tool_configs == {"ops-operate-tools", "ops-admin-tools"}
     telemetry = next(item for item in internal if item["kind"] == "MCPTelemetryConfig")
     assert telemetry["spec"] == {"openTelemetry": {"enabled": False}, "prometheus": {"enabled": True}}
+    backend_policy = next(item for item in internal if item["kind"] == "NetworkPolicy")
+    selectors = backend_policy["spec"]["podSelector"]["matchExpressions"]
+    assert {selector["key"] for selector in selectors} == {"toolhive-name", "app"}
+    assert "mcpserver" not in next(selector["values"] for selector in selectors if selector["key"] == "app")
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" not in root["resources"]

@@ -228,6 +228,10 @@ spec:
   podSelector:
     matchExpressions:
       - {key: toolhive-name, operator: In, values: [ops-admin-vmcp-internal, ops-observe-vmcp-internal, ops-operate-vmcp-internal]}
+      # Backend StatefulSets use the workload name as `app`; generated proxy
+      # Deployments use `app=mcpserver` but share toolhive-name. Matching both
+      # prevents this backend-only 8088 policy from isolating proxy port 8080.
+      - {key: app, operator: In, values: [ops-admin-vmcp-internal, ops-observe-vmcp-internal, ops-operate-vmcp-internal]}
   policyTypes: [Ingress]
   ingress:
     - from:
