@@ -151,7 +151,8 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert "clear-operator-r640-selector" in retirement
 
     redis_retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-legacy-session-redis.yaml").read_text()
-    assert "retire-toolhive-session-redis-v2" in redis_retirement
+    assert "retire-toolhive-session-redis-v3" in redis_retirement
+    assert "--wait=false" in redis_retirement
     assert "toolhive-auth-redis-ab" in redis_retirement
     assert "data-toolhive-auth-redis-ab-0" in redis_retirement
 

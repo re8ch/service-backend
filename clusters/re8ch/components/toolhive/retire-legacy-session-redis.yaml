@@ -33,7 +33,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retire-toolhive-session-redis-v2
+  name: retire-toolhive-session-redis-v3
   namespace: flux-system
   annotations:
     governance.re8ch.com/change: retire-unused-toolhive-session-redis
@@ -45,28 +45,28 @@ spec:
     spec:
       serviceAccountName: retire-toolhive-session-redis
       restartPolicy: OnFailure
-      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+      nodeSelector: {kubernetes.io/hostname: a1-wsl-zt}
       initContainers:
         - &kubectlStep
           name: delete-statefulsets
           image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
           command: [kubectl]
-          args: [--namespace, toolhive-system, delete, statefulset, toolhive-auth-redis, toolhive-auth-redis-ab, --ignore-not-found=true, --wait=true]
+          args: [--namespace, toolhive-system, delete, statefulset, toolhive-auth-redis, toolhive-auth-redis-ab, --ignore-not-found=true, --wait=false]
           resources:
             requests: {cpu: 10m, memory: 32Mi}
             limits: {cpu: 100m, memory: 64Mi}
           securityContext: &securityContext {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
         - <<: *kubectlStep
           name: delete-service
-          args: [--namespace, toolhive-system, delete, service, toolhive-auth-redis, --ignore-not-found=true, --wait=true]
+          args: [--namespace, toolhive-system, delete, service, toolhive-auth-redis, --ignore-not-found=true, --wait=false]
         - <<: *kubectlStep
           name: delete-networkpolicy
-          args: [--namespace, toolhive-system, delete, networkpolicy, toolhive-auth-redis, --ignore-not-found=true, --wait=true]
+          args: [--namespace, toolhive-system, delete, networkpolicy, toolhive-auth-redis, --ignore-not-found=true, --wait=false]
       containers:
         - name: kubectl
           image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
           command: [kubectl]
-          args: [--namespace, toolhive-system, delete, persistentvolumeclaim, data-toolhive-auth-redis-0, data-toolhive-auth-redis-ab-0, --ignore-not-found=true, --wait=true]
+          args: [--namespace, toolhive-system, delete, persistentvolumeclaim, data-toolhive-auth-redis-0, data-toolhive-auth-redis-ab-0, --ignore-not-found=true, --wait=false]
           resources:
             requests: {cpu: 10m, memory: 32Mi}
             limits: {cpu: 100m, memory: 64Mi}
