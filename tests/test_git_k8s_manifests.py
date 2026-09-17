@@ -101,6 +101,7 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
         assert spec["backendReplicas"] == 2
         assert spec["sessionAffinity"] == "ClientIP"
         assert spec["sessionStorage"] == {"provider": "memory"}
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.1"
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -136,6 +137,8 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert "ops-observe-external" in retirement
     assert "ops-operate-external" in retirement
     assert "ops-admin-external" in retirement
+    assert "retire-kagent-legacy-mcp-v3" in retirement
+    assert "toolhive-mcp-r640.re8ch.com" in retirement
 
 
 def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
@@ -145,6 +148,7 @@ def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
     assert source["spec"]["ref"] == {"digest": "sha256:f1a3147e5b16bd24da45150f93d1b9ebfcfa26ef62ef654734025b793c0fe570"}
     values = release["spec"]["values"]["operator"]
     assert values["replicaCount"] == 2
+    assert values["nodeSelector"] == {}
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
     assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]
 

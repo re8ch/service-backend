@@ -71,6 +71,7 @@ metadata:
   name: ops-admin-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}
+  annotations: {re8ch.com/reconcile-generation: connectool-0.4.1}
 spec:
   groupRef: {name: platform-admin-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -122,6 +123,7 @@ metadata:
   name: ops-observe-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}
+  annotations: {re8ch.com/reconcile-generation: connectool-0.4.1}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -172,6 +174,7 @@ metadata:
   name: ops-operate-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}
+  annotations: {re8ch.com/reconcile-generation: connectool-0.4.1}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
