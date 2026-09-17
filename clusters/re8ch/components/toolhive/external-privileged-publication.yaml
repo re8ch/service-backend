@@ -32,8 +32,8 @@ metadata:
 spec:
   groupRef: {name: platform-operate}
   image: docker.1ms.run/library/python:3.12-alpine
-  backendReplicas: 2
-  replicas: 2
+  backendReplicas: 1
+  replicas: 1
   sessionAffinity: None
   sessionStorage:
     provider: redis
@@ -65,16 +65,7 @@ spec:
     metadata:
       annotations: {re8ch.com/code-revision: github-flux-observe-v1}
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {toolhive-name: ops-operate-external}}
-              topologyKey: kubernetes.io/hostname
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
@@ -99,8 +90,8 @@ metadata:
 spec:
   groupRef: {name: platform-admin}
   image: docker.1ms.run/library/python:3.12-alpine
-  backendReplicas: 2
-  replicas: 2
+  backendReplicas: 1
+  replicas: 1
   sessionAffinity: None
   sessionStorage:
     provider: redis
@@ -135,16 +126,7 @@ spec:
     metadata:
       annotations: {re8ch.com/code-revision: github-flux-observe-v1}
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {toolhive-name: ops-admin-external}}
-              topologyKey: kubernetes.io/hostname
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
