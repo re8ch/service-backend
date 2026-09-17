@@ -101,7 +101,7 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
         assert spec["backendReplicas"] == 2
         assert spec["sessionAffinity"] == "ClientIP"
         assert spec["sessionStorage"] == {"provider": "memory"}
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.1"
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.2"
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -140,6 +140,28 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert "retire-kagent-legacy-mcp-v4" in retirement
     assert "toolhive-mcp-r640.re8ch.com" in retirement
     assert "clear-operator-r640-selector" in retirement
+
+
+def test_mcp_registry_database_is_ab_only():
+    resources = documents(ROOT / "clusters/re8ch/components/mcp-registry/registry.yaml")
+    database = next(
+        item
+        for item in resources
+        if item["kind"] == "Deployment"
+        and item["metadata"]["name"] == "mcp-registry-postgresql"
+    )
+    expression = database["spec"]["template"]["spec"]["affinity"]["nodeAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert expression == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+    }
+    claim = database["spec"]["template"]["spec"]["volumes"][0][
+        "persistentVolumeClaim"
+    ]["claimName"]
+    assert claim == "mcp-registry-postgresql-ab"
 
 
 def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
