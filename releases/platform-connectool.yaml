@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: passage
+codename: trailhead
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:968057ffc812b42aba865ce3820dd71bcdd09ab0ec416712409fe48380d44f0b
+  digest: sha256:7072f8d4f32a68af370a3a77b2f59ff5e5465842551a771f158e80eee9dc0eb9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
