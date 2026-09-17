@@ -113,6 +113,8 @@ modules:
     releases:
     - codename: bora
       digest: sha256:7c93648377b0ce28bc497dfdcef3457fc95e23bbd7a9c4e04ef39b602760f073
+    - codename: chinook
+      digest: sha256:5c1cf2dad66aefc9f16aee6173c5a64e5e200ac9022ec01405f5ee80a407da63
   platform/git-workspaces:
     releases:
     - codename: andromeda

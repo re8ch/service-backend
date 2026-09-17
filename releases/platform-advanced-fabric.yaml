@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: bora
+codename: chinook
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:7c93648377b0ce28bc497dfdcef3457fc95e23bbd7a9c4e04ef39b602760f073
+  digest: sha256:5c1cf2dad66aefc9f16aee6173c5a64e5e200ac9022ec01405f5ee80a407da63
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
