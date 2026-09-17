@@ -137,6 +137,8 @@ modules:
       digest: sha256:b316e11fd5b942663e7c8bbba8b49e2ff266da4155189e6d83042c971ba478ba
     - codename: meridian
       digest: sha256:eef713f70573a4831b0d277d3dea48fb688543bb28511c2d8a0f73041e281726
+    - codename: passage
+      digest: sha256:968057ffc812b42aba865ce3820dd71bcdd09ab0ec416712409fe48380d44f0b
   platform/birfucate-metering:
     releases:
     - codename: cascade
