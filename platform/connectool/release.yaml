@@ -40,10 +40,6 @@ spec:
       namespace: toolhive-system
       placement:
         nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
-        affinity: {}
-        tolerations: []
-        topologySpreadConstraints: []
-        resources: {}
       registry:
         enabled: true
         name: approved
