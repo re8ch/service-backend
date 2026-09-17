@@ -1,7 +1,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingAdmissionPolicy
 metadata:
-  name: toolhive-mcp-a1-b1.re8ch.com
+  name: toolhive-mcp-r640.re8ch.com
 spec:
   failurePolicy: Fail
   reinvocationPolicy: IfNeeded
@@ -17,61 +17,29 @@ spec:
         object.metadata.namespace == 'toolhive-system' &&
         has(object.metadata.labels) &&
         'toolhive' in object.metadata.labels &&
-        object.metadata.labels['toolhive'] == 'true' &&
-        'toolhive-name' in object.metadata.labels
+        object.metadata.labels['toolhive'] == 'true'
   mutations:
     - patchType: JSONPatch
       jsonPatch:
         expression: >-
           has(object.spec.template.spec.nodeSelector)
-          ? [JSONPatch{op: 'replace', path: '/spec/template/spec/nodeSelector', value: {}}]
-          : []
-    - patchType: JSONPatch
-      jsonPatch:
-        expression: >-
-          [JSONPatch{
-            op: 'add',
-            path: '/spec/template/spec/affinity',
-            value: Object.spec.template.spec.affinity{
-              nodeAffinity: Object.spec.template.spec.affinity.nodeAffinity{
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution{
-                    nodeSelectorTerms: [
-                      Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms{
-                        matchExpressions: [
-                          Object.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions{
-                            key: 'kubernetes.io/hostname',
-                            operator: 'In',
-                            values: ['restricted-node-1eb0570f74', 'restricted-node-296f36f2fb']
-                          }
-                        ]
-                      }
-                    ]
-                  }
-              },
-              podAntiAffinity: Object.spec.template.spec.affinity.podAntiAffinity{
-                requiredDuringSchedulingIgnoredDuringExecution: [
-                  Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution{
-                    labelSelector:
-                      Object.spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector{
-                        matchLabels: {
-                          'toolhive-name': object.metadata.labels['toolhive-name'],
-                          'app': object.metadata.labels['app']
-                        }
-                      },
-                    topologyKey: 'kubernetes.io/hostname'
-                  }
-                ]
-              }
-            }
-          }]
+          ? [JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector/' + jsonpatch.escapeKey('kubernetes.io/hostname'),
+              value: 'restricted-node-6dc3f140f9'
+            }]
+          : [JSONPatch{
+              op: 'add',
+              path: '/spec/template/spec/nodeSelector',
+              value: {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'}
+            }]
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingAdmissionPolicyBinding
 metadata:
-  name: toolhive-mcp-a1-b1.re8ch.com
+  name: toolhive-mcp-r640.re8ch.com
 spec:
-  policyName: toolhive-mcp-a1-b1.re8ch.com
+  policyName: toolhive-mcp-r640.re8ch.com
   matchResources:
     namespaceSelector:
       matchLabels: {re8ch.com/plane: control}

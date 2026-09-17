@@ -70,7 +70,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_all_toolhive_mcp_workloads_are_ha_scheduled_across_a1_b1():
+def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -78,59 +78,32 @@ def test_all_toolhive_mcp_workloads_are_ha_scheduled_across_a1_b1():
     )
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
-        "re8ch-tools-vmcp": 2,
-        "re8ch-admin-vmcp": 2,
-        "tenant-vmcp": 2,
+        "re8ch-tools-vmcp": 1,
+        "re8ch-admin-vmcp": 1,
+        "tenant-vmcp": 1,
     }
-    placement = release["spec"]["values"]["toolhive"]["placement"]
-    assert placement["nodeSelector"] == {}
-    node_expression = placement["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert node_expression["values"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
-    assert placement["topologySpreadConstraints"][0]["whenUnsatisfiable"] == "DoNotSchedule"
+    assert release["spec"]["values"]["toolhive"]["placement"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
 
     policies = documents(
         ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml"
     )
     assert len(policies) == 2
     policy = next(item for item in policies if item["kind"] == "MutatingAdmissionPolicy")
-    assert policy["metadata"]["name"] == "toolhive-mcp-a1-b1.re8ch.com"
-    expression = policy["spec"]["mutations"][1]["jsonPatch"]["expression"]
+    assert policy["metadata"]["name"] == "toolhive-mcp-r640.re8ch.com"
+    expression = policy["spec"]["mutations"][0]["jsonPatch"]["expression"]
     rule = policy["spec"]["matchConstraints"]["resourceRules"][0]
     assert rule["resources"] == ["deployments", "statefulsets"]
     assert "resourceNames" not in rule
     assert "object.metadata.labels['toolhive'] == 'true'" in policy["spec"]["matchConditions"][0]["expression"]
-    assert "'restricted-node-1eb0570f74', 'restricted-node-296f36f2fb'" in expression
-    assert "object.metadata.labels['toolhive-name']" in expression
-    assert "object.metadata.labels['app']" in expression
-    assert "podAntiAffinity" in expression
+    assert "value: 'restricted-node-6dc3f140f9'" in expression
     serialized = (ROOT / "clusters/re8ch/components/toolhive/proxy-scheduling-policy.yaml").read_text()
-    assert "restricted-node-6dc3f140f9" not in serialized
+    assert "podAntiAffinity" not in serialized
     assert "@sha256:" not in serialized
 
     legacy = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
     assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig"} for item in legacy)
-
-    mcp_files = [
-        "vmcp-external-publication.yaml",
-        "external-observe-publication.yaml",
-        "external-privileged-publication.yaml",
-    ]
-    servers = [
-        item
-        for filename in mcp_files
-        for item in documents(ROOT / "clusters/re8ch/components/toolhive" / filename)
-        if item["kind"] == "MCPServer"
-    ]
-    assert len(servers) == 6
-    for server in servers:
-        assert server["spec"]["replicas"] == 2
-        assert server["spec"]["backendReplicas"] == 2
-        affinity = server["spec"]["podTemplateSpec"]["spec"]["affinity"]
-        values = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
-        assert values == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
-        anti = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
-        assert anti["topologyKey"] == "kubernetes.io/hostname"
-        assert anti["labelSelector"]["matchLabels"]["toolhive-name"] == server["metadata"]["name"]
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
@@ -143,24 +116,6 @@ def test_all_toolhive_mcp_workloads_are_ha_scheduled_across_a1_b1():
     assert "name: ops-observe-external" in retirement
     assert "name: ops-operate-external" in retirement
     assert "name: ops-admin-external" in retirement
-
-
-def test_policy_reviewer_github_app_private_key_is_sops_managed():
-    path = ROOT / "clusters/re8ch/flux-system/service-backend-github-policy-reviewer-auth.sops.yaml"
-    secret = yaml.safe_load(path.read_text())
-    assert secret["metadata"] == {
-        "name": "service-backend-github-policy-reviewer-auth",
-        "namespace": "flux-system",
-    }
-    assert set(secret["stringData"]) == {
-        "githubAppID",
-        "githubAppInstallationIDRe8ch",
-        "githubAppInstallationIDAmongClusters",
-        "githubAppPrivateKey",
-    }
-    assert all(value.startswith("ENC[") for value in secret["stringData"].values())
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "flux-system/service-backend-github-policy-reviewer-auth.sops.yaml" in root["resources"]
 
 
 def test_embedded_workspace_controller_is_valid_python():

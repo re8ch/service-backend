@@ -114,10 +114,10 @@ ssh restricted-node-6dc3f140f9 'sudo -n k3s kubectl get pods -A -l toolhive=true
   -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,NODE:.spec.nodeName,PHASE:.status.phase,READY:.status.containerStatuses[0].ready'
 ```
 
-All matching Pods must be Ready and split across `restricted-node-1eb0570f74` and `restricted-node-296f36f2fb`.
-Use `clusters/re8ch/components/toolhive/verify-a1-b1-placement.sh` as the
-formal placement gate. Repair GitOps declarations instead of adding ad-hoc
-scheduler patches or name-based policies.
+All matching Pods must be on `restricted-node-6dc3f140f9`. Use
+`clusters/re8ch/components/toolhive/verify-r640-placement.sh` as the formal
+placement gate. Repair GitOps declarations instead of adding ad-hoc scheduler
+patches or name-based policies.
 
 ### 2. Verify OAuth discovery independently
 
