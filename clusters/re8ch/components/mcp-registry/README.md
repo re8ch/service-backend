@@ -11,10 +11,9 @@ The first deployment is ClusterIP-only. Public publishing is intentionally
 disabled until a RE8CH GitHub OAuth/OIDC application and stable external origin
 are configured. Never enable anonymous publishing in production.
 
-PostgreSQL uses the `mcp-registry-postgresql-ab` CephFS claim and normally runs
-on the A/B workers. restricted-node-6dc3f140f9 is an explicit break-glass placement so the registry
-can retain service when those workers are unavailable or their CephFS CSI
-driver is not registered. It is isolated from the Teable, LiteLLM, and
+PostgreSQL uses the `mcp-registry-postgresql-ab` CephFS claim and runs only on
+the A/B workers. This keeps the MCP registry data path independent of R640 and
+local to the ToolHive registry replicas. It is isolated from the Teable, LiteLLM, and
 pg-re8ch databases. The retained `mcp-registry-postgresql-r640` hostPath claim
 is legacy rollback storage and is not mounted by the active Deployment.
 
