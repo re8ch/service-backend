@@ -19,14 +19,54 @@ data:
     wait_for_bgp() {
       attempts=0
       while [ "${attempts}" -lt 30 ]; do
-        if host vtysh -c 'show bgp ipv4 unicast summary json' 2>/dev/null |
-          jq -e --argjson asn "${asn}" '.as == $asn and ([.peers[]? | select(.state == "Established")] | length >= 1)' >/dev/null; then
+        summary="$(host vtysh -c 'show bgp ipv4 unicast summary json' 2>/dev/null || true)"
+        peers_ready=false
+        control_plane_node=false
+        jq -e --arg node "${NODE_NAME}" '.controlPlaneNodes | index($node) != null' /config/inventory.json >/dev/null && control_plane_node=true
+        if [ -n "${route_server}" ]; then
+          # A/B are a single logical route-server plane.  Do not report either
+          # node Ready when its peer RR is absent, even if a spoke session is
+          # still Established.
+          rr_peer="$(jq -r --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own) | .rrInterconnectIp' /config/inventory.json)"
+          printf '%s' "${summary}" | jq -e --argjson asn "${asn}" --arg peer "${rr_peer}" \
+            '.as == $asn and .peers[$peer].state == "Established"' >/dev/null && peers_ready=true
+        elif [ "${control_plane_node}" = true ]; then
+          # restricted-node-6dc3f140f9 must retain both A1 and B1 sessions.  A single surviving RR is
+          # degraded service, not a completed reconciliation.
+          printf '%s' "${summary}" | jq -e --argjson asn "${asn}" --arg a1 "${a1_peer}" --arg b1 "${b1_peer}" \
+            '.as == $asn and .peers[$a1].state == "Established" and .peers[$b1].state == "Established"' >/dev/null && peers_ready=true
+        else
+          printf '%s' "${summary}" | jq -e --argjson asn "${asn}" \
+            '.as == $asn and ([.peers[]? | select(.state == "Established")] | length >= 1)' >/dev/null && peers_ready=true
+        fi
+
+        rib_ready=true
+        fib_ready=true
+        if [ "${control_plane_node}" = true ]; then
+          jq -r '.readinessPodCIDRs[]' /config/inventory.json | while read -r prefix; do
+            [ "${prefix}" = "${pod_cidr}" ] && continue
+            host vtysh -c "show bgp ipv4 unicast ${prefix} json" 2>/dev/null |
+              jq -e '[.paths[]? | select(.valid == true)] | length > 0' >/dev/null || {
+                touch /tmp/podcidr-fabric-rib-missing
+                break
+              }
+            host ip -4 route show exact "${prefix}" | grep -Eq "^${prefix} .*(via|dev) " || {
+              touch /tmp/podcidr-fabric-fib-missing
+              break
+            }
+          done
+        fi
+        [ ! -e /tmp/podcidr-fabric-rib-missing ] || rib_ready=false
+        [ ! -e /tmp/podcidr-fabric-fib-missing ] || fib_ready=false
+        rm -f /tmp/podcidr-fabric-rib-missing /tmp/podcidr-fabric-fib-missing
+
+        if [ "${peers_ready}" = true ] && [ "${rib_ready}" = true ] && [ "${fib_ready}" = true ]; then
           return 0
         fi
         attempts=$((attempts + 1))
         sleep 2
       done
-      echo "${NODE_NAME}: local BGP ASN ${asn} is absent or has no Established peer" >&2
+      echo "${NODE_NAME}: A/B peer, complete PodCIDR RIB, or kernel FIB gate is not ready" >&2
       return 1
     }
 
