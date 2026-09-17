@@ -44,7 +44,7 @@ resources:
 # ConnecTool aggregates these private A1/B1 ToolHive workloads.
 - components/toolhive/vmcp-external-publication.yaml
 - components/toolhive/retire-kagent-legacy-mcp.yaml
-- components/toolhive/legacy-session-redis.yaml
+- components/toolhive/retire-legacy-session-redis.yaml
 - components/toolhive/registry.yaml
 - components/toolhive/operator-release.yaml
 - components/plugin-runtime/runtime.yaml
