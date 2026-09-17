@@ -57,6 +57,10 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         assert container["startupProbe"]["httpGet"]["path"] == "/livez"
         assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
         assert container["livenessProbe"]["httpGet"]["path"] == "/livez"
+        assert container["startupProbe"]["timeoutSeconds"] == 3
+        assert container["readinessProbe"]["timeoutSeconds"] == 10
+        assert container["readinessProbe"]["failureThreshold"] == 3
+        assert container["livenessProbe"]["timeoutSeconds"] == 3
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
@@ -112,6 +116,12 @@ def test_tenant_control_plane_is_ab_ha_and_prefers_local_traffic():
         and item["metadata"]["name"] == "tenant-control-controller"
     )
     assert pdb["spec"]["minAvailable"] == 1
+
+    container = controller["spec"]["template"]["spec"]["containers"][0]
+    assert container["startupProbe"]["timeoutSeconds"] == 3
+    assert container["readinessProbe"]["timeoutSeconds"] == 5
+    assert container["readinessProbe"]["failureThreshold"] == 3
+    assert container["livenessProbe"]["timeoutSeconds"] == 3
 
     image_cache = next(
         item
