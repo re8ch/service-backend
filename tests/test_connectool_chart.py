@@ -64,7 +64,8 @@ def test_flux_oci_digest_suffix_is_sanitized_for_labels():
 
 
 def test_cloud_resource_url_has_a_gateway_route():
-    route = yaml.safe_load((ROOT / "platform/connectool/cloud-route.yaml").read_text())
+    objects = yaml.safe_load_all((ROOT / "platform/connectool/cloud-route.yaml").read_text())
+    route = next(item for item in objects if item and item["kind"] == "HTTPRoute")
     paths = {rule["matches"][0]["path"]["value"] for rule in route["spec"]["rules"]}
     backends = {rule["backendRefs"][0]["name"] for rule in route["spec"]["rules"]}
     assert "/cloud" in paths

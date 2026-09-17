@@ -175,6 +175,7 @@ spec:
       containers:
         - name: mcp
           command: [python, /app/app.py]
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}
           env:
             - {name: HARBOR_USERNAME, valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: username}}}
             - {name: HARBOR_PASSWORD, valueFrom: {secretKeyRef: {name: ops-mcp-harbor-auth, key: password}}}
@@ -208,7 +209,7 @@ spec:
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       containers:
-        - {name: mcp, command: [python, /app/app.py], volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
+        - {name: mcp, command: [python, /app/app.py], resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}, volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
       volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
@@ -233,7 +234,7 @@ spec:
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       containers:
-        - {name: mcp, command: [python, /app/app.py], volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
+        - {name: mcp, command: [python, /app/app.py], resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 384Mi}}, volumeMounts: [{name: app-code, mountPath: /app, readOnly: true}]}
       volumes: [{name: app-code, configMap: {name: ops-mcp-server-code}}]
 ---
 apiVersion: networking.k8s.io/v1

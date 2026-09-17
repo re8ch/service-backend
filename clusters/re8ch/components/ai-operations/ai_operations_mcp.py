@@ -698,16 +698,15 @@ ARTCHAIS_CLUSTER_TOOLS = [
 ]
 
 ORCHESTRA_TOOLS = [
-    {"name": "orchestra_service_status", "description": "Read application service health.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "kagent", "codex"]}}, ["service"])},
-    {"name": "orchestra_request", "description": "Call an application API using a server-side service credential reference.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "kagent", "codex"]}, "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string"}, "body": {}}, ["service", "method", "path"])},
-    {"name": "link_execution", "description": "Validate and return the stable cross-system execution identity chain.", "inputSchema": schema({"task_id": {"type": "string"}, "kagent_session_id": {"type": "string"}, "trace_id": {"type": "string"}, "codex_thread_id": {"type": "string"}, "artifact_id": {"type": "string"}}, ["task_id"])},
+    {"name": "orchestra_service_status", "description": "Read application service health.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "codex"]}}, ["service"])},
+    {"name": "orchestra_request", "description": "Call an application API using a server-side service credential reference.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "codex"]}, "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string"}, "body": {}}, ["service", "method", "path"])},
+    {"name": "link_execution", "description": "Validate and return the stable cross-system execution identity chain.", "inputSchema": schema({"task_id": {"type": "string"}, "trace_id": {"type": "string"}, "codex_thread_id": {"type": "string"}, "artifact_id": {"type": "string"}}, ["task_id"])},
 ]
 
 ORCHESTRA_HEALTH_PATHS = {
     "teable": "/api/health",
     "litellm": "/health/liveliness",
     "opensandbox": "/health",
-    "kagent": "/healthz",
     "codex": "/healthz",
 }
 
@@ -1944,7 +1943,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
 
     if PROFILE in {"orchestra", "all"}:
         if name == "link_execution":
-            return {k: args.get(k) for k in ("task_id", "kagent_session_id", "trace_id", "codex_thread_id", "artifact_id")}
+            return {k: args.get(k) for k in ("task_id", "trace_id", "codex_thread_id", "artifact_id")}
         service = args.get("service")
         base = os.getenv(f"{service.upper()}_BASE_URL", "").rstrip("/")
         if not base:

@@ -269,7 +269,6 @@ spec:
             - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
             - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-orchestra-proxy.opensandbox-system.svc.cluster.local:8080"}
             - {name: GH_TOKEN, valueFrom: {secretKeyRef: {name: github-native-auth, key: token, optional: true}}}
-            - {name: KAGENT_BASE_URL, value: "http://kagent-controller.kagent.svc.cluster.local:8083"}
             - {name: CODEX_BASE_URL, value: "http://codex-app-server.codex-app-server.svc.cluster.local:4500"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: CAPSULE_POLICY_PATH, value: /etc/re8ch-ai-operations/capsule-policy.json}
@@ -483,7 +482,6 @@ spec:
             - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
             - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-orchestra-proxy.opensandbox-system.svc.cluster.local:8080"}
             - {name: GH_TOKEN, valueFrom: {secretKeyRef: {name: github-native-auth, key: token, optional: true}}}
-            - {name: KAGENT_BASE_URL, value: "http://kagent-controller.kagent.svc.cluster.local:8083"}
             - {name: CODEX_BASE_URL, value: "http://codex-app-server.codex-app-server.svc.cluster.local:4500"}
           ports: [{name: http, containerPort: 19443}]
           readinessProbe: {httpGet: {path: /healthz, port: http}, periodSeconds: 5, failureThreshold: 6}

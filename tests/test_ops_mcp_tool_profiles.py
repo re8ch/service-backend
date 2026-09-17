@@ -95,43 +95,10 @@ class ToolProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.resource_path("flux-system/secrets")
 
-    def test_agent_runtime_discovers_kagent_api_version(self):
-        module = load_profile("observe")
-        requested = []
-
-        def fake_request(_method, path, _body=None, _content_type="application/json"):
-            requested.append(path)
-            if path == "/apis/kagent.dev":
-                return {"preferredVersion": {"version": "v1alpha3"}}
-            return {"items": []}
-
-        module.kube_request = fake_request
-        module.probe_http = lambda *args: {"name": args[0], "ready": True}
-        result = module.get_agent_runtime_status()
-        self.assertIn("/apis/kagent.dev/v1alpha3/namespaces/kagent/remotemcpservers", requested)
-        self.assertEqual(result["kagentAPI"], {"available": True, "version": "v1alpha3"})
-        self.assertEqual(result["remoteMCPServers"], [])
-
-    def test_agent_runtime_tolerates_missing_kagent_api_group(self):
-        module = load_profile("observe")
-
-        def fake_request(_method, path, _body=None, _content_type="application/json"):
-            if path == "/apis/kagent.dev":
-                raise RuntimeError("kubernetes GET /apis/kagent.dev failed: 404")
-            return {"items": []}
-
-        module.kube_request = fake_request
-        module.probe_http = lambda *args: {"name": args[0], "ready": False}
-        result = module.get_agent_runtime_status()
-        self.assertEqual(result["kagentAPI"], {"available": False, "version": None})
-        self.assertEqual(result["remoteMCPServers"], [])
-
     def test_agent_runtime_tolerates_reinitializing_sandbox_storage(self):
         module = load_profile("observe")
 
         def fake_request(_method, path, _body=None, _content_type="application/json"):
-            if path == "/apis/kagent.dev":
-                return {"versions": []}
             if path.endswith("/pools"):
                 raise RuntimeError("failed: 429 storage is (re)initializing")
             return {"items": []}

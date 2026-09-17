@@ -67,3 +67,83 @@ $patch: delete
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: {name: harbor-credential-broker, namespace: credential-broker}
+---
+$patch: delete
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: ops-observe-external, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: ops-operate-external, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata: {name: ops-admin-external, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: toolhive-cloud-ui, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: v1
+kind: Service
+metadata: {name: toolhive-cloud-ui, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: toolhive-cloud-ui, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: {name: tools-re8ch-com, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: {name: toolhive-cloud-ui, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: {name: operate-tools-re8ch-com, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: {name: admin-tools-re8ch-com, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata: {name: vmcp-backend-strip-prefix, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: {name: vmcp-r640-backends, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-admin-vmcp-backend, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-observe-vmcp-backend, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServerEntry
+metadata: {name: ops-operate-vmcp-backend, namespace: toolhive-system}
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: ops-external-backends-from-vmcp, namespace: toolhive-system}

@@ -104,7 +104,6 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "ops": ("platform-control", "Headlamp, CloudBeaver"),
     "toolhive-system": ("tool-control", "ToolHive Registry, Grafana"),
     "mcp-registry": ("tool-control", "MCP Registry"),
-    "kagent": ("agent-control", "KAgent UI, Grafana"),
     "opensandbox-system": ("agent-runtime", "Headlamp, Grafana"),
     "codex-app-server": ("agent-runtime", "Codex console, Grafana"),
     "codex-platform": ("agent-runtime", "Codex console, Grafana"),
@@ -140,7 +139,6 @@ DOMAIN_NATIVE_AUTHORITY = {
     "observability-data": "tenant metrics/log proxies, OpenCost OAuth and product-native authorization",
     "platform-control": "Kubernetes RBAC and the managed service native administrator role",
     "tool-control": "ToolHive CR RBAC, tool allowlists, workload identity and Registry publication policy",
-    "agent-control": "KAgent native APIs, workload identity and Kubernetes RBAC",
     "agent-runtime": "OpenSandbox/Codex runtime authorization and Kubernetes RBAC",
     "agent-data": "application identity, namespace RBAC and per-session/per-tenant data authorization",
     "model-control": "LiteLLM teams, virtual keys, budgets and administrator roles",
@@ -161,7 +159,6 @@ MANAGED_PLATFORM_RESTARTS = {
     ("auth", "authentik-server"),
     ("auth", "authentik-worker"),
     ("llm-gateway", "litellm"),
-    ("kagent", "kagent-controller"),
     ("opensandbox-system", "opensandbox-server"),
     ("fleet", "fleet"),
     ("supabase-pg-re8ch", "supabase-studio"),
@@ -1516,7 +1513,7 @@ def get_identity_platform_status():
     }
 
 def get_agent_runtime_status():
-    namespaces = ("kagent", "opensandbox-system", "codex-platform")
+    namespaces = ("opensandbox-system", "codex-platform")
     workloads = []
     for namespace in namespaces:
         deployments = kube_request("GET", "/apis/apps/v1/namespaces/%s/deployments" % namespace).get("items", [])
@@ -1534,34 +1531,6 @@ def get_agent_runtime_status():
                 "unready": desired > ready,
             })
     workloads.sort(key=lambda item: (item["namespace"], item["name"] or ""))
-    version = None
-    kagent_api = {"available": False, "version": None}
-    try:
-        group = kube_request("GET", "/apis/kagent.dev")
-        version = (group.get("preferredVersion") or {}).get("version")
-        if not version:
-            versions = [entry.get("version") for entry in group.get("versions", [])]
-            version = next((item for item in versions if item), None)
-        if version and re.fullmatch(r"v[0-9]+(?:alpha|beta)?[0-9]*", version):
-            kagent_api = {"available": True, "version": version}
-        else:
-            version = None
-    except RuntimeError as exc:
-        if "404" not in str(exc):
-            raise
-    remotes = []
-    if version:
-        remotes = kube_request("GET", "/apis/kagent.dev/%s/namespaces/kagent/remotemcpservers" % version).get("items", [])
-    remote_rows = []
-    for item in remotes:
-        conditions = item.get("status", {}).get("conditions", [])
-        remote_rows.append({
-            "name": item.get("metadata", {}).get("name"),
-            "accepted": any(condition.get("type") == "Accepted" and condition.get("status") == "True" for condition in conditions),
-            "discoveredTools": len(item.get("status", {}).get("discoveredTools", [])),
-            "conditions": [{key: condition.get(key) for key in ("type", "status", "reason")} for condition in conditions],
-        })
-    remote_rows.sort(key=lambda item: item["name"] or "")
     sandbox_kinds = {}
     for plural in ("batchsandboxes", "pools", "sandboxsnapshots"):
         try:
@@ -1577,7 +1546,6 @@ def get_agent_runtime_status():
             phases[phase] = phases.get(phase, 0) + 1
         sandbox_kinds[plural] = {"available": True, "total": len(items), "phases": phases}
     probe_specs = [
-        ("kagent-controller", "agent-control", "http://kagent-controller.kagent.svc.cluster.local:8083/healthz", "KAgent controller reachability"),
         ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability"),
         ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session UI/API reachability"),
     ]
@@ -1590,17 +1558,13 @@ def get_agent_runtime_status():
             "readyWorkloads": sum(item["desired"] > 0 and item["ready"] >= item["desired"] for item in workloads),
             "unreadyWorkloads": sum(item["unready"] for item in workloads),
             "scaledToZeroWorkloads": sum(item["scaledToZero"] for item in workloads),
-            "remoteMCPServers": len(remote_rows),
-            "acceptedRemoteMCPServers": sum(item["accepted"] for item in remote_rows),
         },
         "workloads": workloads,
-        "kagentAPI": kagent_api,
-        "remoteMCPServers": remote_rows,
         "sandboxResources": sandbox_kinds,
         "protectedNativeAPIs": ["Agent prompts/memory/conversations", "model/provider credentials", "sandbox files/processes/commands/output", "Codex session contents and credentials"],
-        "authorization": "KAgent, OpenSandbox and Codex native APIs plus Kubernetes RBAC remain authoritative; RemoteMCP acceptance and readiness do not grant session or execution access.",
+        "authorization": "OpenSandbox and Codex native APIs plus Kubernetes RBAC remain authoritative; workload readiness does not grant session or execution access.",
         "redaction": "Prompts, messages, memory, model configuration, tokens, credentials, sandbox names/specifications/files/processes/output and Codex session contents are not read.",
-        "humanTracking": {"kagent": "https://api-shanghai217.re8ch.com/kagent/", "codex": "https://codex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"codex": "https://codex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_observability_platform_status():
@@ -1971,7 +1935,6 @@ def get_platform_service_health():
         (probe_http, ("toolhive-registry", "tool-control", TOOLHIVE_REGISTRY_URL, "approved MCP catalog")),
         (probe_http, ("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery")),
         (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
-        (probe_http, ("kagent-controller", "agent-control", "http://kagent-controller.kagent.svc.cluster.local:8083/healthz", "KAgent controller HTTP reachability")),
         (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability")),
         (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
         (probe_http, ("neo4j", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),

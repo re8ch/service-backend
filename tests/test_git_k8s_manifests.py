@@ -25,7 +25,7 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/public-exposure/external-dns-cloudflare.yaml" in root["resources"]
-    assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
+    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" in root["resources"]
 
 
 def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
@@ -53,13 +53,11 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
         for key in gateway["metadata"].get("annotations", {})
     )
 
-    publications = documents(
-        ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml"
-    )
+    publications = documents(ROOT / "platform/connectool/cloud-route.yaml")
     authority = next(
         item
         for item in publications
-        if item["kind"] == "Ingress" and item["metadata"]["name"] == "tools-re8ch-com"
+        if item["kind"] == "Ingress" and item["metadata"]["name"] == "connectool-tools-re8ch-com"
     )
     assert authority["metadata"]["labels"] == {
         "networking.re8ch.com/dns-authority": "public-edge"
@@ -107,24 +105,17 @@ def test_all_toolhive_mcp_workloads_are_label_pinned_to_r640():
     legacy = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
     assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig"} for item in legacy)
 
-    external_mcp = [
-        item
-        for path in (
-            ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
-            ROOT / "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
-        )
-        for item in documents(path)
-        if item["kind"] == "MCPServer"
-    ]
-    assert external_mcp
-    assert all(item["spec"]["replicas"] == item["spec"]["backendReplicas"] == 1 for item in external_mcp)
-    assert all(item["spec"]["podTemplateSpec"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"} for item in external_mcp)
-    assert not any("affinity" in item["spec"]["podTemplateSpec"]["spec"] for item in external_mcp)
-
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" in root["resources"]
+    assert "components/toolhive/vmcp-external-publication.yaml" in root["resources"]
     assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
     assert "components/toolhive/external-privileged-publication.yaml" in root["resources"]
+    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" in root["resources"]
+
+    retirement = (ROOT / "clusters/re8ch/retire-legacy-mcp.patch.yaml").read_text()
+    assert "name: ops-observe-external" in retirement
+    assert "name: ops-operate-external" in retirement
+    assert "name: ops-admin-external" in retirement
 
 
 def test_embedded_workspace_controller_is_valid_python():
