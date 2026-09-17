@@ -415,10 +415,10 @@ spec:
     matchLabels: {app.kubernetes.io/name: podcidr-fabric-reconciler}
   updateStrategy:
     type: RollingUpdate
-    # One remote edge may already be unavailable for an unrelated underlay
-    # fault. Keep one additional slot so that state cannot permanently block
-    # delivery of reviewed fabric policy to A1/B1/restricted-node-6dc3f140f9.
-    rollingUpdate: {maxUnavailable: 2}
+    # Multiple remote edges may already be unavailable for unrelated underlay
+    # faults. Keep one bounded rollout slot at the current 12-node scale so
+    # that stale edge state cannot block policy delivery to A1/B1/restricted-node-6dc3f140f9.
+    rollingUpdate: {maxUnavailable: 25%}
   template:
     metadata:
       labels: {app.kubernetes.io/name: podcidr-fabric-reconciler}
