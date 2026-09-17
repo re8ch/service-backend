@@ -117,6 +117,8 @@ modules:
       digest: sha256:5c1cf2dad66aefc9f16aee6173c5a64e5e200ac9022ec01405f5ee80a407da63
     - codename: etesian
       digest: sha256:903eedf99ab42568257e01a08d8f4930635115256e76adbbf0676c3b7bd2b04a
+    - codename: mistral
+      digest: sha256:47c607c86249f937c67b7732d06dbec55c5805d66ea1e6e2ba98537588c38e96
   platform/git-workspaces:
     releases:
     - codename: andromeda
