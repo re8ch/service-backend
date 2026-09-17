@@ -81,6 +81,8 @@ modules:
     releases:
     - codename: bora
       digest: sha256:d9618f3acc84b8f753326df3f2dc055fdbf3c8e9bbe7d5f47c746e0ff48c9ee9
+    - codename: chinook
+      digest: sha256:10db12923d6261a32df46b8dce8cfe400bed2855f3b234c475182ef56f29fe49
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis

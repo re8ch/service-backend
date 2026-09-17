@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/network/podcidr-fabric
-codename: bora
+codename: chinook
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
-  digest: sha256:d9618f3acc84b8f753326df3f2dc055fdbf3c8e9bbe7d5f47c746e0ff48c9ee9
+  digest: sha256:10db12923d6261a32df46b8dce8cfe400bed2855f3b234c475182ef56f29fe49
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
