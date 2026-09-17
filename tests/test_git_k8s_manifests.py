@@ -132,7 +132,8 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" not in root["resources"]
-    assert "components/toolhive/legacy-session-redis.yaml" in root["resources"]
+    assert "components/toolhive/legacy-session-redis.yaml" not in root["resources"]
+    assert "components/toolhive/retire-legacy-session-redis.yaml" in root["resources"]
     assert "components/toolhive/vmcp-external-publication.yaml" in root["resources"]
     assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
     assert "components/toolhive/external-privileged-publication.yaml" in root["resources"]
@@ -148,6 +149,11 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     assert "retire-kagent-legacy-mcp-v4" in retirement
     assert "toolhive-mcp-r640.re8ch.com" in retirement
     assert "clear-operator-r640-selector" in retirement
+
+    redis_retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-legacy-session-redis.yaml").read_text()
+    assert "retire-toolhive-session-redis-v1" in redis_retirement
+    assert "toolhive-auth-redis-ab" in redis_retirement
+    assert "data-toolhive-auth-redis-ab-0" in redis_retirement
 
 
 def test_mcp_registry_database_is_ab_only():
