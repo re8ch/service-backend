@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: trailhead
+codename: anchor-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:7072f8d4f32a68af370a3a77b2f59ff5e5465842551a771f158e80eee9dc0eb9
+  digest: sha256:710cda1d081b879d2b36bd11bb564e00b2f63a085dbc3c25bd5097bd32fc8cb5
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
