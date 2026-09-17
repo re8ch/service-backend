@@ -88,6 +88,11 @@ spec:
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: admin}
+    # The generated proxy performs an unauthenticated MCP initialize while it
+    # starts. Only proxy-labelled pods may reach this port (see the
+    # vmcp-internal-backends NetworkPolicy), so trust the cluster Pod CIDR at
+    # this final hop while vMCP continues to inject the workload token.
+    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
     - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
     - {name: HARBOR_API_URL, value: "https://registry.re8ch.com"}
     - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
@@ -140,6 +145,7 @@ spec:
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: observe}
+    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
     - {name: TENANT_NAMESPACE, value: platform}
     - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
     - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
@@ -191,6 +197,7 @@ spec:
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: operate}
+    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
   toolConfigRef: {name: ops-operate-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-operate-vmcp-internal}
   audit: {enabled: true}
