@@ -147,6 +147,8 @@ modules:
       digest: sha256:eef713f70573a4831b0d277d3dea48fb688543bb28511c2d8a0f73041e281726
     - codename: passage
       digest: sha256:968057ffc812b42aba865ce3820dd71bcdd09ab0ec416712409fe48380d44f0b
+    - codename: trailhead
+      digest: sha256:7072f8d4f32a68af370a3a77b2f59ff5e5465842551a771f158e80eee9dc0eb9
   platform/birfucate-metering:
     releases:
     - codename: cascade
