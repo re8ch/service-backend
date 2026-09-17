@@ -130,6 +130,7 @@ metadata:
   namespace: mcp-registry
 spec:
   type: ClusterIP
+  trafficDistribution: PreferSameNode
   selector:
     app.kubernetes.io/name: mcp-registry
   ports:
@@ -143,7 +144,11 @@ metadata:
   name: mcp-registry
   namespace: mcp-registry
 spec:
-  replicas: 1
+  replicas: 2
+  progressDeadlineSeconds: 180
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1, maxSurge: 0}
   selector:
     matchLabels:
       app.kubernetes.io/name: mcp-registry
@@ -159,7 +164,13 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: mcp-registry
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: registry
           # GHCR did not publish the v1.7.9 tag; pin the release-channel
@@ -200,6 +211,17 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mcp-registry
+  namespace: mcp-registry
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mcp-registry
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
