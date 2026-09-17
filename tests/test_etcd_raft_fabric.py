@@ -36,19 +36,17 @@ def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity(
             "protocol": "tcp",
             "port": 2380,
         }, {"source": address, "destination": "192.0.2.106/24"}]
-        if node == "restricted-node-6dc3f140f9":
-            expected.append({"source": address, "destination": "192.0.2.224/16"})
         assert operations[node]["sourceIdentityRules"] == expected
 
 
-def test_ab_pod_to_pod_traffic_preserves_cilium_source_identity():
+def test_pod_to_pod_traffic_preserves_cilium_source_identity_on_every_fabric_node():
     release = list(yaml.safe_load_all((ROOT / "platform/advanced-fabric/release.yaml").read_text()))
     values = next(document for document in release if document["kind"] == "HelmRelease")["spec"]["values"]
     operations = {
         item["name"]: item for item in values["advancedFabric"]["controlPlaneApi"]["nodeOperations"]
     }
-    for node in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"):
-        assert all(rule["destination"] != "192.0.2.224/16" for rule in operations[node]["sourceIdentityRules"])
+    for node in operations:
+        assert all(rule["destination"] != "192.0.2.224/16" for rule in operations[node].get("sourceIdentityRules", []))
 
 
 def test_advanced_fabric_release_validation_does_not_depend_on_r640():
@@ -69,7 +67,7 @@ def test_reachable_nodes_receive_full_advanced_fabric_identity_transactions():
     for node, identity in identities.items():
         assert operations[node]["wireguardAllowedPrefixes"] == ["192.0.2.106/24", "192.0.2.215/24"]
         assert {"source": identity, "destination": "192.0.2.106/24"} in operations[node]["sourceIdentityRules"]
-        assert {"source": identity, "destination": "192.0.2.224/16"} in operations[node]["sourceIdentityRules"]
+        assert all(rule["destination"] != "192.0.2.224/16" for rule in operations[node]["sourceIdentityRules"])
     assert operations["overseas-kl"]["wireguardAllowedPrefixes"] == ["192.0.2.220/32"]
 
 
