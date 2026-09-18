@@ -24,7 +24,7 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
     assert releases["kueue"]["spec"]["chart"]["spec"] == {
         "chart": "platform/scheduling-fabric/vendor/kueue",
-        "reconcileStrategy": "Revision",
+        "reconcileStrategy": "ChartVersion",
         "sourceRef": {"kind": "GitRepository", "name": "service-backend"},
     }
     kueue_manager = releases["kueue"]["spec"]["values"]["controllerManager"]
