@@ -11,10 +11,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.4.4"}
+    assert source["spec"]["ref"] == {"tag": "0.5.0"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.4\.4$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.0$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
@@ -66,6 +66,24 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     )
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["sessionStorage"] == {"provider": "memory", "sessionAffinity": "ClientIP"}
+    assert toolhive["sessionRouting"] == {
+        "enabled": True,
+        "replicas": 2,
+        "image": {
+            "repository": "ghcr.io/among-clusters/connectool-session-router",
+            "tag": "0.5.0",
+            "digest": "sha256:94323d4285cfe601fabebbb80265da7e289515271d130a90125697081236136d",
+            "pullPolicy": "IfNotPresent",
+        },
+        "listenPort": 8080,
+        "servicePort": 4483,
+        "backendPort": 4483,
+        "sessionHeader": "Mcp-Session-Id",
+        "resources": {
+            "requests": {"cpu": "10m", "memory": "16Mi"},
+            "limits": {"cpu": "100m", "memory": "64Mi"},
+        },
+    }
     assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     plugins = release["spec"]["values"]["codex"]["plugins"]
@@ -85,3 +103,19 @@ def test_release_is_digest_signed_and_verified():
     release = (ROOT / "catalogs/platform/modules/connectool/source/.github/workflows/release.yaml").read_text()
     for expected in ("id-token: write", "cosign sign", "cosign verify", "token.actions.githubusercontent.com"):
         assert expected in release
+
+
+def test_public_and_internal_mcp_clients_use_session_routers():
+    route_files = [
+        ROOT / "platform/connectool/cloud-route.yaml",
+        ROOT / "clusters/re8ch/components/regional-routing/migrated-public-http-routes.yaml",
+        ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
+        ROOT / "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
+    ]
+    rendered_routes = "\n".join(path.read_text() for path in route_files)
+    assert "vmcp-re8ch-tools-vmcp" not in rendered_routes
+    assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
+    assert "re8ch-tools-vmcp-session-router" in rendered_routes
+    assert "re8ch-admin-vmcp-session-router" in rendered_routes
+    litellm = (ROOT / "clusters/re8ch/components/llm-gateway/litellm.yaml").read_text()
+    assert "http://re8ch-tools-vmcp-session-router.toolhive-system.svc.cluster.local:4483/mcp" in litellm

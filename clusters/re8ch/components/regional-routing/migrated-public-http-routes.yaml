@@ -56,7 +56,7 @@ spec:
   hostnames: [admin.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /mcp}}, {path: {type: PathPrefix, value: /oauth}}, {path: {type: PathPrefix, value: /.well-known}}]
-      backendRefs: [{name: vmcp-re8ch-admin-vmcp, port: 4483}]
+      backendRefs: [{name: re8ch-admin-vmcp-session-router, port: 4483}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

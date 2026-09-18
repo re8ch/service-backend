@@ -72,7 +72,7 @@ def test_cloud_resource_url_has_a_gateway_route():
     backends = {rule["backendRefs"][0]["name"] for rule in route["spec"]["rules"]}
     assert "/cloud" in paths
     assert "/.well-known/oauth-protected-resource/cloud" in paths
-    assert backends == {"vmcp-re8ch-tools-vmcp"}
+    assert backends == {"re8ch-tools-vmcp-session-router"}
 
 
 def test_connectool_renders_admin_and_tenant_publications():
@@ -93,7 +93,10 @@ def test_connectool_renders_admin_and_tenant_publications():
 def test_connectool_renders_ab_runtime_and_disruption_contracts():
     objects = render()
     pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
-    assert pdbs == {"re8ch-tools-vmcp-pdb", "re8ch-admin-vmcp-pdb", "tenant-vmcp-pdb"}
+    assert pdbs == {
+        "re8ch-tools-vmcp-pdb", "re8ch-admin-vmcp-pdb", "tenant-vmcp-pdb",
+        "re8ch-tools-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
+    }
     policies = [item for item in objects if item["kind"] == "MutatingAdmissionPolicy"]
     assert len(policies) == 2
     serialized = yaml.safe_dump_all(policies)
@@ -104,6 +107,38 @@ def test_connectool_renders_ab_runtime_and_disruption_contracts():
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
     assert "'app': object.metadata.labels['app']" in serialized
     assert "restricted-node-1eb0570f74" in serialized and "restricted-node-296f36f2fb" in serialized
+
+
+def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
+    objects = render()
+    routers = {
+        item["metadata"]["name"]: item
+        for item in objects
+        if item["kind"] == "Deployment"
+        and item["metadata"]["labels"].get("app.kubernetes.io/component") == "session-router"
+    }
+    assert set(routers) == {
+        "re8ch-tools-vmcp-session-router",
+        "re8ch-admin-vmcp-session-router",
+        "tenant-vmcp-session-router",
+    }
+    for name, deployment in routers.items():
+        assert deployment["spec"]["replicas"] == 2
+        spec = deployment["spec"]["template"]["spec"]
+        terms = spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
+        assert terms[0]["matchExpressions"][0]["values"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        anti = spec["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
+        assert anti["topologyKey"] == "kubernetes.io/hostname"
+        env = {item["name"]: item for item in spec["containers"][0]["env"]}
+        publication = name.removesuffix("-session-router")
+        assert env["BACKEND_SERVICE"]["value"] == f"vmcp-{publication}"
+        assert env["SESSION_HEADER"]["value"] == "Mcp-Session-Id"
+        assert spec["containers"][0]["resources"]["limits"]["memory"] == "64Mi"
+
+    services = {item["metadata"]["name"]: item for item in objects if item["kind"] == "Service"}
+    assert all(services[name]["spec"]["trafficDistribution"] == "PreferSameNode" for name in routers)
+    role = next(item for item in objects if item["kind"] == "Role" and item["metadata"]["name"] == "connectool-session-router")
+    assert role["rules"] == [{"apiGroups": ["discovery.k8s.io"], "resources": ["endpointslices"], "verbs": ["get", "list", "watch"]}]
 
 
 def test_dex_reconciler_consumes_connectool_contract_and_retires_split_clients():
