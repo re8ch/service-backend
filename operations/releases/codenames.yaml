@@ -113,6 +113,8 @@ modules:
       digest: sha256:3f7dccd5beefdd950fd6e5c2a760f6bd5e091383b7891388e9181fc32e715de1
     - codename: delta
       digest: sha256:a2ba3d30d43597c35c9719915c77c8ddda0f884873c5bc391c8ebb7d0e98c562
+    - codename: grove
+      digest: sha256:0f955860cc165e9f7cb1d830a495ce2ce6841ceb8a288103d3da276767186a24
   platform/cloud-platform:
     releases:
     - codename: atoll
