@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from secretary.api import alert_incident_id, alertmanager_events
+from secretary.api import alert_incident_id, alertmanager_events, alertmanager_observations
 
 
 class AlertmanagerFactsTest(unittest.TestCase):
@@ -38,6 +38,14 @@ class AlertmanagerFactsTest(unittest.TestCase):
         recurrence = alert_incident_id("abc", "2026-09-15T08:00:00Z")
         self.assertEqual(first, retry)
         self.assertNotEqual(first, recurrence)
+
+    def test_webhook_becomes_side_channel_observation_without_raw_body(self):
+        observations = alertmanager_observations(self.payload())
+        self.assertEqual(len(observations), 1)
+        self.assertEqual(observations[0].relation, "receiver_invoked")
+        self.assertEqual(observations[0].authority, "runtime_receipt")
+        self.assertTrue(observations[0].evidence.payload_hash)
+        self.assertNotIn("annotations", observations[0].metadata)
 
 
 if __name__ == "__main__":

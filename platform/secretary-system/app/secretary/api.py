@@ -12,15 +12,17 @@ import uuid
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from .channels import EmailAdapter
+from .interaction import InteractionObservation, TopologyDeclaration
 from .ledger import PostgresLedger
 from .model import FactEvent, utc_now
 from .policy import delivery_is_ack, evaluate_resolution
 
 
-app = FastAPI(title="RE8CH Secretary", version="0.1.0")
+app = FastAPI(title="RE8CH Secretary", version="0.3.0")
 ledger: PostgresLedger | None = None
 
 
@@ -37,6 +39,11 @@ def verify_hmac(raw: bytes, timestamp: str | None, signature: str | None) -> Non
     expected = hmac.new(os.environ["SECRETARY_WEBHOOK_SECRET"].encode(), timestamp.encode() + b"." + raw, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, signature):
         raise HTTPException(401, "invalid signature")
+
+
+def verify_query_token(value: str | None) -> None:
+    if not value or not hmac.compare_digest(value, os.environ["SECRETARY_QUERY_TOKEN"]):
+        raise HTTPException(401, "invalid query token")
 
 
 def restate_signal(incident_id: str, handler: str, payload: dict[str, Any]) -> None:
@@ -127,6 +134,45 @@ def alertmanager_events(payload: dict[str, Any]) -> list[FactEvent]:
         )
         results.append(observed)
     return results
+
+
+def alertmanager_observations(payload: dict[str, Any]) -> list[InteractionObservation]:
+    """Preserve Alertmanager semantics while recording only routing evidence."""
+    status = str(payload.get("status") or "firing")
+    receiver = str(payload.get("receiver") or "unknown")
+    group_key = str(payload.get("groupKey") or "unknown")
+    observations: list[InteractionObservation] = []
+    for alert in payload.get("alerts") or []:
+        labels = {str(k): str(v) for k, v in (alert.get("labels") or {}).items()}
+        fingerprint = str(alert.get("fingerprint") or hashlib.sha256(json.dumps(labels, sort_keys=True).encode()).hexdigest())
+        starts_at = str(alert.get("startsAt") or "unknown")
+        interaction_id = f"alertmanager:{fingerprint}:{starts_at}"
+        canonical = json.dumps(alert, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        observations.append(InteractionObservation.from_dict({
+            "interaction_id": interaction_id,
+            "native_type": labels.get("alertname", "alert"),
+            "native_status": status,
+            "relation": "receiver_invoked",
+            "source": {"kind": "alert", "id": fingerprint, "runtime_id": "re8ch-alertmanager"},
+            "target": {"kind": "endpoint", "id": f"alertmanager-receiver:{receiver}", "runtime_id": "re8ch-alertmanager"},
+            "runtime": {"kind": "runtime", "id": "re8ch-alertmanager"},
+            "observed_at": utc_now(),
+            "authority": "runtime_receipt",
+            "evidence": {
+                "strength": "authoritative", "failure_domain": "observability-alertmanager",
+                "method": "alertmanager-webhook-receipt", "confidence": 1,
+                "payload_hash": hashlib.sha256(canonical).hexdigest(),
+                "schema_ref": "https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
+                "media_type": "application/json",
+            },
+            "idempotency_key": f"alertmanager-observation:{fingerprint}:{starts_at}:{status}:{receiver}",
+            "metadata": {
+                "receiver": receiver, "group_key": group_key,
+                "namespace": labels.get("namespace", ""), "service": labels.get("service", ""),
+                "severity": labels.get("severity", "warning"), "owner": labels.get("owner", ""),
+            },
+        }))
+    return observations
 
 
 def start_alert_workflow(event: FactEvent) -> bool:
@@ -236,29 +282,98 @@ def health() -> dict[str, bool]:
     return {"ok": True}
 
 
+@app.get("/readyz")
+async def ready() -> JSONResponse:
+    try:
+        await run_in_threadpool(db().ping)
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={"ready": False, "reason": type(exc).__name__})
+    return JSONResponse(content={"ready": True})
+
+
 @app.post("/v1/integrations/alertmanager", status_code=202)
 async def alertmanager_webhook(request: Request) -> dict[str, Any]:
     """Internal-only receiver; network policy limits callers to observability-system."""
     payload = await request.json()
     events = alertmanager_events(payload)
+    observations = alertmanager_observations(payload)
     inserted = 0
-    notifications: list[dict[str, Any]] = []
     for event in events:
-        if db().append(event):
+        if await run_in_threadpool(db().append, event):
             inserted += 1
-        if event.type != "alert.observed":
-            continue
-        start_alert_workflow(event)
-        recipient_id = os.environ.get("SECRETARY_NOTIFY_RECIPIENT_ID", "cluster-owner")
-        notification = send_email_notification(event.incident_id, {
-            "recipient_id": recipient_id,
-            "to": os.environ["SECRETARY_NOTIFY_TO"],
-            "subject": f"[Secretary/{str(event.data.get('severity', 'warning')).upper()}] {event.subject}",
-            "text": str(event.data.get("annotations", {}).get("summary") or f"Alertmanager observed {event.subject}."),
-            "idempotency_key": f"{event.idempotency_key}:email",
-        })
-        notifications.append(notification)
-    return {"events": len(events), "inserted": inserted, "notifications": notifications}
+    adopted = 0
+    for observation in observations:
+        _, accepted = await run_in_threadpool(db().append_observation, observation)
+        adopted += int(accepted)
+    return {"events": len(events), "inserted": inserted, "observations": len(observations), "adopted": adopted}
+
+
+@app.post("/v1/adapters/grafana", status_code=202)
+async def grafana_webhook(request: Request, x_secretary_timestamp: str | None = Header(None),
+                          x_secretary_signature: str | None = Header(None)) -> dict[str, Any]:
+    raw = await request.body()
+    verify_hmac(raw, x_secretary_timestamp, x_secretary_signature)
+    body = json.loads(raw)
+    interaction_id = str(body.get("groupKey") or body.get("fingerprint") or f"grafana:{hashlib.sha256(raw).hexdigest()[:24]}")
+    observation = InteractionObservation.from_dict({
+        "interaction_id": interaction_id,
+        "native_type": str(body.get("title") or body.get("ruleName") or "grafana-alert"),
+        "native_status": str(body.get("status") or "unknown"), "relation": "contact_point_invoked",
+        "source": {"kind": "alert", "id": interaction_id, "runtime_id": "grafana"},
+        "target": {"kind": "endpoint", "id": "secretary:grafana-adapter", "runtime_id": "secretary"},
+        "runtime": {"kind": "runtime", "id": "grafana"}, "observed_at": utc_now(),
+        "authority": "runtime_receipt",
+        "evidence": {"strength": "authoritative", "failure_domain": "grafana", "method": "grafana-webhook-receipt",
+                     "confidence": 1, "payload_hash": hashlib.sha256(raw).hexdigest(), "media_type": "application/json"},
+        "idempotency_key": f"grafana:{interaction_id}:{body.get('status', 'unknown')}:{hashlib.sha256(raw).hexdigest()[:16]}",
+        "metadata": {"org_id": str(body.get("orgId") or ""), "receiver": str(body.get("receiver") or "")},
+    })
+    inserted, adopted = await run_in_threadpool(db().append_observation, observation)
+    return {"observation_id": observation.observation_id, "inserted": inserted, "adopted": adopted}
+
+
+@app.post("/v1/observations", status_code=202)
+async def ingest_observation(request: Request, x_secretary_timestamp: str | None = Header(None),
+                             x_secretary_signature: str | None = Header(None)) -> dict[str, Any]:
+    raw = await request.body()
+    verify_hmac(raw, x_secretary_timestamp, x_secretary_signature)
+    try:
+        observation = InteractionObservation.from_dict(json.loads(raw))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    inserted, adopted = await run_in_threadpool(db().append_observation, observation)
+    return {"observation_id": observation.observation_id, "inserted": inserted, "adopted": adopted}
+
+
+@app.post("/v1/topology/declarations", status_code=202)
+async def declare_topology(request: Request, x_secretary_timestamp: str | None = Header(None),
+                           x_secretary_signature: str | None = Header(None)) -> dict[str, Any]:
+    raw = await request.body()
+    verify_hmac(raw, x_secretary_timestamp, x_secretary_signature)
+    try:
+        declaration = TopologyDeclaration.from_dict(json.loads(raw))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    inserted = await run_in_threadpool(db().append_declaration, declaration)
+    return {"declaration_id": declaration.declaration_id, "inserted": inserted}
+
+
+@app.get("/v1/interactions/{interaction_id}")
+async def get_interaction(interaction_id: str, x_secretary_query_token: str | None = Header(None)) -> dict[str, Any]:
+    verify_query_token(x_secretary_query_token)
+    return {"interaction_id": interaction_id, "observations": await run_in_threadpool(db().interaction, interaction_id)}
+
+
+@app.get("/v1/topology")
+async def get_topology(x_secretary_query_token: str | None = Header(None)) -> dict[str, Any]:
+    verify_query_token(x_secretary_query_token)
+    return await run_in_threadpool(db().topology)
+
+
+@app.get("/v1/discrepancies")
+async def get_discrepancies(x_secretary_query_token: str | None = Header(None)) -> dict[str, Any]:
+    verify_query_token(x_secretary_query_token)
+    return {"items": await run_in_threadpool(db().discrepancies)}
 
 
 @app.get("/v1/headlamp/delivery-summary")
@@ -271,14 +386,25 @@ def headlamp_delivery_summary(limit: int = 500) -> dict[str, Any]:
     return {"counts": counts, "latest_seq": items[0]["seq"] if items else 0, "items": items}
 
 
+@app.get("/v1/headlamp/topology")
+def headlamp_topology() -> dict[str, Any]:
+    """Read model exposed only through the administrator-authenticated Headlamp host."""
+    return db().topology()
+
+
+@app.get("/v1/headlamp/discrepancies")
+def headlamp_discrepancies() -> dict[str, Any]:
+    return {"items": db().discrepancies()}
+
+
 @app.post("/v1/events", status_code=202)
 async def ingest(request: Request, x_secretary_timestamp: str | None = Header(None), x_secretary_signature: str | None = Header(None)) -> dict[str, Any]:
     raw = await request.body()
     verify_hmac(raw, x_secretary_timestamp, x_secretary_signature)
     event = FactEvent.from_dict(json.loads(raw))
-    inserted = db().append(event)
+    inserted = await run_in_threadpool(db().append, event)
     if inserted and delivery_is_ack(event):
-        restate_signal(event.incident_id, "acknowledge", event.to_dict())
+        await run_in_threadpool(restate_signal, event.incident_id, "acknowledge", event.to_dict())
     return {"event_id": event.event_id, "inserted": inserted}
 
 
@@ -296,15 +422,12 @@ async def create_incident(request: Request, x_secretary_timestamp: str | None = 
         "evidence": {"strength": "authoritative", "failure_domain": body.get("failure_domain", "secretary-api"), "artifact_ref": body.get("artifact_ref", ""), "confidence": 1, "method": "incident-ingest"},
         "idempotency_key": body["idempotency_key"], "data": {"severity": body["severity"], "responsibility_contract": body["responsibility_contract"]},
     })
-    inserted = db().append(event)
+    inserted = await run_in_threadpool(db().append, event)
     if inserted:
-        url = f"{os.environ.get('RESTATE_INGRESS_URL', 'http://restate:8080').rstrip('/')}/IncidentWorkflow/{incident_id}/run/send"
-        request = urllib.request.Request(url, data=json.dumps({"severity": body["severity"], "responsibility_contract": body["responsibility_contract"], "ack_timeout_seconds": body.get("ack_timeout_seconds", 180), "investigation_timeout_seconds": body.get("investigation_timeout_seconds", 900)}).encode(), method="POST", headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(request, timeout=5) as response:
-            response.read()
+        await run_in_threadpool(restate_signal, incident_id, "run/send", {"severity": body["severity"], "responsibility_contract": body["responsibility_contract"], "ack_timeout_seconds": body.get("ack_timeout_seconds", 180), "investigation_timeout_seconds": body.get("investigation_timeout_seconds", 900)})
     notification = None
     if inserted and body.get("notification_email"):
-        notification = send_email_notification(incident_id, {**body["notification_email"], "idempotency_key": f"{body['idempotency_key']}:email"})
+        notification = await run_in_threadpool(send_email_notification, incident_id, {**body["notification_email"], "idempotency_key": f"{body['idempotency_key']}:email"})
     return {"incident_id": incident_id, "inserted": inserted, "notification": notification}
 
 
@@ -312,7 +435,7 @@ async def create_incident(request: Request, x_secretary_timestamp: str | None = 
 async def notify_email(incident_id: str, request: Request, x_secretary_timestamp: str | None = Header(None), x_secretary_signature: str | None = Header(None)) -> dict[str, Any]:
     raw = await request.body()
     verify_hmac(raw, x_secretary_timestamp, x_secretary_signature)
-    return send_email_notification(incident_id, json.loads(raw))
+    return await run_in_threadpool(send_email_notification, incident_id, json.loads(raw))
 
 
 @app.get("/v1/incidents/{incident_id}/events")
@@ -323,8 +446,7 @@ def incident_events(incident_id: str) -> list[dict[str, Any]]:
 @app.get("/v1/event-stream")
 def event_stream(after_seq: int = 0, incident_id: str | None = None, limit: int = 100,
                  x_secretary_query_token: str | None = Header(None)) -> dict[str, Any]:
-    if not x_secretary_query_token or not hmac.compare_digest(x_secretary_query_token, os.environ["SECRETARY_QUERY_TOKEN"]):
-        raise HTTPException(401, "invalid query token")
+    verify_query_token(x_secretary_query_token)
     items = db().stream(after_seq=after_seq, incident_id=incident_id, limit=limit)
     return {"items": items, "next_after_seq": items[-1]["seq"] if items else after_seq}
 
@@ -352,15 +474,15 @@ async def email_ack(request: Request) -> str:
     raw = (await request.body()).decode()
     form = urllib.parse.parse_qs(raw, strict_parsing=True)
     incident_id, recipient_id, code = (form[name][0] for name in ("incident_id", "recipient_id", "code"))
-    if not valid_action_code(incident_id, recipient_id, code):
+    if not await run_in_threadpool(valid_action_code, incident_id, recipient_id, code):
         raise HTTPException(403, "invalid or expired acknowledgement")
     event = fact(incident_id, "responsibility.acknowledged", recipient_id, actor_kind="human", actor_id=recipient_id,
         source="email", authority="authenticated_action", strength="authoritative", failure_domain=f"human-{recipient_id}",
         method="email-action-code", idempotency_key=f"email-ack:{incident_id}:{recipient_id}",
         data={"action": "ack", "identity_verified": True, "channel": "email"})
-    inserted = db().append(event)
+    inserted = await run_in_threadpool(db().append, event)
     if inserted:
-        restate_signal(incident_id, "acknowledge", event.to_dict())
+        await run_in_threadpool(restate_signal, incident_id, "acknowledge", event.to_dict())
     return "<html><body><h1>Secretary acknowledgement recorded</h1><p>You accepted responsibility for this incident.</p></body></html>"
 
 
@@ -392,7 +514,7 @@ async def bluebubbles(token: str, request: Request) -> dict[str, Any]:
     action, incident_id, code = action_match.group(1).upper(), action_match.group(2), action_match.group(3)
     identity = str(message.get("handle", {}).get("address") or message.get("address") or "unknown")
     recipient_id = identity_bindings().get(f"imessage:{identity}", "")
-    verified = bool(recipient_id) and valid_action_code(incident_id, recipient_id, code)
+    verified = bool(recipient_id) and await run_in_threadpool(valid_action_code, incident_id, recipient_id, code)
     event_type = "responsibility.acknowledged" if action == "ACK" and verified else "human.responded"
     event = FactEvent.from_dict({
         "event_id": str(uuid.uuid4()), "incident_id": incident_id, "type": event_type,
@@ -402,9 +524,9 @@ async def bluebubbles(token: str, request: Request) -> dict[str, Any]:
         "idempotency_key": f"bluebubbles:{message.get('guid') or hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()}",
         "data": {"action": {"ACK": "ack", "HELP": "help", "VERIFY": "confirm_resolution"}[action], "identity_verified": verified},
     })
-    inserted = db().append(event)
+    inserted = await run_in_threadpool(db().append, event)
     if inserted and delivery_is_ack(event):
-        restate_signal(incident_id, "acknowledge", event.to_dict())
+        await run_in_threadpool(restate_signal, incident_id, "acknowledge", event.to_dict())
     return {"event_id": event.event_id, "inserted": inserted}
 
 
@@ -432,7 +554,7 @@ async def voice_event(token: str, request: Request) -> dict[str, Any]:
         "idempotency_key": f"voice:{payload['call_id']}:{payload.get('seq', digit)}",
         "data": {"digit": digit, "action": {"1": "ack", "2": "help", "3": "confirm_resolution"}.get(digit, "unknown"), "identity_verified": identity_verified},
     })
-    inserted = db().append(event)
+    inserted = await run_in_threadpool(db().append, event)
     if inserted and delivery_is_ack(event):
-        restate_signal(incident_id, "acknowledge", event.to_dict())
+        await run_in_threadpool(restate_signal, incident_id, "acknowledge", event.to_dict())
     return {"event_id": event.event_id, "inserted": inserted}

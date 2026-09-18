@@ -51,6 +51,9 @@ stringData:
                 credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/warning
       - name: incidentrelay-info
         webhook_configs:
+          - url: http://secretary-alertmanager-intake.re8ch-secretary.svc.cluster.local/v1/integrations/alertmanager
+            send_resolved: true
+            max_alerts: 100
           - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
             send_resolved: true
             max_alerts: 100
@@ -137,9 +140,9 @@ data:
       },
       "incidentrelay-info": {
         "owner": "platform-observability",
-        "kind": "incidentrelay_webhook",
-        "failure_domain": "incidentrelay",
+        "kind": "secretary_and_incidentrelay_webhook",
+        "failure_domain": "multi-path",
         "facts": ["attempted"],
-        "notes": "Informational events are delivered to the dedicated Telegram event stream without paging responders."
+        "notes": "Informational events are delivered by IncidentRelay; Secretary receives only a side-channel routing observation."
       }
     }

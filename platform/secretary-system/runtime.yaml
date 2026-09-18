@@ -67,15 +67,17 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -c]
           args: ["import os; from secretary.ledger import PostgresLedger; PostgresLedger(os.environ['SECRETARY_DATABASE_URL']).migrate()"]
           env:
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_MIGRATOR}}}
+            - {name: SECRETARY_DATABASE_HOST_OVERRIDE, value: "pgwrite.pigsty-external.svc.cluster.local"}
+            - {name: SECRETARY_DATABASE_PORT_OVERRIDE, value: "5432"}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
       containers:
         - name: runtime
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           ports: [{name: service, containerPort: 9080}]
           env:
             - {name: LITELLM_URL, value: "http://litellm.llm-gateway.svc.cluster.local:4000"}
@@ -106,7 +108,7 @@ data:
         "registered": true,
         "platform": "telegram",
         "display_name": "Re8ch Incident Response",
-        "destination": {"kind": "supergroup", "chat_id": "-1004490421553"},
+        "destination": {"kind": "supergroup", "binding_ref": "incidentrelay-channel:1"},
         "purpose": "critical incident response and human acknowledgement",
         "severity": ["critical"],
         "owner": "platform",
@@ -120,7 +122,7 @@ data:
         "registered": true,
         "platform": "telegram",
         "display_name": "Re8ch Cluster Alerts",
-        "destination": {"kind": "supergroup", "chat_id": "-1004328524883"},
+        "destination": {"kind": "supergroup", "binding_ref": "incidentrelay-channel:2"},
         "purpose": "actionable cluster warning alerts",
         "severity": ["warning"],
         "owner": "platform",
@@ -134,7 +136,7 @@ data:
         "registered": true,
         "platform": "telegram",
         "display_name": "Re8ch Cluster Events",
-        "destination": {"kind": "supergroup", "chat_id": "-1003868458223"},
+        "destination": {"kind": "supergroup", "binding_ref": "incidentrelay-channel:3"},
         "purpose": "informational cluster lifecycle events",
         "severity": ["info"],
         "owner": "platform",
@@ -148,7 +150,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: secretary-channel-registry-v1
+  name: secretary-channel-registry-v2
   namespace: re8ch-secretary
   labels: {app.kubernetes.io/component: channel-registry}
 spec:
@@ -161,33 +163,19 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: register
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
-          command: [python, -c]
-          args:
-            - |
-              import json, os, time, urllib.parse, urllib.request
-              channels = json.loads(os.environ["SECRETARY_CHANNEL_REGISTRY"])
-              for channel in channels:
-                  endpoint_id = channel.pop("endpoint_id")
-                  url = "http://restate:8080/ChannelObject/" + urllib.parse.quote(endpoint_id, safe="") + "/observe"
-                  body = json.dumps(channel, separators=(",", ":")).encode()
-                  for attempt in range(60):
-                      try:
-                          request = urllib.request.Request(url, data=body, method="POST", headers={"Content-Type": "application/json"})
-                          urllib.request.urlopen(request, timeout=5).read()
-                          break
-                      except Exception:
-                          if attempt == 59: raise
-                          time.sleep(2)
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
+          command: [python, -m, secretary.register_channels]
           env:
             - name: SECRETARY_CHANNEL_REGISTRY
               valueFrom: {configMapKeyRef: {name: secretary-channel-registry-v1, key: channels.json}}
+            - {name: SECRETARY_API_URL, value: "http://secretary-api"}
+            - {name: SECRETARY_WEBHOOK_SECRET, valueFrom: {secretKeyRef: {name: secretary-runtime, key: webhook-secret}}}
           resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 128Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
 ---
 apiVersion: batch/v1
 kind: Job
-metadata: {name: secretary-register-v0-2-2, namespace: re8ch-secretary}
+metadata: {name: secretary-register-v0-3-2, namespace: re8ch-secretary}
 spec:
   backoffLimit: 8
   template:
@@ -196,7 +184,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: register
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -c]
           args:
             - |
@@ -226,19 +214,24 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -c]
           args: ["import os; from secretary.ledger import PostgresLedger; PostgresLedger(os.environ['SECRETARY_DATABASE_URL']).migrate()"]
           env:
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_MIGRATOR}}}
+            - {name: SECRETARY_DATABASE_HOST_OVERRIDE, value: "pgwrite.pigsty-external.svc.cluster.local"}
+            - {name: SECRETARY_DATABASE_PORT_OVERRIDE, value: "5432"}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
       containers:
         - name: api
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [uvicorn, secretary.api:app, --host, 0.0.0.0, --port, "8081"]
           env:
             - {name: RESTATE_INGRESS_URL, value: "http://restate:8080"}
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_RW}}}
+            - {name: SECRETARY_DATABASE_HOST_OVERRIDE, value: "pgwrite.pigsty-external.svc.cluster.local"}
+            - {name: SECRETARY_DATABASE_PORT_OVERRIDE, value: "5432"}
+            - {name: SECRETARY_INTERACTION_MODE, value: "shadow"}
             - {name: SECRETARY_WEBHOOK_SECRET, valueFrom: {secretKeyRef: {name: secretary-runtime, key: webhook-secret}}}
             - {name: SECRETARY_QUERY_TOKEN, valueFrom: {secretKeyRef: {name: secretary-runtime, key: query-token}}}
             - {name: BLUEBUBBLES_WEBHOOK_TOKEN, valueFrom: {secretKeyRef: {name: secretary-runtime, key: bluebubbles-webhook-token}}}
@@ -256,7 +249,8 @@ spec:
             - {name: SECRETARY_NOTIFY_RECIPIENT_ID, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient-id}}}
             - {name: SECRETARY_ACK_TIMEOUT_SECONDS, value: "900"}
           ports: [{name: http, containerPort: 8081}]
-          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 5, timeoutSeconds: 6}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
 ---
@@ -291,18 +285,22 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -c]
           args: ["import os; from secretary.ledger import PostgresLedger; PostgresLedger(os.environ['SECRETARY_DATABASE_URL']).migrate()"]
           env:
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_MIGRATOR}}}
+            - {name: SECRETARY_DATABASE_HOST_OVERRIDE, value: "pgwrite.pigsty-external.svc.cluster.local"}
+            - {name: SECRETARY_DATABASE_PORT_OVERRIDE, value: "5432"}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
       containers:
         - name: projector
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -m, secretary.projector]
           env:
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_RW}}}
+            - {name: SECRETARY_DATABASE_HOST_OVERRIDE, value: "pgwrite.pigsty-external.svc.cluster.local"}
+            - {name: SECRETARY_DATABASE_PORT_OVERRIDE, value: "5432"}
             - {name: NEO4J_URI, valueFrom: {secretKeyRef: {name: secretary-runtime, key: neo4j-uri}}}
             - {name: NEO4J_USER, valueFrom: {secretKeyRef: {name: secretary-runtime, key: neo4j-user}}}
             - {name: NEO4J_PASSWORD, valueFrom: {secretKeyRef: {name: secretary-runtime, key: neo4j-password}}}
@@ -323,10 +321,12 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: manager
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -m, secretary.delivery_manager]
           env:
             - {name: SECRETARY_DATABASE_URL, valueFrom: {secretKeyRef: {name: secretary-db-credentials, key: DATABASE_URL_RW}}}
+            - {name: SECRETARY_DATABASE_HOST_OVERRIDE, value: "pgwrite.pigsty-external.svc.cluster.local"}
+            - {name: SECRETARY_DATABASE_PORT_OVERRIDE, value: "5432"}
             - {name: DELIVERY_UNKNOWN_AFTER_SECONDS, value: "300"}
             - {name: DELIVERY_RECONCILE_INTERVAL_SECONDS, value: "30"}
           resources: {requests: {cpu: 20m, memory: 64Mi}, limits: {cpu: 200m, memory: 192Mi}}
@@ -371,10 +371,10 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: watcher
-          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:7101b40a67eac49a6d4cc0045660dd457d42887c5f6491c788ef136adebfd3fb
           command: [python, -m, secretary.cluster_watcher]
           env:
-            - {name: SECRETARY_API_URL, value: "http://secretary-api/v1/incidents"}
+            - {name: SECRETARY_API_URL, value: "http://secretary-api/v1/observations"}
             - {name: SECRETARY_WEBHOOK_SECRET, valueFrom: {secretKeyRef: {name: secretary-runtime, key: webhook-secret}}}
             - {name: SECRETARY_NOTIFY_TO, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient}}}
             - {name: SECRETARY_NOTIFY_RECIPIENT_ID, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient-id}}}
@@ -482,4 +482,14 @@ spec:
       filters:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/delivery-summary}}
+      backendRefs: [{name: secretary-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /secretary-api/v1/topology}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/topology}}
+      backendRefs: [{name: secretary-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /secretary-api/v1/discrepancies}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/discrepancies}}
       backendRefs: [{name: secretary-api, port: 80}]

@@ -7,6 +7,8 @@ import React from 'react';
 const NS = 're8ch-secretary';
 const OBS_NS = 'observability-system';
 const STREAM_URL = '/secretary-api/v1/event-stream';
+const TOPOLOGY_URL = '/secretary-api/v1/topology';
+const DISCREPANCIES_URL = '/secretary-api/v1/discrepancies';
 const SECRET_KEYS: Record<string, string[]> = {
   'secretary-runtime': ['webhook-secret', 'query-token', 'bluebubbles-webhook-token', 'voice-webhook-token', 'identity-bindings-json', 'neo4j-uri', 'neo4j-user', 'neo4j-password', 'litellm-api-key'],
   'secretary-email': ['email', 'username', 'password', 'tls-fingerprint-sha256', 'recipient', 'recipient-id'],
@@ -50,6 +52,9 @@ function Dashboard() {
   const [cursor, setCursor] = React.useState(0);
   const [streamError, setStreamError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [topology, setTopology] = React.useState<any>({declared:[], observed:[]});
+  const [discrepancies, setDiscrepancies] = React.useState<any[]>([]);
+  const [topologyError, setTopologyError] = React.useState('');
 
   const load = React.useCallback(async (reset=false) => {
     setLoading(true); setStreamError('');
@@ -64,7 +69,20 @@ function Dashboard() {
     finally { setLoading(false); }
   }, [cursor]);
 
-  React.useEffect(()=>{ void load(true); }, []);
+  const loadTopology = React.useCallback(async () => {
+    setTopologyError('');
+    try {
+      const [topologyResponse, discrepancyResponse] = await Promise.all([
+        fetch(TOPOLOGY_URL, {credentials:'same-origin'}),
+        fetch(DISCREPANCIES_URL, {credentials:'same-origin'}),
+      ]);
+      if (!topologyResponse.ok || !discrepancyResponse.ok) throw new Error(`HTTP ${topologyResponse.status}/${discrepancyResponse.status}`);
+      setTopology(await topologyResponse.json());
+      setDiscrepancies((await discrepancyResponse.json()).items || []);
+    } catch (error) { setTopologyError(`交互拓扑读取失败：${String(error)}`); }
+  }, []);
+
+  React.useEffect(()=>{ void load(true); void loadTopology(); }, []);
 
   const referencedSecretKeys = new Map<string,Set<string>>();
   for (const deployment of deployments || []) {
@@ -95,10 +113,24 @@ function Dashboard() {
     ...(vmAlerts || []).map((x:any)=>({...raw(x),displayKind:'VMAlert'})),
     ...(alertmanagers || []).map((x:any)=>({...raw(x),displayKind:'VMAlertmanager'})),
   ];
+  const topologyRows=[
+    ...(topology.declared || []).map((x:any)=>({
+      state:x.enabled?'declared':'disabled', relation:x.declaration?.relation,
+      source:`${x.declaration?.source?.kind}/${x.declaration?.source?.id}`,
+      target:`${x.declaration?.target?.kind}/${x.declaration?.target?.id}`,
+      runtime:x.declaration?.target?.runtime_id || '-', owner:x.declaration?.owner_id || '-', edgeKey:x.edge_key,
+    })),
+    ...(topology.observed || []).map((x:any)=>({
+      state:x.adopted?'observed/adopted':'observed/unconfirmed', relation:x.observation?.relation,
+      source:`${x.observation?.source?.kind}/${x.observation?.source?.id}`,
+      target:`${x.observation?.target?.kind}/${x.observation?.target?.id}`,
+      runtime:x.observation?.runtime?.id || '-', owner:'-', edgeKey:x.edge_key,
+    })),
+  ];
 
   return <Box sx={{p:2}}>
     <Typography variant="h4">Secretary</Typography>
-    <Typography color="text.secondary">责任确认、通知通达与可信事件流；所有 Secret 仅检查键是否存在。</Typography>
+    <Typography color="text.secondary">异质 runtime 交互证据、声明/观测路由与可证明的抵达状态；不接管各服务的通知语义。</Typography>
     {(deploymentError || podError) && <Alert severity="error">无法读取 re8ch-secretary：{String(deploymentError || podError)}</Alert>}
     <Stack direction="row" spacing={1} sx={{my:2,flexWrap:'wrap'}}>
       <Chip label={`Workloads ${(deployments || []).filter(ready).length}/${(deployments || []).length} Ready`} color={(deployments || []).every(ready)?'success':'error'}/>
@@ -106,6 +138,9 @@ function Dashboard() {
       <Chip label={`Services ${(services || []).length}`}/><Chip label={`NetworkPolicies ${(networkPolicies || []).length}`}/>
       <Chip label={`Incidents ${incidentCount}`}/><Chip label={`ACK ${ackCount}`} color="success"/><Chip label={`Failures ${failedCount}`} color={failedCount?'warning':'default'}/>
       <Chip label={`Attempts ${attemptedCount}`}/><Chip label={`Provider accepted ${providerAcceptedCount}`}/><Chip label={`Unknown ${unknownCount}`} color={unknownCount?'warning':'default'}/>
+      <Chip label={`Declared edges ${(topology.declared || []).filter((x:any)=>x.enabled).length}`}/>
+      <Chip label={`Observed edges ${(topology.observed || []).length}`}/>
+      <Chip label={`Discrepancies ${discrepancies.length}`} color={discrepancies.length?'warning':'default'}/>
     </Stack>
     {monitoringError && <Alert severity="warning">部分 monitoring CRD 不可见：{String(monitoringError)}。权限错误不会被解释为空配置。</Alert>}
     <SectionBox title="Monitoring data plane">
@@ -144,6 +179,22 @@ function Dashboard() {
         {header:'Referenced keys',accessorFn:(x:any)=><StatusLabel status={x.referenced===x.expected?'success':'warning'}>{x.referenced}/{x.expected}</StatusLabel>},
         {header:'Missing',accessorFn:(x:any)=>x.missing.join(', ') || 'None'},
       ] as any}/>
+    </SectionBox>
+    <SectionBox title="Interaction topology (declared and observed remain separate)">
+      <Stack direction={{xs:'column',md:'row'}} spacing={1} sx={{mb:2}}>
+        <Button variant="outlined" onClick={()=>loadTopology()}>Refresh topology</Button>
+      </Stack>
+      {topologyError && <Alert severity="error" sx={{mb:1}}>{topologyError}</Alert>}
+      {discrepancies.length > 0 && <Alert severity="warning" sx={{mb:1}}>{discrepancies.length} declared/observed route discrepancies require evidence review.</Alert>}
+      <Table data={topologyRows} columns={[
+        {header:'State',accessorFn:(x:any)=><StatusLabel status={x.state==='observed/adopted'?'success':x.state==='observed/unconfirmed'?'warning':''}>{x.state}</StatusLabel>},
+        {header:'Source',accessorKey:'source'},
+        {header:'Relation',accessorKey:'relation'},
+        {header:'Target',accessorKey:'target'},
+        {header:'Runtime',accessorKey:'runtime'},
+        {header:'Owner',accessorKey:'owner'},
+      ] as any}/>
+      <Typography variant="caption" color="text.secondary">Observed edges are adopted only from an authoritative runtime/provider receipt or two independent supporting evidence domains with combined confidence ≥ 0.90. Logs alone never prove delivery.</Typography>
     </SectionBox>
     <SectionBox title="Authoritative event stream">
       <Stack direction={{xs:'column',md:'row'}} spacing={1} sx={{mb:2}}>

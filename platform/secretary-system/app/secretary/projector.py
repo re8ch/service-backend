@@ -4,6 +4,7 @@ import os
 import time
 
 from .graph import Neo4jProjector
+from .interaction import InteractionObservation
 from .ledger import PostgresLedger
 from .model import FactEvent
 
@@ -19,7 +20,14 @@ def main() -> None:
                 ledger.mark_delivered(item["seq"])
             except Exception as exc:
                 ledger.mark_failed(item["seq"], str(exc))
-        time.sleep(1 if pending else 5)
+        interaction_pending = ledger.pending_interactions("neo4j-interaction")
+        for item in interaction_pending:
+            try:
+                graph.project_interaction(InteractionObservation.from_dict(item["observation"]))
+                ledger.mark_interaction_delivered(item["seq"])
+            except Exception as exc:
+                ledger.mark_interaction_failed(item["seq"], str(exc))
+        time.sleep(1 if pending or interaction_pending else 5)
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: re8ch-observability-grafana-alerts
-  namespace: observability-system
+  namespace: qianwen-ops
   labels:
     grafana_alert: "1"
     app.kubernetes.io/part-of: re8ch-observability
@@ -61,6 +61,12 @@ data:
             noDataState: OK
             execErrState: Error
             labels: {severity: critical, alert_layer: grafana, owner: platform-observability}
+            notification_settings:
+              receiver: RE8CH Alertmanager
+              group_by: [grafana_folder, alertname, service]
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 30m
             annotations:
               summary: A critical service is degraded across multiple signals
               runbook_url: https://github.com/re8ch/service-backend/blob/main/runbooks/observability/application-observability-contract.md
@@ -89,3 +95,12 @@ data:
               - refId: G
                 datasourceUid: __expr__
                 model: {expression: '($D < 0.99) && (($E > 0.05) || ($F > 1))', refId: G, type: math}
+    contactPoints:
+      - orgId: 1
+        name: RE8CH Alertmanager
+        receivers:
+          - uid: re8ch-alertmanager
+            type: prometheus-alertmanager
+            disableResolveMessage: false
+            settings:
+              url: http://vmalertmanager-re8ch-alertmanager.observability-system.svc.cluster.local:9093
