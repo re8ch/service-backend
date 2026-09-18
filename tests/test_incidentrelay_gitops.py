@@ -23,6 +23,9 @@ def test_upstream_chart_is_digest_pinned_and_production_workers_are_enabled():
     assert values["scheduler"]["enabled"] is True
     assert values["telegram"]["enabled"] is True
     assert values["slack"]["enabled"] is False
+    for component in ("web", "scheduler", "telegram"):
+        expression = values[component]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+        assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["restricted-node-6dc3f140f9"]}
     rendered_patches = str(release["spec"]["postRenderers"])
     assert "ghcr.io/roxy-wi/incidentrelay@sha256:" in rendered_patches
     assert "automountServiceAccountToken: false" in (PLATFORM / "release.yaml").read_text()
@@ -57,7 +60,8 @@ def test_secrets_are_sops_encrypted_and_referenced_from_root():
 def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
     database_job = yaml.safe_load((PLATFORM / "database-bootstrap.yaml").read_text())
     admin_job = yaml.safe_load((PLATFORM / "bootstrap-admin.yaml").read_text())
-    assert database_job["metadata"]["name"] == "incidentrelay-database-bootstrap-v2"
+    assert database_job["metadata"]["name"] == "incidentrelay-database-bootstrap-v3"
+    assert admin_job["metadata"]["name"] == "incidentrelay-bootstrap-admin-v2"
     for job in (database_job, admin_job):
         container = job["spec"]["template"]["spec"]["containers"][0]
         assert "@sha256:" in container["image"]
@@ -67,3 +71,12 @@ def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
     assert set(database_resources) == {"requests", "limits"}
     assert set(database_resources["requests"]) == {"cpu", "memory"}
     assert set(database_resources["limits"]) == {"cpu", "memory"}
+
+
+def test_database_bootstrap_has_quota_headroom_and_avoids_unhealthy_r640_runtime():
+    quota = yaml.safe_load((PLATFORM / "database-quota.yaml").read_text())
+    assert quota["spec"]["hard"]["limits.cpu"] == "1250m"
+    for name in ("database-bootstrap.yaml", "bootstrap-admin.yaml"):
+        job = yaml.safe_load((PLATFORM / name).read_text())
+        expression = job["spec"]["template"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+        assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["restricted-node-6dc3f140f9"]}

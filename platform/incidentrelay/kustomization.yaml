@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - release.yaml
+  - database-quota.yaml
   - database-bootstrap.yaml
   - bootstrap-admin.yaml
   - public-route.yaml
