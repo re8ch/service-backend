@@ -34,6 +34,11 @@ spec:
       ports:
         - {protocol: TCP, port: 5432}
     - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: egress-fabric}
+      ports:
+        - {protocol: TCP, port: 17891}
+    - to:
         - ipBlock: {cidr: 0.0.0.0/0}
       ports:
         - {protocol: TCP, port: 443}

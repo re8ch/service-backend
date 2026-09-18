@@ -16,6 +16,8 @@ the upstream chart is stored in this repository.
 The chart uses the SOPS-managed `incidentrelay-config` Secret and the shared
 Pigsty primary Service. Bot tokens and Telegram chat/user IDs are configured in
 the IncidentRelay HTTPS administration UI and never committed to Git.
+Telegram Bot API traffic uses the cluster-local Mihomos mixed proxy explicitly;
+the namespace policy permits only TCP/17891 to `egress-fabric` for that path.
 
 ## Initial configuration
 

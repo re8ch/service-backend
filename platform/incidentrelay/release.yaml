@@ -88,6 +88,10 @@ spec:
       replicaCount: 1
       runMigrations: true
       strategy: {type: Recreate}
+      extraEnv:
+        - {name: HTTP_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
+        - {name: HTTPS_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
+        - {name: NO_PROXY, value: ".svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -102,6 +106,10 @@ spec:
     scheduler:
       enabled: true
       strategy: {type: Recreate}
+      extraEnv:
+        - {name: HTTP_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
+        - {name: HTTPS_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
+        - {name: NO_PROXY, value: ".svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -116,6 +124,10 @@ spec:
     telegram:
       enabled: true
       strategy: {type: Recreate}
+      extraEnv:
+        - {name: HTTP_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
+        - {name: HTTPS_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
+        - {name: NO_PROXY, value: ".svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
