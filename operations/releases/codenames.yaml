@@ -129,6 +129,8 @@ modules:
       digest: sha256:3efd771530a241e457e6194dbcb81ad43f5ec839d278ee8f9e220d024b1b4525
     - codename: delta-amber
       digest: sha256:21b79aeb9c11a5083bd0a7d10f912347f97739c9343322e4d7f50aadd0c09ae9
+    - codename: grove-amber
+      digest: sha256:fe69724ecdafca75999002e682d65ca99fe3c321120808ae2474d04859d191fa
   platform/cloud-platform:
     releases:
     - codename: atoll

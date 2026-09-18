@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: delta-amber
+    delivery.re8ch.com/codename: grove-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:21b79aeb9c11a5083bd0a7d10f912347f97739c9343322e4d7f50aadd0c09ae9
+    digest: sha256:fe69724ecdafca75999002e682d65ca99fe3c321120808ae2474d04859d191fa
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: delta-amber
+    delivery.re8ch.com/codename: grove-amber
 spec:
   interval: 10m
   retryInterval: 1m
