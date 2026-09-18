@@ -1,13 +1,12 @@
 # Ontology Microscope tenant deployment
 
 Ontology Microscope is a normal workload owned by the `re8ch` tenant and runs
-in `re8ch-ontology-microscope`. The public endpoint remains protected by the
-existing `ontology-microscope-basic-auth` Secret; credential material is never
-stored in Git.
+in `re8ch-ontology-microscope`. Its public Neuronpedia endpoint is routed
+directly to the web application without the former Basic Auth sidecar.
 
 ## Neuronpedia production stack
 
-The public `HTTPRoute` and DNS-authority references resolve to the authenticated
+The public `HTTPRoute` and DNS-authority references resolve to the
 `ontology-microscope-neuronpedia` Service after the replacement stack passed
 database migration, projection, homepage, feature-page, and auth-boundary
 canaries:
@@ -18,8 +17,7 @@ canaries:
   `rbd-r640` volume;
 - the RE8CH projection/intervention adapter from product revision
   `3a80110c2436d26cf0c33d15a8b122f48c39fa3b`;
-- an authenticated Service named
-  `ontology-microscope-neuronpedia`.
+- a public Service named `ontology-microscope-neuronpedia`.
 
 Published immutable images:
 

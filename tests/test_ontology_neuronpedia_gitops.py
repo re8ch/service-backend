@@ -83,3 +83,21 @@ def test_neuronpedia_signin_is_disabled_and_adapter_waits_for_database():
         if doc["kind"] == "CiliumNetworkPolicy"
     )
     assert adapter_egress["spec"]["egress"] == [{"toEntities": ["cluster"]}]
+
+
+def test_public_neuronpedia_service_bypasses_basic_auth_proxy():
+    documents_in_file = documents("neuronpedia.yaml")
+    deployment = next(doc for doc in documents_in_file if doc["kind"] == "Deployment")
+    service = next(doc for doc in documents_in_file if doc["kind"] == "Service")
+    policy = next(doc for doc in documents_in_file if doc["kind"] == "CiliumNetworkPolicy")
+
+    pod_spec = deployment["spec"]["template"]["spec"]
+    assert [container["name"] for container in pod_spec["containers"]] == ["webapp"]
+    assert {volume["name"] for volume in pod_spec["volumes"]} == {"tmp"}
+    assert service["spec"]["ports"] == [
+        {"name": "http", "port": 80, "targetPort": "webapp", "protocol": "TCP"}
+    ]
+    assert policy["spec"]["ingress"][0]["toPorts"][0]["ports"] == [
+        {"port": "3000", "protocol": "TCP"}
+    ]
+    assert "auth_basic" not in (PROJECT / "neuronpedia.yaml").read_text()
