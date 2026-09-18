@@ -23,7 +23,7 @@ def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
     assert node_expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-6dc3f140f9", "zan"],
+        "values": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74"],
     }
     assert values["tolerations"] == [
         {
@@ -32,6 +32,21 @@ def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
             "value": "true",
             "effect": "NoSchedule",
         }
+    ]
+    patch = release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]
+    assert patch["target"] == {
+        "group": "apps",
+        "version": "v1",
+        "kind": "Deployment",
+        "name": "victoria-metrics-operator",
+    }
+    patched_deployment = yaml.safe_load(patch["patch"])
+    assert patched_deployment["spec"]["template"]["spec"]["containers"][0]["env"] == [
+        {
+            "name": "KUBERNETES_SERVICE_HOST",
+            "valueFrom": {"fieldRef": {"fieldPath": "status.hostIP"}},
+        },
+        {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
     ]
 
 
