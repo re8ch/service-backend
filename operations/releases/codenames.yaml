@@ -239,3 +239,5 @@ modules:
     releases:
     - codename: aperture
       digest: sha256:fa0c1a93e6414d29df5ab465ecf67edec53a4563592d8dde2f582f6a6a12794c
+    - codename: focus
+      digest: sha256:2da89815d1ae17aec090d9e17db046ad91fe5670a1fb382f8abeeeda617107ef
