@@ -2,7 +2,8 @@
 
 Ontology Microscope is a normal workload owned by the `re8ch` tenant and runs
 in `re8ch-ontology-microscope`. Its public Neuronpedia endpoint is routed
-directly to the web application without the former Basic Auth sidecar.
+directly to the web application without the former Basic Auth sidecar. The
+`/api/re8ch/analyses` path is routed to the in-namespace adapter.
 
 ## Neuronpedia production stack
 
@@ -11,29 +12,33 @@ The public `HTTPRoute` and DNS-authority references resolve to the
 database migration, projection, homepage, feature-page, and auth-boundary
 canaries:
 
-- unmodified Neuronpedia `v2.6.0` UI at upstream commit
-  `599cd3f18a05912fb905643a8af2b34daf04ca1b`;
+- Neuronpedia `v2.6.0` at upstream commit
+  `599cd3f18a05912fb905643a8af2b34daf04ca1b`, with a versioned RE8CH overlay
+  for the Chinese product-analysis homepage and ephemeral `/analyze` flow;
 - a dedicated PostgreSQL 16 + pgvector database on a retained 20 Gi
   `rbd-r640` volume;
-- the RE8CH projection/intervention adapter from product revision
-  `3a80110c2436d26cf0c33d15a8b122f48c39fa3b`;
+- the RE8CH projection/intervention and temporary product-analysis adapter from
+  product revision `5dc3adcedd31bf196c4e444976c8b43128c05bf6`;
 - a public Service named `ontology-microscope-neuronpedia`.
 
 Published immutable images:
 
-- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:4fffb48bfd442d0887ab6df4298ccc622d82af04c87c046bfd7dc899a56434f4`
+- webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:45dd94ae9ce31be71090cc578f5df35214cddfbc067a4a9468e80f7ae8abaced`
 - migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c`
-- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:1e62d513bd344a9d04940df2a7c693ddb34f8055e0cea57b81a7d90afc74d3d4`
+- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:955e6e448b55c558ca823f4a4d469877923e3fbaa86bafbb6f14a0341881266c`
 
 These manifests were exported from the verified restricted-node-6dc3f140f9 containerd content store
 as compressed OCI archives and uploaded with `--preserve-digests`. This avoids
 Harbor recompression and lets the runtime reuse the exact verified layers while
 retaining immutable manifest references.
 
-The Neuronpedia build has no upstream UI source changes. It applies an exact
-`maplibre-gl 6.9.0` dependency override for `GHSA-jrc7-96c5-q579` and fails on
-critical production dependency advisories. The database password and
-NextAuth secret are SOPS-encrypted in the cluster overlay.
+The upstream source remains pinned and the RE8CH UI is applied as a bounded
+overlay. The adapter validates model output, retries one malformed response,
+limits public concurrency/rate, and does not persist submitted text or results.
+The optional out-of-band Secret `ontology-microscope-analysis` supplies key
+`api-key` for the tenant LiteLLM endpoint. When absent, the analysis API returns
+a redacted 503 while the homepage and built-in example remain available. No
+credential values belong in Git.
 
 ## Cutover and rollback
 

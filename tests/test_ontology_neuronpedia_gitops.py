@@ -37,8 +37,16 @@ def test_neuronpedia_canary_is_parallel_and_digest_pinned():
 
 def test_public_route_and_dns_authority_use_neuronpedia_service():
     route = next(doc for doc in documents("public.yaml") if doc["kind"] == "HTTPRoute")
-    backends = route["spec"]["rules"][0]["backendRefs"]
-    assert backends == [{"name": "ontology-microscope-neuronpedia", "port": 80}]
+    analysis_rule, default_rule = route["spec"]["rules"]
+    assert analysis_rule["matches"] == [
+        {"path": {"type": "PathPrefix", "value": "/api/re8ch/analyses"}}
+    ]
+    assert analysis_rule["backendRefs"] == [
+        {"name": "ontology-microscope-adapter", "port": 4318}
+    ]
+    assert default_rule["backendRefs"] == [
+        {"name": "ontology-microscope-neuronpedia", "port": 80}
+    ]
 
     authority = next(doc for doc in documents("public.yaml") if doc["kind"] == "Ingress")
     authority_backends = {
@@ -76,6 +84,10 @@ def test_neuronpedia_signin_is_disabled_and_adapter_waits_for_database():
     adapter_container = adapter["spec"]["template"]["spec"]["containers"][0]
     assert adapter_container["readinessProbe"]["httpGet"]["path"] == "/api/health"
     assert any(item["name"] == "NEURONPEDIA_DATABASE_URL" for item in adapter_container["env"])
+    analysis_key = next(item for item in adapter_container["env"] if item["name"] == "ANALYSIS_OPENAI_API_KEY")
+    assert analysis_key["valueFrom"]["secretKeyRef"] == {
+        "name": "ontology-microscope-analysis", "key": "api-key", "optional": True
+    }
 
     adapter_egress = next(
         doc
@@ -83,6 +95,9 @@ def test_neuronpedia_signin_is_disabled_and_adapter_waits_for_database():
         if doc["kind"] == "CiliumNetworkPolicy"
     )
     assert adapter_egress["spec"]["egress"] == [{"toEntities": ["cluster"]}]
+    assert adapter_egress["spec"]["ingress"][0]["toPorts"][0]["ports"] == [
+        {"port": "4318", "protocol": "TCP"}
+    ]
 
 
 def test_public_neuronpedia_service_bypasses_basic_auth_proxy():

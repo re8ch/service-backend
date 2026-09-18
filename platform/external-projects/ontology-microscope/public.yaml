@@ -9,6 +9,9 @@ spec:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}
   hostnames: [ontology.re8ch.com, ontology.apps.re8ch.com]
   rules:
+    - matches:
+        - path: {type: PathPrefix, value: /api/re8ch/analyses}
+      backendRefs: [{name: ontology-microscope-adapter, port: 4318}]
     - backendRefs: [{name: ontology-microscope-neuronpedia, port: 80}]
 ---
 apiVersion: networking.k8s.io/v1
