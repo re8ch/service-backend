@@ -241,6 +241,8 @@ modules:
     releases:
     - codename: bora
       digest: sha256:1b69b59ece52ee66eddb6517ec8f637671ffda2aa95e2e087e1258d0ac8980c4
+    - codename: chinook
+      digest: sha256:6e15643a73712b49b1e2391a81ce056caff1efc8247aa378d3afe65cfc00024e
   platform/adapter:
     releases:
     - codename: anchor
