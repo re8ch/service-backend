@@ -45,7 +45,7 @@ resources:
 - components/toolhive/external-observe-publication.yaml
 - components/toolhive/external-observe-rbac.yaml
 - components/toolhive/external-privileged-publication.yaml
-# ConnecTool aggregates these private A1/B1 ToolHive workloads.
+# ConnecTool aggregates these private ToolHive workloads on stable workers.
 - components/toolhive/vmcp-external-publication.yaml
 - components/toolhive/retire-kagent-legacy-mcp.yaml
 - components/toolhive/retire-legacy-session-redis.yaml

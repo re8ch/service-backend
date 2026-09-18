@@ -28,9 +28,9 @@ operator:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: scheduling.re8ch.com/reliability-class
                 operator: In
-                values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                values: [stable]
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:

@@ -45,7 +45,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                    - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
         tolerations: []
         topologySpreadConstraints: []
         resources:
@@ -53,7 +53,7 @@ spec:
           limits: {cpu: 500m, memory: 256Mi}
       runtimePolicy:
         enabled: true
-        nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        nodeNames: [domain-ex, muaya-ecs, suxunji, vm-20-12-ubuntu, zan]
         trafficDistribution: PreferSameNode
         backendSessionAffinity: None
         proxyResources:
