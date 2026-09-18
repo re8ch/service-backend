@@ -23,6 +23,19 @@ spec:
     - {port: https, scheme: https, interval: 30s, tlsConfig: {insecureSkipVerify: true}}
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kyverno
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kyverno]}
+  selector:
+    matchLabels: {app.kubernetes.io/instance: kyverno, app.kubernetes.io/part-of: kyverno}
+  endpoints:
+    - {port: metrics-port, scheme: http, interval: 30s}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:
   name: scheduling-governance
@@ -47,6 +60,16 @@ spec:
           for: 2m
           labels: {severity: warning}
           annotations: {summary: A Kueue manager restarted during the last fifteen minutes}
+        - alert: Re8chKyvernoMetricsMissing
+          expr: absent(kyverno_info)
+          for: 15m
+          labels: {severity: warning}
+          annotations: {summary: Kyverno controller metrics have been missing for fifteen minutes}
+        - alert: Re8chSchedulingPolicyAuditViolation
+          expr: sum(increase(kyverno_policy_results_total{policy_name=~"audit-(control-plane-tolerations|workload-resource-bounds|privileged-workloads)",rule_result="fail"}[15m])) by (policy_name, resource_namespace) > 0
+          for: 2m
+          labels: {severity: warning}
+          annotations: {summary: A scheduling governance audit policy found a new violation}
         - alert: Re8chVLAgentDroppingLogs
           expr: sum(increase(vlagent_remotewrite_packets_dropped_total[5m])) > 0
           for: 2m
