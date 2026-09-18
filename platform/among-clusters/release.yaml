@@ -27,7 +27,9 @@ spec:
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
     replicaCount: 1
     nodeSelector:
-      kubernetes.io/hostname: suxunji
+      # Keep the Hub off the control plane. Zan is also on the proven
+      # r640-to-pod data path used by the Cilium Gateway.
+      kubernetes.io/hostname: zan
     adminTokenSecret: among-clusters-hub-admin
     managedAccess:
       enabled: true

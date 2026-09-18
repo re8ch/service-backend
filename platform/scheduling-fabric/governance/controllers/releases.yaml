@@ -94,7 +94,11 @@ spec:
   releaseName: kueue
   targetNamespace: kueue-system
   storageNamespace: kueue-system
-  chartRef: {kind: OCIRepository, name: kueue-official}
+  chart:
+    spec:
+      chart: charts/kueue
+      reconcileStrategy: Revision
+      sourceRef: {kind: GitRepository, name: kueue-official}
   install: {createNamespace: false, crds: CreateReplace, remediation: {retries: 1}}
   upgrade: {crds: CreateReplace, timeout: 10m, remediation: {retries: 1, remediateLastFailure: false}}
   values:

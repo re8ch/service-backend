@@ -29,13 +29,20 @@ spec:
   url: https://kyverno.github.io/kyverno/
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: OCIRepository
-metadata: {name: kueue-official, namespace: flux-system}
+kind: GitRepository
+metadata:
+  name: kueue-official
+  namespace: flux-system
+  annotations:
+    supply-chain.re8ch.com/upstream-tag: v0.19.5
 spec:
   interval: 24h
-  provider: generic
-  url: oci://registry.k8s.io/kueue/charts/kueue
-  ref: {digest: sha256:570cdfce9f9928a8cf36ea814278e2e56651d2e7f2dac3363ebf3e0cda303bc2}
+  timeout: 60s
+  url: https://github.com/kubernetes-sigs/kueue.git
+  # The annotated v0.19.5 tag resolves to this immutable commit. Fetching the
+  # chart from GitHub avoids registry.k8s.io's Google Artifact Registry
+  # redirect, which is not reachable from the production source-controller.
+  ref: {commit: 8e60d76a91bb9a45754218e569de1088f862ac75}
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

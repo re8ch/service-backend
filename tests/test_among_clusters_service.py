@@ -21,7 +21,7 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert release["spec"]["values"]["managedAccess"]["enabled"] is True
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1
-    assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "suxunji"}
+    assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "zan"}
     assert release["spec"]["values"]["onboarding"] == {
         "enabled": True,
         "publicEndpoint": "https://among-clusters.re8ch.com",
