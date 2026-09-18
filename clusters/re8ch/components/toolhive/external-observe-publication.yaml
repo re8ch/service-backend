@@ -136,7 +136,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
-  ingressClassName: traefik
+  ingressClassName: advanced-fabric
   tls:
     - hosts: [tools.re8ch.com]
       secretName: re8ch-wildcard-tls
@@ -171,7 +171,7 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
 spec:
-  ingressClassName: traefik
+  ingressClassName: advanced-fabric
   rules:
     - host: tools.re8ch.com
       http:
