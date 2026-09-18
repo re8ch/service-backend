@@ -101,10 +101,14 @@ modules:
     releases:
     - codename: bora
       digest: sha256:b285c878e7f95b2f3191a3e090b28a79d9af24a363463fcb80e63dd078f306aa
+    - codename: chinook
+      digest: sha256:4481f5eabb093092c172c6621d12b2dccbb15abb31d84c25ad8b7ad559c1115c
   platform/scheduling-fabric:
     releases:
     - codename: atoll
       digest: sha256:fc128757d136f6c865dc199da3b119850335d9865d9a66ce3e2dbf96b6d24647
+    - codename: canopy
+      digest: sha256:3f7dccd5beefdd950fd6e5c2a760f6bd5e091383b7891388e9181fc32e715de1
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -243,3 +247,5 @@ modules:
       digest: sha256:2da89815d1ae17aec090d9e17db046ad91fe5670a1fb382f8abeeeda617107ef
     - codename: prism
       digest: sha256:a28f1aa299fb9924fb79e364cb46ebe6cf7d1d838aae781203a5b9bffc4ae4b7
+    - codename: spectrum
+      digest: sha256:2da1a6d6c026b2ac66ebb9362490f9a08962ac3d815cf0eb135eaa79d6b05a94
