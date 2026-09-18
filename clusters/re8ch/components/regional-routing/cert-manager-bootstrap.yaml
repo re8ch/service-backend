@@ -19,6 +19,8 @@ spec:
     webhook:
       replicaCount: 2
       timeoutSeconds: 10
+      hostNetwork: true
+      securePort: 10260
       podDisruptionBudget:
         enabled: true
         minAvailable: 1
