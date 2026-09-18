@@ -19,11 +19,6 @@ kind: Deployment
 metadata: {name: harbor-credential-broker, namespace: credential-broker}
 ---
 $patch: delete
-apiVersion: apps/v1
-kind: Deployment
-metadata: {name: external-dns-cloudflare, namespace: qianwen-ops}
----
-$patch: delete
 apiVersion: v1
 kind: Service
 metadata: {name: cloud-platform-tool, namespace: ai-operations}
