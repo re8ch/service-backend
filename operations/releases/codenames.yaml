@@ -117,6 +117,8 @@ modules:
       digest: sha256:0f955860cc165e9f7cb1d830a495ce2ce6841ceb8a288103d3da276767186a24
     - codename: reef
       digest: sha256:49b5481caa0479fcfe8db80b0047e8215bea81d09d456dc7dc3793961a164d83
+    - codename: tundra
+      digest: sha256:dd49c0c991f358981655b7079d3e5da1e6b36247bf00ececade8df90166e5311
   platform/cloud-platform:
     releases:
     - codename: atoll
