@@ -120,6 +120,9 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
         ) == "192.0.2.224/16"
         assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "stable-workers-2026-09-18"
         pod_spec = spec["podTemplateSpec"]["spec"]
+        assert spec["podTemplateSpec"]["metadata"]["annotations"] == {
+            "scheduling.re8ch.com/placement-revision": "stable-workers-2026-09-18"
+        }
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression == {
