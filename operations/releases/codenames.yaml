@@ -143,6 +143,8 @@ modules:
       digest: sha256:0bb28067964d3b858ccf1cfa309800014a7ab83de8b8d74efb41573682df94cf
     - codename: atoll-copper
       digest: sha256:ce0c7d3db47d3f5b9875fb9412ac91508765c758ef10bdafb386958e0a5b3e69
+    - codename: canopy-copper
+      digest: sha256:1d59c9cc4d9eeb59c940eb13a9bb961891127dac431cd1e68315a1469bef796b
   platform/cloud-platform:
     releases:
     - codename: atoll
