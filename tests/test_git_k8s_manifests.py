@@ -352,11 +352,10 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
         "probePath": "/api/health",
         "acceptedStatuses": [200],
     }
-    mail_ref = {"namespace": "mail-system", "name": "stalwart-webmail-public"}
-    assert publications["mail"] == mail_ref
     assert chart_values["services"]["mail.re8ch.com."] == mail
-    assert chart_values["publication"]["refs"]["mail"] == mail_ref
-    assert dns_values["publication"]["refs"]["mail"] == mail_ref
+    assert "mail" not in publications
+    assert "mail" not in chart_values["publication"]["refs"]
+    assert "mail" not in dns_values["publication"]["refs"]
 
     release = next(
         item
@@ -365,7 +364,7 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     )
     release_values = release["spec"]["values"]
     assert release_values["services"]["mail.re8ch.com."] == mail
-    assert release_values["publication"]["refs"]["mail"] == mail_ref
+    assert "mail" not in release_values["publication"]["refs"]
 
 
 def test_public_edge_uses_the_public_digest_pinned_controller_supply_chain():
