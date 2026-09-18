@@ -191,6 +191,8 @@ modules:
       digest: sha256:1eaa39e20b0200088b65afe0a48ad0d697e0d5f8ba0e7d3f84b567032103fd1d
     - codename: confluence-amber
       digest: sha256:833b53b2e8872992506bce5d22dade62d259b5946035e949d50c6becec514a8c
+    - codename: eddy-amber
+      digest: sha256:9afc01db216d47a7e6331095e5ec7331a94f7606136548be3118657961823664
   platform/hyperswitch:
     releases:
     - codename: anchor
