@@ -49,7 +49,20 @@ spec:
                 includePreferNoSchedule: true
                 includedTaints: [node-role.kubernetes.io/control-plane=true]
                 namespaces:
-                  exclude: [kube-system, flux-system, rook-ceph, scheduling-system, among-clusters]
+                  # Keep admission, storage, telemetry and scheduler control
+                  # loops outside both simulated and future real evictions.
+                  exclude:
+                    - among-clusters
+                    - cert-manager
+                    - flux-system
+                    - kube-system
+                    - kueue-system
+                    - kyverno
+                    - observability-system
+                    - opentelemetry-operator
+                    - rook-ceph
+                    - scheduler-system
+                    - scheduling-system
           plugins:
             deschedule:
               enabled: [RemovePodsViolatingNodeTaints]

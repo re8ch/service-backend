@@ -29,6 +29,14 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     )
     assert taint_args["includePreferNoSchedule"] is True
     assert taint_args["includedTaints"] == ["node-role.kubernetes.io/control-plane=true"]
+    assert set(taint_args["namespaces"]["exclude"]) >= {
+        "cert-manager",
+        "kueue-system",
+        "kyverno",
+        "observability-system",
+        "opentelemetry-operator",
+        "scheduler-system",
+    }
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
     assert releases["kueue"]["spec"]["chart"]["spec"] == {
         "chart": "platform/scheduling-fabric/vendor/kueue",
@@ -247,6 +255,15 @@ def test_advfab_external_dns_has_service_source_rbac_and_stable_worker_placement
 
 def test_scheduling_governance_alerts_on_kueue_manager_restarts():
     resources = docs(GOVERNANCE / "policies/observability.yaml")
+    scrapes = {
+        item["metadata"]["name"]: item
+        for item in resources
+        if item["kind"] == "VMServiceScrape"
+    }
+    assert scrapes["kyverno"]["spec"]["namespaceSelector"] == {
+        "matchNames": ["kyverno"]
+    }
+    assert scrapes["kyverno"]["spec"]["endpoints"][0]["port"] == "metrics-port"
     rule = next(item for item in resources if item["kind"] == "VMRule")
     alerts = {
         item["alert"]: item
@@ -256,6 +273,10 @@ def test_scheduling_governance_alerts_on_kueue_manager_restarts():
     }
     assert "Re8chKueueManagerRestarting" in alerts
     assert "kueue-system" in alerts["Re8chKueueManagerRestarting"]["expr"]
+    assert "Re8chKyvernoMetricsMissing" in alerts
+    assert "kyverno_info" in alerts["Re8chKyvernoMetricsMissing"]["expr"]
+    assert "Re8chSchedulingPolicyAuditViolation" in alerts
+    assert "kyverno_policy_results_total" in alerts["Re8chSchedulingPolicyAuditViolation"]["expr"]
     assert "Re8chVLAgentDroppingLogs" in alerts
     assert "vlagent_remotewrite_packets_dropped_total" in alerts["Re8chVLAgentDroppingLogs"]["expr"]
 
