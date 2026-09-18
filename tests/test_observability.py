@@ -33,6 +33,10 @@ def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
             "effect": "NoSchedule",
         }
     ]
+    assert values["env"] == [
+        {"name": "KUBERNETES_SERVICE_HOST", "value": "192.0.2.116"},
+        {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
+    ]
 
 
 def test_production_reconciliation_is_enabled_from_verified_oci_source():

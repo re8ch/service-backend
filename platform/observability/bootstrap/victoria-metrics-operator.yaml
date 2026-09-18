@@ -54,6 +54,13 @@ spec:
     podDisruptionBudget:
       enabled: true
       minAvailable: 1
+    # The in-cluster Service VIP is degraded on cross-site paths. Use the
+    # health-owned control-plane anycast VIP without placing workloads on A1/B1.
+    env:
+      - name: KUBERNETES_SERVICE_HOST
+        value: "192.0.2.116"
+      - name: KUBERNETES_SERVICE_PORT
+        value: "6443"
     tolerations:
       - key: node-role.kubernetes.io/control-plane
         operator: Equal
