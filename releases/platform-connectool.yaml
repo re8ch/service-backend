@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: meridian-amber
+codename: passage-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:9de701c78ab203b8f03bb3291b633c7ff3317ba0e21707d15a75ab6eacee646a
+  digest: sha256:c6255e72dc1b62b1b6db893d680a09e99975232ec0269de9a04da4208f27cef9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
