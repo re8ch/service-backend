@@ -117,6 +117,9 @@ spec:
       # on a cross-site worker's Service/API path.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      # Rook managers already reserve 8443 on restricted-node-1eb0570f74 and restricted-node-6dc3f140f9. Use a
+      # dedicated host port so both Kueue replicas can span control planes.
+      metricsPort: 18443
       strategy:
         rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
       nodeSelector:
@@ -138,7 +141,7 @@ spec:
         health:
           healthProbeBindAddress: :8081
         metrics:
-          bindAddress: :8443
+          bindAddress: :18443
         webhook:
           port: 9443
         leaderElection:

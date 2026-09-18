@@ -41,6 +41,9 @@ controllerManager:
   hostNetwork: false
   # -- ControllerManager pod's dnsPolicy. Set to ClusterFirstWithHostNet when hostNetwork is enabled.
   dnsPolicy: ""
+  # -- Host port used by the HTTPS metrics listener. Keep configurable because
+  # hostNetwork managers share the node port space with other system services.
+  metricsPort: 8443
   manager:
     # -- ControllerManager's pod priorityClassName
     priorityClassName:
@@ -212,7 +215,7 @@ metricsService:
     - name: https
       port: 8443
       protocol: TCP
-      targetPort: 8443
+      targetPort: metrics
   # -- metricsService's type
   type: ClusterIP
   # -- metricsService's labels

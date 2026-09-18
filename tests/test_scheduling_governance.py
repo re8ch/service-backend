@@ -31,6 +31,7 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert kueue_manager["replicas"] == 2
     assert kueue_manager["hostNetwork"] is True
     assert kueue_manager["dnsPolicy"] == "ClusterFirstWithHostNet"
+    assert kueue_manager["metricsPort"] == 18443
     assert kueue_manager["strategy"]["rollingUpdate"] == {
         "maxSurge": 0,
         "maxUnavailable": 1,
@@ -51,6 +52,16 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert manager_config["managedJobsNamespaceSelector"] == {
         "matchLabels": {"kueue.x-k8s.io/managed": "true"}
     }
+    assert manager_config["metrics"]["bindAddress"] == ":18443"
+
+    chart = yaml.safe_load(
+        (GOVERNANCE.parent / "vendor/kueue/Chart.yaml").read_text()
+    )
+    assert chart["version"] == "0.19.5-re8ch.1"
+    manager_template = (
+        GOVERNANCE.parent / "vendor/kueue/templates/manager/manager.yaml"
+    ).read_text()
+    assert "containerPort: {{ .Values.controllerManager.metricsPort }}" in manager_template
 
     assert not any(item["metadata"]["name"] == "kueue-official" for item in bootstrap)
     provenance = yaml.safe_load(
@@ -164,6 +175,17 @@ def test_advfab_external_dns_has_service_source_rbac_and_stable_worker_placement
     core_rule = next(rule for rule in role["rules"] if rule["apiGroups"] == [""])
     assert set(core_rule["resources"]) == {"pods", "services"}
     assert set(core_rule["verbs"]) == {"get", "list", "watch"}
+    node_rule = next(
+        rule
+        for rule in role["rules"]
+        if rule["apiGroups"] == [""] and rule["resources"] == ["nodes"]
+    )
+    assert set(node_rule["verbs"]) == {"list", "watch"}
+    endpoint_slice_rule = next(
+        rule for rule in role["rules"] if rule["apiGroups"] == ["discovery.k8s.io"]
+    )
+    assert endpoint_slice_rule["resources"] == ["endpointslices"]
+    assert set(endpoint_slice_rule["verbs"]) == {"get", "list", "watch"}
 
     deployment = next(item for item in resources if item["kind"] == "Deployment")
     assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {
