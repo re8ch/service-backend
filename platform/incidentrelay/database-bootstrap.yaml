@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: incidentrelay-database-bootstrap-v6
+  name: incidentrelay-database-bootstrap-v7
   namespace: supabase-pg-re8ch
   labels:
     app.kubernetes.io/name: incidentrelay
@@ -23,7 +23,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: NotIn
-                    values: [restricted-node-6dc3f140f9]
+                    values: [r640]
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -49,14 +49,17 @@ spec:
               psql -v ON_ERROR_STOP=1 \
                 -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 \
                 -U "$POSTGRES_ADMIN_USER" -d postgres \
-                -v app_password="$INCIDENTRELAY_DB_PASSWORD" <<'SQL'
+                -v app_password="$INCIDENTRELAY_DB_PASSWORD" \
+                -v admin_user="$POSTGRES_ADMIN_USER" <<'SQL'
               SELECT format('CREATE ROLE incidentrelay LOGIN PASSWORD %L', :'app_password')
                 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'incidentrelay')\gexec
               SELECT format('ALTER ROLE incidentrelay WITH LOGIN PASSWORD %L', :'app_password')\gexec
+              GRANT incidentrelay TO :"admin_user";
               SELECT 'CREATE DATABASE incidentrelay OWNER incidentrelay TEMPLATE template0 ENCODING ''UTF8'''
                 WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'incidentrelay')\gexec
               REVOKE ALL ON DATABASE incidentrelay FROM PUBLIC;
               GRANT CONNECT, TEMPORARY, CREATE ON DATABASE incidentrelay TO incidentrelay;
+              REVOKE incidentrelay FROM :"admin_user";
               SQL
           env:
             - name: POSTGRES_ADMIN_USER
