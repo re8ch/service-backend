@@ -11,3 +11,5 @@ updatePolicy:
 localPatches:
   - id: configurable-host-network-metrics-port
     reason: Avoid a control-plane host-port collision while preserving the upstream image and APIs.
+  - id: configurable-manager-environment
+    reason: Let host-network control-plane replicas use their local API server instead of a degraded remote peer.

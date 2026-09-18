@@ -12,7 +12,12 @@ if [[ ! "$mode" =~ ^(observe|prefer|enforce|rollback)$ ]]; then
   exit 2
 fi
 
-kubectl get --raw='/readyz' >/dev/null
+# A single successful request can hide one unhealthy API/etcd member behind
+# the service VIP. Require consecutive successes before changing node state.
+for _ in 1 2 3; do
+  kubectl get --raw='/readyz' >/dev/null
+  sleep 2
+done
 for node in "${nodes[@]}"; do
   [[ "$(kubectl get node "$node" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" == "True" ]] || {
     echo "gate failed: $node is not Ready" >&2
@@ -52,20 +57,25 @@ if [[ "$mode" == "enforce" && "$ordinary" != "0" ]]; then
   exit 1
 fi
 
-dry_run=(--dry-run=server -o name)
-[[ "$apply" == "--apply" ]] && dry_run=()
+taint_nodes() {
+  if [[ "$apply" == "--apply" ]]; then
+    kubectl taint nodes "${nodes[@]}" "$@"
+  else
+    kubectl taint nodes "${nodes[@]}" "$@" --dry-run=server -o name
+  fi
+}
 
 case "$mode" in
   prefer)
-    kubectl taint nodes "${nodes[@]}" "${taint_key}=true:PreferNoSchedule" --overwrite "${dry_run[@]}"
+    taint_nodes "${taint_key}=true:PreferNoSchedule" --overwrite
     ;;
   enforce)
-    kubectl taint nodes "${nodes[@]}" "${taint_key}:PreferNoSchedule-" "${dry_run[@]}" || true
-    kubectl taint nodes "${nodes[@]}" "${taint_key}=true:NoSchedule" --overwrite "${dry_run[@]}"
+    taint_nodes "${taint_key}:PreferNoSchedule-" || true
+    taint_nodes "${taint_key}=true:NoSchedule" --overwrite
     ;;
   rollback)
-    kubectl taint nodes "${nodes[@]}" "${taint_key}:NoSchedule-" "${dry_run[@]}" || true
-    kubectl taint nodes "${nodes[@]}" "${taint_key}:PreferNoSchedule-" "${dry_run[@]}" || true
+    taint_nodes "${taint_key}:NoSchedule-" || true
+    taint_nodes "${taint_key}:PreferNoSchedule-" || true
     ;;
 esac
 

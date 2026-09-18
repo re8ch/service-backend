@@ -58,6 +58,8 @@ controllerManager:
     podAnnotations: {}
     # -- Zap log level. Higher values increase verbosity.
     logLevel: 2
+    # -- Environment variables for the manager container.
+    env: []
     # -- ControllerManager's pod resources
     resources:
       limits:
