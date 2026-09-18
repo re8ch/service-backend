@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/among-clusters
-codename: chinook
+codename: etesian
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
-  digest: sha256:4481f5eabb093092c172c6621d12b2dccbb15abb31d84c25ad8b7ad559c1115c
+  digest: sha256:702007b563e67f16a17cc79d2faa22e073f022aa08f2498755f90ab2ab0954d6
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
