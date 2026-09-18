@@ -99,6 +99,8 @@ modules:
     releases:
     - codename: aurora
       digest: sha256:aa047053e814c04993e629ba53be98a77da0663b485189bc0fc772335562bb82
+    - codename: flare
+      digest: sha256:588ff2249ae265e7819349bc67f03bcde6ca89eea02f43186517ecb3e705dc4c
   platform/among-clusters:
     releases:
     - codename: bora
