@@ -295,6 +295,16 @@ spec:
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:
+            # domain-ex cannot reliably reach the Kubernetes Service VIP
+            # (192.0.2.52:443). Use the existing management-plane endpoint
+            # already used by panel diagnostics so Headlamp's in-cluster
+            # client and every plugin API proxy remain available.
+            - name: KUBERNETES_SERVICE_HOST
+              value: "192.0.2.18"
+            - name: KUBERNETES_SERVICE_PORT
+              value: "6443"
+            - name: KUBERNETES_SERVICE_PORT_HTTPS
+              value: "6443"
             - name: OIDC_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:

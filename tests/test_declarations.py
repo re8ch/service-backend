@@ -53,6 +53,22 @@ def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     assert plugins_volume == {"name": "plugins", "emptyDir": {}}
 
 
+def test_headlamp_uses_reachable_management_api_endpoint():
+    deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
+    headlamp = next(
+        container for container in deployment["spec"]["template"]["spec"]["containers"]
+        if container["name"] == "headlamp"
+    )
+    environment = {
+        item["name"]: item.get("value")
+        for item in headlamp["env"]
+    }
+
+    assert environment["KUBERNETES_SERVICE_HOST"] == "192.0.2.18"
+    assert environment["KUBERNETES_SERVICE_PORT"] == "6443"
+    assert environment["KUBERNETES_SERVICE_PORT_HTTPS"] == "6443"
+
+
 def test_advanced_fabric_publishes_read_only_network_evidence():
     advanced = next(doc for doc in definitions() if doc["metadata"]["name"] == "advanced-fabrics")
     operations = set(advanced["spec"]["policy"]["allowedOperations"])
