@@ -65,6 +65,32 @@ spec:
   selector: {app.kubernetes.io/name: stalwart-webmail}
   ports: [{name: http, port: 80, targetPort: http}]
 ---
+# DNS authority only. Cilium Gateway remains the Webmail request path; this
+# same-name Ingress is the publication object expected by Public Edge Manager.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-webmail-public
+  namespace: mail-system
+  labels:
+    networking.re8ch.com/dns-authority: public-edge
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    networking.re8ch.com/dns-authority: public-edge
+    external-dns.alpha.kubernetes.io/hostname: mail.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: mail.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: stalwart-webmail, port: {number: 80}}}
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
