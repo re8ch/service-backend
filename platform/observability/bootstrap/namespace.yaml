@@ -4,6 +4,9 @@ metadata:
   name: observability-system
   labels:
     app.kubernetes.io/part-of: re8ch-observability
-    pod-security.kubernetes.io/enforce: baseline
+    # Node-level log collection requires read-only hostPath mounts. Keep this
+    # platform-only namespace enforceable without blocking collector renewal;
+    # restricted audit/warn labels continue to surface any broader drift.
+    pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
