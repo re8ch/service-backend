@@ -61,11 +61,15 @@ def test_telegram_proxy_egress_is_limited_to_the_egress_fabric_namespace():
         for rule in policy["spec"]["egress"]
         if any(port["port"] == 17891 for port in rule.get("ports", []))
     )
-    assert proxy_rule["to"] == [{
-        "namespaceSelector": {
-            "matchLabels": {"kubernetes.io/metadata.name": "egress-fabric"}
-        }
-    }]
+    assert proxy_rule["to"] == [
+        {
+            "namespaceSelector": {
+                "matchLabels": {"kubernetes.io/metadata.name": "egress-fabric"}
+            }
+        },
+        {"ipBlock": {"cidr": "192.0.2.253/24"}},
+        {"ipBlock": {"cidr": "192.0.2.106/16"}},
+    ]
 
 
 def test_secrets_are_sops_encrypted_and_referenced_from_root():

@@ -36,6 +36,10 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels: {kubernetes.io/metadata.name: egress-fabric}
+        # The proxy DaemonSet publishes node-address EndpointSlices, so Cilium
+        # sees the selected backend as a node CIDR rather than a namespaced Pod.
+        - ipBlock: {cidr: 192.0.2.253/24}
+        - ipBlock: {cidr: 192.0.2.106/16}
       ports:
         - {protocol: TCP, port: 17891}
     - to:
