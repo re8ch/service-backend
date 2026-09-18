@@ -163,6 +163,8 @@ modules:
       digest: sha256:84bbb3d65cfc3866a489f66e8367f1895177a5402fd824f5bcbaea6a48cb74ea
     - codename: delta-indigo
       digest: sha256:083e8e2f91835a689e7290a299d8cadfdcf3c1f6d66e4d68951899163f2cac37
+    - codename: grove-indigo
+      digest: sha256:f236aa295732300064bea49601f243e55ceb158456e02e0a20b4900a94eb9e9a
   platform/cloud-platform:
     releases:
     - codename: atoll
