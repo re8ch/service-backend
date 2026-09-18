@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lantern
+    delivery.re8ch.com/codename: lighthouse
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:a79ab2c6f40b2f69d0af54b2041962e687478c5a3b564f1ef59d0d3a58f19e6c
+    digest: sha256:9e02a88dc6d25a8769ab28fed9263f921f7d47ba71cbc3b62f82f719fbf74697
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lantern
+    delivery.re8ch.com/codename: lighthouse
 spec:
   interval: 10m
   retryInterval: 1m

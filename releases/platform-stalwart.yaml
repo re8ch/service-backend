@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: lantern
+codename: lighthouse
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:a79ab2c6f40b2f69d0af54b2041962e687478c5a3b564f1ef59d0d3a58f19e6c
+  digest: sha256:9e02a88dc6d25a8769ab28fed9263f921f7d47ba71cbc3b62f82f719fbf74697
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

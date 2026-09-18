@@ -179,6 +179,8 @@ modules:
       digest: sha256:1908b7a03ed8072c71b6e8f5ddfc5ae62035b8d127cee43caa5e2fa05bc9250e
     - codename: lantern
       digest: sha256:a79ab2c6f40b2f69d0af54b2041962e687478c5a3b564f1ef59d0d3a58f19e6c
+    - codename: lighthouse
+      digest: sha256:9e02a88dc6d25a8769ab28fed9263f921f7d47ba71cbc3b62f82f719fbf74697
   platform/apps/access-subscription:
     releases:
     - codename: aegis
