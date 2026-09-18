@@ -269,25 +269,19 @@ def test_connectool_has_one_generic_tenant_publication():
         assert legacy not in serialized
 
 
-def test_tenant_public_route_preserves_end_user_identity_at_backend():
+def test_tenant_public_route_uses_vmcp_session_router_and_internal_service_auth():
     docs = tenant_chart_documents()
     route = next(item for item in docs if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "tenant-mcp")
     backends = [rule["backendRefs"][0] for rule in route["spec"]["rules"]]
     assert backends == [
-        {"name": "tenant-api", "namespace": "tenant-infrastructure", "port": 80},
-        {"name": "tenant-api", "namespace": "tenant-infrastructure", "port": 80},
+        {"name": "tenant-vmcp-session-router", "port": 4483},
+        {"name": "tenant-vmcp-session-router", "port": 4483},
     ]
-    grant = next(item for item in docs if item["kind"] == "ReferenceGrant" and item["metadata"]["name"] == "tenant-mcp-publicedge")
-    assert grant["metadata"]["namespace"] == "tenant-infrastructure"
-    assert grant["spec"]["from"] == [
-        {"group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "namespace": "toolhive-system"}
-    ]
-    assert grant["spec"]["to"] == [{"group": "", "kind": "Service", "name": "tenant-api"}]
-    policy = next(item for item in docs if item["kind"] == "CiliumNetworkPolicy" and item["metadata"]["name"] == "tenant-api-publicedge")
-    assert policy["spec"]["endpointSelector"] == {"matchLabels": {"app": "tenant-api"}}
-    assert policy["spec"]["ingress"] == [
-        {"fromEntities": ["ingress"], "toPorts": [{"ports": [{"port": "19448", "protocol": "TCP"}]}]}
-    ]
+    assert not any(item["kind"] == "ReferenceGrant" and item["metadata"]["name"] == "tenant-mcp-publicedge" for item in docs)
+    assert not any(item["kind"] == "CiliumNetworkPolicy" and item["metadata"]["name"] == "tenant-api-publicedge" for item in docs)
+    backend = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "tenant-api-backend")
+    assert backend["spec"]["remoteUrl"] == "http://tenant-api.tenant-infrastructure.svc/mcp"
+    assert backend["spec"]["externalAuthConfigRef"]["name"] == "admin-vmcp-backend-auth"
 
 
 def test_tenant_resource_claim_schema_is_bounded():

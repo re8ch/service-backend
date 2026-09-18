@@ -1,5 +1,26 @@
 # The privileged public surface is owned by ConnecTool's admin vMCP. Legacy
 # direct operate/admin MCPServer resources are retired by the migration Job.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: admin-tools-public
+  namespace: toolhive-system
+  annotations:
+    # Adopt the historical client-side-applied Route into Flux ownership.
+    kustomize.toolkit.fluxcd.io/ssa: Override
+spec:
+  parentRefs:
+    - name: re8ch-gateway-canary
+      namespace: kube-system
+      sectionName: admin-https
+  hostnames: [admin.re8ch.com]
+  rules:
+    - matches:
+        - {path: {type: PathPrefix, value: /mcp}}
+        - {path: {type: PathPrefix, value: /oauth}}
+        - {path: {type: PathPrefix, value: /.well-known}}
+      backendRefs: [{name: re8ch-admin-vmcp-session-router, port: 4483}]
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -14,7 +35,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
-  ingressClassName: traefik
+  ingressClassName: advanced-fabric
   tls:
     - hosts: [admin.re8ch.com]
       secretName: re8ch-wildcard-tls

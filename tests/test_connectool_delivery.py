@@ -111,11 +111,21 @@ def test_public_and_internal_mcp_clients_use_session_routers():
         ROOT / "clusters/re8ch/components/regional-routing/migrated-public-http-routes.yaml",
         ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
         ROOT / "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
+        ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml",
     ]
     rendered_routes = "\n".join(path.read_text() for path in route_files)
     assert "vmcp-re8ch-tools-vmcp" not in rendered_routes
     assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
     assert "re8ch-tools-vmcp-session-router" in rendered_routes
     assert "re8ch-admin-vmcp-session-router" in rendered_routes
+    assert "backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]" in rendered_routes
+    toolhive_ingresses = "\n".join(
+        (ROOT / path).read_text()
+        for path in (
+            "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
+            "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
+        )
+    )
+    assert "ingressClassName: traefik" not in toolhive_ingresses
     litellm = (ROOT / "clusters/re8ch/components/llm-gateway/litellm.yaml").read_text()
     assert "http://re8ch-tools-vmcp-session-router.toolhive-system.svc.cluster.local:4483/mcp" in litellm
