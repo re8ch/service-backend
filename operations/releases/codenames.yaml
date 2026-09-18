@@ -137,6 +137,8 @@ modules:
       digest: sha256:5ad64f62d74ebcdfc066e885e723375e009d3722d89f8a65f64ee836eba25380
     - codename: tundra-amber
       digest: sha256:8f4146e85eb7a307cd0882d8a050ef363f7bec144e7c880ac28e4e0feaca97d4
+    - codename: wetland-amber
+      digest: sha256:0bb28067964d3b858ccf1cfa309800014a7ab83de8b8d74efb41573682df94cf
   platform/cloud-platform:
     releases:
     - codename: atoll
