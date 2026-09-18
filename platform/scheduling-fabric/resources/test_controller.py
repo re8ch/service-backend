@@ -31,4 +31,18 @@ class ScoreTests(unittest.TestCase):
         self.assertAlmostEqual(controller.cpu("750m"),.75)
         self.assertEqual(controller.memory("2Gi"),2*1024**3)
 
+    def test_profile_projects_owned_service_plane(self):
+        labels = controller.profile_labels({
+            "background": {"provider": "tencent", "environment": "cloud"},
+            "reliability": {"class": "stable"},
+            "reservationProfile": "worker-small",
+            "failureDomains": {"host": "zan"},
+            "capabilities": {"servicePlane": "core"},
+        }, "zan")
+        self.assertEqual(labels["scheduling.re8ch.com/service-plane"], "core")
+
+    def test_profile_omits_unassigned_service_plane(self):
+        labels = controller.profile_labels({}, "worker")
+        self.assertNotIn("scheduling.re8ch.com/service-plane", labels)
+
 if __name__ == "__main__": unittest.main()

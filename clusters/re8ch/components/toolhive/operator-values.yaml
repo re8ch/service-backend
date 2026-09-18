@@ -28,9 +28,9 @@ operator:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: scheduling.re8ch.com/reliability-class
+              - key: scheduling.re8ch.com/service-plane
                 operator: In
-                values: [stable]
+                values: [core]
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:

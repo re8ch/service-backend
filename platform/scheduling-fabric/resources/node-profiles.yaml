@@ -87,7 +87,7 @@ spec:
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-zan, power: tencent-zan, network: tencent-zan-uplink, host: zan}
   reliability: {class: stable, disruptionRisk: 25}
-  capabilities: {bandwidthClass: constrained-public, scheduling: [stable, dynamic], storage: [ceph-client]}
+  capabilities: {bandwidthClass: constrained-public, servicePlane: core, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -111,7 +111,7 @@ spec:
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-domain-ex, power: tencent-domain-ex, network: tencent-domain-ex-uplink, host: domain-ex}
   reliability: {class: stable, disruptionRisk: 25}
-  capabilities: {bandwidthClass: constrained-public, scheduling: [stable, dynamic], storage: [ceph-client]}
+  capabilities: {bandwidthClass: constrained-public, servicePlane: core, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1

@@ -12,7 +12,7 @@ toolhive:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
+                - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
     tolerations: []
     topologySpreadConstraints: []
     resources:
@@ -20,7 +20,7 @@ toolhive:
       limits: {cpu: 500m, memory: 256Mi}
   runtimePolicy:
     enabled: true
-    nodeNames: [domain-ex, muaya-ecs, suxunji, vm-20-12-ubuntu, zan]
+    nodeNames: [domain-ex, zan]
     trafficDistribution: PreferSameNode
     backendSessionAffinity: None
     proxyResources:
