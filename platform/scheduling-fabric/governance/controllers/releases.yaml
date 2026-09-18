@@ -43,6 +43,11 @@ spec:
                   extraEnabled: [PodsWithPVC]
             - name: RemovePodsViolatingNodeTaints
               args:
+                # Observe the staged soft-isolation taint before any eviction
+                # is enabled. Restrict matching to the reviewed control-plane
+                # key so unrelated PreferNoSchedule taints remain untouched.
+                includePreferNoSchedule: true
+                includedTaints: [node-role.kubernetes.io/control-plane=true]
                 namespaces:
                   exclude: [kube-system, flux-system, rook-ceph, scheduling-system, among-clusters]
           plugins:
