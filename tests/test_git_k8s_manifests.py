@@ -449,6 +449,11 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
         for item in resources
         if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "stalwart-webmail-public"
     )
+    dns_authority = next(
+        item
+        for item in resources
+        if item["kind"] == "Ingress" and item["metadata"]["name"] == "stalwart-webmail-public"
+    )
     pod = deployment["spec"]["template"]["spec"]
     container = pod["containers"][0]
     env = {entry["name"]: entry["value"] for entry in container["env"]}
@@ -463,6 +468,9 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     assert service["spec"]["ports"][0]["port"] == 80
     assert route["spec"]["hostnames"] == ["mail.re8ch.com"]
     assert route["spec"]["parentRefs"][0]["sectionName"] == "mail-https"
+    assert dns_authority["spec"]["ingressClassName"] == "external-dns-only"
+    assert dns_authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/hostname"] == "mail.re8ch.com"
+    assert dns_authority["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"] == "stalwart-webmail"
 
 
 def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_passwords():
