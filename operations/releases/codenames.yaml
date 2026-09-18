@@ -155,6 +155,8 @@ modules:
       digest: sha256:3147727b8ea007cda792ea0a9f15a69b5f4805f4b591e988333382cf3130ddda
     - codename: tundra-copper
       digest: sha256:c3869f43217d48f058aae095e17161e4c37b66460557550d63934e48622ccfc2
+    - codename: wetland-copper
+      digest: sha256:bfd0d30b1097978d86b61a7f9c36fdb7a95d048669cff1aeeda6bf5eaa436bba
   platform/cloud-platform:
     releases:
     - codename: atoll
