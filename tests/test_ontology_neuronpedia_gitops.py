@@ -27,6 +27,9 @@ def test_neuronpedia_canary_is_parallel_and_digest_pinned():
     assert "ontology-microscope-neuronpedia" in deployments
     assert "ontology-microscope-adapter" in deployments
 
+    for name in ("ontology-microscope-neuronpedia", "ontology-microscope-adapter"):
+        assert deployments[name]["metadata"]["labels"]["scheduling.re8ch.com/placement-managed"] == "true"
+
     for deployment in deployments.values():
         pod_spec = deployment["spec"]["template"]["spec"]
         for container in pod_spec.get("initContainers", []) + pod_spec.get("containers", []):
