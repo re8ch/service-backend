@@ -39,6 +39,32 @@ def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity(
         assert operations[node]["sourceIdentityRules"] == expected
 
 
+def test_ab_control_plane_flows_bypass_broad_dynamic_ecmp_policy():
+    release = list(yaml.safe_load_all((ROOT / "platform/advanced-fabric/release.yaml").read_text()))
+    values = next(document for document in release if document["kind"] == "HelmRelease")["spec"]["values"]
+    operations = {
+        item["name"]: item for item in values["advancedFabric"]["controlPlaneApi"]["nodeOperations"]
+    }
+    expected = [
+        {
+            "priority": 11520,
+            "destination": "192.0.2.106/24",
+            "protocol": "tcp",
+            "destinationPort": "2379-2380",
+            "table": "main",
+        },
+        {
+            "priority": 11521,
+            "destination": "192.0.2.106/24",
+            "protocol": "tcp",
+            "destinationPort": "6443",
+            "table": "main",
+        },
+    ]
+    assert operations["restricted-node-1eb0570f74"]["routingPolicyRules"] == expected
+    assert operations["restricted-node-296f36f2fb"]["routingPolicyRules"] == expected
+
+
 def test_pod_to_pod_traffic_preserves_cilium_source_identity_on_every_fabric_node():
     release = list(yaml.safe_load_all((ROOT / "platform/advanced-fabric/release.yaml").read_text()))
     values = next(document for document in release if document["kind"] == "HelmRelease")["spec"]["values"]

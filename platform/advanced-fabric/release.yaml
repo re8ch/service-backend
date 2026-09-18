@@ -6,9 +6,14 @@ metadata:
 spec:
   interval: 30m
   provider: generic
-  url: oci://ghcr.io/re8ch/charts/advanced-fabric
+  url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:670f064c62fccd444b267844fdc7c2c620e480db3ad3e2ca1f9aaab678cf64b3
+    digest: sha256:88ab7c97e83f276cd6f759ff07ab85e236f67732e78871648db72463b7a69b83
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: ^https://token\.actions\.githubusercontent\.com$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.3$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -112,6 +117,11 @@ spec:
           - name: restricted-node-1eb0570f74
             localAsn: 4200010147
             vipInterface: lo
+            # Keep Raft and kube-apiserver flows on the deterministic main
+            # route before the broader accelerated-CIDR ECMP policy.
+            routingPolicyRules:
+              - {priority: 11520, destination: 192.0.2.106/24, protocol: tcp, destinationPort: 2379-2380, table: main}
+              - {priority: 11521, destination: 192.0.2.106/24, protocol: tcp, destinationPort: "6443", table: main}
             frrExportPrefixLists: [POD-FABRIC-OUT]
             wireguardInterfaces: []
             frrPrefixEntries:
@@ -129,6 +139,11 @@ spec:
           - name: restricted-node-296f36f2fb
             localAsn: 4200010125
             vipInterface: lo
+            # Symmetric with A1: both large-memory control-plane nodes bypass
+            # dynamic ECMP for long-lived membership and API connections.
+            routingPolicyRules:
+              - {priority: 11520, destination: 192.0.2.106/24, protocol: tcp, destinationPort: 2379-2380, table: main}
+              - {priority: 11521, destination: 192.0.2.106/24, protocol: tcp, destinationPort: "6443", table: main}
             frrExportPrefixLists: [POD-FABRIC-OUT]
             frrImportPrefixLists: [POD-FABRIC-OUT]
             frrImportPrefixSequence: 305
