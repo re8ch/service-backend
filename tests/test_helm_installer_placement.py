@@ -22,24 +22,25 @@ def test_k3s_helm_installers_are_pinned_to_local_egress_nodes():
     assert policy["spec"]["failurePolicy"] == "Fail"
     rule = policy["spec"]["matchConstraints"]["resourceRules"][0]
     assert rule == {
-        "apiGroups": ["batch"],
+        "apiGroups": [""],
         "apiVersions": ["v1"],
         "operations": ["CREATE"],
-        "resources": ["jobs"],
+        "resources": ["pods"],
     }
     condition = policy["spec"]["matchConditions"][0]["expression"]
     assert "object.metadata.namespace == 'kube-system'" in condition
-    assert "object.metadata.name.startsWith('helm-install-')" in condition
     assert "'helmcharts.helm.cattle.io/chart' in object.metadata.labels" in condition
+    assert "'batch.kubernetes.io/job-name' in object.metadata.labels" in condition
+    assert "object.metadata.labels['batch.kubernetes.io/job-name'].startsWith('helm-install-')" in condition
     mutation = policy["spec"]["mutations"][0]
     assert mutation["patchType"] == "JSONPatch"
     expression = mutation["jsonPatch"]["expression"]
-    assert "path: '/spec/template/spec/affinity'" in expression
+    assert "path: '/spec/affinity'" in expression
     assert "key: 'kubernetes.io/hostname'" in expression
     assert "values: ['domain-ex', 'zan']" in expression
-    assert "path: '/spec/template/spec/hostNetwork'" in expression
+    assert "path: '/spec/hostNetwork'" in expression
     assert "value: true" in expression
-    assert "path: '/spec/template/spec/dnsPolicy'" in expression
+    assert "path: '/spec/dnsPolicy'" in expression
     assert "value: 'ClusterFirstWithHostNet'" in expression
 
     assert binding["apiVersion"] == "admissionregistration.k8s.io/v1"
