@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: incidentrelay-database-bootstrap-v3
+  name: incidentrelay-database-bootstrap-v4
   namespace: supabase-pg-re8ch
   labels:
     app.kubernetes.io/name: incidentrelay
@@ -26,6 +26,8 @@ spec:
                     values: [restricted-node-6dc3f140f9]
       securityContext:
         runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: create-database
