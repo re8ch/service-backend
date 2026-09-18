@@ -108,9 +108,11 @@ spec:
             # audience: ordinary re8ch operator here, protected admin above.
             - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: operator}
             - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: operator}
-            # Dex GitHub connector uses the immutable GitHub numeric user ID as
-            # `sub`. This is an ordinary re8ch tenant binding, not admin access.
-            - {name: re8ch-dex-woomou-operator, issuer: https://dex.re8ch.com, subjectHash: "sha256:8cd4777c62df7072fe9ea18fcedc0fc473f7d8a19d2fed9555c2714dac57a669", role: operator}
+            # Dex wraps the upstream GitHub numeric ID in its connector-scoped
+            # stable `sub`. Hash the actual Dex userinfo `sub`, including the
+            # issuer prefix used by the tenant authorizer. This remains an
+            # ordinary re8ch tenant binding, not admin access.
+            - {name: re8ch-dex-woomou-subject-operator, issuer: https://dex.re8ch.com, subjectHash: "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6", role: operator}
             - {name: re8ch-auth-admins, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:admin", role: admin}
             - {name: re8ch-auth-operators, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:member", role: operator}
             - {name: re8ch-auth-billing, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:billing", role: viewer}
