@@ -38,7 +38,7 @@ spec:
             - {name: tmp, mountPath: /tmp}
       containers:
         - name: webapp
-          image: registry.re8ch.com/re8ch/neuronpedia@sha256:45dd94ae9ce31be71090cc578f5df35214cddfbc067a4a9468e80f7ae8abaced
+          image: registry.re8ch.com/re8ch/neuronpedia@sha256:37a646ca25ba91f8cf5e715ae52442cf2712780bd625caec292916741b473b3f
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef: {name: ontology-microscope-db}
