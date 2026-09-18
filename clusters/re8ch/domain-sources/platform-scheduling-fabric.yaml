@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: tundra
+    delivery.re8ch.com/codename: wetland
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:dd49c0c991f358981655b7079d3e5da1e6b36247bf00ececade8df90166e5311
+    digest: sha256:4c1e5908b043bf8c6e8a4a208a48606d82944fd90954054020244cf6087b00ce
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: tundra
+    delivery.re8ch.com/codename: wetland
 spec:
   interval: 10m
   retryInterval: 1m
