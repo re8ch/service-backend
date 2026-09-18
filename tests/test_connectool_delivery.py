@@ -84,7 +84,13 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
             "limits": {"cpu": "100m", "memory": "64Mi"},
         },
     }
-    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert toolhive["runtimePolicy"]["nodeNames"] == [
+        "domain-ex",
+        "muaya-ecs",
+        "suxunji",
+        "vm-20-12-ubuntu",
+        "zan",
+    ]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")

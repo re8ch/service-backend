@@ -77,7 +77,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
+def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -91,7 +91,13 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
     }
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["placement"]["nodeSelector"] == {}
-    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert toolhive["runtimePolicy"]["nodeNames"] == [
+        "domain-ex",
+        "muaya-ecs",
+        "suxunji",
+        "vm-20-12-ubuntu",
+        "zan",
+    ]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"
 
@@ -116,7 +122,11 @@ def test_all_toolhive_mcp_workloads_are_ab_ha_and_node_local():
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-        assert expression == {"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}
+        assert expression == {
+            "key": "scheduling.re8ch.com/reliability-class",
+            "operator": "In",
+            "values": ["stable"],
+        }
 
     auth = {item["metadata"]["name"]: item for item in internal if item["kind"] == "MCPExternalAuthConfig"}
     assert auth["vmcp-observe-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {
@@ -222,7 +232,7 @@ def test_mcp_registry_database_is_ab_only():
     assert pdb["spec"]["minAvailable"] == 1
 
 
-def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
+def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
     operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
     source = next(item for item in operator if item["kind"] == "OCIRepository")
     release = next(item for item in operator if item["kind"] == "HelmRelease")
@@ -231,7 +241,13 @@ def test_toolhive_controls_and_plugin_runtime_are_ab_ha():
     assert values["replicaCount"] == 2
     assert values["nodeSelector"] == {}
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-    assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]
+    assert expressions == [
+        {
+            "key": "scheduling.re8ch.com/reliability-class",
+            "operator": "In",
+            "values": ["stable"],
+        }
+    ]
 
     runtime = documents(ROOT / "clusters/re8ch/components/plugin-runtime/runtime.yaml")
     deployment = next(item for item in runtime if item["kind"] == "Deployment")

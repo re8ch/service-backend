@@ -63,7 +63,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}

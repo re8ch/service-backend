@@ -85,12 +85,16 @@ def test_connectool_renders_admin_and_tenant_publications():
     assert all(item["spec"]["sessionStorage"] == {"provider": "memory"} for item in vmcps.values())
     for item in vmcps.values():
         expressions = item["spec"]["podTemplateSpec"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-        assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]
+        assert expressions == [{
+            "key": "scheduling.re8ch.com/reliability-class",
+            "operator": "In",
+            "values": ["stable"],
+        }]
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
 
 
-def test_connectool_renders_ab_runtime_and_disruption_contracts():
+def test_connectool_renders_worker_runtime_and_disruption_contracts():
     objects = render()
     pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
     assert pdbs == {
@@ -106,7 +110,8 @@ def test_connectool_renders_ab_runtime_and_disruption_contracts():
     assert "Object.spec.template.spec.affinity.nodeAffinity{" in serialized
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
     assert "'app': object.metadata.labels['app']" in serialized
-    assert "restricted-node-1eb0570f74" in serialized and "restricted-node-296f36f2fb" in serialized
+    for node in ("domain-ex", "muaya-ecs", "suxunji", "vm-20-12-ubuntu", "zan"):
+        assert node in serialized
 
 
 def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
@@ -126,7 +131,11 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
         assert deployment["spec"]["replicas"] == 2
         spec = deployment["spec"]["template"]["spec"]
         terms = spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
-        assert terms[0]["matchExpressions"][0]["values"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        assert terms[0]["matchExpressions"][0] == {
+            "key": "scheduling.re8ch.com/reliability-class",
+            "operator": "In",
+            "values": ["stable"],
+        }
         anti = spec["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert anti["topologyKey"] == "kubernetes.io/hostname"
         env = {item["name"]: item for item in spec["containers"][0]["env"]}

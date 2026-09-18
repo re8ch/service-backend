@@ -63,8 +63,8 @@ spec:
     valueSecretRef: {name: ops-mcp-admin-upstream, key: x-ops-token}
 ---
 # Each internal workload has two backend and proxy replicas. ConnecTool's
-# runtime policy spreads operator-generated children one per A1/B1 node and
-# configures their Services to prefer a same-node endpoint.
+# runtime policy spreads operator-generated children across stable worker
+# nodes and configures their Services to prefer a same-node endpoint.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
@@ -107,7 +107,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-admin-vmcp-internal}}
@@ -162,7 +162,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-observe-vmcp-internal}}
@@ -209,7 +209,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-operate-vmcp-internal}}
