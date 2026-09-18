@@ -269,6 +269,8 @@ modules:
     releases:
     - codename: aegis
       digest: sha256:59607d05fbd418c2e6ea3c7bb7ed34607fd86fda60e99492b26c9c49840ac1f5
+    - codename: bastion
+      digest: sha256:12c32278b5b5e94930d17acf8d6b6c6c910f254ba849f6039fd46d83ff8c9926
   platform/external-projects:
     releases:
     - codename: anchor
