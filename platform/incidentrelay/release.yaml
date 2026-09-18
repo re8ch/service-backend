@@ -134,8 +134,11 @@ spec:
             nodeSelectorTerms:
               - matchExpressions:
                   - key: kubernetes.io/hostname
-                    operator: NotIn
-                    values: [restricted-node-6dc3f140f9]
+                    operator: In
+                    # First staged control-plane evacuation. This worker has a
+                    # Ready node-local CN egress proxy and enough requested
+                    # capacity; web and scheduler remain unchanged for now.
+                    values: [vm-20-12-ubuntu]
       resources:
         requests: {cpu: 50m, memory: 128Mi}
         limits: {cpu: 500m, memory: 512Mi}

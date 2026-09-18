@@ -27,8 +27,15 @@ def test_upstream_chart_is_digest_pinned_and_production_workers_are_enabled():
         env = {item["name"]: item["value"] for item in values[component]["extraEnv"]}
         assert env["HTTPS_PROXY"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
         assert ".cluster.local" in env["NO_PROXY"]
+    for component in ("web", "scheduler"):
         expression = values[component]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["restricted-node-6dc3f140f9"]}
+    telegram_expression = values["telegram"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert telegram_expression == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["vm-20-12-ubuntu"],
+    }
     rendered_patches = str(release["spec"]["postRenderers"])
     assert "ghcr.io/roxy-wi/incidentrelay@sha256:" in rendered_patches
     assert "automountServiceAccountToken: false" in (PLATFORM / "release.yaml").read_text()
