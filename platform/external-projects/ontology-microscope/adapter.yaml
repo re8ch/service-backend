@@ -22,7 +22,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: adapter
-          image: registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:1e62d513bd344a9d04940df2a7c693ddb34f8055e0cea57b81a7d90afc74d3d4
+          image: registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:955e6e448b55c558ca823f4a4d469877923e3fbaa86bafbb6f14a0341881266c
           imagePullPolicy: IfNotPresent
           env:
             - {name: NODE_ENV, value: production}
@@ -31,6 +31,11 @@ spec:
             - {name: GRAPH_REPOSITORY, value: memory}
             - {name: REASONING_ADAPTER, value: mock}
             - {name: NEURONPEDIA_SYNC_ON_START, value: "true"}
+            - {name: ANALYSIS_OPENAI_BASE_URL, value: http://litellm.llm-gateway.svc.cluster.local:4000/v1}
+            - {name: ANALYSIS_OPENAI_MODEL, value: deepseek-v4-flash}
+            - name: ANALYSIS_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef: {name: ontology-microscope-analysis, key: api-key, optional: true}
             - name: NEURONPEDIA_DATABASE_URL
               valueFrom:
                 secretKeyRef: {name: ontology-microscope-db, key: POSTGRES_URL_NON_POOLING}
@@ -78,5 +83,10 @@ spec:
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: ontology-microscope-adapter
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports:
+            - {port: "4318", protocol: TCP}
   egress:
     - toEntities: [cluster]
