@@ -7,7 +7,7 @@ kind: ClusterRole
 metadata: {name: external-dns-advfab}
 rules:
   - apiGroups: [""]
-    resources: [services]
+    resources: [pods, services]
     verbs: [get, list, watch]
   - apiGroups: ["networking.k8s.io"]
     resources: [ingresses]
@@ -35,6 +35,9 @@ spec:
       labels: {app.kubernetes.io/name: external-dns, app.kubernetes.io/instance: advfab-public-edge}
     spec:
       serviceAccountName: external-dns-advfab
+      nodeSelector:
+        scheduling.re8ch.com/provider: tencent
+        scheduling.re8ch.com/reliability-class: stable
       containers:
         - name: external-dns
           image: registry.k8s.io/external-dns/external-dns:v0.21.0@sha256:f53faaf71cb270d1ca9dce6ea0c94bfebf1a18696263487f0fbc74b9bf2bd7ff

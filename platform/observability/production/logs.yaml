@@ -6,7 +6,7 @@ metadata:
   labels: {app.kubernetes.io/part-of: re8ch-observability, observability.re8ch.com/managed: "true"}
 spec:
   retentionPeriod: 14d
-  nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+  nodeSelector: {kubernetes.io/hostname: r640}
   storage:
     accessModes: [ReadWriteOnce]
     storageClassName: rbd-r640
@@ -29,7 +29,7 @@ spec:
     enabled: true
     extraFields: '{"cluster":"re8ch","environment":"production"}'
   remoteWrite:
-    - url: http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428
+    - url: http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428/insert/native
       maxDiskUsage: 1GiB
   remoteWriteSettings:
     maxDiskUsagePerURL: 1GiB
