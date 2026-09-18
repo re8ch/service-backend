@@ -9,6 +9,12 @@ rules:
   - apiGroups: [""]
     resources: [pods, services]
     verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [list, watch]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
   - apiGroups: ["networking.k8s.io"]
     resources: [ingresses]
     verbs: [get, list, watch]
@@ -48,9 +54,9 @@ spec:
             - --domain-filter=advfab.org
             - --zone-id-filter=3f2022acc23ec9fa69c5d7acd99c34d9
             - --label-filter=networking.advfab.org/dns-authority=public-edge
-            - --exclude-target-net=192.0.2.183/8
-            - --exclude-target-net=192.0.2.33/12
-            - --exclude-target-net=192.0.2.136/16
+            - --exclude-target-net=10.0.0.0/8
+            - --exclude-target-net=172.16.0.0/12
+            - --exclude-target-net=192.168.0.0/16
             - --policy=upsert-only
             - --registry=txt
             - --txt-owner-id=advanced-fabrics-public-edge

@@ -8,3 +8,6 @@ upstream:
 updatePolicy:
   automaticApply: false
   requiredChecks: [asset-sha256, helm-template, kustomize-render, control-plane-ci]
+localPatches:
+  - id: configurable-host-network-metrics-port
+    reason: Avoid a control-plane host-port collision while preserving the upstream image and APIs.
