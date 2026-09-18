@@ -10,5 +10,3 @@ configMapGenerator:
     namespace: scheduling-system
     files:
       - controller.py
-generatorOptions:
-  disableNameSuffixHash: true

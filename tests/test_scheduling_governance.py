@@ -156,6 +156,14 @@ def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():
     assert "whenUnsatisfiable: DoNotSchedule" in scheduler
 
 
+def test_penrose_source_changes_roll_the_controller():
+    kustomization = yaml.safe_load(
+        (ROOT / "platform/scheduling-fabric/resources/kustomization.yaml").read_text()
+    )
+    assert kustomization["configMapGenerator"][0]["name"] == "penrose-controller-source"
+    assert not kustomization.get("generatorOptions", {}).get("disableNameSuffixHash", False)
+
+
 def test_observability_rollouts_do_not_deadlock_on_hard_anti_affinity():
     namespace = docs(ROOT / "platform/observability/bootstrap/namespace.yaml")[0]
     labels = namespace["metadata"]["labels"]
