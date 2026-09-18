@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: reef-amber
+    delivery.re8ch.com/codename: tundra-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:5ad64f62d74ebcdfc066e885e723375e009d3722d89f8a65f64ee836eba25380
+    digest: sha256:8f4146e85eb7a307cd0882d8a050ef363f7bec144e7c880ac28e4e0feaca97d4
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: reef-amber
+    delivery.re8ch.com/codename: tundra-amber
 spec:
   interval: 10m
   retryInterval: 1m
