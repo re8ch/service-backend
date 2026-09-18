@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: eddy-amber
+codename: gulfstream-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:9afc01db216d47a7e6331095e5ec7331a94f7606136548be3118657961823664
+  digest: sha256:4ffc64f670a301ac318144046669335a4184131414c51e817bb16aa9ec860146
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

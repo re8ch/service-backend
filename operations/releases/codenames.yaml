@@ -171,6 +171,8 @@ modules:
       digest: sha256:531b88b2b3ecf63c9eda3ff050f4dae1abdc0658550c3a586ca60595dbc5ac3d
     - codename: harbor-amber
       digest: sha256:37f5ef8e2ee09c10ef8543085c6bb254296cf9dbb3fbce8ea58b6a66d7d8ff8f
+    - codename: meridian-amber
+      digest: sha256:9de701c78ab203b8f03bb3291b633c7ff3317ba0e21707d15a75ab6eacee646a
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -193,6 +195,8 @@ modules:
       digest: sha256:833b53b2e8872992506bce5d22dade62d259b5946035e949d50c6becec514a8c
     - codename: eddy-amber
       digest: sha256:9afc01db216d47a7e6331095e5ec7331a94f7606136548be3118657961823664
+    - codename: gulfstream-amber
+      digest: sha256:4ffc64f670a301ac318144046669335a4184131414c51e817bb16aa9ec860146
   platform/hyperswitch:
     releases:
     - codename: anchor
