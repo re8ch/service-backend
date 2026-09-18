@@ -46,3 +46,16 @@ spec:
         - ipBlock: {cidr: 0.0.0.0/0}
       ports:
         - {protocol: TCP, port: 443}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: incidentrelay-allow-node-proxy
+  namespace: incidentrelay
+spec:
+  endpointSelector: {}
+  egress:
+    - toEntities: [host]
+      toPorts:
+        - ports:
+            - {port: "17891", protocol: TCP}

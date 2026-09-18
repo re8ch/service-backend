@@ -70,6 +70,17 @@ def test_telegram_proxy_egress_is_limited_to_the_egress_fabric_namespace():
         {"ipBlock": {"cidr": "192.0.2.20/24"}},
         {"ipBlock": {"cidr": "192.0.2.65/16"}},
     ]
+    host_policy = next(
+        item
+        for item in policies
+        if item["metadata"]["name"] == "incidentrelay-allow-node-proxy"
+    )
+    assert host_policy["kind"] == "CiliumNetworkPolicy"
+    assert host_policy["spec"]["endpointSelector"] == {}
+    assert host_policy["spec"]["egress"] == [{
+        "toEntities": ["host"],
+        "toPorts": [{"ports": [{"port": "17891", "protocol": "TCP"}]}],
+    }]
 
 
 def test_secrets_are_sops_encrypted_and_referenced_from_root():
