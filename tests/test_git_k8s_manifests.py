@@ -27,6 +27,13 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
     assert "components/public-exposure/external-dns-cloudflare.yaml" in root["resources"]
     assert "components/toolhive/retire-kagent-legacy-mcp.yaml" in root["resources"]
 
+    retirement = documents(ROOT / "clusters/re8ch/retire-legacy-mcp.patch.yaml")
+    assert not any(
+        item.get("kind") == "Deployment"
+        and item.get("metadata", {}).get("name") == "external-dns-cloudflare"
+        for item in retirement
+    )
+
 
 def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
