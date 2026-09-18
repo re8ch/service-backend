@@ -62,3 +62,7 @@ def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
         assert "@sha256:" in container["image"]
         assert all("valueFrom" in item or item["name"] == "INCIDENTRELAY_CONFIG_FILE" for item in container["env"])
         assert job["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
+    database_resources = database_job["spec"]["template"]["spec"]["containers"][0]["resources"]
+    assert set(database_resources) == {"requests", "limits"}
+    assert set(database_resources["requests"]) == {"cpu", "memory"}
+    assert set(database_resources["limits"]) == {"cpu", "memory"}
