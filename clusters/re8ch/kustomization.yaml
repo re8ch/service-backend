@@ -22,6 +22,9 @@ resources:
 - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
 - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
 - secrets/cloudflare-advfab-dns-token.sops.yaml
+- secrets/incidentrelay-config.sops.yaml
+- secrets/incidentrelay-db-bootstrap.sops.yaml
+- secrets/incidentrelay-bootstrap-admin.sops.yaml
 - secrets/ontology-microscope-db.sops.yaml
 - components/cilium/gateway-api-canary.yaml
 - components/cilium/advfab-worker-node-ips.yaml
@@ -50,6 +53,7 @@ resources:
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
+- ../../platform/incidentrelay
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources
 patchesStrategicMerge:

@@ -1,0 +1,50 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: incidentrelay-public
+  namespace: incidentrelay
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-wildcard-https}
+  hostnames: [oncall.tools.re8ch.com]
+  rules:
+    - backendRefs: [{name: incidentrelay, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: incidentrelay-http-redirect
+  namespace: incidentrelay
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
+  hostnames: [oncall.tools.re8ch.com]
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect: {scheme: https, statusCode: 308}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: incidentrelay-public-dns-authority
+  namespace: incidentrelay
+  labels:
+    networking.re8ch.com/dns-authority: public-edge
+    public.re8ch.com/external-dns: enabled
+  annotations:
+    networking.re8ch.com/dns-authority: public-edge
+    networking.re8ch.com/selected-public-edge: r640
+    external-dns.alpha.kubernetes.io/hostname: oncall.tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: oncall.tools.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: incidentrelay, port: {number: 8080}}}

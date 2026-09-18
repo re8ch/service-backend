@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: incidentrelay-bootstrap-admin-v1
+  namespace: incidentrelay
+  labels:
+    app.kubernetes.io/name: incidentrelay
+    app.kubernetes.io/component: bootstrap-admin
+spec:
+  backoffLimit: 20
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: incidentrelay
+        app.kubernetes.io/component: bootstrap-admin
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: create-admin
+          image: ghcr.io/roxy-wi/incidentrelay@sha256:5d3af4a530dbe38970caf1124133b01d422860893621a7ac8439551afef21b4a
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              until python manage.py migration-status >/dev/null 2>&1; do
+                sleep 5
+              done
+              python manage.py create-admin \
+                --username "$ADMIN_USERNAME" \
+                --display-name "$ADMIN_DISPLAY_NAME" \
+                --email "$ADMIN_EMAIL" \
+                --password "$ADMIN_PASSWORD"
+          env:
+            - name: INCIDENTRELAY_CONFIG_FILE
+              value: /etc/incidentrelay/incidentrelay.conf
+            - name: ADMIN_USERNAME
+              valueFrom: {secretKeyRef: {name: incidentrelay-bootstrap-admin, key: username}}
+            - name: ADMIN_DISPLAY_NAME
+              valueFrom: {secretKeyRef: {name: incidentrelay-bootstrap-admin, key: display-name}}
+            - name: ADMIN_EMAIL
+              valueFrom: {secretKeyRef: {name: incidentrelay-bootstrap-admin, key: email}}
+            - name: ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: incidentrelay-bootstrap-admin, key: password}}
+          volumeMounts:
+            - {name: config, mountPath: /etc/incidentrelay, readOnly: true}
+      volumes:
+        - name: config
+          secret: {secretName: incidentrelay-config}
