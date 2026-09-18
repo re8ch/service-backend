@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: compass-amber
+codename: harbor-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:531b88b2b3ecf63c9eda3ff050f4dae1abdc0658550c3a586ca60595dbc5ac3d
+  digest: sha256:37f5ef8e2ee09c10ef8543085c6bb254296cf9dbb3fbce8ea58b6a66d7d8ff8f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

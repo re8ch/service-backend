@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: compass-amber
+    delivery.re8ch.com/codename: harbor-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:531b88b2b3ecf63c9eda3ff050f4dae1abdc0658550c3a586ca60595dbc5ac3d
+    digest: sha256:37f5ef8e2ee09c10ef8543085c6bb254296cf9dbb3fbce8ea58b6a66d7d8ff8f
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: compass-amber
+    delivery.re8ch.com/codename: harbor-amber
 spec:
   interval: 10m
   retryInterval: 1m
