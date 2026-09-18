@@ -135,6 +135,8 @@ modules:
       digest: sha256:fe69724ecdafca75999002e682d65ca99fe3c321120808ae2474d04859d191fa
     - codename: reef-amber
       digest: sha256:5ad64f62d74ebcdfc066e885e723375e009d3722d89f8a65f64ee836eba25380
+    - codename: tundra-amber
+      digest: sha256:8f4146e85eb7a307cd0882d8a050ef363f7bec144e7c880ac28e4e0feaca97d4
   platform/cloud-platform:
     releases:
     - codename: atoll
