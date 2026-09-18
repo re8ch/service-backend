@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/external-projects
-    delivery.re8ch.com/codename: passage
+    delivery.re8ch.com/codename: trailhead
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
   ref:
-    digest: sha256:f1e830fa695cb92c40653c0e46ffce194a521c24ffb5b4ef0dedbe3836b0326d
+    digest: sha256:bade5daee195d1efc8505a978ba0d8c554e64618e57a7010d807781c1ac9b897
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/external-projects
-    delivery.re8ch.com/codename: passage
+    delivery.re8ch.com/codename: trailhead
 spec:
   interval: 10m
   retryInterval: 1m
