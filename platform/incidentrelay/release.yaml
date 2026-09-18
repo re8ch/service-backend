@@ -1,0 +1,115 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: incidentrelay
+  namespace: flux-system
+spec:
+  interval: 30m
+  provider: generic
+  url: oci://ghcr.io/roxy-wi/incidentrelay-charts/incidentrelay
+  ref:
+    digest: sha256:8bb521139db33f008c2a3c35546dcf2d5a583017b9487f6e9c8657124d43fdc9
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: incidentrelay
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 10m
+  releaseName: incidentrelay
+  targetNamespace: incidentrelay
+  storageNamespace: incidentrelay
+  chartRef:
+    kind: OCIRepository
+    name: incidentrelay
+  dependsOn: []
+  install:
+    createNamespace: false
+    remediation: {retries: 3}
+  upgrade:
+    cleanupOnFail: true
+    remediation: {retries: 3, strategy: rollback}
+  rollback: {cleanupOnFail: true}
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              version: v1
+              kind: ServiceAccount
+              name: incidentrelay
+            patch: |-
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: incidentrelay
+              automountServiceAccountToken: false
+          - target: {group: apps, version: v1, kind: Deployment, name: incidentrelay-web}
+            patch: |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata: {name: incidentrelay-web}
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: web
+                        image: ghcr.io/roxy-wi/incidentrelay@sha256:5d3af4a530dbe38970caf1124133b01d422860893621a7ac8439551afef21b4a
+          - target: {group: apps, version: v1, kind: Deployment, name: incidentrelay-scheduler}
+            patch: |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata: {name: incidentrelay-scheduler}
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: scheduler
+                        image: ghcr.io/roxy-wi/incidentrelay@sha256:5d3af4a530dbe38970caf1124133b01d422860893621a7ac8439551afef21b4a
+          - target: {group: apps, version: v1, kind: Deployment, name: incidentrelay-telegram}
+            patch: |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata: {name: incidentrelay-telegram}
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: telegram
+                        image: ghcr.io/roxy-wi/incidentrelay@sha256:5d3af4a530dbe38970caf1124133b01d422860893621a7ac8439551afef21b4a
+  values:
+    existingConfigSecret: incidentrelay-config
+    persistence:
+      enabled: false
+    ingress:
+      enabled: false
+    web:
+      replicaCount: 1
+      runMigrations: true
+      strategy: {type: Recreate}
+      resources:
+        requests: {cpu: 100m, memory: 256Mi}
+        limits: {cpu: "1", memory: 1Gi}
+    scheduler:
+      enabled: true
+      strategy: {type: Recreate}
+      resources:
+        requests: {cpu: 100m, memory: 256Mi}
+        limits: {cpu: "1", memory: 1Gi}
+    telegram:
+      enabled: true
+      strategy: {type: Recreate}
+      resources:
+        requests: {cpu: 50m, memory: 128Mi}
+        limits: {cpu: 500m, memory: 512Mi}
+    slack:
+      enabled: false
+    service:
+      type: ClusterIP
+      port: 8080
+    podSecurityContext:
+      seccompProfile: {type: RuntimeDefault}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities: {drop: [ALL]}

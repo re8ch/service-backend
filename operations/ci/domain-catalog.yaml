@@ -165,14 +165,17 @@ domains:
   operations-ui:
     theme: beacons
     paths:
+      - platform/incidentrelay/**
       - platform/headlamp/**
       - platform/stalwart/**
     roots:
+      - platform/incidentrelay
       - platform/headlamp
       - platform/stalwart
     tests:
       - tests/test_headlamp_birfucate_browser.py
       - tests/test_headlamp_plugin_catalog.py
+      - tests/test_incidentrelay_gitops.py
 
   metering:
     theme: currents
