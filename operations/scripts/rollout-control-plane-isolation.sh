@@ -23,7 +23,10 @@ done
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 pending="$(kubectl get pods -A --field-selector=status.phase=Pending -o json | \
   python3 "$script_dir/control-plane-pending-gate.py" "${nodes[@]}")"
-if [[ "$pending" != "0" && "$mode" != "observe" && "$mode" != "rollback" ]]; then
+# PreferNoSchedule is intentionally the non-disruptive first stage: it does not
+# reject a pod when no alternative exists and never evicts an assigned pod.
+# Keep the hard Pending-pod gate for the NoSchedule enforcement stage only.
+if [[ "$pending" != "0" && "$mode" == "enforce" ]]; then
   echo "gate failed: $pending Pending pods can target control-plane nodes" >&2
   exit 1
 fi

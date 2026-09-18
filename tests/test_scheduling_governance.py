@@ -120,6 +120,14 @@ def test_control_plane_reservations_are_declared_without_noexecute():
         assert not any("NoExecute" in value for value in args)
 
 
+def test_prefer_taint_stage_is_not_blocked_by_existing_pending_pods():
+    rollout = (
+        ROOT / "operations/scripts/rollout-control-plane-isolation.sh"
+    ).read_text()
+    assert '"$pending" != "0" && "$mode" == "enforce"' in rollout
+    assert '"$pending" != "0" && "$mode" != "observe"' not in rollout
+
+
 def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():
     scheduler = (ROOT / "platform/scheduling-fabric/resources/scheduler.yaml").read_text()
     controller = (ROOT / "platform/scheduling-fabric/resources/controller.yaml").read_text()
