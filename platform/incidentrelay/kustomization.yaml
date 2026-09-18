@@ -8,3 +8,4 @@ resources:
   - bootstrap-admin.yaml
   - public-route.yaml
   - network-policy.yaml
+  - gateway-policy.yaml
