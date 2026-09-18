@@ -36,7 +36,8 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
         "maxUnavailable": 1,
     }
     assert kueue_manager["nodeSelector"] == {
-        "scheduling.re8ch.com/reliability-class": "stable"
+        "scheduling.re8ch.com/reliability-class": "stable",
+        "scheduling.re8ch.com/provider": "tencent",
     }
     assert "tolerations" not in kueue_manager
 
