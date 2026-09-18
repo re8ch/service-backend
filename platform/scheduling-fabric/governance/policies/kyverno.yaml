@@ -49,10 +49,10 @@ spec:
             deny:
               conditions:
                 any:
-                  - {key: "{{ element.resources.requests.cpu || '' }}", operator: Equals, value: ""}
-                  - {key: "{{ element.resources.requests.memory || '' }}", operator: Equals, value: ""}
-                  - {key: "{{ element.resources.limits.cpu || '' }}", operator: Equals, value: ""}
-                  - {key: "{{ element.resources.limits.memory || '' }}", operator: Equals, value: ""}
+                  - {key: "{{ contains(keys(element.resources.requests || `{}`), 'cpu') }}", operator: Equals, value: false}
+                  - {key: "{{ contains(keys(element.resources.requests || `{}`), 'memory') }}", operator: Equals, value: false}
+                  - {key: "{{ contains(keys(element.resources.limits || `{}`), 'cpu') }}", operator: Equals, value: false}
+                  - {key: "{{ contains(keys(element.resources.limits || `{}`), 'memory') }}", operator: Equals, value: false}
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
