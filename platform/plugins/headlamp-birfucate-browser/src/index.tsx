@@ -63,6 +63,15 @@ function key(labels: Labels): string {
   return [labels.tenant || '', labels.resource_ref || '', labels.domain || '', labels.meter || ''].join('\u0000');
 }
 
+function subscriptionState(binding: KubeObject): {label:string; status:string} {
+  const phase=String(binding.status?.phase || '');
+  if (phase) return {label:phase,status:phase==='Ready'||phase==='Active'?'success':'warning'};
+  const now=Date.now(),starts=Date.parse(binding.spec?.startsAt || ''),ends=Date.parse(binding.spec?.endsAt || '');
+  if (Number.isFinite(ends)&&ends<=now) return {label:'Expired',status:'error'};
+  if (Number.isFinite(starts)&&starts>now) return {label:'Scheduled',status:'warning'};
+  return {label:'Active',status:'success'};
+}
+
 function ResourceRing({tenant, flows}: {tenant:string; flows:ResourceFlow[]}) {
   const colors = {retained:'#2e7d32',local:'#5c6bc0',external:'#ef6c00'};
   const labels = {retained:'储蓄 / 回流',local:'本租户消耗',external:'外部租户分流'};
@@ -100,11 +109,12 @@ function Dashboard() {
   const [serviceInstances, setServiceInstances] = useState<KubeObject[]>([]);
   const [connections, setConnections] = useState<KubeObject[]>([]);
   const [consumptionBindings, setConsumptionBindings] = useState<KubeObject[]>([]);
+  const [consumables, setConsumables] = useState<KubeObject[]>([]);
 
   async function refresh() {
     setLoading(true); setError('');
     try {
-      const [results, tenantObjects, identityObjects, grantObjects, registrations, namespaces, deployments, statefulSets, daemonSets, jobs, cronJobs, nuclioFunctions, instances, clusterConnections, bindings] = await Promise.all([
+      const [results, tenantObjects, identityObjects, grantObjects, registrations, namespaces, deployments, statefulSets, daemonSets, jobs, cronJobs, nuclioFunctions, instances, clusterConnections, bindings, offerings] = await Promise.all([
         Promise.all(METRICS.map(metric => instantQuery(metric))),
         apiList('/apis/tenancy.re8ch.com/v1alpha1/tenants'),
         apiList('/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings'),
@@ -120,13 +130,14 @@ function Dashboard() {
         apiList('/apis/tenancy.re8ch.com/v1alpha1/tenantserviceinstances'),
         apiList('/apis/finops.re8ch.com/v1alpha1/clusterconnections'),
         apiList('/apis/finops.re8ch.com/v1alpha1/consumptionbindings'),
+        apiList('/apis/finops.re8ch.com/v1alpha1/consumables'),
       ]);
       const typedWorkloads = [
         ...deployments.map(x=>({...x,kind:'Deployment'})), ...statefulSets.map(x=>({...x,kind:'StatefulSet'})),
         ...daemonSets.map(x=>({...x,kind:'DaemonSet'})), ...jobs.map(x=>({...x,kind:'Job'})),
         ...cronJobs.map(x=>({...x,kind:'CronJob'})), ...nuclioFunctions.map(x=>({...x,kind:'NuclioFunction'})),
       ];
-      setWorkloads(typedWorkloads); setServiceInstances(instances); setConnections(clusterConnections); setConsumptionBindings(bindings);
+      setWorkloads(typedWorkloads); setServiceInstances(instances); setConnections(clusterConnections); setConsumptionBindings(bindings); setConsumables(offerings);
       setTenantViews(tenantObjects.map(item => {
         const name = item.metadata?.name || '';
         const spec = item.spec || {};
@@ -223,6 +234,26 @@ function Dashboard() {
         {header:'Namespaces',accessorFn:(x:TenantView)=><Box><Typography variant="body2">runtime: {x.runtimeNamespace}</Typography><Typography variant="caption" color="text.secondary">声明 {x.businessNamespaces.join(', ') || '-'}<br/>已标记 {x.observedNamespaces.join(', ') || '-'}</Typography></Box>},
         {header:'OIDC identities',accessorFn:(x:TenantView)=><Box>{x.identities.map(binding=><Chip key={binding.metadata?.name} size="small" variant="outlined" label={`${binding.spec?.group} · ${binding.spec?.role}`} sx={{mr:.5,mb:.5}}/>)}<Typography variant="caption" display="block" color="text.secondary">{[...new Set(x.identities.map(binding=>binding.spec?.issuer))].filter(Boolean).join(', ') || '-'}</Typography></Box>},
         {header:'Granted capabilities',accessorFn:(x:TenantView)=><Box>{x.grants.map(grant=><Chip key={grant.metadata?.name} size="small" label={grant.spec?.consumableRef} sx={{mr:.5,mb:.5}}/>)}</Box>},
+      ] as any}/>
+    </SectionBox>
+    <SectionBox title={`Subscriptions (${visibleBindings.length})`}>
+      <Table data={visibleBindings} columns={[
+        {header:'Tenant / Instance',accessorFn:(x:KubeObject)=><Box><Typography variant="body2">{x.spec?.tenantRef || '-'}</Typography><Typography variant="caption" color="text.secondary">{x.spec?.serviceInstanceRef || x.metadata?.name}</Typography></Box>},
+        {header:'Offering / Plan',accessorFn:(x:KubeObject)=><Box><Typography variant="body2">{x.spec?.consumableRef || '-'}</Typography><Typography variant="caption" color="text.secondary">{x.spec?.planRef || '-'}</Typography></Box>},
+        {header:'Access',accessorFn:(x:KubeObject)=>x.spec?.access?.type || '-'},
+        {header:'Quota',accessorFn:(x:KubeObject)=><Typography variant="caption">{x.spec?.quota ? JSON.stringify(x.spec.quota) : '-'}</Typography>},
+        {header:'Term',accessorFn:(x:KubeObject)=><Box><Typography variant="caption" display="block">{x.spec?.startsAt || '-'}</Typography><Typography variant="caption" color="text.secondary">{x.spec?.endsAt || 'open-ended'}</Typography></Box>},
+        {header:'State',accessorFn:(x:KubeObject)=>{const state=subscriptionState(x);return <StatusLabel status={state.status}>{state.label}</StatusLabel>}},
+      ] as any}/>
+    </SectionBox>
+    <SectionBox title={`Subscription offerings (${consumables.length})`}>
+      <Table data={consumables} columns={[
+        {header:'Offering',accessorFn:(x:KubeObject)=><Box><Typography variant="body2">{x.metadata?.name}</Typography><Typography variant="caption" color="text.secondary">{x.spec?.serviceClass}</Typography></Box>},
+        {header:'Lifecycle',accessorFn:(x:KubeObject)=><StatusLabel status={x.spec?.lifecycle==='Approved'?'success':'warning'}>{x.spec?.lifecycle || '-'}</StatusLabel>},
+        {header:'Access',accessorFn:(x:KubeObject)=>x.spec?.accessContract?.type || '-'},
+        {header:'Credential',accessorFn:(x:KubeObject)=>x.spec?.accessContract?.credentialDelivery || '-'},
+        {header:'OIDC proxy',accessorFn:(x:KubeObject)=>x.spec?.authenticationProxyRef || '-'},
+        {header:'Meters',accessorFn:(x:KubeObject)=>(x.spec?.meters || []).map((meter:any)=>meter.name).join(', ') || '-'},
       ] as any}/>
     </SectionBox>
     <SectionBox title={`${tenant || 'All tenants'} resource ring`}><ResourceRing tenant={tenant} flows={resourceFlows}/></SectionBox>

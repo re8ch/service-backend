@@ -18,10 +18,10 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz=assets/re8ch-headlamp-among-clusters-0.3.24.bundle
-  - name: headlamp-birfucate-browser-v031
+  - name: headlamp-birfucate-browser-v032
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.3.1.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.3.2.bundle
   - name: headlamp-public-edge-v020
     namespace: headlamp
     files:
