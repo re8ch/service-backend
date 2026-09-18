@@ -146,6 +146,46 @@ def test_access_dns_keeps_a_bounded_r640_local_resolver():
     assert adguard_pod["spec"]["priorityClassName"] == "system-cluster-critical"
 
 
+def test_advfab_external_dns_has_service_source_rbac_and_stable_worker_placement():
+    resources = docs(ROOT / "clusters/re8ch/components/public-exposure/external-dns-advfab.yaml")
+    role = next(item for item in resources if item["kind"] == "ClusterRole")
+    core_rule = next(rule for rule in role["rules"] if rule["apiGroups"] == [""])
+    assert set(core_rule["resources"]) == {"pods", "services"}
+    assert set(core_rule["verbs"]) == {"get", "list", "watch"}
+
+    deployment = next(item for item in resources if item["kind"] == "Deployment")
+    assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {
+        "scheduling.re8ch.com/provider": "tencent",
+        "scheduling.re8ch.com/reliability-class": "stable",
+    }
+
+
+def test_scheduling_governance_alerts_on_kueue_manager_restarts():
+    resources = docs(GOVERNANCE / "policies/observability.yaml")
+    rule = next(item for item in resources if item["kind"] == "VMRule")
+    alerts = {
+        item["alert"]: item
+        for group in rule["spec"]["groups"]
+        for item in group["rules"]
+        if "alert" in item
+    }
+    assert "Re8chKueueManagerRestarting" in alerts
+    assert "kueue-system" in alerts["Re8chKueueManagerRestarting"]["expr"]
+    assert "Re8chVLAgentDroppingLogs" in alerts
+    assert "vlagent_remotewrite_packets_dropped_total" in alerts["Re8chVLAgentDroppingLogs"]["expr"]
+
+
+def test_vlagent_writes_to_the_native_victorialogs_ingest_endpoint():
+    resources = docs(ROOT / "platform/observability/production/logs.yaml")
+    agent = next(item for item in resources if item["kind"] == "VLAgent")
+    assert agent["spec"]["remoteWrite"] == [
+        {
+            "url": "http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428/insert/native",
+            "maxDiskUsage": "1GiB",
+        }
+    ]
+
+
 def test_root_includes_governance_but_no_node_taint_object():
     kustomization = yaml.safe_load((ROOT / "platform/scheduling-fabric/kustomization.yaml").read_text())
     assert "governance/controllers.yaml" in kustomization["resources"]

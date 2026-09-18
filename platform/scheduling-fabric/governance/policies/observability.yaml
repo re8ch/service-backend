@@ -42,3 +42,13 @@ spec:
           for: 15m
           labels: {severity: warning}
           annotations: {summary: One or more workloads have remained Pending for fifteen minutes}
+        - alert: Re8chKueueManagerRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="kueue-system",container="manager"}[15m]) > 0
+          for: 2m
+          labels: {severity: warning}
+          annotations: {summary: A Kueue manager restarted during the last fifteen minutes}
+        - alert: Re8chVLAgentDroppingLogs
+          expr: sum(increase(vlagent_remotewrite_packets_dropped_total[5m])) > 0
+          for: 2m
+          labels: {severity: critical}
+          annotations: {summary: VLAgent is dropping logs rejected by remote storage}
