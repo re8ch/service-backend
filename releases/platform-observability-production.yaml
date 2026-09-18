@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: viewport
+codename: zenith
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:61f4ff3a8fb7d9afe5eefc96c425bff65cc040e5ac10b81f0fab616566ff66ad
+  digest: sha256:2a83a67987432cabebcd663ca631477ec2a0d09bf2d2ce6ef8fffffe666f6db9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
