@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Namespace
+metadata: {name: kyverno}
+---
+apiVersion: v1
+kind: Namespace
+metadata: {name: kueue-system}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: descheduler-official
+  namespace: flux-system
+  annotations:
+    supply-chain.re8ch.com/chart-index-sha256: fae31d000e9f98b55300ac7558e36913a858ac0606c002534b665936f38cf525
+spec:
+  interval: 24h
+  url: https://kubernetes-sigs.github.io/descheduler/
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: kyverno-official
+  namespace: flux-system
+  annotations:
+    supply-chain.re8ch.com/chart-index-sha256: 7b7fe31ed204b16d52d52744e9a23442eeb1fa70a5b87e8a7a1ef49a57833f10
+spec:
+  interval: 24h
+  url: https://kyverno.github.io/kyverno/
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata: {name: kueue-official, namespace: flux-system}
+spec:
+  interval: 24h
+  provider: generic
+  url: oci://registry.k8s.io/kueue/charts/kueue
+  ref: {digest: sha256:570cdfce9f9928a8cf36ea814278e2e56651d2e7f2dac3363ebf3e0cda303bc2}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: scheduling-governance-controllers, namespace: flux-system}
+spec:
+  interval: 10m
+  path: ./platform/scheduling-fabric/governance/controllers
+  prune: false
+  wait: true
+  timeout: 15m
+  dependsOn: [{name: service-backend}]
+  sourceRef: {kind: GitRepository, name: service-backend}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: scheduling-governance-policies, namespace: flux-system}
+spec:
+  interval: 10m
+  path: ./platform/scheduling-fabric/governance/policies
+  prune: false
+  wait: true
+  timeout: 5m
+  dependsOn: [{name: scheduling-governance-controllers}]
+  sourceRef: {kind: GitRepository, name: service-backend}

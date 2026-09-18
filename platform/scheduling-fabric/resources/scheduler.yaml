@@ -58,7 +58,7 @@ data:
         args:
           safeVarianceMargin: 1
           safeVarianceSensitivity: 2
-          metricProvider: {type: Prometheus, address: 'http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428'}
+          metricProvider: {type: Prometheus, address: 'http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus'}
       - name: NodeResourcesAllocatable
         args:
           mode: Most
@@ -90,7 +90,7 @@ spec:
           - labelSelector: {matchLabels: {app.kubernetes.io/name: scheduler-plugins}}
             topologyKey: kubernetes.io/hostname
       topologySpreadConstraints:
-      - {maxSkew: 1, topologyKey: scheduling.re8ch.com/failure-domain, whenUnsatisfiable: ScheduleAnyway, labelSelector: {matchLabels: {app.kubernetes.io/name: scheduler-plugins}}}
+      - {maxSkew: 1, topologyKey: scheduling.re8ch.com/failure-domain, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/name: scheduler-plugins}}}
       containers:
       - name: scheduler
         image: registry.re8ch.com/proxy-k8s/scheduler-plugins/kube-scheduler@sha256:ae94c1224ef5677ae54bc25b4161a602b4365f479610d550f972e829f7c5b1b6

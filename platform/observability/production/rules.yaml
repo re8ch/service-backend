@@ -9,6 +9,12 @@ spec:
     - name: re8ch.inventory.recording
       interval: 30s
       rules:
+        - record: instance:node_cpu_utilisation:rate:sum
+          expr: label_replace(sum by (node) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m])) / clamp_min(sum by (node) (kube_node_status_allocatable{resource="cpu",unit="core"}), 0.001), "instance", "$1", "node", "(.*)")
+        - record: instance:node_cpu:ratio
+          expr: instance:node_cpu_utilisation:rate:sum
+        - record: instance:node_memory_utilisation:ratio
+          expr: label_replace(sum by (node) (container_memory_working_set_bytes{container!="",image!=""}) / clamp_min(sum by (node) (kube_node_status_allocatable{resource="memory",unit="byte"}), 1), "instance", "$1", "node", "(.*)")
         - record: re8ch:node:pod:cpu_cores:rate5m
           expr: sum by (cluster, node, namespace, pod) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]))
         - record: re8ch:node:pod:memory_working_set_bytes

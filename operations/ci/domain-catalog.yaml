@@ -127,6 +127,8 @@ domains:
       - platform/runtime-anatomy
       - platform/scheduling-fabric
       - platform/scheduling-fabric/resources
+      - platform/scheduling-fabric/governance/controllers
+      - platform/scheduling-fabric/governance/policies
       - clusters/re8ch/components/plugin-runtime
     tests:
       - tests/test_cloud_platform.py
@@ -138,6 +140,7 @@ domains:
       - tests/test_tenant_control_controller.py
       - tests/test_tenant_infrastructure.py
       - tests/test_tenant_infrastructure_gitops.py
+      - tests/test_scheduling_governance.py
 
   delivery:
     theme: waypoints

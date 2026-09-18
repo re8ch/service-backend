@@ -21,7 +21,7 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert release["spec"]["values"]["managedAccess"]["enabled"] is True
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1
-    assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "suxunji"}
     assert release["spec"]["values"]["onboarding"] == {
         "enabled": True,
         "publicEndpoint": "https://among-clusters.re8ch.com",
@@ -35,6 +35,27 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     }
     agent_source = next(item for item in objects if item["kind"] == "OCIRepository" and item["metadata"]["name"] == "among-clusters-agent")
     assert agent_source["spec"]["ref"]["digest"] == AGENT_CHART_DIGEST
+    agent_release = next(item for item in objects if item.get("kind") == "HelmRelease" and item["metadata"]["name"] == "among-clusters-agent")
+    assert agent_release["spec"]["values"]["hubEndpoint"] == "https://among-clusters.re8ch.com"
+    assert agent_release["spec"]["values"]["hostAliases"] == [{
+        "ip": "192.0.2.192",
+        "hostnames": ["among-clusters.re8ch.com"],
+    }]
+    assert agent_release["spec"]["values"]["ciliumPolicy"] == {"enabled": False}
+    assert agent_release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "suxunji"}
+    assert agent_release["spec"]["values"]["gateway"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    gateway_patch = agent_release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]
+    assert gateway_patch["target"]["name"] == "among-clusters-gateway"
+    assert "node-role.kubernetes.io/control-plane" in gateway_patch["patch"]
+    agent_policy_patch = agent_release["spec"]["postRenderers"][0]["kustomize"]["patches"][1]
+    assert agent_policy_patch["target"] == {
+        "group": "networking.k8s.io",
+        "version": "v1",
+        "kind": "NetworkPolicy",
+        "name": "among-clusters-agent",
+    }
+    assert "/spec/egress" in agent_policy_patch["patch"]
+    assert "value: [Ingress]" in agent_policy_patch["patch"]
 
 
 def test_gitops_keeps_human_relay_separate_from_service_health():

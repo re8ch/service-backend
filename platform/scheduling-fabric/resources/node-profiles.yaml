@@ -1,9 +1,38 @@
 # One object per Kubernetes Node: failure-domain identity must not be shared by a template.
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: node-reservation-profiles, namespace: scheduling-system}
+data:
+  profiles.yaml: |
+    control-large:
+      maxPods: 256
+      kubeReserved: {cpu: "2", memory: 4Gi, ephemeral-storage: 10Gi, pid: "4096"}
+      systemReserved: {cpu: "2", memory: 4Gi, ephemeral-storage: 10Gi, pid: "4096"}
+      enforceNodeAllocatable: [pods]
+      evictionHard: {memory.available: 4Gi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+    control-small:
+      maxPods: 256
+      kubeReserved: {cpu: 500m, memory: 1Gi, ephemeral-storage: 2Gi, pid: "2048"}
+      systemReserved: {cpu: 500m, memory: 1Gi, ephemeral-storage: 2Gi, pid: "2048"}
+      enforceNodeAllocatable: [pods]
+      evictionHard: {memory.available: 10%, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+    worker-small:
+      kubeReserved: {cpu: 250m, memory: 256Mi, ephemeral-storage: 1Gi, pid: "1024"}
+      systemReserved: {cpu: 250m, memory: 256Mi, ephemeral-storage: 1Gi, pid: "1024"}
+      enforceNodeAllocatable: [pods]
+      evictionHard: {memory.available: 10%, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+    worker-standard:
+      kubeReserved: {cpu: 500m, memory: 512Mi, ephemeral-storage: 2Gi, pid: "2048"}
+      systemReserved: {cpu: 500m, memory: 512Mi, ephemeral-storage: 2Gi, pid: "2048"}
+      enforceNodeAllocatable: [pods]
+      evictionHard: {memory.available: 10%, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
 metadata: {name: restricted-node-6dc3f140f9}
 spec:
   nodeName: restricted-node-6dc3f140f9
+  reservationProfile: control-large
   background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: Main server and capacity anchor}
   failureDomains: {site: cn-hunan-r640, power: r640-mains, network: r640-dedicated-line, host: restricted-node-6dc3f140f9}
   reliability: {class: anchor, disruptionRisk: 15}
@@ -15,6 +44,7 @@ kind: NodeProfile
 metadata: {name: restricted-node-1eb0570f74}
 spec:
   nodeName: restricted-node-1eb0570f74
+  reservationProfile: control-small
   aliases: [a1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-a1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-a1, power: a1-workstation, network: a1-local-uplink, host: a1-windows}
@@ -27,6 +57,7 @@ kind: NodeProfile
 metadata: {name: restricted-node-296f36f2fb}
 spec:
   nodeName: restricted-node-296f36f2fb
+  reservationProfile: control-small
   aliases: [b1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-b1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-b1, power: b1-workstation, network: b1-local-uplink, host: b1-windows}
@@ -39,6 +70,7 @@ kind: NodeProfile
 metadata: {name: amdwsl-zt}
 spec:
   nodeName: amdwsl-zt
+  reservationProfile: worker-standard
   aliases: [amd-wsl]
   background: {provider: wsl, region: cn-hubei, ownership: local, environment: workstation, account: local-amd, costClass: sunk-capacity}
   failureDomains: {site: cn-hubei-amd, power: amd-workstation, network: amd-local-uplink, host: amd-windows}
@@ -51,6 +83,7 @@ kind: NodeProfile
 metadata: {name: zan}
 spec:
   nodeName: zan
+  reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-zan, power: tencent-zan, network: tencent-zan-uplink, host: zan}
   reliability: {class: stable, disruptionRisk: 25}
@@ -62,6 +95,7 @@ kind: NodeProfile
 metadata: {name: suxunji}
 spec:
   nodeName: suxunji
+  reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-suxunji, power: tencent-suxunji, network: tencent-suxunji-uplink, host: suxunji}
   reliability: {class: stable, disruptionRisk: 25}
@@ -73,6 +107,7 @@ kind: NodeProfile
 metadata: {name: domain-ex}
 spec:
   nodeName: domain-ex
+  reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-domain-ex, power: tencent-domain-ex, network: tencent-domain-ex-uplink, host: domain-ex}
   reliability: {class: stable, disruptionRisk: 25}
@@ -84,6 +119,7 @@ kind: NodeProfile
 metadata: {name: vm-20-12-ubuntu}
 spec:
   nodeName: vm-20-12-ubuntu
+  reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-vm-20-12, power: tencent-vm-20-12, network: tencent-vm-20-12-uplink, host: vm-20-12-ubuntu}
   reliability: {class: stable, disruptionRisk: 25}
@@ -95,6 +131,7 @@ kind: NodeProfile
 metadata: {name: muaya-lightweight}
 spec:
   nodeName: muaya-lightweight
+  reservationProfile: worker-small
   aliases: [muaya-ligweight]
   background: {provider: aliyun, region: cn, ownership: rented, environment: cloud, account: muaya, costClass: fixed-cloud}
   failureDomains: {site: aliyun-lightweight, power: aliyun-lightweight, network: aliyun-lightweight-uplink, host: muaya-lightweight}
@@ -107,6 +144,7 @@ kind: NodeProfile
 metadata: {name: muaya-ecs}
 spec:
   nodeName: muaya-ecs
+  reservationProfile: worker-small
   background: {provider: aliyun, region: cn, ownership: rented, environment: cloud, account: muaya, costClass: fixed-cloud}
   failureDomains: {site: aliyun-ecs, power: aliyun-ecs, network: aliyun-ecs-uplink, host: muaya-ecs}
   reliability: {class: stable, disruptionRisk: 25}
@@ -118,6 +156,7 @@ kind: NodeProfile
 metadata: {name: overseas-la}
 spec:
   nodeName: overseas-la
+  reservationProfile: worker-small
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: us-la, power: overseas-la, network: overseas-la-uplink, host: overseas-la}
   reliability: {class: variable, disruptionRisk: 40}
@@ -129,6 +168,7 @@ kind: NodeProfile
 metadata: {name: overseas-kl}
 spec:
   nodeName: overseas-kl
+  reservationProfile: worker-small
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: my-kl, power: overseas-kl, network: overseas-kl-uplink, host: overseas-kl}
   reliability: {class: variable, disruptionRisk: 40}
@@ -140,6 +180,7 @@ kind: NodeProfile
 metadata: {name: overseas-edge-50}
 spec:
   nodeName: overseas-edge-50
+  reservationProfile: worker-small
   aliases: [edge-50]
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: overseas-edge-50, power: overseas-edge-50, network: overseas-edge-50-uplink, host: overseas-edge-50}

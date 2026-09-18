@@ -1,0 +1,44 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: descheduler
+  namespace: scheduling-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [scheduling-system]}
+  selector: {matchLabels: {app.kubernetes.io/instance: descheduler}}
+  endpoints:
+    - {port: http-metrics, scheme: https, interval: 30s, tlsConfig: {insecureSkipVerify: true}}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kueue
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kueue-system]}
+  selector: {matchLabels: {control-plane: controller-manager}}
+  endpoints:
+    - {port: https, scheme: https, interval: 30s, tlsConfig: {insecureSkipVerify: true}}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: scheduling-governance
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  groups:
+    - name: scheduling-governance
+      rules:
+        - alert: Re8chSchedulerMetricsMissing
+          expr: absent(instance:node_cpu_utilisation:rate:sum) or absent(instance:node_memory_utilisation:ratio)
+          for: 15m
+          labels: {severity: warning}
+          annotations: {summary: Dynamic scheduler CPU or memory recording rules are missing}
+        - alert: Re8chPendingWorkloadBacklog
+          expr: sum(kube_pod_status_phase{phase="Pending"}) > 0
+          for: 15m
+          labels: {severity: warning}
+          annotations: {summary: One or more workloads have remained Pending for fifteen minutes}

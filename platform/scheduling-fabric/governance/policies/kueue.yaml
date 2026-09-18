@@ -1,0 +1,44 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: default}
+spec: {}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata: {name: qwen-batch}
+spec:
+  namespaceSelector:
+    matchLabels: {saas.re8ch.com/tenant: qwen}
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+    - coveredResources: [cpu, memory]
+      flavors:
+        - name: default
+          resources:
+            - {name: cpu, nominalQuota: "16"}
+            - {name: memory, nominalQuota: 64Gi}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata: {name: tenant-batch, namespace: tenant-qwen-runtime}
+spec: {clusterQueue: qwen-batch}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata: {name: artchais-batch}
+spec:
+  namespaceSelector:
+    matchLabels: {tenancy.re8ch.com/tenant: artchais}
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+    - coveredResources: [cpu, memory]
+      flavors:
+        - name: default
+          resources:
+            - {name: cpu, nominalQuota: "20"}
+            - {name: memory, nominalQuota: 64Gi}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata: {name: tenant-batch, namespace: artchais-default}
+spec: {clusterQueue: artchais-batch}

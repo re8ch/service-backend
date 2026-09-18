@@ -22,11 +22,16 @@ node-label:
   - "re8ch.com/public-ip=none"
   - "re8ch.com/numa-nodes=2"
   - "re8ch.com/cilium-migrate=true"
+  - "scheduling.re8ch.com/node-profile=control-large"
 disable:
   - servicelb
   - coredns
 kubelet-arg:
-  - "max-pods=1024"
+  - "max-pods=256"
+  - "kube-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096"
+  - "system-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096"
+  - "enforce-node-allocatable=pods"
+  - "eviction-hard=memory.available<4Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
 kube-apiserver-arg:
   - "event-ttl=1h"
   - "oidc-issuer-url=https://dex.re8ch.com"

@@ -5,9 +5,10 @@ placement intent and the RE8CH availability/utilisation triangle. It closes the
 gap between the live scheduler-plugins/Trimaran trial, OpenCost, network cost
 catalogues and Kubernetes Dynamic Resource Allocation (DRA).
 
-Nothing in this directory is part of a parent Kustomization yet. Promotion is
-deliberately staged because the live scheduler currently serves the
-`default-scheduler` profile and all three replicas run on `restricted-node-6dc3f140f9`.
+This directory is included by the RE8CH root Kustomization. Promotion remains
+staged: the upstream K3s scheduler stays authoritative, the dynamic scheduler
+has no production consumers until its metrics gate is healthy, and every
+eviction policy starts in dry-run mode.
 
 ## Model
 
@@ -53,11 +54,28 @@ failure-domain count is impossible for a node-local device.
 2. Run the two-replica leader-elected observer/projector. It owns only
    `scheduling.re8ch.com/*` labels, CR status, automatic policies/windows and
    explicitly approved operations.
-3. Rename scheduler-plugins and its lease to `re8ch-dynamic-scheduler`; never
-   replace `default-scheduler`. Spread its replicas by node/failure domain.
+3. Keep scheduler-plugins and its lease isolated as
+   `re8ch-dynamic-scheduler`; never replace `default-scheduler`. Three replicas
+   must occupy distinct nodes and failure domains.
 4. Compare identical canary Services under one `comparisonGroup` for at least
    24 hours. Pareto is computed inside that group only.
 5. Expand cohorts only after 100% Trimaran coverage and rollback proof.
+6. Keep Descheduler `--dry-run=true` for at least 24 hours. Enabling evictions
+   is a separate reviewed revision and is capped per node, namespace and run.
+
+## Control-plane isolation
+
+`NodeProfile.spec.reservationProfile` selects one of the reviewed kubelet
+reservation profiles in `node-reservation-profiles`. The controller projects
+the selection as `scheduling.re8ch.com/node-profile`; it never changes host
+configuration or restarts K3s.
+
+Control-plane isolation is intentionally two-step. Operators first apply
+`PreferNoSchedule`, verify that ordinary workloads have moved and that system
+components have explicit tolerations, then promote to `NoSchedule`. This
+program never uses `NoExecute`. The restricted-node-6dc3f140f9 AmongClusters Gateway remains pinned
+and tolerated because it owns the reviewed RouterOS-delivered public listener;
+the Hub and Agent run on a stable worker.
 
 The current live scheduler trial is evidence, not authoritative desired state.
 Its configuration must be exported without generated metadata and reviewed

@@ -1,0 +1,127 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: audit-control-plane-tolerations}
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: block-unapproved-control-plane-tolerations
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      exclude:
+        any:
+          - resources:
+              namespaceSelector:
+                matchLabels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+      validate:
+        message: Only reviewed system namespaces may tolerate the control-plane taint.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.tolerations[?key == 'node-role.kubernetes.io/control-plane'] | length(@) }}"
+                operator: GreaterThan
+                value: 0
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: audit-workload-resource-bounds}
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: require-container-requests-and-limits
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      exclude:
+        any:
+          - resources:
+              namespaceSelector:
+                matchLabels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+      validate:
+        message: Tenant containers must declare CPU and memory requests and limits.
+        foreach:
+          - list: request.object.spec.containers
+            deny:
+              conditions:
+                any:
+                  - {key: "{{ element.resources.requests.cpu || '' }}", operator: Equals, value: ""}
+                  - {key: "{{ element.resources.requests.memory || '' }}", operator: Equals, value: ""}
+                  - {key: "{{ element.resources.limits.cpu || '' }}", operator: Equals, value: ""}
+                  - {key: "{{ element.resources.limits.memory || '' }}", operator: Equals, value: ""}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: generate-tenant-resource-boundaries}
+spec:
+  validationFailureAction: Audit
+  background: true
+  generateExisting: true
+  rules:
+    - name: generate-default-resource-quota
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              selector:
+                matchLabels: {tenancy.re8ch.com/managed: "true"}
+      generate:
+        apiVersion: v1
+        kind: ResourceQuota
+        name: tenant-governance-defaults
+        namespace: "{{ request.object.metadata.name }}"
+        synchronize: true
+        data:
+          spec:
+            hard:
+              pods: "20"
+              requests.cpu: "4"
+              requests.memory: 8Gi
+              limits.cpu: "8"
+              limits.memory: 16Gi
+              persistentvolumeclaims: "10"
+    - name: generate-default-limit-range
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              selector:
+                matchLabels: {tenancy.re8ch.com/managed: "true"}
+      generate:
+        apiVersion: v1
+        kind: LimitRange
+        name: tenant-governance-defaults
+        namespace: "{{ request.object.metadata.name }}"
+        synchronize: true
+        data:
+          spec:
+            limits:
+              - type: Container
+                defaultRequest: {cpu: 100m, memory: 128Mi}
+                default: {cpu: "1", memory: 1Gi}
+                max: {cpu: "4", memory: 8Gi}
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: audit-privileged-workloads}
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: disallow-privileged-and-hostpath
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      exclude:
+        any:
+          - resources:
+              namespaceSelector:
+                matchLabels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+      validate:
+        message: Tenant workloads may not use privileged containers or hostPath volumes.
+        deny:
+          conditions:
+            any:
+              - {key: "{{ request.object.spec.containers[?securityContext.privileged == `true`] | length(@) }}", operator: GreaterThan, value: 0}
+              - {key: "{{ request.object.spec.volumes[?hostPath] | length(@) }}", operator: GreaterThan, value: 0}
