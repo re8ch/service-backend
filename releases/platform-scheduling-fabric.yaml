@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: canopy-amber
+codename: delta-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:3efd771530a241e457e6194dbcb81ad43f5ec839d278ee8f9e220d024b1b4525
+  digest: sha256:21b79aeb9c11a5083bd0a7d10f912347f97739c9343322e4d7f50aadd0c09ae9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

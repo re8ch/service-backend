@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: telescope
+codename: viewport
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:c62b497ca07990a7cb2bb85b34005b97f964e2bbb0775082fb42620e30eb03ce
+  digest: sha256:61f4ff3a8fb7d9afe5eefc96c425bff65cc040e5ac10b81f0fab616566ff66ad
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
