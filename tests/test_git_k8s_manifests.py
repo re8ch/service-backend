@@ -213,9 +213,9 @@ def test_mcp_registry_database_is_ab_only():
         "matchExpressions"
     ][0]
     assert registry_expression == {
-        "key": "kubernetes.io/hostname",
+        "key": "scheduling.re8ch.com/service-plane",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        "values": ["core"],
     }
     service = next(
         item
