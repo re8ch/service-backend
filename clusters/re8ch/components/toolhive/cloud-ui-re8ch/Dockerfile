@@ -1,7 +1,11 @@
 FROM --platform=$BUILDPLATFORM node:24.18.0-alpine AS builder
 RUN apk add --no-cache git && corepack enable && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /src
-RUN git clone --depth 1 --branch v0.6.2 https://github.com/stacklok/toolhive-cloud-ui.git .
+ARG TOOLHIVE_CLOUD_UI_REF=d8a92acc24ae48e08579c580108f376708730300
+RUN git init . \
+    && git remote add origin https://github.com/stacklok/toolhive-cloud-ui.git \
+    && git fetch --depth 1 origin "${TOOLHIVE_CLOUD_UI_REF}" \
+    && git checkout --detach FETCH_HEAD
 COPY re8ch-codex.patch /tmp/re8ch-codex.patch
 RUN git apply /tmp/re8ch-codex.patch
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
