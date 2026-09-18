@@ -33,9 +33,10 @@ stringData:
           - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
             send_resolved: true
             max_alerts: 100
-            authorization:
-              type: Bearer
-              credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/critical
+            http_config:
+              authorization:
+                type: Bearer
+                credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/critical
       - name: incidentrelay-warning
         webhook_configs:
           - url: http://secretary-alertmanager-intake.re8ch-secretary.svc.cluster.local/v1/integrations/alertmanager
@@ -44,17 +45,19 @@ stringData:
           - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
             send_resolved: true
             max_alerts: 100
-            authorization:
-              type: Bearer
-              credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/warning
+            http_config:
+              authorization:
+                type: Bearer
+                credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/warning
       - name: incidentrelay-info
         webhook_configs:
           - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
             send_resolved: true
             max_alerts: 100
-            authorization:
-              type: Bearer
-              credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/info
+            http_config:
+              authorization:
+                type: Bearer
+                credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/info
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMAlertmanager

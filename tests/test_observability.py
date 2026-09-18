@@ -72,6 +72,7 @@ def test_alertmanager_routes_each_severity_to_incidentrelay_with_secret_tokens()
         assert (
             "/etc/vm/secrets/incidentrelay-alertmanager-tokens/" + severity
         ) in rendered
+    assert rendered.count("http_config:") == 3
     assert "incidentrelay.incidentrelay.svc.cluster.local:8080" in rendered
 
 
