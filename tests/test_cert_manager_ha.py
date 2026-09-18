@@ -35,6 +35,7 @@ def test_cert_manager_webhook_is_ha_on_owned_service_plane():
     webhook = values["webhook"]
 
     assert chart["spec"]["version"] == "v1.21.1"
+    assert chart["spec"]["backOffLimit"] == 20
     assert webhook["replicaCount"] == 2
     assert webhook["timeoutSeconds"] == 10
     assert webhook["podDisruptionBudget"] == {

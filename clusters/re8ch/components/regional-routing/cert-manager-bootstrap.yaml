@@ -10,6 +10,7 @@ spec:
   version: v1.21.1
   targetNamespace: cert-manager
   createNamespace: true
+  backOffLimit: 20
   valuesContent: |-
     crds:
       enabled: true
