@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: telescope
+    delivery.re8ch.com/codename: viewport
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:c62b497ca07990a7cb2bb85b34005b97f964e2bbb0775082fb42620e30eb03ce
+    digest: sha256:61f4ff3a8fb7d9afe5eefc96c425bff65cc040e5ac10b81f0fab616566ff66ad
   verify:
     provider: cosign
     matchOIDCIdentity:
