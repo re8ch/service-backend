@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/external-projects
-codename: beacon
+codename: compass
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
-  digest: sha256:03dece81d6de3f7397878302c180b3b0c8f56575d554723dc6bdd0176a8197a2
+  digest: sha256:4b8c69c6ebe40c2050ec5d9d89e05b220bc061288624731a07df985be857b04c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
