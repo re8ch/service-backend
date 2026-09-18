@@ -3396,6 +3396,10 @@ spec:
             - name: dashboard-providers
               mountPath: /etc/grafana/provisioning/dashboards
               readOnly: true
+            - name: re8ch-observability-alerting
+              mountPath: /etc/grafana/provisioning/alerting/re8ch-composite-alerts.yaml
+              subPath: composite-alerts.yaml
+              readOnly: true
       volumes:
         - name: data
           emptyDir: {}
@@ -3407,6 +3411,9 @@ spec:
         - name: dashboard-providers
           configMap:
             name: panel-grafana-dashboard-providers
+        - name: re8ch-observability-alerting
+          configMap:
+            name: re8ch-observability-grafana-alerts
 ---
 apiVersion: v1
 kind: Service

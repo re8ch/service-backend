@@ -101,6 +101,7 @@ def test_alertmanager_routes_each_severity_to_incidentrelay_with_secret_tokens()
         ) in rendered
     assert rendered.count("http_config:") == 3
     assert "incidentrelay.incidentrelay.svc.cluster.local:8080" in rendered
+    assert rendered.count("secretary-alertmanager-intake.re8ch-secretary.svc.cluster.local") == 3
 
 
 def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
@@ -182,6 +183,18 @@ def test_dashboard_files_are_dense_and_have_stable_ids():
     for dashboard in dashboards:
         assert dashboard["title"].startswith("RE8CH ")
         assert len(dashboard["panels"]) >= 8
+
+
+def test_grafana_composite_alerts_forward_to_ha_alertmanager():
+    resources = yaml_documents(OBSERVABILITY / "production" / "dashboards.yaml")
+    config = next(doc for doc in resources if doc["metadata"]["name"] == "re8ch-observability-grafana-alerts")
+    assert config["metadata"]["namespace"] == "qianwen-ops"
+    alerting = yaml.safe_load(config["data"]["composite-alerts.yaml"])
+    rule = alerting["groups"][0]["rules"][0]
+    assert rule["notification_settings"]["receiver"] == "RE8CH Alertmanager"
+    receiver = alerting["contactPoints"][0]["receivers"][0]
+    assert receiver["type"] == "prometheus-alertmanager"
+    assert "vmalertmanager-re8ch-alertmanager.observability-system.svc.cluster.local" in receiver["settings"]["url"]
 
 
 def test_service_catalog_covers_nodes_and_service_classes():

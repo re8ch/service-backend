@@ -1,6 +1,6 @@
 {
   "name": "@re8ch/headlamp-secretary",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headlamp operations console for RE8CH Secretary",
   "scripts": {
     "build": "headlamp-plugin build",
@@ -8,9 +8,22 @@
     "package": "headlamp-plugin package",
     "tsc": "headlamp-plugin tsc"
   },
-  "keywords": ["headlamp", "secretary", "incident", "event-stream"],
+  "keywords": [
+    "headlamp",
+    "secretary",
+    "incident",
+    "event-stream"
+  ],
   "license": "Apache-2.0",
-  "devDependencies": {"@kinvolk/headlamp-plugin": "^0.14.0"},
-  "dependencies": {"@mui/material": "^7.0.0", "@iconify/react": "^6.0.0"},
-  "overrides": {"typescript": "5.6.2", "ws": "8.21.0"}
+  "devDependencies": {
+    "@kinvolk/headlamp-plugin": "^0.14.0"
+  },
+  "dependencies": {
+    "@mui/material": "^7.0.0",
+    "@iconify/react": "^6.0.0"
+  },
+  "overrides": {
+    "typescript": "5.6.2",
+    "ws": "8.21.0"
+  }
 }

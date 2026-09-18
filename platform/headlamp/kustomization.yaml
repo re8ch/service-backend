@@ -30,10 +30,10 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz=assets/re8ch-headlamp-mihomos-cluster-0.1.1.bundle
-  - name: headlamp-secretary-v020
+  - name: headlamp-secretary-v030
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-secretary-0.2.0.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-secretary-0.3.0.bundle
   - name: headlamp-runtime-anatomy-v020
     namespace: headlamp
     files:

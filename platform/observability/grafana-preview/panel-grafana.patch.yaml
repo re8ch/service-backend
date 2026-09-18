@@ -12,7 +12,14 @@ spec:
             - name: re8ch-observability-dashboards
               mountPath: /var/lib/grafana/dashboards/qianwen
               readOnly: true
+            - name: re8ch-observability-alerting
+              mountPath: /etc/grafana/provisioning/alerting/re8ch-composite-alerts.yaml
+              subPath: composite-alerts.yaml
+              readOnly: true
       volumes:
         - name: re8ch-observability-dashboards
           configMap:
             name: re8ch-observability-dashboards
+        - name: re8ch-observability-alerting
+          configMap:
+            name: re8ch-observability-grafana-alerts
