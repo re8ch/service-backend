@@ -5,14 +5,14 @@ metadata:
   namespace: mail-system
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}
+    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","isEnabled":true,"aliases":{"re8ch.com":true},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}
     {"@type":"upsert","object":"NetworkListener","matchOn":["name"],"value":{"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"tlsImplicit":false},"imap":{"name":"imap","protocol":"imap","bind":{"[::]:143":true},"tlsImplicit":false}}}
     {"@type":"update","object":"Sharing","value":{"allowDirectoryQueries":false,"maxShares":25}}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-bootstrap-reconciler-v5
+  name: stalwart-bootstrap-reconciler-v6
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying

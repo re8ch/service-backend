@@ -8,4 +8,5 @@ resources:
   - cloudflare-token-sync.yaml
   - public-mail.yaml
   - public-collaboration.yaml
+  - webmail.yaml
   - bot-access-contract.yaml

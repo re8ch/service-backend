@@ -30,6 +30,7 @@ services:
   dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
   browser.re8ch.com.: {service: browser, class: web, probePath: /}
   collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
+  mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
   stalwart-admin.tools.re8ch.com.: {service: stalwart-admin, class: web, probePath: /admin, acceptedStatuses: [200, 302]}
 
 publicEdges:
@@ -91,6 +92,7 @@ publication:
     cube: {namespace: cube-trial, name: cube-dns-authority}
     dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
     collab: {namespace: mail-system, name: stalwart-collaboration-public}
+    mail: {namespace: mail-system, name: stalwart-webmail-public}
     stalwart-admin: {namespace: mail-system, name: stalwart-admin-public}
 
 rbac: {mutateIngresses: true}
