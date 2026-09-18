@@ -54,6 +54,17 @@ def is_leader():
 
 def labels_match(labels, selector): return all(labels.get(k) == v for k, v in (selector or {}).items())
 
+def profile_labels(spec, target):
+    labels = {"scheduling.re8ch.com/provider": spec.get("background", {}).get("provider", "unknown"),
+              "scheduling.re8ch.com/environment": spec.get("background", {}).get("environment", "unknown"),
+              "scheduling.re8ch.com/reliability-class": spec.get("reliability", {}).get("class", "unknown"),
+              "scheduling.re8ch.com/node-profile": spec.get("reservationProfile", "worker-small"),
+              "scheduling.re8ch.com/failure-domain": spec.get("failureDomains", {}).get("host", target)}
+    service_plane = spec.get("capabilities", {}).get("servicePlane")
+    if service_plane:
+        labels["scheduling.re8ch.com/service-plane"] = service_plane
+    return labels
+
 def cpu(value="0"):
     text = str(value)
     if text.endswith("n"): return float(text[:-1]) / 1_000_000_000
@@ -134,11 +145,7 @@ def reconcile_profiles(nodes):
     for profile in items(GROUP + "/nodeprofiles"):
         spec, name = profile.get("spec", {}), profile["metadata"]["name"]
         target = spec.get("nodeName")
-        labels = {"scheduling.re8ch.com/provider": spec.get("background", {}).get("provider", "unknown"),
-                  "scheduling.re8ch.com/environment": spec.get("background", {}).get("environment", "unknown"),
-                  "scheduling.re8ch.com/reliability-class": spec.get("reliability", {}).get("class", "unknown"),
-                  "scheduling.re8ch.com/node-profile": spec.get("reservationProfile", "worker-small"),
-                  "scheduling.re8ch.com/failure-domain": spec.get("failureDomains", {}).get("host", target)}
+        labels = profile_labels(spec, target)
         targets = [x for x in [target] + spec.get("aliases", []) if x in node_names]
         for node_name in targets:
             projected = dict(labels)

@@ -93,9 +93,6 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
     assert toolhive["placement"]["nodeSelector"] == {}
     assert toolhive["runtimePolicy"]["nodeNames"] == [
         "domain-ex",
-        "muaya-ecs",
-        "suxunji",
-        "vm-20-12-ubuntu",
         "zan",
     ]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
@@ -118,17 +115,17 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.57/16"
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "stable-workers-2026-09-18"
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "service-plane-core-2026-09-18"
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert spec["podTemplateSpec"]["metadata"]["annotations"] == {
-            "scheduling.re8ch.com/placement-revision": "stable-workers-2026-09-18"
+            "scheduling.re8ch.com/placement-revision": "service-plane-core-2026-09-18"
         }
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression == {
-            "key": "scheduling.re8ch.com/reliability-class",
+            "key": "scheduling.re8ch.com/service-plane",
             "operator": "In",
-            "values": ["stable"],
+            "values": ["core"],
         }
 
     auth = {item["metadata"]["name"]: item for item in internal if item["kind"] == "MCPExternalAuthConfig"}
@@ -246,9 +243,9 @@ def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
     assert expressions == [
         {
-            "key": "scheduling.re8ch.com/reliability-class",
+            "key": "scheduling.re8ch.com/service-plane",
             "operator": "In",
-            "values": ["stable"],
+            "values": ["core"],
         }
     ]
 

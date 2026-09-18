@@ -21,7 +21,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: scheduling.re8ch.com/reliability-class, operator: In, values: [stable]}
+                  - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {app.kubernetes.io/name: re8ch-plugin-runtime}}

@@ -26,9 +26,9 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "requiredDuringSchedulingIgnoredDuringExecution"
     ]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert registry_expression == {
-        "key": "scheduling.re8ch.com/reliability-class",
+        "key": "scheduling.re8ch.com/service-plane",
         "operator": "In",
-        "values": ["stable"],
+        "values": ["core"],
     }
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
@@ -94,9 +94,6 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     }
     assert toolhive["runtimePolicy"]["nodeNames"] == [
         "domain-ex",
-        "muaya-ecs",
-        "suxunji",
-        "vm-20-12-ubuntu",
         "zan",
     ]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
