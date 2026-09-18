@@ -223,6 +223,8 @@ modules:
       digest: sha256:9de701c78ab203b8f03bb3291b633c7ff3317ba0e21707d15a75ab6eacee646a
     - codename: passage-amber
       digest: sha256:c6255e72dc1b62b1b6db893d680a09e99975232ec0269de9a04da4208f27cef9
+    - codename: trailhead-amber
+      digest: sha256:4a7b19805fb2cec7a6fc74a183a38c41da6135594d2807572fec4789b627f91e
   platform/birfucate-metering:
     releases:
     - codename: cascade
