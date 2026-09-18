@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: wetland-amber
+    delivery.re8ch.com/codename: atoll-copper
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:0bb28067964d3b858ccf1cfa309800014a7ab83de8b8d74efb41573682df94cf
+    digest: sha256:ce0c7d3db47d3f5b9875fb9412ac91508765c758ef10bdafb386958e0a5b3e69
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: wetland-amber
+    delivery.re8ch.com/codename: atoll-copper
 spec:
   interval: 10m
   retryInterval: 1m
