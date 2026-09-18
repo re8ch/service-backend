@@ -60,7 +60,7 @@ def test_secrets_are_sops_encrypted_and_referenced_from_root():
 def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
     database_job = yaml.safe_load((PLATFORM / "database-bootstrap.yaml").read_text())
     admin_job = yaml.safe_load((PLATFORM / "bootstrap-admin.yaml").read_text())
-    assert database_job["metadata"]["name"] == "incidentrelay-database-bootstrap-v3"
+    assert database_job["metadata"]["name"] == "incidentrelay-database-bootstrap-v4"
     assert admin_job["metadata"]["name"] == "incidentrelay-bootstrap-admin-v2"
     for job in (database_job, admin_job):
         container = job["spec"]["template"]["spec"]["containers"][0]
@@ -71,6 +71,8 @@ def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
     assert set(database_resources) == {"requests", "limits"}
     assert set(database_resources["requests"]) == {"cpu", "memory"}
     assert set(database_resources["limits"]) == {"cpu", "memory"}
+    assert database_job["spec"]["template"]["spec"]["securityContext"]["runAsUser"] == 999
+    assert database_job["spec"]["template"]["spec"]["securityContext"]["runAsGroup"] == 999
 
 
 def test_database_bootstrap_has_quota_headroom_and_avoids_unhealthy_r640_runtime():
