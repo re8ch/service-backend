@@ -130,6 +130,12 @@ def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():
 
 
 def test_observability_rollouts_do_not_deadlock_on_hard_anti_affinity():
+    namespace = docs(ROOT / "platform/observability/bootstrap/namespace.yaml")[0]
+    labels = namespace["metadata"]["labels"]
+    assert labels["pod-security.kubernetes.io/enforce"] == "privileged"
+    assert labels["pod-security.kubernetes.io/audit"] == "restricted"
+    assert labels["pod-security.kubernetes.io/warn"] == "restricted"
+
     resources = docs(ROOT / "platform/observability/production/collectors.yaml")
     by_kind = {item["kind"]: item for item in resources}
     for kind in ("VMAgent", "VMAlert"):

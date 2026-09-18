@@ -48,6 +48,26 @@ def owned_by_daemonset(pod):
     )
 
 
+def host_path_volumes(spec):
+    return [
+        volume.get("name", "<unnamed>")
+        for volume in spec.get("volumes", [])
+        if "hostPath" in volume
+    ]
+
+
+def validate_namespace_admission(namespace, daemonset):
+    labels = namespace.get("metadata", {}).get("labels", {})
+    enforce = labels.get("pod-security.kubernetes.io/enforce", "privileged")
+    volumes = host_path_volumes(daemonset["spec"]["template"]["spec"])
+    if volumes and enforce != "privileged":
+        names = ", ".join(volumes)
+        raise SystemExit(
+            f"refusing rollout: namespace enforces Pod Security {enforce}, "
+            f"but the desired VLAgent requires hostPath volumes ({names})"
+        )
+
+
 def outdated_ready_node_pods(daemonset, pods, nodes):
     desired = container_args(daemonset["spec"]["template"]["spec"])
     ready_nodes = ready_node_names(nodes)
@@ -88,6 +108,8 @@ def main():
         raise SystemExit("--max-pods must be positive")
 
     daemonset = kubectl_json("-n", NAMESPACE, "get", "daemonset", DAEMONSET)
+    namespace = kubectl_json("get", "namespace", NAMESPACE)
+    validate_namespace_admission(namespace, daemonset)
     pods = kubectl_json("-n", NAMESPACE, "get", "pods")
     nodes = kubectl_json("get", "nodes")
     targets = outdated_ready_node_pods(daemonset, pods, nodes)
