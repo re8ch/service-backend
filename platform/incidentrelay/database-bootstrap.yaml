@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: incidentrelay-database-bootstrap-v5
+  name: incidentrelay-database-bootstrap-v6
   namespace: supabase-pg-re8ch
   labels:
     app.kubernetes.io/name: incidentrelay
@@ -52,7 +52,7 @@ spec:
                 -v app_password="$INCIDENTRELAY_DB_PASSWORD" <<'SQL'
               SELECT format('CREATE ROLE incidentrelay LOGIN PASSWORD %L', :'app_password')
                 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'incidentrelay')\gexec
-              SELECT format('ALTER ROLE incidentrelay WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION', :'app_password')\gexec
+              SELECT format('ALTER ROLE incidentrelay WITH LOGIN PASSWORD %L', :'app_password')\gexec
               SELECT 'CREATE DATABASE incidentrelay OWNER incidentrelay TEMPLATE template0 ENCODING ''UTF8'''
                 WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'incidentrelay')\gexec
               REVOKE ALL ON DATABASE incidentrelay FROM PUBLIC;
