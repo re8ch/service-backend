@@ -255,6 +255,10 @@ modules:
       digest: sha256:03dece81d6de3f7397878302c180b3b0c8f56575d554723dc6bdd0176a8197a2
     - codename: compass
       digest: sha256:4b8c69c6ebe40c2050ec5d9d89e05b220bc061288624731a07df985be857b04c
+    - codename: harbor
+      digest: sha256:a2a538eebab8fff0ecfe7c7ffbee74e4958486066dd2f804f9e2dc5c2f98474c
+    - codename: meridian
+      digest: sha256:92b5ae6de10c0e9c992fb1077a3f230d2187872b444ca8c85e6ea464ffeba67b
   platform/observability/bootstrap:
     releases:
     - codename: aperture
