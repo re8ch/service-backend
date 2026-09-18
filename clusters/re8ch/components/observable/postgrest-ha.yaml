@@ -37,9 +37,9 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: kubernetes.io/hostname
+                  - key: scheduling.re8ch.com/service-plane
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    values: [core]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
