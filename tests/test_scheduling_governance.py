@@ -23,18 +23,17 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert releases["descheduler"]["spec"]["values"]["deschedulerPolicy"]["maxNoOfPodsToEvictTotal"] == 5
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
     assert releases["kueue"]["spec"]["chart"]["spec"] == {
-        "chart": "charts/kueue",
+        "chart": "platform/scheduling-fabric/vendor/kueue",
         "reconcileStrategy": "Revision",
-        "sourceRef": {"kind": "GitRepository", "name": "kueue-official"},
+        "sourceRef": {"kind": "GitRepository", "name": "service-backend"},
     }
 
-    kueue_source = next(
-        item
-        for item in bootstrap
-        if item["kind"] == "GitRepository" and item["metadata"]["name"] == "kueue-official"
+    assert not any(item["metadata"]["name"] == "kueue-official" for item in bootstrap)
+    provenance = yaml.safe_load(
+        (GOVERNANCE.parent / "vendor/kueue/RE8CH_PROVENANCE.yaml").read_text()
     )
-    assert kueue_source["kind"] == "GitRepository"
-    assert kueue_source["spec"]["ref"]["commit"] == "8e60d76a91bb9a45754218e569de1088f862ac75"
+    assert provenance["upstream"]["tag"] == "v0.19.5"
+    assert provenance["upstream"]["assetSHA256"] == "1c97fb124bc18e5b9124e2c84292a0ea9045f2e9e1c0d4648494a4d1311048e0"
 
     child_kustomizations = {
         item["metadata"]["name"]: item
