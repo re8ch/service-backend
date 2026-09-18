@@ -277,6 +277,8 @@ modules:
     releases:
     - codename: anchor
       digest: sha256:907391f32eb6250273d7b1c151e7f122d62455b3829aaf09931f153e77fe701b
+    - codename: beacon
+      digest: sha256:1979c45ccf21cee5a2c564508f6443dfc41c06204aef1d5f1f4cf8e60fd8cb76
   platform/public-edge-manager:
     releases:
     - codename: bora
@@ -325,6 +327,8 @@ modules:
       digest: sha256:bbb17c8ef25d6afc78d23ad30764d89cfe1de216a059ca7374807598aaa0ed4f
     - codename: beacon-amber
       digest: sha256:1d3f2a2dc7c10ee10d14fbfd032b29a5768483a81f60baba8781662994244b3a
+    - codename: compass-amber
+      digest: sha256:52c75949e77dcd378238ac2decd495decd718ce504729680737f98d4776a2ac4
   platform/observability/bootstrap:
     releases:
     - codename: aperture
