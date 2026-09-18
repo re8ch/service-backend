@@ -31,7 +31,7 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert kueue_manager["replicas"] == 2
     assert kueue_manager["hostNetwork"] is True
     assert kueue_manager["dnsPolicy"] == "ClusterFirstWithHostNet"
-    assert kueue_manager["metricsPort"] == 18443
+    assert kueue_manager["metricsPort"] == 17443
     assert kueue_manager["manager"]["env"] == [
         {"name": "KUBERNETES_SERVICE_HOST", "value": "127.0.0.1"},
         {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
@@ -56,12 +56,12 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert manager_config["managedJobsNamespaceSelector"] == {
         "matchLabels": {"kueue.x-k8s.io/managed": "true"}
     }
-    assert manager_config["metrics"]["bindAddress"] == ":18443"
+    assert manager_config["metrics"]["bindAddress"] == ":17443"
 
     chart = yaml.safe_load(
         (GOVERNANCE.parent / "vendor/kueue/Chart.yaml").read_text()
     )
-    assert chart["version"] == "0.19.5-re8ch.2"
+    assert chart["version"] == "0.19.5-re8ch.3"
     manager_template = (
         GOVERNANCE.parent / "vendor/kueue/templates/manager/manager.yaml"
     ).read_text()

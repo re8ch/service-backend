@@ -13,3 +13,5 @@ localPatches:
     reason: Avoid a control-plane host-port collision while preserving the upstream image and APIs.
   - id: configurable-manager-environment
     reason: Let host-network control-plane replicas use their local API server instead of a degraded remote peer.
+  - id: r640-metrics-port-collision
+    reason: Keep the host-network metrics listener clear of R640's existing SFTPGo listener.
