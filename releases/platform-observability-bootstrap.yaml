@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/bootstrap
-codename: spectrum
+codename: telescope
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
-  digest: sha256:1a89ac3c33ccee91359df3d220854fdb73d3a75c83a31eaba3b831379725f6f8
+  digest: sha256:8f531d9fd7e28c04cbfee91b5c0bcc8865fb1ce53cb9964e79deed5ea657a225
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
