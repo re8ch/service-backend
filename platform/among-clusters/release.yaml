@@ -27,7 +27,7 @@ spec:
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
     replicaCount: 1
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: suxunji
     adminTokenSecret: among-clusters-hub-admin
     managedAccess:
       enabled: true
@@ -80,16 +80,25 @@ spec:
     tenant: byoc-pilot
     trustDomain: re8ch.internal
     hubEndpoint: https://among-clusters.re8ch.com
+    # Preserve TLS/SNI and the public hostname contract while avoiding a
+    # RouterOS public-IP hairpin from provider-side reconciliation traffic.
+    # This is the Gateway Service ClusterIP, not a replacement authority.
+    hostAliases:
+      - ip: 192.0.2.67
+        hostnames: [among-clusters.re8ch.com]
     image:
       repository: ghcr.io/re8ch/among-clusters
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
-    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    nodeSelector: {kubernetes.io/hostname: suxunji}
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
       # kubernetes Service IP and every current control-plane endpoint.
       cidrs: [192.0.2.52/32, 192.0.2.208/32, 192.0.2.183/32, 192.0.2.18/32]
       port: 6443
-    ciliumPolicy: {enabled: true}
+    # The chart's Kubernetes NetworkPolicy already constrains API, DNS, HTTPS
+    # and QUIC. Its optional Cilium rule only allows kube-apiserver and causes
+    # provider HTTPS to be L7-proxied into a default deny at the Gateway.
+    ciliumPolicy: {enabled: false}
     peerConfirmations:
       - {peerRef: re8ch-qwen, bundleDigest: sha256:1ca3850085419fd4cb099a0922452e1c1d2ba044396fe64f920f63fd78123357}
       - {peerRef: re8ch-artc, bundleDigest: sha256:72dbab1a10af9585ff65e652c0a26240275f3a7cda3206d1aead6ebf5bf71a8e}
@@ -130,3 +139,22 @@ spec:
           expectedSPIFFEID: spiffe://artc.byoc/cluster/artc
           sessionOnly: true
     managedAccess: {enabled: false}
+  postRenderers:
+    - kustomize:
+        patches:
+          - target: {group: apps, version: v1, kind: Deployment, name: among-clusters-gateway}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/tolerations
+                value:
+                  - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
+          - target: {group: networking.k8s.io, version: v1, kind: NetworkPolicy, name: among-clusters-agent}
+            patch: |-
+              # HTTPS is terminated by the Cilium Gateway. Selecting the
+              # provider Agent for egress enforcement makes Envoy default-deny
+              # these signed control messages before they reach the Hub.
+              - op: remove
+                path: /spec/egress
+              - op: replace
+                path: /spec/policyTypes
+                value: [Ingress]

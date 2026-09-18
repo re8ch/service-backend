@@ -65,7 +65,7 @@ spec:
     spec:
       serviceAccountName: penrose-controller
       topologySpreadConstraints:
-      - {maxSkew: 1, topologyKey: scheduling.re8ch.com/failure-domain, whenUnsatisfiable: ScheduleAnyway, labelSelector: {matchLabels: {app.kubernetes.io/name: penrose-controller}}}
+      - {maxSkew: 1, topologyKey: scheduling.re8ch.com/failure-domain, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/name: penrose-controller}}}
       containers:
       - name: controller
         image: python:3.13-alpine
@@ -74,7 +74,7 @@ spec:
         - {name: RECONCILE_SECONDS, value: '60'}
         - name: POD_NAME
           valueFrom: {fieldRef: {fieldPath: metadata.name}}
-        - {name: VICTORIA_URL, value: 'http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428'}
+        - {name: VICTORIA_URL, value: 'http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus'}
         resources: {requests: {cpu: 25m, memory: 48Mi}, limits: {cpu: 250m, memory: 192Mi}}
         securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 65532, capabilities: {drop: [ALL]}}
         volumeMounts: [{name: source, mountPath: /opt/penrose, readOnly: true}]

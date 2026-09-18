@@ -20,7 +20,11 @@ disable:
   - coredns
 embedded-registry: true
 kubelet-arg:
-  - "max-pods=1024"
+  - "max-pods=256"
+  - "kube-reserved=cpu=500m,memory=1Gi,ephemeral-storage=2Gi,pid=2048"
+  - "system-reserved=cpu=500m,memory=1Gi,ephemeral-storage=2Gi,pid=2048"
+  - "enforce-node-allocatable=pods"
+  - "eviction-hard=memory.available<10%,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
 node-label:
   - "pigsty.cc/provider=openstack-wsl"
   - "pigsty.cc/region=openstack"
@@ -33,6 +37,7 @@ node-label:
   - "re8ch.com/network-level=4"
   - "re8ch.com/public-control=none"
   - "re8ch.com/public-ip=none"
+  - "scheduling.re8ch.com/node-profile=control-small"
 kube-apiserver-arg:
   - "event-ttl=1h"
   - "oidc-issuer-url=https://dex.re8ch.com"

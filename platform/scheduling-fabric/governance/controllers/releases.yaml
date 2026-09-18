@@ -1,0 +1,112 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: descheduler
+  namespace: flux-system
+  annotations:
+    supply-chain.re8ch.com/chart-sha256: fae31d000e9f98b55300ac7558e36913a858ac0606c002534b665936f38cf525
+spec:
+  interval: 30m
+  releaseName: descheduler
+  targetNamespace: scheduling-system
+  storageNamespace: scheduling-system
+  chart:
+    spec:
+      chart: descheduler
+      version: 0.36.0
+      sourceRef: {kind: HelmRepository, name: descheduler-official}
+  install: {createNamespace: false, remediation: {retries: 1}}
+  upgrade: {timeout: 5m, remediation: {retries: 1, remediateLastFailure: false}}
+  values:
+    kind: Deployment
+    replicas: 1
+    deschedulingInterval: 30m
+    cmdOptions: {v: 3, dry-run: true}
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: 250m, memory: 256Mi}
+    service: {enabled: true}
+    serviceMonitor: {enabled: false}
+    deschedulerPolicy:
+      maxNoOfPodsToEvictPerNode: 1
+      maxNoOfPodsToEvictPerNamespace: 2
+      maxNoOfPodsToEvictTotal: 5
+      profiles:
+        - name: control-plane-isolation
+          pluginConfig:
+            - name: DefaultEvictor
+              args:
+                nodeFit: true
+                minReplicas: 2
+                podProtections:
+                  defaultDisabled: []
+                  extraEnabled: [PodsWithPVC]
+            - name: RemovePodsViolatingNodeTaints
+              args:
+                namespaces:
+                  exclude: [kube-system, flux-system, rook-ceph, scheduling-system, among-clusters]
+          plugins:
+            deschedule:
+              enabled: [RemovePodsViolatingNodeTaints]
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kyverno
+  namespace: flux-system
+  annotations:
+    supply-chain.re8ch.com/chart-sha256: 7b7fe31ed204b16d52d52744e9a23442eeb1fa70a5b87e8a7a1ef49a57833f10
+spec:
+  interval: 30m
+  releaseName: kyverno
+  targetNamespace: kyverno
+  storageNamespace: kyverno
+  chart:
+    spec:
+      chart: kyverno
+      version: 3.9.1
+      sourceRef: {kind: HelmRepository, name: kyverno-official}
+  install: {createNamespace: false, crds: CreateReplace, remediation: {retries: 1}}
+  upgrade: {crds: CreateReplace, timeout: 10m, remediation: {retries: 1, remediateLastFailure: false}}
+  values:
+    admissionController:
+      replicas: 3
+      podDisruptionBudget: {enabled: true, minAvailable: 2}
+      topologySpreadConstraints:
+        - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/component: admission-controller}}}
+    backgroundController:
+      replicas: 2
+      podDisruptionBudget: {enabled: true, minAvailable: 1}
+    cleanupController:
+      replicas: 2
+      podDisruptionBudget: {enabled: true, minAvailable: 1}
+    reportsController:
+      replicas: 2
+      podDisruptionBudget: {enabled: true, minAvailable: 1}
+    features:
+      policyReports: {enabled: true}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: kueue, namespace: flux-system}
+spec:
+  interval: 30m
+  releaseName: kueue
+  targetNamespace: kueue-system
+  storageNamespace: kueue-system
+  chartRef: {kind: OCIRepository, name: kueue-official}
+  install: {createNamespace: false, crds: CreateReplace, remediation: {retries: 1}}
+  upgrade: {crds: CreateReplace, timeout: 10m, remediation: {retries: 1, remediateLastFailure: false}}
+  values:
+    enablePrometheus: false
+    enableVisibilityAPF: true
+    controllerManager:
+      replicas: 2
+      podDisruptionBudget: {enabled: true, minAvailable: 1}
+      topologySpreadConstraints:
+        - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {control-plane: controller-manager}}}
+      manager:
+        priorityClassName: system-cluster-critical
+        resources:
+          requests: {cpu: 100m, memory: 256Mi}
+          limits: {cpu: 500m, memory: 512Mi}

@@ -19,10 +19,11 @@ spec:
         properties:
           spec:
             type: object
-            required: [nodeName, background, failureDomains, reliability, capabilities]
+            required: [nodeName, reservationProfile, background, failureDomains, reliability, capabilities]
             properties:
               nodeName: {type: string, minLength: 1}
               aliases: {type: array, items: {type: string}}
+              reservationProfile: {type: string, enum: [control-large, control-small, worker-small, worker-standard]}
               background:
                 type: object
                 required: [provider, ownership, environment]

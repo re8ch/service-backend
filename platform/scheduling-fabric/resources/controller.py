@@ -11,7 +11,7 @@ TOKEN = open(SA + "/token").read().strip() if os.path.exists(SA + "/token") else
 CTX = ssl.create_default_context(cafile=SA + "/ca.crt") if os.path.exists(SA + "/ca.crt") else ssl.create_default_context()
 HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
 GROUP = "/apis/scheduling.re8ch.com/v1alpha1"
-VM = os.getenv("VICTORIA_URL", "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428")
+VM = os.getenv("VICTORIA_URL", "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus")
 HOLDER = os.getenv("POD_NAME", "penrose-controller")
 
 def now(): return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -137,6 +137,7 @@ def reconcile_profiles(nodes):
         labels = {"scheduling.re8ch.com/provider": spec.get("background", {}).get("provider", "unknown"),
                   "scheduling.re8ch.com/environment": spec.get("background", {}).get("environment", "unknown"),
                   "scheduling.re8ch.com/reliability-class": spec.get("reliability", {}).get("class", "unknown"),
+                  "scheduling.re8ch.com/node-profile": spec.get("reservationProfile", "worker-small"),
                   "scheduling.re8ch.com/failure-domain": spec.get("failureDomains", {}).get("host", target)}
         targets = [x for x in [target] + spec.get("aliases", []) if x in node_names]
         for node_name in targets:
