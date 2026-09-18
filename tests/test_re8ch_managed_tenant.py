@@ -91,12 +91,12 @@ def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
     woomou = next(
         item
         for item in re8ch["identityBindings"]
-        if item["name"] == "re8ch-dex-woomou-operator"
+        if item["name"] == "re8ch-dex-woomou-subject-operator"
     )
     assert woomou == {
-        "name": "re8ch-dex-woomou-operator",
+        "name": "re8ch-dex-woomou-subject-operator",
         "issuer": "https://dex.re8ch.com",
-        "subjectHash": "sha256:8cd4777c62df7072fe9ea18fcedc0fc473f7d8a19d2fed9555c2714dac57a669",
+        "subjectHash": "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6",
         "role": "operator",
     }
     application_bindings = [
