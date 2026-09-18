@@ -16,13 +16,11 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: node-role.kubernetes.io/control-plane, operator: Exists}
+                  - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
         podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
-                topologyKey: kubernetes.io/hostname
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
           image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:b9c9755165049a55dad9ff96213d21683db0b379a0396100c9407db58e961975
