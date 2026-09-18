@@ -32,6 +32,10 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert kueue_manager["hostNetwork"] is True
     assert kueue_manager["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert kueue_manager["metricsPort"] == 18443
+    assert kueue_manager["manager"]["env"] == [
+        {"name": "KUBERNETES_SERVICE_HOST", "value": "127.0.0.1"},
+        {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
+    ]
     assert kueue_manager["strategy"]["rollingUpdate"] == {
         "maxSurge": 0,
         "maxUnavailable": 1,
@@ -57,7 +61,7 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     chart = yaml.safe_load(
         (GOVERNANCE.parent / "vendor/kueue/Chart.yaml").read_text()
     )
-    assert chart["version"] == "0.19.5-re8ch.1"
+    assert chart["version"] == "0.19.5-re8ch.2"
     manager_template = (
         GOVERNANCE.parent / "vendor/kueue/templates/manager/manager.yaml"
     ).read_text()
@@ -126,6 +130,9 @@ def test_prefer_taint_stage_is_not_blocked_by_existing_pending_pods():
     ).read_text()
     assert '"$pending" != "0" && "$mode" == "enforce"' in rollout
     assert '"$pending" != "0" && "$mode" != "observe"' not in rollout
+    assert "for _ in 1 2 3; do" in rollout
+    assert 'if [[ "$apply" == "--apply" ]]; then' in rollout
+    assert '"${dry_run[@]}"' not in rollout
 
 
 def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():

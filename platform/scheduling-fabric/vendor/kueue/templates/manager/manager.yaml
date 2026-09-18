@@ -69,6 +69,10 @@ spec:
           failureThreshold: {{ .Values.controllerManager.livenessProbe.failureThreshold }}
           successThreshold: {{ .Values.controllerManager.livenessProbe.successThreshold }}
         name: manager
+        {{- with .Values.controllerManager.manager.env }}
+        env:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         - containerPort: 8082
           name: visibility
