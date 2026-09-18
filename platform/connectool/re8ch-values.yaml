@@ -105,7 +105,7 @@ toolhive:
         - {name: tenant-api-backend}
       outgoingAuth:
         source: inline
-        default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: admin-vmcp-backend-auth}}
+        default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: tenant-vmcp-backend-auth}}
       operational:
         failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
       authorization:

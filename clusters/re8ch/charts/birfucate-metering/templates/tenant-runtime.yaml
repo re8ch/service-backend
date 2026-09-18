@@ -179,13 +179,23 @@ spec:
   externalAuthConfigRef: {name: admin-vmcp-backend-auth}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPExternalAuthConfig
+metadata: {name: tenant-vmcp-backend-auth, namespace: toolhive-system}
+spec:
+  type: tokenExchange
+  tokenExchange:
+    tokenUrl: http://tenant-api.tenant-infrastructure.svc/oauth/token
+    audience: re8ch-tenant
+    subjectTokenType: access_token
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServerEntry
 metadata: {name: tenant-api-backend, namespace: toolhive-system}
 spec:
   groupRef: {name: tenant-public}
   remoteUrl: http://tenant-api.tenant-infrastructure.svc/mcp
   transport: streamable-http
-  externalAuthConfigRef: {name: admin-vmcp-backend-auth}
+  externalAuthConfigRef: {name: tenant-vmcp-backend-auth}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -195,8 +205,8 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
   rules:
     - matches: [{path: {type: PathPrefix, value: /tenant}}]
-      # ConnecTool authenticates the caller and injects the reviewed service
-      # credential when the tenant vMCP invokes tenant-api-backend.
+      # ConnecTool authenticates the caller and exchanges the inbound Dex token
+      # for a short-lived, audience-bound backend identity token.
       backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
       backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
