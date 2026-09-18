@@ -29,7 +29,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: image
         env:
-          IMAGE: ghcr.io/re8ch/toolhive-cloud-ui
+          IMAGE: ghcr.io/re8ch/toolhive-cloud-ui-re8ch
           VERSION: 0.6.2-re8ch.4
         run: |
           short_sha="${GITHUB_SHA::12}"

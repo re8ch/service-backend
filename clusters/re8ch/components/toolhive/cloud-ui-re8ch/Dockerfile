@@ -12,6 +12,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install
 RUN pnpm build
 
 FROM node:24.18.0-alpine
+LABEL org.opencontainers.image.source="https://github.com/re8ch/service-backend"
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs

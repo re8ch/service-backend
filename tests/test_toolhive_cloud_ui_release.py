@@ -15,6 +15,7 @@ def test_cloud_ui_release_is_remote_pinned_and_signed():
 
     assert "TOOLHIVE_CLOUD_UI_REF=d8a92acc24ae48e08579c580108f376708730300" in dockerfile
     assert 'git fetch --depth 1 origin "${TOOLHIVE_CLOUD_UI_REF}"' in dockerfile
+    assert 'org.opencontainers.image.source="https://github.com/re8ch/service-backend"' in dockerfile
     assert "runs-on: ubuntu-latest" in workflow
     assert "environment: production" in workflow
     assert "packages: write" in workflow
@@ -22,5 +23,6 @@ def test_cloud_ui_release_is_remote_pinned_and_signed():
     assert "--platform linux/amd64" in workflow
     assert "--cache-to type=gha,mode=max" in workflow
     assert "VERSION: 0.6.2-re8ch.4" in workflow
+    assert "IMAGE: ghcr.io/re8ch/toolhive-cloud-ui-re8ch" in workflow
     assert 'cosign sign --yes "$IMAGE@$digest"' in workflow
     assert "workflow_dispatch:" in workflow
