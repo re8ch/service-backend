@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: wetland-copper
+codename: atoll-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:bfd0d30b1097978d86b61a7f9c36fdb7a95d048669cff1aeeda6bf5eaa436bba
+  digest: sha256:b7dc79fbc039b98ab63cf23fd8c0bb3d0f8f46684b5743a71152e627da340f4a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
