@@ -92,6 +92,99 @@ spec:
   selector: {app.kubernetes.io/name: secretary-runtime}
   ports: [{name: service, port: 9080, targetPort: service}]
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secretary-channel-registry-v1
+  namespace: re8ch-secretary
+  labels: {app.kubernetes.io/component: channel-registry}
+data:
+  channels.json: |
+    [
+      {
+        "endpoint_id": "telegram-re8ch-incident-response",
+        "registered": true,
+        "platform": "telegram",
+        "display_name": "Re8ch Incident Response",
+        "destination": {"kind": "supergroup", "chat_id": "-1004490421553"},
+        "purpose": "critical incident response and human acknowledgement",
+        "severity": ["critical"],
+        "owner": "platform",
+        "service": "re8ch-cluster",
+        "incidentrelay": {"channel_id": 1, "route_id": 1, "route_name": "Cluster Critical Alerts"},
+        "delivery_path": "alertmanager -> incidentrelay -> telegram",
+        "healthy": true
+      },
+      {
+        "endpoint_id": "telegram-re8ch-cluster-alerts",
+        "registered": true,
+        "platform": "telegram",
+        "display_name": "Re8ch Cluster Alerts",
+        "destination": {"kind": "supergroup", "chat_id": "-1004328524883"},
+        "purpose": "actionable cluster warning alerts",
+        "severity": ["warning"],
+        "owner": "platform",
+        "service": "re8ch-cluster",
+        "incidentrelay": {"channel_id": 2, "route_id": 2, "route_name": "Cluster Warning Alerts"},
+        "delivery_path": "alertmanager -> incidentrelay -> telegram",
+        "healthy": true
+      },
+      {
+        "endpoint_id": "telegram-re8ch-cluster-events",
+        "registered": true,
+        "platform": "telegram",
+        "display_name": "Re8ch Cluster Events",
+        "destination": {"kind": "supergroup", "chat_id": "-1003868458223"},
+        "purpose": "informational cluster lifecycle events",
+        "severity": ["info"],
+        "owner": "platform",
+        "service": "re8ch-cluster",
+        "incidentrelay": {"channel_id": 3, "route_id": 3, "route_name": "Cluster Informational Events"},
+        "delivery_path": "alertmanager -> incidentrelay -> telegram",
+        "healthy": true
+      }
+    ]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: secretary-channel-registry-v1
+  namespace: re8ch-secretary
+  labels: {app.kubernetes.io/component: channel-registry}
+spec:
+  backoffLimit: 8
+  template:
+    metadata: {labels: {app.kubernetes.io/component: channel-registry}}
+    spec:
+      serviceAccountName: secretary
+      restartPolicy: OnFailure
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: register
+          image: registry.re8ch.com/secretary-system/secretary-system@sha256:2a9036f04b7880f734b57ab5ed546728b6a2748f75ce8fb109b4562fb1a2352d
+          command: [python, -c]
+          args:
+            - |
+              import json, os, time, urllib.parse, urllib.request
+              channels = json.loads(os.environ["SECRETARY_CHANNEL_REGISTRY"])
+              for channel in channels:
+                  endpoint_id = channel.pop("endpoint_id")
+                  url = "http://restate:8080/ChannelObject/" + urllib.parse.quote(endpoint_id, safe="") + "/observe"
+                  body = json.dumps(channel, separators=(",", ":")).encode()
+                  for attempt in range(60):
+                      try:
+                          request = urllib.request.Request(url, data=body, method="POST", headers={"Content-Type": "application/json"})
+                          urllib.request.urlopen(request, timeout=5).read()
+                          break
+                      except Exception:
+                          if attempt == 59: raise
+                          time.sleep(2)
+          env:
+            - name: SECRETARY_CHANNEL_REGISTRY
+              valueFrom: {configMapKeyRef: {name: secretary-channel-registry-v1, key: channels.json}}
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 128Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
 apiVersion: batch/v1
 kind: Job
 metadata: {name: secretary-register-v0-2-2, namespace: re8ch-secretary}
