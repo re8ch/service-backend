@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: tundra
+codename: wetland
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:dd49c0c991f358981655b7079d3e5da1e6b36247bf00ececade8df90166e5311
+  digest: sha256:4c1e5908b043bf8c6e8a4a208a48606d82944fd90954054020244cf6087b00ce
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
