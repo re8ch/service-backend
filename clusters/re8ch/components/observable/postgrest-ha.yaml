@@ -37,9 +37,13 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: scheduling.re8ch.com/service-plane
+                  # Keep the database client on the two nodes with a verified
+                  # route to the external Pigsty primary. Move this workload
+                  # only after the candidate service-plane nodes pass the
+                  # pg-re8ch-primary:5432 reachability gate.
+                  - key: kubernetes.io/hostname
                     operator: In
-                    values: [core]
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
