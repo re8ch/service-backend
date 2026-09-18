@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/personal-access
-    delivery.re8ch.com/codename: aegis
+    delivery.re8ch.com/codename: bastion
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
   ref:
-    digest: sha256:f47b5cf2ef132c9b792edf41aedcf49c292c51c39414271f4d9e240865104109
+    digest: sha256:011e8f5fed5ec380fc101cf0563b376286b147c3be5371e8dddb4d4a98676d02
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/personal-access
-    delivery.re8ch.com/codename: aegis
+    delivery.re8ch.com/codename: bastion
 spec:
   interval: 10m
   retryInterval: 1m

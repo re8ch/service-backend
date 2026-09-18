@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: atoll-amber
+codename: canopy-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:5a3f63f2ab55e9da8cefc73dc157fe5e0fb8f6b55c595798e1440ab7bc80212b
+  digest: sha256:3efd771530a241e457e6194dbcb81ad43f5ec839d278ee8f9e220d024b1b4525
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

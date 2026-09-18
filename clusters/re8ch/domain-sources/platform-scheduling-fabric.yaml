@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-amber
+    delivery.re8ch.com/codename: canopy-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:5a3f63f2ab55e9da8cefc73dc157fe5e0fb8f6b55c595798e1440ab7bc80212b
+    digest: sha256:3efd771530a241e457e6194dbcb81ad43f5ec839d278ee8f9e220d024b1b4525
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-amber
+    delivery.re8ch.com/codename: canopy-amber
 spec:
   interval: 10m
   retryInterval: 1m
