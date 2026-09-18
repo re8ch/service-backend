@@ -1,0 +1,59 @@
+name: toolhive-cloud-ui-release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/toolhive-cloud-ui-release.yml
+      - clusters/re8ch/components/toolhive/cloud-ui-re8ch/**
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+concurrency:
+  group: toolhive-cloud-ui-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: image
+        env:
+          IMAGE: ghcr.io/re8ch/toolhive-cloud-ui
+          VERSION: 0.6.2-re8ch.4
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          docker buildx build \
+            --builder "${{ steps.buildx.outputs.name }}" \
+            --platform linux/amd64 \
+            --provenance mode=max \
+            --sbom true \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --metadata-file "$RUNNER_TEMP/image-metadata.json" \
+            --tag "$IMAGE:$VERSION" \
+            --tag "$IMAGE:sha-$short_sha" \
+            --push \
+            clusters/re8ch/components/toolhive/cloud-ui-re8ch
+          digest="$(jq -r '."containerimage.digest"' "$RUNNER_TEMP/image-metadata.json")"
+          test -n "$digest"
+          test "$digest" != null
+          cosign sign --yes "$IMAGE@$digest"
+          printf '%s@%s\n' "$IMAGE" "$digest" > "$RUNNER_TEMP/toolhive-cloud-ui.image"
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: toolhive-cloud-ui-${{ github.sha }}
+          path: ${{ runner.temp }}/toolhive-cloud-ui.image
+          if-no-files-found: error
+          retention-days: 30
