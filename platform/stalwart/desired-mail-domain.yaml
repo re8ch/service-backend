@@ -5,11 +5,11 @@ metadata:
   namespace: mail-system
   labels: {governance.re8ch.com/evidence-plane: planning}
 data:
-  primaryDomain: phonaid.com
-  aliasDomains: re8ch.com
-  aliasSemantics: same-local-part-same-mailbox
+  domains: phonaid.com,re8ch.com
+  domainSemantics: independent-mail-domains
   authority: staged
-  currentMX: mx1.feishu.cn,mx2.feishu.cn,mx3.feishu.cn
+  phonaidCurrentMX: mx1.feishu.cn,mx2.feishu.cn,mx3.feishu.cn
+  re8chDnsState: preserve-existing-authority
   dnsMutationAllowed: "false"
   cutoverRequirements: monitoring,deploying,planning,inbound,outbound,dkim,spf,dmarc,mta-sts,rollback
   accountSource: git-workspaces/GitAccount
