@@ -301,6 +301,8 @@ modules:
       digest: sha256:7683ffce81add75449c8ebf787ae6176be060e610c619802ad3b686da053ce09
     - codename: spectrum
       digest: sha256:1a89ac3c33ccee91359df3d220854fdb73d3a75c83a31eaba3b831379725f6f8
+    - codename: telescope
+      digest: sha256:8f531d9fd7e28c04cbfee91b5c0bcc8865fb1ce53cb9964e79deed5ea657a225
   platform/observability/opencost-recovery:
     releases:
     - codename: aperture
