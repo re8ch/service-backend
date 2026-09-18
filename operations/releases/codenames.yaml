@@ -151,6 +151,8 @@ modules:
       digest: sha256:28a14e6d6c68d525719f964fbd5531ebf97b719bad1eb71849468d9bc9ecf766
     - codename: grove-copper
       digest: sha256:0a1959ec18130126643e18baf5c940d3dcb50ef7eb0d9255254b1d7b335f53f7
+    - codename: reef-copper
+      digest: sha256:3147727b8ea007cda792ea0a9f15a69b5f4805f4b591e988333382cf3130ddda
   platform/cloud-platform:
     releases:
     - codename: atoll

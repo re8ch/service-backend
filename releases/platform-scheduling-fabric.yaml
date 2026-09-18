@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: grove-copper
+codename: reef-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:0a1959ec18130126643e18baf5c940d3dcb50ef7eb0d9255254b1d7b335f53f7
+  digest: sha256:3147727b8ea007cda792ea0a9f15a69b5f4805f4b591e988333382cf3130ddda
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
