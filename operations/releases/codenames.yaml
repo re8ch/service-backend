@@ -251,6 +251,8 @@ modules:
       digest: sha256:1b69b59ece52ee66eddb6517ec8f637671ffda2aa95e2e087e1258d0ac8980c4
     - codename: chinook
       digest: sha256:6e15643a73712b49b1e2391a81ce056caff1efc8247aa378d3afe65cfc00024e
+    - codename: etesian
+      digest: sha256:2a10eb93fc6e8c95f9ad37935f2b5d62e01e3e5a63a9fbcd07299e90feb8f3f6
   platform/adapter:
     releases:
     - codename: anchor
