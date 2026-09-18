@@ -12,6 +12,29 @@ def yaml_documents(path: Path):
     return [doc for doc in yaml.safe_load_all(path.read_text()) if doc]
 
 
+def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
+    resources = yaml_documents(OBSERVABILITY / "bootstrap" / "victoria-metrics-operator.yaml")
+    release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
+    values = release["spec"]["values"]
+
+    node_expression = values["affinity"]["nodeAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert node_expression == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-6dc3f140f9", "suxunji"],
+    }
+    assert values["tolerations"] == [
+        {
+            "key": "node-role.kubernetes.io/control-plane",
+            "operator": "Equal",
+            "value": "true",
+            "effect": "NoSchedule",
+        }
+    ]
+
+
 def test_production_reconciliation_is_enabled_from_verified_oci_source():
     resources = yaml_documents(ROOT / "platform" / "observability-source" / "source.yaml")
     production = next(doc for doc in resources if doc["metadata"]["name"] == "observability-production")
