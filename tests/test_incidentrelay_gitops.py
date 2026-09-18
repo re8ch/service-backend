@@ -41,6 +41,15 @@ def test_publication_uses_existing_gateway_and_declared_r640_authority():
     assert dns["spec"]["ingressClassName"] == "external-dns-only"
 
 
+def test_cilium_gateway_identity_can_reach_only_the_web_port():
+    policy = yaml.safe_load((PLATFORM / "gateway-policy.yaml").read_text())
+    assert policy["kind"] == "CiliumNetworkPolicy"
+    assert policy["spec"]["endpointSelector"]["matchLabels"]["app.kubernetes.io/component"] == "web"
+    ingress = policy["spec"]["ingress"]
+    assert ingress[0]["fromEntities"] == ["ingress"]
+    assert ingress[0]["toPorts"][0]["ports"] == [{"port": "8080", "protocol": "TCP"}]
+
+
 def test_secrets_are_sops_encrypted_and_referenced_from_root():
     for name in (
         "incidentrelay-config.sops.yaml",
