@@ -109,6 +109,16 @@ spec:
     enableVisibilityAPF: true
     controllerManager:
       replicas: 2
+      # Admission webhooks are on the API-server critical path. Keep their
+      # endpoints on the control-plane underlay instead of advertising a
+      # cross-site PodCIDR endpoint that can reset TLS handshakes.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      strategy:
+        rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
+      nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
       podDisruptionBudget: {enabled: true, minAvailable: 1}
       topologySpreadConstraints:
         - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {control-plane: controller-manager}}}

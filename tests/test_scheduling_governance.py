@@ -27,6 +27,23 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
         "reconcileStrategy": "Revision",
         "sourceRef": {"kind": "GitRepository", "name": "service-backend"},
     }
+    kueue_manager = releases["kueue"]["spec"]["values"]["controllerManager"]
+    assert kueue_manager["replicas"] == 2
+    assert kueue_manager["hostNetwork"] is True
+    assert kueue_manager["dnsPolicy"] == "ClusterFirstWithHostNet"
+    assert kueue_manager["strategy"]["rollingUpdate"] == {
+        "maxSurge": 0,
+        "maxUnavailable": 1,
+    }
+    assert kueue_manager["nodeSelector"] == {
+        "node-role.kubernetes.io/control-plane": "true"
+    }
+    assert {
+        "key": "node-role.kubernetes.io/control-plane",
+        "operator": "Equal",
+        "value": "true",
+        "effect": "NoSchedule",
+    } in kueue_manager["tolerations"]
 
     assert not any(item["metadata"]["name"] == "kueue-official" for item in bootstrap)
     provenance = yaml.safe_load(
