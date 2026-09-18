@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/external-projects
-codename: compass
+codename: passage
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
-  digest: sha256:4b8c69c6ebe40c2050ec5d9d89e05b220bc061288624731a07df985be857b04c
+  digest: sha256:f1e830fa695cb92c40653c0e46ffce194a521c24ffb5b4ef0dedbe3836b0326d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
