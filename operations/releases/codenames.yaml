@@ -183,6 +183,8 @@ modules:
       digest: sha256:a79ab2c6f40b2f69d0af54b2041962e687478c5a3b564f1ef59d0d3a58f19e6c
     - codename: lighthouse
       digest: sha256:9e02a88dc6d25a8769ab28fed9263f921f7d47ba71cbc3b62f82f719fbf74697
+    - codename: signal
+      digest: sha256:b0a5b34bea850a3347d70b27d46fa7e57456fe9f3bd5297ec7acc5c8290286ab
   platform/apps/access-subscription:
     releases:
     - codename: aegis
