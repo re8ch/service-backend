@@ -1,0 +1,93 @@
+# Flux owns only these governance labels. The prune opt-out is required because
+# Namespace lifecycle remains with each namespace's authoritative controller.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-system
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rook-ceph
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scheduling-system
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scheduler-system
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability-system
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: among-clusters
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kyverno
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kueue-system
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opentelemetry-operator
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+# Existing tenant namespaces predate the controller's managed marker.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: artchais-default
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {tenancy.re8ch.com/managed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-qwen-runtime
+  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
+  labels: {tenancy.re8ch.com/managed: "true"}

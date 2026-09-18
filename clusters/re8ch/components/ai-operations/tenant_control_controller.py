@@ -300,7 +300,11 @@ def tenant_groups(tenant_ref):
 def tenant_namespace_resources(tenant, namespace):
     tenant_ref = tenant["metadata"]["name"]
     tenant_uid = tenant["metadata"]["uid"]
-    labels = {"tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-control-controller"}
+    labels = {
+        "tenancy.re8ch.com/tenant": tenant_ref,
+        "tenancy.re8ch.com/managed": "true",
+        "tenancy.re8ch.com/managed-by": "tenant-control-controller",
+    }
     annotation = {"tenancy.re8ch.com/tenant-uid": tenant_uid}
     owner_rules = [
         {"apiGroups": [""], "resources": ["pods", "pods/log", "pods/exec", "services", "endpoints", "persistentvolumeclaims", "configmaps", "secrets", "serviceaccounts", "events"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
