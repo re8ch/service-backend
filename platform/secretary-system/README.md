@@ -17,6 +17,7 @@ The runtime is tenant-scoped in `re8ch-secretary`. Its single-node Restate deplo
 ## Runtime
 
 - Restate `IncidentWorkflow`, `RecipientObject`, `ChannelObject`, and `InvestigatorService` run from the same image.
+- `secretary-channel-registry-v1` declaratively registers outbound delivery endpoints in durable Restate `ChannelObject` state. Each entry uses a stable endpoint ID and records its platform destination, purpose, severity band, owner, service, IncidentRelay channel/route linkage, and delivery path. The registry intentionally contains no bot token or route credential.
 - FastAPI accepts signed fact events and channel callbacks.
 - PostgreSQL is the authoritative append-only ledger and outbox.
 - Neo4j is a rebuildable evidence graph projection.
