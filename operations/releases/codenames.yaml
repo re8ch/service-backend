@@ -287,6 +287,8 @@ modules:
       digest: sha256:bade5daee195d1efc8505a978ba0d8c554e64618e57a7010d807781c1ac9b897
     - codename: anchor-amber
       digest: sha256:bbb17c8ef25d6afc78d23ad30764d89cfe1de216a059ca7374807598aaa0ed4f
+    - codename: beacon-amber
+      digest: sha256:1d3f2a2dc7c10ee10d14fbfd032b29a5768483a81f60baba8781662994244b3a
   platform/observability/bootstrap:
     releases:
     - codename: aperture
