@@ -36,10 +36,21 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
         "maxUnavailable": 1,
     }
     assert kueue_manager["nodeSelector"] == {
-        "scheduling.re8ch.com/reliability-class": "stable",
-        "scheduling.re8ch.com/provider": "tencent",
+        "node-role.kubernetes.io/control-plane": "true",
     }
-    assert "tolerations" not in kueue_manager
+    assert kueue_manager["tolerations"] == [
+        {
+            "key": "node-role.kubernetes.io/control-plane",
+            "operator": "Exists",
+            "effect": "NoSchedule",
+        }
+    ]
+    manager_config = yaml.safe_load(
+        releases["kueue"]["spec"]["values"]["managerConfig"]["controllerManagerConfigYaml"]
+    )
+    assert manager_config["managedJobsNamespaceSelector"] == {
+        "matchLabels": {"kueue.x-k8s.io/managed": "true"}
+    }
 
     assert not any(item["metadata"]["name"] == "kueue-official" for item in bootstrap)
     provenance = yaml.safe_load(
@@ -81,6 +92,7 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
         assert namespace_labels[name]["scheduling.re8ch.com/control-plane-allowed"] == "true"
     for name in ("tenant-qwen-runtime", "artchais-default"):
         assert namespace_labels[name]["tenancy.re8ch.com/managed"] == "true"
+        assert namespace_labels[name]["kueue.x-k8s.io/managed"] == "true"
 
 
 def test_control_plane_reservations_are_declared_without_noexecute():

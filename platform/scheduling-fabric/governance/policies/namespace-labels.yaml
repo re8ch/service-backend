@@ -83,11 +83,11 @@ kind: Namespace
 metadata:
   name: artchais-default
   annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {tenancy.re8ch.com/managed: "true"}
+  labels: {tenancy.re8ch.com/managed: "true", kueue.x-k8s.io/managed: "true"}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: tenant-qwen-runtime
   annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {tenancy.re8ch.com/managed: "true"}
+  labels: {tenancy.re8ch.com/managed: "true", kueue.x-k8s.io/managed: "true"}

@@ -112,17 +112,17 @@ spec:
     enableVisibilityAPF: true
     controllerManager:
       replicas: 2
-      # Admission webhooks are on the API-server critical path. Advertise
-      # stable node-underlay endpoints instead of cross-site PodCIDR endpoints.
-      # Tencent workers have verified kubelet/underlay reachability and also
-      # avoid host-port collisions with control-plane Rook.
+      # Admission webhooks are on the API-server critical path. Keep their
+      # host-network endpoints beside the HA API servers instead of depending
+      # on a cross-site worker's Service/API path.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       strategy:
         rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
       nodeSelector:
-        scheduling.re8ch.com/reliability-class: stable
-        scheduling.re8ch.com/provider: tencent
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       podDisruptionBudget: {enabled: true, minAvailable: 1}
       topologySpreadConstraints:
         - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {control-plane: controller-manager}}}
@@ -131,3 +131,44 @@ spec:
         resources:
           requests: {cpu: 100m, memory: 256Mi}
           limits: {cpu: 500m, memory: 512Mi}
+    managerConfig:
+      controllerManagerConfigYaml: |-
+        apiVersion: config.kueue.x-k8s.io/v1beta2
+        kind: Configuration
+        health:
+          healthProbeBindAddress: :8081
+        metrics:
+          bindAddress: :8443
+        webhook:
+          port: 9443
+        leaderElection:
+          leaderElect: true
+          resourceName: c1f6bfd2.kueue.x-k8s.io
+        controller:
+          groupKindConcurrency:
+            Job.batch: 5
+            Pod: 5
+            Workload.kueue.x-k8s.io: 10
+            LocalQueue.kueue.x-k8s.io: 5
+            ClusterQueue.kueue.x-k8s.io: 5
+            ResourceFlavor.kueue.x-k8s.io: 1
+        clientConnection:
+          qps: 300
+          burst: 500
+        managedJobsNamespaceSelector:
+          matchLabels:
+            kueue.x-k8s.io/managed: "true"
+        integrations:
+          frameworks:
+            - batch/job
+            - kubeflow.org/mpijob
+            - ray.io/rayjob
+            - ray.io/rayservice
+            - ray.io/raycluster
+            - jobset.x-k8s.io/jobset
+            - workload.codeflare.dev/appwrapper
+            - trainer.kubeflow.org/trainjob
+            - pod
+            - deployment
+            - statefulset
+            - leaderworkerset.x-k8s.io/leaderworkerset
