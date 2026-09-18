@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: zephyr
+codename: bora-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:83098072e00ba9960937802febc2b0a8268ea65b9ae8d6804dfc53f49f3e0b94
+  digest: sha256:f4f1537bf245954a0110c079b5ff5853559707449b375019ff1cbf584139b1a3
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
