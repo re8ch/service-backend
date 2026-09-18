@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: passage-amber
+    delivery.re8ch.com/codename: trailhead-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:c6255e72dc1b62b1b6db893d680a09e99975232ec0269de9a04da4208f27cef9
+    digest: sha256:4a7b19805fb2cec7a6fc74a183a38c41da6135594d2807572fec4789b627f91e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: passage-amber
+    delivery.re8ch.com/codename: trailhead-amber
 spec:
   interval: 10m
   retryInterval: 1m
