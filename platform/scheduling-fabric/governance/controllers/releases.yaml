@@ -97,7 +97,10 @@ spec:
   chart:
     spec:
       chart: platform/scheduling-fabric/vendor/kueue
-      reconcileStrategy: Revision
+      # The chart is immutable and versioned in-tree. Rebuild only when its
+      # Chart.yaml version changes; ordinary control-plane commits must not
+      # restart this admission-critical deployment.
+      reconcileStrategy: ChartVersion
       # The reviewed upstream chart is carried by the already verified
       # service-backend source, so production does not depend on a large
       # GitHub clone or registry.k8s.io's Google redirect at reconcile time.
