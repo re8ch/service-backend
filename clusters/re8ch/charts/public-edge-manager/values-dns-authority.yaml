@@ -11,4 +11,5 @@ publication:
     cube: {namespace: cube-trial, name: cube-dns-authority}
     dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
     collab: {namespace: mail-system, name: stalwart-collaboration-public}
+    mail: {namespace: mail-system, name: stalwart-webmail-public}
     stalwart-admin: {namespace: mail-system, name: stalwart-admin-public}

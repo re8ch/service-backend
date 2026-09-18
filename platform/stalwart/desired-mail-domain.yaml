@@ -5,7 +5,9 @@ metadata:
   namespace: mail-system
   labels: {governance.re8ch.com/evidence-plane: planning}
 data:
-  domain: phonaid.com
+  primaryDomain: phonaid.com
+  aliasDomains: re8ch.com
+  aliasSemantics: same-local-part-same-mailbox
   authority: staged
   currentMX: mx1.feishu.cn,mx2.feishu.cn,mx3.feishu.cn
   dnsMutationAllowed: "false"

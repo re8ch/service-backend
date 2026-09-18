@@ -338,6 +338,19 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     assert chart_values["publication"]["refs"]["stalwart-admin"] == admin_ref
     assert dns_values["publication"]["refs"]["stalwart-admin"] == admin_ref
 
+    mail = services["mail.re8ch.com."]
+    assert mail == {
+        "service": "mail",
+        "class": "web",
+        "probePath": "/api/health",
+        "acceptedStatuses": [200],
+    }
+    mail_ref = {"namespace": "mail-system", "name": "stalwart-webmail-public"}
+    assert publications["mail"] == mail_ref
+    assert chart_values["services"]["mail.re8ch.com."] == mail
+    assert chart_values["publication"]["refs"]["mail"] == mail_ref
+    assert dns_values["publication"]["refs"]["mail"] == mail_ref
+
 
 def test_public_edge_uses_the_public_digest_pinned_controller_supply_chain():
     values = yaml.safe_load(
@@ -405,12 +418,40 @@ def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     lines = [yaml.safe_load(line) for line in plan["data"]["plan.ndjson"].splitlines()]
     assert lines and {line["@type"] for line in lines} <= {"upsert", "update"}
     assert any(line["object"] == "Sharing" for line in lines)
+    domain = next(line for line in lines if line["object"] == "Domain")
+    assert domain["value"]["phonaid-domain"]["name"] == "phonaid.com"
+    assert domain["value"]["phonaid-domain"]["aliases"] == {"re8ch.com": True}
     pod = job["spec"]["template"]["spec"]
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert pod["automountServiceAccountToken"] is False
     assert "@sha256:" in pod["containers"][0]["image"]
     cli_volume = next(volume for volume in pod["volumes"] if volume["name"] == "cli")
     assert "@sha256:" in cli_volume["image"]["reference"]
+
+
+def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
+    resources = documents(ROOT / "platform/stalwart/webmail.yaml")
+    deployment = next(item for item in resources if item["kind"] == "Deployment")
+    service = next(item for item in resources if item["kind"] == "Service")
+    route = next(
+        item
+        for item in resources
+        if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "stalwart-webmail-public"
+    )
+    pod = deployment["spec"]["template"]["spec"]
+    container = pod["containers"][0]
+    env = {entry["name"]: entry["value"] for entry in container["env"]}
+    assert "@sha256:" in container["image"]
+    assert pod["automountServiceAccountToken"] is False
+    assert pod["securityContext"]["runAsNonRoot"] is True
+    assert container["securityContext"]["allowPrivilegeEscalation"] is False
+    assert env["JMAP_SERVER_URL"] == "https://collab.tools.re8ch.com"
+    assert env["ALLOW_CUSTOM_JMAP_ENDPOINT"] == "false"
+    assert env["SETTINGS_SYNC_ENABLED"] == "false"
+    assert env["BULWARK_TELEMETRY"] == "off"
+    assert service["spec"]["ports"][0]["port"] == 80
+    assert route["spec"]["hostnames"] == ["mail.re8ch.com"]
+    assert route["spec"]["parentRefs"][0]["sectionName"] == "mail-https"
 
 
 def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_passwords():
