@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: aurora
+codename: flare
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:aa047053e814c04993e629ba53be98a77da0663b485189bc0fc772335562bb82
+  digest: sha256:588ff2249ae265e7819349bc67f03bcde6ca89eea02f43186517ecb3e705dc4c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
