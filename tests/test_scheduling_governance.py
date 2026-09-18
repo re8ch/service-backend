@@ -21,6 +21,14 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert releases["descheduler"]["spec"]["chart"]["spec"]["version"] == "0.36.0"
     assert releases["descheduler"]["spec"]["values"]["cmdOptions"]["dry-run"] is True
     assert releases["descheduler"]["spec"]["values"]["deschedulerPolicy"]["maxNoOfPodsToEvictTotal"] == 5
+    descheduler_plugins = releases["descheduler"]["spec"]["values"]["deschedulerPolicy"]["profiles"][0][
+        "pluginConfig"
+    ]
+    taint_args = next(
+        plugin["args"] for plugin in descheduler_plugins if plugin["name"] == "RemovePodsViolatingNodeTaints"
+    )
+    assert taint_args["includePreferNoSchedule"] is True
+    assert taint_args["includedTaints"] == ["node-role.kubernetes.io/control-plane=true"]
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
     assert releases["kueue"]["spec"]["chart"]["spec"] == {
         "chart": "platform/scheduling-fabric/vendor/kueue",
