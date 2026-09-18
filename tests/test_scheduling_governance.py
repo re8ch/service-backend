@@ -97,6 +97,10 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
     policies = docs(GOVERNANCE / "policies/kyverno.yaml")
     assert all(item["spec"]["validationFailureAction"] == "Audit" for item in policies)
     assert "node-role.kubernetes.io/control-plane" in (GOVERNANCE / "policies/kyverno.yaml").read_text()
+    privileged = next(
+        item for item in policies if item["metadata"]["name"] == "audit-privileged-workloads"
+    )
+    assert "request.object.spec.volumes || `[]`" in yaml.safe_dump(privileged)
 
     queues = docs(GOVERNANCE / "policies/kueue.yaml")
     local_queues = [item for item in queues if item["kind"] == "LocalQueue"]

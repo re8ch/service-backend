@@ -127,4 +127,7 @@ spec:
           conditions:
             any:
               - {key: "{{ request.object.spec.containers[?securityContext.privileged == `true`] | length(@) }}", operator: GreaterThan, value: 0}
-              - {key: "{{ request.object.spec.volumes[?hostPath] | length(@) }}", operator: GreaterThan, value: 0}
+              # Most Pods have no volumes field. Coalesce it before filtering
+              # so a volume-less Pod produces zero findings instead of a
+              # Kyverno JMESPath type error.
+              - {key: "{{ (request.object.spec.volumes || `[]`)[?hostPath] | length(@) }}", operator: GreaterThan, value: 0}
