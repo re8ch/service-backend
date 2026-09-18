@@ -103,12 +103,16 @@ modules:
       digest: sha256:b285c878e7f95b2f3191a3e090b28a79d9af24a363463fcb80e63dd078f306aa
     - codename: chinook
       digest: sha256:4481f5eabb093092c172c6621d12b2dccbb15abb31d84c25ad8b7ad559c1115c
+    - codename: etesian
+      digest: sha256:702007b563e67f16a17cc79d2faa22e073f022aa08f2498755f90ab2ab0954d6
   platform/scheduling-fabric:
     releases:
     - codename: atoll
       digest: sha256:fc128757d136f6c865dc199da3b119850335d9865d9a66ce3e2dbf96b6d24647
     - codename: canopy
       digest: sha256:3f7dccd5beefdd950fd6e5c2a760f6bd5e091383b7891388e9181fc32e715de1
+    - codename: delta
+      digest: sha256:a2ba3d30d43597c35c9719915c77c8ddda0f884873c5bc391c8ebb7d0e98c562
   platform/cloud-platform:
     releases:
     - codename: atoll

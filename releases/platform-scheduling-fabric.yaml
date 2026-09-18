@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: canopy
+codename: delta
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:3f7dccd5beefdd950fd6e5c2a760f6bd5e091383b7891388e9181fc32e715de1
+  digest: sha256:a2ba3d30d43597c35c9719915c77c8ddda0f884873c5bc391c8ebb7d0e98c562
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
