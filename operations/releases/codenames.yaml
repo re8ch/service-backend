@@ -173,6 +173,8 @@ modules:
       digest: sha256:81ca8f053f2efeb39a944a04ca9e173223c0d2269513efb69546176f2587ed44
     - codename: flare
       digest: sha256:1908b7a03ed8072c71b6e8f5ddfc5ae62035b8d127cee43caa5e2fa05bc9250e
+    - codename: lantern
+      digest: sha256:a79ab2c6f40b2f69d0af54b2041962e687478c5a3b564f1ef59d0d3a58f19e6c
   platform/apps/access-subscription:
     releases:
     - codename: aegis
