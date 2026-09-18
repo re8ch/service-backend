@@ -93,6 +93,8 @@ modules:
     releases:
     - codename: aegis
       digest: sha256:f47b5cf2ef132c9b792edf41aedcf49c292c51c39414271f4d9e240865104109
+    - codename: bastion
+      digest: sha256:011e8f5fed5ec380fc101cf0563b376286b147c3be5371e8dddb4d4a98676d02
   platform/headlamp:
     releases:
     - codename: aurora
@@ -123,6 +125,8 @@ modules:
       digest: sha256:4c1e5908b043bf8c6e8a4a208a48606d82944fd90954054020244cf6087b00ce
     - codename: atoll-amber
       digest: sha256:5a3f63f2ab55e9da8cefc73dc157fe5e0fb8f6b55c595798e1440ab7bc80212b
+    - codename: canopy-amber
+      digest: sha256:3efd771530a241e457e6194dbcb81ad43f5ec839d278ee8f9e220d024b1b4525
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -267,3 +271,5 @@ modules:
       digest: sha256:a28f1aa299fb9924fb79e364cb46ebe6cf7d1d838aae781203a5b9bffc4ae4b7
     - codename: spectrum
       digest: sha256:2da1a6d6c026b2ac66ebb9362490f9a08962ac3d815cf0eb135eaa79d6b05a94
+    - codename: telescope
+      digest: sha256:c62b497ca07990a7cb2bb85b34005b97f964e2bbb0775082fb42620e30eb03ce
