@@ -147,6 +147,8 @@ modules:
       digest: sha256:ce0c7d3db47d3f5b9875fb9412ac91508765c758ef10bdafb386958e0a5b3e69
     - codename: canopy-copper
       digest: sha256:1d59c9cc4d9eeb59c940eb13a9bb961891127dac431cd1e68315a1469bef796b
+    - codename: delta-copper
+      digest: sha256:28a14e6d6c68d525719f964fbd5531ebf97b719bad1eb71849468d9bc9ecf766
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -227,6 +229,8 @@ modules:
       digest: sha256:c6255e72dc1b62b1b6db893d680a09e99975232ec0269de9a04da4208f27cef9
     - codename: trailhead-amber
       digest: sha256:4a7b19805fb2cec7a6fc74a183a38c41da6135594d2807572fec4789b627f91e
+    - codename: anchor-copper
+      digest: sha256:15a26dd28934f3634c23fdb7375000c50dcb296cd08c51ad765be591ddfc9ed2
   platform/birfucate-metering:
     releases:
     - codename: cascade
