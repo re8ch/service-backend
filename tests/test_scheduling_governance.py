@@ -22,10 +22,19 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert releases["descheduler"]["spec"]["values"]["cmdOptions"]["dry-run"] is True
     assert releases["descheduler"]["spec"]["values"]["deschedulerPolicy"]["maxNoOfPodsToEvictTotal"] == 5
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
-    assert releases["kueue"]["spec"]["chartRef"] == {"kind": "OCIRepository", "name": "kueue-official"}
+    assert releases["kueue"]["spec"]["chart"]["spec"] == {
+        "chart": "charts/kueue",
+        "reconcileStrategy": "Revision",
+        "sourceRef": {"kind": "GitRepository", "name": "kueue-official"},
+    }
 
-    kueue_source = next(item for item in bootstrap if item["kind"] == "OCIRepository")
-    assert kueue_source["spec"]["ref"]["digest"] == "sha256:570cdfce9f9928a8cf36ea814278e2e56651d2e7f2dac3363ebf3e0cda303bc2"
+    kueue_source = next(
+        item
+        for item in bootstrap
+        if item["kind"] == "GitRepository" and item["metadata"]["name"] == "kueue-official"
+    )
+    assert kueue_source["kind"] == "GitRepository"
+    assert kueue_source["spec"]["ref"]["commit"] == "8e60d76a91bb9a45754218e569de1088f862ac75"
 
     child_kustomizations = {
         item["metadata"]["name"]: item
