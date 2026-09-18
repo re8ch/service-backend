@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/external-projects
-codename: trailhead
+codename: anchor-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
-  digest: sha256:bade5daee195d1efc8505a978ba0d8c554e64618e57a7010d807781c1ac9b897
+  digest: sha256:bbb17c8ef25d6afc78d23ad30764d89cfe1de216a059ca7374807598aaa0ed4f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
