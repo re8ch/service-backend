@@ -123,6 +123,8 @@ modules:
       digest: sha256:2c95ea02a36706090ed204aab61e93019efc6f3ce8109aa63e5358bb17fb1eb1
     - codename: tramontane
       digest: sha256:a942acf0763868f2c050635d6584a30601656509490653e1db04e9fbb2c73f34
+    - codename: zephyr
+      digest: sha256:83098072e00ba9960937802febc2b0a8268ea65b9ae8d6804dfc53f49f3e0b94
   platform/git-workspaces:
     releases:
     - codename: andromeda
