@@ -55,7 +55,7 @@ modules:
 - module: platform/observability/production
   name: observability-production
   wait: true
-  suspend: true
+  suspend: false
   timeout: 15m
   dependsOn:
   - name: observability-bootstrap

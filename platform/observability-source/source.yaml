@@ -42,7 +42,7 @@ metadata:
   name: observability-production
   namespace: flux-system
 spec:
-  suspend: true
+  suspend: false
   interval: 10m
   path: ./
   prune: false

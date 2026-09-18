@@ -25,6 +25,7 @@ resources:
 - secrets/incidentrelay-config.sops.yaml
 - secrets/incidentrelay-db-bootstrap.sops.yaml
 - secrets/incidentrelay-bootstrap-admin.sops.yaml
+- secrets/incidentrelay-alertmanager-tokens.sops.yaml
 - secrets/ontology-microscope-db.sops.yaml
 - components/cilium/gateway-api-canary.yaml
 - components/cilium/advfab-worker-node-ips.yaml

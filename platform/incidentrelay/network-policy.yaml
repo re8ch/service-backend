@@ -19,7 +19,7 @@ spec:
     - from:
         - namespaceSelector:
             matchExpressions:
-              - {key: kubernetes.io/metadata.name, operator: In, values: [kube-system, qianwen-ops, re8ch-secretary]}
+              - {key: kubernetes.io/metadata.name, operator: In, values: [kube-system, observability-system, qianwen-ops, re8ch-secretary]}
       ports:
         - {protocol: TCP, port: 8080}
   egress:
