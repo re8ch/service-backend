@@ -6,6 +6,11 @@ import yaml
 ROOT = Path(__file__).parents[1]
 
 
+def test_observable_postgrest_is_owned_by_root_gitops():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/observable/postgrest-ha.yaml" in root["resources"]
+
+
 def test_observable_postgrest_uses_owned_core_service_plane():
     resources = [
         item
