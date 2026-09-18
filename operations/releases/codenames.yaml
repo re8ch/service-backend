@@ -157,6 +157,8 @@ modules:
       digest: sha256:c3869f43217d48f058aae095e17161e4c37b66460557550d63934e48622ccfc2
     - codename: wetland-copper
       digest: sha256:bfd0d30b1097978d86b61a7f9c36fdb7a95d048669cff1aeeda6bf5eaa436bba
+    - codename: atoll-indigo
+      digest: sha256:b7dc79fbc039b98ab63cf23fd8c0bb3d0f8f46684b5743a71152e627da340f4a
   platform/cloud-platform:
     releases:
     - codename: atoll
