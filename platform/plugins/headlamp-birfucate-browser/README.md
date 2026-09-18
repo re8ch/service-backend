@@ -15,13 +15,16 @@ Service Proxy and renders:
   bifurcation, including observed AmongClusters/BYOC destinations.
 - Complete Re8ch Tenant MCP surface coverage, grouped by resource class; the
   checked-in catalog is tested against the PluginDefinition allowlist.
+- Subscriptions and offerings from `ConsumptionBinding` and `Consumable`, with
+  plan, quota, term, state, access type, credential delivery and OIDC proxy.
 
 The plugin performs only HTTP GET requests. It contains no create, update,
 delete, binding, credential, pricing or billing controls. The tenant selector
 is a presentation filter, not an authorization boundary; access to the
 Birfucate service proxy must be restricted by Headlamp/Kubernetes RBAC. The
 browser never receives the VictoriaMetrics service address or arbitrary PromQL
-access.
+access. OIDC identity bindings are the Keycloak boundary; `planRef` can map to a
+Lago plan while Birfucate remains the resource-authorization fact source.
 
 ```sh
 npm ci
