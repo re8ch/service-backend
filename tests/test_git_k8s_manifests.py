@@ -420,7 +420,9 @@ def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     assert any(line["object"] == "Sharing" for line in lines)
     domain = next(line for line in lines if line["object"] == "Domain")
     assert domain["value"]["phonaid-domain"]["name"] == "phonaid.com"
-    assert domain["value"]["phonaid-domain"]["aliases"] == {"re8ch.com": True}
+    assert domain["value"]["phonaid-domain"]["aliases"] == {}
+    assert domain["value"]["re8ch-domain"]["name"] == "re8ch.com"
+    assert domain["value"]["re8ch-domain"]["aliases"] == {}
     pod = job["spec"]["template"]["spec"]
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert pod["automountServiceAccountToken"] is False
