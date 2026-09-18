@@ -72,7 +72,7 @@ spec:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
         - name: cloud-ui
-          image: ghcr.io/re8ch/toolhive-cloud-ui@sha256:8f4a01e811e64bd2f76102f5b9e2736145b1c44f6325c8b8474a8b8c9c714488
+          image: ghcr.io/re8ch/toolhive-cloud-ui-re8ch@sha256:31c2230e14a02833f31f2853dd3abd166eb0ab3c9ee4bc297d06c97c52187eae
           imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 3000}]
           env:
