@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - namespace-labels.yaml
   - kyverno.yaml
+  - helm-installer-placement.yaml
   - kueue.yaml
   - observability.yaml
