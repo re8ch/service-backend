@@ -125,6 +125,8 @@ modules:
       digest: sha256:a942acf0763868f2c050635d6584a30601656509490653e1db04e9fbb2c73f34
     - codename: zephyr
       digest: sha256:83098072e00ba9960937802febc2b0a8268ea65b9ae8d6804dfc53f49f3e0b94
+    - codename: bora-amber
+      digest: sha256:f4f1537bf245954a0110c079b5ff5853559707449b375019ff1cbf584139b1a3
   platform/git-workspaces:
     releases:
     - codename: andromeda
