@@ -231,6 +231,8 @@ modules:
     releases:
     - codename: anchor
       digest: sha256:c061a0e392a9c8b19baf5051f42deea533b5d06e5c7a205d097e12586d356ea7
+    - codename: beacon
+      digest: sha256:03dece81d6de3f7397878302c180b3b0c8f56575d554723dc6bdd0176a8197a2
   platform/observability/bootstrap:
     releases:
     - codename: aperture
