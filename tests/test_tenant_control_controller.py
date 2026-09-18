@@ -102,6 +102,7 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     namespace = resources[0]
     assert namespace["metadata"]["annotations"]["tenancy.re8ch.com/tenant-uid"] == "tenant-uid"
     assert namespace["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == "re8ch"
+    assert namespace["metadata"]["labels"]["tenancy.re8ch.com/managed"] == "true"
     role = next(item for item in resources if item["kind"] == "Role")
     assert "namespaces" not in str(role["rules"])
     assert "clusterroles" not in str(role["rules"])

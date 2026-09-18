@@ -20,20 +20,22 @@ for node in "${nodes[@]}"; do
   }
 done
 
-pending="$(kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+pending="$(kubectl get pods -A --field-selector=status.phase=Pending -o json | \
+  python3 "$script_dir/control-plane-pending-gate.py" "${nodes[@]}")"
 if [[ "$pending" != "0" && "$mode" != "observe" && "$mode" != "rollback" ]]; then
-  echo "gate failed: $pending Pending pods already exist" >&2
+  echo "gate failed: $pending Pending pods can target control-plane nodes" >&2
   exit 1
 fi
 
 ordinary=0
 for node in "${nodes[@]}"; do
-  while read -r namespace name owner; do
-    [[ -z "$namespace" || "$namespace" =~ $system_namespaces || "$owner" == "DaemonSet" ]] && continue
+  while read -r namespace name owner allowed; do
+    [[ -z "$namespace" || "$namespace" =~ $system_namespaces || "$owner" == "DaemonSet" || "$allowed" == "true" ]] && continue
     printf '%s\t%s/%s\t%s\n' "$node" "$namespace" "$name" "$owner"
     ordinary=$((ordinary + 1))
-  done < <(kubectl get pods -A --field-selector="spec.nodeName=$node" \
-    -o custom-columns='NS:.metadata.namespace,NAME:.metadata.name,OWNER:.metadata.ownerReferences[0].kind' --no-headers)
+  done < <(kubectl get pods -A --field-selector="spec.nodeName=$node,status.phase=Running" \
+    -o custom-columns='NS:.metadata.namespace,NAME:.metadata.name,OWNER:.metadata.ownerReferences[0].kind,ALLOWED:.metadata.labels.scheduling\.re8ch\.com/control-plane-allowed' --no-headers)
 done
 
 if [[ "$mode" == "observe" ]]; then

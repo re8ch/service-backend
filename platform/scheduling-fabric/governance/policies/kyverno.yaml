@@ -14,6 +14,9 @@ spec:
           - resources:
               namespaceSelector:
                 matchLabels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+          - resources:
+              selector:
+                matchLabels: {scheduling.re8ch.com/control-plane-allowed: "true"}
       validate:
         message: Only reviewed system namespaces may tolerate the control-plane taint.
         deny:

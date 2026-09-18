@@ -71,6 +71,17 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
         ("artchais-default", "tenant-batch"),
     }
 
+    namespaces = docs(GOVERNANCE / "policies/namespace-labels.yaml")
+    namespace_labels = {
+        item["metadata"]["name"]: item["metadata"].get("labels", {}) for item in namespaces
+    }
+    for item in namespaces:
+        assert item["metadata"]["annotations"]["kustomize.toolkit.fluxcd.io/prune"] == "disabled"
+    for name in ("kube-system", "flux-system", "rook-ceph", "observability-system"):
+        assert namespace_labels[name]["scheduling.re8ch.com/control-plane-allowed"] == "true"
+    for name in ("tenant-qwen-runtime", "artchais-default"):
+        assert namespace_labels[name]["tenancy.re8ch.com/managed"] == "true"
+
 
 def test_control_plane_reservations_are_declared_without_noexecute():
     configs = {
@@ -93,6 +104,46 @@ def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():
     assert expected in scheduler
     assert expected in controller
     assert "whenUnsatisfiable: DoNotSchedule" in scheduler
+
+
+def test_observability_rollouts_do_not_deadlock_on_hard_anti_affinity():
+    resources = docs(ROOT / "platform/observability/production/collectors.yaml")
+    by_kind = {item["kind"]: item for item in resources}
+    for kind in ("VMAgent", "VMAlert"):
+        spec = by_kind[kind]["spec"]
+        assert spec["updateStrategy"] == "RollingUpdate"
+        assert spec["rollingUpdate"] == {"maxSurge": 0, "maxUnavailable": 1}
+        assert spec["priorityClassName"] == "system-cluster-critical"
+        assert spec["tolerations"] == [
+            {
+                "key": "node-role.kubernetes.io/control-plane",
+                "operator": "Exists",
+                "effect": "NoSchedule",
+            }
+        ]
+
+
+def test_access_dns_keeps_a_bounded_r640_local_resolver():
+    resources = docs(ROOT / "clusters/re8ch/components/personal-access/access-dns.yaml")
+    deployments = {
+        item["metadata"]["name"]: item
+        for item in resources
+        if item["kind"] == "Deployment"
+    }
+    mosdns = deployments["mosdns"]["spec"]
+    assert mosdns["replicas"] == 3
+    assert mosdns["strategy"]["rollingUpdate"] == {
+        "maxSurge": 0,
+        "maxUnavailable": 1,
+    }
+    mosdns_pod = mosdns["template"]
+    assert mosdns_pod["metadata"]["labels"]["scheduling.re8ch.com/control-plane-allowed"] == "true"
+    assert "requiredDuringSchedulingIgnoredDuringExecution" in mosdns_pod["spec"]["affinity"]["podAntiAffinity"]
+    assert mosdns_pod["spec"]["priorityClassName"] == "system-cluster-critical"
+
+    adguard_pod = deployments["access-adguard"]["spec"]["template"]
+    assert adguard_pod["metadata"]["labels"]["scheduling.re8ch.com/control-plane-allowed"] == "true"
+    assert adguard_pod["spec"]["priorityClassName"] == "system-cluster-critical"
 
 
 def test_root_includes_governance_but_no_node_taint_object():
