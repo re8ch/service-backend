@@ -1,0 +1,10 @@
+upstream:
+  project: kubernetes-sigs/kueue
+  tag: v0.19.5
+  commit: 8e60d76a91bb9a45754218e569de1088f862ac75
+  asset: kueue-0.19.5.tgz
+  assetURL: https://github.com/kubernetes-sigs/kueue/releases/download/v0.19.5/kueue-0.19.5.tgz
+  assetSHA256: 1c97fb124bc18e5b9124e2c84292a0ea9045f2e9e1c0d4648494a4d1311048e0
+updatePolicy:
+  automaticApply: false
+  requiredChecks: [asset-sha256, helm-template, kustomize-render, control-plane-ci]

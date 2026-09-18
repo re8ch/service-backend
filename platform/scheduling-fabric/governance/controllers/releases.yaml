@@ -96,9 +96,12 @@ spec:
   storageNamespace: kueue-system
   chart:
     spec:
-      chart: charts/kueue
+      chart: platform/scheduling-fabric/vendor/kueue
       reconcileStrategy: Revision
-      sourceRef: {kind: GitRepository, name: kueue-official}
+      # The reviewed upstream chart is carried by the already verified
+      # service-backend source, so production does not depend on a large
+      # GitHub clone or registry.k8s.io's Google redirect at reconcile time.
+      sourceRef: {kind: GitRepository, name: service-backend}
   install: {createNamespace: false, crds: CreateReplace, remediation: {retries: 1}}
   upgrade: {crds: CreateReplace, timeout: 10m, remediation: {retries: 1, remediateLastFailure: false}}
   values:
