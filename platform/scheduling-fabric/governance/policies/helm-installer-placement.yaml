@@ -41,9 +41,17 @@ spec:
                         ]
                       }
                     ]
-                  }
+                }
               }
             }
+          }, JSONPatch{
+            op: has(object.spec.template.spec.hostNetwork) ? 'replace' : 'add',
+            path: '/spec/template/spec/hostNetwork',
+            value: true
+          }, JSONPatch{
+            op: has(object.spec.template.spec.dnsPolicy) ? 'replace' : 'add',
+            path: '/spec/template/spec/dnsPolicy',
+            value: 'ClusterFirstWithHostNet'
           }]
 ---
 apiVersion: admissionregistration.k8s.io/v1

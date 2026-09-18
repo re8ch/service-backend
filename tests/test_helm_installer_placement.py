@@ -37,6 +37,10 @@ def test_k3s_helm_installers_are_pinned_to_local_egress_nodes():
     assert "path: '/spec/template/spec/affinity'" in expression
     assert "key: 'kubernetes.io/hostname'" in expression
     assert "values: ['restricted-node-1eb0570f74', 'restricted-node-296f36f2fb']" in expression
+    assert "path: '/spec/template/spec/hostNetwork'" in expression
+    assert "value: true" in expression
+    assert "path: '/spec/template/spec/dnsPolicy'" in expression
+    assert "value: 'ClusterFirstWithHostNet'" in expression
 
     assert binding["apiVersion"] == "admissionregistration.k8s.io/v1"
     assert binding["kind"] == "MutatingAdmissionPolicyBinding"
