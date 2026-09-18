@@ -528,11 +528,11 @@ def test_stalwart_cloudflare_token_is_mirrored_without_committing_credential_mat
 def test_stalwart_public_mail_uses_declared_gateway_tcp_listeners():
     routes = documents(ROOT / "platform/stalwart/public-mail.yaml")
     expected = {
-        "stalwart-smtp-public": ("mail-smtp", 25),
-        "stalwart-smtps-public": ("mail-smtps", 465),
-        "stalwart-submission-public": ("mail-submission", 587),
-        "stalwart-imaps-public": ("mail-imaps", 993),
-        "stalwart-sieve-public": ("mail-sieve", 4190),
+        "stalwart-smtp-public-v2": ("mail-smtp", 25),
+        "stalwart-smtps-public-v2": ("mail-smtps", 465),
+        "stalwart-submission-public-v2": ("mail-submission", 587),
+        "stalwart-imaps-public-v2": ("mail-imaps", 993),
+        "stalwart-sieve-public-v2": ("mail-sieve", 4190),
     }
     assert {item["metadata"]["name"] for item in routes} == set(expected)
     for route in routes:
