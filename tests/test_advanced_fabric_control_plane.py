@@ -13,6 +13,21 @@ def release_values():
     return helm_release["spec"]["values"]
 
 
+def test_release_consumes_signed_public_advanced_fabrics_chart():
+    documents = list(yaml.safe_load_all(RELEASE.read_text(encoding="utf-8")))
+    source = next(item for item in documents if item["kind"] == "OCIRepository")
+    assert source["spec"]["url"] == "oci://ghcr.io/advanced-fabrics/charts/advanced-fabric"
+    assert source["spec"]["ref"]["digest"] == (
+        "sha256:88ab7c97e83f276cd6f759ff07ab85e236f67732e78871648db72463b7a69b83"
+    )
+    identity = source["spec"]["verify"]["matchOIDCIdentity"][0]
+    assert identity["issuer"] == r"^https://token\.actions\.githubusercontent\.com$"
+    assert identity["subject"] == (
+        r"^https://github\.com/advanced-fabrics/core/\.github/workflows/"
+        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.3$"
+    )
+
+
 def test_control_plane_vip_uses_all_three_etcd_hosts_as_guarded_origins():
     advanced = release_values()["advancedFabric"]
     api = advanced["controlPlaneApi"]
