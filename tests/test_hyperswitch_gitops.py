@@ -112,6 +112,21 @@ def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
     assert values["hyperswitch-ucs"]["enabled"] is False
 
 
+def test_hyperswitch_redis_owner_is_enrolled_without_pod_template_mutation():
+    release = next(item for item in objects() if item["kind"] == "HelmRelease")
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    redis_patch = next(
+        item for item in patches
+        if item["target"]["kind"] == "StatefulSet"
+        and item["target"]["name"] == "hyperswitch-redis-master"
+    )
+    rendered = yaml.safe_load(redis_patch["patch"])
+    assert rendered["metadata"]["labels"] == {
+        "scheduling.re8ch.com/placement-managed": "true"
+    }
+    assert "spec" not in rendered
+
+
 def test_superposition_is_explicit_and_has_no_plaintext_secret():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     app = release["spec"]["values"]["hyperswitch-app"]

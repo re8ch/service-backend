@@ -85,6 +85,21 @@ spec:
                               secretKeyRef:
                                 name: hyperswitch-pigsty-credentials
                                 key: DB_PASSWORD
+          # Inventory the Redis owner without changing its Pod template. This
+          # records placement governance now and avoids a needless StatefulSet
+          # restart before its durable worker destination is reviewed.
+          - target:
+              group: apps
+              version: v1
+              kind: StatefulSet
+              name: hyperswitch-redis-master
+            patch: |-
+              apiVersion: apps/v1
+              kind: StatefulSet
+              metadata:
+                name: hyperswitch-redis-master
+                labels:
+                  scheduling.re8ch.com/placement-managed: "true"
   valuesFrom:
     - kind: Secret
       name: hyperswitch-runtime-values
