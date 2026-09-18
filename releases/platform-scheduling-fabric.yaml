@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: delta-copper
+codename: grove-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:28a14e6d6c68d525719f964fbd5531ebf97b719bad1eb71849468d9bc9ecf766
+  digest: sha256:0a1959ec18130126643e18baf5c940d3dcb50ef7eb0d9255254b1d7b335f53f7
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
