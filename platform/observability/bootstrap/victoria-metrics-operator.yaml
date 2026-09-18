@@ -54,6 +54,11 @@ spec:
     podDisruptionBudget:
       enabled: true
       minAvailable: 1
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
     affinity:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -67,9 +72,11 @@ spec:
             - matchExpressions:
                 - key: kubernetes.io/hostname
                   operator: In
-                  # Admission is a control-plane dependency. Keep its replicas
-                  # on two stable, independently scheduled cluster nodes.
-                  values: [restricted-node-6dc3f140f9, domain-ex]
+                  # Admission is a cluster-wide dependency. Keep its replicas
+                  # on independently scheduled nodes whose pod routes are
+                  # verified reachable from the control plane; domain-ex is
+                  # excluded while its cross-node pod route is degraded.
+                  values: [restricted-node-6dc3f140f9, suxunji]
     resources:
       requests: {cpu: 100m, memory: 128Mi}
       limits: {cpu: 1, memory: 512Mi}
