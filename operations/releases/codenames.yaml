@@ -187,6 +187,8 @@ modules:
       digest: sha256:f380949db3063caa7a3e1167398cc891467ed664a82ba44f5930a105fb93e3c3
     - codename: tideway
       digest: sha256:20d2243037e38e0cc8050fc8af37305e19642708a6fe2332d28c319cf536fdba
+    - codename: cascade-amber
+      digest: sha256:1eaa39e20b0200088b65afe0a48ad0d697e0d5f8ba0e7d3f84b567032103fd1d
   platform/hyperswitch:
     releases:
     - codename: anchor
