@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/external-projects
-    delivery.re8ch.com/codename: compass
+    delivery.re8ch.com/codename: harbor
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
   ref:
-    digest: sha256:4b8c69c6ebe40c2050ec5d9d89e05b220bc061288624731a07df985be857b04c
+    digest: sha256:a2a538eebab8fff0ecfe7c7ffbee74e4958486066dd2f804f9e2dc5c2f98474c
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/external-projects
-    delivery.re8ch.com/codename: compass
+    delivery.re8ch.com/codename: harbor
 spec:
   interval: 10m
   retryInterval: 1m
