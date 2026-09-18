@@ -19,7 +19,7 @@ spec:
         - matchExpressions:
             - key: kubernetes.io/hostname
               operator: In
-              values: [restricted-node-6dc3f140f9]
+              values: [r640]
   hostPath:
     path: /var/lib/re8ch/mcp-registry-postgresql
     type: DirectoryOrCreate
@@ -89,9 +89,9 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     # The registry data already lives on the replicated CephFS
-                    # claim, so its database must not reintroduce an restricted-node-6dc3f140f9 MCP
+                    # claim, so its database must not reintroduce an R640 MCP
                     # runtime dependency.
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    values: [a1-wsl-zt, b1-wsl-zt]
       containers:
         - name: postgresql
           image: postgres:16.9-alpine
@@ -162,9 +162,9 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: kubernetes.io/hostname
+                  - key: scheduling.re8ch.com/service-plane
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    values: [core]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
