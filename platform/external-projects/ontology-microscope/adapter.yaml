@@ -22,7 +22,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: adapter
-          image: registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:955e6e448b55c558ca823f4a4d469877923e3fbaa86bafbb6f14a0341881266c
+          image: registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:acf304dd3994cca2089b7ed2a0819e23343d20d67f961efc742a187c676d3509
           imagePullPolicy: IfNotPresent
           env:
             - {name: NODE_ENV, value: production}
