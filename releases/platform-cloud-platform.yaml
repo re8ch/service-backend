@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: atoll
+codename: canopy
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:0241c7d79b94b15c0578acee47ee36af67c022c2cf546c71c12f8d5db993e0b8
+  digest: sha256:ccc1f26a9bf5ba1a4059fefacfe7b120ad43ecf467cf232b7e9862f2b904a5c1
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

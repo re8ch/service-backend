@@ -155,6 +155,8 @@ modules:
     releases:
     - codename: atoll
       digest: sha256:0241c7d79b94b15c0578acee47ee36af67c022c2cf546c71c12f8d5db993e0b8
+    - codename: canopy
+      digest: sha256:ccc1f26a9bf5ba1a4059fefacfe7b120ad43ecf467cf232b7e9862f2b904a5c1
   platform/advanced-fabric:
     releases:
     - codename: bora
