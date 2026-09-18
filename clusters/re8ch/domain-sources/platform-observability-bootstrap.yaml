@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/bootstrap
-    delivery.re8ch.com/codename: aperture
+    delivery.re8ch.com/codename: focus
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
   ref:
-    digest: sha256:c684b6e37cac499530e5beac00ef42d5ac167513f533d4e0c0039c3ea9e14a75
+    digest: sha256:b45b58ef82dd129de9d514c72bbdfbd56022953d9ccd5befc97d2bfe90ce09fc
   verify:
     provider: cosign
     matchOIDCIdentity:
