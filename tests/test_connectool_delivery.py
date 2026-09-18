@@ -22,6 +22,14 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     registry = release["spec"]["values"]["toolhive"]["registry"]["release"]
     assert registry["enabled"] is True
     assert registry["version"] == "1.5.0"
+    registry_expression = registry["values"]["affinity"]["nodeAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert registry_expression == {
+        "key": "scheduling.re8ch.com/reliability-class",
+        "operator": "In",
+        "values": ["stable"],
+    }
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
     assert {item["replicas"] for item in publications} == {2}

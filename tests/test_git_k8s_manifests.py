@@ -118,7 +118,7 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.224/16"
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "connectool-0.4.4"
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "stable-workers-2026-09-18"
         pod_spec = spec["podTemplateSpec"]["spec"]
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
