@@ -114,6 +114,28 @@ def test_groups_spanning_tenants_are_denied(monkeypatch):
         controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
 
 
+def test_explicit_subject_binding_overrides_group_membership_in_another_tenant(monkeypatch):
+    digest = "sha256:" + "a" * 64
+    bindings = [
+        binding("re8ch", digest=digest, role="operator"),
+        group_binding("artchais", "Artchais", "viewer"),
+    ]
+    monkeypatch.setattr(
+        controller,
+        "KUBE",
+        FakeKube(bindings, [tenant("re8ch"), tenant("artchais")]),
+    )
+
+    assert controller.resolve(
+        "https://dex.re8ch.com", digest, ["Artchais"]
+    ) == {
+        "tenantRef": "re8ch",
+        "role": "operator",
+        "defaultNamespace": "re8ch",
+        "runtimeNamespaceRef": "re8ch",
+    }
+
+
 def test_controller_exposes_only_admin_and_tenant_callers():
     assert controller.ALLOWED_CALLERS == {"admin", "tenant"}
 

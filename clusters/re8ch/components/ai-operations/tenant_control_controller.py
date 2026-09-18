@@ -191,7 +191,8 @@ ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
 
 
 def resolve(issuer, subject_hash, groups=None, caller="tenant"):
-    matches = []
+    subject_matches = []
+    group_matches = []
     groups = {str(group) for group in (groups or []) if isinstance(group, str)}
     for binding in kube().list("tenantidentitybindings"):
         spec = binding.get("spec", {})
@@ -207,8 +208,16 @@ def resolve(issuer, subject_hash, groups=None, caller="tenant"):
             continue
         if caller == "tenant" and tenant_ref == "admin":
             continue
-        if subject_match or group_match:
-            matches.append((spec.get("tenantRef"), spec.get("role", "viewer")))
+        match = (spec.get("tenantRef"), spec.get("role", "viewer"))
+        if subject_match:
+            subject_matches.append(match)
+        elif group_match:
+            group_matches.append(match)
+    # An explicit, issuer-scoped subject binding is more specific than broad
+    # organization/team membership. This lets a multi-organization identity
+    # have one deterministic tenant without accepting a client-selected tenant.
+    # Multiple explicit subject bindings remain ambiguous and are denied below.
+    matches = subject_matches or group_matches
     tenants_matched = sorted(set(tenant for tenant, _ in matches if tenant))
     if len(tenants_matched) != 1:
         raise PermissionError("identity must resolve to exactly one active tenant")
