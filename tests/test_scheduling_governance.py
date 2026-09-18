@@ -101,6 +101,16 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
         item for item in policies if item["metadata"]["name"] == "audit-privileged-workloads"
     )
     assert "request.object.spec.volumes || `[]`" in yaml.safe_dump(privileged)
+    resource_bounds = next(
+        item for item in policies if item["metadata"]["name"] == "audit-workload-resource-bounds"
+    )
+    conditions = resource_bounds["spec"]["rules"][0]["validate"]["foreach"][0][
+        "deny"
+    ]["conditions"]["any"]
+    keys = [condition["key"] for condition in conditions]
+    assert "{{ contains(keys(element.resources.requests || `{}`), 'cpu') }}" in keys
+    assert "{{ contains(keys(element.resources.limits || `{}`), 'memory') }}" in keys
+    assert all(condition["value"] is False for condition in conditions)
 
     queues = docs(GOVERNANCE / "policies/kueue.yaml")
     local_queues = [item for item in queues if item["kind"] == "LocalQueue"]
