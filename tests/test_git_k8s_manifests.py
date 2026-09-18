@@ -351,6 +351,15 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     assert chart_values["publication"]["refs"]["mail"] == mail_ref
     assert dns_values["publication"]["refs"]["mail"] == mail_ref
 
+    release = next(
+        item
+        for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
+        if item["kind"] == "HelmRelease"
+    )
+    release_values = release["spec"]["values"]
+    assert release_values["services"]["mail.re8ch.com."] == mail
+    assert release_values["publication"]["refs"]["mail"] == mail_ref
+
 
 def test_public_edge_uses_the_public_digest_pinned_controller_supply_chain():
     values = yaml.safe_load(
