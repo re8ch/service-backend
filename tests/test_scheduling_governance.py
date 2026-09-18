@@ -36,14 +36,9 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
         "maxUnavailable": 1,
     }
     assert kueue_manager["nodeSelector"] == {
-        "node-role.kubernetes.io/control-plane": "true"
+        "scheduling.re8ch.com/reliability-class": "stable"
     }
-    assert {
-        "key": "node-role.kubernetes.io/control-plane",
-        "operator": "Equal",
-        "value": "true",
-        "effect": "NoSchedule",
-    } in kueue_manager["tolerations"]
+    assert "tolerations" not in kueue_manager
 
     assert not any(item["metadata"]["name"] == "kueue-official" for item in bootstrap)
     provenance = yaml.safe_load(
