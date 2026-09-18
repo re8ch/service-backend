@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: place-k3s-helm-installers-on-local-egress
+spec:
+  background: false
+  rules:
+    - name: require-local-egress-proxy-node
+      match:
+        any:
+          - resources:
+              kinds: [Job]
+              namespaces: [kube-system]
+              names: [helm-install-*]
+              selector:
+                matchExpressions:
+                  - key: helmcharts.helm.cattle.io/chart
+                    operator: Exists
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/hostname
+                              operator: In
+                              values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
