@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/bootstrap
-    delivery.re8ch.com/codename: focus
+    delivery.re8ch.com/codename: prism
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
   ref:
-    digest: sha256:b45b58ef82dd129de9d514c72bbdfbd56022953d9ccd5befc97d2bfe90ce09fc
+    digest: sha256:7683ffce81add75449c8ebf787ae6176be060e610c619802ad3b686da053ce09
   verify:
     provider: cosign
     matchOIDCIdentity:

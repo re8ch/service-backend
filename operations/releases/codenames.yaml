@@ -293,6 +293,8 @@ modules:
       digest: sha256:c684b6e37cac499530e5beac00ef42d5ac167513f533d4e0c0039c3ea9e14a75
     - codename: focus
       digest: sha256:b45b58ef82dd129de9d514c72bbdfbd56022953d9ccd5befc97d2bfe90ce09fc
+    - codename: prism
+      digest: sha256:7683ffce81add75449c8ebf787ae6176be060e610c619802ad3b686da053ce09
   platform/observability/opencost-recovery:
     releases:
     - codename: aperture
