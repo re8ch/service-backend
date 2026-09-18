@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/external-projects
-    delivery.re8ch.com/codename: anchor-amber
+    delivery.re8ch.com/codename: beacon-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
   ref:
-    digest: sha256:bbb17c8ef25d6afc78d23ad30764d89cfe1de216a059ca7374807598aaa0ed4f
+    digest: sha256:1d3f2a2dc7c10ee10d14fbfd032b29a5768483a81f60baba8781662994244b3a
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/external-projects
-    delivery.re8ch.com/codename: anchor-amber
+    delivery.re8ch.com/codename: beacon-amber
 spec:
   interval: 10m
   retryInterval: 1m
