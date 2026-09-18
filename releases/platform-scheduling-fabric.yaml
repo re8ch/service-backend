@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: atoll-indigo
+codename: canopy-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:b7dc79fbc039b98ab63cf23fd8c0bb3d0f8f46684b5743a71152e627da340f4a
+  digest: sha256:84bbb3d65cfc3866a489f66e8367f1895177a5402fd824f5bcbaea6a48cb74ea
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
