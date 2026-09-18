@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-indigo
+    delivery.re8ch.com/codename: canopy-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:b7dc79fbc039b98ab63cf23fd8c0bb3d0f8f46684b5743a71152e627da340f4a
+    digest: sha256:84bbb3d65cfc3866a489f66e8367f1895177a5402fd824f5bcbaea6a48cb74ea
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-indigo
+    delivery.re8ch.com/codename: canopy-indigo
 spec:
   interval: 10m
   retryInterval: 1m

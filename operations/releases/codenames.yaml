@@ -159,6 +159,8 @@ modules:
       digest: sha256:bfd0d30b1097978d86b61a7f9c36fdb7a95d048669cff1aeeda6bf5eaa436bba
     - codename: atoll-indigo
       digest: sha256:b7dc79fbc039b98ab63cf23fd8c0bb3d0f8f46684b5743a71152e627da340f4a
+    - codename: canopy-indigo
+      digest: sha256:84bbb3d65cfc3866a489f66e8367f1895177a5402fd824f5bcbaea6a48cb74ea
   platform/cloud-platform:
     releases:
     - codename: atoll
