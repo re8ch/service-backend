@@ -290,6 +290,56 @@ class RegistryTests(unittest.TestCase):
         tenant_handler.headers = {"Authorization": "Bearer tenant-service-test-token"}
         self.assertTrue(tenant.allowed(tenant_handler.identity()))
 
+    def test_vmcp_identity_exchange_is_signed_short_lived_and_audience_bound(self):
+        tenant = load("tenant")
+        tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
+        identity = {
+            "subject": "dex-subject-1",
+            "issuer": "https://dex.re8ch.com",
+            "groups": ["Artchais", "re8ch:tenant-users"],
+            "auth_type": "dex",
+        }
+        token, expires_in = tenant.mint_vmcp_identity_token(identity)
+        self.assertTrue(token.startswith("r8x_"))
+        self.assertEqual(expires_in, 300)
+        self.assertEqual(
+            tenant.vmcp_exchange_identity(token),
+            {
+                "subject": "dex-subject-1",
+                "issuer": "https://dex.re8ch.com",
+                "groups": ["Artchais", "re8ch:tenant-users"],
+                "auth_type": "dex",
+            },
+        )
+        self.assertIsNone(tenant.vmcp_exchange_identity(token + "tampered"))
+        tenant.AUDIENCE = "another-audience"
+        self.assertIsNone(tenant.vmcp_exchange_identity(token))
+
+    def test_vmcp_token_exchange_validates_subject_token_and_target(self):
+        tenant = load("tenant")
+        tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
+        tenant.dex_identity = lambda token: {
+            "subject": "dex-subject-1",
+            "issuer": "https://dex.re8ch.com",
+            "groups": ["Artchais"],
+            "auth_type": "dex",
+        } if token == "incoming-dex-token" else None
+        form = {
+            "grant_type": ["urn:ietf:params:oauth:grant-type:token-exchange"],
+            "subject_token_type": ["urn:ietf:params:oauth:token-type:access_token"],
+            "subject_token": ["incoming-dex-token"],
+            "audience": ["aud-tenant"],
+        }
+        exchanged = tenant.exchange_vmcp_subject_token(form)
+        self.assertEqual(exchanged["token_type"], "Bearer")
+        self.assertEqual(
+            tenant.vmcp_exchange_identity(exchanged["access_token"])["subject"],
+            "dex-subject-1",
+        )
+        form["audience"] = ["wrong-audience"]
+        with self.assertRaises(PermissionError):
+            tenant.exchange_vmcp_subject_token(form)
+
     def test_tenant_vmcp_service_health_lists_no_tenant_resources(self):
         tenant = load("tenant")
         identity = {"subject": "service:litellm", "groups": [], "auth_type": "service"}

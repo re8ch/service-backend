@@ -171,7 +171,20 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     service_token = next(item for item in admin["spec"]["template"]["spec"]["containers"][0]["env"] if item["name"] == "SERVICE_API_TOKEN")
     assert service_token["valueFrom"]["secretKeyRef"] == {"name": "admin-vmcp-backend-auth", "key": "token"}
     tenant_entry = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "tenant-api-backend")
-    assert tenant_entry["spec"]["externalAuthConfigRef"] == {"name": "admin-vmcp-backend-auth"}
+    assert tenant_entry["spec"]["externalAuthConfigRef"] == {"name": "tenant-vmcp-backend-auth"}
+    tenant_backend_auth = next(
+        item for item in docs
+        if item["kind"] == "MCPExternalAuthConfig"
+        and item["metadata"]["name"] == "tenant-vmcp-backend-auth"
+    )
+    assert tenant_backend_auth["spec"] == {
+        "type": "tokenExchange",
+        "tokenExchange": {
+            "tokenUrl": "http://tenant-api.tenant-infrastructure.svc/oauth/token",
+            "audience": "re8ch-tenant",
+            "subjectTokenType": "access_token",
+        },
+    }
     tenant_api = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-api")
     tenant_service_token = next(item for item in tenant_api["spec"]["template"]["spec"]["containers"][0]["env"] if item["name"] == "SERVICE_API_TOKEN")
     assert tenant_service_token["valueFrom"]["secretKeyRef"] == {"name": "admin-vmcp-backend-auth", "key": "token"}
@@ -281,7 +294,7 @@ def test_tenant_public_route_uses_vmcp_session_router_and_internal_service_auth(
     assert not any(item["kind"] == "CiliumNetworkPolicy" and item["metadata"]["name"] == "tenant-api-publicedge" for item in docs)
     backend = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "tenant-api-backend")
     assert backend["spec"]["remoteUrl"] == "http://tenant-api.tenant-infrastructure.svc/mcp"
-    assert backend["spec"]["externalAuthConfigRef"]["name"] == "admin-vmcp-backend-auth"
+    assert backend["spec"]["externalAuthConfigRef"]["name"] == "tenant-vmcp-backend-auth"
 
 
 def test_tenant_resource_claim_schema_is_bounded():

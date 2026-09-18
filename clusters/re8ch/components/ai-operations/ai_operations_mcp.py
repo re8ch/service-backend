@@ -58,6 +58,7 @@ MAX_TIMEOUT = int(os.getenv("MAX_COMMAND_TIMEOUT_SECONDS", "3600"))
 MAX_OUTPUT = int(os.getenv("MAX_OUTPUT_BYTES", str(4 * 1024 * 1024)))
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
+VMCP_TOKEN_EXCHANGE_TTL = int(os.getenv("VMCP_TOKEN_EXCHANGE_TTL_SECONDS", "300"))
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
 GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.re8ch.com")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
@@ -442,6 +443,89 @@ def dex_identity(token: str) -> dict[str, Any] | None:
         "groups": groups,
         "tenant": tenant,
         "auth_type": "dex",
+    }
+
+
+def _b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode()
+
+
+def _b64url_decode(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def mint_vmcp_identity_token(identity: dict[str, Any]) -> tuple[str, int]:
+    if not SERVICE_API_TOKEN:
+        raise RuntimeError("vMCP identity exchange is not configured")
+    issued_at = int(time.time())
+    expires_in = max(30, min(VMCP_TOKEN_EXCHANGE_TTL, 600))
+    payload = {
+        "iss": "re8ch-vmcp-token-exchange",
+        "aud": AUDIENCE,
+        "sub": str(identity.get("subject") or ""),
+        "upstream_iss": str(identity.get("issuer") or "https://dex.re8ch.com"),
+        "groups": sorted({str(group) for group in identity.get("groups") or []}),
+        "iat": issued_at,
+        "exp": issued_at + expires_in,
+    }
+    if not payload["sub"]:
+        raise PermissionError("subject token has no identity")
+    encoded = _b64url_encode(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode())
+    signature = hmac.new(SERVICE_API_TOKEN.encode(), encoded.encode(), hashlib.sha256).digest()
+    return f"r8x_{encoded}.{_b64url_encode(signature)}", expires_in
+
+
+def vmcp_exchange_identity(token: str) -> dict[str, Any] | None:
+    if not SERVICE_API_TOKEN or not token.startswith("r8x_"):
+        return None
+    try:
+        encoded, supplied_signature = token[4:].split(".", 1)
+        expected_signature = hmac.new(
+            SERVICE_API_TOKEN.encode(), encoded.encode(), hashlib.sha256
+        ).digest()
+        if not hmac.compare_digest(_b64url_decode(supplied_signature), expected_signature):
+            return None
+        payload = json.loads(_b64url_decode(encoded))
+        now_epoch = int(time.time())
+        if (
+            payload.get("iss") != "re8ch-vmcp-token-exchange"
+            or payload.get("aud") != AUDIENCE
+            or not payload.get("sub")
+            or int(payload.get("iat", 0)) > now_epoch + 30
+            or int(payload.get("exp", 0)) <= now_epoch
+        ):
+            return None
+        groups = payload.get("groups") or []
+        if not isinstance(groups, list) or any(not isinstance(group, str) for group in groups):
+            return None
+        return {
+            "subject": payload["sub"],
+            "issuer": payload.get("upstream_iss") or "https://dex.re8ch.com",
+            "groups": groups,
+            "auth_type": "dex",
+        }
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def exchange_vmcp_subject_token(form: dict[str, list[str]]) -> dict[str, Any]:
+    expected_grant = "urn:ietf:params:oauth:grant-type:token-exchange"
+    access_token_type = "urn:ietf:params:oauth:token-type:access_token"
+    if (form.get("grant_type") or [""])[0] != expected_grant:
+        raise ValueError("unsupported_grant_type")
+    if (form.get("subject_token_type") or [access_token_type])[0] != access_token_type:
+        raise ValueError("unsupported_subject_token_type")
+    if (form.get("audience") or [""])[0] != AUDIENCE:
+        raise PermissionError("invalid_target")
+    identity = dex_identity((form.get("subject_token") or [""])[0])
+    if not identity:
+        raise PermissionError("invalid_subject_token")
+    access_token, expires_in = mint_vmcp_identity_token(identity)
+    return {
+        "access_token": access_token,
+        "issued_token_type": access_token_type,
+        "token_type": "Bearer",
+        "expires_in": expires_in,
     }
 
 
@@ -2085,6 +2169,8 @@ class Handler(BaseHTTPRequestHandler):
         token = header[7:]
         if SERVICE_API_TOKEN and hmac.compare_digest(token, SERVICE_API_TOKEN):
             return {"subject": "service:litellm", "groups": sorted(PROFILE_GROUPS.get(PROFILE, set())), "auth_type": "service"}
+        if token.startswith("r8x_"):
+            return vmcp_exchange_identity(token)
         return registry().authenticate(token) if token.startswith("r8d_") else dex_identity(token)
 
     def do_GET(self) -> None:
@@ -2116,7 +2202,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "not_found"})
 
     def do_POST(self) -> None:
-        if urllib.parse.urlparse(self.path).path == "/credentials/redeem":
+        request_path = urllib.parse.urlparse(self.path).path
+        if request_path == "/oauth/token":
+            if PROFILE != "tenant":
+                self.send_json(404, {"error": "not_found"}); return
+            try:
+                length = min(int(self.headers.get("Content-Length", "0")), 131072)
+                form = urllib.parse.parse_qs(self.rfile.read(length).decode())
+                result = exchange_vmcp_subject_token(form)
+                self.send_json(200, result, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
+            except ValueError as exc:
+                self.send_json(400, {"error": str(exc)}, {"Cache-Control": "no-store"}); return
+            except PermissionError as exc:
+                self.send_json(401, {"error": str(exc)}, {"Cache-Control": "no-store"}); return
+        if request_path == "/credentials/redeem":
             try:
                 length = min(int(self.headers.get("Content-Length", "0")), 8192)
                 payload = json.loads(self.rfile.read(length))
@@ -2128,7 +2227,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"tenant": tenant, "registry": HARBOR_URL, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
             except Exception:
                 self.send_json(400, {"error": "invalid_redemption"}, {"Cache-Control": "no-store"}); return
-        if urllib.parse.urlparse(self.path).path == "/credentials/adopt":
+        if request_path == "/credentials/adopt":
             try:
                 length = min(int(self.headers.get("Content-Length", "0")), 16384)
                 payload = json.loads(self.rfile.read(length))
