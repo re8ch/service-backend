@@ -103,6 +103,8 @@ modules:
       digest: sha256:588ff2249ae265e7819349bc67f03bcde6ca89eea02f43186517ecb3e705dc4c
     - codename: lantern
       digest: sha256:b839f1a94bb7f5488b6402d761a32fce0d297ae95cea4c5d6a2518f4d2ef430d
+    - codename: lighthouse
+      digest: sha256:7c091183bd5dab63880d622807470ec2c25c435ac44a33b85fb0ff50673688c4
   platform/among-clusters:
     releases:
     - codename: bora
@@ -281,6 +283,8 @@ modules:
       digest: sha256:59607d05fbd418c2e6ea3c7bb7ed34607fd86fda60e99492b26c9c49840ac1f5
     - codename: bastion
       digest: sha256:12c32278b5b5e94930d17acf8d6b6c6c910f254ba849f6039fd46d83ff8c9926
+    - codename: citadel
+      digest: sha256:844ed56f754af0e886b0db579ade202af89e67be2d9fa834df82932e8f777f4d
   platform/external-projects:
     releases:
     - codename: anchor
@@ -331,3 +335,5 @@ modules:
       digest: sha256:c62b497ca07990a7cb2bb85b34005b97f964e2bbb0775082fb42620e30eb03ce
     - codename: viewport
       digest: sha256:61f4ff3a8fb7d9afe5eefc96c425bff65cc040e5ac10b81f0fab616566ff66ad
+    - codename: zenith
+      digest: sha256:2a83a67987432cabebcd663ca631477ec2a0d09bf2d2ce6ef8fffffe666f6db9
