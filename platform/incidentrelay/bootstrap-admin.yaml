@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: incidentrelay-bootstrap-admin-v1
+  name: incidentrelay-bootstrap-admin-v2
   namespace: incidentrelay
   labels:
     app.kubernetes.io/name: incidentrelay
@@ -16,6 +16,14 @@ spec:
     spec:
       restartPolicy: OnFailure
       automountServiceAccountToken: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [restricted-node-6dc3f140f9]
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       containers:

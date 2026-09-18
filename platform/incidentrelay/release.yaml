@@ -88,18 +88,42 @@ spec:
       replicaCount: 1
       runMigrations: true
       strategy: {type: Recreate}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [restricted-node-6dc3f140f9]
       resources:
         requests: {cpu: 100m, memory: 256Mi}
         limits: {cpu: "1", memory: 1Gi}
     scheduler:
       enabled: true
       strategy: {type: Recreate}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [restricted-node-6dc3f140f9]
       resources:
         requests: {cpu: 100m, memory: 256Mi}
         limits: {cpu: "1", memory: 1Gi}
     telegram:
       enabled: true
       strategy: {type: Recreate}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [restricted-node-6dc3f140f9]
       resources:
         requests: {cpu: 50m, memory: 128Mi}
         limits: {cpu: 500m, memory: 512Mi}

@@ -11,7 +11,9 @@ metadata:
 spec:
   hard:
     requests.cpu: "500m"
-    limits.cpu: "1"
+    # The steady-state Supabase Pods consume 1 CPU. Reserve 250m for bounded
+    # database bootstrap/maintenance Jobs that carry their own resource limits.
+    limits.cpu: "1250m"
     requests.memory: 1024Mi
     limits.memory: 4096Mi
 ---
