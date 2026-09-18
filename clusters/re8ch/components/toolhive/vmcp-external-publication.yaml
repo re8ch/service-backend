@@ -101,6 +101,8 @@ spec:
   audit: {enabled: true}
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
+    metadata:
+      annotations: {scheduling.re8ch.com/placement-revision: stable-workers-2026-09-18}
     spec:
       affinity:
         nodeAffinity:
@@ -156,6 +158,8 @@ spec:
   audit: {enabled: true}
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
+    metadata:
+      annotations: {scheduling.re8ch.com/placement-revision: stable-workers-2026-09-18}
     spec:
       affinity:
         nodeAffinity:
@@ -203,6 +207,8 @@ spec:
   audit: {enabled: true}
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
+    metadata:
+      annotations: {scheduling.re8ch.com/placement-revision: stable-workers-2026-09-18}
     spec:
       affinity:
         nodeAffinity:
