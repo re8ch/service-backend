@@ -8,12 +8,12 @@ spec:
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:a48b8214633581dcc7dece8420f78f43a85db0b01fe79c666b0399a8765fc633
+    digest: sha256:c1bbc596cbaced0f499c79324927bf0040b879499b10440a3f656d710bf9a63a
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.4$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.5$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -220,6 +220,19 @@ spec:
         nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
       virtualIngress:
         enabled: true
+        replicas: 2
+        pdbMinAvailable: 1
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels: {app.kubernetes.io/name: advanced-fabric-virtual-ingress}
+                topologyKey: kubernetes.io/hostname
         className: advanced-fabric
         gateway: {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
         publicAddress: 192.0.2.79

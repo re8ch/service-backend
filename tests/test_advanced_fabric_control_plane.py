@@ -18,13 +18,13 @@ def test_release_consumes_signed_public_advanced_fabrics_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     assert source["spec"]["url"] == "oci://ghcr.io/advanced-fabrics/charts/advanced-fabric"
     assert source["spec"]["ref"]["digest"] == (
-        "sha256:a48b8214633581dcc7dece8420f78f43a85db0b01fe79c666b0399a8765fc633"
+        "sha256:c1bbc596cbaced0f499c79324927bf0040b879499b10440a3f656d710bf9a63a"
     )
     identity = source["spec"]["verify"]["matchOIDCIdentity"][0]
     assert identity["issuer"] == r"^https://token\.actions\.githubusercontent\.com$"
     assert identity["subject"] == (
         r"^https://github\.com/advanced-fabrics/core/\.github/workflows/"
-        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.4$"
+        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.5$"
     )
 
 
@@ -77,3 +77,21 @@ def test_control_plane_rollout_does_not_enable_routeros_mutation():
 def test_controller_runs_on_verified_control_plane_api_path():
     advanced = release_values()["advancedFabric"]
     assert advanced["controller"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
+
+
+def test_virtual_ingress_controller_is_ha_and_confined_to_a1_b1():
+    virtual_ingress = release_values()["advancedFabric"]["virtualIngress"]
+    assert virtual_ingress["replicas"] == 2
+    assert virtual_ingress["pdbMinAvailable"] == 1
+    affinity = virtual_ingress["affinity"]
+    host_match = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert host_match == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+    }
+    anti = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
+    assert anti["topologyKey"] == "kubernetes.io/hostname"
+    assert anti["labelSelector"]["matchLabels"] == {
+        "app.kubernetes.io/name": "advanced-fabric-virtual-ingress"
+    }
