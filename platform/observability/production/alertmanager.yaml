@@ -10,32 +10,51 @@ stringData:
     global:
       resolve_timeout: 5m
     route:
-      receiver: secretary-warning
+      receiver: incidentrelay-warning
       group_by: [cluster, namespace, service, alertname]
       group_wait: 2m
       group_interval: 10m
       repeat_interval: 4h
       routes:
-        - receiver: secretary-critical
+        - receiver: incidentrelay-critical
           matchers: ['severity=~"critical|high"']
           group_wait: 15s
           group_interval: 5m
           repeat_interval: 30m
-        - receiver: event-only
+        - receiver: incidentrelay-info
           matchers: ['severity="info"']
           repeat_interval: 24h
     receivers:
-      - name: secretary-critical
+      - name: incidentrelay-critical
         webhook_configs:
           - url: http://secretary-alertmanager-intake.re8ch-secretary.svc.cluster.local/v1/integrations/alertmanager
             send_resolved: true
             max_alerts: 100
-      - name: secretary-warning
+          - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
+            send_resolved: true
+            max_alerts: 100
+            authorization:
+              type: Bearer
+              credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/critical
+      - name: incidentrelay-warning
         webhook_configs:
           - url: http://secretary-alertmanager-intake.re8ch-secretary.svc.cluster.local/v1/integrations/alertmanager
             send_resolved: true
             max_alerts: 100
-      - name: event-only
+          - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
+            send_resolved: true
+            max_alerts: 100
+            authorization:
+              type: Bearer
+              credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/warning
+      - name: incidentrelay-info
+        webhook_configs:
+          - url: http://incidentrelay.incidentrelay.svc.cluster.local:8080/api/integrations/alertmanager
+            send_resolved: true
+            max_alerts: 100
+            authorization:
+              type: Bearer
+              credentials_file: /etc/vm/secrets/incidentrelay-alertmanager-tokens/info
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMAlertmanager
@@ -49,6 +68,8 @@ metadata:
 spec:
   replicaCount: 3
   configSecret: re8ch-alertmanager-base
+  secrets:
+    - incidentrelay-alertmanager-tokens
   configSelector:
     matchLabels: {observability.re8ch.com/managed: "true"}
   configNamespaceSelector: {}
@@ -97,25 +118,25 @@ metadata:
 data:
   receivers.json: |
     {
-      "secretary-critical": {
+      "incidentrelay-critical": {
         "owner": "platform-observability",
-        "kind": "secretary_webhook",
-        "failure_domain": "re8ch-secretary",
+        "kind": "secretary_and_incidentrelay_webhook",
+        "failure_domain": "multi-path",
         "facts": ["attempted"],
         "notes": "Receiver invocation is not provider acceptance, device delivery, human attention, or ACK."
       },
-      "secretary-warning": {
+      "incidentrelay-warning": {
         "owner": "platform-observability",
-        "kind": "secretary_webhook",
-        "failure_domain": "re8ch-secretary",
+        "kind": "secretary_and_incidentrelay_webhook",
+        "failure_domain": "multi-path",
         "facts": ["attempted"],
         "notes": "Secretary manages the delivery state and leaves unavailable evidence unknown."
       },
-      "event-only": {
+      "incidentrelay-info": {
         "owner": "platform-observability",
-        "kind": "null",
-        "failure_domain": "none",
-        "facts": [],
-        "notes": "Recorded by vmalert and Alertmanager without an outbound notification."
+        "kind": "incidentrelay_webhook",
+        "failure_domain": "incidentrelay",
+        "facts": ["attempted"],
+        "notes": "Informational events are delivered to the dedicated Telegram event stream without paging responders."
       }
     }

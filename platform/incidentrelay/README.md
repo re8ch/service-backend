@@ -28,6 +28,17 @@ the namespace policy permits only TCP/17891 to `egress-fabric` for that path.
 - Telegram group: `Re8ch Incident Response`
 - Telegram bot: `@re8ch_inci_resp_bot`
 
+Alert delivery is split by operational intent:
+
+- `Re8ch Incident Response`: critical/high alerts that require P1/P2 response;
+- `Re8ch Cluster Alerts`: warning alerts for P3/P4 triage;
+- `Re8ch Cluster Events`: informational lifecycle and recovery events.
+
+The production VictoriaMetrics Alertmanager keeps the Secretary evidence intake
+for critical and warning alerts and also sends each severity class to a dedicated
+IncidentRelay route. Route tokens are stored only in the SOPS-managed
+`incidentrelay-alertmanager-tokens` Secret.
+
 After first login, rotate the bootstrap password, configure the Telegram
 channel, send `/register` in the group, bind the numeric Telegram user ID to the
 operator profile, and run a critical-alert ACK/escalation game day. A provider

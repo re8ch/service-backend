@@ -12,11 +12,11 @@ def yaml_documents(path: Path):
     return [doc for doc in yaml.safe_load_all(path.read_text()) if doc]
 
 
-def test_production_reconciliation_is_safely_suspended():
+def test_production_reconciliation_is_enabled_from_verified_oci_source():
     resources = yaml_documents(ROOT / "platform" / "observability-source" / "source.yaml")
     production = next(doc for doc in resources if doc["metadata"]["name"] == "observability-production")
 
-    assert production["spec"]["suspend"] is True
+    assert production["spec"]["suspend"] is False
     source = yaml_documents(ROOT / "clusters/re8ch/domain-sources/platform-observability-production.yaml")[0]
     assert production["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
     assert production["spec"]["path"] == "./"
@@ -58,6 +58,21 @@ def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
     assert vlagent["spec"]["k8sCollector"]["enabled"] is True
     assert alertmanager["spec"]["replicaCount"] == 3
     assert alertmanager["spec"]["configNamespaceSelector"] == {}
+
+
+def test_alertmanager_routes_each_severity_to_incidentrelay_with_secret_tokens():
+    alerting = yaml_documents(OBSERVABILITY / "production" / "alertmanager.yaml")
+    config = next(doc for doc in alerting if doc["kind"] == "Secret")
+    alertmanager = next(doc for doc in alerting if doc["kind"] == "VMAlertmanager")
+    rendered = config["stringData"]["alertmanager.yaml"]
+
+    assert alertmanager["spec"]["secrets"] == ["incidentrelay-alertmanager-tokens"]
+    for severity in ("critical", "warning", "info"):
+        assert f"incidentrelay-{severity}" in rendered
+        assert (
+            "/etc/vm/secrets/incidentrelay-alertmanager-tokens/" + severity
+        ) in rendered
+    assert "incidentrelay.incidentrelay.svc.cluster.local:8080" in rendered
 
 
 def test_active_recovery_vmagent_persists_advanced_fabric_measurements():

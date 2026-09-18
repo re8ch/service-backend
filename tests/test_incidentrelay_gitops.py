@@ -88,6 +88,7 @@ def test_secrets_are_sops_encrypted_and_referenced_from_root():
         "incidentrelay-config.sops.yaml",
         "incidentrelay-db-bootstrap.sops.yaml",
         "incidentrelay-bootstrap-admin.sops.yaml",
+        "incidentrelay-alertmanager-tokens.sops.yaml",
     ):
         contents = (ROOT / "clusters/re8ch/secrets" / name).read_text()
         assert "ENC[AES256_GCM" in contents
@@ -97,6 +98,7 @@ def test_secrets_are_sops_encrypted_and_referenced_from_root():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "../../platform/incidentrelay" in root["resources"]
     assert "secrets/incidentrelay-config.sops.yaml" in root["resources"]
+    assert "secrets/incidentrelay-alertmanager-tokens.sops.yaml" in root["resources"]
 
 
 def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
