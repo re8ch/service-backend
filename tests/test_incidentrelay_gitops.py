@@ -24,6 +24,9 @@ def test_upstream_chart_is_digest_pinned_and_production_workers_are_enabled():
     assert values["telegram"]["enabled"] is True
     assert values["slack"]["enabled"] is False
     for component in ("web", "scheduler", "telegram"):
+        env = {item["name"]: item["value"] for item in values[component]["extraEnv"]}
+        assert env["HTTPS_PROXY"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
+        assert ".cluster.local" in env["NO_PROXY"]
         expression = values[component]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["restricted-node-6dc3f140f9"]}
     rendered_patches = str(release["spec"]["postRenderers"])
@@ -48,6 +51,21 @@ def test_cilium_gateway_identity_can_reach_only_the_web_port():
     ingress = policy["spec"]["ingress"]
     assert ingress[0]["fromEntities"] == ["ingress"]
     assert ingress[0]["toPorts"][0]["ports"] == [{"port": "8080", "protocol": "TCP"}]
+
+
+def test_telegram_proxy_egress_is_limited_to_the_egress_fabric_namespace():
+    policies = documents(PLATFORM / "network-policy.yaml")
+    policy = next(item for item in policies if item["metadata"]["name"] == "incidentrelay-allow-required")
+    proxy_rule = next(
+        rule
+        for rule in policy["spec"]["egress"]
+        if any(port["port"] == 17891 for port in rule.get("ports", []))
+    )
+    assert proxy_rule["to"] == [{
+        "namespaceSelector": {
+            "matchLabels": {"kubernetes.io/metadata.name": "egress-fabric"}
+        }
+    }]
 
 
 def test_secrets_are_sops_encrypted_and_referenced_from_root():
