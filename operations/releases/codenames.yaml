@@ -107,6 +107,8 @@ modules:
       digest: sha256:7c091183bd5dab63880d622807470ec2c25c435ac44a33b85fb0ff50673688c4
     - codename: signal
       digest: sha256:d633ba6080693712cce412ade373fc13f32e43ff16e53a56fbd7a3deba6ea3b3
+    - codename: starfire
+      digest: sha256:9e70b27b0da2221d346b104e6a286bbee89eea0f06cb7d5984e01bd8829256d6
   platform/among-clusters:
     releases:
     - codename: bora
