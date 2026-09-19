@@ -15,6 +15,16 @@ collector = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(collector)
 
 
+def test_production_collector_uses_stable_cached_runtime():
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    values = release["spec"]["values"]
+
+    assert values["image"]["tag"] == (
+        "3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d"
+    )
+    assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+
+
 def test_chart_lints_and_renders_restricted_workload():
     subprocess.run(["helm", "lint", str(CHART)], check=True, capture_output=True, text=True)
     rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds"], check=True, capture_output=True, text=True).stdout

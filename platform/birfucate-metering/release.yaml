@@ -34,6 +34,8 @@ spec:
       repository: python
       tag: 3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
       pullPolicy: IfNotPresent
+    nodeSelector:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
     tenantPlatform:
       enabled: true
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:c635a763982a66b4f52bb8b0d5325858bc0dd62cc55baec24acb0295eb35fd26
