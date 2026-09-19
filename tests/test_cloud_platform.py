@@ -37,6 +37,31 @@ def test_active_cluster_nodes_have_scheduling_inventory():
         assert cluster["storage"]["csiDrivers"]
 
 
+def test_muaya_cloud_nodes_have_direct_cli_coordinates():
+    inventory = Inventory([ROOT / "inventory/nodes.yaml"])
+    ecs = inventory.get("muaya-ecs")["spec"]["cloud"]
+    lightweight = inventory.get("muaya-lightweight")["spec"]["cloud"]
+
+    assert ecs == {
+        "provider": "aliyun",
+        "product": "ecs",
+        "cliProfile": "default",
+        "regionId": "cn-hangzhou",
+        "apiEndpoint": "ecs.cn-hangzhou.aliyuncs.com",
+        "instanceId": "i-bp1auluadeyatron6lw4",
+        "publicIp": "192.0.2.210",
+    }
+    assert lightweight == {
+        "provider": "aliyun",
+        "product": "swas",
+        "cliProfile": "default",
+        "regionId": "cn-shanghai",
+        "apiEndpoint": "swas.cn-shanghai.aliyuncs.com",
+        "instanceId": "727f083c912f43ef8fab274712529b39",
+        "publicIp": "192.0.2.110",
+    }
+
+
 def test_redaction_is_recursive():
     assert redact({"nested": {"token": "never", "ok": 1}}) == {"nested": {"token": "[REDACTED]", "ok": 1}}
 

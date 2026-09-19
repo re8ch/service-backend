@@ -132,6 +132,14 @@ items:
       transport: ssh
       address: muaya-ecs
       credentialRef: node-ssh
+      cloud:
+        provider: aliyun
+        product: ecs
+        cliProfile: default
+        regionId: cn-hangzhou
+        apiEndpoint: ecs.cn-hangzhou.aliyuncs.com
+        instanceId: i-bp1auluadeyatron6lw4
+        publicIp: 192.0.2.210
       capabilities: [k3s-worker, public-edge]
       cluster:
         membership: active
@@ -149,6 +157,14 @@ items:
       transport: ssh
       address: muaya-lightweight
       credentialRef: node-ssh
+      cloud:
+        provider: aliyun
+        product: swas
+        cliProfile: default
+        regionId: cn-shanghai
+        apiEndpoint: swas.cn-shanghai.aliyuncs.com
+        instanceId: 727f083c912f43ef8fab274712529b39
+        publicIp: 192.0.2.110
       capabilities: [k3s-worker, public-edge]
       cluster:
         membership: active
