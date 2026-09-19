@@ -53,7 +53,7 @@ def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     assert plugins_volume == {"name": "plugins", "emptyDir": {}}
 
 
-def test_headlamp_uses_reachable_management_api_endpoint():
+def test_headlamp_uses_stable_control_plane_api_endpoint():
     deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
     headlamp = next(
         container for container in deployment["spec"]["template"]["spec"]["containers"]
@@ -64,7 +64,7 @@ def test_headlamp_uses_reachable_management_api_endpoint():
         for item in headlamp["env"]
     }
 
-    assert environment["KUBERNETES_SERVICE_HOST"] == "192.0.2.18"
+    assert environment["KUBERNETES_SERVICE_HOST"] == "192.0.2.205"
     assert environment["KUBERNETES_SERVICE_PORT"] == "6443"
     assert environment["KUBERNETES_SERVICE_PORT_HTTPS"] == "6443"
 
