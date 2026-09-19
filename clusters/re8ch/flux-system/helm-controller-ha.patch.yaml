@@ -16,7 +16,10 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [domain-ex, suxunji, vm-20-12-ubuntu]
+                    # Keep one eligible control-plane anchor with the image
+                    # cache and pair it with a separate stable worker. HA must
+                    # not depend entirely on intermittently connected workers.
+                    values: [r640, domain-ex, vm-20-12-ubuntu]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:

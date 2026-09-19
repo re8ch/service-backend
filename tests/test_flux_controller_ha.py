@@ -25,7 +25,7 @@ def test_helm_controller_has_two_failure_domain_separated_replicas():
     assert expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["domain-ex", "suxunji", "vm-20-12-ubuntu"],
+        "values": ["restricted-node-6dc3f140f9", "domain-ex", "vm-20-12-ubuntu"],
     }
     anti_affinity = pod_spec["affinity"]["podAntiAffinity"][
         "requiredDuringSchedulingIgnoredDuringExecution"
