@@ -45,20 +45,43 @@ def test_muaya_cloud_nodes_have_direct_cli_coordinates():
     assert ecs == {
         "provider": "aliyun",
         "product": "ecs",
+        "account": "muaya",
         "cliProfile": "default",
         "regionId": "cn-hangzhou",
+        "zoneId": "cn-hangzhou-h",
         "apiEndpoint": "ecs.cn-hangzhou.aliyuncs.com",
         "instanceId": "i-bp1auluadeyatron6lw4",
+        "instanceName": "iZbp1auluadeyatron6lw4Z",
         "publicIp": "192.0.2.210",
     }
     assert lightweight == {
         "provider": "aliyun",
         "product": "swas",
+        "account": "muaya",
         "cliProfile": "default",
         "regionId": "cn-shanghai",
         "apiEndpoint": "swas.cn-shanghai.aliyuncs.com",
         "instanceId": "727f083c912f43ef8fab274712529b39",
+        "instanceName": "Ubuntu-hjkt",
         "publicIp": "192.0.2.110",
+    }
+
+
+def test_icp_has_direct_lighthouse_cli_coordinates():
+    inventory = Inventory([ROOT / "inventory/nodes.yaml"])
+    icp = inventory.get("vm-20-12-ubuntu")["spec"]
+
+    assert icp["address"] == "ICP"
+    assert icp["cloud"] == {
+        "provider": "tencent",
+        "product": "lighthouse",
+        "account": "south-mountain",
+        "cliProfile": "default",
+        "regionId": "ap-guangzhou",
+        "apiEndpoint": "lighthouse.tencentcloudapi.com",
+        "instanceId": "lhins-buc3bkjt",
+        "instanceName": "Ubuntu-OCaA",
+        "publicIp": "192.0.2.99",
     }
 
 
