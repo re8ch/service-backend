@@ -75,7 +75,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/birfucate-browser-0.3.2
+              target=/headlamp/plugins/birfucate-browser-0.4.1
               lock=/headlamp/plugins/.birfucate-browser-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               rmdir "$lock" 2>/dev/null || true
@@ -85,14 +85,13 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.birfucate-browser-0.3.2.new
+              stage=/headlamp/plugins/.birfucate-browser-0.4.1.new
               cp /plugin/plugin.tar.gz "$archive"
-              echo '4493497955c6507d67234637fec46fadb20371a5d7c8d150232ddf3bf3da07b2  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '5c6ee67c18959539866dbf7e5fc208772312dab5b615894d0e2ea2761a20b98a  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
-              tar -xzf "$archive" -C "$stage"
-              mv "$stage/headlamp-birfucate-browser" "$target"
-              rm -rf "$stage"
+              tar -xzf "$archive" -C "$stage" --strip-components=1
+              mv "$stage" "$target"
               for old in /headlamp/plugins/birfucate-browser-*; do
                 [ "$old" = "$target" ] || rm -rf "$old"
               done
@@ -341,7 +340,7 @@ spec:
           emptyDir: {}
         - name: birfucate-browser-plugin
           configMap:
-            name: headlamp-birfucate-browser-v032
+            name: headlamp-birfucate-browser-v041
         - name: advanced-fabric-plugin
           configMap:
             name: headlamp-advanced-fabric-v0231
