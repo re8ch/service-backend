@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: anchor-copper
+codename: beacon-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:15a26dd28934f3634c23fdb7375000c50dcb296cd08c51ad765be591ddfc9ed2
+  digest: sha256:6d9702bb45d4f2507cd2fc8ac327d27aecddeb2099cade1819556f29dcf950a3
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
