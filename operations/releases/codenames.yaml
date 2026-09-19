@@ -111,6 +111,8 @@ modules:
       digest: sha256:9e70b27b0da2221d346b104e6a286bbee89eea0f06cb7d5984e01bd8829256d6
     - codename: torch
       digest: sha256:dd0795d4b04a52c69b623db0ff299a827f3f5a8deb6ca64fe8cf1d63a0e33f7e
+    - codename: aurora-amber
+      digest: sha256:1372573f3bea2c13dec497efb6348adcc2e6714184636472168818bf811813e4
   platform/among-clusters:
     releases:
     - codename: bora
