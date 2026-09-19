@@ -246,18 +246,25 @@ function Dashboard() {
     const bindings=consumptionBindings.filter(item=>item.spec?.tenantRef===tenantName && (item.spec?.consumableRef===selected || item.spec?.serviceClass===selected));
     const claims=resourceClaims.filter(item=>item.spec?.tenantRef===tenantName && (item.spec?.capability===selected || item.spec?.resourceClass===selected));
     const ownedPods=pods.filter(item=>objectOwner(item)===tenantName && String(item.status?.phase || '').toLowerCase()!=='succeeded');
+    const ownedControllers=workloads.filter(item=>objectOwner(item)===tenantName);
     const ownedPvcs=pvcs.filter(item=>objectOwner(item)===tenantName);
     const metricRows=rows.filter(item=>item.tenant===tenantName && (item.resourceType===selected || item.resource===selected || item.domain===selected));
     const podRequest=(name:string)=>ownedPods.reduce((sum,pod)=>sum+(pod.spec?.containers || []).reduce((containerSum:number,container:any)=>containerSum+quantity(container.resources?.requests?.[name]),0),0);
+    const controllerPodSpec=(item:KubeObject)=>item.kind==='CronJob'?item.spec?.jobTemplate?.spec?.template?.spec:item.kind==='Job'?item.spec?.template?.spec:item.spec?.template?.spec;
+    const controllerRequest=(name:string)=>ownedControllers.reduce((sum,item)=>{const podSpec=controllerPodSpec(item);const replicas=item.kind==='DaemonSet'?1:Math.max(1,n(item.spec?.replicas || 1));return sum+(podSpec?.containers || []).reduce((containerSum:number,container:any)=>containerSum+quantity(container.resources?.requests?.[name])*replicas,0);},0);
     const pvcBytes=ownedPvcs.reduce((sum,pvc)=>sum+quantity(pvc.status?.capacity?.storage || pvc.spec?.resources?.requests?.storage),0);
+    const templateStorage=ownedControllers.reduce((sum,item)=>sum+(item.spec?.volumeClaimTemplates || []).reduce((claimSum:number,claim:any)=>claimSum+quantity(claim.spec?.resources?.requests?.storage)*Math.max(1,n(item.spec?.replicas || 1)),0),0);
     const metered=metricRows.reduce((sum,item)=>sum+(selected==='cluster.network-egress' && item.meter!=='network_egress_byte' ? 0 : item.occupiedTime || item.occupancy),0);
-    const observed=selected==='cluster.cpu'?podRequest('cpu'):selected==='cluster.memory'?podRequest('memory'):selected==='compute.workload.v1'?ownedPods.length:selected==='storage.volume.v1'?pvcBytes:metered;
+    const livePodsAvailable=pods.length>0;
+    const livePvcsAvailable=pvcs.length>0;
+    const observed=selected==='cluster.cpu'?(livePodsAvailable?podRequest('cpu'):controllerRequest('cpu')):selected==='cluster.memory'?(livePodsAvailable?podRequest('memory'):controllerRequest('memory')):selected==='compute.workload.v1'?(livePodsAvailable?ownedPods.length:ownedControllers.length):selected==='storage.volume.v1'?(livePvcsAvailable?pvcBytes:templateStorage):metered;
     const declared=bindings.length+claims.length;
     const allocated=['cluster.cpu','cluster.memory','storage.volume.v1'].includes(selected)?observed:declared;
-    return {tenant:tenantName,allocated,observed,evidence:`${grants} grant · ${bindings.length} binding · ${claims.length} claim`};
+    const evidence=selected==='compute.workload.v1' || selected==='cluster.cpu' || selected==='cluster.memory' ? `${livePodsAvailable?'Pod':'controller template'} · ${ownedControllers.length} controllers` : selected==='storage.volume.v1' ? `${livePvcsAvailable?'PVC':'volumeClaimTemplate'} · ${ownedControllers.length} controllers` : `${grants} grant · ${bindings.length} binding · ${claims.length} claim`;
+    return {tenant:tenantName,allocated,observed,evidence};
   };
   const allocationLanes=tenants.map(name=>tenantAllocation(name,resourceClass)).filter(lane=>lane.allocated>0 || lane.observed>0 || tenantViews.find(view=>view.name===lane.tenant)?.grants.some(grant=>grant.spec?.consumableRef===resourceClass));
-  const selectedCapacity=(resourceClass==='compute.workload.v1'?clusterFacts.find(item=>item.resourceClass==='cluster.pods')?.capacity:capacityFacts.find(item=>item.resourceClass===resourceClass && item.scope==='cluster')?.capacity) ?? consumableFacts.find(item=>item.resourceClass===resourceClass)?.capacity ?? null;
+  const selectedCapacity=(resourceClass==='compute.workload.v1'?(pods.length?clusterFacts.find(item=>item.resourceClass==='cluster.pods')?.capacity:null):capacityFacts.find(item=>item.resourceClass===resourceClass && item.scope==='cluster')?.capacity) ?? consumableFacts.find(item=>item.resourceClass===resourceClass)?.capacity ?? null;
   const globalClassRows=globalResourceClasses.map(name=>{const consumable=consumables.find(item=>item.spec?.serviceClass===name || item.metadata?.name===name);const lanes=tenants.map(value=>tenantAllocation(value,name));return {name,label:classLabels[name]||name,lifecycle:String(consumable?.spec?.lifecycle || 'Undeclared'),access:String(consumable?.spec?.accessContract?.kind || consumable?.spec?.accessContract || '-'),meters:(consumable?.spec?.meters || []).map((meter:any)=>meter.name || meter).join(', ') || '-',ceiling:capacityFacts.find(item=>item.resourceClass===name)?.capacity ?? null,allocated:lanes.reduce((sum,lane)=>sum+lane.allocated,0),observed:lanes.reduce((sum,lane)=>sum+lane.observed,0)};});
   const selectedToolGroups=tenant ? TENANT_TOOL_GROUPS.filter(group=>group.resourceClass==='all service classes' || selectedGrants.some(grant=>grant.spec?.consumableRef===group.resourceClass)) : [];
   const eventOf=(item:KubeObject, stage:string, transition:string, detail:string, time?:string):FactEvent=>({id:`${stage}:${item.metadata?.uid || item.metadata?.namespace || ''}:${item.metadata?.name || ''}:${time || ''}`,time:time || item.metadata?.creationTimestamp || '',tenant:String(item.spec?.tenantRef || item.metadata?.labels?.['re8ch.com/tenant'] || '-'),trace:objectTrace(item),stage,resource:`${item.kind || stage}/${item.metadata?.namespace ? `${item.metadata.namespace}/` : ''}${item.metadata?.name || '-'}`,transition,detail:compactDetail(detail),source:item.apiVersion || 'kubernetes'});
@@ -328,7 +335,7 @@ function Dashboard() {
         {globalResourceClasses.map(name=><Tab key={name} value={name} label={classLabels[name] || name}/>) }
       </Tabs>
       <Alert severity={selectedCapacity == null ? 'info' : 'success'} sx={{my:1}}>{selectedCapacity == null ? '该资源类尚未声明可出租容量上限，因此只展示已分配与已观测事实，不伪造“未分配”数量。' : `容量上限 ${human(selectedCapacity)}；未分配量由上限减去已分配量得到。`}</Alert>
-      <ResourceCorridors resourceClass={resourceClass} unit={capacityFacts.find(item=>item.resourceClass===resourceClass)?.unit || (resourceClass==='compute.workload.v1'?'pods':'units')} lanes={allocationLanes} capacity={selectedCapacity}/>
+      <ResourceCorridors resourceClass={resourceClass} unit={resourceClass==='compute.workload.v1'?(pods.length?'pods':'controllers'):capacityFacts.find(item=>item.resourceClass===resourceClass)?.unit || 'units'} lanes={allocationLanes} capacity={selectedCapacity}/>
     </SectionBox>
     <SectionBox title={`Global resource classes (${globalClassRows.length})`}>
       <Table data={globalClassRows} columns={[
