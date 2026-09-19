@@ -54,6 +54,9 @@ spec:
               metadata:
                 name: hyperswitch-hyperswitch-server
               spec:
+                strategy:
+                  type: RollingUpdate
+                  rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
                 template:
                   spec:
                     imagePullSecrets:
@@ -75,6 +78,9 @@ spec:
               metadata:
                 name: hyperswitch-superposition
               spec:
+                strategy:
+                  type: RollingUpdate
+                  rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
                 template:
                   spec:
                     containers:
@@ -85,6 +91,20 @@ spec:
                               secretKeyRef:
                                 name: hyperswitch-pigsty-credentials
                                 key: DB_PASSWORD
+          - target:
+              group: apps
+              version: v1
+              kind: Deployment
+              name: hyperswitch-control-center
+            patch: |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: hyperswitch-control-center
+              spec:
+                strategy:
+                  type: RollingUpdate
+                  rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
           # Inventory the Redis owner without changing its Pod template. This
           # records placement governance now and avoids a needless StatefulSet
           # restart before its durable worker destination is reviewed.
