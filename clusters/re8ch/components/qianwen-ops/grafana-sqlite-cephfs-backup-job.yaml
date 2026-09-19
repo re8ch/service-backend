@@ -10,7 +10,7 @@ spec:
     spec:
       restartPolicy: Never
       nodeSelector:
-        kubernetes.io/hostname: suxunji
+        scheduling.re8ch.com/service-plane: core
         storage.re8ch.com/ceph-client: "true"
       securityContext: {runAsUser: 0, runAsGroup: 0}
       containers:

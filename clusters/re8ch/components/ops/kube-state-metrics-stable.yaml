@@ -19,7 +19,7 @@ spec:
         app.kubernetes.io/part-of: qianwen-observability
     spec:
       serviceAccountName: kube-state-metrics
-      nodeSelector: {kubernetes.io/hostname: suxunji, kubernetes.io/os: linux}
+      nodeSelector: {kubernetes.io/os: linux, scheduling.re8ch.com/service-plane: core}
       imagePullSecrets: [{name: registry-re8ch}]
       containers:
         - name: kube-state-metrics

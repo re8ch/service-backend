@@ -93,8 +93,8 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         },
     }
     assert toolhive["runtimePolicy"]["nodeNames"] == [
-        "domain-ex",
-        "zan",
+        "restricted-node-6dc3f140f9",
+        "overseas-la",
     ]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     plugins = release["spec"]["values"]["codex"]["plugins"]

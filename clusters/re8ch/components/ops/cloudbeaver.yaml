@@ -197,8 +197,8 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        # The former rancher-panel node is now registered as zan.
-        kubernetes.io/hostname: zan
+        kubernetes.io/os: linux
+        scheduling.re8ch.com/service-plane: core
       tolerations:
         - key: dedicated
           operator: Equal

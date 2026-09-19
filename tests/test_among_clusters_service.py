@@ -21,7 +21,10 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     assert release["spec"]["values"]["managedAccess"]["enabled"] is True
     assert release["spec"]["values"]["migration"]["replaceCollaborationCRDs"] is False
     assert release["spec"]["values"]["replicaCount"] == 1
-    assert release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "zan"}
+    assert release["spec"]["values"]["nodeSelector"] == {
+        "kubernetes.io/os": "linux",
+        "scheduling.re8ch.com/service-plane": "core",
+    }
     assert release["spec"]["values"]["onboarding"] == {
         "enabled": True,
         "publicEndpoint": "https://among-clusters.re8ch.com",
@@ -42,7 +45,10 @@ def test_gitops_consumes_signed_oci_release_by_digest():
         "hostnames": ["among-clusters.re8ch.com"],
     }]
     assert agent_release["spec"]["values"]["ciliumPolicy"] == {"enabled": False}
-    assert agent_release["spec"]["values"]["nodeSelector"] == {"kubernetes.io/hostname": "suxunji"}
+    assert agent_release["spec"]["values"]["nodeSelector"] == {
+        "kubernetes.io/os": "linux",
+        "scheduling.re8ch.com/service-plane": "core",
+    }
     assert agent_release["spec"]["values"]["gateway"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     gateway_patch = agent_release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]
     assert gateway_patch["target"]["name"] == "among-clusters-gateway"

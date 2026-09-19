@@ -46,6 +46,9 @@ spec:
                   class: {type: string, enum: [anchor, stable, variable, opportunistic]}
                   disruptionRisk: {type: integer, minimum: 0, maximum: 100}
                   maintenanceMode: {type: boolean, default: false}
+                  minimumReadySeconds: {type: integer, minimum: 0, default: 1800}
+                  maxNotReadyEvents: {type: integer, minimum: 0, default: 0}
+                  historyWindowSeconds: {type: integer, minimum: 60, default: 86400}
               capabilities: {type: object, x-kubernetes-preserve-unknown-fields: true}
               sources:
                 type: array

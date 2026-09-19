@@ -35,8 +35,8 @@ spec:
   reservationProfile: control-large
   background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: Main server and capacity anchor}
   failureDomains: {site: cn-hunan-r640, power: r640-mains, network: r640-dedicated-line, host: restricted-node-6dc3f140f9}
-  reliability: {class: anchor, disruptionRisk: 15}
-  capabilities: {cpuClass: server, bandwidthMbps: 200, storage: [ceph-osd, ceph-client, object-client], draDeviceClasses: [re8ch-usb], scheduling: [stable, dynamic]}
+  reliability: {class: anchor, disruptionRisk: 15, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {cpuClass: server, bandwidthMbps: 200, servicePlane: core, storage: [ceph-osd, ceph-client, object-client], draDeviceClasses: [re8ch-usb], scheduling: [stable, dynamic]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -86,8 +86,8 @@ spec:
   reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-zan, power: tencent-zan, network: tencent-zan-uplink, host: zan}
-  reliability: {class: stable, disruptionRisk: 25}
-  capabilities: {bandwidthClass: constrained-public, servicePlane: core, scheduling: [stable, dynamic], storage: [ceph-client]}
+  reliability: {class: stable, disruptionRisk: 25, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {bandwidthClass: constrained-public, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -110,7 +110,7 @@ spec:
   reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-domain-ex, power: tencent-domain-ex, network: tencent-domain-ex-uplink, host: domain-ex}
-  reliability: {class: stable, disruptionRisk: 25}
+  reliability: {class: stable, disruptionRisk: 25, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
   capabilities: {bandwidthClass: constrained-public, servicePlane: core, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
@@ -122,8 +122,8 @@ spec:
   reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-vm-20-12, power: tencent-vm-20-12, network: tencent-vm-20-12-uplink, host: vm-20-12-ubuntu}
-  reliability: {class: stable, disruptionRisk: 25}
-  capabilities: {bandwidthClass: constrained-public, scheduling: [stable, dynamic], storage: [ceph-client]}
+  reliability: {class: stable, disruptionRisk: 25, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {bandwidthClass: constrained-public, servicePlane: core, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -159,8 +159,8 @@ spec:
   reservationProfile: worker-small
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: us-la, power: overseas-la, network: overseas-la-uplink, host: overseas-la}
-  reliability: {class: variable, disruptionRisk: 40}
-  capabilities: {bandwidthMbps: 1000, trafficQuotaAware: true, scheduling: [dynamic, egress], storage: [ceph-client]}
+  reliability: {class: variable, disruptionRisk: 40, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {bandwidthMbps: 1000, trafficQuotaAware: true, servicePlane: core, scheduling: [dynamic, egress], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
