@@ -10,7 +10,7 @@ spec:
   hostnames: [ontology.re8ch.com, ontology.apps.re8ch.com]
   rules:
     - matches:
-        - path: {type: PathPrefix, value: /api/re8ch/analyses}
+        - path: {type: PathPrefix, value: /api/re8ch/}
       backendRefs: [{name: ontology-microscope-adapter, port: 4318}]
     - backendRefs: [{name: ontology-microscope-neuronpedia, port: 80}]
 ---
