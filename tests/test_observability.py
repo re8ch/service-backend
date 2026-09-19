@@ -23,7 +23,7 @@ def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
     assert node_expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-6dc3f140f9", "zan"],
+        "values": ["restricted-node-6dc3f140f9", "vm-20-12-ubuntu"],
     }
     assert values["tolerations"] == [
         {

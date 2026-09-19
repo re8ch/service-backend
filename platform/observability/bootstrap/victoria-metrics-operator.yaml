@@ -79,12 +79,10 @@ spec:
             - matchExpressions:
                 - key: kubernetes.io/hostname
                   operator: In
-                  # Admission is a cluster-wide dependency. Keep its replicas
-                  # on independently scheduled nodes whose pod routes are
-                  # verified reachable from the control plane; domain-ex and
-                  # suxunji are excluded while their webhook pod routes are
-                  # degraded.
-                  values: [restricted-node-6dc3f140f9, zan]
+                  # Admission is a cluster-wide dependency. Keep one anchor on
+                  # restricted-node-6dc3f140f9 and place the worker replica on the currently stable,
+                  # control-plane-reachable service node.
+                  values: [restricted-node-6dc3f140f9, vm-20-12-ubuntu]
     resources:
       requests: {cpu: 100m, memory: 128Mi}
       limits: {cpu: 1, memory: 512Mi}

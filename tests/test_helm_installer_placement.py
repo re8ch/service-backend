@@ -37,7 +37,7 @@ def test_k3s_helm_installers_are_pinned_to_local_egress_nodes():
     expression = mutation["jsonPatch"]["expression"]
     assert "path: '/spec/affinity'" in expression
     assert "key: 'kubernetes.io/hostname'" in expression
-    assert "values: ['domain-ex', 'zan']" in expression
+    assert "values: ['r640', 'overseas-la']" in expression
     assert "path: '/spec/hostNetwork'" in expression
     assert "value: true" in expression
     assert "path: '/spec/dnsPolicy'" in expression

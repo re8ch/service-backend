@@ -53,7 +53,7 @@ spec:
           limits: {cpu: 500m, memory: 256Mi}
       runtimePolicy:
         enabled: true
-        nodeNames: [domain-ex, zan]
+        nodeNames: [restricted-node-6dc3f140f9, overseas-la]
         trafficDistribution: PreferSameNode
         backendSessionAffinity: None
         proxyResources:

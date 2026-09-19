@@ -110,7 +110,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     assert "Object.spec.template.spec.affinity.nodeAffinity{" in serialized
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
     assert "'app': object.metadata.labels['app']" in serialized
-    for node in ("domain-ex", "zan"):
+    for node in ("restricted-node-6dc3f140f9", "overseas-la"):
         assert node in serialized
 
 

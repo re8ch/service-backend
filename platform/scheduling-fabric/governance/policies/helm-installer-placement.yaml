@@ -37,7 +37,7 @@ spec:
                           Object.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions{
                             key: 'kubernetes.io/hostname',
                             operator: 'In',
-                            values: ['domain-ex', 'zan']
+                            values: ['r640', 'overseas-la']
                           }
                         ]
                       }

@@ -27,9 +27,8 @@ spec:
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
     replicaCount: 1
     nodeSelector:
-      # Keep the Hub off the control plane. Zan is also on the proven
-      # r640-to-pod data path used by the Cilium Gateway.
-      kubernetes.io/hostname: zan
+      kubernetes.io/os: linux
+      scheduling.re8ch.com/service-plane: core
     adminTokenSecret: among-clusters-hub-admin
     managedAccess:
       enabled: true
@@ -91,7 +90,7 @@ spec:
     image:
       repository: ghcr.io/re8ch/among-clusters
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
-    nodeSelector: {kubernetes.io/hostname: suxunji}
+    nodeSelector: {kubernetes.io/os: linux, scheduling.re8ch.com/service-plane: core}
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
       # kubernetes Service IP and every current control-plane endpoint.

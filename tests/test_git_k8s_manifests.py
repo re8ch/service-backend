@@ -92,8 +92,8 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["placement"]["nodeSelector"] == {}
     assert toolhive["runtimePolicy"]["nodeNames"] == [
-        "domain-ex",
-        "zan",
+        "restricted-node-6dc3f140f9",
+        "overseas-la",
     ]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"

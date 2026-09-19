@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Penrose observer/projector. It never binds or evicts Pods."""
 import json, os, ssl, time, urllib.error, urllib.parse, urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 API = os.getenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
 PORT = os.getenv("KUBERNETES_SERVICE_PORT_HTTPS", "443")
@@ -20,13 +20,19 @@ def request(path, method="GET", body=None, content_type="application/json"):
     data = json.dumps(body).encode() if body is not None else None
     headers = dict(HEADERS)
     if data is not None: headers["Content-Type"] = content_type
-    req = urllib.request.Request(BASE + path, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, context=CTX, timeout=20) as response:
-            return json.load(response) if response.length != 0 else {}
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404: return None
-        raise RuntimeError(f"{method} {path}: {exc.code} {exc.read().decode()[:500]}")
+    attempts = 3 if method in ("GET", "PATCH") else 1
+    for attempt in range(attempts):
+        req = urllib.request.Request(BASE + path, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, context=CTX, timeout=20) as response:
+                return json.load(response) if response.length != 0 else {}
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404: return None
+            raise RuntimeError(f"{method} {path}: {exc.code} {exc.read().decode()[:500]}")
+        except (OSError, TimeoutError, urllib.error.URLError):
+            if attempt + 1 == attempts:
+                raise
+            time.sleep(0.5 * (attempt + 1))
 
 def items(path):
     value = request(path)
@@ -53,6 +59,48 @@ def is_leader():
     return True
 
 def labels_match(labels, selector): return all(labels.get(k) == v for k, v in (selector or {}).items())
+
+NODE_FAILURE_REASONS = {"NodeNotReady", "FreeDiskSpaceFailed", "ImageGCFailed", "ContainerGCFailed"}
+
+def parse_time(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+def node_reliability(node, events, spec, measured_at=None):
+    """Build a durable scheduling gate from Node state and recent history."""
+    measured_at = measured_at or datetime.now(timezone.utc)
+    conditions = {item.get("type"): item for item in node.get("status", {}).get("conditions", [])}
+    ready_condition = conditions.get("Ready", {})
+    ready_since = parse_time(ready_condition.get("lastTransitionTime"))
+    ready_seconds = max(0, int((measured_at - ready_since).total_seconds())) if ready_since else 0
+    pressure = sorted(name for name in ("DiskPressure", "MemoryPressure", "PIDPressure", "NetworkUnavailable")
+                      if conditions.get(name, {}).get("status") == "True")
+    window_seconds = int(spec.get("reliability", {}).get("historyWindowSeconds", 86400))
+    cutoff = measured_at - timedelta(seconds=window_seconds)
+    node_name = node.get("metadata", {}).get("name")
+    failures = []
+    for event in events:
+        if event.get("involvedObject", {}).get("name") != node_name or event.get("reason") not in NODE_FAILURE_REASONS:
+            continue
+        observed = parse_time(event.get("eventTime") or event.get("lastTimestamp") or event.get("metadata", {}).get("creationTimestamp"))
+        if observed and observed >= cutoff:
+            failures.append(event.get("reason"))
+    not_ready_count = failures.count("NodeNotReady")
+    minimum_ready = int(spec.get("reliability", {}).get("minimumReadySeconds", 1800))
+    max_not_ready = int(spec.get("reliability", {}).get("maxNotReadyEvents", 0))
+    currently_ready = ready_condition.get("status") == "True"
+    eligible = (currently_ready and ready_seconds >= minimum_ready and not pressure
+                and not node.get("spec", {}).get("unschedulable", False) and not_ready_count <= max_not_ready
+                and not spec.get("reliability", {}).get("maintenanceMode", False))
+    risk = int(spec.get("reliability", {}).get("disruptionRisk", 50))
+    score = clamp(100 - risk - min(50, not_ready_count * 20) - min(20, len(failures) * 3)
+                  - (40 if pressure else 0) - (40 if not currently_ready else 0))
+    return {"eligible": eligible, "score": score, "readySeconds": ready_seconds,
+            "recentFailures": len(failures), "recentNotReady": not_ready_count, "pressure": pressure}
 
 def profile_labels(spec, target):
     labels = {"scheduling.re8ch.com/provider": spec.get("background", {}).get("provider", "unknown"),
@@ -81,10 +129,13 @@ def memory(value="0"):
 
 def trimaran_nodes():
     series = []
-    for query in ("instance:node_cpu_utilisation:rate:sum", "instance:node_memory_utilisation:ratio"):
-        url = VM + "/api/v1/query?" + urllib.parse.urlencode({"query": query})
-        with urllib.request.urlopen(url, timeout=10) as response:
-            series.append({x.get("metric", {}).get("instance") or x.get("metric", {}).get("node") for x in json.load(response).get("data", {}).get("result", [])})
+    try:
+        for query in ("instance:node_cpu_utilisation:rate:sum", "instance:node_memory_utilisation:ratio"):
+            url = VM + "/api/v1/query?" + urllib.parse.urlencode({"query": query})
+            with urllib.request.urlopen(url, timeout=10) as response:
+                series.append({x.get("metric", {}).get("instance") or x.get("metric", {}).get("node") for x in json.load(response).get("data", {}).get("result", [])})
+    except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError):
+        return set()
     return set.intersection(*series) if series else set()
 
 def owner_workload(pod, replicasets, deployments, statefulsets):
@@ -137,7 +188,7 @@ def score_service(service, slices, pods, pod_metrics, nodes, replicasets, deploy
             "scores": {"resilience": resilience, "efficiency": efficiency, "stability": stability}, "completeness": completeness,
             "confidence": completeness, "complete": completeness >= 0.8 and efficiency is not None, "pareto": False, "missingEvidence": missing, "evidence": evidence}}
 
-def reconcile_profiles(nodes):
+def reconcile_profiles(nodes, events):
     node_names = {n["metadata"]["name"] for n in nodes}
     metric_nodes = trimaran_nodes()
     for node_name in node_names:
@@ -148,8 +199,16 @@ def reconcile_profiles(nodes):
         labels = profile_labels(spec, target)
         targets = [x for x in [target] + spec.get("aliases", []) if x in node_names]
         for node_name in targets:
+            node = next(x for x in nodes if x["metadata"]["name"] == node_name)
+            reliability = node_reliability(node, events, spec)
             projected = dict(labels)
             projected["scheduling.re8ch.com/failure-domain"] = spec.get("failureDomains", {}).get("host", node_name)
+            projected["scheduling.re8ch.com/reliability-score"] = str(reliability["score"])
+            projected["scheduling.re8ch.com/service-plane-eligible"] = "true" if reliability["eligible"] else "false"
+            if spec.get("capabilities", {}).get("servicePlane") and not reliability["eligible"]:
+                projected["scheduling.re8ch.com/service-plane"] = None
+            elif not spec.get("capabilities", {}).get("servicePlane"):
+                projected["scheduling.re8ch.com/service-plane"] = None
             patch(f"/api/v1/nodes/{node_name}", {"metadata": {"labels": projected}})
         condition = {"type": "Ready", "status": "True" if targets else "False", "reason": "Projected" if targets else "NodeMissing", "lastTransitionTime": now()}
         patch(f"{GROUP}/nodeprofiles/{name}", {"status": {"observedGeneration": profile["metadata"].get("generation"), "projectedNodes": targets, "projectedLabels": labels, "conditions": [condition]}}, True)
@@ -234,7 +293,8 @@ def run():
                 time.sleep(15)
                 continue
             nodes = items("/api/v1/nodes")
-            reconcile_profiles(nodes)
+            events = items("/api/v1/events?fieldSelector=involvedObject.kind%3DNode")
+            reconcile_profiles(nodes, events)
             reconcile_scheduler_profiles(nodes)
             reconcile_services(nodes)
             reconcile_disturbances(nodes)
