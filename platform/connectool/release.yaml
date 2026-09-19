@@ -45,7 +45,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         tolerations: []
         topologySpreadConstraints: []
         resources:
@@ -53,7 +53,7 @@ spec:
           limits: {cpu: 500m, memory: 256Mi}
       runtimePolicy:
         enabled: true
-        nodeNames: [restricted-node-6dc3f140f9, overseas-la]
+        nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
         trafficDistribution: PreferSameNode
         backendSessionAffinity: None
         proxyResources:
@@ -95,7 +95,7 @@ spec:
                 requiredDuringSchedulingIgnoredDuringExecution:
                   nodeSelectorTerms:
                     - matchExpressions:
-                        - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
+                        - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
               podAntiAffinity:
                 requiredDuringSchedulingIgnoredDuringExecution:
                   - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-registry-server}}

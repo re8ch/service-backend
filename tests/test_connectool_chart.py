@@ -86,9 +86,9 @@ def test_connectool_renders_admin_and_tenant_publications():
     for item in vmcps.values():
         expressions = item["spec"]["podTemplateSpec"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
         assert expressions == [{
-            "key": "scheduling.re8ch.com/service-plane",
+            "key": "kubernetes.io/hostname",
             "operator": "In",
-            "values": ["core"],
+            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
         }]
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
@@ -110,7 +110,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     assert "Object.spec.template.spec.affinity.nodeAffinity{" in serialized
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
     assert "'app': object.metadata.labels['app']" in serialized
-    for node in ("restricted-node-6dc3f140f9", "overseas-la"):
+    for node in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"):
         assert node in serialized
 
 
@@ -132,9 +132,9 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
         spec = deployment["spec"]["template"]["spec"]
         terms = spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
         assert terms[0]["matchExpressions"][0] == {
-            "key": "scheduling.re8ch.com/service-plane",
+            "key": "kubernetes.io/hostname",
             "operator": "In",
-            "values": ["core"],
+            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
         }
         anti = spec["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert anti["topologyKey"] == "kubernetes.io/hostname"

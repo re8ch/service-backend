@@ -26,9 +26,9 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "requiredDuringSchedulingIgnoredDuringExecution"
     ]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert registry_expression == {
-        "key": "scheduling.re8ch.com/service-plane",
+        "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["core"],
+        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
     }
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
@@ -92,10 +92,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
             "limits": {"cpu": "100m", "memory": "64Mi"},
         },
     }
-    assert toolhive["runtimePolicy"]["nodeNames"] == [
-        "restricted-node-6dc3f140f9",
-        "overseas-la",
-    ]
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")

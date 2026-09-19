@@ -71,7 +71,7 @@ metadata:
   name: ops-admin-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: service-plane-core-2026-09-18}
+  annotations: {re8ch.com/reconcile-generation: a1-b1-recovery-2026-09-19}
 spec:
   groupRef: {name: platform-admin-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -102,14 +102,14 @@ spec:
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-revision: service-plane-core-2026-09-18}
+      annotations: {scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19}
     spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-admin-vmcp-internal}}
@@ -130,7 +130,7 @@ metadata:
   name: ops-observe-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: service-plane-core-2026-09-18}
+  annotations: {re8ch.com/reconcile-generation: a1-b1-recovery-2026-09-19}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -159,14 +159,14 @@ spec:
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-revision: service-plane-core-2026-09-18}
+      annotations: {scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19}
     spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-observe-vmcp-internal}}
@@ -184,7 +184,7 @@ metadata:
   name: ops-operate-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: service-plane-core-2026-09-18}
+  annotations: {re8ch.com/reconcile-generation: a1-b1-recovery-2026-09-19}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -208,14 +208,14 @@ spec:
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-revision: service-plane-core-2026-09-18}
+      annotations: {scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19}
     spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-operate-vmcp-internal}}
