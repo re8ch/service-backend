@@ -12,7 +12,7 @@ def yaml_documents(path: Path):
     return [doc for doc in yaml.safe_load_all(path.read_text()) if doc]
 
 
-def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
+def test_victoria_metrics_operator_is_an_r640_singleton():
     resources = yaml_documents(OBSERVABILITY / "bootstrap" / "victoria-metrics-operator.yaml")
     release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
     values = release["spec"]["values"]
@@ -23,8 +23,11 @@ def test_victoria_metrics_operator_webhook_uses_routable_ha_nodes():
     assert node_expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-6dc3f140f9", "vm-20-12-ubuntu"],
+        "values": ["restricted-node-6dc3f140f9"],
     }
+    assert values["replicaCount"] == 1
+    assert values["podDisruptionBudget"]["enabled"] is False
+    assert "podAntiAffinity" not in values["affinity"]
     assert values["tolerations"] == [
         {
             "key": "node-role.kubernetes.io/control-plane",
