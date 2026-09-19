@@ -1,0 +1,15 @@
+---
+description: Enforce task worktrees and the read-only service-backend main anchor
+alwaysApply: true
+---
+
+# GitOps worktree policy
+
+- Treat `/Volumes/A1/service-backend` as a clean, physically read-only `github/main` anchor.
+- Never edit, stage, commit, merge, rebase, switch branches, or push from that checkout.
+- Before any repository write, create a task-specific worktree from current `github/main`.
+- Keep one concern per branch. Use signed commits, passing GitHub Actions, and a pull request.
+- Preserve dirty or divergent worktrees as a patch, stash, bundle, or quarantine checkout before cleanup.
+- Remove clean task worktrees and local branches after merge or intentional closure.
+- GitLab is historical and read-only. GitHub is the collaboration and GitOps authority.
+- A cluster emergency may justify a controlled runtime action, but never bypasses Git history or PR review for desired-state changes.

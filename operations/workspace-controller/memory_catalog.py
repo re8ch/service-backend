@@ -100,6 +100,16 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
             public_authority_context(root),
             "",
         ]
+    working_rules = (
+        "Read the repository-root AGENTS.md first when present, then README and declared knowledge. "
+        "For every `github-pr` module, start changes in a task-specific Git worktree based on the "
+        "authoritative GitHub default branch; never develop in the default checkout. Preserve dirty "
+        "checkouts before cleanup and remove clean task worktrees after merge or intentional closure. "
+        "The `/Volumes/A1/service-backend` checkout is a physically read-only `github/main` anchor; "
+        "only a clean fast-forward sync may temporarily unlock it. Use the module write policy; "
+        "collaboration/read-only modules must not be pushed as owned code. Never copy credentials "
+        "into patches, logs, MEMORY, or Git."
+    )
     return "\n".join([
         f"# {module.name} Agent MEMORY",
         "",
@@ -118,7 +128,7 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
         "",
         "## Working rules",
         "",
-        "Read the repository-root AGENTS.md first when present, then README and declared knowledge. Work in a project-local Git worktree and preserve dirty checkouts. Use the module write policy; collaboration/read-only modules must not be pushed as owned code. Never copy credentials into patches, logs, MEMORY, or Git.",
+        working_rules,
         "",
         "## Catalog and platform context",
         "",

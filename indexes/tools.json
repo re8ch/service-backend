@@ -305,6 +305,10 @@
   },
   {
     "module": "service-backend",
+    "ref": "git-worktree"
+  },
+  {
+    "module": "service-backend",
     "ref": "flux"
   },
   {
