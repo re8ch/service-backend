@@ -51,14 +51,21 @@ async function instantQuery(query: string): Promise<Sample[]> {
   // request() binds the URL to Headlamp's currently selected cluster. Calling
   // clusterRequest() without that cluster silently targets the Headlamp SPA and
   // returns index.html, which then fails JSON parsing at "<!DOCTYPE".
-  const response: any = await request(path, {method: 'GET'});
+  const response: any = await withTimeout(request(path, {method: 'GET'}), `Birfucate metric ${query}`);
   if (response?.status !== 'success') throw new Error(response?.error || 'Birfucate query failed');
   return response?.data?.result || [];
 }
 
 async function apiList(path: string): Promise<KubeObject[]> {
-  const response: any = await request(path, {method: 'GET'});
+  const response: any = await withTimeout(request(path, {method: 'GET'}), path);
   return response?.items || [];
+}
+
+async function withTimeout<T>(promise: Promise<T>, source: string, milliseconds=8000): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_resolve,reject)=>setTimeout(()=>reject(new Error(`${source} timed out after ${milliseconds}ms`)),milliseconds)),
+  ]);
 }
 
 async function optionalApiList(path: string): Promise<{items:KubeObject[]; error:string}> {
@@ -220,11 +227,11 @@ function Dashboard() {
     const hard=item.status?.hard || item.spec?.hard || {}; const used=item.status?.used || {};
     return Object.keys(hard).map(dimension=>({id:`quota:${item.metadata?.namespace}:${item.metadata?.name}:${dimension}`,resourceClass:dimension,source:'ResourceQuota',unit:dimension,capacity:quantity(hard[dimension]),allocated:quantity(hard[dimension]),used:quantity(used[dimension]),scope:item.metadata?.namespace || '-',evidence:`${item.metadata?.namespace}/${item.metadata?.name}`}));
   });
-  const nodeCapacity=(field:string)=>nodes.reduce((sum,item)=>sum+quantity(item.status?.allocatable?.[field]),0);
+  const nodeCapacity=(field:string):number|null=>nodes.length ? nodes.reduce((sum,item)=>sum+quantity(item.status?.allocatable?.[field]),0) : null;
   const clusterFacts:CapacityFact[]=[
-    {id:'cluster:cpu',resourceClass:'cluster.cpu',source:'Node.status.allocatable',unit:'cores',capacity:nodeCapacity('cpu'),allocated:quotaFacts.filter(x=>x.resourceClass.includes('cpu')).reduce((sum,x)=>sum+x.allocated,0),used:null,scope:'cluster',evidence:`${nodes.length} nodes`},
-    {id:'cluster:memory',resourceClass:'cluster.memory',source:'Node.status.allocatable',unit:'bytes',capacity:nodeCapacity('memory'),allocated:quotaFacts.filter(x=>x.resourceClass.includes('memory')).reduce((sum,x)=>sum+x.allocated,0),used:null,scope:'cluster',evidence:`${nodes.length} nodes`},
-    {id:'cluster:pods',resourceClass:'cluster.pods',source:'Node.status.allocatable',unit:'pods',capacity:nodeCapacity('pods'),allocated:quotaFacts.filter(x=>x.resourceClass==='pods').reduce((sum,x)=>sum+x.allocated,0),used:visibleWorkloads.length,scope:'cluster',evidence:`${nodes.length} nodes`},
+    {id:'cluster:cpu',resourceClass:'cluster.cpu',source:'Node.status.allocatable',unit:'cores',capacity:nodeCapacity('cpu'),allocated:quotaFacts.filter(x=>x.resourceClass.includes('cpu')).reduce((sum,x)=>sum+x.allocated,0),used:null,scope:'cluster',evidence:nodes.length?`${nodes.length} nodes`:'节点来源不可读'},
+    {id:'cluster:memory',resourceClass:'cluster.memory',source:'Node.status.allocatable',unit:'bytes',capacity:nodeCapacity('memory'),allocated:quotaFacts.filter(x=>x.resourceClass.includes('memory')).reduce((sum,x)=>sum+x.allocated,0),used:null,scope:'cluster',evidence:nodes.length?`${nodes.length} nodes`:'节点来源不可读'},
+    {id:'cluster:pods',resourceClass:'cluster.pods',source:'Node.status.allocatable',unit:'pods',capacity:nodeCapacity('pods'),allocated:quotaFacts.filter(x=>x.resourceClass==='pods').reduce((sum,x)=>sum+x.allocated,0),used:pods.length?visibleWorkloads.length:null,scope:'cluster',evidence:nodes.length?`${nodes.length} nodes`:'节点来源不可读'},
   ];
   const consumableFacts:CapacityFact[]=consumables.filter(item=>item.spec?.lifecycle==='Approved').map(item=>{
     const resourceClass=String(item.spec?.serviceClass || item.metadata?.name || 'unknown');
@@ -268,8 +275,8 @@ function Dashboard() {
       <Box><Typography variant="h4">Bifurcate Facts</Typography><Typography color="text.secondary">容量、分配与 Invoke 资源流的只读事实面</Typography></Box>
       <Button variant="outlined" onClick={() => void refresh()} disabled={loading}>{loading ? '读取中…' : '刷新'}</Button>
     </Box>
-    <Alert severity={sourceErrors.length || error ? 'warning' : 'success'} sx={{mb:2}}>
-      Kubernetes 对象是事实来源；Birfucate 指标仅补充计量。{sourceErrors.length || error ? ` ${sourceErrors.length + (error ? 1 : 0)} 个采集端点暂不可用，已有事实仍会展示。` : ' 当前采集端点正常。'}
+    <Alert severity={loading ? 'info' : sourceErrors.length || error ? 'warning' : 'success'} sx={{mb:2}}>
+      Kubernetes 对象是事实来源；Birfucate 指标仅补充计量。{loading ? ' 正在等待各事实来源，当前数字不作为最终事实。' : sourceErrors.length || error ? ` ${sourceErrors.length + (error ? 1 : 0)} 个采集端点超时或不可用；未知值不会显示为容量 0。` : ' 当前采集端点正常。'}
     </Alert>
     <Box sx={{display:'flex',gap:2,flexWrap:'wrap',mb:2}}>
       <FormControl size="small" sx={{minWidth:180}}><InputLabel>Tenant</InputLabel><Select value={tenant} label="Tenant" onChange={e=>setTenant(String(e.target.value))}><MenuItem value="">全部</MenuItem>{tenants.map(x=><MenuItem key={x} value={x}>{x}</MenuItem>)}</Select></FormControl>
