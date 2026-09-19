@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: starfire
+    delivery.re8ch.com/codename: torch
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:9e70b27b0da2221d346b104e6a286bbee89eea0f06cb7d5984e01bd8829256d6
+    digest: sha256:dd0795d4b04a52c69b623db0ff299a827f3f5a8deb6ca64fe8cf1d63a0e33f7e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: starfire
+    delivery.re8ch.com/codename: torch
 spec:
   interval: 10m
   retryInterval: 1m
