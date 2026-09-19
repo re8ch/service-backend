@@ -135,10 +135,13 @@ items:
       cloud:
         provider: aliyun
         product: ecs
+        account: muaya
         cliProfile: default
         regionId: cn-hangzhou
+        zoneId: cn-hangzhou-h
         apiEndpoint: ecs.cn-hangzhou.aliyuncs.com
         instanceId: i-bp1auluadeyatron6lw4
+        instanceName: iZbp1auluadeyatron6lw4Z
         publicIp: 192.0.2.185
       capabilities: [k3s-worker, public-edge]
       cluster:
@@ -160,10 +163,12 @@ items:
       cloud:
         provider: aliyun
         product: swas
+        account: muaya
         cliProfile: default
         regionId: cn-shanghai
         apiEndpoint: swas.cn-shanghai.aliyuncs.com
         instanceId: 727f083c912f43ef8fab274712529b39
+        instanceName: Ubuntu-hjkt
         publicIp: 192.0.2.197
       capabilities: [k3s-worker, public-edge]
       cluster:
@@ -248,8 +253,18 @@ items:
   - metadata: {name: vm-20-12-ubuntu}
     spec:
       transport: ssh
-      address: vm-20-12-ubuntu
+      address: ICP
       credentialRef: node-ssh
+      cloud:
+        provider: tencent
+        product: lighthouse
+        account: south-mountain
+        cliProfile: default
+        regionId: ap-guangzhou
+        apiEndpoint: lighthouse.tencentcloudapi.com
+        instanceId: lhins-buc3bkjt
+        instanceName: Ubuntu-OCaA
+        publicIp: 192.0.2.122
       capabilities: [k3s-worker]
       cluster:
         membership: active
