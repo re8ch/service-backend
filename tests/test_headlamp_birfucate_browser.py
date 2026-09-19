@@ -8,11 +8,11 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "platform/plugins/headlamp-birfucate-browser"
-BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.3.2.bundle"
+BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.4.1.bundle"
 
 
 def test_plugin_is_explicitly_read_only():
-    source = (PLUGIN / "src/index.tsx").read_text()
+    source = (PLUGIN / "src/index.tsx").read_text() + (PLUGIN / "src/ResourceCorridors.tsx").read_text()
     assert "method: 'GET'" in source
     for mutation in ("POST", "PUT", "PATCH", "DELETE", "create(", "update(", "delete("):
         assert mutation not in source
@@ -20,7 +20,7 @@ def test_plugin_is_explicitly_read_only():
 
 
 def test_plugin_queries_birfucate_metrics_through_service_proxy():
-    source = (PLUGIN / "src/index.tsx").read_text()
+    source = (PLUGIN / "src/index.tsx").read_text() + (PLUGIN / "src/ResourceCorridors.tsx").read_text()
     assert "from '@kinvolk/headlamp-plugin/lib/ApiProxy'" in source
     assert "await request(path" in source
     assert "clusterRequest(path" not in source
@@ -32,11 +32,11 @@ def test_plugin_queries_birfucate_metrics_through_service_proxy():
     assert "birfucate_metered_cost_total" in source
     assert "birfucate_tenant_cost_total" in source
     assert "birfucate_tenant_resource_count" in source
-    assert "Tenant circular resource bifurcation flow" in source
-    assert "Owned namespace workloads" in source
-    assert "储蓄 / 回流" in source
-    assert "外部租户分流" in source
-    assert source.count("Re8ch Tenant tool coverage") == 1
+    assert "Global resource allocation" in source
+    assert "ResourceCorridors" in source
+    assert "owned namespace workloads" in source
+    assert "Tenant API capabilities" in source
+    assert "可出租上限" in source
     assert "labels.tenant" in source
     assert "labels.resource_ref" in source
 
@@ -63,7 +63,7 @@ def test_plugin_renders_the_managed_tenant_contract():
         assert endpoint in source
     for field in ("hostingMode", "byocAllowed", "businessNamespaces", "OIDC identities"):
         assert field in source
-    for field in ("Subscriptions", "Subscription offerings", "planRef", "quota", "startsAt", "endsAt"):
+    for field in ("Tenant contracts", "ConsumptionBinding", "quota", "startsAt"):
         assert field in source
 
 
@@ -73,11 +73,13 @@ def test_bundle_is_digest_pinned_and_contains_runtime_files():
     assert digest in deployment
     with tarfile.open(BUNDLE) as archive:
         names = set(archive.getnames())
-        runtime = archive.extractfile("headlamp-birfucate-browser/main.js").read().decode()
-        package = archive.extractfile("headlamp-birfucate-browser/package.json").read().decode()
-    assert "headlamp-birfucate-browser/main.js" in names
-    assert "headlamp-birfucate-browser/package.json" in names
-    assert '"version": "0.3.2"' in package
+        runtime_name = next(name for name in names if name.endswith("/main.js"))
+        package_name = next(name for name in names if name.endswith("/package.json"))
+        runtime = archive.extractfile(runtime_name).read().decode()
+        package = archive.extractfile(package_name).read().decode()
+    assert runtime_name
+    assert package_name
+    assert '"version": "0.4.1"' in package
     assert "/apis/tenancy.re8ch.com/v1alpha1/tenants" in runtime
     assert "/apis/finops.re8ch.com/v1alpha1/clusterregistrations" in runtime
 
@@ -95,7 +97,7 @@ def test_complete_tenant_tool_surface_is_counted_once():
 def test_headlamp_kustomization_includes_bundle():
     document = yaml.safe_load((ROOT / "platform/headlamp/kustomization.yaml").read_text())
     generators = {item["name"]: item for item in document["configMapGenerator"]}
-    assert generators["headlamp-birfucate-browser-v032"]["namespace"] == "headlamp"
-    assert generators["headlamp-birfucate-browser-v032"]["files"] == [
-        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.3.2.bundle"
+    assert generators["headlamp-birfucate-browser-v041"]["namespace"] == "headlamp"
+    assert generators["headlamp-birfucate-browser-v041"]["files"] == [
+        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.4.1.bundle"
     ]

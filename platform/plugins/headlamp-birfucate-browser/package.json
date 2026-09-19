@@ -1,16 +1,16 @@
 {
   "name": "@re8ch/headlamp-birfucate-browser",
-  "version": "0.3.2",
-  "description": "Read-only tenant subscription, OIDC, cost and resource browser for Headlamp",
+  "version": "0.4.1",
+  "description": "Read-only capacity, allocation and invoke fact surface for Headlamp",
   "scripts": {
     "build": "headlamp-plugin build",
     "lint": "headlamp-plugin lint",
     "package": "headlamp-plugin package",
     "tsc": "headlamp-plugin tsc"
   },
-  "keywords": ["headlamp", "birfucate", "subscription", "oidc", "occupancy", "bifurcation", "tenant", "read-only"],
+  "keywords": ["headlamp", "birfucate", "capacity", "allocation", "invoke", "events", "tenant", "read-only"],
   "license": "Apache-2.0",
-  "devDependencies": {"@kinvolk/headlamp-plugin": "^0.14.0", "@types/react": "^18.3.0", "typescript": "5.6.2"},
+  "devDependencies": {"@kinvolk/headlamp-plugin": "^0.14.0", "@storybook/react": "9.1.20", "@types/react": "^18.3.0", "typescript": "5.6.2"},
   "dependencies": {"@mui/material": "^7.0.0", "@iconify/react": "^6.0.0", "react": "^18.3.1"},
   "overrides": {"typescript": "5.6.2", "ws": "8.21.0"}
 }
