@@ -359,6 +359,8 @@ modules:
       digest: sha256:1d3f2a2dc7c10ee10d14fbfd032b29a5768483a81f60baba8781662994244b3a
     - codename: compass-amber
       digest: sha256:52c75949e77dcd378238ac2decd495decd718ce504729680737f98d4776a2ac4
+    - codename: harbor-amber
+      digest: sha256:dcfbbad0c297d7531bdb48348ae9596ab01fb4cb5c1f71ac5b4acc83ba53f75f
   platform/observability/bootstrap:
     releases:
     - codename: aperture
