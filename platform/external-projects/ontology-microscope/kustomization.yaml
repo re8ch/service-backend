@@ -5,6 +5,7 @@ resources:
   - workload.yaml
   - database.yaml
   - adapter.yaml
+  - evaluation.yaml
   - neuronpedia.yaml
   - public.yaml
 labels:

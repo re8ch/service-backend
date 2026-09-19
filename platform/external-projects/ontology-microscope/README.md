@@ -3,7 +3,7 @@
 Ontology Microscope is a normal workload owned by the `re8ch` tenant and runs
 in `re8ch-ontology-microscope`. Its public Neuronpedia endpoint is routed
 directly to the web application without the former Basic Auth sidecar. The
-`/api/re8ch/analyses` path is routed to the in-namespace adapter.
+`/api/re8ch/*` paths are routed to the in-namespace adapter.
 
 ## Neuronpedia production stack
 
@@ -20,12 +20,16 @@ canaries:
 - the RE8CH projection/intervention and temporary product-analysis adapter from
   product revision `5dc3adcedd31bf196c4e444976c8b43128c05bf6`;
 - a public Service named `ontology-microscope-neuronpedia`.
+- a UIless evaluation data plane backed by the same PostgreSQL authority and a
+  private Neo4j projection. It compiles 200-500 hierarchical natural-language
+  cases through the tenant LiteLLM gateway, accepts human or agent runtime
+  observations, computes scorecards, and exports JSONL/NDJSON training data.
 
 Published immutable images:
 
 - webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:45dd94ae9ce31be71090cc578f5df35214cddfbc067a4a9468e80f7ae8abaced`
 - migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c`
-- adapter: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:955e6e448b55c558ca823f4a4d469877923e3fbaa86bafbb6f14a0341881266c`
+- adapter and evaluation worker: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:242668f0df0236ff78ee0c4a6f539656869118d73db6b43ef2c6a95ff84f58ee`
 
 These manifests were exported from the verified restricted-node-6dc3f140f9 containerd content store
 as compressed OCI archives and uploaded with `--preserve-digests`. This avoids
@@ -39,6 +43,13 @@ The optional out-of-band Secret `ontology-microscope-analysis` supplies key
 `api-key` for the tenant LiteLLM endpoint. When absent, the analysis API returns
 a redacted 503 while the homepage and built-in example remain available. No
 credential values belong in Git.
+
+The persistent `/api/re8ch/v2/*` API requires scoped bearer tokens. Their
+hash-only registry and the dedicated Neo4j password are SOPS encrypted in the
+cluster desired state. Raw operator tokens are kept in the macOS Keychain under
+`re8ch-ontology-evaluation-admin`, `re8ch-ontology-evaluation-evaluator`, and
+`re8ch-ontology-evaluation-reader`; they are never committed. The public
+`/api/re8ch/analyses` endpoint remains ephemeral and unauthenticated.
 
 ## Cutover and rollback
 
