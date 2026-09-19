@@ -49,7 +49,7 @@ spec:
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-a1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-a1, power: a1-workstation, network: a1-local-uplink, host: a1-windows}
   reliability: {class: variable, disruptionRisk: 45}
-  capabilities: {bandwidthMbps: 200, storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
+  capabilities: {bandwidthMbps: 200, servicePlane: core, storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -62,7 +62,7 @@ spec:
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-b1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-b1, power: b1-workstation, network: b1-local-uplink, host: b1-windows}
   reliability: {class: variable, disruptionRisk: 45}
-  capabilities: {bandwidthMbps: 200, storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
+  capabilities: {bandwidthMbps: 200, servicePlane: core, storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
