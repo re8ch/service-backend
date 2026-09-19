@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -20,11 +21,13 @@ class Handler(BaseHTTPRequestHandler):
         if not ROOT.exists():
             return self.reply(503, {"status": "a1-unmounted"})
         parsed = urlparse(self.path)
-        controller = Controller(ROOT)
+        if parsed.path == "/healthz":
+            return self.reply(200, {
+                "status": "ok", "role": "macmini-devops-primary", "root": str(ROOT)
+            })
         try:
-            if parsed.path == "/healthz":
-                body = {"status": "ok", "role": "macmini-devops-primary", "root": str(ROOT)}
-            elif parsed.path == "/v1/context":
+            controller = Controller(ROOT)
+            if parsed.path == "/v1/context":
                 query = parse_qs(parsed.query)
                 body = controller.context((query.get("module") or [None])[0], (query.get("q") or [None])[0])
             elif parsed.path == "/v1/status":
@@ -36,6 +39,12 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, body)
         except WorkspaceError as exc:
             self.reply(400, {"error": str(exc)})
+        except Exception as exc:  # Keep the HTTP contract even if workspace schema loading fails.
+            print(json.dumps({
+                "event": "handler_error", "path": parsed.path,
+                "errorType": type(exc).__name__, "traceback": traceback.format_exc(),
+            }), file=sys.stderr)
+            self.reply(500, {"error": "internal_error"})
 
     def do_POST(self) -> None:
         self.reply(405, {"error": "read_only_use_mcp_or_ci"})
