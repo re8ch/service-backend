@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: lantern-amber
+codename: lighthouse-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:168e13b856fff180780925df932a2096c6dcb53cf2734ec1ce72116ea8740757
+  digest: sha256:3cc95bed91085a580d32ee2c2f3b784106c1db1924a3723a384e16c433700588
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
