@@ -8,7 +8,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "platform/plugins/headlamp-birfucate-browser"
-BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.4.2.bundle"
+BUNDLE = ROOT / "platform/headlamp/assets/re8ch-headlamp-birfucate-browser-0.4.3.bundle"
 
 
 def test_plugin_is_explicitly_read_only():
@@ -40,6 +40,8 @@ def test_plugin_queries_birfucate_metrics_through_service_proxy():
     assert "timed out after" in source
     assert "未知值不会显示为容量 0" in source
     assert "节点来源不可读" in source
+    assert "controller template" in source
+    assert "volumeClaimTemplate" in source
     assert "labels.tenant" in source
     assert "labels.resource_ref" in source
 
@@ -82,7 +84,7 @@ def test_bundle_is_digest_pinned_and_contains_runtime_files():
         package = archive.extractfile(package_name).read().decode()
     assert runtime_name
     assert package_name
-    assert '"version": "0.4.2"' in package
+    assert '"version": "0.4.3"' in package
     assert "/apis/tenancy.re8ch.com/v1alpha1/tenants" in runtime
     assert "/apis/finops.re8ch.com/v1alpha1/clusterregistrations" in runtime
 
@@ -100,7 +102,7 @@ def test_complete_tenant_tool_surface_is_counted_once():
 def test_headlamp_kustomization_includes_bundle():
     document = yaml.safe_load((ROOT / "platform/headlamp/kustomization.yaml").read_text())
     generators = {item["name"]: item for item in document["configMapGenerator"]}
-    assert generators["headlamp-birfucate-browser-v042"]["namespace"] == "headlamp"
-    assert generators["headlamp-birfucate-browser-v042"]["files"] == [
-        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.4.2.bundle"
+    assert generators["headlamp-birfucate-browser-v043"]["namespace"] == "headlamp"
+    assert generators["headlamp-birfucate-browser-v043"]["files"] == [
+        "plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.4.3.bundle"
     ]
