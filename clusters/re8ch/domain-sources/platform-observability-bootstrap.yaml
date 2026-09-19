@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/bootstrap
-    delivery.re8ch.com/codename: viewport
+    delivery.re8ch.com/codename: zenith
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
   ref:
-    digest: sha256:ea502d5c0afda2974bf7ae1dad816fd32941871e87b76b7042e8892b204b5ed2
+    digest: sha256:a1174a879ba8c25318941c2e7e1d426d776eec5c0b2bd67b5842afdc61710c0a
   verify:
     provider: cosign
     matchOIDCIdentity:

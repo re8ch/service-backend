@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/bootstrap
-codename: viewport
+codename: zenith
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
-  digest: sha256:ea502d5c0afda2974bf7ae1dad816fd32941871e87b76b7042e8892b204b5ed2
+  digest: sha256:a1174a879ba8c25318941c2e7e1d426d776eec5c0b2bd67b5842afdc61710c0a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

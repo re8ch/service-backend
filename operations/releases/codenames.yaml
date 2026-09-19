@@ -357,6 +357,8 @@ modules:
       digest: sha256:8f531d9fd7e28c04cbfee91b5c0bcc8865fb1ce53cb9964e79deed5ea657a225
     - codename: viewport
       digest: sha256:ea502d5c0afda2974bf7ae1dad816fd32941871e87b76b7042e8892b204b5ed2
+    - codename: zenith
+      digest: sha256:a1174a879ba8c25318941c2e7e1d426d776eec5c0b2bd67b5842afdc61710c0a
   platform/observability/opencost-recovery:
     releases:
     - codename: aperture
