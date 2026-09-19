@@ -115,6 +115,8 @@ modules:
       digest: sha256:1372573f3bea2c13dec497efb6348adcc2e6714184636472168818bf811813e4
     - codename: flare-amber
       digest: sha256:3bc234ed773769178ec006e3d08d5fa345c823e53e3bbae78229c79cff5a7b7b
+    - codename: lantern-amber
+      digest: sha256:168e13b856fff180780925df932a2096c6dcb53cf2734ec1ce72116ea8740757
   platform/among-clusters:
     releases:
     - codename: bora
