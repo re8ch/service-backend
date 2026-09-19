@@ -106,6 +106,7 @@ spec:
             - {name: data, mountPath: /var/lib/stalwart}
             - {name: tmp, mountPath: /tmp}
             - {name: cloudflare-token, mountPath: /var/run/stalwart-secrets/cloudflare, readOnly: true}
+            - {name: cloudflare-re8ch-token, mountPath: /var/run/stalwart-secrets/cloudflare-re8ch, readOnly: true}
       volumes:
         - {name: config, configMap: {name: stalwart-config}}
         - {name: tmp, emptyDir: {}}
@@ -115,6 +116,11 @@ spec:
             # The separately synchronized re8ch.com credential is retained for
             # future domain onboarding and must not be reused here.
             secretName: stalwart-cloudflare-phonaid-token
+            optional: true
+            items: [{key: CF_API_TOKEN, path: token}]
+        - name: cloudflare-re8ch-token
+          secret:
+            secretName: stalwart-cloudflare-dns-token
             optional: true
             items: [{key: CF_API_TOKEN, path: token}]
   volumeClaimTemplates:
