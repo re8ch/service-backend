@@ -295,11 +295,13 @@ spec:
             - -plugins-dir=/headlamp/plugins
           env:
             # domain-ex cannot reliably reach the Kubernetes Service VIP
-            # (192.0.2.248:443). Use the existing management-plane endpoint
-            # already used by panel diagnostics so Headlamp's in-cluster
-            # client and every plugin API proxy remain available.
+            # (192.0.2.248:443). Use the stable restricted-node-6dc3f140f9 control-plane transit
+            # endpoint. Unlike the previous A1 ZeroTier address, this address
+            # is part of the control-plane API fabric and the server TLS SAN,
+            # so long-running watch streams do not depend on a WSL/ZeroTier
+            # workstation path.
             - name: KUBERNETES_SERVICE_HOST
-              value: "192.0.2.176"
+              value: "192.0.2.179"
             - name: KUBERNETES_SERVICE_PORT
               value: "6443"
             - name: KUBERNETES_SERVICE_PORT_HTTPS
