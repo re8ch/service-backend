@@ -32,16 +32,18 @@ def test_every_plugin_has_independent_identity():
 
 def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
-    rolling_update = deployment["spec"]["strategy"]["rollingUpdate"]
     eligible_nodes = set(
         deployment["spec"]["template"]["spec"]["affinity"]["nodeAffinity"]
         ["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]
         ["matchExpressions"][0]["values"]
     )
 
-    assert deployment["spec"]["replicas"] == 2
-    assert rolling_update == {"maxSurge": 0, "maxUnavailable": 1}
-    assert eligible_nodes == {"domain-ex"}
+    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["strategy"] == {"type": "Recreate"}
+    assert eligible_nodes == {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}
+    pod_spec = deployment["spec"]["template"]["spec"]
+    assert pod_spec["hostNetwork"] is True
+    assert pod_spec["dnsPolicy"] == "ClusterFirstWithHostNet"
     pod_anti_affinity = deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"]
     assert "requiredDuringSchedulingIgnoredDuringExecution" not in pod_anti_affinity
     preferred = pod_anti_affinity["preferredDuringSchedulingIgnoredDuringExecution"]
@@ -64,7 +66,7 @@ def test_headlamp_uses_stable_control_plane_api_endpoint():
         for item in headlamp["env"]
     }
 
-    assert environment["KUBERNETES_SERVICE_HOST"] == "192.0.2.205"
+    assert environment["KUBERNETES_SERVICE_HOST"] == "127.0.0.1"
     assert environment["KUBERNETES_SERVICE_PORT"] == "6443"
     assert environment["KUBERNETES_SERVICE_PORT_HTTPS"] == "6443"
 

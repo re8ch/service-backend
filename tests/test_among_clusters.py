@@ -15,6 +15,6 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     assert "headlamp-advanced-fabric-0.23.1.bundle.b64" in kustomization
     assert "d57bba5f5e4c0988d353e4ec04abfcfdd68d32c0a96418bda22ece3665ab2af5" in deployment
     assert "headlamp-advanced-fabric-v0231" in kustomization
-    assert "values: [domain-ex]" in deployment
+    assert "values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]" in deployment
     assert "github.com/re8ch/" not in deployment
     assert not re.search(r"client-certificate-data|client-key-data|Bearer\\s+[A-Za-z0-9]", deployment, re.I)

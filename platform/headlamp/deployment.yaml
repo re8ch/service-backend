@@ -6,14 +6,11 @@ metadata:
   labels:
     app.kubernetes.io/name: headlamp
 spec:
-  replicas: 2
+  # Headlamp v0.42 keeps OAuth state in process memory. Keep one active
+  # instance and let Kubernetes recreate it on another control-plane node.
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      # Avoid a surge pod while both replicas share the temporary healthy
-      # domain-ex placement; keep one serving replica during later rollouts.
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: headlamp
@@ -36,12 +33,16 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    # Plugin bundles are materialized into each pod from
-                    # immutable ConfigMaps. Keep the management UI on the
-                    # healthy node that already has the pinned Headlamp image;
-                    # restricted-node-6dc3f140f9 cannot advance new Pods and zan is currently unable
-                    # to complete this image pull.
-                    values: [domain-ex]
+                    # The in-cluster proxy uses the node-local API endpoint, so
+                    # Headlamp must run beside a Kubernetes control plane.
+                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-6dc3f140f9]
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -52,6 +53,10 @@ spec:
                 topologyKey: kubernetes.io/hostname
       tolerations:
         - operator: Exists
+      # Use the selected control-plane node's local API listener. This removes
+      # the single remote node/transit address from Headlamp's watch path.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       initContainers:
         - name: install-runtime-anatomy-plugin
           image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
@@ -294,14 +299,11 @@ spec:
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:
-            # domain-ex cannot reliably reach the Kubernetes Service VIP
-            # (192.0.2.52:443). Use the stable restricted-node-6dc3f140f9 control-plane transit
-            # endpoint. Unlike the previous A1 ZeroTier address, this address
-            # is part of the control-plane API fabric and the server TLS SAN,
-            # so long-running watch streams do not depend on a WSL/ZeroTier
-            # workstation path.
+            # The pod is placed on a control-plane node with host networking;
+            # use that node's local API listener. Kubernetes can recreate the
+            # pod on another eligible control plane without changing config.
             - name: KUBERNETES_SERVICE_HOST
-              value: "192.0.2.205"
+              value: "127.0.0.1"
             - name: KUBERNETES_SERVICE_PORT
               value: "6443"
             - name: KUBERNETES_SERVICE_PORT_HTTPS
