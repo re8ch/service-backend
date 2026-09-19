@@ -1,8 +1,14 @@
 # Migration plan and acceptance gates
 
-Every phase is independently reversible. GitLab remains authoritative until the
-Phase 3 cutover gate passes; dual-write is forbidden. During coexistence, GitLab
-is the write authority and GitHub is a read-only mirror/projection.
+> Historical migration record only. The Phase 3 cutover is complete: GitHub is
+> the sole collaboration and GitOps authority, and GitLab is a read-only archive.
+> Nothing in the phase descriptions below authorizes GitLab writes or overrides
+> repository-root `AGENTS.md`.
+
+Before the completed Phase 3 cutover, every phase was independently reversible
+and GitLab remained authoritative until the cutover gate passed. Dual-write was
+forbidden; during that former coexistence period, GitLab was the write authority
+and GitHub was a read-only mirror/projection.
 
 ## Wave 0 — discovery and decisions
 
@@ -72,9 +78,11 @@ cutover record merges. Enable worker Contents write and production OIDC only
 after rulesets and environment gates are proven.
 
 **Gate:** signed GitHub HEAD, required checks, Flux source Ready, no desired-state
-diff beyond the approved PR, canary healthy, audit/event paths healthy. **Rollback:**
-suspend reconciliation, restore the previous Flux GitRepository URL/secret and
-GitLab write authority, replay no GitHub-only changes; retain the cutover record.
+diff beyond the approved PR, canary healthy, audit/event paths healthy. The
+historical rollback procedure was to suspend reconciliation, restore the previous
+Flux GitRepository URL/secret and GitLab write authority, replay no GitHub-only
+changes, and retain the cutover record. That rollback path expired after cutover
+acceptance and is not a current operating instruction.
 
 ## Wave 4 — repository waves
 
@@ -86,7 +94,7 @@ Actions, webhooks, team access, Issues/PR links and downstream consumers.
 **Gate per repo:** owner sign-off, 7-day stable operation and tested rollback.
 Network authority changes remain subject to
 `operations/network/manifests/network/public-mesh/inventory.json`; this migration
-does not alter restricted-node-6dc3f140f9 routes, addresses, Gateway or DNAT state.
+does not alter R640 routes, addresses, Gateway or DNAT state.
 
 ## Wave 5 — GitLab retirement
 
