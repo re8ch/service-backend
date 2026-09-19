@@ -113,6 +113,8 @@ modules:
       digest: sha256:4481f5eabb093092c172c6621d12b2dccbb15abb31d84c25ad8b7ad559c1115c
     - codename: etesian
       digest: sha256:702007b563e67f16a17cc79d2faa22e073f022aa08f2498755f90ab2ab0954d6
+    - codename: mistral
+      digest: sha256:814e9f1829d14f35b722067176ef1993719b7af96c970fff1be72dd391e78a61
   platform/scheduling-fabric:
     releases:
     - codename: atoll
@@ -165,6 +167,8 @@ modules:
       digest: sha256:083e8e2f91835a689e7290a299d8cadfdcf3c1f6d66e4d68951899163f2cac37
     - codename: grove-indigo
       digest: sha256:f236aa295732300064bea49601f243e55ceb158456e02e0a20b4900a94eb9e9a
+    - codename: reef-indigo
+      digest: sha256:c9e42f8b79ca94647aae9a12174ca8ab5b5e15ef312a3ba85a44c3ea6102916c
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -249,6 +253,8 @@ modules:
       digest: sha256:4a7b19805fb2cec7a6fc74a183a38c41da6135594d2807572fec4789b627f91e
     - codename: anchor-copper
       digest: sha256:15a26dd28934f3634c23fdb7375000c50dcb296cd08c51ad765be591ddfc9ed2
+    - codename: beacon-copper
+      digest: sha256:6d9702bb45d4f2507cd2fc8ac327d27aecddeb2099cade1819556f29dcf950a3
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -347,6 +353,8 @@ modules:
       digest: sha256:1a89ac3c33ccee91359df3d220854fdb73d3a75c83a31eaba3b831379725f6f8
     - codename: telescope
       digest: sha256:8f531d9fd7e28c04cbfee91b5c0bcc8865fb1ce53cb9964e79deed5ea657a225
+    - codename: viewport
+      digest: sha256:ea502d5c0afda2974bf7ae1dad816fd32941871e87b76b7042e8892b204b5ed2
   platform/observability/opencost-recovery:
     releases:
     - codename: aperture

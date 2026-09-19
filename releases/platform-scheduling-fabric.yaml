@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: grove-indigo
+codename: reef-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:f236aa295732300064bea49601f243e55ceb158456e02e0a20b4900a94eb9e9a
+  digest: sha256:c9e42f8b79ca94647aae9a12174ca8ab5b5e15ef312a3ba85a44c3ea6102916c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

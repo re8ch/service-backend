@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/among-clusters
-codename: etesian
+codename: mistral
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
-  digest: sha256:702007b563e67f16a17cc79d2faa22e073f022aa08f2498755f90ab2ab0954d6
+  digest: sha256:814e9f1829d14f35b722067176ef1993719b7af96c970fff1be72dd391e78a61
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
