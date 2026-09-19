@@ -67,6 +67,28 @@ def test_hyperswitch_disables_upstream_root_telemetry_hooks():
     assert "$patch: delete" in patch["patch"]
 
 
+def test_hyperswitch_singleton_upgrades_without_surge():
+    release = next(item for item in objects() if item["kind"] == "HelmRelease")
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    singleton_deployments = {
+        "hyperswitch-hyperswitch-server",
+        "hyperswitch-superposition",
+        "hyperswitch-control-center",
+    }
+    strategies = {
+        item["target"]["name"]: yaml.safe_load(item["patch"])["spec"]["strategy"]
+        for item in patches
+        if item["target"]["name"] in singleton_deployments
+    }
+    assert strategies == {
+        name: {
+            "type": "RollingUpdate",
+            "rollingUpdate": {"maxSurge": 0, "maxUnavailable": 1},
+        }
+        for name in singleton_deployments
+    }
+
+
 def test_hyperswitch_router_uses_re8ch_connector_image_by_digest():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
