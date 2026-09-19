@@ -293,6 +293,8 @@ modules:
       digest: sha256:907391f32eb6250273d7b1c151e7f122d62455b3829aaf09931f153e77fe701b
     - codename: beacon
       digest: sha256:1979c45ccf21cee5a2c564508f6443dfc41c06204aef1d5f1f4cf8e60fd8cb76
+    - codename: compass
+      digest: sha256:df05dbed8fa1b56c451debb0e117fdce5cc46d7e6e7ce4f48feb698f1c3bf46c
   platform/public-edge-manager:
     releases:
     - codename: bora
