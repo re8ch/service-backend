@@ -1,11 +1,10 @@
 # restricted-node-6dc3f140f9 self-hosted sandbox trials
 
-> **Status (2026-08-21): CubeSandbox is deprecated.** Do not repair, upgrade,
-> extend, or select `cube-trial` for new workloads. Preserve its PVCs and
-> existing resources only until an explicit removal/migration decision. MitOS
-> is the active microVM candidate; it is not production-ready until guest
-> networking, tenant isolation, credential injection, terminal access, and
-> fork/restore acceptance tests pass.
+> **Status (2026-09-19): CubeSandbox is an active, bounded qualification
+> runtime.** It is restored for clean, disposable agent workloads on restricted-node-6dc3f140f9 and
+> remains outside the production tenant runtime. New workloads require an
+> explicit qualification task, scoped credentials, and pause-on-acceptance.
+> MitOS remains a separate microVM candidate.
 
 The trials compare CubeSandbox and MitOS on the existing K3s, Cilium and CephFS
 infrastructure. They run in isolated namespaces and do not replace OpenSandbox.
@@ -57,12 +56,30 @@ MitOS still has `eth0` (`192.0.2.232/30`) but cannot reach its `192.0.2.108`
 gateway. CephFS currently owns Cube control-plane durable state; it is not yet
 mounted as a guest workspace volume.
 
-Current selection (superseded on 2026-08-21): CubeSandbox is deprecated and
-must receive no further repair or feature work. MitOS is now the active microVM
-candidate. The next integration slice is deliberately narrow:
-Cilium-compatible guest routing first, then a dedicated CephFS-backed workspace
-mount, authenticated terminal access, tenant-scoped credential injection, and
-fork/restore tests. No public endpoint may be enabled before those checks pass.
+Current selection (2026-09-19): CubeSandbox is the clean-room runtime for the
+Codex CLI + LiteLLM qualification path. It is not a general cluster scheduler.
+Each run must record `task_id`, `kagent_session_id`, `trace_id`,
+`codex_thread_id`, and `artifact_id`; credentials are mounted from server-side
+references and never copied into task artifacts. Sandboxes are paused after
+acceptance and deleted only under a separate retention decision.
+
+The restored release is declarative:
+
+- `cube-source.yaml` pins upstream CubeSandbox commit
+  `8721dd151971ce3c2966482bbd32904ad98f378e`;
+- `cube-release.yaml` adopts the existing release through Flux Helm Controller;
+- `cube-trial-secret` remains the credential authority and is consumed through
+  `valuesFrom` (the values never enter Git);
+- the existing `cephfs-re8ch` claims are retained;
+- the v0.6.0 CubeMaster startup config dump is suppressed by a narrow stdout
+  filter until an upstream image containing the source fix is deployed; and
+- route-aware guest egress plus cubelet host port `9999` are applied as a Helm
+  post-render patch.
+
+On 2026-09-19 the credential exposed by the old CubeMaster config log was
+rotated and its previous value was verified invalid. Redis was rotated in place
+and restarted before dependent services. MySQL data and all three PVCs were
+preserved. Do not reintroduce the retired external PostgreSQL configuration.
 
 ## Shared browser runtime
 

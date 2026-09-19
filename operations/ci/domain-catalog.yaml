@@ -38,10 +38,12 @@ domains:
       - platform/workspace-controller/**
       - platform/git-workspaces/**
       - clusters/re8ch/components/codex-app-server-console/**
+      - clusters/re8ch/components/ai-operations/sandbox-trials/**
     roots:
       - platform/workspace-controller
       - platform/git-workspaces
       - clusters/re8ch/components/codex-app-server-console
+      - clusters/re8ch/components/ai-operations/sandbox-trials
     tests:
       - tests/test_workspace_controller.py
       - tests/test_workspace_mirror.py

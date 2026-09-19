@@ -1,0 +1,21 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: cubesandbox
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/part-of: cube-sandbox
+spec:
+  interval: 24h
+  timeout: 5m
+  url: https://github.com/tencentcloud/CubeSandbox.git
+  ref:
+    commit: 8721dd151971ce3c2966482bbd32904ad98f378e
+  ignore: |
+    /*
+    !/deploy/
+    /deploy/*
+    !/deploy/kubernetes/
+    /deploy/kubernetes/*
+    !/deploy/kubernetes/chart/
+    !/deploy/kubernetes/chart/**

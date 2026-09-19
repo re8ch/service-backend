@@ -34,6 +34,7 @@ resources:
 - components/farseer/public-web.yaml
 - components/cilium/r640-policy-update-budget.yaml
 - components/ai-operations/platform.yaml
+- components/ai-operations/sandbox-trials
 - components/tenancy/re8ch-managed-business-namespaces.yaml
 - components/auth/dex/dex-ha-deployment.yaml
 - components/egress-fabric/identity-egress.yaml

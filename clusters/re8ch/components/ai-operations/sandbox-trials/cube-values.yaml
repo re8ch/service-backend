@@ -1,11 +1,12 @@
-# DEPRECATED 2026-08-21: retain only for rollback/data recovery. Do not use
-# CubeSandbox for new workloads or perform further repair/feature work.
+# CubeSandbox qualification runtime. The chart source is pinned by
+# cube-source.yaml; credentials are injected from cube-trial-secret by the
+# HelmRelease and must never be added here.
 global:
   timezone: Asia/Shanghai
 
 # Bind all chart-managed durable state to the existing Rook/CephFS fabric.
 persistence:
-  storageClassName: cephfs-r640
+  storageClassName: cephfs-re8ch
 
 placement:
   controlPlane:
@@ -25,6 +26,9 @@ placement:
     tolerations: []
 
 cubeNode:
+  podAnnotations:
+    cube.re8ch.com/cubelet-hostport: "9999"
+    re8ch.com/cube-router-mode: linux-routing-stack
   pvmGuestKernel:
     enabled: false
   network:
@@ -41,6 +45,70 @@ cubeProxy:
     enabled: false
   service:
     type: ClusterIP
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 1, memory: 512Mi}
+
+controlPlane:
+  master:
+    # Upstream v0.6.0 prints the complete effective config on startup. Keep the
+    # pinned binary behind a narrow stdout filter until the source fix lands in
+    # a released image; all other output and the original exit status survive.
+    command: [/bin/bash, -c]
+    args:
+      - |
+        fifo=/tmp/cube-master.stdout
+        rm -f "$fifo"
+        mkfifo "$fifo"
+        sed -u '/^cfg:/d' <"$fifo" &
+        filter_pid=$!
+        /usr/local/services/cubetoolbox/CubeMaster/bin/cubemaster >"$fifo" 2>&1 &
+        master_pid=$!
+        terminate() {
+          kill -TERM "$master_pid" 2>/dev/null || true
+          wait "$master_pid"
+        }
+        trap terminate TERM INT
+        wait "$master_pid"
+        status=$?
+        wait "$filter_pid" || true
+        exit "$status"
+    env:
+      - {name: HTTP_PROXY, value: "http://192.0.2.178:17891"}
+      - {name: HTTPS_PROXY, value: "http://192.0.2.178:17891"}
+      - {name: http_proxy, value: "http://192.0.2.178:17891"}
+      - {name: https_proxy, value: "http://192.0.2.178:17891"}
+      - name: NO_PROXY
+        value: "127.0.0.1,localhost,::1,.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.183/8,192.0.2.57/16,192.0.2.205/16,192.0.2.81/10,192.0.2.33/12,192.0.2.136/16"
+      - name: no_proxy
+        value: "127.0.0.1,localhost,::1,.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.183/8,192.0.2.57/16,192.0.2.205/16,192.0.2.81/10,192.0.2.33/12,192.0.2.136/16"
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: 2, memory: 2Gi}
+  api:
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: 1, memory: 512Mi}
+
+cubemastercli:
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+
+webui:
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+
+cubeOps:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 1, memory: 512Mi}
+
+lifecycleManager:
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 500m, memory: 256Mi}
 
 bootstrap:
   pvmHostKernel:
@@ -55,7 +123,13 @@ bootstrap:
 # Trial credentials are injected at render/apply time and are never committed.
 mysql:
   persistence:
-    storageClassName: rbd-r640
+    storageClassName: cephfs-re8ch
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 2, memory: 2Gi}
 redis:
   persistence:
-    storageClassName: rbd-r640
+    storageClassName: cephfs-re8ch
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 1, memory: 512Mi}
