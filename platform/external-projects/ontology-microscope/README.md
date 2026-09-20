@@ -29,7 +29,7 @@ Published immutable images:
 
 - webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:45dd94ae9ce31be71090cc578f5df35214cddfbc067a4a9468e80f7ae8abaced`
 - migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c`
-- adapter and evaluation worker: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:242668f0df0236ff78ee0c4a6f539656869118d73db6b43ef2c6a95ff84f58ee`
+- adapter and evaluation worker: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:469ea1f24bb69bc0e595f1db625087ba5ebfb9ca9d001bb6e2fba74f8e9dfde2`
 
 These manifests were exported from the verified restricted-node-6dc3f140f9 containerd content store
 as compressed OCI archives and uploaded with `--preserve-digests`. This avoids
@@ -50,6 +50,12 @@ cluster desired state. Raw operator tokens are kept in the macOS Keychain under
 `re8ch-ontology-evaluation-admin`, `re8ch-ontology-evaluation-evaluator`, and
 `re8ch-ontology-evaluation-reader`; they are never committed. The public
 `/api/re8ch/analyses` endpoint remains ephemeral and unauthenticated.
+
+Datasets explicitly published with `visibility: public` also have a read-only,
+mobile-friendly report at `/api/re8ch/public/reports/<dataset-id>`. The report
+supports full-text and scenario filters and exposes only the four declared
+dataset exports. Tenant and private datasets return 404 from every public
+report endpoint even when their UUID is known.
 
 ## Cutover and rollback
 
