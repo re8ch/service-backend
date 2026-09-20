@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: spectrum-amber
+codename: telescope-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:5400a9261b7cebcc083f10df8ea66f465e303529bf971406be0745296658b7bb
+  digest: sha256:c808b3aaf304358f8eef4ca533a483707e967083ec5cc93008cd4cc8cc30589a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
