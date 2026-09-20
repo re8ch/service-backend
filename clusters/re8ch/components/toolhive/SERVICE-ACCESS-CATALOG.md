@@ -11,7 +11,7 @@ the native application authorization named below remains authoritative.
 | --- | --- | --- | --- | --- | --- | --- |
 | Kubernetes/Cilium/Traefik | control | status, topology, events, fixed metrics | named tenant workload restart | reviewed RBAC/network/controller change | Kubernetes RBAC and admission | Headlamp, Hubble, Grafana |
 | ToolHive/MCP Registry | control | approved catalog, proxy health, audit metrics | promotion request | stage transition for three named publications | ToolHive CR RBAC and Registry policy | Registry, Grafana |
-| KAgent/Codex/OpenSandbox | control/runtime | Agent/runtime status, no session credentials | named runtime recycle later | identity/runtime policy later | KAgent/Codex/OpenSandbox APIs and K8s RBAC | KAgent UI, Codex console, Headlamp, Grafana |
+| Codex/OpenSandbox | control/runtime | Agent/runtime status, no session credentials | named runtime recycle | identity/runtime policy later | Codex/OpenSandbox APIs and K8s RBAC | Codex console, Headlamp, Grafana |
 | LiteLLM/AI gateway | control/data | gateway health and usage aggregates later | model route canary later | provider/key/budget policy later | LiteLLM teams, keys and budgets | LiteLLM Admin, Grafana |
 | Authentik/Dex | control | issuer/provider health, user names only for admin | none | approval-bound identity and namespace grant | Authentik/Dex groups and Kubernetes OIDC RBAC | Authentik, Headlamp |
 | Harbor/image publishing | control/data | health, project/image metadata | scan/promotion later | tenant/project/robot reconciliation | Harbor project roles and robot scope | Harbor, Grafana |
@@ -68,8 +68,8 @@ The live per-resource permission matrix currently contains 335 decisions: 169
 workloads and 166 Services. Nine Deployments map to exact approval-gated admin
 restart/scale targets; declared tenant Deployments map to the tenant operate
 boundary. Every other mutation is explicitly unpublished and remains behind its
-native control plane. Both KAgent integrations have accepted the updated schema
-and discover 25 observe tools and 26 operate tools.
+native control plane. The shared ToolHive publications expose the reviewed
+observe and operate schemas directly; the retired KAgent bridge is absent.
 
 Workload catalog entries include desired, ready and available replica counts plus
 an explicit `scaledToZero` flag. This is required because a Service without an

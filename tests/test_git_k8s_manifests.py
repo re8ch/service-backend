@@ -10,6 +10,15 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def test_retired_kagent_namespace_is_not_referenced_by_active_gitops_resources():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
+    restart_rbac = documents(
+        ROOT / "clusters/re8ch/components/toolhive/platform-restart-rbac.yaml"
+    )
+    assert all(item["metadata"].get("namespace") != "kagent" for item in restart_rbac)
+
+
 def test_external_dns_is_only_a_public_edge_execution_layer():
     resources = documents(
         ROOT / "clusters/re8ch/components/public-exposure/external-dns-cloudflare.yaml"
@@ -25,7 +34,7 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/public-exposure/external-dns-cloudflare.yaml" in root["resources"]
-    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" in root["resources"]
+    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
 
     retirement = documents(ROOT / "clusters/re8ch/retire-legacy-mcp.patch.yaml")
     assert not any(
@@ -151,18 +160,10 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
     assert "components/toolhive/vmcp-external-publication.yaml" in root["resources"]
     assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
     assert "components/toolhive/external-privileged-publication.yaml" in root["resources"]
-    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" in root["resources"]
+    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
     assert "components/toolhive/operator-release.yaml" in root["resources"]
     assert "components/plugin-runtime/runtime.yaml" in root["resources"]
     assert "components/plugin-runtime/rbac.yaml" in root["resources"]
-
-    retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-kagent-legacy-mcp.yaml").read_text()
-    assert "ops-observe-external" in retirement
-    assert "ops-operate-external" in retirement
-    assert "ops-admin-external" in retirement
-    assert "retire-kagent-legacy-mcp-v4" in retirement
-    assert "toolhive-mcp-r640.re8ch.com" in retirement
-    assert "clear-operator-r640-selector" in retirement
 
     redis_retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-legacy-session-redis.yaml").read_text()
     assert "retire-toolhive-session-redis-v3" in redis_retirement

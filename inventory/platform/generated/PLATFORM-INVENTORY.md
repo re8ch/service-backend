@@ -6,19 +6,19 @@ Generated; do not edit.
 
 | Node | Ready | Internal IP | External IP | OS |
 |---|---:|---|---|---|
-| restricted-node-1eb0570f74 | True | 192.0.2.18 |  | Ubuntu 24.04 LTS |
+| a1-wsl-zt | True | 10.181.22.147 |  | Ubuntu 24.04 LTS |
 | amdwsl-zt | True | fc64:f13e:b4c:5bfb:7a0f::1 |  | Ubuntu 24.04.1 LTS |
-| restricted-node-296f36f2fb | True | 192.0.2.208 |  | Ubuntu 24.04 LTS |
-| domain-ex | True | 192.0.2.172 | 192.0.2.72 | Ubuntu 22.04 LTS |
-| muaya-ecs | True | 192.0.2.203 | 192.0.2.210 | Ubuntu 26.04 LTS |
-| muaya-lightweight | True | 192.0.2.141 | 192.0.2.110 | Ubuntu 24.04.2 LTS |
-| overseas-edge-50 | Unknown | 192.0.2.122 | 192.0.2.3 | Ubuntu 24.04.3 LTS |
-| overseas-kl | True | 192.0.2.50 | 192.0.2.27 | Ubuntu 24.04 LTS |
-| overseas-la | True | 192.0.2.55 | 192.0.2.91 | Ubuntu 26.04 LTS |
-| restricted-node-6dc3f140f9 | True | 192.0.2.183 | 192.0.2.79 | Ubuntu 26.04 LTS |
-| suxunji | True | 192.0.2.143 | 192.0.2.231 | Ubuntu 22.04 LTS |
-| vm-20-12-ubuntu | True | 192.0.2.67 | 192.0.2.99 | Ubuntu 22.04 LTS |
-| zan | True | 192.0.2.79 | 192.0.2.67 | Ubuntu 22.04 LTS |
+| b1-wsl-zt | True | 10.181.22.125 |  | Ubuntu 24.04 LTS |
+| domain-ex | True | 10.181.22.186 | 124.220.77.50 | Ubuntu 22.04 LTS |
+| muaya-ecs | True | 10.181.22.95 | 8.136.187.255 | Ubuntu 26.04 LTS |
+| muaya-lightweight | True | 10.181.22.79 | 47.103.114.218 | Ubuntu 24.04.2 LTS |
+| overseas-edge-50 | Unknown | 10.181.22.50 | 38.207.168.50 | Ubuntu 24.04.3 LTS |
+| overseas-kl | True | 10.181.22.89 | 198.20.153.89 | Ubuntu 24.04 LTS |
+| overseas-la | True | 10.181.22.104 | 179.255.126.104 | Ubuntu 26.04 LTS |
+| r640 | True | 10.181.22.128 | 223.159.210.222 | Ubuntu 26.04 LTS |
+| suxunji | True | 10.181.22.77 | 101.34.217.95 | Ubuntu 22.04 LTS |
+| vm-20-12-ubuntu | True | 10.181.22.73 | 42.194.130.91 | Ubuntu 22.04 LTS |
+| zan | True | 10.181.22.16 | 1.14.174.244 | Ubuntu 22.04 LTS |
 
 ## Long-running services
 
@@ -274,8 +274,6 @@ Generated; do not edit.
 | image | Ingress | registry-image-control-api | api-guangzhou24.re8ch.com, api-shanghai217.re8ch.com, api-shanghai77.re8ch.com, api.re8ch.com, image.re8ch.com |
 | image | Service | nuclio-registry-image-control-api | ClusterIP ports=8080,8090 |
 | image | Service | nuclio-registry-image-metering-worker | ClusterIP ports=8080,8090 |
-| kagent | Ingress | kagent-ui-shanghai217 | api-shanghai217.re8ch.com |
-| kagent | Ingress | kagent-ui-static-shanghai217 | api-shanghai217.re8ch.com |
 | kube-system | DaemonSet | cilium | 12/13 ready |
 | kube-system | DaemonSet | podcidr-fabric-reconciler | 12/13 ready |
 | kube-system | DaemonSet | re8ch-advanced-fabric-agent | 12/13 ready |

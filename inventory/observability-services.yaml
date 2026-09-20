@@ -176,14 +176,6 @@ spec:
       workloads: [headlamp, headlamp-active-elector]
       services: [headlamp, headlamp-gateway-origin]
       requiredMetrics: [request-red, active-election, plugin-errors, kubernetes-api-latency]
-    - namespace: kagent
-      owner: platform-agents
-      tier: high
-      workloadClass: mixed
-      status: partial-native
-      workloads: [kagent-controller, kagent-kmcp-controller-manager, kagent-postgresql, kagent-tools, kagent-ui, my-first-k8s-agent, readonly-k8s-diagnostic-agent, wechat-content-operations-agent]
-      services: [kagent-controller, kagent-kmcp-controller-manager-metrics-service, kagent-postgresql, kagent-tools, kagent-tools-metrics, kagent-ui, my-first-k8s-agent, readonly-k8s-diagnostic-agent, wechat-content-operations-agent]
-      requiredMetrics: [reconcile-rate, agent-runs, tool-outcomes, model-latency, queue-depth, database-health]
     - namespace: netbird-access
       owner: platform-network
       tier: high
