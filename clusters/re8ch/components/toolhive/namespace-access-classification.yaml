@@ -39,10 +39,6 @@ metadata: {name: mcp-registry, labels: {re8ch.com/domain: tool-control, re8ch.co
 ---
 apiVersion: v1
 kind: Namespace
-metadata: {name: kagent, labels: {re8ch.com/domain: agent-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1}}
----
-apiVersion: v1
-kind: Namespace
 metadata: {name: opensandbox-system, labels: {re8ch.com/domain: agent-runtime, re8ch.com/plane: data, re8ch.com/access-policy: toolhive-v1}}
 ---
 apiVersion: v1

@@ -50,21 +50,6 @@ subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-sys
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-metadata: {name: re8ch:toolhive-platform-restart, namespace: kagent}
-rules:
-  - apiGroups: [apps]
-    resources: [deployments]
-    resourceNames: [kagent-controller]
-    verbs: [get, patch]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata: {name: re8ch:toolhive-platform-restart, namespace: kagent}
-roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
 metadata: {name: re8ch:toolhive-platform-restart, namespace: opensandbox-system}
 rules:
   - apiGroups: [apps]

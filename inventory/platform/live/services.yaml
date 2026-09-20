@@ -2481,24 +2481,6 @@
       ]
     },
     {
-      "kind": "Ingress",
-      "namespace": "kagent",
-      "name": "kagent-ui-shanghai217",
-      "labels": {},
-      "hosts": [
-        "api-shanghai217.re8ch.com"
-      ]
-    },
-    {
-      "kind": "Ingress",
-      "namespace": "kagent",
-      "name": "kagent-ui-static-shanghai217",
-      "labels": {},
-      "hosts": [
-        "api-shanghai217.re8ch.com"
-      ]
-    },
-    {
       "kind": "DaemonSet",
       "namespace": "kube-system",
       "name": "cilium",

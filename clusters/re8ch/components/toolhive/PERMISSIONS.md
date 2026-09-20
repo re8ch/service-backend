@@ -16,13 +16,12 @@ A tool is publishable only when all four are defined.
 
 | Level | Agent caller | Tool backend | Human GUI | Native scope |
 | --- | --- | --- | --- | --- |
-| observe | `kagent/readonly-k8s-diagnostic-agent` | `toolhive-system/ops-mcp-observe` | `headlamp/platform-observer` | non-Secret get/list/watch |
-| operate | `kagent/my-first-k8s-agent` | `toolhive-system/ops-mcp-operate` | `headlamp/platform-operator` | observe + bounded tenant Deployment patch |
+| observe | authenticated ConnecTool principal | `toolhive-system/ops-mcp-public` | `headlamp/platform-observer` | non-Secret get/list/watch |
+| operate | authenticated ConnecTool operator | `toolhive-system/ops-mcp-operate` | `headlamp/platform-operator` | exact reviewed Deployment patch |
 | admin | `toolhive-system/platform-admin-agent` | `toolhive-system/ops-mcp-admin` | existing separately controlled admin UIs | tenancy/RBAC/Harbor provisioning |
 
-KAgent observe/operate tokens are audience-bound TokenRequests with a one-hour
-lifetime. `kagent/toolhive-token-rotator` renews them every 30 minutes and can
-patch only the two fixed token Secrets and RemoteMCPServer resources.
+ConnecTool authenticates callers through Dex and applies its publication policy
+before the dedicated ToolHive backend identities reach Kubernetes RBAC.
 
 ## Non-negotiable rules
 
@@ -58,8 +57,8 @@ Also verify:
 
 Verified on 2026-08-04: observe exposes 25 tools, operate 26, admin 38; all three
 reject unauthenticated calls, the generic/raw-credential tools are absent,
-KAgent RemoteMCPServers are Accepted, all three VictoriaMetrics targets are
-`up=1`, and the Grafana dashboard API returns the expected dashboard UID. An
+the shared ToolHive publications are Accepted, all three VictoriaMetrics targets
+are `up=1`, and the Grafana dashboard API returns the expected dashboard UID. An
 authenticated observe call reached 11 of 13 reviewed platform endpoints;
 Harbor, CloudBeaver, Grafana, Headlamp and ToolHive Registry returned HTTP 200.
 PgBouncer `pgwrite.zt.re8ch.com:6432` and the Shanghai read service
@@ -112,14 +111,14 @@ These are triage signals rather than automatic vulnerability claims; application
 roles in Authentik, Harbor, PostgreSQL, Neo4j, Supabase, LiteLLM and other native
 control planes remain authoritative.
 
-The fixed health tool also covers Authentik, LiteLLM, KAgent, OpenSandbox,
+The fixed health tool also covers Authentik, LiteLLM, OpenSandbox,
 Fleet, Neo4j, Supabase Studio, Nuclio, OpenCost and the Codex session runtime.
 Non-2xx responses below 500 are reported as reachable rather than healthy;
 timeouts/refusals remain visible and are never silently removed from results.
 
 `restart_managed_platform_deployment` is an admin-only controlled operation for
-nine exact Deployment targets across Authentik, LiteLLM, KAgent, OpenSandbox,
-Fleet, Supabase, Nuclio and Codex. It requires an approval ID, records approval,
+authentication providers, OpenSandbox, Fleet, Supabase, Nuclio, Codex and the
+shared Grafana. It records actor and timestamp on the Pod template,
 actor and timestamp on the Pod template, and is constrained again by namespaced
 Roles with `resourceNames`. RBAC cannot patch an unreviewed deployment or the
 same deployment name in an unapproved namespace.
@@ -189,13 +188,12 @@ applications, providers, flows, policies, sessions, tokens and protocol secrets
 remain under Authentik native authorization and are never read. Authentik,
 Headlamp and Grafana provide the human views.
 
-`get_agent_runtime_status` correlates sanitized KAgent, OpenSandbox and Codex
-Deployment readiness with KAgent RemoteMCP acceptance/tool counts and aggregate
+`get_agent_runtime_status` correlates sanitized OpenSandbox and Codex
+Deployment readiness with RemoteMCP acceptance/tool counts and aggregate
 OpenSandbox resource phases. Agent prompts, messages, memories, model/provider
 configuration, credentials, sandbox names/specifications/files/processes/output
 and Codex session contents are never read. Native runtime APIs and Kubernetes
-RBAC remain authoritative; KAgent UI, Codex, Headlamp and Grafana provide the
-human views.
+RBAC remain authoritative; Codex, Headlamp and Grafana provide the human views.
 
 `get_observability_platform_status` correlates fixed health probes and workload
 readiness across Grafana, VictoriaMetrics, VMAlert, VictoriaLogs, OpenCost,
