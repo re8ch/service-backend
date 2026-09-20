@@ -18,12 +18,11 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertNotIn("panel-grafana", manifest)
 
     def test_shared_runtime_bootstraps_owned_dependencies(self):
-        credentials = (ROOT / "platform/observability/production/grafana-credentials.yaml").read_text()
+        credentials = (ROOT / "platform/observability/production/grafana-secrets.sops.yaml").read_text()
         database = (ROOT / "platform/observability/production/grafana-database.yaml").read_text()
         dex = (ROOT / "clusters/re8ch/components/auth/dex/grafana-client.yaml").read_text()
-        self.assertIn("re8ch-grafana-credential-bootstrap-v2", credentials)
-        self.assertIn("secrets.token_urlsafe", credentials)
-        self.assertNotIn("stringData:", credentials)
+        self.assertIn("ENC[AES256_GCM", credentials)
+        self.assertIn("encrypted_regex: ^(data|stringData)$", credentials)
         self.assertNotIn("re8ch-grafana-oidc", credentials)
         self.assertIn("storageClassName: rbd-r640", database)
         self.assertIn("name: re8ch-grafana-postgresql", database)

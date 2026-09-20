@@ -9,7 +9,7 @@ resources:
   - rules.yaml
   - otel.yaml
   - dashboards.yaml
-  - grafana-credentials.yaml
+  - grafana-secrets.sops.yaml
   - grafana-database.yaml
   - grafana.yaml
 configMapGenerator:

@@ -50,7 +50,7 @@ spec:
       tier: critical
       workloadClass: mixed
       status: shared-observability-control-and-data-plane
-      workloads: [re8ch-grafana, re8ch-grafana-renderer, re8ch-grafana-postgresql, re8ch-grafana-org-sync, re8ch-grafana-credential-bootstrap-v2, re8ch-metrics, re8ch-analytics, re8ch-logs, re8ch-traces, re8ch-vmalert, re8ch-alertmanager, re8ch-otel-agent, re8ch-otel-gateway]
+      workloads: [re8ch-grafana, re8ch-grafana-renderer, re8ch-grafana-postgresql, re8ch-grafana-org-sync, re8ch-metrics, re8ch-analytics, re8ch-logs, re8ch-traces, re8ch-vmalert, re8ch-alertmanager, re8ch-otel-agent, re8ch-otel-gateway]
       services: [re8ch-grafana, re8ch-grafana-renderer, re8ch-grafana-postgresql, vmselect-re8ch-metrics, vminsert-re8ch-metrics, vmsingle-re8ch-analytics, vlsingle-re8ch-logs, vtselect-re8ch-traces, vtinsert-re8ch-traces, vmalertmanager-re8ch-alertmanager]
       nativeMetrics: [grafana, postgresql, victoriametrics, victorialogs, victoriatraces, vmalert, alertmanager, opentelemetry]
       requiredMetrics: [request-red, datasource-health, database-health, alert-evaluation, alert-delivery, ingest-rate, query-latency, storage-capacity]

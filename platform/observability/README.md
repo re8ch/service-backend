@@ -64,9 +64,9 @@ evidence remains unknown. See `policies/README.md` for the namespace contract.
 runtime. It runs one recoverable replica in `observability-system`, retains
 `https://grafana.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
 from `re8ch-grafana-database`, uses a Dex public PKCE client, and references a
-separate renderer-token Secret. `production/grafana-credentials.yaml` creates these values once with
-cluster-local entropy and preserves existing values; plaintext credentials never
-enter Git and no credential is copied from the legacy monitoring namespace.
+separate renderer-token Secret. `production/grafana-secrets.sops.yaml` is the
+encrypted GitOps authority for these values; plaintext credentials never enter
+Git and no credential is copied from the legacy monitoring namespace.
 The database runs on its own RBD claim and the credential-free public PKCE client is reconciled
 into Dex from the checked-in client contract.
 
