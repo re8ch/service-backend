@@ -20,7 +20,10 @@ disable:
   - coredns
 embedded-registry: true
 kubelet-arg:
-  - "max-pods=256"
+  # B1 is a 12 GiB embedded-etcd control-plane voter, not a general worker.
+  # Leave room for a rolling ToolHive/ConnecTool cohort without advertising
+  # unbounded kubelet, CNI and API-server watch capacity.
+  - "max-pods=128"
   - "kube-reserved=cpu=500m,memory=1Gi,ephemeral-storage=2Gi,pid=2048"
   - "system-reserved=cpu=500m,memory=1Gi,ephemeral-storage=2Gi,pid=2048"
   - "enforce-node-allocatable=pods"
