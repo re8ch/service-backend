@@ -32,7 +32,9 @@ The server code is stored in Kubernetes as ConfigMap `ops/ops-mcp-server-code` a
 `control-plane-resource-maintenance`, its service unit and timer are
 host-managed templates for A1, B1 and restricted-node-6dc3f140f9. The timer runs daily with a random
 delay, a 5% CPU cap and idle I/O priority. It records root-disk and journal
-usage, then caps journald at 512 MiB.
+usage, exports the previous 24 hours when a reviewed archive target is
+configured, then caps journald at 512 MiB. Archive failure never prevents the
+vacuum.
 
 It deliberately does **not** remove CRI/containerd records or images, K3s,
 etcd, kubelet or Ceph data. Kubelet image GC is configured through its reviewed
@@ -41,6 +43,23 @@ the three files atomically on one healthy follower at a time, run
 `systemctl daemon-reload`, then `systemctl enable --now
 re8ch-control-plane-resource-maintenance.timer`. Verify the initial
 `--check` before enabling the timer. Do not restart K3s to install this timer.
+
+### Optional low-priority journal archive
+
+Use `control-plane-resource-maintenance.archive.env.example` as the host-only
+environment file `/etc/re8ch-control-plane-resource-maintenance.env`. The
+approved archive destinations are intentionally separate from all K3s, etcd,
+containerd and Ceph devices:
+
+- A1: `/mnt/d/RE8CH-journal-archive/restricted-node-1eb0570f74`
+- B1: `/mnt/d/RE8CH-journal-archive/restricted-node-296f36f2fb`
+- restricted-node-6dc3f140f9: `/srv/nas/re8ch-journal-archive/restricted-node-6dc3f140f9`
+
+The archive is gzip-compressed, keeps at most 14 days and 4 GiB per host, and
+deletes only its own oldest `*.journal.gz` files. Never configure an OSD device,
+`/var/lib/rancher`, `/var/lib/kubelet`, `/var/lib/k3s`, or the root filesystem
+as an archive target. After adding the environment file, run `systemctl
+daemon-reload` and invoke the maintenance service once; do not restart K3s.
 
 ## Files
 
