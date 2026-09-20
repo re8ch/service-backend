@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: viewport-amber
+    delivery.re8ch.com/codename: zenith-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:682d994087046084ed14dc283bf08805d311bf16200059d6a5c145c3a4dc76e8
+    digest: sha256:0fd5f00ac7c8e8282f31026b3a83e859769aba13fda80cfc461b138119b25361
   verify:
     provider: cosign
     matchOIDCIdentity:
