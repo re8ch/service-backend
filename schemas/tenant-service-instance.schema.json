@@ -20,7 +20,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["serviceClass", "planRef", "regionRef", "desiredState", "parameters"],
       "properties": {
-        "serviceClass": {"enum": ["database.postgresql.shared.v1", "storage.volume.v1", "storage.bucket.v1", "network.tenant.v1"]},
+        "serviceClass": {"enum": ["database.postgresql.shared.v1", "storage.volume.v1", "storage.bucket.v1", "network.tenant.v1", "network.among-clusters.v1"]},
         "planRef": {"$ref": "#/$defs/name"},
         "regionRef": {"$ref": "#/$defs/name"},
         "desiredState": {"enum": ["Ready", "Suspended", "Deleted"]},

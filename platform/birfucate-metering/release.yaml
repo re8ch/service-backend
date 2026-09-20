@@ -87,6 +87,10 @@ spec:
           grants:
             - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+            # Long-lived access remains revocable through the TenantGrant. The
+            # controller limits this grant to Artchais' approved artc -> RE8CH
+            # Mihomos egress path; it never grants platform administration.
+            - {name: artchais-among-clusters-mihomos, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
         - name: re8ch
           displayName: RE8CH

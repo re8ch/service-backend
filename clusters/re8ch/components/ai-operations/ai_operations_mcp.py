@@ -1012,6 +1012,13 @@ def authenticated_tenant(identity: dict[str, Any]) -> str:
     return authenticated_tenant_context(identity)["tenantRef"]
 
 
+def authenticated_tenant_operator(identity: dict[str, Any]) -> str:
+    context = authenticated_tenant_context(identity)
+    if context["role"] not in {"operator", "admin"}:
+        raise PermissionError("an operator TenantGrant role is required")
+    return context["tenantRef"]
+
+
 def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> None:
     kind = str(obj.get("kind") or "")
     metadata = obj.get("metadata") or {}
@@ -2004,16 +2011,50 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 raise PermissionError("cross-tenant connection revoke is forbidden")
             return store.revoke_connection(target, args["connection_ref"], bool(args.get("offline")))
         if name == "service_catalog_list":
-            return {"tenantRef": tenant, "services": tenant_catalog_for_profile(), "pricingIncluded": False}
+            services = tenant_catalog_for_profile()
+            if tenant == "artchais":
+                try:
+                    tenant_control_request("/v1/services/catalog", tenant)
+                except PermissionError:
+                    services = [item for item in services if item["serviceClass"] != "network.among-clusters.v1"]
+            return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
+            if args["spec"].get("serviceClass") == "network.among-clusters.v1":
+                if authenticated_tenant_operator(identity) != tenant:
+                    raise PermissionError("tenant context changed during authorization")
+                return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
+            if args["spec"].get("serviceClass") == "network.among-clusters.v1":
+                if authenticated_tenant_operator(identity) != tenant:
+                    raise PermissionError("tenant context changed during authorization")
+                return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
             return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
         if name == "service_instance_get":
+            if args["resource_ref"].startswith(f"service://{tenant}/"):
+                candidate = args["resource_ref"].rsplit("/", 1)[-1]
+                try:
+                    return tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
+                except ValueError:
+                    pass
             return store.get(tenant, args["resource_ref"])
         if name == "service_instance_list":
-            return {"tenantRef": tenant, "instances": store.list(tenant)}
+            controlled = tenant_control_request("/v1/services", tenant).get("items", [])
+            return {"tenantRef": tenant, "instances": store.list(tenant) + controlled}
         if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
+            if args["resource_ref"].startswith(f"service://{tenant}/"):
+                candidate = args["resource_ref"].rsplit("/", 1)[-1]
+                try:
+                    current = tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
+                    if current.get("spec", {}).get("serviceClass") == "network.among-clusters.v1":
+                        if authenticated_tenant_operator(identity) != tenant:
+                            raise PermissionError("tenant context changed during authorization")
+                        if name == "service_instance_update":
+                            raise ServiceError("AmongClusters tenant service parameters are immutable")
+                        desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}[name]
+                        return tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe="") + "/lifecycle", tenant, {"desiredState": desired, "idempotencyKey": args["idempotency_key"]})
+                except ValueError:
+                    pass
             current = store.get(tenant, args["resource_ref"])
             spec = dict(args.get("spec") or current["spec"])
             if args.get("spec") and spec.get("serviceClass") != current["service_class"]:

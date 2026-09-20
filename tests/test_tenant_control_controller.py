@@ -213,3 +213,36 @@ def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
         controller.resolve("https://dex.re8ch.com", "", ["OtherOrganization"])
     with pytest.raises(PermissionError):
         controller.resolve("https://dex.re8ch.com", "", ["Artchais"], caller="admin")
+
+
+class AmongClustersKube:
+    def list(self, plural, namespace=None, api=None):
+        if plural == "tenantgrants":
+            return [{"spec": {"tenantRef": "artchais", "consumableRef": "network.among-clusters.v1", "lifecycle": "Active", "roleRef": "operator"}}]
+        if plural == "peers":
+            return [{"metadata": {"name": "re8ch-artc"}, "spec": {"remoteIdentityRef": "artc", "suspended": False}}]
+        if plural == "authenticatedlinks":
+            return [{"metadata": {"name": "re8ch-artc"}, "spec": {"peerRef": "re8ch-artc"}}]
+        return []
+
+
+def among_spec(**parameters):
+    return {"serviceClass": "network.among-clusters.v1", "planRef": "private", "parameters": {"sourceClusterRef": "artc", "destinationClusterRefs": ["re8ch"], "serviceRefs": ["network.egress.mihomo"], **parameters}}
+
+
+def test_amongclusters_tenant_service_is_limited_to_artchais_mihomos_path(monkeypatch):
+    monkeypatch.setattr(controller, "KUBE", AmongClustersKube())
+    assert controller.among_clusters_spec("artchais", "mihomos", among_spec()) == among_spec()["parameters"]
+    with pytest.raises(PermissionError, match="published for this tenant"):
+        controller.among_clusters_spec("re8ch", "mihomos", among_spec())
+    with pytest.raises(PermissionError, match="Mihomos"):
+        controller.among_clusters_spec("artchais", "mihomos", among_spec(serviceRefs=["kubernetes.control-plane"]))
+    with pytest.raises(PermissionError, match="approved artc"):
+        controller.among_clusters_spec("artchais", "mihomos", among_spec(destinationClusterRefs=["other"]))
+
+
+def test_amongclusters_policy_exposes_only_the_reviewed_import():
+    instance = {"metadata": {"name": "mihomos", "uid": "instance-uid"}, "spec": {"tenantRef": "artchais"}}
+    policy = controller.among_clusters_policy(instance)
+    assert policy["metadata"]["namespace"] == "artchais"
+    assert policy["spec"] == {"peerSelector": {"matchNames": ["re8ch-artc"]}, "serviceClasses": ["network.egress.mihomo"], "protocols": ["tcp"], "ports": [17891], "directions": ["import"], "maxAdvertisements": 1}
