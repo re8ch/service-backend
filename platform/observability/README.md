@@ -58,10 +58,19 @@ receiver was invoked. Provider acceptance, device delivery, human attention and
 responsibility acknowledgement require separate channel evidence. Missing
 evidence remains unknown. See `policies/README.md` for the namespace contract.
 
-## Grafana preview
+## Shared Grafana
 
-The six dashboards are also mounted read-only into the existing production
-Grafana file provider so they can be reviewed before the suspended metrics and
-trace storage stage is enabled. Preview lifecycle, verification evidence and
-rollback are recorded in
-`runbooks/observability/grafana-preview-2026-08-25.md`.
+`production/grafana.yaml` is the sole GitOps definition of the shared Grafana
+runtime. It runs one recoverable replica in `observability-system`, retains
+`https://grafana.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
+from `re8ch-grafana-database`, and references separate OIDC and renderer-token
+Secrets. Those Secrets are provisioned out of band and must never be copied
+from the legacy monitoring namespace or committed here.
+
+Dex/OIDC group claims select one Grafana Org per platform or tenant group; the
+checked-in org contract defines the only allowed names and roles. Datasources,
+dashboards and alerts are provisioned read-only from this tree. New datasource
+URLs must stay inside `observability-system`; legacy `panel-*` and tenant proxy
+backends are forbidden. The old Grafana deployment remains a 1-replica rollback
+target until the fourteen-day acceptance window completes, then it is frozen at
+zero and retired in a separate reviewed change.

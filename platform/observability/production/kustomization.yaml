@@ -9,6 +9,7 @@ resources:
   - rules.yaml
   - otel.yaml
   - dashboards.yaml
+  - grafana.yaml
 configMapGenerator:
   - name: re8ch-observability-dashboards
     namespace: observability-system

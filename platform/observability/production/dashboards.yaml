@@ -35,13 +35,13 @@ data:
         uid: re8ch-vlogs
         type: victoriametrics-logs-datasource
         access: proxy
-        url: http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428
+        url: http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: re8ch-observability-grafana-alerts
-  namespace: qianwen-ops
+  namespace: observability-system
   labels:
     grafana_alert: "1"
     app.kubernetes.io/part-of: re8ch-observability
