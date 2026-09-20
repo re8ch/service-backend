@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Safe housekeeping for a K3s embedded-etcd voter.
+#
+# This intentionally does not delete CRI/containerd, K3s, etcd, kubelet or
+# Ceph data. Kubelet owns image/container garbage collection; Rook/Ceph owns
+# Ceph lifecycle. A prior manual runtime cleanup left WSL voters with stale
+# CRI records, so the only mutation here is bounded journal rotation.
+set -euo pipefail
+
+journal_cap="${JOURNAL_MAX_USE:-512M}"
+mode="${1:---check}"
+
+case "$mode" in
+  --check|--vacuum-journal) ;;
+  *) echo "usage: $0 [--check|--vacuum-journal]" >&2; exit 64 ;;
+esac
+
+systemctl is-active --quiet k3s
+
+root_free_kib="$(df --output=avail / | tail -1 | tr -d '[:space:]')"
+journal_bytes="$(journalctl --disk-usage | sed -n 's/.*take up \([0-9.]*\)\([KMGT]\).*/\1\2/p')"
+logger -t re8ch-control-plane-maintenance \
+  "root_free_kib=${root_free_kib} journal_usage=${journal_bytes:-unknown} mode=${mode}"
+
+if [[ "$mode" == "--vacuum-journal" ]]; then
+  journalctl --vacuum-size="$journal_cap"
+fi
