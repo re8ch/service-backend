@@ -446,3 +446,5 @@ modules:
       digest: sha256:17b25d81c0c0537116122edb1bc2a49a43817204ae42f76795c18dd526f96342
     - codename: focus-copper
       digest: sha256:5c4fa7aa0a542afb861e78b3bcb07bf16044901d9cba1f86348d7d796185b35c
+    - codename: prism-copper
+      digest: sha256:99cf0cf6087aa52a39ddb5257e01664803410370f6dd95104bf35b1ed7200fe6
