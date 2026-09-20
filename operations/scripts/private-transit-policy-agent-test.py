@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).with_name("private-transit-policy-agent.py")
+POLICY = Path(__file__).parents[1] / "network" / "manifests" / "network" / "private-transit" / "policy-agent.json"
+INVENTORY = Path(__file__).parents[2] / "clusters" / "re8ch" / "components" / "network" / "podcidr-fabric" / "inventory.json"
 SPEC = importlib.util.spec_from_file_location("policy_agent", SCRIPT)
 AGENT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(AGENT)
@@ -28,6 +31,13 @@ class PolicyAgentTest(unittest.TestCase):
         gateway = {"address": "192.0.2.18", "interface": "wg-pt-a1"}
         with patch.object(AGENT, "interface_exists", return_value=True):
             self.assertEqual(AGENT.gateway_nexthop(gateway), ["dev", "wg-pt-a1"])
+
+    def test_dynamic_targets_match_the_accelerated_inventory(self):
+        config = json.loads(POLICY.read_text())
+        inventory = json.loads(INVENTORY.read_text())
+        targets = {(item["name"], item["address"]) for item in config["targets"]}
+        expected = {(item["name"], item["acceleratedIp"]) for item in inventory["nodes"]}
+        self.assertEqual(targets, expected)
 
     def test_gateway_nexthop_workers_use_zt_gateway(self):
         gateway = {"address": "192.0.2.18", "interface": "wg-pt-a1"}

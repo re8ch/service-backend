@@ -15,13 +15,19 @@
     {"name": "b1", "address": "192.0.2.208", "interface": "wg-pt-b1", "probeTable": 15102, "mark": "0x2", "staticWeight": 100, "capacityMbps": 200}
   ],
   "targets": [
-    {"name": "rancher-panel", "address": "192.0.2.63", "region": "guangzhou", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "zan", "address": "192.0.2.63", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "qwen-1", "address": "192.0.2.29", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "amdwsl-zt", "address": "192.0.2.93", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "overseas-edge-50", "address": "192.0.2.225", "region": "overseas", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "vm-20-12-ubuntu", "address": "192.0.2.114", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "artchais-nuclio-1", "address": "192.0.2.145", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "qianwen-nuclio-79", "address": "192.0.2.24", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "harbor-registry", "address": "192.0.2.46", "region": "hangzhou", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "suxunji", "address": "192.0.2.145", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "muaya-lightweight", "address": "192.0.2.24", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "overseas-kl", "address": "192.0.2.42", "region": "kuala-lumpur", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "muaya-ecs", "address": "192.0.2.46", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "overseas-la", "address": "192.0.2.29", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "restricted-node-6dc3f140f9", "address": "192.0.2.205", "region": "r640-lan", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "pg-re8ch-replica-186", "address": "192.0.2.31", "region": "unknown", "staticPreference": {"a1": 100, "b1": 100}}
+    {"name": "domain-ex", "address": "192.0.2.31", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "qwen-2", "address": "192.0.2.5", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "qwen-3", "address": "192.0.2.16", "staticPreference": {"a1": 100, "b1": 100}}
   ]
 }
