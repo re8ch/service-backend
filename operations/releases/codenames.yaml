@@ -438,3 +438,5 @@ modules:
       digest: sha256:5400a9261b7cebcc083f10df8ea66f465e303529bf971406be0745296658b7bb
     - codename: telescope-amber
       digest: sha256:c808b3aaf304358f8eef4ca533a483707e967083ec5cc93008cd4cc8cc30589a
+    - codename: viewport-amber
+      digest: sha256:682d994087046084ed14dc283bf08805d311bf16200059d6a5c145c3a4dc76e8
