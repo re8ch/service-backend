@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: gulfstream-copper
+codename: riptide-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:ccb495da13ebece542b90d28d8c40347cee37a1f96a8794aab123f8c44cd0839
+  digest: sha256:4bfaaf55a13b9cf0d41c4876137360030c33c3121172a3b0b799d0f7f11da850
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
