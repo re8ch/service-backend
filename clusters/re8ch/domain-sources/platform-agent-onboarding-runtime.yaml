@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/agent-onboarding-runtime
-    delivery.re8ch.com/codename: aegis
+    delivery.re8ch.com/codename: bastion
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-agent-onboarding-runtime
   ref:
-    digest: sha256:49c58ae6c88d4c6040e2b58002b7da9f659f4aa3763341df990d54c3aabb3d6f
+    digest: sha256:fdd0bf0fa80402aff1b055e0715e9cc1f7ce03ac037728db75b8613302999847
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/agent-onboarding-runtime
-    delivery.re8ch.com/codename: aegis
+    delivery.re8ch.com/codename: bastion
 spec:
   interval: 10m
   retryInterval: 1m
