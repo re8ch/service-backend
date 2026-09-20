@@ -183,6 +183,13 @@ modules:
       digest: sha256:f236aa295732300064bea49601f243e55ceb158456e02e0a20b4900a94eb9e9a
     - codename: reef-indigo
       digest: sha256:c9e42f8b79ca94647aae9a12174ca8ab5b5e15ef312a3ba85a44c3ea6102916c
+    - codename: tundra-indigo
+      digest: sha256:d268fd8e405b64d49761b7de19f0f8816d0789647e5743e4462e351c6ada8ddd
+      quarantined: missing-or-invalid-signature
+    - codename: wetland-indigo
+      digest: sha256:5d9d4ec29632af516c2dfd0fa8e8ea1da9c36a8cc6686c02fe17da43ac506917
+    - codename: atoll-jade
+      digest: sha256:32a032111733f1ed01c2b2689d3ffa0bb3e66c86c8633dd55fe62a006fa32c87
   platform/cloud-platform:
     releases:
     - codename: atoll

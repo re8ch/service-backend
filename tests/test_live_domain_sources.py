@@ -63,6 +63,8 @@ def test_promotion_keeps_source_auth_verification_and_reconciliation_specs(tmp_p
     allocator = importlib.util.module_from_spec(allocator_spec)
     allocator_spec.loader.exec_module(allocator)
     state = yaml.safe_load((ROOT / "operations/releases/codenames.yaml").read_text())
+    quarantined = allocator.proposed(module, state)
+    state["modules"][module]["releases"].append({"codename": quarantined, "digest": "sha256:" + "2" * 64, "quarantined": "missing-or-invalid-signature"})
     release["codename"] = allocator.proposed(module, state)
     release["bundle"]["digest"] = "sha256:" + "1" * 64
     state["modules"][module]["releases"].append({"codename": release["codename"], "digest": release["bundle"]["digest"]})
