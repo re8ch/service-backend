@@ -45,15 +45,16 @@ spec:
       services: [rook-ceph-exporter, rook-ceph-mgr, rook-ceph-mgr-dashboard]
       nativeMetrics: [ceph-mgr-prometheus, rook-ceph-exporter]
       blockingFinding: HEALTH_ERR-with-recovery-unfound-and-one-unfound-object
-    - namespace: qianwen-ops
+    - namespace: observability-system
       owner: platform-observability
       tier: critical
-      workloadClass: platform
-      status: legacy-central-config
-      workloads: [panel-grafana, panel-victoria-metrics, panel-victoria-logs, panel-re8ch-vmalert, panel-pigsty-vmalert, panel-node-exporter, panel-qwen-functions-vmagent, panel-harbor-node-vmagent, panel-vlagent, alloy-nuclio-logs, re8ch-routing-advisor]
-      services: [panel-grafana, panel-victoria-metrics, panel-victoria-logs, panel-re8ch-vmalert, panel-pigsty-vmalert, panel-node-exporter, panel-vlagent, pigsty-pg-re8ch-exporters, pigsty-pg-meta-exporters, pigsty-icp-infra-exporters, re8ch-routing-advisor]
-      nativeMetrics: [victoriametrics, victorialogs, vmalert, node-exporter, pigsty]
-      action: parallel-run-fourteen-days-before-cutover
+      workloadClass: mixed
+      status: shared-observability-control-and-data-plane
+      workloads: [re8ch-grafana, re8ch-grafana-renderer, re8ch-grafana-postgresql, re8ch-grafana-org-sync, re8ch-grafana-credential-bootstrap-v1, re8ch-metrics, re8ch-analytics, re8ch-logs, re8ch-traces, re8ch-vmalert, re8ch-alertmanager, re8ch-otel-agent, re8ch-otel-gateway]
+      services: [re8ch-grafana, re8ch-grafana-renderer, re8ch-grafana-postgresql, vmselect-re8ch-metrics, vminsert-re8ch-metrics, vmsingle-re8ch-analytics, vlsingle-re8ch-logs, vtselect-re8ch-traces, vtinsert-re8ch-traces, vmalertmanager-re8ch-alertmanager]
+      nativeMetrics: [grafana, postgresql, victoriametrics, victorialogs, victoriatraces, vmalert, alertmanager, opentelemetry]
+      requiredMetrics: [request-red, datasource-health, database-health, alert-evaluation, alert-delivery, ingest-rate, query-latency, storage-capacity]
+      inventoryOnlyScaledToZero: [qianwen-ops/panel-grafana, qianwen-ops/panel-grafana-renderer, qianwen-ops/panel-victoria-metrics, qianwen-ops/panel-victoria-logs, qianwen-ops/panel-re8ch-vmalert, qianwen-ops/panel-pigsty-vmalert]
     - namespace: harbor
       owner: platform-registry
       tier: critical

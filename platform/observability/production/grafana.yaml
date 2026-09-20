@@ -105,7 +105,7 @@ spec:
             - {name: GF_ANALYTICS_REPORTING_ENABLED, value: "false"}
             - {name: GF_ANALYTICS_CHECK_FOR_UPDATES, value: "false"}
             - {name: GF_DATABASE_TYPE, value: postgres}
-            - {name: GF_DATABASE_SSL_MODE, value: require}
+            - {name: GF_DATABASE_SSL_MODE, value: disable}
             - {name: GF_DATABASE_HOST, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: host}}}
             - {name: GF_DATABASE_NAME, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: name}}}
             - {name: GF_DATABASE_USER, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: user}}}
@@ -114,6 +114,7 @@ spec:
             - {name: GF_AUTH_GENERIC_OAUTH_NAME, value: RE8CH Dex}
             - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, valueFrom: {secretKeyRef: {name: re8ch-grafana-oidc, key: client-id}}}
             - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: re8ch-grafana-oidc, key: client-secret}}}
+            - {name: GF_AUTH_GENERIC_OAUTH_USE_PKCE, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_SCOPES, value: "openid profile email groups"}
             - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: https://dex.re8ch.com/auth}
             - {name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL, value: https://dex.re8ch.com/token}

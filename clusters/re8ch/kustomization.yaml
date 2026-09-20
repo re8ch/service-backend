@@ -38,6 +38,7 @@ resources:
 - components/ai-operations/sandbox-trials
 - components/tenancy/re8ch-managed-business-namespaces.yaml
 - components/auth/dex/dex-ha-deployment.yaml
+- components/auth/dex/grafana-client.yaml
 - components/egress-fabric/identity-egress.yaml
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml

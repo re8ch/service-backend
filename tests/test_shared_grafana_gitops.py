@@ -17,6 +17,18 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertNotIn("qianwen-ops", manifest)
         self.assertNotIn("panel-grafana", manifest)
 
+    def test_shared_runtime_bootstraps_owned_dependencies(self):
+        credentials = (ROOT / "platform/observability/production/grafana-credentials.yaml").read_text()
+        database = (ROOT / "platform/observability/production/grafana-database.yaml").read_text()
+        dex = (ROOT / "clusters/re8ch/components/auth/dex/grafana-client.yaml").read_text()
+        self.assertIn("re8ch-grafana-credential-bootstrap-v1", credentials)
+        self.assertIn("secrets.token_urlsafe", credentials)
+        self.assertNotIn("stringData:", credentials)
+        self.assertIn("storageClassName: rbd-r640", database)
+        self.assertIn("name: re8ch-grafana-postgresql", database)
+        self.assertIn("public: true", dex)
+        self.assertIn("/grafana/login/generic_oauth", dex)
+
     def test_new_datasources_do_not_use_legacy_panel_backends(self):
         manifest = (ROOT / "platform/observability/production/dashboards.yaml").read_text()
         self.assertIn("observability-system.svc.cluster.local", manifest)
