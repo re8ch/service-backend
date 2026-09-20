@@ -1,6 +1,7 @@
 # Deliberately narrower than re8ch:ops-mcp-observe. The public backend needs
-# enough metadata to build sanitized health and inventory responses, but it
-# must never receive Secret, pod/log, exec, metrics, PV/PVC, Job or RBAC access.
+# enough metadata and resource-usage evidence to build sanitized health and
+# inventory responses. It must never receive Secret, pod/log, exec, PV/PVC,
+# Job or RBAC access.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -24,6 +25,13 @@ rules:
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
     verbs: ["get", "list", "watch"]
+  # metrics-server is HA on the control plane and scrapes every Ready node.
+  # These read-only resources let the sanitized observe backend report the
+  # resulting node coverage and tenant-scoped Pod usage; they grant no access
+  # to Pod specifications, logs, exec, or Secrets.
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
   - apiGroups: ["nuclio.io"]
     resources: ["nucliofunctions", "nucliofunctions/status", "nuclioapigateways", "nuclioprojects"]
     verbs: ["get", "list", "watch"]
