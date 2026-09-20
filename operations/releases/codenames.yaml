@@ -404,6 +404,8 @@ modules:
     releases:
     - codename: aperture
       digest: sha256:00b28236efe7c7a551981526d5baa1ce7ee650cafd9a98373267391c781c478d
+    - codename: focus
+      digest: sha256:05d4ce04d2ed160873a99baff6f2185a835fd214614f953bd16ae1b1845a8bc4
   platform/observability/production:
     releases:
     - codename: aperture
