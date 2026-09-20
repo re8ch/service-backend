@@ -191,6 +191,7 @@ spec:
   ingress:
     - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}
         - podSelector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana-renderer}}
 ---
 # Cilium Gateway API traffic reaches backends with the reserved ingress
