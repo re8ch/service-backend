@@ -103,7 +103,12 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
 
 def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
     policies = docs(GOVERNANCE / "policies/kyverno.yaml")
-    assert all(item["spec"]["validationFailureAction"] == "Audit" for item in policies)
+    validating_policies = [item for item in policies if "validationFailureAction" in item["spec"]]
+    assert all(
+        item["spec"]["validationFailureAction"] == "Audit"
+        for item in validating_policies
+        if item["metadata"]["name"] != "enforce-no-capacity-no-schedule"
+    )
     assert "node-role.kubernetes.io/control-plane" in (GOVERNANCE / "policies/kyverno.yaml").read_text()
     privileged = next(
         item for item in policies if item["metadata"]["name"] == "audit-privileged-workloads"
@@ -119,6 +124,21 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
     assert "{{ contains(keys(element.resources.requests || `{}`), 'cpu') }}" in keys
     assert "{{ contains(keys(element.resources.limits || `{}`), 'memory') }}" in keys
     assert all(condition["value"] is False for condition in conditions)
+
+    no_capacity_default = next(
+        item for item in policies if item["metadata"]["name"] == "default-no-capacity-no-schedule"
+    )
+    assert no_capacity_default["spec"]["background"] is False
+    assert no_capacity_default["spec"]["rules"][0]["mutate"]["patchStrategicMerge"] == {
+        "spec": {"preemptionPolicy": "Never"}
+    }
+    no_capacity_enforcement = next(
+        item for item in policies if item["metadata"]["name"] == "enforce-no-capacity-no-schedule"
+    )
+    assert no_capacity_enforcement["spec"]["validationFailureAction"] == "Enforce"
+    assert no_capacity_enforcement["spec"]["rules"][0]["validate"]["pattern"] == {
+        "spec": {"preemptionPolicy": "Never"}
+    }
 
     queues = docs(GOVERNANCE / "policies/kueue.yaml")
     local_queues = [item for item in queues if item["kind"] == "LocalQueue"]
@@ -277,6 +297,7 @@ def test_scheduling_governance_alerts_on_kueue_manager_restarts():
     assert "kyverno_info" in alerts["Re8chKyvernoMetricsMissing"]["expr"]
     assert "Re8chSchedulingPolicyAuditViolation" in alerts
     assert "kyverno_policy_results_total" in alerts["Re8chSchedulingPolicyAuditViolation"]["expr"]
+    assert "enforce-no-capacity-no-schedule" in alerts["Re8chSchedulingPolicyAuditViolation"]["expr"]
     assert "Re8chVLAgentDroppingLogs" in alerts
     assert "vlagent_remotewrite_packets_dropped_total" in alerts["Re8chVLAgentDroppingLogs"]["expr"]
 

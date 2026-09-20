@@ -66,7 +66,7 @@ spec:
           labels: {severity: warning}
           annotations: {summary: Kyverno controller metrics have been missing for fifteen minutes}
         - alert: Re8chSchedulingPolicyAuditViolation
-          expr: sum(increase(kyverno_policy_results_total{policy_name=~"audit-(control-plane-tolerations|workload-resource-bounds|privileged-workloads)",rule_result="fail"}[15m])) by (policy_name, resource_namespace) > 0
+          expr: sum(increase(kyverno_policy_results_total{policy_name=~"(audit-(control-plane-tolerations|workload-resource-bounds|privileged-workloads)|enforce-no-capacity-no-schedule)",rule_result="fail"}[15m])) by (policy_name, resource_namespace) > 0
           for: 2m
           labels: {severity: warning}
           annotations: {summary: A scheduling governance audit policy found a new violation}

@@ -56,6 +56,40 @@ spec:
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
+metadata: {name: default-no-capacity-no-schedule}
+spec:
+  # This mutation applies before validation.  It deliberately includes platform
+  # namespaces: a Pod must never acquire capacity by evicting another Pod.
+  background: false
+  rules:
+    - name: set-never-preempt-for-every-pod
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      mutate:
+        patchStrategicMerge:
+          spec:
+            preemptionPolicy: Never
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: enforce-no-capacity-no-schedule}
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: require-never-preempt-for-every-pod
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      validate:
+        message: A Pod without matching available CPU and memory must remain Pending; preemption is forbidden platform-wide.
+        pattern:
+          spec:
+            preemptionPolicy: Never
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
 metadata: {name: generate-tenant-resource-boundaries}
 spec:
   validationFailureAction: Audit

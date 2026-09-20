@@ -47,6 +47,23 @@ DRA is an allocation constraint, not another triangle axis. `DeviceClass`,
 Triangle controller observes claim availability and reports when a desired
 failure-domain count is impossible for a node-local device.
 
+## Capacity is an admission boundary
+
+The platform-wide capacity rule is simple: **no matching available CPU or
+memory means no placement**. The Pod remains `Pending` until a Ready,
+schedulable node that satisfies all of its selectors, affinities, taints,
+claims, CPU request and memory request exists. This is deliberate backpressure,
+not an incident to work around.
+
+Every admitted Pod, including platform and control-plane Pods, is mutated and
+validated with `spec.preemptionPolicy: Never`. No scheduler, remediation
+controller or rollout may make room by preempting a lower-priority Pod,
+weakening a node selector or affinity, adding a toleration, removing a taint,
+or moving the workload to a node outside its declared constraints. Capacity
+must be added, a workload's reviewed resource request must be reduced, or the
+workload must wait. `NotReady` is a node-health condition and is investigated
+separately; it is never a reason to override this boundary.
+
 ## Promotion gates
 
 1. Apply `crds.yaml`, then `node-profiles.yaml`; validate every profile against
