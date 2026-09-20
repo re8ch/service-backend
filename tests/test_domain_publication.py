@@ -75,14 +75,15 @@ def test_stale_verified_tag_is_preserved_not_overwritten(monkeypatch):
     assert calls[0][-1] == "registry.example/module@" + digest
 
 
-def test_unverifiable_existing_tag_cannot_be_claimed(monkeypatch):
+def test_unverifiable_existing_tag_is_quarantined_and_never_claimed(monkeypatch):
     allocator = publication.load_module("untrusted_names", "operations/releases/allocate_codename.py")
     state = yaml.safe_load(allocator.STATE.read_text())
-    before = yaml.safe_dump(state)
-    monkeypatch.setattr(publication, "harbor", lambda *args: (200, {"digest": "sha256:" + "3" * 64}))
+    first = allocator.proposed("platform/adapter", state)
+    monkeypatch.setattr(publication, "harbor", lambda method, path: (200, {"digest": "sha256:" + "3" * 64}) if path.endswith("/" + first) else (404, None))
     def reject(argv, **kwargs):
         raise subprocess.CalledProcessError(1, argv)
     monkeypatch.setattr(publication.subprocess, "run", reject)
-    with pytest.raises(subprocess.CalledProcessError):
-        publication.immutable_target("platform/adapter", state, allocator, "registry.example/module", "current")
-    assert yaml.safe_dump(state) == before
+    name, existing = publication.immutable_target("platform/adapter", state, allocator, "registry.example/module", "current")
+    assert existing is None
+    assert name != first
+    assert state["modules"]["platform/adapter"]["releases"][-1]["quarantined"] == "missing-or-invalid-signature"
