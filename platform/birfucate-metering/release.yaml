@@ -38,7 +38,7 @@ spec:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
     tenantPlatform:
       enabled: true
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:c635a763982a66b4f52bb8b0d5325858bc0dd62cc55baec24acb0295eb35fd26
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:a449da07d69295ea1ce6f6abfc4a62a74954a7af5f048921d3279c2bd5591e95
       tenantReadinessPath: /readyz
       state:
         storageClassName: rbd-r640
