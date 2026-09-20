@@ -219,6 +219,8 @@ modules:
     releases:
     - codename: aegis
       digest: sha256:49c58ae6c88d4c6040e2b58002b7da9f659f4aa3763341df990d54c3aabb3d6f
+    - codename: bastion
+      digest: sha256:fdd0bf0fa80402aff1b055e0715e9cc1f7ce03ac037728db75b8613302999847
   platform/stalwart:
     releases:
     - codename: aurora
@@ -301,6 +303,8 @@ modules:
       digest: sha256:fd7d86d3811bf65df62e834a196f82c1f6b617d5d658c4bc614723782aab0bb3
     - codename: tideway-amber
       digest: sha256:7d8feca14094bf712f0de3bb74a479d813c26d37607c78f03242aea7efe2d56e
+    - codename: cascade-copper
+      digest: sha256:b6343faa4fc5fc1584da0bbf4b78b204098ee7a832299dfdba62cf86c190edde
   platform/hyperswitch:
     releases:
     - codename: anchor
