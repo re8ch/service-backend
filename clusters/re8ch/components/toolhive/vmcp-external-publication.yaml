@@ -130,7 +130,7 @@ metadata:
   name: ops-observe-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: a1-b1-recovery-2026-09-19}
+  annotations: {re8ch.com/reconcile-generation: shared-observability-probes-2026-09-21}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -159,7 +159,9 @@ spec:
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19}
+      annotations:
+        scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19
+        observability.re8ch.com/probe-revision: shared-observability-v1
     spec:
       affinity:
         nodeAffinity:

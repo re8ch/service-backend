@@ -121,11 +121,17 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.224/16"
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == "a1-b1-recovery-2026-09-19"
+        expected_generation = (
+            "shared-observability-probes-2026-09-21"
+            if server["metadata"]["name"] == "ops-observe-vmcp-internal"
+            else "a1-b1-recovery-2026-09-19"
+        )
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == expected_generation
         pod_spec = spec["podTemplateSpec"]["spec"]
-        assert spec["podTemplateSpec"]["metadata"]["annotations"] == {
-            "scheduling.re8ch.com/placement-revision": "a1-b1-recovery-2026-09-19"
-        }
+        expected_annotations = {"scheduling.re8ch.com/placement-revision": "a1-b1-recovery-2026-09-19"}
+        if server["metadata"]["name"] == "ops-observe-vmcp-internal":
+            expected_annotations["observability.re8ch.com/probe-revision"] = "shared-observability-v1"
+        assert spec["podTemplateSpec"]["metadata"]["annotations"] == expected_annotations
         assert "nodeSelector" not in pod_spec
         expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression == {
