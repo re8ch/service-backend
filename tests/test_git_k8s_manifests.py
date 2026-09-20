@@ -233,9 +233,12 @@ def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
     operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
     source = next(item for item in operator if item["kind"] == "OCIRepository")
     release = next(item for item in operator if item["kind"] == "HelmRelease")
-    assert source["spec"]["ref"] == {"digest": "sha256:f1a3147e5b16bd24da45150f93d1b9ebfcfa26ef62ef654734025b793c0fe570"}
+    assert source["spec"]["ref"] == {"digest": "sha256:b67eee6d2ef251dd34b2c7e563ba1e0bbd9b5936d9d2fb7b671f6c86ff61b258"}
     values = release["spec"]["values"]["operator"]
     assert values["replicaCount"] == 2
+    assert values["image"] == "ghcr.io/stacklok/toolhive/operator@sha256:2916086b1f9508e563d8055b3ab31c45f1e04edf4df81e8a41a334c8dc902cde"
+    assert values["toolhiveRunnerImage"] == "ghcr.io/stacklok/toolhive/proxyrunner@sha256:f60433f850e76e62516d69f6f00cfa69064639175210fff728696d1c86164fa1"
+    assert values["vmcpImage"] == "ghcr.io/stacklok/toolhive/vmcp@sha256:5911e13fcea86c1274f0650e172792e9429bf4b16ae77a303d1bc4bf820fc619"
     assert values["nodeSelector"] == {}
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
     assert expressions == [

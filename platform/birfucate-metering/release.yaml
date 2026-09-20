@@ -84,6 +84,10 @@ spec:
             - {name: artchais-github-admins, issuer: https://dex.re8ch.com, group: "Artchais:tenant-admins", role: admin}
             - {name: artchais-github-operators, issuer: https://dex.re8ch.com, group: "Artchais:tenant-operators", role: operator}
             - {name: artchais-github-viewers, issuer: https://dex.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
+            # Exact issuer-scoped binding for the approved external operator.
+            # Only the one-way subject hash is retained in Git; raw identity
+            # claims and OAuth credentials remain outside desired state.
+            - {name: artchais-dex-external-operator, issuer: https://dex.re8ch.com, subjectHash: "sha256:3fb8e1ea3bd7fc4e13761e4459d5039b494839f2e62228efd5b7a5202da70e97", role: operator}
           grants:
             - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
