@@ -168,7 +168,6 @@ spec:
           ports: [{name: http, containerPort: 8081}]
           env:
             - {name: AUTH_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-grafana-renderer-auth, key: token}}}
-          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
           readinessProbe: {httpGet: {path: /render/version, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /render/version, port: http}, initialDelaySeconds: 30, periodSeconds: 30}
