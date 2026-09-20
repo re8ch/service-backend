@@ -111,7 +111,68 @@ def profile_labels(spec, target):
     service_plane = spec.get("capabilities", {}).get("servicePlane")
     if service_plane:
         labels["scheduling.re8ch.com/service-plane"] = service_plane
+    background = spec.get("background", {})
+    labels["scheduling.re8ch.com/cost-class"] = background.get("costClass", "unknown")
+    capabilities = spec.get("capabilities", {})
+    for storage in capabilities.get("storage", []):
+        labels[f"scheduling.re8ch.com/capability-storage-{storage}"] = "true"
+    if capabilities.get("gpu"):
+        labels["scheduling.re8ch.com/capability-gpu"] = str(capabilities["gpu"])
+    for key in ("publicEdge", "egress", "trafficQuotaAware"):
+        if capabilities.get(key): labels[f"scheduling.re8ch.com/capability-{key.replace('E', '-e').lower()}"] = "true"
+    # These are eligibility classes, never a replacement for native hard
+    # locality constraints such as node-local disks or Gateway backends.
+    reliable = spec.get("reliability", {}).get("class") in ("anchor", "stable")
+    labels["scheduling.re8ch.com/placement-general-reliable"] = "true" if reliable else "false"
+    labels["scheduling.re8ch.com/placement-batch-opportunistic"] = "true" if capabilities.get("scheduling") else "false"
     return labels
+
+def placement_eligible_nodes(placement, nodes):
+    spec = placement.get("spec", {})
+    selector = spec.get("nodeSelector", {})
+    eligible = [node for node in nodes if labels_match(node.get("metadata", {}).get("labels", {}), selector)]
+    if not spec.get("allowControlPlane", False):
+        eligible = [node for node in eligible if node.get("metadata", {}).get("labels", {}).get("node-role.kubernetes.io/control-plane") != "true"]
+    return eligible
+
+def reconcile_placement_classes(nodes):
+    for placement in items(GROUP + "/placementclasses"):
+        eligible = placement_eligible_nodes(placement, nodes)
+        domains = {node.get("metadata", {}).get("labels", {}).get(placement.get("spec", {}).get("topologyKey")) for node in eligible}
+        ready = bool(eligible)
+        condition = {"type": "Ready", "status": "True" if ready else "False",
+                     "reason": "EligibleNodes" if ready else "NoEligibleNodes",
+                     "message": f"{len(eligible)} eligible nodes across {len(domains - {None})} failure domains", "lastTransitionTime": now()}
+        patch(f"{GROUP}/placementclasses/{placement['metadata']['name']}",
+              {"status": {"observedGeneration": placement["metadata"].get("generation"), "eligibleNodes": len(eligible),
+                          "failureDomains": len(domains - {None}), "conditions": [condition]}}, True)
+
+def reconcile_placement_admission_checks(nodes):
+    """Mark Kueue placement checks Ready only when a named class is usable.
+
+    PodSet updates are additive, as required by Kueue; an invalid or unavailable
+    class is explicitly rejected instead of silently falling back to a node.
+    """
+    classes = {x["metadata"]["name"]: x for x in items(GROUP + "/placementclasses")}
+    for workload in items("/apis/kueue.x-k8s.io/v1beta2/workloads"):
+        checks = workload.get("status", {}).get("admissionChecks", [])
+        if not any(check.get("name") == "re8ch-placement" for check in checks): continue
+        podsets = workload.get("spec", {}).get("podSets", [])
+        annotation = next((p.get("template", {}).get("metadata", {}).get("annotations", {}).get("scheduling.re8ch.com/placement-class") for p in podsets if p.get("template", {}).get("metadata", {}).get("annotations", {}).get("scheduling.re8ch.com/placement-class")), None)
+        placement = classes.get(annotation)
+        eligible = placement_eligible_nodes(placement, nodes) if placement else []
+        state = "Ready" if eligible else "Rejected"
+        message = f"PlacementClass {annotation} is ready" if eligible else f"PlacementClass {annotation or '<missing>'} has no eligible nodes"
+        update = {"name": "re8ch-placement", "state": state, "message": message, "lastTransitionTime": now()}
+        if eligible:
+            update["podSetUpdates"] = [{"name": podset["name"], "nodeSelector": placement["spec"]["nodeSelector"]} for podset in podsets]
+        remaining = [check for check in checks if check.get("name") != "re8ch-placement"]
+        patch(f"/apis/kueue.x-k8s.io/v1beta2/namespaces/{workload['metadata']['namespace']}/workloads/{workload['metadata']['name']}", {"status": {"admissionChecks": remaining + [update]}}, True)
+
+def reconcile_placement_admission_check():
+    check = request("/apis/kueue.x-k8s.io/v1beta2/admissionchecks/re8ch-placement")
+    if check:
+        patch("/apis/kueue.x-k8s.io/v1beta2/admissionchecks/re8ch-placement", {"status": {"conditions": [{"type": "Active", "status": "True", "reason": "ControllerReady", "message": "Placement admission controller is leader-elected and available", "lastTransitionTime": now()}]}}, True)
 
 def cpu(value="0"):
     text = str(value)
@@ -295,6 +356,9 @@ def run():
             nodes = items("/api/v1/nodes")
             events = items("/api/v1/events?fieldSelector=involvedObject.kind%3DNode")
             reconcile_profiles(nodes, events)
+            reconcile_placement_classes(nodes)
+            reconcile_placement_admission_check()
+            reconcile_placement_admission_checks(nodes)
             reconcile_scheduler_profiles(nodes)
             reconcile_services(nodes)
             reconcile_disturbances(nodes)

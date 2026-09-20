@@ -93,13 +93,13 @@ spec:
       topologySpreadConstraints:
         - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/component: admission-controller}}}
     backgroundController:
-      replicas: 2
+      replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
     cleanupController:
-      replicas: 2
+      replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
     reportsController:
-      replicas: 2
+      replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
     features:
       policyReports: {enabled: true}

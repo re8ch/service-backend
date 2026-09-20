@@ -47,6 +47,24 @@ class ScoreTests(unittest.TestCase):
         labels = controller.profile_labels({}, "worker")
         self.assertNotIn("scheduling.re8ch.com/service-plane", labels)
 
+    def test_profile_projects_bounded_inventory_capabilities(self):
+        labels = controller.profile_labels({
+            "background": {"provider": "overseas", "environment": "cross-border", "costClass": "metered-bandwidth"},
+            "reliability": {"class": "stable"}, "capabilities": {"storage": ["ceph-client"], "egress": True, "scheduling": ["dynamic"]},
+        }, "edge")
+        self.assertEqual(labels["scheduling.re8ch.com/cost-class"], "metered-bandwidth")
+        self.assertEqual(labels["scheduling.re8ch.com/capability-storage-ceph-client"], "true")
+        self.assertEqual(labels["scheduling.re8ch.com/capability-egress"], "true")
+        self.assertEqual(labels["scheduling.re8ch.com/placement-general-reliable"], "true")
+
+    def test_placement_excludes_control_plane_when_class_disallows_it(self):
+        placement = {"spec": {"nodeSelector": {"scheduling.re8ch.com/placement-general-reliable": "true"}, "allowControlPlane": False}}
+        nodes = [
+            {"metadata": {"name": "control", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "node-role.kubernetes.io/control-plane": "true"}}},
+            {"metadata": {"name": "worker", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true"}}},
+        ]
+        self.assertEqual([n["metadata"]["name"] for n in controller.placement_eligible_nodes(placement, nodes)], ["worker"])
+
     def test_reliability_requires_stable_ready_window(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
             {"type": "Ready", "status": "True", "lastTransitionTime": "2026-09-19T00:20:00Z"},

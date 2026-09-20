@@ -61,6 +61,36 @@ spec:
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
+metadata: {name: placementclasses.scheduling.re8ch.com}
+spec:
+  group: scheduling.re8ch.com
+  scope: Cluster
+  names: {plural: placementclasses, singular: placementclass, kind: PlacementClass, shortNames: [placeclass]}
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - {name: Eligible, type: integer, jsonPath: .status.eligibleNodes}
+    - {name: Ready, type: string, jsonPath: '.status.conditions[0].status'}
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required: [nodeSelector, allowControlPlane, topologyKey]
+            properties:
+              nodeSelector: {type: object, additionalProperties: {type: string}}
+              allowControlPlane: {type: boolean}
+              topologyKey: {type: string, minLength: 1}
+              requiredCapabilities: {type: array, items: {type: string}}
+              resourceFlavorName: {type: string, minLength: 1}
+          status: {type: object, x-kubernetes-preserve-unknown-fields: true}
+    subresources: {status: {}}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
 metadata: {name: schedulerprofiles.scheduling.re8ch.com}
 spec:
   group: scheduling.re8ch.com
