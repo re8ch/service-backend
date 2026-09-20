@@ -730,6 +730,20 @@ def simplify_resource(item, default_kind=None):
         out["conditions"] = [
             {"type": c.get("type"), "status": c.get("status")} for c in status.get("conditions", [])
         ]
+    elif kind == "NodeMetrics":
+        # Metrics API objects contain only an aggregate CPU/memory sample.
+        # Preserve it for capacity diagnostics while withholding unrelated
+        # Kubernetes object data from the public observe profile.
+        out["timestamp"] = item.get("timestamp")
+        out["window"] = item.get("window")
+        out["usage"] = {key: item.get("usage", {}).get(key) for key in ("cpu", "memory")}
+    elif kind == "PodMetrics":
+        out["timestamp"] = item.get("timestamp")
+        out["window"] = item.get("window")
+        out["containers"] = [
+            {"name": container.get("name"), "usage": {key: container.get("usage", {}).get(key) for key in ("cpu", "memory")}}
+            for container in item.get("containers", [])
+        ]
     elif kind in ("Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"):
         out["replicas"] = status.get("replicas")
         out["readyReplicas"] = status.get("readyReplicas")
