@@ -35,7 +35,6 @@ spec:
             - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
           readinessProbe: {exec: {command: [sh, -ec, "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]}, periodSeconds: 5}
           livenessProbe: {exec: {command: [sh, -ec, "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]}, initialDelaySeconds: 30, periodSeconds: 15}
-          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
           volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}]
       volumes: [{name: data, persistentVolumeClaim: {claimName: re8ch-grafana-postgresql}}]
