@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dex-client
+  namespace: dex
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+data:
+  client.yaml: |
+    id: re8ch-grafana
+    name: RE8CH Grafana
+    public: true
+    redirectURIs:
+      - https://grafana.re8ch.com/grafana/login/generic_oauth

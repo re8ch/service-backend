@@ -64,8 +64,11 @@ evidence remains unknown. See `policies/README.md` for the namespace contract.
 runtime. It runs one recoverable replica in `observability-system`, retains
 `https://grafana.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
 from `re8ch-grafana-database`, and references separate OIDC and renderer-token
-Secrets. Those Secrets are provisioned out of band and must never be copied
-from the legacy monitoring namespace or committed here.
+Secrets. `production/grafana-credentials.yaml` creates these values once with
+cluster-local entropy and preserves existing values; plaintext credentials never
+enter Git and no credential is copied from the legacy monitoring namespace.
+The database runs on its own RBD claim and the public PKCE client is reconciled
+into Dex from the checked-in client contract.
 
 Dex/OIDC group claims select one Grafana Org per platform or tenant group; the
 checked-in org contract defines the only allowed names and roles. Datasources,

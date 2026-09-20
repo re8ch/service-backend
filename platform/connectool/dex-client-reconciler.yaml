@@ -8,7 +8,7 @@ metadata: {name: dex-client-reconciler, namespace: dex}
 rules:
   - apiGroups: [""]
     resources: [configmaps]
-    resourceNames: [connectool-dex-clients, dex-identity-reconciler]
+    resourceNames: [connectool-dex-clients, dex-identity-reconciler, grafana-dex-client]
     verbs: [get]
   - apiGroups: [""]
     resources: [secrets]
@@ -88,6 +88,17 @@ data:
         client.update({"name": contract_client["name"], "public": True})
         client.pop("secret", None)
         client.pop("redirectURIs", None)
+    try:
+        grafana_obj = request("/api/v1/namespaces/dex/configmaps/grafana-dex-client")
+        grafana_client = yaml.safe_load(grafana_obj["data"]["client.yaml"])
+        client = by_id.get(grafana_client["id"])
+        if client is None:
+            client = {"id": grafana_client["id"]}
+            clients.append(client)
+        client.update(grafana_client)
+        client.pop("secret", None)
+    except (urllib.error.HTTPError, urllib.error.URLError, KeyError) as exc:
+        logging.warning("Grafana Dex client contract is not ready: %s", exc)
     config["staticClients"] = clients
     github = next((item for item in config.get("connectors", []) if item.get("type") == "github"), None)
     if github is None:
@@ -128,7 +139,7 @@ spec:
     metadata: {labels: {app: dex-identity-reconciler}}
     spec:
       serviceAccountName: dex-client-reconciler
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       automountServiceAccountToken: true
       containers:
         - name: reconcile

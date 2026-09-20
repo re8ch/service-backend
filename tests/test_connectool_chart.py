@@ -189,6 +189,11 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
     def request(path, method="GET", value=None, content_type="application/json"):
         if method == "GET" and path.endswith("connectool-dex-clients"):
             return {"data": {"clients.yaml": yaml.safe_dump({"staticClients": [{"id": "re8ch-tenant", "name": "Tenant"}]})}}
+        if method == "GET" and path.endswith("grafana-dex-client"):
+            return {"data": {"client.yaml": yaml.safe_dump({
+                "id": "re8ch-grafana", "name": "RE8CH Grafana", "public": True,
+                "redirectURIs": ["https://grafana.re8ch.com/grafana/login/generic_oauth"],
+            })}}
         if method == "GET" and path.endswith("dex-config"):
             return copy.deepcopy(secret)
         writes.append((method, path))
@@ -203,6 +208,9 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
     assert github["clientSecret"] == "test-only-secret"
     assert github["loadAllGroups"] is True
     assert "org" not in github and "orgs" not in github
+    grafana = next(item for item in updated["staticClients"] if item["id"] == "re8ch-grafana")
+    assert grafana["public"] is True
+    assert grafana["redirectURIs"] == ["https://grafana.re8ch.com/grafana/login/generic_oauth"]
     assert any(path.endswith("deployments/dex") for _, path in writes)
     writes.clear()
     import pytest
