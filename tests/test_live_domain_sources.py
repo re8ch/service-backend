@@ -80,6 +80,41 @@ def test_promotion_keeps_source_auth_verification_and_reconciliation_specs(tmp_p
     assert before == after
 
 
+def test_promotion_reuses_an_equivalent_open_pr(monkeypatch):
+    spec = importlib.util.spec_from_file_location("promotion_guard", ROOT / "operations/releases/promote.py")
+    promotion = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(promotion)
+    additions = [("releases/platform-adapter.yaml", "exact digest lock")]
+    calls = []
+
+    def fake_api(path, body=None):
+        calls.append(path)
+        if path.startswith("repos/re8ch/service-backend/pulls?"):
+            return [{"html_url": "https://github.com/re8ch/service-backend/pull/999", "head": {"ref": "codex/promote-domain-42"}}]
+        assert path == "repos/re8ch/service-backend/contents/releases/platform-adapter.yaml?ref=codex/promote-domain-42"
+        import base64
+        return {"content": base64.b64encode(b"exact digest lock").decode()}
+
+    monkeypatch.setattr(promotion, "api", fake_api)
+    assert promotion.existing_promotion(additions)["html_url"].endswith("/999")
+    assert len(calls) == 2
+
+
+def test_promotion_does_not_reuse_a_different_open_pr(monkeypatch):
+    spec = importlib.util.spec_from_file_location("promotion_guard", ROOT / "operations/releases/promote.py")
+    promotion = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(promotion)
+
+    def fake_api(path, body=None):
+        if path.startswith("repos/re8ch/service-backend/pulls?"):
+            return [{"html_url": "https://github.com/re8ch/service-backend/pull/999", "head": {"ref": "codex/promote-domain-42"}}]
+        import base64
+        return {"content": base64.b64encode(b"a different digest lock").decode()}
+
+    monkeypatch.setattr(promotion, "api", fake_api)
+    assert promotion.existing_promotion([("releases/platform-adapter.yaml", "exact digest lock")]) is None
+
+
 def test_local_chart_edits_select_only_their_deployable_owner():
     spec = importlib.util.spec_from_file_location("chart_impact_guard", ROOT / "operations/ci/impact.py")
     impact = importlib.util.module_from_spec(spec)

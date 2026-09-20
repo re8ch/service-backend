@@ -85,6 +85,32 @@ def changes(directory):
     return additions
 
 
+def existing_promotion(additions):
+    """Return an open PR that already carries exactly these generated files.
+
+    Domain publication is serialized, but a prior promotion can remain open
+    while later publications finish.  Comparing the proposed file contents to
+    open promoter branches makes that normal state idempotent instead of
+    opening another PR with the same digest locks.
+    """
+    expected = dict(additions)
+    pulls = api(f"repos/{REPO}/pulls?state=open&base=main&per_page=100")
+    for pull in pulls:
+        branch = pull.get("head", {}).get("ref", "")
+        if not branch.startswith("codex/promote-domain-"):
+            continue
+        actual = {}
+        try:
+            for path in expected:
+                item = api(f"repos/{REPO}/contents/{path}?ref={branch}")
+                actual[path] = base64.b64decode(item["content"]).decode()
+        except (KeyError, UnicodeDecodeError, urllib.error.HTTPError):
+            continue
+        if actual == expected:
+            return pull
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("directory", type=Path)
@@ -92,6 +118,10 @@ def main():
     additions = changes(args.directory)
     if not additions:
         print("No active module changes to promote")
+        return
+    existing = existing_promotion(additions)
+    if existing:
+        print("Equivalent automatic promotion PR already open: " + existing["html_url"])
         return
     head = api("repos/" + REPO + "/git/ref/heads/main")["object"]["sha"]
     if head != os.environ["GITHUB_SHA"]:
