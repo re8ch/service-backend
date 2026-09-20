@@ -221,7 +221,7 @@ def test_dashboard_files_are_dense_and_have_stable_ids():
 def test_grafana_composite_alerts_forward_to_ha_alertmanager():
     resources = yaml_documents(OBSERVABILITY / "production" / "dashboards.yaml")
     config = next(doc for doc in resources if doc["metadata"]["name"] == "re8ch-observability-grafana-alerts")
-    assert config["metadata"]["namespace"] == "qianwen-ops"
+    assert config["metadata"]["namespace"] == "observability-system"
     alerting = yaml.safe_load(config["data"]["composite-alerts.yaml"])
     rule = alerting["groups"][0]["rules"][0]
     assert rule["notification_settings"]["receiver"] == "RE8CH Alertmanager"
