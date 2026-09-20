@@ -58,7 +58,9 @@ def changes(directory):
         validation = copy.deepcopy(current)
         validation["modules"].setdefault(module, {"releases": []})
         for record in next_releases[len(previous):]:
-            if set(record) != {"codename", "digest"} or record["codename"] != allocator.proposed(module, validation) or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
+            quarantined = record.get("quarantined") == "missing-or-invalid-signature"
+            allowed_keys = {"codename", "digest", "quarantined"} if quarantined else {"codename", "digest"}
+            if set(record) != allowed_keys or record["codename"] != allocator.proposed(module, validation) or not re.fullmatch(r"sha256:[a-f0-9]{64}", record["digest"]):
                 raise ValueError("promotion must preserve the module's reviewed codename sequence and digest claims")
             validation["modules"][module]["releases"].append(record)
         if next_releases[-1] != {"codename": release["codename"], "digest": release["bundle"]["digest"]}:
