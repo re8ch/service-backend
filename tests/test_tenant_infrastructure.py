@@ -99,3 +99,13 @@ def test_credentials_and_public_bucket_are_rejected():
     bucket = {"serviceClass": "storage.bucket.v1", "planRef": "dedicated", "regionRef": "guangzhou", "desiredState": "Ready", "parameters": {"quotaGiB": 10, "visibility": "public"}}
     with pytest.raises(tenant_infrastructure.ServiceError, match="publication binding"):
         tenant_infrastructure.validate_spec(bucket)
+
+
+def test_ai_gateway_token_budget_is_control_data_not_a_credential():
+    spec = {
+        "serviceClass": "ai.model-gateway.v1",
+        "planRef": "budgeted",
+        "regionRef": "global",
+        "parameters": {"models": ["gpt-5"], "tokenBudget": 100000, "concurrency": 2},
+    }
+    assert tenant_infrastructure.validate_spec(spec)["parameters"]["tokenBudget"] == 100000

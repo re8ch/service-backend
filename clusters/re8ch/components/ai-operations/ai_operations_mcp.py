@@ -783,7 +783,7 @@ ARTCHAIS_CLUSTER_TOOLS = [
 
 ORCHESTRA_TOOLS = [
     {"name": "orchestra_service_status", "description": "Read application service health.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "codex"]}}, ["service"])},
-    {"name": "orchestra_request", "description": "Call an application API using a server-side service credential reference.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "codex"]}, "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string"}, "body": {}}, ["service", "method", "path"])},
+    {"name": "orchestra_request", "description": "Call an application API using a server-side service credential reference. OpenSandbox calls may carry stable tenant, task, trace and tenant-tool resource references for metering.", "inputSchema": schema({"service": {"type": "string", "enum": ["teable", "litellm", "opensandbox", "codex"]}, "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string"}, "body": {}, "tenant_ref": {"type": "string"}, "resource_ref": {"type": "string"}, "tool_resource_ref": {"type": "string"}, "task_id": {"type": "string"}, "trace_id": {"type": "string"}}, ["service", "method", "path"])},
     {"name": "link_execution", "description": "Validate and return the stable cross-system execution identity chain.", "inputSchema": schema({"task_id": {"type": "string"}, "trace_id": {"type": "string"}, "codex_thread_id": {"type": "string"}, "artifact_id": {"type": "string"}}, ["task_id"])},
 ]
 
@@ -2052,6 +2052,20 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 headers["OPEN-SANDBOX-API-KEY"] = token
             else:
                 headers["Authorization"] = f"Bearer {token}"
+        if service == "opensandbox":
+            trace_headers = {
+                "tenant_ref": "X-RE8CH-Tenant",
+                "resource_ref": "X-RE8CH-Resource",
+                "tool_resource_ref": "X-RE8CH-Tool-Resource",
+                "task_id": "X-RE8CH-Task",
+                "trace_id": "X-RE8CH-Trace",
+            }
+            for field, header in trace_headers.items():
+                value = str(args.get(field) or "")
+                if value:
+                    if len(value) > 253 or "\n" in value or "\r" in value:
+                        raise ValueError(f"invalid {field}")
+                    headers[header] = value
         request = urllib.request.Request(base + path, data=body, method=method, headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=30) as response:

@@ -132,7 +132,81 @@ pricing:
 # Queries must return tenant and resource_ref labels. Each meter declares the
 # resource type and purpose used by the Headlamp flow diagram.
 meters:
+  usage:
+    - name: ai-gateway-provider-spend
+      domain: ai-gateway
+      serviceClass: ai.model-gateway.v1
+      resourceType: model-spend
+      purpose: model-inference
+      unit: USD
+      costFromQuantity: true
+      currency: USD
+      tenantLabel: team_alias
+      resourceLabel: requested_model
+      query: sum by (team_alias, requested_model) (increase(litellm_spend_metric_total{team_alias!=""}[5m]))
+    - name: ai-gateway-input-tokens
+      domain: ai-gateway
+      serviceClass: ai.model-gateway.v1
+      resourceType: model-token
+      purpose: model-inference
+      unit: token
+      tenantLabel: team_alias
+      resourceLabel: requested_model
+      query: sum by (team_alias, requested_model) (increase(litellm_input_tokens_metric_total{team_alias!=""}[5m]))
+    - name: ai-gateway-output-tokens
+      domain: ai-gateway
+      serviceClass: ai.model-gateway.v1
+      resourceType: model-token
+      purpose: model-inference
+      unit: token
+      tenantLabel: team_alias
+      resourceLabel: requested_model
+      query: sum by (team_alias, requested_model) (increase(litellm_output_tokens_metric_total{team_alias!=""}[5m]))
+    - name: ai-gateway-tool-spend
+      domain: ai-gateway
+      serviceClass: ai.model-gateway.v1
+      resourceType: tool-spend
+      purpose: tenant-tool-call
+      unit: USD
+      costFromQuantity: true
+      currency: USD
+      tenantLabel: team_alias
+      resourceLabel: mcp_server_name
+      query: sum by (team_alias, mcp_server_name) (increase(litellm_mcp_tool_call_spend_metric_total{team_alias!=""}[5m]))
+    - name: ai-gateway-tool-calls
+      domain: ai-gateway
+      serviceClass: ai.model-gateway.v1
+      resourceType: tool-call
+      purpose: tenant-tool-call
+      unit: call
+      tenantLabel: team_alias
+      resourceLabel: mcp_server_name
+      query: sum by (team_alias, mcp_server_name) (increase(litellm_mcp_tool_calls_total{team_alias!=""}[5m]))
   occupancy:
+    - name: sandbox-cpu-request
+      domain: sandbox
+      serviceClass: sandbox.runtime.v1
+      resourceType: sandbox-cpu
+      purpose: agent-execution
+      pricePerBillingUnit: 0.08
+      billingUnitSize: 3600
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_re8ch_com_tenant
+      resourceLabel: label_birfucate_re8ch_com_resource
+      query: sum by (label_re8ch_com_tenant, label_birfucate_re8ch_com_resource) (kube_pod_container_resource_requests{resource="cpu"} * on (namespace, pod) group_left(label_re8ch_com_tenant, label_birfucate_re8ch_com_resource) kube_pod_labels{label_opensandbox_re8ch_com_workload="true",label_re8ch_com_tenant!=""})
+    - name: sandbox-memory-request
+      domain: sandbox
+      serviceClass: sandbox.runtime.v1
+      resourceType: sandbox-memory
+      purpose: agent-execution
+      pricePerBillingUnit: 0.03
+      billingUnitSize: 3600
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_re8ch_com_tenant
+      resourceLabel: label_birfucate_re8ch_com_resource
+      query: sum by (label_re8ch_com_tenant, label_birfucate_re8ch_com_resource) (kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left(label_re8ch_com_tenant, label_birfucate_re8ch_com_resource) kube_pod_labels{label_opensandbox_re8ch_com_workload="true",label_re8ch_com_tenant!=""}) / 1073741824
     - name: tenant-claim-cpu-request
       domain: compute
       resourceType: cpu

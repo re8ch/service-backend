@@ -126,6 +126,8 @@ spec:
             - {name: re8ch-among-clusters, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-observability, consumableRef: observability.grafana.v1, roleRef: viewer, lifecycle: Active}
             - {name: re8ch-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-ai-model-gateway, consumableRef: ai.model-gateway.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-sandbox-runtime, consumableRef: sandbox.runtime.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
         - name: tenant-ci
           displayName: Tenant Conformance Canary

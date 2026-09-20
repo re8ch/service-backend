@@ -23,6 +23,9 @@ def test_production_collector_uses_stable_cached_runtime():
         "3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d"
     )
     assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    re8ch = next(item for item in values["tenantPlatform"]["tenants"] if item["name"] == "re8ch")
+    grants = {item["consumableRef"] for item in re8ch["grants"]}
+    assert {"ai.model-gateway.v1", "sandbox.runtime.v1"} <= grants
 
 
 def test_chart_lints_and_renders_restricted_workload():
@@ -47,7 +50,7 @@ def test_chart_lints_and_renders_restricted_workload():
     assert not any("secrets" in rule["resources"] for rule in role["rules"])
 
 
-def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
+def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["opencost"]["enabled"] is True
     assert values["prometheus"]["baseURL"] == "http://vmsingle-opencost.observability-system.svc.cluster.local:8428"
@@ -55,9 +58,11 @@ def test_default_meters_cover_ceph_pigsty_hubble_hyperglass_and_opencost():
     assert values["vmServiceScrape"]["enabled"] is False
     domains = {item["domain"] for family in values["meters"].values() for item in family}
     names = {item["name"] for family in values["meters"].values() for item in family}
-    assert domains == {"compute", "ceph", "pigsty", "networks"}
+    assert domains == {"compute", "ceph", "pigsty", "networks", "ai-gateway", "sandbox"}
     assert {"tenant-claim-cpu-request", "tenant-claim-memory-request", "tenant-claim-ephemeral-storage-request"} <= names
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
+    assert {"ai-gateway-provider-spend", "ai-gateway-tool-spend", "ai-gateway-tool-calls"} <= names
+    assert {"sandbox-cpu-request", "sandbox-memory-request"} <= names
 
 
 def test_crds_use_status_subresources_cel_and_selectable_fields():
@@ -135,6 +140,30 @@ def test_showback_pricing_is_explicit_and_never_posts_accounting(tmp_path, monke
     assert 'birfucate_metered_cost_total{currency="CNY"' in rendered
     assert 'purpose="runtime"' in rendered
     assert 'birfucate_tenant_cost_total{currency="CNY",tenant="acme"} 0.4' in rendered
+
+
+def test_direct_usage_preserves_gateway_spend_and_service_class(tmp_path, monkeypatch):
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "opencost": {"enabled": False}, "pricing": {"enabled": True, "currency": "CNY"},
+        "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
+        "meters": {"occupancy": [], "bifurcation": [], "usage": [{
+            "name": "provider-spend", "domain": "ai-gateway", "serviceClass": "ai.model-gateway.v1",
+            "resourceType": "model-spend", "purpose": "model-inference", "unit": "USD",
+            "tenantLabel": "team_alias", "resourceLabel": "requested_model", "query": "spend",
+            "costFromQuantity": True, "currency": "USD",
+        }]},
+    }
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_: [{"metric": {"team_alias": "re8ch", "requested_model": "gpt-5"}, "value": [0, "1.25"]}])
+    collector.METRICS.clear()
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 0, 300)
+    event = outbox.pending()[0][1]
+    assert event["serviceClass"] == "ai.model-gateway.v1"
+    assert event["quantity"] == 1.25
+    assert event["cost"] == 1.25
+    assert event["currency"] == "USD"
+    assert event["pricingApplied"] is True
 
 
 def test_outbox_delivery_is_idempotent(tmp_path):
