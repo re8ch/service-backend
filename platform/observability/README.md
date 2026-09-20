@@ -67,7 +67,7 @@ from `re8ch-grafana-database`, uses a Dex public PKCE client, and references a
 separate renderer-token Secret. `production/grafana-secrets.sops.yaml` is the
 encrypted GitOps authority for these values; plaintext credentials never enter
 Git and no credential is copied from the legacy monitoring namespace.
-The database runs on its own RBD claim and the credential-free public PKCE client is reconciled
+The database runs on a dedicated persistent claim and the credential-free public PKCE client is reconciled
 into Dex from the checked-in client contract.
 
 Dex/OIDC group claims select one Grafana Org per platform or tenant group; the
