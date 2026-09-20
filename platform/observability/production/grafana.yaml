@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: re8ch-grafana
+  namespace: observability-system
+  labels: {app.kubernetes.io/name: re8ch-grafana, app.kubernetes.io/part-of: re8ch-observability}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-grafana-dashboard-providers
+  namespace: observability-system
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: re8ch
+        orgId: 1
+        folder: RE8CH
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 30
+        options: {path: /var/lib/grafana/dashboards}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-grafana-org-contract
+  namespace: observability-system
+  labels: {app.kubernetes.io/part-of: re8ch-observability}
+data:
+  orgs.json: |
+    {"orgs":[{"name":"RE8CH Platform","group":"re8ch:k8s-admins","role":"Admin"},{"name":"Qianwen","group":"re8ch:qwen-operators","role":"Viewer"},{"name":"Ledger","group":"re8ch:ledger-operators","role":"Viewer"},{"name":"Anycam","group":"re8ch:anycam-operators","role":"Viewer"},{"name":"Bench","group":"re8ch:bench-operators","role":"Viewer"},{"name":"Cardcat","group":"re8ch:cardcat-operators","role":"Viewer"}]}
+  sync.py: |
+    import base64, json, os, urllib.error, urllib.request
+    endpoint = "http://re8ch-grafana.observability-system.svc.cluster.local:3000/api"
+    auth = base64.b64encode((os.environ["GRAFANA_ADMIN_USER"] + ":" + os.environ["GRAFANA_ADMIN_PASSWORD"]).encode()).decode()
+    headers = {"Authorization": "Basic " + auth, "Content-Type": "application/json"}
+    def request(path, method="GET", body=None):
+        data = json.dumps(body).encode() if body else None
+        return urllib.request.urlopen(urllib.request.Request(endpoint + path, data=data, headers=headers, method=method), timeout=15)
+    existing = {item["name"] for item in json.load(request("/orgs"))}
+    for org in json.load(open("/contract/orgs.json"))["orgs"]:
+        if org["name"] not in existing:
+            request("/orgs", "POST", {"name": org["name"]})
+            print("created Grafana org", org["name"])
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: re8ch-grafana-org-sync, namespace: observability-system, labels: {app.kubernetes.io/part-of: re8ch-observability}}
+spec:
+  schedule: "17 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: re8ch-grafana
+          containers:
+            - name: sync
+              image: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
+              command: [python3, /contract/sync.py]
+              env:
+                - {name: GRAFANA_ADMIN_USER, valueFrom: {secretKeyRef: {name: re8ch-grafana-admin, key: user}}}
+                - {name: GRAFANA_ADMIN_PASSWORD, valueFrom: {secretKeyRef: {name: re8ch-grafana-admin, key: password}}}
+              securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+              resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 128Mi}}
+              volumeMounts: [{name: contract, mountPath: /contract, readOnly: true}]
+          volumes: [{name: contract, configMap: {name: re8ch-grafana-org-contract, defaultMode: 0444}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: re8ch-grafana
+  namespace: observability-system
+  labels: {app.kubernetes.io/name: re8ch-grafana, app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: re8ch-grafana, app.kubernetes.io/part-of: re8ch-observability}
+    spec:
+      serviceAccountName: re8ch-grafana
+      securityContext: {fsGroup: 472}
+      containers:
+        - name: grafana
+          image: grafana/grafana:13.0.1
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - {name: GF_SERVER_DOMAIN, value: grafana.re8ch.com}
+            - {name: GF_SERVER_ROOT_URL, value: https://grafana.re8ch.com/grafana/}
+            - {name: GF_SERVER_SERVE_FROM_SUB_PATH, value: "true"}
+            - {name: GF_SECURITY_COOKIE_SECURE, value: "true"}
+            - {name: GF_USERS_ALLOW_SIGN_UP, value: "false"}
+            - {name: GF_AUTH_ANONYMOUS_ENABLED, value: "false"}
+            - {name: GF_SECURITY_ADMIN_USER, valueFrom: {secretKeyRef: {name: re8ch-grafana-admin, key: user}}}
+            - {name: GF_SECURITY_ADMIN_PASSWORD, valueFrom: {secretKeyRef: {name: re8ch-grafana-admin, key: password}}}
+            - {name: GF_ANALYTICS_REPORTING_ENABLED, value: "false"}
+            - {name: GF_ANALYTICS_CHECK_FOR_UPDATES, value: "false"}
+            - {name: GF_DATABASE_TYPE, value: postgres}
+            - {name: GF_DATABASE_SSL_MODE, value: require}
+            - {name: GF_DATABASE_HOST, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: host}}}
+            - {name: GF_DATABASE_NAME, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: name}}}
+            - {name: GF_DATABASE_USER, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: user}}}
+            - {name: GF_DATABASE_PASSWORD, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: password}}}
+            - {name: GF_AUTH_GENERIC_OAUTH_ENABLED, value: "true"}
+            - {name: GF_AUTH_GENERIC_OAUTH_NAME, value: RE8CH Dex}
+            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, valueFrom: {secretKeyRef: {name: re8ch-grafana-oidc, key: client-id}}}
+            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: re8ch-grafana-oidc, key: client-secret}}}
+            - {name: GF_AUTH_GENERIC_OAUTH_SCOPES, value: "openid profile email groups"}
+            - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: https://dex.re8ch.com/auth}
+            - {name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL, value: https://dex.re8ch.com/token}
+            - {name: GF_AUTH_GENERIC_OAUTH_API_URL, value: https://dex.re8ch.com/userinfo}
+            - {name: GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP, value: "true"}
+            - {name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH, value: "contains(groups[*], 're8ch:k8s-admins') && 'Admin' || 'Viewer'"}
+            - {name: GF_AUTH_GENERIC_OAUTH_ORG_ATTRIBUTE_PATH, value: "contains(groups[*], 're8ch:k8s-admins') && 'RE8CH Platform' || contains(groups[*], 're8ch:qwen-operators') && 'Qianwen' || contains(groups[*], 're8ch:ledger-operators') && 'Ledger' || contains(groups[*], 're8ch:anycam-operators') && 'Anycam' || contains(groups[*], 're8ch:bench-operators') && 'Bench' || contains(groups[*], 're8ch:cardcat-operators') && 'Cardcat' || 'NoAccess'"}
+            - {name: GF_AUTH_GENERIC_OAUTH_ORG_MAPPING, value: "RE8CH Platform:RE8CH Platform:Admin Qianwen:Qianwen:Viewer Ledger:Ledger:Viewer Anycam:Anycam:Viewer Bench:Bench:Viewer Cardcat:Cardcat:Viewer"}
+            - {name: GF_RENDERING_SERVER_URL, value: http://re8ch-grafana-renderer.observability-system.svc.cluster.local:8081/render}
+            - {name: GF_RENDERING_CALLBACK_URL, value: http://re8ch-grafana.observability-system.svc.cluster.local:3000/grafana/}
+            - {name: GF_RENDERING_RENDERER_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-grafana-renderer-auth, key: token}}}
+            - {name: GF_PLUGINS_PREINSTALL, value: "victoriametrics-metrics-datasource@0.18.0,victoriametrics-logs-datasource@0.17.0,yesoreyeram-infinity-datasource@3.8.0,marcusolsson-static-datasource@1.6.0"}
+            - {name: GF_PLUGINS_PREINSTALL_AUTO_UPDATE, value: "false"}
+          resources: {requests: {cpu: 50m, memory: 192Mi}, limits: {cpu: 500m, memory: 768Mi}}
+          readinessProbe: {httpGet: {path: /api/health, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /api/health, port: http}, initialDelaySeconds: 60, periodSeconds: 30}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/grafana}
+            - {name: datasources, mountPath: /etc/grafana/provisioning/datasources, readOnly: true}
+            - {name: dashboards, mountPath: /etc/grafana/provisioning/dashboards, readOnly: true}
+            - {name: dashboard-files, mountPath: /var/lib/grafana/dashboards, readOnly: true}
+            - {name: alerts, mountPath: /etc/grafana/provisioning/alerting/re8ch-composite-alerts.yaml, subPath: composite-alerts.yaml, readOnly: true}
+      volumes:
+        - {name: data, emptyDir: {sizeLimit: 1Gi}}
+        - {name: datasources, configMap: {name: re8ch-observability-datasources}}
+        - {name: dashboards, configMap: {name: re8ch-grafana-dashboard-providers}}
+        - {name: dashboard-files, configMap: {name: re8ch-observability-dashboards}}
+        - {name: alerts, configMap: {name: re8ch-observability-grafana-alerts}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: re8ch-grafana, namespace: observability-system, labels: {app.kubernetes.io/name: re8ch-grafana, app.kubernetes.io/part-of: re8ch-observability}}
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: re8ch-grafana}
+  ports: [{name: http, port: 3000, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: re8ch-grafana-renderer, namespace: observability-system, labels: {app.kubernetes.io/name: re8ch-grafana-renderer, app.kubernetes.io/part-of: re8ch-observability}}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana-renderer}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: re8ch-grafana-renderer, app.kubernetes.io/part-of: re8ch-observability}}
+    spec:
+      serviceAccountName: re8ch-grafana
+      containers:
+        - name: renderer
+          image: grafana/grafana-image-renderer:v5.12.1-amd64
+          ports: [{name: http, containerPort: 8081}]
+          env:
+            - {name: AUTH_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-grafana-renderer-auth, key: token}}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
+          readinessProbe: {httpGet: {path: /render/version, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /render/version, port: http}, initialDelaySeconds: 30, periodSeconds: 30}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: re8ch-grafana-renderer, namespace: observability-system, labels: {app.kubernetes.io/name: re8ch-grafana-renderer, app.kubernetes.io/part-of: re8ch-observability}}
+spec: {selector: {app.kubernetes.io/name: re8ch-grafana-renderer}, ports: [{name: http, port: 8081, targetPort: http}]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: re8ch-grafana, namespace: observability-system}
+spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana}}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: re8ch-grafana, namespace: observability-system}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+        - podSelector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana-renderer}}

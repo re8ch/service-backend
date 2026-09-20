@@ -164,6 +164,7 @@ MANAGED_PLATFORM_RESTARTS = {
     ("supabase-pg-re8ch", "supabase-studio"),
     ("nuclio", "nuclio-dashboard"),
     ("codex-platform", "codex-session-web"),
+    ("observability-system", "re8ch-grafana"),
 }
 
 class KubeError(RuntimeError):
@@ -1583,10 +1584,9 @@ def get_agent_runtime_status():
 
 def get_observability_platform_status():
     fixed_deployments = {
-        "qianwen-ops": {
-            "loki-lite", "panel-blackbox-exporter", "panel-grafana", "panel-grafana-renderer",
-            "panel-pigsty-vmalert", "panel-re8ch-vmalert", "panel-tenant-logs-proxy",
-            "panel-tenant-metrics-proxy", "panel-victoria-logs", "panel-victoria-metrics",
+        "observability-system": {
+            "re8ch-grafana", "re8ch-grafana-renderer", "vmalert-re8ch",
+            "vmselect-re8ch-metrics", "vlinsert-re8ch-logs", "vlselect-re8ch-logs",
         },
         "observability-ai": {"robusta-forwarder", "robusta-runner", "trial-gateway-collector"},
         "opencost": {"opencost"},
@@ -1609,11 +1609,10 @@ def get_observability_platform_status():
         workloads.append({"kind": "DaemonSet", "namespace": "qianwen-ops", "name": meta.get("name"), "desired": desired, "ready": ready, "available": status.get("numberAvailable", 0), "unready": desired > ready})
     workloads.sort(key=lambda item: (item["namespace"], item["kind"], item["name"] or ""))
     probe_specs = [
-        ("grafana", "observability-control", "http://panel-grafana.qianwen-ops.svc.cluster.local:3000/api/health", "Grafana API/database health"),
-        ("victoria-metrics", "observability-data", "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/health", "VictoriaMetrics health"),
-        ("vmalert-re8ch", "observability-control", "http://panel-re8ch-vmalert.qianwen-ops.svc.cluster.local:8880/health", "platform VMAlert health"),
-        ("vmalert-pigsty", "observability-control", "http://panel-pigsty-vmalert.qianwen-ops.svc.cluster.local:8880/health", "Pigsty VMAlert health"),
-        ("victoria-logs", "observability-data", "http://panel-victoria-logs.qianwen-ops.svc.cluster.local:9428/health", "VictoriaLogs health"),
+        ("grafana", "observability-control", "http://re8ch-grafana.observability-system.svc.cluster.local:3000/api/health", "Grafana API/database health"),
+        ("victoria-metrics", "observability-data", "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus/-/healthy", "VictoriaMetrics health"),
+        ("vmalert-re8ch", "observability-control", "http://vmalert-re8ch.observability-system.svc.cluster.local:8880/health", "platform VMAlert health"),
+        ("victoria-logs", "observability-data", "http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428/health", "VictoriaLogs health"),
         ("opencost", "cost-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost API health"),
         ("otel-collector", "telemetry-control", "http://trial-gateway-collector-monitoring.observability-ai.svc.cluster.local:8888/metrics", "OTLP Collector self-metrics reachability"),
     ]
@@ -1622,7 +1621,7 @@ def get_observability_platform_status():
     metrics = {"totalTargets": None, "downTargets": None, "error": None}
     try:
         for field, expression in (("totalTargets", "count(up)"), ("downTargets", "count(up == 0)")):
-            url = "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428/api/v1/query?" + urllib.parse.urlencode({"query": expression})
+            url = "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus/api/v1/query?" + urllib.parse.urlencode({"query": expression})
             with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "re8ch-ops-mcp-observe/1.0"}), timeout=6) as response:
                 parsed = json.loads(response.read(65536).decode("utf-8", "replace"))
             result = parsed.get("data", {}).get("result", [])

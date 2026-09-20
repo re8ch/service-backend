@@ -252,7 +252,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: grafana-edge-origin
-  namespace: qianwen-ops
+  namespace: observability-system
 spec:
   parentRefs:
     - name: re8ch-gateway-canary
@@ -271,16 +271,16 @@ spec:
               - name: X-Re8ch-Gateway
                 value: cilium
       backendRefs:
-        - name: panel-grafana
+        - name: re8ch-grafana
           port: 3000
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: grafana-public
-  namespace: qianwen-ops
+  namespace: observability-system
   annotations:
-    networking.re8ch.com/dns-authority: qianwen-ops/grafana-dns-authority
+    networking.re8ch.com/dns-authority: observability-system/grafana-dns-authority
 spec:
   parentRefs:
     - name: re8ch-gateway-canary
@@ -310,7 +310,7 @@ spec:
               - name: X-Re8ch-Gateway
                 value: cilium
       backendRefs:
-        - name: panel-grafana
+        - name: re8ch-grafana
           port: 3000
 ---
 apiVersion: gateway.networking.k8s.io/v1
