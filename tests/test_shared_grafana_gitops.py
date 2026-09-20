@@ -18,6 +18,7 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertNotIn("panel-grafana", manifest)
         self.assertIn("name: re8ch-grafana-from-gateway", manifest)
         self.assertIn("fromEntities: [ingress]", manifest)
+        self.assertIn("kubernetes.io/metadata.name: toolhive-system", manifest)
 
     def test_shared_runtime_bootstraps_owned_dependencies(self):
         credentials = (ROOT / "platform/observability/production/grafana-secrets.sops.yaml").read_text()
@@ -56,6 +57,13 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn('(\"observability-system\", \"re8ch-grafana\")', app)
         self.assertIn("namespace: observability-system", rbac)
         self.assertIn("resourceNames: [re8ch-grafana]", rbac)
+
+    def test_observe_probes_target_the_shared_monitoring_plane(self):
+        app = (ROOT / "clusters/re8ch/components/ops/ops-mcp-server-app.py").read_text()
+        self.assertIn("re8ch-grafana.observability-system.svc.cluster.local:3000/grafana/api/health", app)
+        self.assertIn("vmalert-re8ch.observability-system.svc.cluster.local:8080/health", app)
+        self.assertIn("re8ch-gateway-collector-monitoring.observability-system.svc.cluster.local:8888/metrics", app)
+        self.assertNotIn("trial-gateway-collector-monitoring.observability-ai", app)
 
     def test_cost_and_observe_paths_use_the_shared_metrics_plane(self):
         paths = [

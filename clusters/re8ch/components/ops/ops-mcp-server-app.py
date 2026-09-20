@@ -1609,12 +1609,12 @@ def get_observability_platform_status():
         workloads.append({"kind": "DaemonSet", "namespace": "qianwen-ops", "name": meta.get("name"), "desired": desired, "ready": ready, "available": status.get("numberAvailable", 0), "unready": desired > ready})
     workloads.sort(key=lambda item: (item["namespace"], item["kind"], item["name"] or ""))
     probe_specs = [
-        ("grafana", "observability-control", "http://re8ch-grafana.observability-system.svc.cluster.local:3000/api/health", "Grafana API/database health"),
+        ("grafana", "observability-control", "http://re8ch-grafana.observability-system.svc.cluster.local:3000/grafana/api/health", "Grafana API/database health"),
         ("victoria-metrics", "observability-data", "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus/-/healthy", "VictoriaMetrics health"),
-        ("vmalert-re8ch", "observability-control", "http://vmalert-re8ch.observability-system.svc.cluster.local:8880/health", "platform VMAlert health"),
+        ("vmalert-re8ch", "observability-control", "http://vmalert-re8ch.observability-system.svc.cluster.local:8080/health", "platform VMAlert health"),
         ("victoria-logs", "observability-data", "http://vlsingle-re8ch-logs.observability-system.svc.cluster.local:9428/health", "VictoriaLogs health"),
         ("opencost", "cost-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost API health"),
-        ("otel-collector", "telemetry-control", "http://trial-gateway-collector-monitoring.observability-ai.svc.cluster.local:8888/metrics", "OTLP Collector self-metrics reachability"),
+        ("otel-collector", "telemetry-control", "http://re8ch-gateway-collector-monitoring.observability-system.svc.cluster.local:8888/metrics", "OTLP Collector self-metrics reachability"),
     ]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(probe_specs)) as pool:
         probes = [future.result() for future in [pool.submit(probe_http, *spec) for spec in probe_specs]]
