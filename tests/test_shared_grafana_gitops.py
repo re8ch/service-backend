@@ -16,6 +16,8 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("name: re8ch-grafana-org-sync", manifest)
         self.assertNotIn("qianwen-ops", manifest)
         self.assertNotIn("panel-grafana", manifest)
+        self.assertIn("name: re8ch-grafana-from-gateway", manifest)
+        self.assertIn("fromEntities: [ingress]", manifest)
 
     def test_shared_runtime_bootstraps_owned_dependencies(self):
         credentials = (ROOT / "platform/observability/production/grafana-secrets.sops.yaml").read_text()
@@ -54,6 +56,17 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn('(\"observability-system\", \"re8ch-grafana\")', app)
         self.assertIn("namespace: observability-system", rbac)
         self.assertIn("resourceNames: [re8ch-grafana]", rbac)
+
+    def test_cost_and_observe_paths_use_the_shared_metrics_plane(self):
+        paths = [
+            "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml",
+            "clusters/re8ch/components/network/public-mesh/network-economics.yaml",
+            "operations/network/manifests/network/public-mesh/network-economics.yaml",
+            "operations/network/manifests/network/public-mesh/opencost-values.yaml",
+        ]
+        manifests = "\n".join((ROOT / path).read_text() for path in paths)
+        self.assertIn("vmselect-re8ch-metrics.observability-system.svc.cluster.local", manifests)
+        self.assertNotIn("panel-victoria-metrics.qianwen-ops.svc.cluster.local", manifests)
 
 
 if __name__ == "__main__":

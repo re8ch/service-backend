@@ -143,7 +143,7 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
     }
     observe = next(item for item in servers if item["metadata"]["name"] == "ops-observe-vmcp-internal")
     metrics = next(item["value"] for item in observe["spec"]["env"] if item["name"] == "METRICS_URL")
-    assert metrics == "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428"
+    assert metrics == "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus"
     tool_configs = {item["metadata"]["name"] for item in internal if item["kind"] == "MCPToolConfig"}
     assert tool_configs == {"ops-operate-tools", "ops-admin-tools"}
     telemetry = next(item for item in internal if item["kind"] == "MCPTelemetryConfig")

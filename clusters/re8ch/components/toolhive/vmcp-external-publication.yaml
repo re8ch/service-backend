@@ -152,7 +152,7 @@ spec:
     - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
     - {name: GRAFANA_PUBLIC, value: "https://grafana.re8ch.com"}
     - {name: HEADLAMP_PUBLIC, value: "https://headlamp.re8ch.com"}
-    - {name: METRICS_URL, value: "http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428"}
+    - {name: METRICS_URL, value: "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus"}
   toolConfigRef: {name: ops-public-read-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-observe-vmcp-internal}
   audit: {enabled: true}

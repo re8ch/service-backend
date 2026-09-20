@@ -192,3 +192,16 @@ spec:
     - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
         - podSelector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana-renderer}}
+---
+# Cilium Gateway API traffic reaches backends with the reserved ingress
+# identity, not the kube-system pod identity exposed to Kubernetes
+# NetworkPolicy. Keep the namespace policy above for ordinary in-cluster
+# clients and explicitly admit only the public gateway on Grafana's port.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: re8ch-grafana-from-gateway, namespace: observability-system}
+spec:
+  endpointSelector: {matchLabels: {app.kubernetes.io/name: re8ch-grafana}}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts: [{ports: [{port: "3000", protocol: TCP}]}]

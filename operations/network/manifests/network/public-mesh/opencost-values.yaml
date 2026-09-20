@@ -9,7 +9,7 @@ opencost:
       enabled: false
     external:
       enabled: true
-      url: http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+      url: http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus
   customPricing:
     enabled: true
     provider: default

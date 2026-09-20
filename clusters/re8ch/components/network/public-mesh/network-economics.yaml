@@ -31,7 +31,7 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["python3", "/app/re8ch-routing-advisor.py"]
           args:
-            - --metrics-url=http://panel-victoria-metrics.qianwen-ops.svc.cluster.local:8428
+            - --metrics-url=http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus
             - --policy=/config/routing-policy.yaml
             - --costs=/config/network-costs.yaml
             - --nodes=/config/node-costs.yaml
