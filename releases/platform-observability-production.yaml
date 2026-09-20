@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: focus-amber
+codename: prism-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:92205563cfc3525da1cd3b1517f80e7a36f4681aac7d719a65f6f452423d325b
+  digest: sha256:19412b4f2166f702cf3bc89500d6ddc45a8cac94ae39ee7c93b57ccfceccf121
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
