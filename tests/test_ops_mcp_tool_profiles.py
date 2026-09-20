@@ -95,6 +95,18 @@ class ToolProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.resource_path("flux-system/secrets")
 
+    def test_metrics_summaries_expose_only_cpu_and_memory_usage(self):
+        module = load_profile("observe")
+        node = module.simplify_resource(
+            {"kind": "NodeMetrics", "metadata": {"name": "restricted-node-1eb0570f74"}, "timestamp": "2026-09-20T00:00:00Z", "window": "15s", "usage": {"cpu": "123m", "memory": "456Mi", "ephemeral-storage": "1Gi"}}
+        )
+        self.assertEqual(node["usage"], {"cpu": "123m", "memory": "456Mi"})
+        self.assertNotIn("ephemeral-storage", node["usage"])
+        pod = module.simplify_resource(
+            {"kind": "PodMetrics", "metadata": {"name": "scheduler", "namespace": "scheduler-system"}, "containers": [{"name": "scheduler", "usage": {"cpu": "50m", "memory": "96Mi", "ephemeral-storage": "1Gi"}}]}
+        )
+        self.assertEqual(pod["containers"], [{"name": "scheduler", "usage": {"cpu": "50m", "memory": "96Mi"}}])
+
     def test_agent_runtime_tolerates_reinitializing_sandbox_storage(self):
         module = load_profile("observe")
 
