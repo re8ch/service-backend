@@ -17,6 +17,7 @@ STATES = {"Pending", "Provisioning", "Ready", "Suspended", "Deleting", "Deleted"
 TENANT_STATES = {"Active", "Deleting", "Deleted"}
 VISIBILITIES = {"Private", "Tenant", "Shared"}
 FORBIDDEN = ("password", "token", "secret", "kubeconfig", "privatekey", "private_key", "credential")
+SAFE_CONTROL_FIELDS = {"tokenbudget"}
 
 CATALOG: dict[str, dict[str, Any]] = {
     "database.postgresql.shared.v1": {
@@ -89,6 +90,13 @@ def canonical_hash(value: Any) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def is_credential_field(key: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9]", "", key.lower())
+    return normalized not in SAFE_CONTROL_FIELDS and any(
+        re.sub(r"[^a-z0-9]", "", marker) in normalized for marker in FORBIDDEN
+    )
+
+
 def catalog() -> list[dict[str, Any]]:
     return [{"serviceClass": name, **{key: sorted(item) if isinstance(item, set) else item for key, item in value.items()}} for name, value in sorted(CATALOG.items())]
 
@@ -111,7 +119,7 @@ def validate_spec(spec: dict[str, Any], *, previous: dict[str, Any] | None = Non
     parameters = spec.get("parameters") or {}
     if not isinstance(parameters, dict):
         raise ServiceError("parameters must be an object")
-    forbidden = [key for key in parameters if any(x in key.lower() for x in FORBIDDEN)]
+    forbidden = [key for key in parameters if is_credential_field(key)]
     if forbidden:
         raise ServiceError("credential material is forbidden")
     extra = set(parameters) - product["parameters"]
