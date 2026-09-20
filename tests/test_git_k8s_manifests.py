@@ -248,6 +248,19 @@ def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
             "values": ["core"],
         }
     ]
+    pod_anti_affinity = values["affinity"]["podAntiAffinity"]
+    assert "requiredDuringSchedulingIgnoredDuringExecution" not in pod_anti_affinity
+    assert pod_anti_affinity["preferredDuringSchedulingIgnoredDuringExecution"] == [
+        {
+            "weight": 100,
+            "podAffinityTerm": {
+                "labelSelector": {
+                    "matchLabels": {"app.kubernetes.io/name": "toolhive-operator"},
+                },
+                "topologyKey": "kubernetes.io/hostname",
+            },
+        }
+    ]
 
     runtime = documents(ROOT / "clusters/re8ch/components/plugin-runtime/runtime.yaml")
     deployment = next(item for item in runtime if item["kind"] == "Deployment")
