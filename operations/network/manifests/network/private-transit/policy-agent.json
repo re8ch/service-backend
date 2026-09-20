@@ -15,6 +15,8 @@
     {"name": "b1", "address": "192.0.2.4", "interface": "wg-pt-b1", "probeTable": 15102, "mark": "0x2", "staticWeight": 100, "capacityMbps": 200}
   ],
   "targets": [
+    {"name": "restricted-node-1eb0570f74", "address": "192.0.2.242", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "restricted-node-296f36f2fb", "address": "192.0.2.1", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "zan", "address": "192.0.2.152", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "qwen-1", "address": "192.0.2.147", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "amdwsl-zt", "address": "192.0.2.117", "staticPreference": {"a1": 100, "b1": 100}},
