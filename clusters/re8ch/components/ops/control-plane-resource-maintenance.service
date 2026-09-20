@@ -1,0 +1,14 @@
+[Unit]
+Description=RE8CH control-plane bounded resource maintenance
+Documentation=https://github.com/re8ch/service-backend/tree/main/clusters/re8ch/components/ops
+After=k3s.service
+Wants=k3s.service
+ConditionPathExists=/etc/rancher/k3s/config.yaml
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-control-plane-resource-maintenance --vacuum-journal
+Nice=19
+CPUQuota=5%
+MemoryMax=128M
+IOSchedulingClass=idle

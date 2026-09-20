@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily bounded RE8CH control-plane resource maintenance
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+RandomizedDelaySec=45m
+Persistent=true
+Unit=re8ch-control-plane-resource-maintenance.service
+
+[Install]
+WantedBy=timers.target

@@ -27,6 +27,21 @@ current three-member control plane is empty.
 
 The server code is stored in Kubernetes as ConfigMap `ops/ops-mcp-server-code` and mounted at `/app/app.py`.
 
+## Control-plane resource maintenance
+
+`control-plane-resource-maintenance`, its service unit and timer are
+host-managed templates for A1, B1 and restricted-node-6dc3f140f9. The timer runs daily with a random
+delay, a 5% CPU cap and idle I/O priority. It records root-disk and journal
+usage, then caps journald at 512 MiB.
+
+It deliberately does **not** remove CRI/containerd records or images, K3s,
+etcd, kubelet or Ceph data. Kubelet image GC is configured through its reviewed
+watermarks, and Ceph cleanup/recovery stays under Rook/Ceph control. Install
+the three files atomically on one healthy follower at a time, run
+`systemctl daemon-reload`, then `systemctl enable --now
+re8ch-control-plane-resource-maintenance.timer`. Verify the initial
+`--check` before enabling the timer. Do not restart K3s to install this timer.
+
 ## Files
 
 | File | Purpose |
