@@ -63,11 +63,11 @@ evidence remains unknown. See `policies/README.md` for the namespace contract.
 `production/grafana.yaml` is the sole GitOps definition of the shared Grafana
 runtime. It runs one recoverable replica in `observability-system`, retains
 `https://grafana.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
-from `re8ch-grafana-database`, and references separate OIDC and renderer-token
-Secrets. `production/grafana-credentials.yaml` creates these values once with
+from `re8ch-grafana-database`, uses a Dex public PKCE client, and references a
+separate renderer-token Secret. `production/grafana-credentials.yaml` creates these values once with
 cluster-local entropy and preserves existing values; plaintext credentials never
 enter Git and no credential is copied from the legacy monitoring namespace.
-The database runs on its own RBD claim and the public PKCE client is reconciled
+The database runs on its own RBD claim and the credential-free public PKCE client is reconciled
 into Dex from the checked-in client contract.
 
 Dex/OIDC group claims select one Grafana Org per platform or tenant group; the
