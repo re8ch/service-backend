@@ -111,7 +111,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: worker
-          image: registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:469ea1f24bb69bc0e595f1db625087ba5ebfb9ca9d001bb6e2fba74f8e9dfde2
+          image: ghcr.io/re8ch/ontology-microscope-adapter@sha256:79597e2df5b9553150dc39fca896c09094770135e6e067e0a77ce04256fe00d0
           imagePullPolicy: IfNotPresent
           command: [node, --import, tsx, server/evaluation-worker.ts]
           env:

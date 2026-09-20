@@ -29,9 +29,9 @@ Published immutable images:
 
 - webapp: `registry.re8ch.com/re8ch/neuronpedia@sha256:45dd94ae9ce31be71090cc578f5df35214cddfbc067a4a9468e80f7ae8abaced`
 - migrations: `registry.re8ch.com/re8ch/neuronpedia-migrate@sha256:457c7a883b00701480c58204a2bdef767a108f05f380153af51beb060d816a5c`
-- adapter and evaluation worker: `registry.re8ch.com/re8ch/ontology-microscope-adapter@sha256:469ea1f24bb69bc0e595f1db625087ba5ebfb9ca9d001bb6e2fba74f8e9dfde2`
+- adapter and evaluation worker: `ghcr.io/re8ch/ontology-microscope-adapter@sha256:79597e2df5b9553150dc39fca896c09094770135e6e067e0a77ce04256fe00d0`
 
-These manifests were exported from the verified restricted-node-6dc3f140f9 containerd content store
+These manifests were exported from the verified R640 containerd content store
 as compressed OCI archives and uploaded with `--preserve-digests`. This avoids
 Harbor recompression and lets the runtime reuse the exact verified layers while
 retaining immutable manifest references.
