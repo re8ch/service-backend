@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: aperture-copper
+    delivery.re8ch.com/codename: focus-copper
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:17b25d81c0c0537116122edb1bc2a49a43817204ae42f76795c18dd526f96342
+    digest: sha256:5c4fa7aa0a542afb861e78b3bcb07bf16044901d9cba1f86348d7d796185b35c
   verify:
     provider: cosign
     matchOIDCIdentity:
