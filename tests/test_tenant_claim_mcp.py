@@ -66,6 +66,30 @@ def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
     assert value["pricingIncluded"] is False
 
 
+def test_amongclusters_service_requests_use_grant_enforcing_controller(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "artchais", "role": "operator"})
+    monkeypatch.setattr(module, "tenant_service_store", lambda: object())
+    calls = []
+    monkeypatch.setattr(module, "tenant_control_request", lambda *args, **kwargs: calls.append((args, kwargs)) or {"decision": "preview"})
+    spec = {"serviceClass": "network.among-clusters.v1", "planRef": "private", "regionRef": "global", "parameters": {"sourceClusterRef": "artc", "destinationClusterRefs": ["re8ch"], "serviceRefs": ["network.egress.mihomo"]}}
+    assert module.call_tool("service_instance_plan", {"name": "mihomos", "spec": spec}, {"subject": "agent"}) == {"decision": "preview"}
+    assert calls[0][0][0] == "/v1/services/plan"
+    module.call_tool("service_instance_create", {"name": "mihomos", "spec": spec, "idempotency_key": "create-001"}, {"subject": "agent"})
+    assert calls[1][0][0] == "/v1/services"
+    assert calls[1][0][2]["idempotencyKey"] == "create-001"
+
+
+def test_artchais_catalog_hides_amongclusters_when_controller_denies_grant(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
+    monkeypatch.setattr(module, "tenant_service_store", lambda: object())
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: (_ for _ in ()).throw(PermissionError("grant revoked")))
+    value = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
+    assert "network.among-clusters.v1" not in {item["serviceClass"] for item in value["services"]}
+
+
 def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default", "runtimeNamespaceRef": "re8ch-default"})

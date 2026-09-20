@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 import logging
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -126,6 +127,7 @@ class Kubernetes:
             ("batch/v1", "Job"): ("apis/batch/v1", "jobs"),
             ("networking.k8s.io/v1", "NetworkPolicy"): ("apis/networking.k8s.io/v1", "networkpolicies"),
             ("gateway.networking.k8s.io/v1", "HTTPRoute"): ("apis/gateway.networking.k8s.io/v1", "httproutes"),
+            ("peering.re8ch.com/v1alpha1", "PeerPolicy"): ("apis/peering.re8ch.com/v1alpha1", "peerpolicies"),
         }
         api, plural = mapping[(value["apiVersion"], value["kind"])]
         meta = value["metadata"]
@@ -395,6 +397,71 @@ def active_grant(tenant_ref, capability):
     return matches[0]
 
 
+def among_clusters_spec(tenant_ref, name, spec):
+    """Validate the one tenant-safe AmongClusters product we publish today.
+
+    This deliberately does not expose a generic peer, port, or service policy.
+    Expanding the product requires a separately reviewed adapter contract.
+    """
+    if tenant_ref != "artchais":
+        raise PermissionError("AmongClusters tenant service is not published for this tenant")
+    if not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", name):
+        raise PermissionError("service instance name is invalid")
+    if spec.get("serviceClass") != "network.among-clusters.v1":
+        raise PermissionError("service class is not an AmongClusters tenant service")
+    if spec.get("planRef") not in {"private", "metered-egress"}:
+        raise PermissionError("AmongClusters plan is not published")
+    parameters = spec.get("parameters") or {}
+    if set(parameters) - {"sourceClusterRef", "destinationClusterRefs", "namespaceRef", "serviceRefs", "bandwidthClass"}:
+        raise PermissionError("AmongClusters parameters are not published")
+    if parameters.get("sourceClusterRef") != "artc" or parameters.get("destinationClusterRefs") != ["re8ch"]:
+        raise PermissionError("only the approved artc to RE8CH path is available")
+    if parameters.get("serviceRefs") != ["network.egress.mihomo"]:
+        raise PermissionError("only the RE8CH Mihomos egress service is available")
+    if parameters.get("namespaceRef") not in {None, "artchais", "artchais-default"}:
+        raise PermissionError("service namespace is outside the Artchais boundary")
+    if parameters.get("bandwidthClass") not in {None, "standard"}:
+        raise PermissionError("bandwidth class is not published")
+    active_grant(tenant_ref, "network.among-clusters.v1")
+    peers = {item.get("metadata", {}).get("name"): item for item in kube().list("peers", "artchais", "apis/peering.re8ch.com/v1alpha1")}
+    links = {item.get("metadata", {}).get("name"): item for item in kube().list("authenticatedlinks", "artchais", "apis/peering.re8ch.com/v1alpha1")}
+    peer = peers.get("re8ch-artc")
+    link = links.get("re8ch-artc")
+    if not peer or peer.get("spec", {}).get("remoteIdentityRef") != "artc" or peer.get("spec", {}).get("suspended"):
+        raise PermissionError("Artchais BYOC peer is not approved and active")
+    if not link or link.get("spec", {}).get("peerRef") != "re8ch-artc":
+        raise PermissionError("Artchais BYOC authenticated link is unavailable")
+    return parameters
+
+
+def among_clusters_policy(instance):
+    meta, spec = instance["metadata"], instance["spec"]
+    return {
+        "apiVersion": "peering.re8ch.com/v1alpha1", "kind": "PeerPolicy",
+        "metadata": {"name": "tenant-mihomos-" + meta["name"], "namespace": "artchais",
+                     "labels": {"app.kubernetes.io/part-of": "among-clusters", "peering.re8ch.com/tenant": spec["tenantRef"], "tenancy.re8ch.com/service-instance": meta["uid"]}},
+        "spec": {"peerSelector": {"matchNames": ["re8ch-artc"]}, "serviceClasses": ["network.egress.mihomo"],
+                 "protocols": ["tcp"], "ports": [17891], "directions": ["import"], "maxAdvertisements": 1},
+    }
+
+
+def reconcile_among_clusters_instance(instance):
+    meta, spec = instance["metadata"], instance["spec"]
+    namespace = meta["namespace"]
+    if spec.get("serviceClass") != "network.among-clusters.v1":
+        return
+    request = {"serviceClass": spec["serviceClass"], "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
+    policy_name = "tenant-mihomos-" + meta["name"]
+    if spec.get("lifecycle") in {"Suspended", "Deleting"}:
+        kube().delete("peerpolicies", policy_name, "artchais", "apis/peering.re8ch.com/v1alpha1")
+        phase = "Suspended" if spec.get("lifecycle") == "Suspended" else "Deleted"
+        kube().patch_status("tenantserviceinstances", meta["name"], {"observedGeneration": meta.get("generation", 1), "phase": phase, "operationId": "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24], "conditions": [condition("Ready", False, phase)]}, namespace)
+        return
+    among_clusters_spec(spec["tenantRef"], meta["name"], request)
+    kube().apply(among_clusters_policy(instance))
+    kube().patch_status("tenantserviceinstances", meta["name"], {"observedGeneration": meta.get("generation", 1), "phase": "Ready", "operationId": "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24], "bindingRef": "policy://artchais/" + policy_name, "conditions": [condition("Ready", True, "MihomosEgressImportReady")]}, namespace)
+
+
 def cpu_milli(value):
     value = str(value)
     return int(value[:-1]) if value.endswith("m") else int(value) * 1000
@@ -600,6 +667,12 @@ def reconcile_loop():
                         except Exception as exc:
                             status = {**claim.get("status", {}), "observedGeneration": claim["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
                             kube().patch_status("tenantresourceclaims", claim["metadata"]["name"], status, namespace)
+                    for instance in kube().list("tenantserviceinstances", namespace):
+                        try:
+                            reconcile_among_clusters_instance(instance)
+                        except Exception as exc:
+                            status = {**instance.get("status", {}), "observedGeneration": instance["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
+                            kube().patch_status("tenantserviceinstances", instance["metadata"]["name"], status, namespace)
         except Exception as exc:
             LOG.exception("reconcile iteration failed: %s", exc)
         time.sleep(10)
@@ -647,6 +720,25 @@ class Handler(BaseHTTPRequestHandler):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
+        if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            try:
+                tenant = self.headers["X-Tenant-Ref"]
+                namespace = runtime_namespace(tenant)
+                suffix = path.removeprefix("/v1/services").strip("/")
+                if suffix == "catalog":
+                    among_clusters_spec(tenant, "catalog", {"serviceClass": "network.among-clusters.v1", "planRef": "private", "parameters": {"sourceClusterRef": "artc", "destinationClusterRefs": ["re8ch"], "serviceRefs": ["network.egress.mihomo"]}})
+                    self.send_json(200, {"serviceClass": "network.among-clusters.v1", "plans": ["private", "metered-egress"], "serviceRefs": ["network.egress.mihomo"]}); return
+                values = [item for item in kube().list("tenantserviceinstances", namespace) if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("serviceClass") == "network.among-clusters.v1"]
+                if suffix:
+                    value = next((item for item in values if item.get("metadata", {}).get("name") == suffix), None)
+                    if not value:
+                        self.send_json(404, {"error": "service instance not found"}); return
+                    self.send_json(200, value); return
+                self.send_json(200, {"items": values}); return
+            except PermissionError as exc:
+                self.send_json(403, {"error": str(exc)}); return
+            except Exception as exc:
+                self.send_json(400, {"error": str(exc)}); return
         if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
@@ -680,7 +772,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(404, {"error": "not_found"}); return
         if path != "/v1/resolve" and (not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(self.headers.get("X-Tenant-Service-Token", ""), CLAIM_SERVICE_TOKEN)):
             self.send_json(401, {"error": "unauthorized"}); return
-        mutation_locked = path.startswith("/v1/claims") and path != "/v1/claims/plan"
+        mutation_locked = (path.startswith("/v1/claims") and path != "/v1/claims/plan") or (path.startswith("/v1/services") and path != "/v1/services/plan")
         if mutation_locked:
             CLAIM_MUTATION_LOCK.acquire()
         try:
@@ -712,6 +804,53 @@ class Handler(BaseHTTPRequestHandler):
                         raise
                     value = kube().patch("tenantnamespaces", name, {"spec": {"operation": "EnsurePresent"}})
                 self.send_json(202, value)
+                return
+            if path in {"/v1/services/plan", "/v1/services"}:
+                request = body.get("spec") or {}
+                name = str(body.get("name") or "")
+                parameters = among_clusters_spec(tenant, name, request)
+                intent = {"adapter": "among-clusters-access", "accessUnit": "AuthenticatedClusterLink", "bindings": ["link:authenticated", "grant:service-import"], "resourceRef": f"service://{tenant}/{name}", "tenantRef": tenant, "credentialMaterialReturned": False}
+                if path.endswith("/plan"):
+                    self.send_json(200, {"decision": "preview", "tenantRef": tenant, "resourceRef": intent["resourceRef"], "requestHash": "sha256:" + hashlib.sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest(), "intent": intent, "credentialMaterialReturned": False})
+                    return
+                key = str(body.get("idempotencyKey") or "")
+                if not 8 <= len(key) <= 128:
+                    raise PermissionError("idempotencyKey must contain 8 to 128 characters")
+                namespace = runtime_namespace(tenant)
+                desired_state = request.get("desiredState", "Ready")
+                lifecycle = {"Ready": "Requested", "Suspended": "Suspended", "Deleted": "Deleting"}.get(desired_state)
+                if not lifecycle:
+                    raise PermissionError("invalid desired state")
+                desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantServiceInstance", "metadata": {"name": name, "namespace": namespace, "labels": {"tenancy.re8ch.com/tenant": tenant}, "annotations": {"tenancy.re8ch.com/idempotency-key": key}}, "spec": {"tenantRef": tenant, "serviceClass": "network.among-clusters.v1", "plan": request["planRef"], "lifecycle": lifecycle, "parameters": parameters}}
+                try:
+                    value = kube().create("tenantserviceinstances", desired, namespace)
+                except urllib.error.HTTPError as exc:
+                    if exc.code != 409:
+                        raise
+                    value = kube().get("tenantserviceinstances", name, namespace)
+                    if value.get("spec", {}).get("tenantRef") != tenant or value.get("metadata", {}).get("annotations", {}).get("tenancy.re8ch.com/idempotency-key") != key:
+                        raise PermissionError("service name is already bound to another idempotency key")
+                    if value.get("spec", {}).get("parameters") != parameters or value.get("spec", {}).get("plan") != request["planRef"]:
+                        raise PermissionError("idempotency key cannot be reused for a different service")
+                self.send_json(202, {"operationId": "op_" + hashlib.sha256((tenant + name + key).encode()).hexdigest()[:24], "tenantRef": tenant, "resourceRef": intent["resourceRef"], "state": "Provisioning", "intent": intent, "credentialMaterialReturned": False})
+                return
+            if path.startswith("/v1/services/") and path.endswith("/lifecycle"):
+                name = path.removeprefix("/v1/services/").removesuffix("/lifecycle")
+                key = str(body.get("idempotencyKey") or "")
+                desired_state = str(body.get("desiredState") or "")
+                if not 8 <= len(key) <= 128:
+                    raise PermissionError("idempotencyKey must contain 8 to 128 characters")
+                lifecycle = {"Ready": "Requested", "Suspended": "Suspended", "Deleted": "Deleting"}.get(desired_state)
+                if not lifecycle:
+                    raise PermissionError("invalid desired state")
+                namespace = runtime_namespace(tenant)
+                current = kube().get("tenantserviceinstances", name, namespace)
+                if current.get("spec", {}).get("tenantRef") != tenant or current.get("spec", {}).get("serviceClass") != "network.among-clusters.v1":
+                    raise PermissionError("service instance is outside the authenticated tenant")
+                request = {"serviceClass": current["spec"]["serviceClass"], "planRef": current["spec"]["plan"], "parameters": current["spec"].get("parameters") or {}}
+                among_clusters_spec(tenant, name, request)
+                value = kube().patch("tenantserviceinstances", name, {"metadata": {"annotations": {"tenancy.re8ch.com/last-operation-key": key}}, "spec": {"lifecycle": lifecycle}}, namespace)
+                self.send_json(202, {"operationId": "op_" + hashlib.sha256((tenant + name + key).encode()).hexdigest()[:24], "tenantRef": tenant, "resourceRef": f"service://{tenant}/{name}", "state": "Provisioning" if lifecycle == "Requested" else lifecycle, "credentialMaterialReturned": False})
                 return
             if path == "/v1/claims/plan":
                 grant = active_grant(tenant, body["claim"]["spec"]["capability"])
