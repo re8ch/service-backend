@@ -11,10 +11,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.5.0"}
+    assert source["spec"]["ref"] == {"tag": "0.5.1"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.0$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.1$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
@@ -68,6 +68,11 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "type": "externalAuthConfigRef",
         "externalAuthConfigRef": {"name": "tenant-vmcp-backend-auth"},
     }
+    assert by_name["tenant-vmcp"]["operational"]["listChanged"] == {
+        "disabledWorkloads": ["tenant-api-backend"],
+    }
+    assert "listChanged" not in by_name["re8ch-tools-vmcp"]["operational"]
+    assert "listChanged" not in by_name["re8ch-admin-vmcp"]["operational"]
     assert all(
         item["operational"]["failureHandling"]["partialFailureMode"] == "best_effort"
         for item in publications

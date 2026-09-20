@@ -5,12 +5,12 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.5.0"}
+  ref: {tag: "0.5.1"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.0$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.1$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -189,6 +189,11 @@ spec:
             source: inline
             default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: tenant-vmcp-backend-auth}}
           operational:
+            # tenant-api-backend is request/response only and does not service
+            # ToolHive's standalone list_changed notification stream. Excluding
+            # only this backend keeps session initialization live without
+            # removing tool aggregation or tool calls.
+            listChanged: {disabledWorkloads: [tenant-api-backend]}
             failureHandling:
               partialFailureMode: best_effort
               healthCheckInterval: 30s
