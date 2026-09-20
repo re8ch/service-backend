@@ -361,6 +361,8 @@ modules:
       digest: sha256:52c75949e77dcd378238ac2decd495decd718ce504729680737f98d4776a2ac4
     - codename: harbor-amber
       digest: sha256:dcfbbad0c297d7531bdb48348ae9596ab01fb4cb5c1f71ac5b4acc83ba53f75f
+    - codename: meridian-amber
+      digest: sha256:ce88370469e9f2c593c2ca215e5d5ac75f0f895bd71f36badb746ef85304125f
   platform/observability/bootstrap:
     releases:
     - codename: aperture
