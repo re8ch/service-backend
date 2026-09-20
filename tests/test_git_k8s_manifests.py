@@ -561,3 +561,8 @@ def test_opensandbox_proxy_health_is_local_and_embedded_python_compiles():
     compile(source, "proxy.py", "exec")
     assert 'self.path == "/health"' in source
     assert 'payload = b\'{"status":"ok"}\'' in source
+    assert '"RE8CH_TENANT_TOOL_URL": TENANT_TOOL_URL' in source
+    assert '"toolResourceRef": self.headers.get("X-RE8CH-Tool-Resource")' in source
+    deployment = next(item for item in resources if item["kind"] == "Deployment")
+    env = {item["name"]: item for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert env["TEABLE_INFRA_API_KEY"]["valueFrom"]["secretKeyRef"] == {"name": "teable-infra-api-key", "key": "teable-api-key"}

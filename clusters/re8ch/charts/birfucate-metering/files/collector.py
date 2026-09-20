@@ -27,6 +27,7 @@ LAST_SUCCESS = 0.0
 BROWSER_METRICS = frozenset({
     "birfucate_occupancy_current",
     "birfucate_occupancy_units_total",
+    "birfucate_usage_total",
     "birfucate_bifurcation_occurrences_total",
     "birfucate_bifurcation_intensity",
     "birfucate_bifurcation_fanout",
@@ -136,12 +137,12 @@ def price(config: dict[str, Any], meter: dict[str, Any], quantity: float) -> tup
     return (quantity / unit_size * float(rate) if applied else 0.0, applied, str(pricing.get("currency", "CNY")))
 
 
-def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: float, unit: str, start: int, end: int, dimensions: dict[str, Any], cost: float = 0, priced: bool = False, currency: str = "CNY") -> dict[str, Any]:
+def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: float, unit: str, start: int, end: int, dimensions: dict[str, Any], cost: float = 0, priced: bool = False, currency: str = "CNY", service_class: str | None = None) -> dict[str, Any]:
     stable = [tenant, resource, domain, meter, start, end]
     iso = lambda value: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(value))
     return {
         "eventId": event_id(stable), "tenantRef": tenant, "resourceRef": resource,
-        "serviceClass": {"compute": "compute.workload.v1", "ceph": "storage.volume.v1", "pigsty": "database.postgresql.shared.v1", "networks": "network.tenant.v1"}[domain],
+        "serviceClass": service_class or {"compute": "compute.workload.v1", "ceph": "storage.volume.v1", "pigsty": "database.postgresql.shared.v1", "networks": "network.tenant.v1"}[domain],
         "meter": meter, "quantity": quantity, "unit": unit, "periodStart": iso(start), "periodEnd": iso(end),
         "regionRef": "meter-source", "sourceOperationId": "birfucate:" + event_id(stable)[3:], "observedAt": iso(end),
         "schemaVersion": "usage.re8ch.com/v1", "dimensions": dimensions,
@@ -179,7 +180,22 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
             tenant_resources.add((tenant, resource, resource_type))
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
-            outbox.put(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose}, cost, priced, currency))
+            outbox.put(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose}, cost, priced, currency, meter.get("serviceClass")))
+    for meter in config["meters"].get("usage", []):
+        values = vector(prometheus_query(prom["baseURL"], meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
+        for (tenant, resource), quantity in values.items():
+            resource_type = str(meter.get("resourceType", meter["domain"]))
+            purpose = str(meter.get("purpose", meter["name"]))
+            if meter.get("costFromQuantity"):
+                cost, priced, currency = quantity, True, str(meter.get("currency", "USD"))
+            else:
+                cost, priced, currency = price(config, meter, quantity)
+            labels = {"tenant": tenant, "resource_ref": resource, "domain": meter["domain"], "resource_type": resource_type, "purpose": purpose, "meter": meter["name"], "unit": meter["unit"]}
+            add_metric("birfucate_usage_total", labels, quantity)
+            add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
+            tenant_resources.add((tenant, resource, resource_type))
+            tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
+            outbox.put(usage_event(tenant, resource, meter["domain"], "usage." + meter["name"], quantity, meter["unit"], start, end, {"resourceType": resource_type, "purpose": purpose}, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("bifurcation", []):
         counts = vector(prometheus_query(prom["baseURL"], meter["countQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
         intensities = vector(prometheus_query(prom["baseURL"], meter["intensityQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)

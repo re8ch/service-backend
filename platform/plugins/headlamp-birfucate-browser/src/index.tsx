@@ -10,6 +10,7 @@ const BIRFUCATE_PROXY = '/api/v1/namespaces/observability-ai/services/http:birfu
 const METRICS = [
   'birfucate_occupancy_current',
   'birfucate_occupancy_units_total',
+  'birfucate_usage_total',
   'birfucate_bifurcation_occurrences_total',
   'birfucate_bifurcation_intensity',
   'birfucate_bifurcation_fanout',
@@ -30,7 +31,7 @@ type TenantView = {
 };
 type Row = {
   tenant: string; resource: string; domain: string; meter: string;
-  occupancy: number; occupiedTime: number; occurrences: number;
+  occupancy: number; occupiedTime: number; usage: number; occurrences: number;
   intensity: number; fanout: number; score: number; cost: number;
   currency: string; priced: boolean; resourceType: string; purpose: string;
 };
@@ -168,21 +169,22 @@ function Dashboard() {
           registrations: registrations.filter(registration => registration.spec?.tenantRef === name),
         };
       }));
-      setTenantCosts(results[7]); setTenantResources(results[8]);
+      setTenantCosts(results[8]); setTenantResources(results[9]);
       const byKey = new Map<string, Row>();
-      results.slice(0, 7).forEach((samples, index) => samples.forEach(sample => {
+      results.slice(0, 8).forEach((samples, index) => samples.forEach(sample => {
         const labels = sample.metric || {};
         if (!labels.tenant || !labels.resource_ref) return;
         const id = key(labels);
-        const row = byKey.get(id) || {tenant: labels.tenant, resource: labels.resource_ref, domain: labels.domain || '-', meter: labels.meter || '-', occupancy: 0, occupiedTime: 0, occurrences: 0, intensity: 0, fanout: 0, score: 0, cost:0, currency:labels.currency || 'CNY', priced:labels.priced === 'true', resourceType:labels.resource_type || labels.domain || '-', purpose:labels.purpose || labels.meter || '-'};
+        const row = byKey.get(id) || {tenant: labels.tenant, resource: labels.resource_ref, domain: labels.domain || '-', meter: labels.meter || '-', occupancy: 0, occupiedTime: 0, usage: 0, occurrences: 0, intensity: 0, fanout: 0, score: 0, cost:0, currency:labels.currency || 'CNY', priced:labels.priced === 'true', resourceType:labels.resource_type || labels.domain || '-', purpose:labels.purpose || labels.meter || '-'};
         const value = n(sample.value?.[1]);
         if (index === 0) row.occupancy = value;
         if (index === 1) row.occupiedTime = value;
-        if (index === 2) row.occurrences = value;
-        if (index === 3) row.intensity = value;
-        if (index === 4) row.fanout = value;
-        if (index === 5) row.score = value;
-        if (index === 6) { row.cost = value; row.currency=labels.currency || row.currency; row.priced=labels.priced === 'true'; }
+        if (index === 2) row.usage = value;
+        if (index === 3) row.occurrences = value;
+        if (index === 4) row.intensity = value;
+        if (index === 5) row.fanout = value;
+        if (index === 6) row.score = value;
+        if (index === 7) { row.cost = value; row.currency=labels.currency || row.currency; row.priced=labels.priced === 'true'; }
         byKey.set(id, row);
       }));
       setRows([...byKey.values()].sort((a,b) => b.score - a.score || b.occupiedTime - a.occupiedTime));
@@ -367,6 +369,7 @@ function Dashboard() {
         {header:'Tenant / Resource',accessorFn:(x:Row)=><Box><Typography variant="body2">{x.tenant}</Typography><Typography variant="caption" color="text.secondary">{x.resource}</Typography></Box>},
         {header:'Flow',accessorFn:(x:Row)=><Box><Box sx={{display:'flex',gap:.5}}><Chip size="small" label={x.resourceType}/><Chip size="small" color="primary" variant="outlined" label={x.purpose}/></Box><Typography variant="caption" color="text.secondary">{x.domain} / {x.meter}</Typography></Box>},
         {header:'Occupancy',accessorFn:(x:Row)=><Box>{human(x.occupancy)}<Typography variant="caption" display="block" color="text.secondary">Σ {human(x.occupiedTime)}</Typography></Box>},
+        {header:'Usage',accessorFn:(x:Row)=>human(x.usage)},
         {header:'Occurrences',accessorFn:(x:Row)=>human(x.occurrences)},
         {header:'Intensity',accessorFn:(x:Row)=>human(x.intensity)},
         {header:'Fanout',accessorFn:(x:Row)=>human(x.fanout)},

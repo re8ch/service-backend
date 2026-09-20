@@ -42,8 +42,9 @@
       "properties": {"enabled": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "rateCardRef": {"type": "string", "minLength": 1}}
     },
     "meters": {
-      "type": "object", "required": ["occupancy", "bifurcation"],
+      "type": "object", "required": ["usage", "occupancy", "bifurcation"],
       "properties": {
+        "usage": {"type": "array", "items": {"$ref": "#/$defs/usage"}},
         "occupancy": {"type": "array", "items": {"$ref": "#/$defs/occupancy"}},
         "bifurcation": {"type": "array", "items": {"$ref": "#/$defs/bifurcation"}}
       }
@@ -51,11 +52,16 @@
   },
   "$defs": {
     "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
-    "domain": {"enum": ["compute", "ceph", "pigsty", "networks"]},
+    "domain": {"enum": ["compute", "ceph", "pigsty", "networks", "ai-gateway", "sandbox"]},
+    "usage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "domain", "serviceClass", "unit", "query"],
+      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "serviceClass": {"type": "string", "minLength": 1}, "resourceType": {"type": "string"}, "purpose": {"type": "string"}, "pricePerBillingUnit": {"type": "number", "minimum": 0}, "billingUnitSize": {"type": "number", "exclusiveMinimum": 0}, "costFromQuantity": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "unit": {"type": "string"}, "query": {"type": "string", "minLength": 1}, "tenantLabel": {"type": "string"}, "resourceLabel": {"type": "string"}}
+    },
     "occupancy": {
       "type": "object", "additionalProperties": false,
       "required": ["name", "domain", "unit", "valueKind", "query"],
-      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "resourceType": {"type": "string"}, "purpose": {"type": "string"}, "pricePerBillingUnit": {"type": "number", "minimum": 0}, "billingUnitSize": {"type": "number", "exclusiveMinimum": 0}, "unit": {"type": "string"}, "valueKind": {"const": "gauge"}, "query": {"type": "string", "minLength": 1}, "tenantLabel": {"type": "string"}, "resourceLabel": {"type": "string"}}
+      "properties": {"name": {"$ref": "#/$defs/name"}, "domain": {"$ref": "#/$defs/domain"}, "serviceClass": {"type": "string", "minLength": 1}, "resourceType": {"type": "string"}, "purpose": {"type": "string"}, "pricePerBillingUnit": {"type": "number", "minimum": 0}, "billingUnitSize": {"type": "number", "exclusiveMinimum": 0}, "unit": {"type": "string"}, "valueKind": {"const": "gauge"}, "query": {"type": "string", "minLength": 1}, "tenantLabel": {"type": "string"}, "resourceLabel": {"type": "string"}}
     },
     "bifurcation": {
       "type": "object", "additionalProperties": false,

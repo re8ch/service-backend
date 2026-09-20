@@ -424,12 +424,46 @@ data:
             key: value for key, value in metadata.items()
             if value is None or isinstance(value, (str, int, float, bool))
         }
-        patch = {"metadata": {"annotations": {
-            "teable.io/sandbox-metadata": json.dumps(scalar, separators=(",", ":")),
-        }}}
+        tenant = str(scalar.get("tenantRef") or "")
+        if tenant and not re.fullmatch(r"[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?", tenant):
+            raise ValueError("invalid tenant reference")
+        labels = {
+            "opensandbox.re8ch.com/workload": "true",
+            "birfucate.re8ch.com/metered": "true",
+            "birfucate.re8ch.com/resource": sandbox_id,
+        }
+        if tenant:
+            labels["re8ch.com/tenant"] = tenant
+        annotations = {"teable.io/sandbox-metadata": json.dumps(scalar, separators=(",", ":"))}
+        for field, annotation in {
+            "resourceRef": "re8ch.com/resource-ref",
+            "toolResourceRef": "re8ch.com/tool-resource-ref",
+            "taskId": "re8ch.com/task-id",
+            "traceId": "re8ch.com/trace-id",
+        }.items():
+            if scalar.get(field):
+                annotations[annotation] = str(scalar[field])
+        patch = {"metadata": {"labels": labels, "annotations": annotations}}
         path = (f"/apis/sandbox.opensandbox.io/v1alpha1/namespaces/{NAMESPACE}"
                 f"/batchsandboxes/{sandbox_id}")
-        return kube_request(path, "PATCH", patch, "application/merge-patch+json")
+        status, result = kube_request(path, "PATCH", patch, "application/merge-patch+json")
+        _, pods = kube_request(f"/api/v1/namespaces/{NAMESPACE}/pods")
+        for pod in pods.get("items", []):
+            pod_metadata = pod.get("metadata", {})
+            pod_labels = pod_metadata.get("labels", {})
+            owners = pod_metadata.get("ownerReferences", [])
+            belongs = (
+                pod_labels.get("sandbox.opensandbox.io/id") == sandbox_id
+                or any(owner.get("name") == sandbox_id for owner in owners)
+                or str(pod_metadata.get("name", "")).startswith(sandbox_id + "-")
+            )
+            if belongs:
+                kube_request(
+                    f"/api/v1/namespaces/{NAMESPACE}/pods/{pod_metadata['name']}",
+                    "PATCH", {"metadata": {"labels": labels, "annotations": annotations}},
+                    "application/merge-patch+json",
+                )
+        return status, result
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"

@@ -40,7 +40,7 @@ def test_only_business_namespaces_are_attributed_to_re8ch():
     assert names.isdisjoint(forbidden)
 
 
-def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
+def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
     objects = list(
         yaml.safe_load_all(
             (ROOT / "platform/birfucate-metering/release.yaml").read_text()
@@ -63,8 +63,8 @@ def test_birfucate_publishes_re8ch_without_ai_or_byoc_grants():
     assert "businessNamespaces" not in re8ch
     grants = {item["consumableRef"] for item in re8ch["grants"]}
     assert "network.among-clusters.v1" in grants
-    assert "ai.model-gateway.v1" not in grants
-    assert "sandbox.runtime.v1" not in grants
+    assert "ai.model-gateway.v1" in grants
+    assert "sandbox.runtime.v1" in grants
     assert not any("byoc" in value for value in grants)
     admin_audience_projection = next(
         item
