@@ -27,7 +27,7 @@ disable:
   - servicelb
   - coredns
 kubelet-arg:
-  - "max-pods=256"
+  - "max-pods=128"
   - "kube-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096"
   - "system-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096"
   - "enforce-node-allocatable=pods"
