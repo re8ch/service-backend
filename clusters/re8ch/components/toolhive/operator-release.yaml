@@ -49,9 +49,13 @@ spec:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-operator}}
-              topologyKey: kubernetes.io/hostname
+          # Prefer steady-state cross-node placement, but permit the chart's
+          # default surge pod to co-locate temporarily during a two-node rollout.
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-operator}}
+                topologyKey: kubernetes.io/hostname
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
