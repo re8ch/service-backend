@@ -34,16 +34,27 @@ def jwt_aud(token: str) -> set[str]:
 class Client:
     def __init__(self, endpoint: str, token: str, timeout: int):
         self.endpoint, self.token, self.timeout, self.request_id = endpoint, token, timeout, 0
+        self.session_id: str | None = None
+
+    def headers(self) -> dict[str, str]:
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "MCP-Protocol-Version": "2025-06-18",
+        }
+        if self.session_id:
+            headers["Mcp-Session-Id"] = self.session_id
+        return headers
 
     def rpc(self, method: str, params: dict[str, Any] | None = None) -> Any:
         self.request_id += 1
         body = json.dumps({"jsonrpc": "2.0", "id": self.request_id, "method": method, "params": params or {}}).encode()
-        request = urllib.request.Request(self.endpoint, data=body, method="POST", headers={
-            "Authorization": f"Bearer {self.token}", "Content-Type": "application/json",
-            "Accept": "application/json", "MCP-Protocol-Version": "2025-06-18",
-        })
+        request = urllib.request.Request(self.endpoint, data=body, method="POST", headers=self.headers())
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                if method == "initialize":
+                    self.session_id = response.headers.get("Mcp-Session-Id")
                 value = json.load(response)
         except urllib.error.HTTPError as exc:
             raw = exc.read(32768)
@@ -54,6 +65,13 @@ class Client:
         if "error" in value:
             raise RuntimeError(f"{method}: {value['error'].get('code')} {value['error'].get('message')}")
         return value["result"]
+
+    def notify(self, method: str, params: dict[str, Any] | None = None) -> None:
+        body = json.dumps({"jsonrpc": "2.0", "method": method, "params": params or {}}).encode()
+        request = urllib.request.Request(self.endpoint, data=body, method="POST", headers=self.headers())
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            if response.status not in {202, 204}:
+                raise RuntimeError(f"{method}: unexpected HTTP {response.status}")
 
 
 def fetch_json(url: str, timeout: int) -> Any:
@@ -157,6 +175,9 @@ def run(path: Path, output: Path) -> dict[str, Any]:
     initialized = client.rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "re8ch-mcp-collection", "version": "0.1.0"}})
     if initialized.get("protocolVersion") != "2025-06-18":
         raise AssertionError("MCP protocol negotiation failed")
+    if not client.session_id:
+        raise AssertionError("MCP initialize did not return Mcp-Session-Id")
+    client.notify("notifications/initialized")
     tools = client.rpc("tools/list").get("tools", [])
     tool_names = {item["name"] for item in tools}
     resources, pages, cursor = [], 0, None

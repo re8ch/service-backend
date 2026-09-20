@@ -1,5 +1,8 @@
 import importlib.util
+import io
+import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -7,6 +10,49 @@ import pytest
 MODULE = Path(__file__).parents[1] / "operations/mcp-conformance/mcp_collection.py"
 spec = importlib.util.spec_from_file_location("mcp_collection", MODULE)
 collection = importlib.util.module_from_spec(spec); spec.loader.exec_module(collection)
+
+
+class Response:
+    def __init__(self, payload=None, status=200, headers=None):
+        self.payload = payload
+        self.status = status
+        self.headers = headers or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return None
+
+    def read(self, *_args):
+        return json.dumps(self.payload).encode() if self.payload is not None else b""
+
+
+def test_client_preserves_streamable_http_session_and_initializes_it():
+    requests = []
+    responses = iter([
+        Response({"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-06-18"}}, headers={"Mcp-Session-Id": "session-1"}),
+        Response(status=202),
+        Response({"jsonrpc": "2.0", "id": 2, "result": {"tools": []}}),
+    ])
+
+    def open_request(request, timeout):
+        requests.append((request, timeout))
+        response = next(responses)
+        response.fp = io.BytesIO(response.read())
+        response.read = response.fp.read
+        return response
+
+    client = collection.Client("https://tools.example/mcp", "opaque-token", 10)
+    with patch.object(collection.urllib.request, "urlopen", open_request):
+        client.rpc("initialize")
+        client.notify("notifications/initialized")
+        assert client.rpc("tools/list") == {"tools": []}
+
+    assert requests[0][0].headers.get("Mcp-session-id") is None
+    assert requests[1][0].headers["Mcp-session-id"] == "session-1"
+    assert requests[2][0].headers["Mcp-session-id"] == "session-1"
+    assert "text/event-stream" in requests[0][0].headers["Accept"]
 
 
 def test_poll_waits_for_terminal_result_and_returns_attempt_count():

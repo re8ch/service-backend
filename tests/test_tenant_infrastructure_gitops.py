@@ -212,6 +212,17 @@ def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     tenant = release["spec"]["values"]["tenantPlatform"]
     assert tenant["tenantReadinessPath"] == "/readyz"
     assert tenant["supplyChain"] == {"required": False}
+    artchais = next(item for item in tenant["tenants"] if item["name"] == "artchais")
+    subject_binding = next(
+        item for item in artchais["identityBindings"]
+        if item["name"] == "artchais-dex-external-operator"
+    )
+    assert subject_binding == {
+        "name": "artchais-dex-external-operator",
+        "issuer": "https://dex.re8ch.com",
+        "subjectHash": "sha256:3fb8e1ea3bd7fc4e13761e4459d5039b494839f2e62228efd5b7a5202da70e97",
+        "role": "operator",
+    }
 
 
 def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():

@@ -205,7 +205,11 @@ def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
     release = next(item for item in docs if item["kind"] == "HelmRelease")
     tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
     artchais = next(item for item in tenants if item["name"] == "artchais")
-    bindings = [group_binding("artchais", item["group"], item["role"]) for item in artchais["identityBindings"]]
+    bindings = [
+        group_binding("artchais", item["group"], item["role"])
+        for item in artchais["identityBindings"]
+        if "group" in item
+    ]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
     assert controller.resolve("https://dex.re8ch.com", "", ["Artchais"])["role"] == "viewer"
     assert controller.resolve("https://dex.re8ch.com", "", ["Artchais", "Artchais:tenant-admins"])["role"] == "admin"
