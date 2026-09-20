@@ -34,13 +34,19 @@ cohorts. `DisturbanceWindow` marks natural or manual observation intervals;
 it never injects a fault. `PenroseOperation` is the audit/approval boundary for
 the limited management actions exposed by Headlamp.
 
+`PlacementClass` is the workload-facing placement contract. A Pod template
+selects one with `scheduling.re8ch.com/placement-class`; the projector turns
+reviewed inventory facts into bounded labels and the Kueue admission check
+applies the same selector to queued PodSets. Hostname pinning remains native
+only for documented locality or public-delivery dependencies and must carry
+`pinned-reason`.
+
 ## Default and dynamic cohorts
 
 - `default-scheduler` remains the read-only K3s/upstream baseline.
-- `re8ch-dynamic-scheduler` uses Trimaran load variation and
-  `NodeResourcesAllocatable` packing, network cost and OpenCost may increase
-  utilisation. A canary may use it only when its eligible nodes have fresh CPU
-  and memory recording rules.
+- `re8ch-dynamic-scheduler` is paused at zero replicas. It remains a reviewed
+  Trimaran canary recipe and may only be revived for explicitly marked
+  workloads after metrics coverage and rollback are proven.
 
 DRA is an allocation constraint, not another triangle axis. `DeviceClass`,
 `ResourceClaim` and `ResourceSlice` participate in scheduler filtering; the
@@ -54,9 +60,8 @@ failure-domain count is impossible for a node-local device.
 2. Run the two-replica leader-elected observer/projector. It owns only
    `scheduling.re8ch.com/*` labels, CR status, automatic policies/windows and
    explicitly approved operations.
-3. Keep scheduler-plugins and its lease isolated as
-   `re8ch-dynamic-scheduler`; never replace `default-scheduler`. Three replicas
-   must occupy distinct nodes and failure domains.
+3. Keep scheduler-plugins disabled and its lease isolated as
+   `re8ch-dynamic-scheduler`; never replace `default-scheduler`.
 4. Compare identical canary Services under one `comparisonGroup` for at least
    24 hours. Pareto is computed inside that group only.
 5. Expand cohorts only after 100% Trimaran coverage and rollback proof.

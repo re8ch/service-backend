@@ -1,7 +1,47 @@
 apiVersion: kueue.x-k8s.io/v1beta2
+kind: AdmissionCheck
+metadata: {name: re8ch-placement}
+spec: {controllerName: scheduling.re8ch.com/placement-admission}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
 metadata: {name: default}
 spec: {}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-general-reliable}
+spec: {nodeLabels: {scheduling.re8ch.com/placement-general-reliable: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-batch-opportunistic}
+spec: {nodeLabels: {scheduling.re8ch.com/placement-batch-opportunistic: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-gpu-rocm}
+spec: {nodeLabels: {scheduling.re8ch.com/capability-gpu: rocm-wsl}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-ceph-client}
+spec: {nodeLabels: {scheduling.re8ch.com/capability-storage-ceph-client: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-public-edge}
+spec: {nodeLabels: {scheduling.re8ch.com/capability-public-edge: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-egress}
+spec: {nodeLabels: {scheduling.re8ch.com/capability-egress: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-service-core}
+spec: {nodeLabels: {scheduling.re8ch.com/service-plane-eligible: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ClusterQueue
@@ -10,6 +50,7 @@ spec:
   namespaceSelector:
     matchLabels: {saas.re8ch.com/tenant: qwen}
   queueingStrategy: BestEffortFIFO
+  admissionChecks: [re8ch-placement]
   resourceGroups:
     - coveredResources: [cpu, memory]
       flavors:
@@ -30,6 +71,7 @@ spec:
   namespaceSelector:
     matchLabels: {tenancy.re8ch.com/tenant: artchais}
   queueingStrategy: BestEffortFIFO
+  admissionChecks: [re8ch-placement]
   resourceGroups:
     - coveredResources: [cpu, memory]
       flavors:

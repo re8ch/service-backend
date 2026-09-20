@@ -174,6 +174,23 @@ def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():
     assert expected in scheduler
     assert expected in controller
     assert "whenUnsatisfiable: DoNotSchedule" in scheduler
+    assert "replicas: 0" in scheduler
+
+
+def test_placement_classes_are_the_single_portable_placement_contract():
+    resources = docs(ROOT / "platform/scheduling-fabric/resources/placement.yaml")
+    classes = {item["metadata"]["name"]: item for item in resources}
+    assert set(classes) == {"general-reliable", "batch-opportunistic", "gpu-rocm", "ceph-client", "public-edge", "egress", "service-core"}
+    assert all(item["spec"]["topologyKey"] == "scheduling.re8ch.com/failure-domain" for item in classes.values())
+    assert all(item["spec"]["resourceFlavorName"].startswith("placement-") for item in classes.values())
+    policies = docs(GOVERNANCE / "policies/kyverno.yaml")
+    assert any(item["metadata"]["name"] == "audit-placement-class-contract" for item in policies)
+    queues = docs(GOVERNANCE / "policies/kueue.yaml")
+    check = next(item for item in queues if item["kind"] == "AdmissionCheck")
+    assert check["spec"]["controllerName"] == "scheduling.re8ch.com/placement-admission"
+    assert all("re8ch-placement" in item["spec"]["admissionChecks"] for item in queues if item["kind"] == "ClusterQueue")
+    flavors = {item["metadata"]["name"] for item in queues if item["kind"] == "ResourceFlavor"}
+    assert {"default", *(item["spec"]["resourceFlavorName"] for item in classes.values())} <= flavors
 
 
 def test_penrose_source_changes_roll_the_controller():
