@@ -145,9 +145,11 @@ def test_control_plane_reservations_are_declared_without_noexecute():
         name: yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / name).read_text())
         for name in ("r640-k3s-server-config.yaml", "a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml")
     }
+    assert "max-pods=256" in configs["r640-k3s-server-config.yaml"]["kubelet-arg"]
+    for name in ("a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml"):
+        assert "max-pods=128" in configs[name]["kubelet-arg"]
     for config in configs.values():
         args = config["kubelet-arg"]
-        assert "max-pods=256" in args
         assert any(value.startswith("kube-reserved=") for value in args)
         assert any(value.startswith("system-reserved=") for value in args)
         assert "enforce-node-allocatable=pods" in args
