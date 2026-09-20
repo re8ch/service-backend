@@ -305,6 +305,8 @@ modules:
       digest: sha256:7d8feca14094bf712f0de3bb74a479d813c26d37607c78f03242aea7efe2d56e
     - codename: cascade-copper
       digest: sha256:b6343faa4fc5fc1584da0bbf4b78b204098ee7a832299dfdba62cf86c190edde
+    - codename: confluence-copper
+      digest: sha256:431cf3285cf3d3288158b2e46ad5ae2a530e07c924fdb4340fd3033400b31a02
   platform/hyperswitch:
     releases:
     - codename: anchor
