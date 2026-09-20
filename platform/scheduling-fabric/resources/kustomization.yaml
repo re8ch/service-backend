@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - crds.yaml
   - node-profiles.yaml
+  - placement.yaml
   - scheduler.yaml
   - controller.yaml
 configMapGenerator:

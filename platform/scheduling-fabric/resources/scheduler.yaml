@@ -68,14 +68,16 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata: {name: scheduler-plugins, namespace: scheduler-system}
 spec:
-  minAvailable: 2
+  # The dynamic profile is retained as a reviewed canary recipe, but is not
+  # part of the default scheduling path.
+  maxUnavailable: 0
   selector: {matchLabels: {app.kubernetes.io/name: scheduler-plugins}}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: scheduler-plugins, namespace: scheduler-system}
 spec:
-  replicas: 3
+  replicas: 0
   strategy: {rollingUpdate: {maxSurge: 0, maxUnavailable: 1}}
   selector: {matchLabels: {app.kubernetes.io/name: scheduler-plugins}}
   template:

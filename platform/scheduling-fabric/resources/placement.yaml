@@ -1,0 +1,69 @@
+# PlacementClass is the application-facing contract.  The controller projects
+# only these bounded labels from NodeProfile/inventory; workloads never select
+# infrastructure host names for portable placement.
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: general-reliable}
+spec:
+  nodeSelector: {scheduling.re8ch.com/placement-general-reliable: "true"}
+  allowControlPlane: false
+  topologyKey: scheduling.re8ch.com/failure-domain
+  resourceFlavorName: placement-general-reliable
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: batch-opportunistic}
+spec:
+  nodeSelector: {scheduling.re8ch.com/placement-batch-opportunistic: "true"}
+  allowControlPlane: false
+  topologyKey: scheduling.re8ch.com/failure-domain
+  resourceFlavorName: placement-batch-opportunistic
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: gpu-rocm}
+spec:
+  nodeSelector: {scheduling.re8ch.com/capability-gpu: rocm-wsl}
+  allowControlPlane: false
+  topologyKey: scheduling.re8ch.com/failure-domain
+  requiredCapabilities: [gpu]
+  resourceFlavorName: placement-gpu-rocm
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: ceph-client}
+spec:
+  nodeSelector: {scheduling.re8ch.com/capability-storage-ceph-client: "true"}
+  allowControlPlane: false
+  topologyKey: scheduling.re8ch.com/failure-domain
+  requiredCapabilities: [storage]
+  resourceFlavorName: placement-ceph-client
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: public-edge}
+spec:
+  nodeSelector: {scheduling.re8ch.com/capability-public-edge: "true"}
+  allowControlPlane: false
+  topologyKey: scheduling.re8ch.com/failure-domain
+  requiredCapabilities: [public-edge]
+  resourceFlavorName: placement-public-edge
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: egress}
+spec:
+  nodeSelector: {scheduling.re8ch.com/capability-egress: "true"}
+  allowControlPlane: false
+  topologyKey: scheduling.re8ch.com/failure-domain
+  requiredCapabilities: [egress]
+  resourceFlavorName: placement-egress
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: service-core}
+spec:
+  nodeSelector: {scheduling.re8ch.com/service-plane-eligible: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  resourceFlavorName: placement-service-core

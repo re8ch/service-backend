@@ -1,5 +1,31 @@
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
+metadata: {name: audit-placement-class-contract}
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: placement-class-disallows-unexplained-host-pinning
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      validate:
+        message: PlacementClass workloads must not combine portable placement with nodeName or hostname selection; use a reviewed pinned-reason for non-portable locality.
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.object.metadata.annotations.\"scheduling.re8ch.com/placement-class\" || '' }}"
+                operator: NotEquals
+                value: ""
+              - key: "{{ request.object.metadata.annotations.\"scheduling.re8ch.com/pinned-reason\" || '' }}"
+                operator: Equals
+                value: ""
+              - key: "{{ request.object.spec.nodeName || request.object.spec.nodeSelector.\"kubernetes.io/hostname\" || '' }}"
+                operator: NotEquals
+                value: ""
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
 metadata: {name: audit-control-plane-tolerations}
 spec:
   validationFailureAction: Audit
