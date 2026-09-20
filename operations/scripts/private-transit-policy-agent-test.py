@@ -44,6 +44,24 @@ class PolicyAgentTest(unittest.TestCase):
         with patch.object(AGENT, "interface_exists", return_value=False):
             self.assertEqual(AGENT.gateway_nexthop(gateway), ["via", "192.0.2.18"])
 
+    def test_ensure_rule_keeps_matching_live_rule(self):
+        current = unittest.mock.MagicMock(stdout="11530: from all to 192.0.2.106/24 lookup 15300\n")
+        with patch.object(AGENT, "run", return_value=current) as run:
+            AGENT.ensure_rule(11530, ["to", "192.0.2.106/24", "lookup", "15300"], ["to 192.0.2.106/24", "lookup 15300"])
+        run.assert_called_once_with("ip", "rule", "show", "priority", "11530", check=False)
+
+    def test_ensure_rule_restores_missing_live_rule(self):
+        missing = unittest.mock.MagicMock(stdout="")
+        with patch.object(AGENT, "run", side_effect=[missing, unittest.mock.MagicMock(), unittest.mock.MagicMock()]) as run:
+            AGENT.ensure_rule(11530, ["to", "192.0.2.106/24", "lookup", "15300"], ["to 192.0.2.106/24", "lookup 15300"])
+        self.assertEqual(run.call_args_list[-1].args, ("ip", "rule", "add", "priority", "11530", "to", "192.0.2.106/24", "lookup", "15300"))
+
+    def test_reconcile_selected_routes_reinstalls_last_decision(self):
+        state = {"edge": {"weights": {"a1": 1}, "lastChange": 900}}
+        with patch.object(AGENT, "apply_route") as apply:
+            AGENT.reconcile_selected_routes(self.config, state)
+        apply.assert_called_once_with(self.config, self.config["targets"][0], {"a1": 1}, dry_run=False)
+
     def test_loss_removes_failed_gateway(self):
         measurements = {
             "a1": {"lossPercent": 0, "rttMs": 20},
