@@ -188,10 +188,18 @@ def immutable_target(module, state, allocator, repository, revision):
         # Preserve the already verified immutable name as an unused historical
         # claim, then allocate the next name. Never overwrite or deploy it.
         reference = repository + "@" + existing["digest"]
-        subprocess.run(["cosign", "verify", "--certificate-identity", IDENTITY,
-                        "--certificate-oidc-issuer", ISSUER, reference], check=True, stdout=subprocess.DEVNULL)
-        state["modules"].setdefault(module, {"releases": []})["releases"].append({"codename": codename, "digest": existing["digest"]})
-        print("Preserved unused verified codename: " + module + ":" + codename, flush=True)
+        try:
+            subprocess.run(["cosign", "verify", "--certificate-identity", IDENTITY,
+                            "--certificate-oidc-issuer", ISSUER, reference], check=True, stdout=subprocess.DEVNULL)
+            release = {"codename": codename, "digest": existing["digest"]}
+            print("Preserved unused verified codename: " + module + ":" + codename, flush=True)
+        except subprocess.CalledProcessError:
+            # An old registry artifact is never eligible for deployment without
+            # a valid signature. Quarantine its immutable name so allocation can
+            # progress to a new name; do not retry, overwrite, or promote it.
+            release = {"codename": codename, "digest": existing["digest"], "quarantined": "missing-or-invalid-signature"}
+            print("Quarantined unsigned historical codename: " + module + ":" + codename, flush=True)
+        state["modules"].setdefault(module, {"releases": []})["releases"].append(release)
 
 
 def publish(modules, out, bootstrap=False):

@@ -50,7 +50,12 @@ spec:
   namespaceSelector:
     matchLabels: {saas.re8ch.com/tenant: qwen}
   queueingStrategy: BestEffortFIFO
-  admissionChecks: [re8ch-placement]
+  # v1beta2 stores admission checks by ResourceFlavor strategy.  The default
+  # flavor remains the quota accounting flavor; the placement controller adds
+  # the stricter PlacementClass selector before Pods are released.
+  admissionChecksStrategy:
+    admissionChecks:
+      - {name: re8ch-placement, onFlavors: [default]}
   resourceGroups:
     - coveredResources: [cpu, memory]
       flavors:
@@ -71,7 +76,9 @@ spec:
   namespaceSelector:
     matchLabels: {tenancy.re8ch.com/tenant: artchais}
   queueingStrategy: BestEffortFIFO
-  admissionChecks: [re8ch-placement]
+  admissionChecksStrategy:
+    admissionChecks:
+      - {name: re8ch-placement, onFlavors: [default]}
   resourceGroups:
     - coveredResources: [cpu, memory]
       flavors:

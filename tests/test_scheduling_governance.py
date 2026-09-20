@@ -188,7 +188,8 @@ def test_placement_classes_are_the_single_portable_placement_contract():
     queues = docs(GOVERNANCE / "policies/kueue.yaml")
     check = next(item for item in queues if item["kind"] == "AdmissionCheck")
     assert check["spec"]["controllerName"] == "scheduling.re8ch.com/placement-admission"
-    assert all("re8ch-placement" in item["spec"]["admissionChecks"] for item in queues if item["kind"] == "ClusterQueue")
+    strategies = [item["spec"]["admissionChecksStrategy"] for item in queues if item["kind"] == "ClusterQueue"]
+    assert all(strategy["admissionChecks"] == [{"name": "re8ch-placement", "onFlavors": ["default"]}] for strategy in strategies)
     flavors = {item["metadata"]["name"] for item in queues if item["kind"] == "ResourceFlavor"}
     assert {"default", *(item["spec"]["resourceFlavorName"] for item in classes.values())} <= flavors
 
