@@ -233,12 +233,12 @@ def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
     operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
     source = next(item for item in operator if item["kind"] == "OCIRepository")
     release = next(item for item in operator if item["kind"] == "HelmRelease")
-    assert source["spec"]["ref"] == {"digest": "sha256:b67eee6d2ef251dd34b2c7e563ba1e0bbd9b5936d9d2fb7b671f6c86ff61b258"}
+    assert source["spec"]["ref"] == {"digest": "sha256:4881731dd7ceaf0fefcdecdb23b1c87d16b1f60fe8aa5ee75304fd33f4fa4d22"}
     values = release["spec"]["values"]["operator"]
     assert values["replicaCount"] == 2
-    assert values["image"] == "ghcr.io/stacklok/toolhive/operator@sha256:2916086b1f9508e563d8055b3ab31c45f1e04edf4df81e8a41a334c8dc902cde"
-    assert values["toolhiveRunnerImage"] == "ghcr.io/stacklok/toolhive/proxyrunner@sha256:f60433f850e76e62516d69f6f00cfa69064639175210fff728696d1c86164fa1"
-    assert values["vmcpImage"] == "ghcr.io/stacklok/toolhive/vmcp@sha256:5911e13fcea86c1274f0650e172792e9429bf4b16ae77a303d1bc4bf820fc619"
+    assert values["image"] == "ghcr.io/stacklok/toolhive/operator@sha256:7998095e6b998d2ae50f93393fa8c969d41a1422457d1775aef81c81dfa24b67"
+    assert values["toolhiveRunnerImage"] == "ghcr.io/stacklok/toolhive/proxyrunner@sha256:1ee5a4d66763180fdfdb95c4da9afb7112946e90531516fb9a1fd279f2c9cd29"
+    assert values["vmcpImage"] == "ghcr.io/stacklok/toolhive/vmcp@sha256:22b6bb5c642c45e913afef0ea0ca696b1f12cd7dd26d74a8e8cb0b794cd2774c"
     assert values["nodeSelector"] == {}
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
     assert expressions == [
