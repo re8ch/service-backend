@@ -215,12 +215,12 @@ def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     artchais = next(item for item in tenant["tenants"] if item["name"] == "artchais")
     subject_binding = next(
         item for item in artchais["identityBindings"]
-        if item["name"] == "artchais-dex-external-operator"
+        if item["name"] == "artchais-dex-external-operator-v2"
     )
     assert subject_binding == {
-        "name": "artchais-dex-external-operator",
+        "name": "artchais-dex-external-operator-v2",
         "issuer": "https://dex.re8ch.com",
-        "subjectHash": "sha256:3fb8e1ea3bd7fc4e13761e4459d5039b494839f2e62228efd5b7a5202da70e97",
+        "subjectHash": "sha256:92948cd9df63b98d534da47c27e236b4b894808feff18558aa53996f7059c415",
         "role": "operator",
     }
 
