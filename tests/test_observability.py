@@ -124,6 +124,36 @@ def test_active_recovery_vmagent_persists_advanced_fabric_measurements():
     assert scrape["spec"]["endpoints"][0]["port"] == "metrics"
 
 
+def test_opencost_recovery_scrapes_the_exporter_and_node_cost_advisor():
+    resources = yaml_documents(OBSERVABILITY / "opencost-recovery" / "scrapes.yaml")
+    scrapes = {item["metadata"]["name"]: item for item in resources}
+
+    opencost = scrapes["opencost-exporter"]
+    assert opencost["spec"]["namespaceSelector"]["matchNames"] == ["opencost"]
+    assert opencost["spec"]["selector"]["matchLabels"] == {
+        "app.kubernetes.io/name": "opencost",
+        "app.kubernetes.io/part-of": "opencost",
+    }
+    assert opencost["spec"]["endpoints"][0]["port"] == "http"
+    assert opencost["spec"]["endpoints"][0]["path"] == "/metrics"
+
+    advisor = scrapes["re8ch-routing-advisor"]
+    assert advisor["spec"]["namespaceSelector"]["matchNames"] == ["qianwen-ops"]
+    assert advisor["spec"]["endpoints"][0]["port"] == "metrics"
+
+
+def test_market_valuation_policy_requires_independent_fresh_evidence():
+    catalog = yaml.safe_load((ROOT / "clusters/re8ch/components/network/public-mesh/market-valuations.yaml").read_text())
+    policy = catalog["spec"]["aggregation"]
+
+    assert catalog["kind"] == "NodeFairValueCatalog"
+    assert catalog["metadata"]["purpose"] == "showback-only"
+    assert policy["method"] == "median"
+    assert policy["minimumIndependentSources"] >= 2
+    assert policy["maximumObservationAgeDays"] <= 31
+    assert set(policy["requiredFactors"]) == {"region", "resource-class", "resource-quantity", "effective-time"}
+
+
 def test_active_metrics_scrape_gateway_receive_bytes_per_node():
     resources = yaml_documents(OBSERVABILITY / "opencost-recovery" / "scrapes.yaml")
     scrape = next(
