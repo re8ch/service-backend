@@ -1,0 +1,30 @@
+apiVersion: finops.re8ch.com/v1alpha1
+kind: NodeFairValueCatalog
+metadata:
+  name: re8ch-node-fair-values
+  currency: CNY
+  owner: platform-finops
+  purpose: showback-only
+spec:
+  # A market value is an estimate of replacement cost, never a substitute for
+  # a supplier invoice or a posting instruction.
+  aggregation:
+    method: median
+    minimumIndependentSources: 2
+    maximumObservationAgeDays: 31
+    requiredFactors: [region, resource-class, resource-quantity, effective-time]
+  sources:
+    - id: provider-public-price
+      independenceGroup: provider
+      evidenceKind: public-price-page-or-api
+    - id: marketplace-listing
+      independenceGroup: marketplace
+      evidenceKind: public-marketplace-listing
+    - id: reseller-quote
+      independenceGroup: reseller
+      evidenceKind: dated-written-quote
+  # Approved observations are appended here by a reviewed GitOps change. Each
+  # must identify a source, normalized equivalent specification, price, source
+  # URL or immutable quote reference, observation time and effective interval.
+  # No empty, inferred, or single-source value is emitted as a fair value.
+  observations: []

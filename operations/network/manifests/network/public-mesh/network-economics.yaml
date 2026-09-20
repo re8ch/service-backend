@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: re8ch-routing-advisor
     app.kubernetes.io/part-of: network-economics
+    observability.re8ch.com/opencost-recovery: "true"
 spec:
   replicas: 1
   selector:
@@ -87,6 +88,7 @@ metadata:
   labels:
     app.kubernetes.io/name: re8ch-routing-advisor
     app.kubernetes.io/part-of: network-economics
+    observability.re8ch.com/opencost-recovery: "true"
 spec:
   selector:
     app.kubernetes.io/name: re8ch-routing-advisor

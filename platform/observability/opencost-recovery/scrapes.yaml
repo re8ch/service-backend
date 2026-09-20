@@ -1,6 +1,29 @@
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
+  name: opencost-exporter
+  namespace: observability-system
+  labels: {observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  namespaceSelector: {matchNames: [opencost]}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opencost
+      app.kubernetes.io/part-of: opencost
+  endpoints:
+    # The pinned OpenCost chart exposes its exporter API and Prometheus
+    # endpoint on the Service port named `http` (9003).
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {targetLabel: service, replacement: opencost}
+        - {targetLabel: signal_domain, replacement: finops}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
   name: opencost-kube-state-metrics
   namespace: observability-system
   labels: {observability.re8ch.com/opencost-recovery: "true"}
@@ -26,6 +49,27 @@ spec:
   tlsConfig: {insecureSkipVerify: true}
   relabelConfigs:
     - {sourceLabels: [__meta_kubernetes_node_name], targetLabel: node}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: re8ch-routing-advisor
+  namespace: observability-system
+  labels: {observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  namespaceSelector: {matchNames: [qianwen-ops]}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: re8ch-routing-advisor
+      observability.re8ch.com/opencost-recovery: "true"
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {targetLabel: service, replacement: re8ch-routing-advisor}
+        - {targetLabel: signal_domain, replacement: finops}
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMPodScrape
