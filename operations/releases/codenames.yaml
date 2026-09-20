@@ -436,3 +436,5 @@ modules:
       digest: sha256:19412b4f2166f702cf3bc89500d6ddc45a8cac94ae39ee7c93b57ccfceccf121
     - codename: spectrum-amber
       digest: sha256:5400a9261b7cebcc083f10df8ea66f465e303529bf971406be0745296658b7bb
+    - codename: telescope-amber
+      digest: sha256:c808b3aaf304358f8eef4ca533a483707e967083ec5cc93008cd4cc8cc30589a
