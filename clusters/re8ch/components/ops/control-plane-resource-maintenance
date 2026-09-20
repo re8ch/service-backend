@@ -8,11 +8,14 @@
 set -euo pipefail
 
 journal_cap="${JOURNAL_MAX_USE:-512M}"
+archive_dir="${JOURNAL_ARCHIVE_DIR:-}"
+archive_cap="${JOURNAL_ARCHIVE_MAX_USE:-4G}"
+archive_days="${JOURNAL_ARCHIVE_MAX_DAYS:-14}"
 mode="${1:---check}"
 
 case "$mode" in
-  --check|--vacuum-journal) ;;
-  *) echo "usage: $0 [--check|--vacuum-journal]" >&2; exit 64 ;;
+  --check|--vacuum-journal|--archive-and-vacuum) ;;
+  *) echo "usage: $0 [--check|--vacuum-journal|--archive-and-vacuum]" >&2; exit 64 ;;
 esac
 
 systemctl is-active --quiet k3s
@@ -22,6 +25,51 @@ journal_bytes="$(journalctl --disk-usage | sed -n 's/.*take up \([0-9.]*\)\([KMG
 logger -t re8ch-control-plane-maintenance \
   "root_free_kib=${root_free_kib} journal_usage=${journal_bytes:-unknown} mode=${mode}"
 
-if [[ "$mode" == "--vacuum-journal" ]]; then
+archive_journal() {
+  if [[ -z "$archive_dir" ]]; then
+    logger -t re8ch-control-plane-maintenance "journal_archive=disabled"
+    return 0
+  fi
+
+  case "$archive_dir" in
+    /mnt/d/RE8CH-journal-archive/*|/srv/nas/re8ch-journal-archive/*) ;;
+    *)
+      logger -t re8ch-control-plane-maintenance "journal_archive=refused path=${archive_dir}"
+      return 1
+      ;;
+  esac
+
+  if ! install -d -m 0750 "$archive_dir"; then
+    logger -t re8ch-control-plane-maintenance "journal_archive=failed reason=create-directory path=${archive_dir}"
+    return 1
+  fi
+
+  local archive_file archive_tmp archive_limit archive_usage oldest
+  archive_file="$archive_dir/$(hostname -s)-$(date -u +%Y%m%dT%H%M%SZ).journal.gz"
+  archive_tmp="${archive_file}.partial"
+  if ! journalctl --since '24 hours ago' --output=short-iso | gzip -c >"$archive_tmp"; then
+    logger -t re8ch-control-plane-maintenance "journal_archive=failed reason=export path=${archive_dir}"
+    find "$archive_dir" -maxdepth 1 -type f -name '*.partial' -delete
+    return 1
+  fi
+  mv "$archive_tmp" "$archive_file"
+
+  find "$archive_dir" -maxdepth 1 -type f -name '*.journal.gz' -mtime "+$archive_days" -delete
+  archive_limit="$(numfmt --from=iec "$archive_cap")"
+  archive_usage="$(du -sb "$archive_dir" | awk '{print $1}')"
+  while [[ "$archive_usage" -gt "$archive_limit" ]]; do
+    oldest="$(find "$archive_dir" -maxdepth 1 -type f -name '*.journal.gz' -printf '%T@ %p\\n' | sort -n | head -n 1 | cut -d' ' -f2-)"
+    [[ -n "$oldest" ]] || break
+    find "$archive_dir" -maxdepth 1 -type f -path "$oldest" -delete
+    archive_usage="$(du -sb "$archive_dir" | awk '{print $1}')"
+  done
+  logger -t re8ch-control-plane-maintenance "journal_archive=complete path=${archive_dir} bytes=${archive_usage} cap=${archive_cap}"
+}
+
+if [[ "$mode" == "--archive-and-vacuum" ]]; then
+  archive_journal || logger -t re8ch-control-plane-maintenance "journal_archive=skipped-vacuum-continues"
+fi
+
+if [[ "$mode" == "--vacuum-journal" || "$mode" == "--archive-and-vacuum" ]]; then
   journalctl --vacuum-size="$journal_cap"
 fi

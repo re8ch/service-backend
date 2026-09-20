@@ -7,7 +7,8 @@ ConditionPathExists=/etc/rancher/k3s/config.yaml
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/re8ch-control-plane-resource-maintenance --vacuum-journal
+EnvironmentFile=-/etc/re8ch-control-plane-resource-maintenance.env
+ExecStart=/usr/local/sbin/re8ch-control-plane-resource-maintenance --archive-and-vacuum
 Nice=19
 CPUQuota=5%
 MemoryMax=128M
