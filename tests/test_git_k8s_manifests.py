@@ -249,16 +249,28 @@ def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
         }
     ]
     pod_anti_affinity = values["affinity"]["podAntiAffinity"]
-    assert "requiredDuringSchedulingIgnoredDuringExecution" not in pod_anti_affinity
-    assert pod_anti_affinity["preferredDuringSchedulingIgnoredDuringExecution"] == [
+    assert pod_anti_affinity["requiredDuringSchedulingIgnoredDuringExecution"] == [
         {
-            "weight": 100,
-            "podAffinityTerm": {
-                "labelSelector": {
-                    "matchLabels": {"app.kubernetes.io/name": "toolhive-operator"},
-                },
-                "topologyKey": "kubernetes.io/hostname",
+            "labelSelector": {
+                "matchLabels": {"app.kubernetes.io/name": "toolhive-operator"},
             },
+            "topologyKey": "kubernetes.io/hostname",
+        }
+    ]
+    assert release["spec"]["postRenderers"] == [
+        {
+            "kustomize": {
+                "patches": [
+                    {
+                        "target": {
+                            "version": "v1",
+                            "kind": "Deployment",
+                            "name": "toolhive-operator",
+                        },
+                        "patch": "- op: add\n  path: /spec/strategy\n  value:\n    type: RollingUpdate\n    rollingUpdate: {maxUnavailable: 1, maxSurge: 0}",
+                    }
+                ]
+            }
         }
     ]
 

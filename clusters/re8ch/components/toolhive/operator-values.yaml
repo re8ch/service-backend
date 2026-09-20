@@ -32,9 +32,7 @@ operator:
                 operator: In
                 values: [core]
     podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchLabels: {app.kubernetes.io/name: toolhive-operator}
-            topologyKey: kubernetes.io/hostname
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels: {app.kubernetes.io/name: toolhive-operator}
+          topologyKey: kubernetes.io/hostname
