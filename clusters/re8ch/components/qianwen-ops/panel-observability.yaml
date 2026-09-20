@@ -762,7 +762,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -863,7 +863,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values:
-                      - artchais-nuclio-1
+                      - suxunji
                       - qianwen-prod-nuclio-3
                       - qianwen-test-nuclio-2
                       - vm-20-12-ubuntu
@@ -1088,7 +1088,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -1502,7 +1502,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -1995,7 +1995,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -2696,7 +2696,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -2784,7 +2784,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -3307,7 +3307,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
@@ -3454,7 +3454,7 @@ spec:
         app.kubernetes.io/part-of: panel-observability
     spec:
       nodeSelector:
-        kubernetes.io/hostname: artchais-nuclio-1
+        kubernetes.io/hostname: suxunji
         kubernetes.io/os: linux
       tolerations:
         - key: dedicated
