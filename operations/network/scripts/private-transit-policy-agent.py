@@ -60,26 +60,41 @@ def gateway_nexthop(gateway):
     return ["via", gateway["address"]]
 
 
+def ensure_rule(priority, rule_args, expected, dry_run=False):
+    """Install a policy rule only when the live rule is missing or stale."""
+    command = ["ip", "rule", "add", "priority", str(priority), *rule_args]
+    if dry_run:
+        print("DRY-RUN", " ".join(command))
+        return
+    current = run("ip", "rule", "show", "priority", str(priority), check=False).stdout
+    if all(fragment in current for fragment in expected):
+        return
+    run("ip", "rule", "del", "priority", str(priority), check=False)
+    run(*command)
+
+
 def ensure_policy(config, dry_run=False):
     prefix = config["acceleratedPrefix"]
     for gateway in config["gateways"]:
         route = ["ip", "route", "replace", prefix, *gateway_nexthop(gateway), "table", str(gateway["probeTable"])]
         priority = str(11000 + gateway["probeTable"] % 100)
-        rule = ["ip", "rule", "add", "priority", priority, "fwmark", gateway["mark"], "lookup", str(gateway["probeTable"])]
         if dry_run:
             print("DRY-RUN", " ".join(route))
-            print("DRY-RUN", " ".join(rule))
         else:
             run(*route)
-            run("ip", "rule", "del", "priority", priority, check=False)
-            run(*rule)
+        ensure_rule(
+            priority,
+            ["fwmark", gateway["mark"], "lookup", str(gateway["probeTable"])],
+            [f"fwmark {gateway['mark']}", f"lookup {gateway['probeTable']}"],
+            dry_run=dry_run,
+        )
     priority = str(config["decisionRulePriority"])
-    rule = ["ip", "rule", "add", "priority", priority, "to", prefix, "lookup", str(config["decisionTable"])]
-    if dry_run:
-        print("DRY-RUN", " ".join(rule))
-    else:
-        run("ip", "rule", "del", "priority", priority, check=False)
-        run(*rule)
+    ensure_rule(
+        priority,
+        ["to", prefix, "lookup", str(config["decisionTable"])],
+        [f"to {prefix}", f"lookup {config['decisionTable']}"],
+        dry_run=dry_run,
+    )
 
 
 def probe(target, gateway, source, count=5, timeout=1):
@@ -255,6 +270,14 @@ def apply_route(config, target, selected, dry_run=False):
         run(*command)
 
 
+def reconcile_selected_routes(config, state, dry_run=False):
+    """Restore selected routes after boot-time network managers flush tables."""
+    for target in config["targets"]:
+        selected = state.get(target["name"], {}).get("weights", {})
+        if selected:
+            apply_route(config, target, selected, dry_run=dry_run)
+
+
 def iteration(config, source, state, now, dry_run=False, utilization=None):
     results = {}
     with ThreadPoolExecutor(max_workers=len(config["targets"]) * len(config["gateways"])) as executor:
@@ -310,6 +333,11 @@ def main():
     state = load(state_path) if state_path.exists() else {}
     counter_state = {}
     while True:
+        # Network initialization can finish after this service starts and can
+        # flush policy rules or routes. Reconcile the kernel state every cycle
+        # so marked probes and the last selected paths remain self-healing.
+        ensure_policy(config, dry_run=args.dry_run)
+        reconcile_selected_routes(config, state, dry_run=args.dry_run)
         utilization, counter_state = sample_utilization(config["gateways"], counter_state, time.monotonic())
         if local_gateway_name and utilization.get(local_gateway_name) is not None:
             TELEMETRY.update(utilizationPercent=utilization[local_gateway_name], updatedAt=time.time())
