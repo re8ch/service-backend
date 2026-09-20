@@ -450,3 +450,5 @@ modules:
       digest: sha256:99cf0cf6087aa52a39ddb5257e01664803410370f6dd95104bf35b1ed7200fe6
     - codename: spectrum-copper
       digest: sha256:0dd4fd7730be01b4eebabc39068aee702f1088e1a627b6237cdd9fad65428b0e
+    - codename: telescope-copper
+      digest: sha256:3943fc939bd8f911675a6e2a11c25e88f8bfc71aff9b4d2dbbddb0cb2cdb1d4e

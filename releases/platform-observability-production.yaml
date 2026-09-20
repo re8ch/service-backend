@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: spectrum-copper
+codename: telescope-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:0dd4fd7730be01b4eebabc39068aee702f1088e1a627b6237cdd9fad65428b0e
+  digest: sha256:3943fc939bd8f911675a6e2a11c25e88f8bfc71aff9b4d2dbbddb0cb2cdb1d4e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
