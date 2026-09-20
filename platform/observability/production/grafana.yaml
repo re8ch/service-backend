@@ -112,8 +112,7 @@ spec:
             - {name: GF_DATABASE_PASSWORD, valueFrom: {secretKeyRef: {name: re8ch-grafana-database, key: password}}}
             - {name: GF_AUTH_GENERIC_OAUTH_ENABLED, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_NAME, value: RE8CH Dex}
-            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, valueFrom: {secretKeyRef: {name: re8ch-grafana-oidc, key: client-id}}}
-            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: re8ch-grafana-oidc, key: client-secret}}}
+            - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, value: re8ch-grafana}
             - {name: GF_AUTH_GENERIC_OAUTH_USE_PKCE, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_SCOPES, value: "openid profile email groups"}
             - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: https://dex.re8ch.com/auth}
