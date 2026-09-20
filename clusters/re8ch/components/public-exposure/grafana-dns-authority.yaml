@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: grafana-dns-authority
-  namespace: qianwen-ops
+  namespace: observability-system
   labels:
     networking.re8ch.com/dns-authority: public-edge
   annotations:
@@ -21,6 +21,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: panel-grafana
+                name: re8ch-grafana
                 port:
                   number: 3000

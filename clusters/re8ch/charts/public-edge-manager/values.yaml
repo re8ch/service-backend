@@ -86,7 +86,7 @@ publication:
   refs:
     registry: {namespace: qianwen-ops, name: static-cilium-edge-services-dns}
     headlamp: {namespace: headlamp, name: headlamp-dns-authority}
-    grafana: {namespace: qianwen-ops, name: grafana-dns-authority}
+    grafana: {namespace: observability-system, name: grafana-dns-authority}
     dex: {namespace: dex, name: dex-dns-authority}
     litellm: {namespace: llm-gateway, name: litellm-dns-authority}
     cube: {namespace: cube-trial, name: cube-dns-authority}
