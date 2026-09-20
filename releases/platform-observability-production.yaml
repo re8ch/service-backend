@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: telescope-copper
+codename: viewport-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:3943fc939bd8f911675a6e2a11c25e88f8bfc71aff9b4d2dbbddb0cb2cdb1d4e
+  digest: sha256:4f39eed19ecf2c056e8b4b05c42f3595361bc899e277c5d3ebda375422136699
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
