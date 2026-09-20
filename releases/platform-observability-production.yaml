@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: zenith-amber
+codename: aperture-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:0fd5f00ac7c8e8282f31026b3a83e859769aba13fda80cfc461b138119b25361
+  digest: sha256:17b25d81c0c0537116122edb1bc2a49a43817204ae42f76795c18dd526f96342
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

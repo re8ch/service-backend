@@ -442,3 +442,5 @@ modules:
       digest: sha256:682d994087046084ed14dc283bf08805d311bf16200059d6a5c145c3a4dc76e8
     - codename: zenith-amber
       digest: sha256:0fd5f00ac7c8e8282f31026b3a83e859769aba13fda80cfc461b138119b25361
+    - codename: aperture-copper
+      digest: sha256:17b25d81c0c0537116122edb1bc2a49a43817204ae42f76795c18dd526f96342
