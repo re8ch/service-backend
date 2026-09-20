@@ -48,6 +48,7 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         rendered = "\n".join((ROOT / path).read_text() for path in paths)
         self.assertIn("namespace: observability-system", rendered)
         self.assertIn("observability-system/grafana-dns-authority", rendered)
+        self.assertIn("external-dns.alpha.kubernetes.io/target: 192.0.2.79", rendered)
         self.assertNotIn("qianwen-ops/grafana-dns-authority", rendered)
         self.assertNotIn("panel-grafana", rendered)
 

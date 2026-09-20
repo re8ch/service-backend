@@ -7,7 +7,7 @@ metadata:
     networking.re8ch.com/dns-authority: public-edge
   annotations:
     external-dns.alpha.kubernetes.io/hostname: grafana.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.67
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/provider: public-edge-manager
