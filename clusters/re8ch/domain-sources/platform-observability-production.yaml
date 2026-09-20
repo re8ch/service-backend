@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: prism-copper
+    delivery.re8ch.com/codename: spectrum-copper
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:99cf0cf6087aa52a39ddb5257e01664803410370f6dd95104bf35b1ed7200fe6
+    digest: sha256:0dd4fd7730be01b4eebabc39068aee702f1088e1a627b6237cdd9fad65428b0e
   verify:
     provider: cosign
     matchOIDCIdentity:
