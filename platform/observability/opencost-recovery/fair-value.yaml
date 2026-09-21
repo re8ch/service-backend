@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: re8ch-fair-value-history
+  namespace: observability-system
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: re8ch-fair-value-controller
+  namespace: observability-system
+  labels: {app.kubernetes.io/name: re8ch-fair-value-controller, app.kubernetes.io/part-of: re8ch-observability}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-fair-value-controller}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: re8ch-fair-value-controller, app.kubernetes.io/part-of: re8ch-observability}}
+    spec:
+      serviceAccountName: re8ch-fair-value-controller
+      nodeSelector: {kubernetes.io/hostname: r640}
+      containers:
+        - name: controller
+          image: python:3.13-alpine@sha256:9ba6d8cbebf0fb6546ae71f2a1c14f6ffd2fdab83af7fa5669734ef30ad48844
+          command: [python3, /app/fair-value-controller.py]
+          args: [--config=/config/fair-value-config.json, --history=/history/valuations.jsonl]
+          ports: [{name: metrics, containerPort: 9789}]
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 250m, memory: 192Mi}
+          readinessProbe: {httpGet: {path: /healthz, port: metrics}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /healthz, port: metrics}, initialDelaySeconds: 30, periodSeconds: 30}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: code, mountPath: /app, readOnly: true}
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: history, mountPath: /history}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: code, configMap: {name: re8ch-fair-value-controller-code, defaultMode: 365}}
+        - {name: config, configMap: {name: re8ch-fair-value-controller-config}}
+        - {name: history, persistentVolumeClaim: {claimName: re8ch-fair-value-history}}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: re8ch-fair-value-controller, namespace: observability-system}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: re8ch-fair-value-controller
+  namespace: observability-system
+  labels: {app.kubernetes.io/name: re8ch-fair-value-controller, observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  selector: {app.kubernetes.io/name: re8ch-fair-value-controller}
+  ports: [{name: metrics, port: 9789, targetPort: metrics}]
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: re8ch-fair-value-controller
+  namespace: observability-system
+  labels: {observability.re8ch.com/opencost-recovery: "true"}
+spec:
+  namespaceSelector: {matchNames: [observability-system]}
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-fair-value-controller}}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 60s
+      scrapeTimeout: 10s
+      relabelConfigs:
+        - {targetLabel: service, replacement: re8ch-fair-value-controller}
+        - {targetLabel: signal_domain, replacement: finops}

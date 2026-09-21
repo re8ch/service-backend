@@ -22,6 +22,7 @@ configMapGenerator:
       - dashboards/re8ch-stateful.json
       - dashboards/re8ch-stateless.json
       - dashboards/re8ch-events.json
+      - dashboards/re8ch-costs.json
     options:
       labels:
         grafana_dashboard: "1"

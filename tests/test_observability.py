@@ -217,8 +217,8 @@ def test_dashboard_files_are_dense_and_have_stable_ids():
     dashboard_dir = OBSERVABILITY / "production" / "dashboards"
     dashboards = [json.loads(path.read_text()) for path in sorted(dashboard_dir.glob("*.json"))]
 
-    assert len(dashboards) == 6
-    assert len({dashboard["uid"] for dashboard in dashboards}) == 6
+    assert len(dashboards) == 7
+    assert len({dashboard["uid"] for dashboard in dashboards}) == 7
     for dashboard in dashboards:
         assert dashboard["title"].startswith("RE8CH ")
         assert len(dashboard["panels"]) >= 8

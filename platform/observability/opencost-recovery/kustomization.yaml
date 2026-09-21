@@ -3,3 +3,15 @@ kind: Kustomization
 resources:
   - runtime.yaml
   - scrapes.yaml
+  - fair-value.yaml
+configMapGenerator:
+  - name: re8ch-fair-value-controller-code
+    namespace: observability-system
+    files:
+      - fair-value-controller.py=files/fair-value-controller.py
+  - name: re8ch-fair-value-controller-config
+    namespace: observability-system
+    files:
+      - fair-value-config.json=files/fair-value-config.json
+generatorOptions:
+  disableNameSuffixHash: true
