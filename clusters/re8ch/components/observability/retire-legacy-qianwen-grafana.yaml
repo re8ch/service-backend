@@ -38,7 +38,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: retire-legacy-qianwen-grafana-v1
+  name: retire-legacy-qianwen-grafana-v2
   namespace: flux-system
   annotations:
     governance.re8ch.com/change: retire-qianwen-grafana-publication
@@ -50,7 +50,7 @@ spec:
     spec:
       serviceAccountName: retire-legacy-qianwen-grafana
       restartPolicy: OnFailure
-      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+      nodeSelector: {kubernetes.io/hostname: b1-wsl-zt}
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       initContainers:
