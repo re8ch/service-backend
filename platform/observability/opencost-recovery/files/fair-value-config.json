@@ -1,0 +1,41 @@
+{
+  "refreshIntervalSeconds": 21600,
+  "maximumObservationAgeHours": 30,
+  "minimumIndependentSources": 2,
+  "sources": {
+    "ecb": {"url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"},
+    "linode": {"url": "https://api.linode.com/v4/linode/types?page_size=500"},
+    "vultr": {"url": "https://api.vultr.com/v2/plans?per_page=500"},
+    "azure": {"url": "https://prices.azure.com/api/retail/prices"}
+  },
+  "regionMappings": {
+    "cn-south": {"linode": "sg-sin-2", "vultr": "sgp", "azure": "eastasia"},
+    "cn-east": {"linode": "jp-osa", "vultr": "nrt", "azure": "eastasia"},
+    "us-west": {"linode": "us-lax", "vultr": "lax", "azure": "westus2"},
+    "ap-southeast": {"linode": "sg-sin-2", "vultr": "sgp", "azure": "southeastasia"}
+  },
+  "azureSkuSpecs": {
+    "Standard_B2s": {"cpuCores": 2, "memoryGiB": 4, "storageGiB": 40},
+    "Standard_D4as_v5": {"cpuCores": 4, "memoryGiB": 16, "storageGiB": 40},
+    "Standard_D8as_v5": {"cpuCores": 8, "memoryGiB": 32, "storageGiB": 40},
+    "Standard_D16as_v5": {"cpuCores": 16, "memoryGiB": 64, "storageGiB": 40},
+    "Standard_D32as_v5": {"cpuCores": 32, "memoryGiB": 128, "storageGiB": 40}
+  },
+  "targets": [
+    {"name": "restricted-node-6dc3f140f9", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 80, "memoryGiB": 247.3, "storageGiB": 294.7, "bookMonthlyCNY": 1166.666667},
+    {"name": "restricted-node-1eb0570f74", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
+    {"name": "restricted-node-296f36f2fb", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
+    {"name": "amdwsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": null},
+    {"name": "rancher-panel", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
+    {"name": "harbor-registry", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 6.666667},
+    {"name": "qianwen-nuclio-79", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 2, "memoryGiB": 2, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
+    {"name": "artchais-nuclio-1", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
+    {"name": "pg-re8ch-replica-186", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
+    {"name": "vm-20-12-ubuntu", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
+    {"name": "qianwen-prod-nuclio-3", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
+    {"name": "qianwen-test-nuclio-2", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
+    {"name": "overseas-edge-50", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
+    {"name": "overseas-la", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.92, "storageGiB": 19.6, "bookMonthlyCNY": null},
+    {"name": "overseas-kl", "regionGroup": "ap-southeast", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.92, "storageGiB": 19.58, "bookMonthlyCNY": null}
+  ]
+}

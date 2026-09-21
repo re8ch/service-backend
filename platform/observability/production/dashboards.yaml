@@ -23,6 +23,12 @@ data:
         access: proxy
         url: http://vmsingle-re8ch-analytics.observability-system.svc:8429
         jsonData: {timeInterval: 30s}
+      - name: RE8CH Cost Metrics
+        uid: re8ch-costs
+        type: prometheus
+        access: proxy
+        url: http://vmsingle-opencost.observability-system.svc:8429
+        jsonData: {timeInterval: 30s}
       - name: RE8CH Traces
         uid: re8ch-traces
         type: jaeger
