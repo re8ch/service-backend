@@ -468,3 +468,5 @@ modules:
       digest: sha256:3a141f496d7212b4220686658a2d18116ada1cad3c75b654401261e0fcd50ae4
     - codename: focus-indigo
       digest: sha256:5a5eee58f43d83edb73f3f3ca087d246c6215c2f6270065be48c224b3325b002
+    - codename: prism-indigo
+      digest: sha256:fb1a770388d1013b87d01e2639620ef69c9eda9823a5ae856a4949395b313ff7
