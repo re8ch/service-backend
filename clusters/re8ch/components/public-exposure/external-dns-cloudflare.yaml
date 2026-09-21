@@ -71,7 +71,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    values: [a1-wsl-zt, b1-wsl-zt]
       containers:
         - name: external-dns
           image: ghcr.io/re8ch/external-dns:v0.21.0@sha256:99160687de6c703460ed1b792ccb985012a96cfb787109427b87b70faa69b33e
@@ -85,9 +85,9 @@ spec:
             # Never derive a public DNS answer from an RFC1918 Gateway VIP.
             # Public origins must be explicit routable targets on the labeled
             # Service/Ingress/Route resource.
-            - --exclude-target-net=192.0.2.203/8
-            - --exclude-target-net=192.0.2.179/12
-            - --exclude-target-net=192.0.2.148/16
+            - --exclude-target-net=10.0.0.0/8
+            - --exclude-target-net=172.16.0.0/12
+            - --exclude-target-net=192.168.0.0/16
             - --policy=upsert-only
             # This is the only label-scoped writer for these records. Avoid the
             # TXT registry because it doubles record usage and makes Cloudflare
@@ -133,9 +133,11 @@ metadata:
   labels: {networking.re8ch.com/dns-authority: public-edge}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: "*.apps.re8ch.com"
-    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    # The cluster Gateway terminates the *.apps certificate itself. The
+    # currently proxied wildcard fails the public TLS handshake.
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
   ingressClassName: external-dns-only
   rules:
