@@ -372,6 +372,8 @@ modules:
       digest: sha256:560ae3d8c642de3f6a7394e0c9f470c58266165a3bb89b39c876312194839c88
     - codename: chinook-copper
       digest: sha256:052cc14d42bd98209cd712a582f2215af42693a112c9cd5c0fa96c8c89c5a205
+    - codename: etesian-copper
+      digest: sha256:c859561b14899f0c6e657e5537b409c5d55ba696758dfa7ac8e7e5bf4629b0b6
   platform/adapter:
     releases:
     - codename: anchor
