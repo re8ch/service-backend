@@ -29,6 +29,9 @@ spec:
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
   postRenderers:
+    # The restricted-node-6dc3f140f9 ZeroTier/dummy identity (192.0.2.178) is not reachable from
+    # suxunji. Its transport/control-plane address is verified from both DNS
+    # nodes with the manager's service account and the cluster CA.
     - kustomize:
         patches:
           - target:
@@ -39,7 +42,7 @@ spec:
             patch: |
               - op: add
                 path: /spec/template/spec/containers/0/env/-
-                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.178"}
+                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
               - op: add
                 path: /spec/template/spec/containers/0/env/-
                 value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}

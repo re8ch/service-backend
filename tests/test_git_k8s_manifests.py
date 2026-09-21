@@ -472,6 +472,8 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "service": "api", "class": "api", "probePath": "/auth/me", "acceptedStatuses": [200]
     }
     assert values["workload"]["dnsCandidateLabel"] == "networking.re8ch.com/dns-authority-candidate"
+    api_host_patch = release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]["patch"]
+    assert 'name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"' in api_host_patch
     assert values["probe"]["maxWorkers"] == 8
     assert values["fabricEvidence"] == {
         "mode": "Required",
