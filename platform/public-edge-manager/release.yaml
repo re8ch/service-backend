@@ -66,7 +66,9 @@ spec:
       domain-ex: {bindAddress: 192.0.2.200, area: CN, region: shanghai}
       suxunji: {bindAddress: 192.0.2.83, area: CN, region: shanghai}
     services:
-      api.re8ch.com.: {service: api, class: api, probePath: /__edge/ready}
+      # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
+      # /auth/me exercises the real API gateway path and returns 200 without a session.
+      api.re8ch.com.: {service: api, class: api, probePath: /auth/me, acceptedStatuses: [200]}
       db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
       db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
