@@ -95,6 +95,11 @@ spec:
               kinds: [Namespace]
               selector:
                 matchLabels: {tenancy.re8ch.com/managed: "true"}
+      exclude:
+        any:
+          - resources:
+              kinds: [Namespace]
+              names: [re8ch-ontology-microscope]
       generate:
         apiVersion: v1
         kind: ResourceQuota
@@ -108,6 +113,32 @@ spec:
               requests.cpu: "4"
               requests.memory: 8Gi
               limits.cpu: "8"
+              limits.memory: 16Gi
+              persistentvolumeclaims: "10"
+    # This namespace already uses 9.35 CPU of limits under the 8-CPU default.
+    # Give its one-pod Neuronpedia rollout enough headroom without raising the
+    # quota for every tenant or weakening the container LimitRange.
+    - name: generate-ontology-resource-quota
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              names: [re8ch-ontology-microscope]
+              selector:
+                matchLabels: {tenancy.re8ch.com/managed: "true"}
+      generate:
+        apiVersion: v1
+        kind: ResourceQuota
+        name: tenant-governance-defaults
+        namespace: "{{ request.object.metadata.name }}"
+        synchronize: true
+        data:
+          spec:
+            hard:
+              pods: "20"
+              requests.cpu: "4"
+              requests.memory: 8Gi
+              limits.cpu: "12"
               limits.memory: 16Gi
               persistentvolumeclaims: "10"
     - name: generate-default-limit-range
