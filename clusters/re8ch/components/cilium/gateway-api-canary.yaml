@@ -550,3 +550,65 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
   hostnames: [litellm.service.re8ch.com]
   rules: [{backendRefs: [{name: litellm, port: 4000}]}]
+---
+# Mirror the live tools route table under the delegated service zone. Existing
+# tools.re8ch.com clients remain untouched until OAuth and MCP cutover passes.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tools-service-ui, namespace: toolhive-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      backendRefs: [{name: toolhive-cloud-ui, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tools-service-vmcp, namespace: toolhive-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /mcp}}]
+      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known}}]
+      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+    - matches: [{path: {type: PathPrefix, value: /oauth}}]
+      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tools-service-cloud-mcp, namespace: toolhive-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /cloud}}]
+      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/cloud}}]
+      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tools-service-tenant-mcp, namespace: toolhive-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /tenant}}]
+      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
+      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tools-service-secretary-webhooks, namespace: re8ch-secretary}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /v1/channels/}}]
+      backendRefs: [{name: secretary-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /v1/event-stream}}]
+      backendRefs: [{name: secretary-api, port: 80}]
