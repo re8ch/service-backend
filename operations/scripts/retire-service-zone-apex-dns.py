@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Retire a guarded batch of legacy apex A records after service-zone cutover.
 
-Run on restricted-node-6dc3f140f9. Dry-run is the default; pass --apply only after the signed GitOps
+Run on R640. Dry-run is the default; pass --apply only after the signed GitOps
 change has removed every legacy ExternalDNS publication source.
 """
 
@@ -15,7 +15,7 @@ import urllib.request
 
 ZONE = "126b5f1df6cde00ac113007ddc277998"
 BASE = f"https://api.cloudflare.com/client/v4/zones/{ZONE}/dns_records"
-EDGE_IP = "192.0.2.138"
+EDGE_IP = "223.159.210.222"
 RECORDS = {
     "admin": EDGE_IP,
     "agent": EDGE_IP,
@@ -25,15 +25,15 @@ RECORDS = {
     "grafana": EDGE_IP,
     "headlamp": EDGE_IP,
     "litellm": EDGE_IP,
-    "ledger-decisions": "192.0.2.45",
+    "ledger-decisions": "47.103.8.177",
     "neo4j": EDGE_IP,
     "opensandbox": EDGE_IP,
     "phonycenter": EDGE_IP,
     "storage": EDGE_IP,
-    "supabase": "192.0.2.192",
+    "supabase": "1.14.174.244",
     "tools": EDGE_IP,
 }
-AUTHORITIES = ("192.0.2.62", "192.0.2.86")
+AUTHORITIES = ("124.220.77.50", "101.34.217.95")
 
 
 def run(*argv):
@@ -48,13 +48,14 @@ def kubectl(*argv):
 
 
 def query_authority(host, server):
-    for _ in range(3):
+    last_addresses = set()
+    for _ in range(5):
         output = run("dig", f"@{server}", host, "A", "+short", "+time=2", "+tries=1")
-        addresses = set(output.split())
-        if addresses == {EDGE_IP}:
+        last_addresses = set(output.split())
+        if last_addresses == {EDGE_IP}:
             return
-        time.sleep(1)
-    raise RuntimeError(f"{server} did not consistently publish {host} to the restricted-node-6dc3f140f9 edge")
+        time.sleep(2)
+    raise RuntimeError(f"{server} did not publish {host} to the R640 edge; observed {sorted(last_addresses)}")
 
 
 def main():
@@ -92,7 +93,7 @@ def main():
                 raise RuntimeError(f"legacy ExternalDNS writer remains for {old}")
         for server in AUTHORITIES:
             query_authority(host, server)
-            time.sleep(0.3)
+            time.sleep(1)
 
     secret = kubectl("-n", "qianwen-ops", "get", "secret", "cloudflare-pg-dns-controller-secret")
     token = base64.b64decode(secret["data"]["CF_API_TOKEN"]).decode()
