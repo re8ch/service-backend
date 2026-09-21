@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/external-projects
-codename: passage-amber
+codename: trailhead-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-external-projects
-  digest: sha256:e14f7fe78c0d860ae12ddddefe0a4939c0cad0c0c291caa753f715f2073a7667
+  digest: sha256:7713c5bd0c0052ff6775ef0a789462643bbb659c13d9d717a995998277cee3ce
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
