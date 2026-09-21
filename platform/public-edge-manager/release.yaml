@@ -60,6 +60,9 @@ spec:
     authorityNodes:
       restricted-node-1eb0570f74: {bindAddress: 192.0.2.18, area: CN, region: loudi}
       restricted-node-296f36f2fb: {bindAddress: 192.0.2.208, area: CN, region: loudi}
+      # These VPC addresses receive the providers' public-IP DNAT on port 53.
+      domain-ex: {bindAddress: 192.0.2.241, area: CN, region: shanghai}
+      suxunji: {bindAddress: 192.0.2.6, area: CN, region: shanghai}
     services:
       api.re8ch.com.: {service: api, class: api, probePath: /__edge/ready}
       db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
