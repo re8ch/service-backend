@@ -45,6 +45,23 @@ spec:
     size: 256
     rotationPolicy: Always
 ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: paralus-public-gateway, namespace: kube-system}
+spec:
+  secretName: paralus-public-gateway-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-cloudflare-dns01}
+  dnsNames:
+    - console.paralus.re8ch.com
+    - "*.user.paralus.re8ch.com"
+    - "*.core-connector.paralus.re8ch.com"
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -82,6 +99,9 @@ spec:
             matchExpressions:
               - {key: saas.re8ch.com/tenant, operator: Exists}
     - {name: browser-https, hostname: browser.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: paralus-console-https, hostname: console.paralus.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: paralus-public-gateway-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: paralus-user-tls, hostname: "*.user.paralus.re8ch.com", protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: paralus-connector-tls, hostname: "*.core-connector.paralus.re8ch.com", protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: ontology-https, hostname: ontology.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: storage-https, hostname: storage.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: agent-https, hostname: agent.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}

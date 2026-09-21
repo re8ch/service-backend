@@ -23,3 +23,11 @@ kind: Namespace
 metadata:
   name: mail-system
   labels: {pod-security.kubernetes.io/enforce: restricted}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paralus
+  labels:
+    app.kubernetes.io/part-of: paralus
+    platform.re8ch.com/class: internal-control-plane

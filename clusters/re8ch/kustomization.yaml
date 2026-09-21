@@ -63,6 +63,7 @@ resources:
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
 - ../../platform/incidentrelay
+- ../../platform/paralus
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources
 patchesStrategicMerge:
