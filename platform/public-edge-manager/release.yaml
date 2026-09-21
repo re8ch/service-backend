@@ -56,7 +56,9 @@ spec:
     api: {group: networking.re8ch.com}
     dns:
       soaRname: hostmaster.re8ch.com.
-      zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com.]
+      # Pre-stage the control-plane child zone on the existing public authorities.
+      # Parent NS delegation and application A records are separate gated cutovers.
+      zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com.]
     crd: {install: true}
     nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com., ns-us.re8ch.com.]
     authorityNodes:
