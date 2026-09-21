@@ -61,6 +61,20 @@ spec:
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
+metadata: {name: re8ch-service-public-gateway, namespace: kube-system}
+spec:
+  secretName: re8ch-service-wildcard-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-service-dns01}
+  dnsNames: ["*.service.re8ch.com"]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
 metadata: {name: paralus-public-gateway, namespace: kube-system}
 spec:
   secretName: paralus-public-gateway-tls
@@ -160,6 +174,18 @@ spec:
         certificateRefs:
           - kind: Secret
             name: re8ch-wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: service-wildcard-https
+      hostname: "*.service.re8ch.com"
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: re8ch-service-wildcard-tls
       allowedRoutes:
         namespaces:
           from: All
@@ -279,6 +305,18 @@ spec:
               - name: X-Re8ch-Gateway
                 value: cilium
       backendRefs:
+        - name: headlamp
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: headlamp-service-public, namespace: headlamp}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}
+  hostnames: [headlamp.service.re8ch.com]
+  rules:
+    - backendRefs:
         - name: headlamp
           port: 80
 ---

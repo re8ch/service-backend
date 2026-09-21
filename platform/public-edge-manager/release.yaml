@@ -62,12 +62,12 @@ spec:
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com.]
-      # Temporary bootstrap A: HTTP-01 needs DNS before the new TLS endpoint
-      # can pass PublicEdge's certificate-validating readiness probe. Remove
-      # after the HTTPS listener is live and health-driven A is confirmed.
+      # ACME follows this alias into the parent Cloudflare zone. PublicEdge
+      # remains authoritative for service records; no per-service parent A is
+      # needed. The chart's externalCDN field is its static-record opt-in.
       externalRecords:
-        headlamp.service.re8ch.com.:
-          - {type: A, value: 192.0.2.79, externalCDN: true, provider: bootstrap-r640}
+        _acme-challenge.service.re8ch.com.:
+          - {type: CNAME, value: _acme-challenge.re8ch.com., externalCDN: true, provider: cloudflare-dns01}
     crd: {install: true}
     nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com., ns-us.re8ch.com.]
     authorityNodes:
@@ -82,6 +82,7 @@ spec:
       db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
       headlamp.re8ch.com.: {service: headlamp, class: web, probePath: /}
+      headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
       grafana.re8ch.com.: {service: grafana, class: web, probePath: /grafana/api/health}
       dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       litellm.re8ch.com.: {service: litellm, class: web, probePath: /health/readiness}
@@ -112,7 +113,7 @@ spec:
         gatewayVIP: 192.0.2.209
         capacityMbps: 1000
         priority: -30
-        serviceClasses: [api, db-ro, db-rw, web, registry]
+        serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot]
         forwarding: {mode: DirectGateway}
     readinessGates:
       db-rw:
