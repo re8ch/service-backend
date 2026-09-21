@@ -6,6 +6,7 @@
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>300</integer>
   <key>ProcessType</key><string>Background</string>
+  <key>WorkingDirectory</key><string>/Users/harryneo</string>
   <key>StandardOutPath</key><string>/Users/harryneo/Library/Logs/re8ch-service-backend-anchor-sync.log</string>
   <key>StandardErrorPath</key><string>/Users/harryneo/Library/Logs/re8ch-service-backend-anchor-sync.log</string>
 </dict></plist>
