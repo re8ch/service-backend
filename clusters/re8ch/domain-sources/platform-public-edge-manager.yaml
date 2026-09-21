@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-copper
+    delivery.re8ch.com/codename: mistral-copper
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:c859561b14899f0c6e657e5537b409c5d55ba696758dfa7ac8e7e5bf4629b0b6
+    digest: sha256:654fc4538683a2a71e45c3443f24fb3d2789811a56d85a03750e33edcc313cc1
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-copper
+    delivery.re8ch.com/codename: mistral-copper
 spec:
   interval: 10m
   retryInterval: 1m
