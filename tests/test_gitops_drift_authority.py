@@ -28,3 +28,11 @@ def test_all_static_namespace_declarations_have_gitops_authority():
     docs = [item for item in yaml.safe_load_all(path.read_text()) if item]
     assert docs
     assert all(item["metadata"]["labels"]["re8ch.com/config-authority"] == "gitops" for item in docs)
+
+
+def test_launchagents_execute_from_local_application_support():
+    anchor = (ROOT / "operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist").read_text()
+    drift = (ROOT / "operations/gitops-drift/macos/com.re8ch.gitops-drift.plist").read_text()
+    assert "/Library/Application Support/RE8CH/bin/sync-main-anchor.sh" in anchor
+    assert "/Library/Application Support/RE8CH/bin/run-gitops-drift-audit.sh" in drift
+    assert "/Volumes/A1/service-backend/operations/" not in anchor + drift
