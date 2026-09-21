@@ -7,12 +7,10 @@ mkdir -p "$state_dir"
 tmp=$(mktemp "$state_dir/report.XXXXXX")
 trap 'rm -f "$tmp"' EXIT HUP INT TERM
 audit=${RE8CH_GITOPS_DRIFT_AUDIT:-"$root/operations/gitops-drift/audit.py"}
-if python3 "$audit" --output json >"$tmp"; then
-  python3 -m json.tool "$tmp" >/dev/null
+status=0
+python3 "$audit" --output json >"$tmp" || status=$?
+if python3 -m json.tool "$tmp" >/dev/null; then
   mv "$tmp" "$state_dir/latest.json"
-  status=0
-else
-  status=$?
 fi
 trap - EXIT HUP INT TERM
 exit "$status"
