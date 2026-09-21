@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco
+    delivery.re8ch.com/codename: tramontane
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:3f843257f2a01c177810fb7467792558766abbf4ce9058bf75f980c5faaa2e9d
+    digest: sha256:e1c5674b61db9057f25141c34f40de610de347bec4216189025b0b04191a54e0
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco
+    delivery.re8ch.com/codename: tramontane
 spec:
   interval: 10m
   retryInterval: 1m
