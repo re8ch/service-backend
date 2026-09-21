@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-copper
+    delivery.re8ch.com/codename: tramontane-copper
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:cd2837bcbc42c3f2ee5f409914c4ccc05fc1c17a3f3f8316ac5cfbeb7b03502f
+    digest: sha256:d73dd2b98ed1a03d01a100b635c3158e213165abec667c54b72e20ec5d715aa1
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-copper
+    delivery.re8ch.com/codename: tramontane-copper
 spec:
   interval: 10m
   retryInterval: 1m
