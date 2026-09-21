@@ -47,6 +47,20 @@ spec:
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
+metadata: {name: headlamp-service-pilot, namespace: kube-system}
+spec:
+  secretName: headlamp-service-pilot-tls
+  issuerRef: {kind: ClusterIssuer, name: re8ch-service-http01}
+  dnsNames: [headlamp.service.re8ch.com]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
 metadata: {name: paralus-public-gateway, namespace: kube-system}
 spec:
   secretName: paralus-public-gateway-tls

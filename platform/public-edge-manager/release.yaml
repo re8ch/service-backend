@@ -62,6 +62,12 @@ spec:
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com.]
+      # Temporary bootstrap A: HTTP-01 needs DNS before the new TLS endpoint
+      # can pass PublicEdge's certificate-validating readiness probe. Remove
+      # after the HTTPS listener is live and health-driven A is confirmed.
+      externalRecords:
+        headlamp.service.re8ch.com.:
+          - {type: A, value: 192.0.2.79, externalCDN: true, provider: bootstrap-r640}
     crd: {install: true}
     nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com., ns-us.re8ch.com.]
     authorityNodes:
