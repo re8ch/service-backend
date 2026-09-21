@@ -28,6 +28,10 @@ def validate(inventory):
         seen_names.add(name)
         seen_asns.add(asn)
         ipaddress.ip_address(node["internalIp"])
+        if "kubernetesNodeIp" in node:
+            node_ip = ipaddress.ip_address(node["kubernetesNodeIp"])
+            if node_ip not in accelerated or node_ip != ipaddress.ip_address(node["acceleratedIp"]):
+                raise ValueError(f"invalid Kubernetes Node IP for {name}: {node_ip}")
         if "rrInterconnectIp" in node:
             ipaddress.ip_address(node["rrInterconnectIp"])
     for node in inventory["nodes"]:
