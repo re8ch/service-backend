@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/opencost-recovery
-    delivery.re8ch.com/codename: spectrum
+    delivery.re8ch.com/codename: telescope
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
   ref:
-    digest: sha256:648d23b23f33de22ccb163ae77da5d8670ec06410506e4fdba7d7a0b66ccf3a2
+    digest: sha256:a38ce117ad2df875de1267fc5c0ead1c8ac319b4cf788ccea1cb6cd024bd1e95
   verify:
     provider: cosign
     matchOIDCIdentity:

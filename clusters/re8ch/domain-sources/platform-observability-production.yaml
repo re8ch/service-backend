@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: aperture-indigo
+    delivery.re8ch.com/codename: focus-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:3a141f496d7212b4220686658a2d18116ada1cad3c75b654401261e0fcd50ae4
+    digest: sha256:5a5eee58f43d83edb73f3f3ca087d246c6215c2f6270065be48c224b3325b002
   verify:
     provider: cosign
     matchOIDCIdentity:
