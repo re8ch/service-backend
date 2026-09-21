@@ -1,0 +1,29 @@
+{{- if .Values.deploy.kratos.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kratos-config-hooks
+  labels:
+    {{- include "ztka.kratos.hooks.labels" . | nindent 4 }}
+    app.kubernetes.io/name: kratos-config-hooks
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    # ztka.kratos.hooks.labels already emits the component label. Repeating it
+    # makes the upstream chart invalid under Flux's strict YAML post-renderer.
+data:
+    kratos-config-hooks.yaml: |
+      selfservice:
+        methods:
+          password:
+            enabled: true
+        flows:
+          login:
+            after:
+              password:
+                hooks:
+                  - hook: web_hook
+                    config:
+                      url: {{ include "ztka.afterLoginWebhookWithPort" .}}/auth/v3/user/auditlog
+                      body: file:///etc/kratos/body.jsonnet                                
+                      method: POST
+  
+{{- end }}

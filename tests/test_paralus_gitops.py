@@ -16,7 +16,16 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
         for item in documents(ROOT / "platform/paralus/release.yaml")
         if item["kind"] == "HelmRelease"
     )
-    assert release["spec"]["chart"]["spec"]["version"] == "0.3.1"
+    chart = release["spec"]["chart"]["spec"]
+    assert chart["chart"] == "./platform/paralus/vendor/ztka"
+    assert chart["sourceRef"] == {
+        "kind": "GitRepository",
+        "name": "service-backend",
+        "namespace": "flux-system",
+    }
+    vendored = yaml.safe_load((ROOT / "platform/paralus/vendor/ztka/Chart.yaml").read_text())
+    assert vendored["version"] == "0.3.1-re8ch.1"
+    assert vendored["appVersion"] == "v0.3.0"
     values = release["spec"]["values"]
     assert values["fqdn"]["domain"] == "paralus.re8ch.com"
     assert values["deploy"]["contour"]["enable"] is False
