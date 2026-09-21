@@ -11,6 +11,24 @@ def docs(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def test_ontology_quota_exception_is_scoped_to_one_managed_namespace():
+    policy = next(
+        item for item in docs(GOVERNANCE / "policies/kyverno.yaml")
+        if item["metadata"]["name"] == "generate-tenant-resource-boundaries"
+    )
+    rules = {rule["name"]: rule for rule in policy["spec"]["rules"]}
+    default = rules["generate-default-resource-quota"]
+    ontology = rules["generate-ontology-resource-quota"]
+    assert default["exclude"]["any"][0]["resources"]["names"] == ["re8ch-ontology-microscope"]
+    assert default["generate"]["data"]["spec"]["hard"]["limits.cpu"] == "8"
+    assert ontology["match"]["any"][0]["resources"]["names"] == ["re8ch-ontology-microscope"]
+    assert ontology["match"]["any"][0]["resources"]["selector"]["matchLabels"] == {
+        "tenancy.re8ch.com/managed": "true"
+    }
+    assert ontology["generate"]["name"] == "tenant-governance-defaults"
+    assert ontology["generate"]["data"]["spec"]["hard"]["limits.cpu"] == "12"
+
+
 def test_controller_releases_are_pinned_and_initially_non_disruptive():
     bootstrap = docs(GOVERNANCE / "controllers.yaml")
     releases = {
