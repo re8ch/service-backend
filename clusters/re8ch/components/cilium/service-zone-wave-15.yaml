@@ -1,0 +1,619 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-admin-admin-tools-public
+  namespace: toolhive-system
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - admin.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: re8ch-admin-vmcp-session-router
+      port: 4483
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /mcp
+    - path:
+        type: PathPrefix
+        value: /oauth
+    - path:
+        type: PathPrefix
+        value: /.well-known
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-admin-admin-tools-re8ch-com-advfab
+  namespace: toolhive-system
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - admin.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: re8ch-admin-vmcp-session-router
+      port: 4483
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /mcp
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: re8ch-admin-vmcp-session-router
+      port: 4483
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /.well-known
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: re8ch-admin-vmcp-session-router
+      port: 4483
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /oauth
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-admin-vmcp-r640-backends-public
+  namespace: toolhive-system
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - admin.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: mcp-ops-admin-external
+      port: 8088
+      weight: 1
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replacePrefixMatch: /
+          type: ReplacePrefixMatch
+    matches:
+    - path:
+        type: PathPrefix
+        value: /backend/admin
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: mcp-ops-observe-external
+      port: 8088
+      weight: 1
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replacePrefixMatch: /
+          type: ReplacePrefixMatch
+    matches:
+    - path:
+        type: PathPrefix
+        value: /backend/observe
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: mcp-ops-operate-external
+      port: 8088
+      weight: 1
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replacePrefixMatch: /
+          type: ReplacePrefixMatch
+    matches:
+    - path:
+        type: PathPrefix
+        value: /backend/operate
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-agent-mobile-egress-mobile-egress-control
+  namespace: egress-fabric
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - agent.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: mobile-egress-mobile-egress-control
+      port: 8080
+      weight: 1
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replacePrefixMatch: /v1/mobile
+          type: ReplacePrefixMatch
+    matches:
+    - path:
+        type: PathPrefix
+        value: /v1/mobile/control
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-agent-network-policy-public
+  namespace: egress-fabric
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - agent.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: network-decomplexer-policy-api
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-among-clusters-among-clusters-ingest
+  namespace: among-clusters
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - among-clusters.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: among-clusters-credential-broker
+      namespace: credential-broker
+      port: 80
+      weight: 1
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replacePrefixMatch: /
+          type: ReplacePrefixMatch
+    matches:
+    - path:
+        type: PathPrefix
+        value: /broker
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: among-clusters-credential-broker
+      namespace: credential-broker
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: among-clusters-hub
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /v1
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: among-clusters-hub
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: Exact
+        value: /healthz
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-auth-authentik-server-advfab
+  namespace: auth
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - auth.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: authentik-server
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-codex-codex-session-web-advfab
+  namespace: codex-platform
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - codex.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: codex-session-web
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /ui
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-decision-ledger-decision-analysis-advfab
+  namespace: nuclio
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - decision.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: ledger-decision-analysis
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-dex-dex-http-redirect
+  namespace: dex
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - dex.service.re8ch.com
+  rules:
+  - filters:
+    - requestRedirect:
+        scheme: https
+        statusCode: 308
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-dex-dex-oauth-authorization-server-discovery
+  namespace: dex
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - dex.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: dex
+      port: 80
+      weight: 1
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replaceFullPath: /.well-known/openid-configuration
+          type: ReplaceFullPath
+    - responseHeaderModifier:
+        set:
+        - name: X-Re8ch-OAuth-Discovery
+          value: rfc8414-via-oidc
+      type: ResponseHeaderModifier
+    matches:
+    - path:
+        type: Exact
+        value: /.well-known/oauth-authorization-server
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-dex-dex-public
+  namespace: dex
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - dex.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: dex
+      port: 80
+      weight: 1
+    filters:
+    - responseHeaderModifier:
+        set:
+        - name: X-Re8ch-Gateway
+          value: cilium
+      type: ResponseHeaderModifier
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-hooks-github-flux-webhook
+  namespace: flux-system
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - hooks.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: webhook-receiver
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /hook/
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-image-registry-image-control-api-advfab
+  namespace: image
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - image.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: nuclio-registry-image-control-api
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: nuclio-registry-image-control-api
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /image
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: nuclio-registry-image-control-api
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /image
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: nuclio-registry-image-control-api
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /image
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: nuclio-registry-image-control-api
+      port: 8080
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /image
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-ledger-decisions-ledger-decisions-static-advfab
+  namespace: nuclio
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - ledger-decisions.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: ledger-decisions-static
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-ledger-static-http-advfab
+  namespace: nuclio
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - ledger-decisions.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: ledger-decisions-static
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-mail-stalwart-webmail-public
+  namespace: mail-system
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - mail.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: stalwart-webmail
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-mail-stalwart-webmail-redirect
+  namespace: mail-system
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - mail.service.re8ch.com
+  rules:
+  - filters:
+    - requestRedirect:
+        scheme: https
+        statusCode: 308
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: service-zone-pay-hyperswitch-control-center-public
+  namespace: payments
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: service-wildcard-https
+  hostnames:
+  - pay.service.re8ch.com
+  rules:
+  - backendRefs:
+    - group: ''
+      kind: Service
+      name: hyperswitch-control-center
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
