@@ -78,6 +78,8 @@ spec:
       auth:
         existingSecret: paralus-db
         password: ""
+        secretKeys:
+          userPasswordKey: DB_PASSWORD
       primary:
         nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         resources:
