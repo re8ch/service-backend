@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: chinook-amber
+    delivery.re8ch.com/codename: etesian-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:48a389a54e3d540b63673121b9062487a4ea22cd82fca600063f4b8e4ac68c9a
+    digest: sha256:329f6c8fe6b9d3fa0aac41a12cb5aab59cccc6f9d0418e26f591971669a59b43
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: chinook-amber
+    delivery.re8ch.com/codename: etesian-amber
 spec:
   interval: 10m
   retryInterval: 1m
