@@ -17,16 +17,16 @@ def test_ontology_quota_exception_is_scoped_to_one_managed_namespace():
         if item["metadata"]["name"] == "generate-tenant-resource-boundaries"
     )
     rules = {rule["name"]: rule for rule in policy["spec"]["rules"]}
+    assert "generate-ontology-resource-quota" not in rules
     default = rules["generate-default-resource-quota"]
-    ontology = rules["generate-ontology-resource-quota"]
-    assert default["exclude"]["any"][0]["resources"]["names"] == ["re8ch-ontology-microscope"]
-    assert default["generate"]["data"]["spec"]["hard"]["limits.cpu"] == "8"
-    assert ontology["match"]["any"][0]["resources"]["names"] == ["re8ch-ontology-microscope"]
-    assert ontology["match"]["any"][0]["resources"]["selector"]["matchLabels"] == {
+    assert "exclude" not in default
+    assert default["match"]["any"][0]["resources"]["selector"]["matchLabels"] == {
         "tenancy.re8ch.com/managed": "true"
     }
-    assert ontology["generate"]["name"] == "tenant-governance-defaults"
-    assert ontology["generate"]["data"]["spec"]["hard"]["limits.cpu"] == "12"
+    assert default["generate"]["name"] == "tenant-governance-defaults"
+    assert default["generate"]["data"]["spec"]["hard"]["limits.cpu"] == (
+        "{{ (request.object.metadata.name == 're8ch-ontology-microscope' && '12') || '8' }}"
+    )
 
 
 def test_controller_releases_are_pinned_and_initially_non_disruptive():
