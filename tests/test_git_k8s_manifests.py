@@ -468,6 +468,9 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.", "service.re8ch.com."
     ]
     assert not any(name.endswith(".service.re8ch.com.") for name in values["services"])
+    assert values["services"]["api.re8ch.com."] == {
+        "service": "api", "class": "api", "probePath": "/auth/me", "acceptedStatuses": [200]
+    }
     assert values["workload"]["dnsCandidateLabel"] == "networking.re8ch.com/dns-authority-candidate"
     assert values["probe"]["maxWorkers"] == 8
     assert values["fabricEvidence"] == {
