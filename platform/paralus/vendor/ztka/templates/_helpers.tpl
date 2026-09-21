@@ -193,6 +193,8 @@ https://{{$url}}
     {{- else -}}
 http://{{$url}}
     {{- end -}}
+  {{- else -}}
+https://{{$url}}
   {{- end -}}
 {{- end -}}
 
