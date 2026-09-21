@@ -130,12 +130,12 @@ metadata:
   name: ops-observe-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: shared-observability-probes-2026-09-21}
+  annotations: {re8ch.com/reconcile-generation: observe-capacity-recovery-2026-09-21}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 2
-  backendReplicas: 2
+  replicas: 1
+  backendReplicas: 1
   sessionAffinity: ClientIP
   sessionStorage: {provider: memory}
   transport: streamable-http

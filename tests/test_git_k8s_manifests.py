@@ -86,7 +86,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
     )
 
 
-def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
+def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     release = next(
         item
         for item in documents(ROOT / "platform/connectool/release.yaml")
@@ -114,15 +114,16 @@ def test_all_toolhive_mcp_workloads_are_worker_ha_and_node_local():
     }
     for server in servers:
         spec = server["spec"]
-        assert spec["replicas"] == 2
-        assert spec["backendReplicas"] == 2
+        expected_replicas = 1 if server["metadata"]["name"] == "ops-observe-vmcp-internal" else 2
+        assert spec["replicas"] == expected_replicas
+        assert spec["backendReplicas"] == expected_replicas
         assert spec["sessionAffinity"] == "ClientIP"
         assert spec["sessionStorage"] == {"provider": "memory"}
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.224/16"
         expected_generation = (
-            "shared-observability-probes-2026-09-21"
+            "observe-capacity-recovery-2026-09-21"
             if server["metadata"]["name"] == "ops-observe-vmcp-internal"
             else "a1-b1-recovery-2026-09-19"
         )
