@@ -18,5 +18,6 @@ def test_public_edge_publisher_uses_available_authority_node():
         "region": "loudi",
     }
     assert "overseas-kl" not in values["authorityNodes"]
+    assert "vm-20-12-ubuntu" not in values["authorityNodes"]
     assert values["fabricEvidence"]["mode"] == "Required"
     assert values["fabricEvidence"]["requireNodeReady"] is True

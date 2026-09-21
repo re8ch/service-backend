@@ -60,7 +60,6 @@ spec:
     authorityNodes:
       restricted-node-1eb0570f74: {bindAddress: 192.0.2.18, area: CN, region: loudi}
       restricted-node-296f36f2fb: {bindAddress: 192.0.2.208, area: CN, region: loudi}
-      vm-20-12-ubuntu: {bindAddress: 192.0.2.158, area: CN, region: guangzhou}
     services:
       api.re8ch.com.: {service: api, class: api, probePath: /__edge/ready}
       db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
