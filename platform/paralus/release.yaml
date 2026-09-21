@@ -1,12 +1,3 @@
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: paralus
-  namespace: flux-system
-spec:
-  interval: 30m
-  url: https://paralus.github.io/helm-charts
----
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -20,10 +11,10 @@ spec:
   storageNamespace: paralus
   chart:
     spec:
-      chart: ztka
-      version: 0.3.1
-      sourceRef: {kind: HelmRepository, name: paralus, namespace: flux-system}
-      interval: 30m
+      chart: ./platform/paralus/vendor/ztka
+      reconcileStrategy: ChartVersion
+      sourceRef: {kind: GitRepository, name: service-backend, namespace: flux-system}
+      interval: 10m
   install:
     createNamespace: false
     remediation: {retries: 3}
@@ -57,12 +48,15 @@ spec:
       contour: {enable: false}
       elasticsearch: {enable: false}
       filebeat: {enable: false}
-      fluentbit: {enable: true}
+      fluentbit: {enable: false}
       kratos: {enable: true}
       # Evaluation deployment: use the chart-owned database until Paralus is
       # accepted as the tenant access authority, then migrate it to Pigsty.
       postgresql: {enable: true}
     postgresql:
+      auth:
+        existingSecret: paralus-db
+        password: ""
       primary:
         persistence:
           enabled: true
