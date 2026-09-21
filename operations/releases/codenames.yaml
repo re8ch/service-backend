@@ -358,6 +358,8 @@ modules:
       digest: sha256:48a389a54e3d540b63673121b9062487a4ea22cd82fca600063f4b8e4ac68c9a
     - codename: etesian-amber
       digest: sha256:329f6c8fe6b9d3fa0aac41a12cb5aab59cccc6f9d0418e26f591971669a59b43
+    - codename: mistral-amber
+      digest: sha256:73f157513d2c5be557a4d098289292630d3754c506aba43ef1dc6c7464660205
   platform/adapter:
     releases:
     - codename: anchor
