@@ -378,6 +378,8 @@ modules:
       digest: sha256:c859561b14899f0c6e657e5537b409c5d55ba696758dfa7ac8e7e5bf4629b0b6
     - codename: mistral-copper
       digest: sha256:654fc4538683a2a71e45c3443f24fb3d2789811a56d85a03750e33edcc313cc1
+    - codename: sirocco-copper
+      digest: sha256:cd2837bcbc42c3f2ee5f409914c4ccc05fc1c17a3f3f8316ac5cfbeb7b03502f
   platform/adapter:
     releases:
     - codename: anchor
