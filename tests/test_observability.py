@@ -192,7 +192,7 @@ def test_active_metrics_scrape_gateway_receive_bytes_per_node():
     assert placement["nodeSelectorTerms"][0]["matchExpressions"][0] == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-296f36f2fb"],
+        "values": ["zan", "suxunji"],
     }
 
 
