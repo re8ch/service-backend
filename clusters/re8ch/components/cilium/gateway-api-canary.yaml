@@ -466,3 +466,89 @@ spec:
     - backendRefs:
         - name: supabase-api-kong
           port: 8000
+---
+# Delegated service-zone wave 1. Each route shares the single wildcard TLS
+# listener; PublicEdge publishes its A only after an HTTPS readiness probe.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: grafana-service-public, namespace: observability-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [grafana.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /}}]
+      filters: [{type: RequestRedirect, requestRedirect: {path: {type: ReplaceFullPath, replaceFullPath: /grafana/}, statusCode: 302}}]
+    - matches: [{path: {type: PathPrefix, value: /grafana}}]
+      backendRefs: [{name: re8ch-grafana, port: 3000}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: browser-service-public, namespace: ai-operations}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [browser.service.re8ch.com]
+  rules: [{backendRefs: [{name: oauth2-proxy-steel, port: 4180}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: cube-service-public, namespace: cube-trial}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [cube.service.re8ch.com]
+  rules: [{backendRefs: [{name: oauth2-proxy-cube, port: 4180}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: supabase-service-public, namespace: supabase-pg-re8ch}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [supabase.service.re8ch.com]
+  rules: [{backendRefs: [{name: supabase-api-kong, port: 8000}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: farseer-tenant-app-public, namespace: farseer}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}]
+  hostnames: [farseer.apps.re8ch.com]
+  rules: [{backendRefs: [{name: farseer-web, port: 80}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: opensandbox-service-public, namespace: opensandbox-system}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [opensandbox.service.re8ch.com]
+  rules: [{backendRefs: [{name: opensandbox-server, port: 80}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: storage-service-public, namespace: re8ch-dataspace}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [storage.service.re8ch.com]
+  rules: [{backendRefs: [{name: dataspace-gateway, port: 8080}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: phonycenter-service-public, namespace: voice-observability}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [phonycenter.service.re8ch.com]
+  rules: [{backendRefs: [{name: homer-ui, port: 80}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: neo4j-service-public, namespace: re8ch-neo4j}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [neo4j.service.re8ch.com]
+  rules: [{backendRefs: [{name: neo4j, port: 7474}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: litellm-service-public, namespace: llm-gateway}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [litellm.service.re8ch.com]
+  rules: [{backendRefs: [{name: litellm, port: 4000}]}]

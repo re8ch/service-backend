@@ -83,6 +83,15 @@ spec:
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
       headlamp.re8ch.com.: {service: headlamp, class: web, probePath: /}
       headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
+      grafana.service.re8ch.com.: {service: grafana-service, class: service-pilot, probePath: /grafana/api/health}
+      browser.service.re8ch.com.: {service: browser-service, class: service-pilot, probePath: /}
+      cube.service.re8ch.com.: {service: cube-service, class: service-pilot, probePath: /}
+      supabase.service.re8ch.com.: {service: supabase-service, class: service-pilot, probePath: /}
+      opensandbox.service.re8ch.com.: {service: opensandbox-service, class: service-pilot, probePath: /}
+      storage.service.re8ch.com.: {service: storage-service, class: service-pilot, probePath: /}
+      phonycenter.service.re8ch.com.: {service: phonycenter-service, class: service-pilot, probePath: /}
+      neo4j.service.re8ch.com.: {service: neo4j-service, class: service-pilot, probePath: /}
+      litellm.service.re8ch.com.: {service: litellm-service, class: service-pilot, probePath: /health/readiness}
       grafana.re8ch.com.: {service: grafana, class: web, probePath: /grafana/api/health}
       dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       litellm.re8ch.com.: {service: litellm, class: web, probePath: /health/readiness}
