@@ -46,6 +46,10 @@ spec:
               - op: add
                 path: /spec/template/spec/containers/0/env/-
                 value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
+              # Exact authority inventory AND independently admitted Node label.
+              - op: add
+                path: /spec/template/spec/affinity/nodeAffinity/requiredDuringSchedulingIgnoredDuringExecution/nodeSelectorTerms/0/matchExpressions/-
+                value: {key: networking.re8ch.com/dns-authority-candidate, operator: In, values: ["true"]}
   values:
     image:
       repository: ghcr.io/re8ch/public-edge-manager
@@ -58,8 +62,6 @@ spec:
     crd: {install: true}
     nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com., ns-us.re8ch.com.]
     authorityNodes:
-      restricted-node-1eb0570f74: {bindAddress: 192.0.2.18, area: CN, region: loudi}
-      restricted-node-296f36f2fb: {bindAddress: 192.0.2.208, area: CN, region: loudi}
       # These VPC addresses receive the providers' public-IP DNAT on port 53.
       domain-ex: {bindAddress: 192.0.2.241, area: CN, region: shanghai}
       suxunji: {bindAddress: 192.0.2.6, area: CN, region: shanghai}
@@ -141,7 +143,7 @@ spec:
       allowedStates: [Ready, Partial]
     publication:
       enabled: true
-      publisherNode: restricted-node-296f36f2fb
+      publisherNode: suxunji
       refs:
         registry: {namespace: qianwen-ops, name: static-cilium-edge-services-dns}
         headlamp: {namespace: headlamp, name: headlamp-dns-authority}
