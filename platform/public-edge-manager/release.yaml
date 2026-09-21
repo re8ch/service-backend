@@ -93,6 +93,9 @@ spec:
       neo4j.service.re8ch.com.: {service: neo4j-service, class: service-pilot, probePath: /}
       litellm.service.re8ch.com.: {service: litellm-service, class: service-pilot, probePath: /health/readiness}
       tools.service.re8ch.com.: {service: tools-service, class: service-pilot, probePath: /}
+      dbgui.service.re8ch.com.: {service: dbgui-service, class: service-pilot, probePath: /}
+      fleet.service.re8ch.com.: {service: fleet-service, class: service-pilot, probePath: /}
+      marketplace.service.re8ch.com.: {service: marketplace-service, class: service-pilot, probePath: /install, acceptedStatuses: [200, 302, 307, 401, 404]}
       grafana.re8ch.com.: {service: grafana, class: web, probePath: /grafana/api/health}
       dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       litellm.re8ch.com.: {service: litellm, class: web, probePath: /health/readiness}
