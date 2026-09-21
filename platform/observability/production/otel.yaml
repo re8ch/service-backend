@@ -7,12 +7,15 @@ spec:
   mode: deployment
   replicas: 2
   image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.153.0@sha256:93aad750175cbf1a973ae1c5886c3371f4d800f61be25cdd26870b8441ffe9fa
+  deploymentUpdateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+              - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt, r640]}
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
@@ -166,7 +169,7 @@ spec:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+              - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt, r640]}
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector: {matchLabels: {app.kubernetes.io/name: re8ch-event-collector-collector}}
