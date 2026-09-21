@@ -40,8 +40,11 @@ def test_neuronpedia_canary_is_parallel_and_digest_pinned():
             assert "@sha256:" in container["image"]
 
 
-def test_public_route_and_dns_authority_use_neuronpedia_service():
-    route = next(doc for doc in documents("public.yaml") if doc["kind"] == "HTTPRoute")
+def test_public_route_uses_tenant_apps_wildcard_and_neuronpedia_service():
+    public_documents = documents("public.yaml")
+    route = next(doc for doc in public_documents if doc["kind"] == "HTTPRoute")
+    assert route["spec"]["hostnames"] == ["ontology.apps.re8ch.com"]
+    assert route["spec"]["parentRefs"][0]["sectionName"] == "apps-wildcard-https"
     analysis_rule, default_rule = route["spec"]["rules"]
     assert analysis_rule["matches"] == [
         {"path": {"type": "PathPrefix", "value": "/api/re8ch/"}}
@@ -53,12 +56,12 @@ def test_public_route_and_dns_authority_use_neuronpedia_service():
         {"name": "ontology-microscope-neuronpedia", "port": 80}
     ]
 
-    authority = next(doc for doc in documents("public.yaml") if doc["kind"] == "Ingress")
-    authority_backends = {
-        rule["http"]["paths"][0]["backend"]["service"]["name"]
-        for rule in authority["spec"]["rules"]
-    }
-    assert authority_backends == {"ontology-microscope-neuronpedia"}
+    assert all(doc["kind"] != "Ingress" for doc in public_documents)
+
+    deployment = next(doc for doc in documents("neuronpedia.yaml") if doc["kind"] == "Deployment")
+    env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert env["NEXT_PUBLIC_URL"] == "https://ontology.apps.re8ch.com"
+    assert env["NEXTAUTH_URL"] == "https://ontology.apps.re8ch.com"
 
 
 def test_database_is_retained_and_secret_is_sops_encrypted():

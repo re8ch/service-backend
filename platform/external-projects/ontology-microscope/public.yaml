@@ -5,48 +5,13 @@ metadata:
   namespace: re8ch-ontology-microscope
 spec:
   parentRefs:
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: ontology-https}
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}
-  hostnames: [ontology.re8ch.com, ontology.apps.re8ch.com]
+  hostnames: [ontology.apps.re8ch.com]
   rules:
     - matches:
         - path: {type: PathPrefix, value: /api/re8ch/}
       backendRefs: [{name: ontology-microscope-adapter, port: 4318}]
     - backendRefs: [{name: ontology-microscope-neuronpedia, port: 80}]
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ontology-microscope-dns-authority
-  namespace: re8ch-ontology-microscope
-  labels:
-    networking.re8ch.com/dns-authority: public-edge
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: ontology.re8ch.com,ontology.apps.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-spec:
-  ingressClassName: external-dns-only
-  rules:
-    - host: ontology.re8ch.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ontology-microscope-neuronpedia
-                port: {number: 80}
-    - host: ontology.apps.re8ch.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ontology-microscope-neuronpedia
-                port: {number: 80}
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

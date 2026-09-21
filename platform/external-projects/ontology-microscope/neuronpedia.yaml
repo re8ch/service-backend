@@ -48,8 +48,8 @@ spec:
             - {name: NODE_ENV, value: production}
             - {name: HOSTNAME, value: 0.0.0.0}
             - {name: PORT, value: "3000"}
-            - {name: NEXT_PUBLIC_URL, value: https://ontology.re8ch.com}
-            - {name: NEXTAUTH_URL, value: https://ontology.re8ch.com}
+            - {name: NEXT_PUBLIC_URL, value: https://ontology.apps.re8ch.com}
+            - {name: NEXTAUTH_URL, value: https://ontology.apps.re8ch.com}
             - {name: NEURONPEDIA_ENVIRONMENT, value: re8ch}
             - {name: NEXT_PUBLIC_ENABLE_SIGNIN, value: "false"}
             - {name: NEXT_PUBLIC_DEMO_MODE, value: "false"}
