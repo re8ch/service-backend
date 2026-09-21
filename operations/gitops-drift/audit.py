@@ -3,13 +3,14 @@
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.getenv("RE8CH_SERVICE_BACKEND_ANCHOR", Path(__file__).resolve().parents[2]))
 CLASSIFICATION = ROOT / "clusters/re8ch/components/toolhive/namespace-access-classification.yaml"
 
 

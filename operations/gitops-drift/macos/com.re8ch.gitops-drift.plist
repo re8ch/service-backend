@@ -2,7 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>Label</key><string>com.re8ch.gitops-drift</string>
-  <key>ProgramArguments</key><array><string>/Volumes/A1/service-backend/operations/gitops-drift/run-audit.sh</string></array>
+  <key>ProgramArguments</key><array><string>/Users/harryneo/Library/Application Support/RE8CH/bin/run-gitops-drift-audit.sh</string></array>
+  <key>EnvironmentVariables</key><dict>
+    <key>RE8CH_GITOPS_DRIFT_AUDIT</key><string>/Users/harryneo/Library/Application Support/RE8CH/bin/gitops-drift-audit.py</string>
+    <key>RE8CH_SERVICE_BACKEND_ANCHOR</key><string>/Volumes/A1/service-backend</string>
+  </dict>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>3600</integer>
   <key>ProcessType</key><string>Background</string>

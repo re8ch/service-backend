@@ -6,7 +6,8 @@ state_dir=${RE8CH_GITOPS_DRIFT_STATE_DIR:-"$HOME/Library/Application Support/RE8
 mkdir -p "$state_dir"
 tmp=$(mktemp "$state_dir/report.XXXXXX")
 trap 'rm -f "$tmp"' EXIT HUP INT TERM
-python3 "$root/operations/gitops-drift/audit.py" --output json >"$tmp" || status=$?
+audit=${RE8CH_GITOPS_DRIFT_AUDIT:-"$root/operations/gitops-drift/audit.py"}
+python3 "$audit" --output json >"$tmp" || status=$?
 mv "$tmp" "$state_dir/latest.json"
 trap - EXIT HUP INT TERM
 exit "${status:-0}"
