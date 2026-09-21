@@ -40,6 +40,8 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertNotIn("qianwen-ops", manifest)
 
     def test_public_grafana_route_and_dns_authority_are_not_qwen_owned(self):
+        root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
+        self.assertIn("components/public-exposure/grafana-dns-authority.yaml", root)
         paths = [
             "clusters/re8ch/components/cilium/gateway-api-canary.yaml",
             "clusters/re8ch/components/public-exposure/grafana-dns-authority.yaml",
@@ -51,6 +53,10 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("external-dns.alpha.kubernetes.io/target: 192.0.2.138", rendered)
         self.assertNotIn("qianwen-ops/grafana-dns-authority", rendered)
         self.assertNotIn("panel-grafana", rendered)
+
+        public_edge_manager = (ROOT / "platform/public-edge-manager/release.yaml").read_text()
+        self.assertIn("grafana: {namespace: observability-system, name: grafana-dns-authority}", public_edge_manager)
+        self.assertNotIn("grafana: {namespace: qianwen-ops", public_edge_manager)
 
     def test_grafana_is_a_named_recovery_target(self):
         app = (ROOT / "clusters/re8ch/components/ops/ops-mcp-server-app.py").read_text()

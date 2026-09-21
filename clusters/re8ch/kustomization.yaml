@@ -43,6 +43,7 @@ resources:
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml
 - components/public-exposure/gateway-dns-authorities.yaml
+- components/public-exposure/grafana-dns-authority.yaml
 - components/public-exposure/legacy-special-http-routes.yaml
 - components/opencost/ui-nginx-config.yaml
 - components/observable/postgrest-ha.yaml
