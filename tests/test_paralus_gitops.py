@@ -37,6 +37,15 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
     assert values["kratos"]["deployment"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     assert values["kratos"]["statefulSet"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
 
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    assert {item["target"]["kind"] for item in patches} == {
+        "Deployment",
+        "StatefulSet",
+        "Job",
+    }
+    assert all("path: /spec/template/spec/nodeName" in item["patch"] for item in patches)
+    assert all("value: restricted-node-6dc3f140f9" in item["patch"] for item in patches)
+
 
 def test_paralus_routes_preserve_console_path_routing_and_tls_passthrough():
     resources = documents(ROOT / "platform/paralus/public-routes.yaml")
