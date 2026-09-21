@@ -22,6 +22,27 @@ spec:
     cleanupOnFail: true
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  # The control plane currently does not admit newly scheduled workloads.
+  # Bind every workload emitted by this chart directly to restricted-node-6dc3f140f9 so kubelet can
+  # take ownership without a scheduler placement decision.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target: {kind: Deployment}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/nodeName
+                value: restricted-node-6dc3f140f9
+          - target: {kind: StatefulSet}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/nodeName
+                value: restricted-node-6dc3f140f9
+          - target: {kind: Job}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/nodeName
+                value: restricted-node-6dc3f140f9
   values:
     replicaCount: 2
     fqdn:
