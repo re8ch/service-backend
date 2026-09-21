@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/opencost-recovery
-    delivery.re8ch.com/codename: focus
+    delivery.re8ch.com/codename: prism
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
   ref:
-    digest: sha256:05d4ce04d2ed160873a99baff6f2185a835fd214614f953bd16ae1b1845a8bc4
+    digest: sha256:e24043f5450809cbf4af70b4427a128d93294babec5036fb9ce6ea02bd97305d
   verify:
     provider: cosign
     matchOIDCIdentity:

@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/opencost-recovery
-codename: focus
+codename: prism
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
-  digest: sha256:05d4ce04d2ed160873a99baff6f2185a835fd214614f953bd16ae1b1845a8bc4
+  digest: sha256:e24043f5450809cbf4af70b4427a128d93294babec5036fb9ce6ea02bd97305d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
