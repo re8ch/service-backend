@@ -32,6 +32,7 @@ domains:
   control-plane:
     theme: constellations
     paths:
+      - operations/github-policy-reviewer/**
       - catalogs/**
       - indexes/**
       - workspace.yaml
@@ -45,6 +46,7 @@ domains:
       - clusters/re8ch/components/codex-app-server-console
       - clusters/re8ch/components/ai-operations/sandbox-trials
     tests:
+      - tests/test_github_policy_reviewer.py
       - tests/test_workspace_controller.py
       - tests/test_workspace_mirror.py
       - tests/test_declarations.py
