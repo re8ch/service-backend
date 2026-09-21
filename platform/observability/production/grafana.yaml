@@ -88,6 +88,10 @@ spec:
       annotations: {re8ch.com/recovery-revision: "2026-09-21-database-ready-v1"}
     spec:
       serviceAccountName: re8ch-grafana
+      # Keep the single Grafana replica with its PostgreSQL primary on restricted-node-6dc3f140f9.
+      # Cross-node DNS/service lookups from zan intermittently time out, which
+      # surfaced as 401 on authenticated dashboard queries despite valid login.
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {fsGroup: 472}
       containers:
         - name: grafana
@@ -122,7 +126,10 @@ spec:
             - {name: GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH, value: "contains(groups[*], 're8ch:k8s-admins') && 'Admin' || 'Viewer'"}
             - {name: GF_AUTH_GENERIC_OAUTH_ORG_ATTRIBUTE_PATH, value: "contains(groups[*], 're8ch:k8s-admins') && 'RE8CH Platform' || contains(groups[*], 're8ch:qwen-operators') && 'Qianwen' || contains(groups[*], 're8ch:ledger-operators') && 'Ledger' || contains(groups[*], 're8ch:anycam-operators') && 'Anycam' || contains(groups[*], 're8ch:bench-operators') && 'Bench' || contains(groups[*], 're8ch:cardcat-operators') && 'Cardcat' || 'NoAccess'"}
-            - {name: GF_AUTH_GENERIC_OAUTH_ORG_MAPPING, value: "RE8CH Platform:RE8CH Platform:Admin Qianwen:Qianwen:Viewer Ledger:Ledger:Viewer Anycam:Anycam:Viewer Bench:Bench:Viewer Cardcat:Cardcat:Viewer"}
+            # Grafana splits this setting on spaces. The platform org's display
+            # name contains a space, so target its stable ID (the file provider
+            # above is pinned to org 1) and separate mappings with commas.
+            - {name: GF_AUTH_GENERIC_OAUTH_ORG_MAPPING, value: "RE8CH Platform:1:Admin,Qianwen:Qianwen:Viewer,Ledger:Ledger:Viewer,Anycam:Anycam:Viewer,Bench:Bench:Viewer,Cardcat:Cardcat:Viewer"}
             - {name: GF_RENDERING_SERVER_URL, value: http://re8ch-grafana-renderer.observability-system.svc.cluster.local:8081/render}
             - {name: GF_RENDERING_CALLBACK_URL, value: http://re8ch-grafana.observability-system.svc.cluster.local:3000/grafana/}
             - {name: GF_RENDERING_RENDERER_TOKEN, valueFrom: {secretKeyRef: {name: re8ch-grafana-renderer-auth, key: token}}}
