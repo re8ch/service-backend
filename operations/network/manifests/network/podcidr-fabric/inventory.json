@@ -14,7 +14,7 @@
     {"name": "amdwsl-zt", "internalIp": "192.0.2.10", "podCIDR": "192.0.2.134/24", "acceleratedIp": "192.0.2.117", "asn": 4200010038, "peerMode": "identity"},
     {"name": "overseas-edge-50", "internalIp": "192.0.2.79", "podCIDR": "192.0.2.4/24", "acceleratedIp": "192.0.2.81", "asn": 4200000050, "peerMode": "identity"},
     {"name": "overseas-kl", "internalIp": "192.0.2.245", "podCIDR": "192.0.2.110/24", "acceleratedIp": "192.0.2.149", "asn": 4200000089, "peerMode": "transport"},
-    {"name": "overseas-la", "internalIp": "192.0.2.110", "podCIDR": "192.0.2.114/24", "acceleratedIp": "192.0.2.147", "asn": 4200000104, "peerMode": "transport"},
+    {"name": "overseas-la", "internalIp": "192.0.2.110", "kubernetesNodeIp": "192.0.2.147", "podCIDR": "192.0.2.114/24", "acceleratedIp": "192.0.2.147", "asn": 4200000104, "peerMode": "transport"},
     {"name": "suxunji", "internalIp": "192.0.2.182", "podCIDR": "192.0.2.79/24", "acceleratedIp": "192.0.2.246", "asn": 4200000077, "peerMode": "transport"},
     {"name": "muaya-lightweight", "internalIp": "192.0.2.112", "podCIDR": "192.0.2.89/24", "acceleratedIp": "192.0.2.160", "asn": 4200000079, "peerMode": "transport"},
     {"name": "muaya-ecs", "internalIp": "192.0.2.74", "podCIDR": "192.0.2.237/24", "acceleratedIp": "192.0.2.32", "asn": 4200000095, "peerMode": "transport"},
