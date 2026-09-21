@@ -12,6 +12,8 @@ only verified commits attributed to `Woomou`, have at least one successful check
 and no incomplete or failed checks/statuses, and have no outstanding change
 request. It rechecks the PR head immediately before approving. Other PRs remain
 for manual handling. The workflow never checks out or executes PR content.
+PRs opened before the rollout cutoff are deliberately excluded so the reviewer
+does not retroactively approve an old backlog.
 
 The private key lives only in the private repository Actions Secret
 `POLICY_REVIEWER_PRIVATE_KEY`. `POLICY_REVIEWER_ENABLED=true` enables the job.

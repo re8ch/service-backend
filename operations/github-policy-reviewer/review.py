@@ -9,15 +9,13 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
-import urllib.error
-import urllib.request
+import time
 
 TRUSTED_AUTHORS = frozenset({"Woomou"})
 ALLOWED_ORGS = frozenset({"public-edge", "advanced-fabrics", "among-clusters"})
-API = "https://api.github.com"
-
-
+ROLLOUT_CUTOFF = "2026-09-21T15:16:00Z"
 class GitHub:
     def __init__(self, token: str):
         if not token:
@@ -25,20 +23,26 @@ class GitHub:
         self.token = token
 
     def request(self, path: str, *, method: str = "GET", data: dict | None = None) -> tuple[object, dict]:
-        body = None if data is None else json.dumps(data).encode()
-        req = urllib.request.Request(
-            API + path,
-            data=body,
-            method=method,
-            headers={
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {self.token}",
-                "X-GitHub-Api-Version": "2022-11-28",
-                **({"Content-Type": "application/json"} if body is not None else {}),
-            },
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            return json.load(response), dict(response.headers)
+        command = ["gh", "api", path, "-X", method, "-H", "Accept: application/vnd.github+json"]
+        if data is not None:
+            command.extend(["--input", "-"])
+        attempts = 3 if method == "GET" else 1
+        for attempt in range(attempts):
+            result = subprocess.run(
+                command,
+                input=None if data is None else json.dumps(data),
+                text=True,
+                capture_output=True,
+                timeout=45,
+                env={**os.environ, "GH_TOKEN": self.token},
+                check=False,
+            )
+            if result.returncode == 0:
+                return json.loads(result.stdout), {}
+            if attempt == attempts - 1:
+                raise RuntimeError(f"GitHub API request failed for {path}: {result.stderr.strip()[:300]}")
+            time.sleep(attempt + 1)
+        raise AssertionError("unreachable")
 
     def get(self, path: str) -> object:
         return self.request(path)[0]
@@ -77,6 +81,8 @@ def eligible(api: GitHub, repo: dict, pr: dict) -> tuple[bool, str]:
     number = pr["number"]
     if pr["draft"] or pr["base"]["ref"] != repo["default_branch"]:
         return False, "draft or non-default base"
+    if pr["created_at"] < ROLLOUT_CUTOFF:
+        return False, "predates reviewer rollout"
     if pr["head"]["repo"] is None or pr["head"]["repo"]["full_name"] != full_name:
         return False, "fork or missing head repository"
     if pr["user"]["login"] not in TRUSTED_AUTHORS:
@@ -137,6 +143,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except (urllib.error.HTTPError, urllib.error.URLError, KeyError, ValueError) as exc:
+    except (RuntimeError, subprocess.TimeoutExpired, KeyError, ValueError) as exc:
         print(f"reviewer failed: {exc}", file=sys.stderr)
         raise SystemExit(1) from None

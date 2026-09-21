@@ -17,6 +17,7 @@ class FakeAPI:
             "number": 25,
             "draft": False,
             "state": "open",
+            "created_at": "2026-09-22T00:00:00Z",
             "base": {"ref": "main"},
             "head": {"sha": "abc", "repo": {"full_name": "public-edge/public-edge-manager"}},
             "user": {"login": "Woomou"},
@@ -73,6 +74,12 @@ def test_untrusted_author_is_not_approved():
     api.pr["user"]["login"] = "outsider"
     assert reviewer.run(api, "public-edge") == 0
     assert api.approvals == []
+
+
+def test_preexisting_pr_is_not_approved():
+    api = FakeAPI()
+    api.pr["created_at"] = "2026-09-20T00:00:00Z"
+    assert reviewer.run(api, "public-edge") == 0
 
 
 def test_unsigned_commit_is_not_approved():
