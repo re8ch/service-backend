@@ -92,6 +92,7 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         gateway = manifest.split("---", 1)[0]
         self.assertIn("opentelemetry-collector-contrib:0.153.0@sha256:", gateway)
         self.assertIn("prometheusremotewrite:", gateway)
+        self.assertIn("rollingUpdate: {maxSurge: 0, maxUnavailable: 1}", gateway)
 
     def test_cost_and_observe_paths_use_the_shared_metrics_plane(self):
         paths = [
