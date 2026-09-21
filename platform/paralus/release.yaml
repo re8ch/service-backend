@@ -58,6 +58,10 @@ spec:
         existingSecret: paralus-db
         password: ""
       primary:
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        resources:
+          requests: {cpu: 100m, memory: 256Mi}
+          limits: {cpu: "1", memory: 1Gi}
         persistence:
           enabled: true
           storageClass: rbd-r640
@@ -67,6 +71,23 @@ spec:
     resources:
       requests: {cpu: 100m, memory: 128Mi}
       limits: {cpu: "1", memory: 1Gi}
+    # Imported and edge nodes do not currently have authority to mint projected
+    # ServiceAccount tokens for this namespace. Keep the identity control plane
+    # on the authoritative restricted-node-6dc3f140f9 worker until that relationship is declared.
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    kratos:
+      deployment:
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        resources:
+          requests: {cpu: 50m, memory: 96Mi}
+          limits: {cpu: 500m, memory: 512Mi}
+      statefulSet:
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        resources:
+          requests: {cpu: 25m, memory: 64Mi}
+          limits: {cpu: 300m, memory: 256Mi}
+      job:
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     affinity:
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:

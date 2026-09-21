@@ -32,6 +32,10 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
     assert values["ingress"]["enabled"] is False
     assert values["analytics"]["enable"] is False
     assert values["postgresql"]["primary"]["persistence"]["storageClass"] == "rbd-r640"
+    assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["postgresql"]["primary"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["kratos"]["deployment"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["kratos"]["statefulSet"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
 
 
 def test_paralus_routes_preserve_console_path_routing_and_tls_passthrough():
