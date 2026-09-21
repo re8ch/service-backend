@@ -65,6 +65,21 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("namespace: observability-system", rbac)
         self.assertIn("resourceNames: [re8ch-grafana]", rbac)
 
+    def test_legacy_qwen_grafana_publication_is_retired_without_deleting_backups(self):
+        root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
+        cleanup_path = "components/observability/retire-legacy-qianwen-grafana.yaml"
+        self.assertIn(cleanup_path, root)
+        cleanup = (ROOT / "clusters/re8ch" / cleanup_path).read_text()
+        for resource in (
+            "grafana-dns-authority",
+            "panel-grafana-advfab",
+            "panel-grafana-renderer",
+            "panel-grafana-gateway-origin",
+        ):
+            self.assertIn(resource, cleanup)
+        self.assertNotIn("persistentvolumeclaim", cleanup.lower())
+        self.assertNotIn("secret", cleanup.lower())
+
     def test_observe_probes_target_the_shared_monitoring_plane(self):
         app = (ROOT / "clusters/re8ch/components/ops/ops-mcp-server-app.py").read_text()
         self.assertIn("re8ch-grafana.observability-system.svc.cluster.local:3000/grafana/api/health", app)

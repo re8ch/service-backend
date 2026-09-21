@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: retire-legacy-qianwen-grafana, namespace: flux-system}
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: retire-legacy-qianwen-grafana, namespace: qianwen-ops}
+rules:
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    resourceNames: [grafana-dns-authority, panel-grafana]
+    verbs: [get, delete]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    resourceNames: [grafana-edge-origin, grafana-http-redirect, grafana-public, panel-grafana-advfab]
+    verbs: [get, delete]
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [panel-grafana, panel-grafana-renderer]
+    verbs: [get, delete]
+  - apiGroups: [""]
+    resources: [services]
+    resourceNames: [panel-grafana, panel-grafana-renderer, panel-grafana-gateway-origin, panel-grafana-vip-origin]
+    verbs: [get, delete]
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [panel-grafana-dashboard-providers, panel-grafana-datasources, re8ch-observability-grafana-alerts]
+    verbs: [get, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: retire-legacy-qianwen-grafana, namespace: qianwen-ops}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: retire-legacy-qianwen-grafana}
+subjects:
+  - {kind: ServiceAccount, name: retire-legacy-qianwen-grafana, namespace: flux-system}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: retire-legacy-qianwen-grafana-v1
+  namespace: flux-system
+  annotations:
+    governance.re8ch.com/change: retire-qianwen-grafana-publication
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata: {labels: {app.kubernetes.io/name: retire-legacy-qianwen-grafana}}
+    spec:
+      serviceAccountName: retire-legacy-qianwen-grafana
+      restartPolicy: OnFailure
+      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+      securityContext:
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - &kubectlStep
+          name: delete-public-ingresses
+          image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
+          command: [kubectl]
+          args: [--namespace, qianwen-ops, delete, ingress, grafana-dns-authority, panel-grafana, --ignore-not-found=true, --wait=true]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext: &securityContext {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+        - <<: *kubectlStep
+          name: delete-public-routes
+          args: [--namespace, qianwen-ops, delete, httproute, grafana-edge-origin, grafana-http-redirect, grafana-public, panel-grafana-advfab, --ignore-not-found=true, --wait=true]
+        - <<: *kubectlStep
+          name: delete-legacy-deployments
+          args: [--namespace, qianwen-ops, delete, deployment, panel-grafana, panel-grafana-renderer, --ignore-not-found=true, --wait=false]
+        - <<: *kubectlStep
+          name: delete-legacy-services
+          args: [--namespace, qianwen-ops, delete, service, panel-grafana, panel-grafana-renderer, panel-grafana-gateway-origin, panel-grafana-vip-origin, --ignore-not-found=true, --wait=false]
+      containers:
+        - <<: *kubectlStep
+          name: delete-legacy-provisioning
+          args: [--namespace, qianwen-ops, delete, configmap, panel-grafana-dashboard-providers, panel-grafana-datasources, re8ch-observability-grafana-alerts, --ignore-not-found=true, --wait=false]
