@@ -412,6 +412,8 @@ modules:
       digest: sha256:00b28236efe7c7a551981526d5baa1ce7ee650cafd9a98373267391c781c478d
     - codename: focus
       digest: sha256:05d4ce04d2ed160873a99baff6f2185a835fd214614f953bd16ae1b1845a8bc4
+    - codename: prism
+      digest: sha256:e24043f5450809cbf4af70b4427a128d93294babec5036fb9ce6ea02bd97305d
   platform/observability/production:
     releases:
     - codename: aperture
