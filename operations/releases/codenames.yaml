@@ -416,6 +416,8 @@ modules:
       digest: sha256:e24043f5450809cbf4af70b4427a128d93294babec5036fb9ce6ea02bd97305d
     - codename: spectrum
       digest: sha256:648d23b23f33de22ccb163ae77da5d8670ec06410506e4fdba7d7a0b66ccf3a2
+    - codename: telescope
+      digest: sha256:a38ce117ad2df875de1267fc5c0ead1c8ac319b4cf788ccea1cb6cd024bd1e95
   platform/observability/production:
     releases:
     - codename: aperture
@@ -462,3 +464,5 @@ modules:
       digest: sha256:685e55de1a96db34aeb742e9401b140d842ed42b13f7e8794b9efa7414890b8d
     - codename: aperture-indigo
       digest: sha256:3a141f496d7212b4220686658a2d18116ada1cad3c75b654401261e0fcd50ae4
+    - codename: focus-indigo
+      digest: sha256:5a5eee58f43d83edb73f3f3ca087d246c6215c2f6270065be48c224b3325b002
