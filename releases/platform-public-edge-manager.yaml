@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-amber
+codename: etesian-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:48a389a54e3d540b63673121b9062487a4ea22cd82fca600063f4b8e4ac68c9a
+  digest: sha256:329f6c8fe6b9d3fa0aac41a12cb5aab59cccc6f9d0418e26f591971669a59b43
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
