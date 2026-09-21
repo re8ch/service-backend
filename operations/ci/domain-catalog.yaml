@@ -87,6 +87,7 @@ domains:
     paths:
       - platform/agent-onboarding-runtime/**
       - platform/apps/access-subscription/**
+      - platform/paralus/**
       - platform/secretary-system/**
       - clusters/re8ch/components/netbird-access/**
       - clusters/re8ch/components/personal-access/**
@@ -94,6 +95,7 @@ domains:
     roots:
       - platform/agent-onboarding-runtime
       - platform/apps/access-subscription
+      - platform/paralus
       - platform/secretary-system
       - clusters/re8ch/components/netbird-access
       - clusters/re8ch/components/personal-access
@@ -102,6 +104,7 @@ domains:
       - tests/test_dex_egress.py
       - tests/test_identity_egress.py
       - tests/test_native_mcp_oauth_gitops.py
+      - tests/test_paralus_gitops.py
 
   observability:
     theme: lenses

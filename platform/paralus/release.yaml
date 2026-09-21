@@ -1,0 +1,83 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: paralus
+  namespace: flux-system
+spec:
+  interval: 30m
+  url: https://paralus.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: paralus
+  namespace: flux-system
+spec:
+  interval: 10m
+  timeout: 15m
+  releaseName: paralus
+  targetNamespace: paralus
+  storageNamespace: paralus
+  chart:
+    spec:
+      chart: ztka
+      version: 0.3.1
+      sourceRef: {kind: HelmRepository, name: paralus, namespace: flux-system}
+      interval: 30m
+  install:
+    createNamespace: false
+    remediation: {retries: 3}
+  upgrade:
+    cleanupOnFail: true
+    remediation: {retries: 3, strategy: rollback}
+  rollback: {cleanupOnFail: true}
+  values:
+    replicaCount: 2
+    fqdn:
+      domain: paralus.re8ch.com
+      hostname: console
+      userSubdomain: "*.user"
+      coreConnectorSubdomain: "*.core-connector"
+    paralus:
+      automigrate: true
+      initialize:
+        partner: RE8CH
+        partnerDesc: RE8CH tenant access control plane
+        partnerHost: console.paralus.re8ch.com
+        org: RE8CH
+        orgDesc: RE8CH platform tenants
+        adminEmail: admin@re8ch.com
+        adminFirstName: RE8CH
+        adminLastName: Admin
+    analytics: {enable: false}
+    hooks: {enable: false}
+    auditLogs: {storage: database}
+    ingress: {enabled: false}
+    deploy:
+      contour: {enable: false}
+      elasticsearch: {enable: false}
+      filebeat: {enable: false}
+      fluentbit: {enable: true}
+      kratos: {enable: true}
+      # Evaluation deployment: use the chart-owned database until Paralus is
+      # accepted as the tenant access authority, then migrate it to Pigsty.
+      postgresql: {enable: true}
+    postgresql:
+      primary:
+        persistence:
+          enabled: true
+          storageClass: rbd-r640
+          size: 20Gi
+      readReplicas:
+        replicaCount: 0
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: "1", memory: 1Gi}
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels: {app.kubernetes.io/instance: paralus}
