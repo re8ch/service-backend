@@ -19,6 +19,19 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("name: re8ch-grafana-from-gateway", manifest)
         self.assertIn("fromEntities: [ingress]", manifest)
         self.assertIn("kubernetes.io/metadata.name: toolhive-system", manifest)
+        self.assertIn("nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}", manifest)
+
+    def test_admin_org_mapping_is_not_split_on_spaces(self):
+        manifest = (ROOT / "platform/observability/production/grafana.yaml").read_text()
+        self.assertIn("RE8CH Platform:1:Admin,Qianwen:Qianwen:Viewer", manifest)
+        self.assertNotIn("RE8CH Platform:RE8CH Platform:Admin", manifest)
+
+    def test_cost_dashboard_binds_every_panel_to_cost_metrics(self):
+        import json
+        dashboard = json.loads((ROOT / "platform/observability/production/dashboards/re8ch-costs.json").read_text())
+        assert len(dashboard["panels"]) >= 8
+        for panel in dashboard["panels"]:
+            self.assertEqual(panel["datasource"], {"type": "prometheus", "uid": "re8ch-costs"})
 
     def test_shared_runtime_bootstraps_owned_dependencies(self):
         credentials = (ROOT / "platform/observability/production/grafana-secrets.sops.yaml").read_text()
