@@ -56,7 +56,7 @@ function Dashboard() {
     const selectedEdge=authority?.metadata?.annotations?.['networking.re8ch.com/selected-public-edge'];
     const exitReady=selectedEdge && edgeState(edgeByName.get(selectedEdge))==='Ready';
     const ready=accepted && hasBackends && Boolean(exitReady) && Boolean(authority?.metadata?.annotations?.['external-dns.alpha.kubernetes.io/target']);
-    return {host,edge:selectedEdge || '-',target:authority?.metadata?.annotations?.['external-dns.alpha.kubernetes.io/target'] || '-',parents,backends,nodes,accepted,ready,reason:!accepted?'Route not accepted/resolved':!hasBackends?'No ready backend Pod':!exitReady?'No ready public exit':!authority?.metadata?.annotations?.['external-dns.alpha.kubernetes.io/target']?'No published DNS target':'Ready'};
+    return {host,edge:selectedEdge || '-',target:authority?.metadata?.annotations?.['external-dns.alpha.kubernetes.io/target'] || '-',parents,backends,nodes,accepted,ready,reason:!accepted?'Route not accepted/resolved':!hasBackends?'No ready backend Pod':!exitReady?'No ready public exit':!authority?.metadata?.annotations?.['external-dns.alpha.kubernetes.io/target']?'No published DNS target':'Ready in cluster'};
   }));
 
   return <Box sx={{p:2}}>
@@ -86,10 +86,10 @@ function Dashboard() {
         {header:'Actual Pod nodes',accessorKey:'nodes'},
         {header:'Ingress class',accessorFn:(x:any)=>{const authority=ingressObjects.find((i:any)=>(i.spec?.rules || []).some((r:any)=>r.host===x.host)); return authority?.spec?.ingressClassName || '-';}},
         {header:'Route',accessorFn:(x:any)=><StatusLabel status={x.accepted?'success':'error'}>{x.accepted?'Accepted':'Problem'}</StatusLabel>},
-        {header:'Serving',accessorFn:(x:any)=><StatusLabel status={x.ready?'success':'error'}>{x.reason}</StatusLabel>}
+        {header:'In-cluster path',accessorFn:(x:any)=><StatusLabel status={x.ready?'success':'error'}>{x.reason}</StatusLabel>}
       ] as any}/>
     </SectionBox>
-    <Typography variant="caption" color="text.secondary">Resolved Pod 节点由 EndpointSlice/Pod 实时状态补充；当前发现 {podByIp.size} 个可寻址 Pod。</Typography>
+    <Typography variant="caption" color="text.secondary">集群内 Ready 不证明公网 DNS 或 TLS 可达；请同时查看 PublicEdge public DNS authority 的外部监测。当前发现 {podByIp.size} 个可寻址 Pod。</Typography>
   </Box>;
 }
 
