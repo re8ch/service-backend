@@ -96,7 +96,7 @@ kind: Ingress
 metadata:
   name: cube-dns-authority
   namespace: cube-trial
-  labels: {networking.re8ch.com/dns-authority: public-edge}
+  labels: {networking.re8ch.com/dns-authority: migrated-to-service-zone}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: cube.re8ch.com
     external-dns.alpha.kubernetes.io/ttl: "60"

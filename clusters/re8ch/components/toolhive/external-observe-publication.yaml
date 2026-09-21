@@ -126,7 +126,7 @@ kind: Ingress
 metadata:
   name: tools-re8ch-com
   namespace: toolhive-system
-  labels: {networking.re8ch.com/dns-authority: public-edge}
+  labels: {networking.re8ch.com/dns-authority: migrated-to-service-zone}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.138
