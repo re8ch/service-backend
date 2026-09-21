@@ -418,6 +418,8 @@ modules:
       digest: sha256:ce88370469e9f2c593c2ca215e5d5ac75f0f895bd71f36badb746ef85304125f
     - codename: passage-amber
       digest: sha256:e14f7fe78c0d860ae12ddddefe0a4939c0cad0c0c291caa753f715f2073a7667
+    - codename: trailhead-amber
+      digest: sha256:7713c5bd0c0052ff6775ef0a789462643bbb659c13d9d717a995998277cee3ce
   platform/observability/bootstrap:
     releases:
     - codename: aperture
