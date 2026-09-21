@@ -45,7 +45,7 @@ spec:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb]}
+              - {key: kubernetes.io/hostname, operator: In, values: [zan, suxunji]}
   resources:
     requests: {cpu: 500m, memory: 1Gi}
     limits: {cpu: "2", memory: 2Gi}
