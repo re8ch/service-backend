@@ -130,7 +130,6 @@ spec:
     - {name: paralus-console-https, hostname: console.paralus.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: paralus-public-gateway-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: paralus-user-tls, hostname: "*.user.paralus.re8ch.com", protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: paralus-connector-tls, hostname: "*.core-connector.paralus.re8ch.com", protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
-    - {name: ontology-https, hostname: ontology.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: storage-https, hostname: storage.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: agent-https, hostname: agent.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: among-clusters-https, hostname: among-clusters.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: among-clusters-ingest-tls}]}, allowedRoutes: {namespaces: {from: All}}}
