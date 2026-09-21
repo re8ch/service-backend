@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-jade
+    delivery.re8ch.com/codename: canopy-jade
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:32a032111733f1ed01c2b2689d3ffa0bb3e66c86c8633dd55fe62a006fa32c87
+    digest: sha256:eac8956547ddca2a0abe83f8f1f5192c4968c7b3b5899d3bd2048b20c30dcab9
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-jade
+    delivery.re8ch.com/codename: canopy-jade
 spec:
   interval: 10m
   retryInterval: 1m

@@ -192,6 +192,8 @@ modules:
       digest: sha256:5d9d4ec29632af516c2dfd0fa8e8ea1da9c36a8cc6686c02fe17da43ac506917
     - codename: atoll-jade
       digest: sha256:32a032111733f1ed01c2b2689d3ffa0bb3e66c86c8633dd55fe62a006fa32c87
+    - codename: canopy-jade
+      digest: sha256:eac8956547ddca2a0abe83f8f1f5192c4968c7b3b5899d3bd2048b20c30dcab9
   platform/cloud-platform:
     releases:
     - codename: atoll
