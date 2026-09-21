@@ -1,0 +1,30 @@
+name: PublicEdge public DNS authority
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  external-dns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {contents: read}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install DNS probe
+        run: sudo apt-get update && sudo apt-get install -y bind9-dnsutils
+      - name: Probe delegation and public authorities
+        run: python operations/scripts/check-public-edge-authority.py platform/public-edge-manager/authority-monitor.json > public-edge-authority-result.json
+      - name: Publish observation
+        if: always()
+        run: |
+          if [ -f public-edge-authority-result.json ]; then
+            cat public-edge-authority-result.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain observation
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: public-edge-authority-observation
+          path: public-edge-authority-result.json
+          if-no-files-found: warn
+          retention-days: 30
