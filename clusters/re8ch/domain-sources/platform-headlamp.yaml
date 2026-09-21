@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: lighthouse-amber
+    delivery.re8ch.com/codename: signal-amber
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:3cc95bed91085a580d32ee2c2f3b784106c1db1924a3723a384e16c433700588
+    digest: sha256:66bfb38d78e530b00a618d9a381b36676d358c1a2fa8f4d1751410903ce35ea6
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: lighthouse-amber
+    delivery.re8ch.com/codename: signal-amber
 spec:
   interval: 10m
   retryInterval: 1m

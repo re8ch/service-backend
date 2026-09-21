@@ -119,6 +119,8 @@ modules:
       digest: sha256:168e13b856fff180780925df932a2096c6dcb53cf2734ec1ce72116ea8740757
     - codename: lighthouse-amber
       digest: sha256:3cc95bed91085a580d32ee2c2f3b784106c1db1924a3723a384e16c433700588
+    - codename: signal-amber
+      digest: sha256:66bfb38d78e530b00a618d9a381b36676d358c1a2fa8f4d1751410903ce35ea6
   platform/among-clusters:
     releases:
     - codename: bora
