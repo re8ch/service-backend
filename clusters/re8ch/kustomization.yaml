@@ -46,6 +46,7 @@ resources:
 - components/public-exposure/grafana-dns-authority.yaml
 - components/public-exposure/legacy-special-http-routes.yaml
 - components/opencost/ui-nginx-config.yaml
+- components/observability/retire-legacy-qianwen-grafana.yaml
 - components/observable/postgrest-ha.yaml
 - components/regional-routing/cert-manager-bootstrap.yaml
 - components/mcp-registry/registry.yaml
