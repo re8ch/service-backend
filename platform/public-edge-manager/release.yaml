@@ -81,7 +81,6 @@ spec:
       db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
       db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
-      headlamp.re8ch.com.: {service: headlamp, class: web, probePath: /}
       headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
       grafana.service.re8ch.com.: {service: grafana-service, class: service-pilot, probePath: /grafana/api/health}
       browser.service.re8ch.com.: {service: browser-service, class: service-pilot, probePath: /}
@@ -108,16 +107,11 @@ spec:
       ledger-decisions.service.re8ch.com.: {service: ledger-decisions-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307, 401, 403]}
       mail.service.re8ch.com.: {service: mail-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307]}
       pay.service.re8ch.com.: {service: pay-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307, 401]}
-      grafana.re8ch.com.: {service: grafana, class: web, probePath: /grafana/api/health}
       dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
-      litellm.re8ch.com.: {service: litellm, class: web, probePath: /health/readiness}
-      cube.re8ch.com.: {service: cube, class: web, probePath: /}
       dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
-      browser.re8ch.com.: {service: browser, class: web, probePath: /}
       collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
       mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
       stalwart-admin.tools.re8ch.com.: {service: stalwart-admin, class: web, probePath: /admin, acceptedStatuses: [200, 302]}
-      supabase.re8ch.com.: {service: supabase, class: web, probePath: /, acceptedStatuses: [200, 401]}
       hooks.re8ch.com.: {service: hooks, class: web, probePath: /hook/, acceptedStatuses: [400, 404]}
     publicEdges:
       - name: guangzhou-zan
@@ -185,15 +179,10 @@ spec:
       publisherNode: suxunji
       refs:
         registry: {namespace: qianwen-ops, name: static-cilium-edge-services-dns}
-        headlamp: {namespace: headlamp, name: headlamp-dns-authority}
-        grafana: {namespace: observability-system, name: grafana-dns-authority}
         dex: {namespace: dex, name: dex-dns-authority}
-        litellm: {namespace: llm-gateway, name: litellm-dns-authority}
-        cube: {namespace: cube-trial, name: cube-dns-authority}
         dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
         collab: {namespace: mail-system, name: stalwart-collaboration-public}
         stalwart-admin: {namespace: mail-system, name: stalwart-admin-public}
-        supabase: {namespace: supabase-pg-re8ch, name: supabase-pg-re8ch-studio}
         hooks: {namespace: flux-system, name: github-flux-webhook-dns-authority}
     rbac: {mutateIngresses: true}
     service: {type: ClusterIP, annotations: {}, externalTrafficPolicy: ""}

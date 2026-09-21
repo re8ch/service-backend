@@ -68,7 +68,8 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertNotIn("panel-grafana", rendered)
 
         public_edge_manager = (ROOT / "platform/public-edge-manager/release.yaml").read_text()
-        self.assertIn("grafana: {namespace: observability-system, name: grafana-dns-authority}", public_edge_manager)
+        self.assertIn("grafana.service.re8ch.com.: {service: grafana-service", public_edge_manager)
+        self.assertNotIn("grafana: {namespace: observability-system, name: grafana-dns-authority}", public_edge_manager)
         self.assertNotIn("grafana: {namespace: qianwen-ops", public_edge_manager)
 
     def test_grafana_is_a_named_recovery_target(self):

@@ -44,7 +44,7 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
     )
 
 
-def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
+def test_tools_legacy_dns_writer_is_retired_after_service_zone_publication():
     platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
     route = next(
         item
@@ -76,7 +76,7 @@ def test_tools_dns_is_owned_by_public_edge_not_the_http_route_or_gateway():
         if item["kind"] == "Ingress" and item["metadata"]["name"] == "connectool-tools-re8ch-com"
     )
     assert authority["metadata"]["labels"] == {
-        "networking.re8ch.com/dns-authority": "public-edge"
+        "networking.re8ch.com/dns-authority": "migrated-to-service-zone"
     }
     assert authority["metadata"]["annotations"]["networking.re8ch.com/provider"] == (
         "public-edge-manager"

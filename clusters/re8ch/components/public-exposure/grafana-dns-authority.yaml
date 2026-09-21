@@ -4,10 +4,10 @@ metadata:
   name: grafana-dns-authority
   namespace: observability-system
   labels:
-    networking.re8ch.com/dns-authority: public-edge
+    networking.re8ch.com/dns-authority: migrated-to-service-zone
   annotations:
     external-dns.alpha.kubernetes.io/hostname: grafana.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/provider: public-edge-manager
