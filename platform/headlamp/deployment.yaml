@@ -176,15 +176,18 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/public-edge-0.2.0
+              target=/headlamp/plugins/public-edge-0.2.1
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '13a0cc09fe0b4ed28cdbbf876c8e13065a7329f7cad2e55c461426f8fcf28326  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'd0e0d61e977ecb1e714fe5141e19ee5df146e953e53e73fdedb238721796df05  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
               rm -rf "$target"
               mv "$target.new" "$target"
+              for old in /headlamp/plugins/public-edge-*; do
+                [ "$old" = "$target" ] || rm -rf "$old"
+              done
           volumeMounts:
             - {name: plugins, mountPath: /headlamp/plugins}
             - {name: public-edge-plugin, mountPath: /plugin, readOnly: true}
@@ -353,7 +356,7 @@ spec:
             name: headlamp-among-clusters-v0324
         - name: public-edge-plugin
           configMap:
-            name: headlamp-public-edge-v020
+            name: headlamp-public-edge-v021
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v011
