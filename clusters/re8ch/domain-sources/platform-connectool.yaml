@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: meridian-copper
+    delivery.re8ch.com/codename: passage-copper
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:3db2bad3df67774b794c4759cb36d758bc6ec5fba0bbd6144ced84ce5ca56f54
+    digest: sha256:e473c9f84f27419ddde74ae4c464b3d6b78ec0cc50a81f4abf065598ed6c63bc
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: meridian-copper
+    delivery.re8ch.com/codename: passage-copper
 spec:
   interval: 10m
   retryInterval: 1m

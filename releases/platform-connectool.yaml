@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: meridian-copper
+codename: passage-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:3db2bad3df67774b794c4759cb36d758bc6ec5fba0bbd6144ced84ce5ca56f54
+  digest: sha256:e473c9f84f27419ddde74ae4c464b3d6b78ec0cc50a81f4abf065598ed6c63bc
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

@@ -290,6 +290,8 @@ modules:
       digest: sha256:420f22083c5950b9695b05a7b51b82727ddc709d0504d22d024b1999fddfd4c0
     - codename: meridian-copper
       digest: sha256:3db2bad3df67774b794c4759cb36d758bc6ec5fba0bbd6144ced84ce5ca56f54
+    - codename: passage-copper
+      digest: sha256:e473c9f84f27419ddde74ae4c464b3d6b78ec0cc50a81f4abf065598ed6c63bc
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -380,6 +382,8 @@ modules:
       digest: sha256:654fc4538683a2a71e45c3443f24fb3d2789811a56d85a03750e33edcc313cc1
     - codename: sirocco-copper
       digest: sha256:cd2837bcbc42c3f2ee5f409914c4ccc05fc1c17a3f3f8316ac5cfbeb7b03502f
+    - codename: tramontane-copper
+      digest: sha256:d73dd2b98ed1a03d01a100b635c3158e213165abec667c54b72e20ec5d715aa1
   platform/adapter:
     releases:
     - codename: anchor
