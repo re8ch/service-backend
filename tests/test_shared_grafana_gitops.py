@@ -87,6 +87,12 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("re8ch-gateway-collector-monitoring.observability-system.svc.cluster.local:8888/metrics", app)
         self.assertNotIn("trial-gateway-collector-monitoring.observability-ai", app)
 
+    def test_otel_gateway_uses_contrib_distribution_for_remote_write(self):
+        manifest = (ROOT / "platform/observability/production/otel.yaml").read_text()
+        gateway = manifest.split("---", 1)[0]
+        self.assertIn("opentelemetry-collector-contrib:0.153.0@sha256:", gateway)
+        self.assertIn("prometheusremotewrite:", gateway)
+
     def test_cost_and_observe_paths_use_the_shared_metrics_plane(self):
         paths = [
             "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml",
