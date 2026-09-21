@@ -99,6 +99,8 @@ spec:
     # on the authoritative restricted-node-6dc3f140f9 worker until that relationship is declared.
     nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     kratos:
+      secret:
+        nameOverride: paralus-db
       deployment:
         nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         resources:
