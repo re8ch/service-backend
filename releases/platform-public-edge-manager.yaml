@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: sirocco-amber
+codename: tramontane-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:df4a95be19a95e8ffd7135e12f592c48f4235ba00eda5d4227c7c5da78fa3084
+  digest: sha256:3e0426c003e3346657d2b38b1393f0eb096eb38a2c24b3fa23583b03a17c4ee8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
