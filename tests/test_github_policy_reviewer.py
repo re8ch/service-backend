@@ -13,6 +13,7 @@ SPEC.loader.exec_module(reviewer)
 class FakeAPI:
     def __init__(self):
         self.approvals = []
+        self.checks_posted = []
         self.pr = {
             "number": 25,
             "draft": False,
@@ -26,7 +27,9 @@ class FakeAPI:
             "author": {"login": "Woomou"},
             "commit": {"verification": {"verified": True}},
         }
-        self.checks = {"total_count": 1, "check_runs": [{"status": "completed", "conclusion": "success"}]}
+        self.checks = {"total_count": 1, "check_runs": [
+            {"name": "test", "app": {"id": 15368}, "status": "completed", "conclusion": "success"}
+        ]}
         self.status = {"state": "pending", "statuses": []}
         self.reviews = []
 
@@ -52,7 +55,11 @@ class FakeAPI:
         raise AssertionError(path)
 
     def request(self, path, *, method="GET", data=None):
-        assert method == "POST" and data["event"] == "APPROVE"
+        assert method == "POST"
+        if path.endswith("/check-runs"):
+            self.checks_posted.append(data)
+            return {}, {}
+        assert data["event"] == "APPROVE"
         self.approvals.append(path)
         return {}, {}
 
@@ -61,12 +68,14 @@ def test_approves_only_eligible_pr():
     api = FakeAPI()
     assert reviewer.run(api, "public-edge") == 1
     assert api.approvals == ["/repos/public-edge/public-edge-manager/pulls/25/reviews"]
+    assert api.checks_posted[0]["conclusion"] == "success"
 
 
 def test_dry_run_never_approves():
     api = FakeAPI()
     assert reviewer.run(api, "public-edge", dry_run=True) == 1
     assert api.approvals == []
+    assert api.checks_posted == []
 
 
 def test_untrusted_author_is_not_approved():
@@ -74,12 +83,14 @@ def test_untrusted_author_is_not_approved():
     api.pr["user"]["login"] = "outsider"
     assert reviewer.run(api, "public-edge") == 0
     assert api.approvals == []
+    assert api.checks_posted[0]["conclusion"] == "failure"
 
 
 def test_preexisting_pr_is_not_approved():
     api = FakeAPI()
     api.pr["created_at"] = "2026-09-20T00:00:00Z"
     assert reviewer.run(api, "public-edge") == 0
+    assert api.checks_posted == []
 
 
 def test_unsigned_commit_is_not_approved():
@@ -93,6 +104,7 @@ def test_pending_check_is_not_approved():
     api.checks["check_runs"][0]["status"] = "in_progress"
     api.checks["check_runs"][0]["conclusion"] = None
     assert reviewer.run(api, "public-edge") == 0
+    assert api.checks_posted[0]["status"] == "in_progress"
 
 
 def test_change_request_is_not_approved():
@@ -112,6 +124,18 @@ def test_changed_head_is_not_approved():
 
     api.get = changed
     assert reviewer.run(api, "public-edge") == 0
+    assert api.checks_posted == []
+
+
+def test_prior_policy_failure_does_not_poison_future_pass():
+    api = FakeAPI()
+    api.checks["total_count"] = 2
+    api.checks["check_runs"].append({
+        "name": reviewer.CHECK_NAME, "app": {"id": reviewer.APP_ID},
+        "status": "completed", "conclusion": "failure",
+    })
+    assert reviewer.run(api, "public-edge") == 1
+    assert api.checks_posted[0]["conclusion"] == "success"
 
 
 def test_wrong_organization_fails_closed():

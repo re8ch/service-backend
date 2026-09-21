@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Approve trusted, fully checked PRs as the narrowly scoped reviewer App.
+"""Publish App-owned policy checks for trusted, fully checked PRs.
 
 Run only from a protected default-branch workflow with an installation token.
 Never execute code or workflow files from a pull request.
@@ -16,6 +16,10 @@ import time
 TRUSTED_AUTHORS = frozenset({"Woomou"})
 ALLOWED_ORGS = frozenset({"public-edge", "advanced-fabrics", "among-clusters"})
 ROLLOUT_CUTOFF = "2026-09-21T15:16:00Z"
+CHECK_NAME = "re8ch-policy-reviewer"
+APP_ID = 4973967
+
+
 class GitHub:
     def __init__(self, token: str):
         if not token:
@@ -63,7 +67,9 @@ class GitHub:
 
 def checks_pass(api: GitHub, repo: str, sha: str) -> bool:
     checks = api.get(f"/repos/{repo}/commits/{sha}/check-runs?filter=latest&per_page=100")
-    runs = checks["check_runs"]
+    runs = [run for run in checks["check_runs"] if not (
+        run["name"] == CHECK_NAME and run.get("app", {}).get("id") == APP_ID
+    )]
     if checks["total_count"] > 100 or not runs:
         return False
     if not any(run["conclusion"] == "success" for run in runs):
@@ -102,42 +108,68 @@ def eligible(api: GitHub, repo: dict, pr: dict) -> tuple[bool, str]:
     latest = {review["user"]["login"]: review["state"] for review in reviews}
     if "CHANGES_REQUESTED" in latest.values():
         return False, "outstanding change request"
-    if latest.get("re8ch-policy-reviewer[bot]") == "APPROVED":
-        return False, "already approved"
     fresh = api.get(f"/repos/{full_name}/pulls/{number}")
     if fresh["state"] != "open" or fresh["head"]["sha"] != sha or fresh["base"]["ref"] != repo["default_branch"]:
         return False, "PR changed while reviewing"
     return True, "eligible"
 
 
+def publish_check(api: GitHub, repo: str, sha: str, *, allowed: bool, reason: str) -> None:
+    status = "completed" if allowed or reason != "checks not all complete and successful" else "in_progress"
+    conclusion = "success" if allowed else "failure" if status == "completed" else None
+    runs = api.get(f"/repos/{repo}/commits/{sha}/check-runs?filter=latest&per_page=100")["check_runs"]
+    existing = next((run for run in runs if run["name"] == CHECK_NAME and run.get("app", {}).get("id") == APP_ID), None)
+    if existing and existing["status"] == status and existing.get("conclusion") == conclusion:
+        return
+    data = {
+        "name": CHECK_NAME,
+        "head_sha": sha,
+        "status": status,
+        "output": {"title": "Policy reviewer", "summary": reason},
+    }
+    if conclusion is not None:
+        data["conclusion"] = conclusion
+    api.request(f"/repos/{repo}/check-runs", method="POST", data=data)
+
+
 def run(api: GitHub, organization: str, *, dry_run: bool = False) -> int:
     if organization not in ALLOWED_ORGS:
         raise ValueError("organization is not allowlisted")
-    approved = 0
+    passed = 0
     for repo in api.pages("/installation/repositories"):
         if repo["owner"]["login"] != organization or repo["archived"] or repo["disabled"]:
             continue
         full_name = repo["full_name"]
         for pr in api.pages(f"/repos/{full_name}/pulls?state=open"):
+            if pr["created_at"] < ROLLOUT_CUTOFF:
+                print(f"{full_name}#{pr['number']}: predates reviewer rollout")
+                continue
             allowed, reason = eligible(api, repo, pr)
             print(f"{full_name}#{pr['number']}: {reason}")
-            if not allowed:
+            fresh = api.get(f"/repos/{full_name}/pulls/{pr['number']}")
+            if fresh["state"] != "open" or fresh["head"]["sha"] != pr["head"]["sha"]:
                 continue
             if not dry_run:
-                api.request(
-                    f"/repos/{full_name}/pulls/{pr['number']}/reviews",
-                    method="POST",
-                    data={"event": "APPROVE", "body": "Policy reviewer: trusted author, verified commits, and completed successful checks."},
-                )
-            approved += 1
-    return approved
+                if allowed:
+                    reviews = api.pages(f"/repos/{full_name}/pulls/{pr['number']}/reviews")
+                    latest = {review["user"]["login"]: review["state"] for review in reviews}
+                    if latest.get("re8ch-policy-reviewer[bot]") != "APPROVED":
+                        api.request(
+                            f"/repos/{full_name}/pulls/{pr['number']}/reviews",
+                            method="POST",
+                            data={"event": "APPROVE", "body": "Policy reviewer: trusted author, verified commits, and completed successful checks."},
+                        )
+                publish_check(api, full_name, pr["head"]["sha"], allowed=allowed, reason=reason)
+            if allowed:
+                passed += 1
+    return passed
 
 
 def main() -> None:
     organization = os.environ["REVIEWER_ORGANIZATION"]
     dry_run = os.environ.get("REVIEWER_DRY_RUN", "true").lower() != "false"
-    approved = run(GitHub(os.environ["GH_TOKEN"]), organization, dry_run=dry_run)
-    print(f"{organization}: {'eligible' if dry_run else 'approved'}={approved}")
+    passed = run(GitHub(os.environ["GH_TOKEN"]), organization, dry_run=dry_run)
+    print(f"{organization}: {'eligible' if dry_run else 'passing'}={passed}")
 
 
 if __name__ == "__main__":
