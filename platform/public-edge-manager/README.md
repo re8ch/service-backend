@@ -13,6 +13,16 @@ GitHub Actions workflow runs from outside the cluster every 15 minutes,
 records the config digest and observed NS/A/SOA responses, and fails when a
 delegation, UDP/TCP authority, or selected service answer is unavailable.
 
+`service.re8ch.com` is currently a **staged, undelegated** child zone. The
+authorities may answer its SOA/NS directly, but it is intentionally absent from
+`authority-monitor.json` until parent NS delegation exists. It has no service
+records yet: a HelmRelease being GitOps-managed is not evidence that its public
+route, TLS certificate, or PublicEdge health probe is ready. Do not delete
+first-level records until each replacement hostname is reachable through both
+authority nodes, has a valid certificate, passes an external request and has a
+verified rollback path. In particular, keep `api`, `db-ro`, `db-rw`, identity
+issuers, registry and webhook names through their client migration windows.
+
 A local Pod `/healthz` only proves process health. If the external monitor
 fails, do not add more delegated names; repair the affected public ingress or
 withdraw its Node label and update the NS delegation through a reviewed GitOps
