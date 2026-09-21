@@ -81,6 +81,7 @@ domains:
       - tests/test_public_mesh_config.py
       - tests/test_public_mesh_identity_routes.py
       - tests/test_r640_public_authority.py
+      - tests/test_public_edge_publisher.py
 
   identity-access:
     theme: guardians
