@@ -133,6 +133,23 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "qwen": ("application-data", "Nuclio Dashboard, Headlamp, Grafana"),
 }
 
+def namespace_config_authority(name, labels):
+    """Return the controller that owns namespace configuration.
+
+    Static platform namespaces are Git/Flux desired state. Tenant namespaces
+    are intentionally materialized by tenant-control-controller and must not be
+    counted as GitOps drift. Other controller-owned namespaces can opt in with
+    the generic managed-by label; everything else remains visible as
+    unclassified instead of being silently attributed to Git.
+    """
+    if labels.get("tenancy.re8ch.com/managed") == "true" and labels.get("tenancy.re8ch.com/managed-by") == "tenant-control-controller":
+        return "tenant-controller"
+    if name in PLATFORM_NAMESPACE_DOMAINS:
+        return "gitops"
+    if labels.get("app.kubernetes.io/managed-by") or labels.get("re8ch.com/managed-by"):
+        return "runtime-controller"
+    return "unclassified"
+
 DOMAIN_NATIVE_AUTHORITY = {
     "cluster-control": "Kubernetes RBAC, admission policy and controller-specific authorization",
     "observability-control": "Grafana organizations/service accounts, product RBAC and Kubernetes RBAC",
@@ -2000,11 +2017,17 @@ def get_platform_service_catalog():
             plane = "control" if control_plane else "data"
             explicitly_classified = name in PLATFORM_NAMESPACE_DOMAINS
             labels = metadata.get("labels", {})
+            config_authority = namespace_config_authority(name, labels)
             by_namespace[name] = {
                 "namespace": name,
                 "domain": domain,
                 "plane": plane,
                 "explicitPolicy": explicitly_classified,
+                "configAuthority": config_authority,
+                "driftPolicy": {
+                    "mode": "full-object" if config_authority == "gitops" else "boundary-only" if config_authority == "tenant-controller" else "controller-health" if config_authority == "runtime-controller" else "classify-first",
+                    "gitopsManaged": config_authority == "gitops",
+                },
                 "materializedPolicy": {
                     "domain": labels.get("re8ch.com/domain", ""),
                     "plane": labels.get("re8ch.com/plane", ""),
@@ -2069,6 +2092,11 @@ def get_platform_service_catalog():
         entries.append(entry)
     entries.sort(key=lambda value: value["namespace"])
     classified = sum(1 for entry in entries if entry["namespace"] in PLATFORM_NAMESPACE_DOMAINS)
+    authority_counts = {
+        authority: sum(entry["configAuthority"] == authority for entry in entries)
+        for authority in ("gitops", "tenant-controller", "runtime-controller", "unclassified")
+    }
+    gitops_entries = [entry for entry in entries if entry["configAuthority"] == "gitops"]
     return {
         "generatedAt": int(time.time()),
         "source": "live Kubernetes API; no Secret values",
@@ -2078,6 +2106,9 @@ def get_platform_service_catalog():
             "defaultApplicationData": len(entries) - classified,
             "nativeAuthorityMapped": sum(bool(entry.get("nativeAuthority")) for entry in entries),
             "materializedPolicyMatched": sum(entry["materializedPolicy"]["matches"] for entry in entries),
+            "configAuthority": authority_counts,
+            "gitopsNamespaces": len(gitops_entries),
+            "gitopsPolicyMatched": sum(entry["materializedPolicy"]["matches"] for entry in gitops_entries),
             "workloads": sum(len(entry["workloads"]) for entry in entries),
             "services": sum(len(entry["services"]) for entry in entries),
             "ingressHosts": len({host for entry in entries for host in entry["ingressHosts"]}),

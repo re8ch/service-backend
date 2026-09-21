@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.re8ch.service-backend-anchor-sync</string>
+  <key>ProgramArguments</key><array><string>/Volumes/A1/service-backend/operations/workspace-controller/sync-main-anchor.sh</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>300</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>/Users/harryneo/Library/Logs/re8ch-service-backend-anchor-sync.log</string>
+  <key>StandardErrorPath</key><string>/Users/harryneo/Library/Logs/re8ch-service-backend-anchor-sync.log</string>
+</dict></plist>

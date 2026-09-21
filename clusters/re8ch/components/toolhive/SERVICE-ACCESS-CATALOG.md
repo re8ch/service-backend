@@ -52,10 +52,14 @@ inventory currently contains 169 workloads, 166 Services,
 NodePort/LoadBalancer Service. Re-run the ToolHive posture tool rather than
 treating these counts as static inventory.
 
-The verifier rejects a newly created active namespace until it is added to the
-explicit namespace-domain policy map. There is no silent fallback acceptance:
-the fallback exists only so the tool can report the unclassified namespace and
-make the gate failure diagnosable.
+The verifier first resolves namespace configuration authority. Static platform
+namespaces use `re8ch.com/config-authority=gitops` and must be present in the
+explicit namespace-domain policy map. Namespaces carrying
+`tenancy.re8ch.com/managed=true` and
+`tenancy.re8ch.com/managed-by=tenant-control-controller` are dynamically owned
+by the tenant controller: Git governs their boundary template, not each tenant
+workload. Other controller-owned namespaces are evaluated against controller
+health. Only genuinely unclassified namespaces fail the ownership gate.
 
 The same classification is materialized on every active Namespace with
 `re8ch.com/domain`, `re8ch.com/plane` and
