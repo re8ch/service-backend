@@ -64,37 +64,3 @@ metadata: {name: farseer-web, namespace: farseer}
 spec:
   selector: {app.kubernetes.io/name: farseer-web}
   ports: [{name: http, port: 80, targetPort: http}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: farseer-web, namespace: farseer}
-spec:
-  parentRefs:
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: farseer-https}
-  hostnames: [farseer.re8ch.com]
-  rules:
-    - backendRefs: [{name: farseer-web, port: 80}]
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: farseer-public-dns
-  namespace: farseer
-  labels:
-    public.re8ch.com/external-dns: enabled
-    networking.re8ch.com/dns-authority: public-edge
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: farseer.re8ch.com
-    external-dns.alpha.kubernetes.io/target: farseer.re8ch.com.eo.dnse1.com
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-spec:
-  ingressClassName: external-dns-only
-  rules:
-    - host: farseer.re8ch.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend: {service: {name: farseer-web, port: {name: http}}}
