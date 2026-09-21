@@ -456,3 +456,5 @@ modules:
       digest: sha256:4f39eed19ecf2c056e8b4b05c42f3595361bc899e277c5d3ebda375422136699
     - codename: zenith-copper
       digest: sha256:685e55de1a96db34aeb742e9401b140d842ed42b13f7e8794b9efa7414890b8d
+    - codename: aperture-indigo
+      digest: sha256:3a141f496d7212b4220686658a2d18116ada1cad3c75b654401261e0fcd50ae4
