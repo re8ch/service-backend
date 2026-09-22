@@ -158,6 +158,7 @@ spec:
       db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
       headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
+      paralus.service.re8ch.com.: {service: paralus-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307]}
       grafana.service.re8ch.com.: {service: grafana-service, class: service-pilot, probePath: /grafana/api/health}
       browser.service.re8ch.com.: {service: browser-service, class: service-pilot, probePath: /}
       cube.service.re8ch.com.: {service: cube-service, class: service-pilot, probePath: /}
