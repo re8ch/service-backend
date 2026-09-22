@@ -418,6 +418,10 @@ modules:
       digest: sha256:1e6e6948c6623f8a4dff0eaca9b327cc42d126f40a85f2c044ed4ae27e3fc25a
     - codename: etesian-indigo
       digest: sha256:38ee3df3df03c5a75c1b39c6feb40925a358579b5879adfdeaff61b5754900f0
+    - codename: mistral-indigo
+      digest: sha256:1d895173337e632584fe5c7728761ffdb05bad4c48718500b497ced3530ca0ac
+    - codename: sirocco-indigo
+      digest: sha256:7f04390151cbae49fc5ef493ea08f54578f2cfee196398f975a099b32262b4f8
   platform/adapter:
     releases:
     - codename: anchor
