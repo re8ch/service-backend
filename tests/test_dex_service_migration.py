@@ -81,6 +81,10 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
         "client-id": base64.b64encode(b"broker-client").decode(),
         "client-secret": base64.b64encode(b"broker-secret").decode(),
     }}
+    with pytest.raises(SystemExit) as disabled:
+        exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
+    assert disabled.value.code == 0
+    broker_secret["data"]["enabled"] = base64.b64encode(b"true").decode()
     exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
     derived = yaml.safe_load(base64.b64decode(target["data"]["config.yaml"]))
     assert canonical["connectors"] == config["connectors"]

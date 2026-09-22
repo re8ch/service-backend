@@ -7,10 +7,12 @@ issuer and the existing GitHub connector in place. The broker is
 `https://dex.service.re8ch.com/callback`.
 
 Provision a Secret named `re8ch-auth-broker-oidc` in the `dex` namespace with
-`client-id` and `client-secret` keys. Use the same values for
+`client-id` and `client-secret` keys. Add `enabled: "true"` only after the
+broker health check and canary login pass. Use the same client values for
 `AUTH_OIDC_CLIENT_ID` and `AUTH_OIDC_CLIENT_SECRET` in the auth gateway Secret.
-Do not commit either Secret. Without the Dex Secret, the reconciler omits the
-connector. Adding or rotating it updates only `dex-config-service` and rolls
+Do not commit either Secret. Without the Dex Secret or its explicit enable
+flag, the reconciler omits the connector. Enabling or rotating it updates
+only `dex-config-service` and rolls
 `dex-service`.
 
 The broker connector requests `openid profile email groups`. Its group and

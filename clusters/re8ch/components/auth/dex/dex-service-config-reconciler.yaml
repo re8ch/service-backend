@@ -85,7 +85,7 @@ data:
             raise
         broker_secret = None
     connectors = [item for item in config.get('connectors', []) if item.get('id') != 're8ch-auth']
-    if broker_secret:
+    if broker_secret and base64.b64decode(broker_secret.get('data', {}).get('enabled', '')).decode().strip() == 'true':
         values = broker_secret.get('data', {})
         client_id = base64.b64decode(values.get('client-id', '')).decode().strip()
         client_secret = base64.b64decode(values.get('client-secret', '')).decode().strip()
