@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: telescope-indigo
+    delivery.re8ch.com/codename: viewport-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:b5b822ec8a8ccf1c7bdeb216561b83d0763913cc1f0aa431e966a15fb185c731
+    digest: sha256:1ab1c3bcaf3342a947b11a0aab144764f7da5da9d21aedb1d5a6285e34b1501f
   verify:
     provider: cosign
     matchOIDCIdentity:
