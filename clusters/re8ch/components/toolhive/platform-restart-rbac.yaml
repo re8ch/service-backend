@@ -16,6 +16,45 @@ metadata: {name: re8ch:toolhive-platform-restart, namespace: auth}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
 subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
+# Ceph recovery is deliberately narrower than generic Deployment operations.
+# Read the cluster status and OSD Pods, but patch only the reviewed failed OSD.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: re8ch:toolhive-ceph-osd-recovery, namespace: rook-ceph}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [rook-ceph-osd-1]
+    verbs: [get, patch]
+  - apiGroups: ['']
+    resources: [pods, events]
+    verbs: [list]
+  - apiGroups: [ceph.rook.io]
+    resources: [cephclusters]
+    resourceNames: [rook-ceph]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: re8ch:toolhive-ceph-osd-recovery, namespace: rook-ceph}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-ceph-osd-recovery}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: re8ch:toolhive-ceph-osd-node-read}
+rules:
+  - apiGroups: ['']
+    resources: [nodes]
+    resourceNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: re8ch:toolhive-ceph-osd-node-read}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: re8ch:toolhive-ceph-osd-node-read}
+subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
+---
 # Shared Grafana is deliberately a named recovery target, not a namespace-wide
 # mutation permission. Scale is constrained to 0/1 by the MCP implementation.
 apiVersion: rbac.authorization.k8s.io/v1
