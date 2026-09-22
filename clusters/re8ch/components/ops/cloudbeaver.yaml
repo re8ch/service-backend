@@ -190,6 +190,8 @@ spec:
       app: cloudbeaver
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: stateful-ceph
       labels:
         app: cloudbeaver
     spec:
@@ -197,13 +199,15 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        kubernetes.io/os: linux
-        scheduling.re8ch.com/service-plane: core
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: panel
-          effect: NoSchedule
+        scheduling.re8ch.com/placement-general-reliable: "true"
+        scheduling.re8ch.com/ceph-serving: "true"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: scheduling.re8ch.com/failure-domain
+          whenUnsatisfiable: ScheduleAnyway
+          nodeTaintsPolicy: Honor
+          nodeAffinityPolicy: Honor
+          labelSelector: {matchLabels: {app: cloudbeaver}}
       securityContext:
         fsGroup: 8978
       initContainers:

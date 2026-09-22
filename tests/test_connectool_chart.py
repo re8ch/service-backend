@@ -88,12 +88,10 @@ def test_connectool_renders_admin_and_tenant_publications():
     assert all(item["spec"]["sessionAffinity"] == "ClientIP" for item in vmcps.values())
     assert all(item["spec"]["sessionStorage"] == {"provider": "memory"} for item in vmcps.values())
     for item in vmcps.values():
-        expressions = item["spec"]["podTemplateSpec"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-        assert expressions == [{
-            "key": "kubernetes.io/hostname",
-            "operator": "In",
-            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
-        }]
+        assert item["spec"]["podTemplateSpec"]["spec"]["nodeSelector"] == {
+            "scheduling.re8ch.com/pool-service-core-r640": "true",
+            "scheduling.re8ch.com/network-serving": "true",
+        }
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
 
@@ -133,11 +131,9 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
     for name, deployment in routers.items():
         assert deployment["spec"]["replicas"] == 2
         spec = deployment["spec"]["template"]["spec"]
-        terms = spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
-        assert terms[0]["matchExpressions"][0] == {
-            "key": "kubernetes.io/hostname",
-            "operator": "In",
-            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
+        assert spec["nodeSelector"] == {
+            "scheduling.re8ch.com/pool-service-core-r640": "true",
+            "scheduling.re8ch.com/network-serving": "true",
         }
         anti = spec["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert anti["topologyKey"] == "kubernetes.io/hostname"

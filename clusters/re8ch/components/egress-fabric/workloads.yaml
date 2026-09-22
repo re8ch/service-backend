@@ -11,13 +11,14 @@ spec:
     matchLabels: {app.kubernetes.io/name: mihomo-egress}
   template:
     metadata:
+      annotations: {scheduling.re8ch.com/placement-class: node-serving-agent}
       labels: {app.kubernetes.io/name: mihomo-egress}
     spec:
       hostNetwork: true
       priorityClassName: system-node-critical
       # Exit agents follow a capability label. Consumers use the Service and
       # never encode a node name or region-specific Pod identity.
-      nodeSelector: {networking.re8ch.com/mihomo-exit: enabled}
+      nodeSelector: {networking.re8ch.com/mihomo-exit: enabled, scheduling.re8ch.com/workload-eligible: "true"}
       # Keep an already-running exit available during a temporary kubelet or
       # control-plane partition. Health probes, not Node Ready, remove it.
       tolerations:
@@ -122,12 +123,13 @@ spec:
     matchLabels: {app.kubernetes.io/name: mihomo-node}
   template:
     metadata:
+      annotations: {scheduling.re8ch.com/placement-class: node-serving-agent}
       labels: {app.kubernetes.io/name: mihomo-node, networking.re8ch.com/mihomo-local-proxy: "true"}
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical
-      nodeSelector: {networking.re8ch.com/geo: cn}
+      nodeSelector: {networking.re8ch.com/geo: cn, scheduling.re8ch.com/workload-eligible: "true"}
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true

@@ -5,6 +5,21 @@ spec:
   validationFailureAction: Audit
   background: true
   rules:
+    - name: placement-class-must-be-reviewed
+      match:
+        any:
+          - resources: {kinds: [Pod]}
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.annotations.\"scheduling.re8ch.com/placement-class\" || '' }}"
+            operator: NotEquals
+            value: ""
+      validate:
+        message: Workloads must select one reviewed PlacementClass.
+        pattern:
+          metadata:
+            annotations:
+              scheduling.re8ch.com/placement-class: "service-core-local|service-core-ab|service-core-r640|online-reliable|batch-opportunistic|gpu-rocm|stateful-ceph|function-execution|public-edge|egress|node-bootstrap|node-serving-agent"
     - name: placement-class-disallows-unexplained-host-pinning
       match:
         any:
