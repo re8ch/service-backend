@@ -1,5 +1,4 @@
 {
-  "zones": ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"],
-  "nameservers": ["ns-sh.re8ch.com", "ns-gz.re8ch.com", "ns-us.re8ch.com"],
-  "admittedPublicIps": ["192.0.2.62", "192.0.2.86"]
+  "zones": ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com", "service.re8ch.com", "functions.re8ch.com"],
+  "maxNameservers": 3
 }

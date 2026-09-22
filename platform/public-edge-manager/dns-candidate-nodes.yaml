@@ -6,6 +6,9 @@ metadata:
   name: domain-ex
   labels:
     networking.re8ch.com/dns-authority-candidate: "true"
+  annotations:
+    networking.re8ch.com/dns-nameserver: ns-sh.re8ch.com.
+    networking.re8ch.com/dns-region: cn-shanghai
 ---
 apiVersion: v1
 kind: Node
@@ -13,3 +16,6 @@ metadata:
   name: suxunji
   labels:
     networking.re8ch.com/dns-authority-candidate: "true"
+  annotations:
+    networking.re8ch.com/dns-nameserver: ns-gz.re8ch.com.
+    networking.re8ch.com/dns-region: cn-shanghai

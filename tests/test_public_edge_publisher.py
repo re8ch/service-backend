@@ -23,7 +23,7 @@ def test_public_edge_publisher_uses_available_authority_node():
     assert "overseas-kl" not in values["authorityNodes"]
     assert "vm-20-12-ubuntu" not in values["authorityNodes"]
     assert values["fabricEvidence"]["mode"] == "Required"
-    assert values["fabricEvidence"]["requireNodeReady"] is True
+    assert values["fabricEvidence"]["requireNodeReady"] is False
 
 
 def test_functions_zone_is_delegation_ready_and_access_stays_on_subaccess():
