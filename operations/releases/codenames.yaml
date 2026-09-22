@@ -554,3 +554,5 @@ modules:
       digest: sha256:b5b822ec8a8ccf1c7bdeb216561b83d0763913cc1f0aa431e966a15fb185c731
     - codename: viewport-indigo
       digest: sha256:1ab1c3bcaf3342a947b11a0aab144764f7da5da9d21aedb1d5a6285e34b1501f
+    - codename: zenith-indigo
+      digest: sha256:564093f9a7bd0e3a7abdce3f08dade1705a0745ef04a6ea1f817358e8a8c6751
