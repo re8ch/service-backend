@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-indigo
+    delivery.re8ch.com/codename: tramontane-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:7f04390151cbae49fc5ef493ea08f54578f2cfee196398f975a099b32262b4f8
+    digest: sha256:6d0e02c002ace20f6fa1f2fdf23ad0bf075b03fa572a67f19ad1e2b1fce369bc
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-indigo
+    delivery.re8ch.com/codename: tramontane-indigo
 spec:
   interval: 10m
   retryInterval: 1m
