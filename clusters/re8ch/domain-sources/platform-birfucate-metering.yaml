@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-copper
+    delivery.re8ch.com/codename: cascade-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:4e848d378b34acdab4c390bbd6c0366e5cbaf7ae5b67b2314da7fd953c5625f3
+    digest: sha256:2de4d2edd4b49ee9ec1fd464534d5f57ab02aa31393dcf13b2ff222bdb449a7f
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-copper
+    delivery.re8ch.com/codename: cascade-indigo
 spec:
   interval: 10m
   retryInterval: 1m

@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/personal-access
-    delivery.re8ch.com/codename: bastion
+    delivery.re8ch.com/codename: citadel
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
   ref:
-    digest: sha256:011e8f5fed5ec380fc101cf0563b376286b147c3be5371e8dddb4d4a98676d02
+    digest: sha256:a8504fa2db3156ea01948f58946bad50f4e39a275517f32b049e6946bc893d77
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/personal-access
-    delivery.re8ch.com/codename: bastion
+    delivery.re8ch.com/codename: citadel
 spec:
   interval: 10m
   retryInterval: 1m

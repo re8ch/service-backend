@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/among-clusters
-codename: mistral
+codename: tramontane
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
-  digest: sha256:814e9f1829d14f35b722067176ef1993719b7af96c970fff1be72dd391e78a61
+  digest: sha256:735c9843e9b1bb5edbfa9c5b2af8362daf68e0e5049baaa0b1ec53b116fb2ed3
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

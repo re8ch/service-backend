@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: prism-indigo
+codename: telescope-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:fb1a770388d1013b87d01e2639620ef69c9eda9823a5ae856a4949395b313ff7
+  digest: sha256:b5b822ec8a8ccf1c7bdeb216561b83d0763913cc1f0aa431e966a15fb185c731
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

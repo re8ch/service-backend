@@ -95,6 +95,8 @@ modules:
       digest: sha256:f47b5cf2ef132c9b792edf41aedcf49c292c51c39414271f4d9e240865104109
     - codename: bastion
       digest: sha256:011e8f5fed5ec380fc101cf0563b376286b147c3be5371e8dddb4d4a98676d02
+    - codename: citadel
+      digest: sha256:a8504fa2db3156ea01948f58946bad50f4e39a275517f32b049e6946bc893d77
   platform/headlamp:
     releases:
     - codename: aurora
@@ -121,6 +123,8 @@ modules:
       digest: sha256:3cc95bed91085a580d32ee2c2f3b784106c1db1924a3723a384e16c433700588
     - codename: signal-amber
       digest: sha256:66bfb38d78e530b00a618d9a381b36676d358c1a2fa8f4d1751410903ce35ea6
+    - codename: starfire-amber
+      digest: sha256:e247d480a8092c1e2a41e50cf19b0150e8ac8a66a412c682e3eace3ad0c6ffc2
   platform/among-clusters:
     releases:
     - codename: bora
@@ -131,6 +135,10 @@ modules:
       digest: sha256:702007b563e67f16a17cc79d2faa22e073f022aa08f2498755f90ab2ab0954d6
     - codename: mistral
       digest: sha256:814e9f1829d14f35b722067176ef1993719b7af96c970fff1be72dd391e78a61
+    - codename: sirocco
+      digest: sha256:f4383b56ecc16666356b34b8cb38ae97940f3ef56574352cef5910c96b27edd8
+    - codename: tramontane
+      digest: sha256:735c9843e9b1bb5edbfa9c5b2af8362daf68e0e5049baaa0b1ec53b116fb2ed3
   platform/scheduling-fabric:
     releases:
     - codename: atoll
@@ -346,6 +354,8 @@ modules:
       digest: sha256:da93ddcb78ea8670aaf4d79f4abc30a48c78fa885cfb47aaa1964ad285819f7b
     - codename: tideway-copper
       digest: sha256:4e848d378b34acdab4c390bbd6c0366e5cbaf7ae5b67b2314da7fd953c5625f3
+    - codename: cascade-indigo
+      digest: sha256:2de4d2edd4b49ee9ec1fd464534d5f57ab02aa31393dcf13b2ff222bdb449a7f
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -354,6 +364,8 @@ modules:
       digest: sha256:1979c45ccf21cee5a2c564508f6443dfc41c06204aef1d5f1f4cf8e60fd8cb76
     - codename: compass
       digest: sha256:df05dbed8fa1b56c451debb0e117fdce5cc46d7e6e7ce4f48feb698f1c3bf46c
+    - codename: harbor
+      digest: sha256:e1a1eb6761d921aa808608733e4ad7cf99bfecafed10e9e5de76ae70546cdb38
   platform/public-edge-manager:
     releases:
     - codename: bora
@@ -400,6 +412,8 @@ modules:
       digest: sha256:81511a7dd7f107d08d691d14e8e6cb0c9bd2a41b855d5dac37760113fc8916e3
     - codename: bora-indigo
       digest: sha256:1e6949bdbc06afa3d7cf388c79c5027520f400cbc2b64e3601fe6ec0f9369943
+    - codename: chinook-indigo
+      digest: sha256:1e6e6948c6623f8a4dff0eaca9b327cc42d126f40a85f2c044ed4ae27e3fc25a
   platform/adapter:
     releases:
     - codename: anchor
@@ -526,3 +540,7 @@ modules:
       digest: sha256:5a5eee58f43d83edb73f3f3ca087d246c6215c2f6270065be48c224b3325b002
     - codename: prism-indigo
       digest: sha256:fb1a770388d1013b87d01e2639620ef69c9eda9823a5ae856a4949395b313ff7
+    - codename: spectrum-indigo
+      digest: sha256:572f3e62c6c28fabb59649abb57147fa443508c13c7a2094219c3026f8c4cc26
+    - codename: telescope-indigo
+      digest: sha256:b5b822ec8a8ccf1c7bdeb216561b83d0763913cc1f0aa431e966a15fb185c731
