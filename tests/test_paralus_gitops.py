@@ -24,7 +24,7 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
         "namespace": "flux-system",
     }
     vendored = yaml.safe_load((ROOT / "platform/paralus/vendor/ztka/Chart.yaml").read_text())
-    assert vendored["version"] == "0.3.1-re8ch.5"
+    assert vendored["version"] == "0.3.1-re8ch.6"
     assert vendored["appVersion"] == "v0.3.0"
     values = release["spec"]["values"]
     assert values["fqdn"]["domain"] == "paralus.re8ch.com"
