@@ -91,7 +91,7 @@ def test_connectool_renders_admin_and_tenant_publications():
             "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
         }]
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
-    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
+    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
 
 
 def test_connectool_renders_worker_runtime_and_disruption_contracts():
