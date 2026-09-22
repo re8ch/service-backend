@@ -1,4 +1,6 @@
 import importlib.util
+import base64
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -46,3 +48,24 @@ def test_candidate_needs_authoritative_soa_on_both_transports_for_all_zones():
     assert {call.kwargs["tcp"] for call in query.call_args_list} == {True, False}
     with mock.patch.object(election, "dns_query", side_effect=ValueError("not authoritative")):
         assert election.probe(candidate) is None
+
+
+def test_publicedge_metadata_throttling_does_not_block_node_based_election():
+    nodes = {"items": [node("one", "192.0.2.72", "False",
+                            {election.NS_ANNOTATION: "ns-one.re8ch.com."}, "cn-shanghai")]}
+
+    def api(path, method="GET", payload=None):
+        if path == "/api/v1/nodes":
+            return nodes
+        if path.endswith("/publicedges"):
+            raise urllib.error.HTTPError(path, 429, "throttled", {}, None)
+        if path.endswith("/cloudflare-pg-dns-controller-secret"):
+            return {"data": {"CF_API_TOKEN": base64.b64encode(b"test-token").decode()}}
+        return {}
+
+    with mock.patch.object(election, "api_request", side_effect=api), \
+         mock.patch.object(election, "probe", side_effect=lambda item: item), \
+         mock.patch.object(election, "dns_query", return_value=["ns-one.re8ch.com."]), \
+         mock.patch.object(election, "reconcile_parent") as parent:
+        election.main()
+    parent.assert_called_once()

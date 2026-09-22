@@ -73,8 +73,6 @@ spec:
           serviceAccountName: public-edge-nameserver-election
           restartPolicy: Never
           nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
-          tolerations:
-            - {key: node-role.kubernetes.io/control-plane, operator: Exists}
           containers:
             - name: election
               image: python:3.12-alpine
