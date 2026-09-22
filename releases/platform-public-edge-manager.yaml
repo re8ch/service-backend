@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-indigo
+codename: etesian-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:1e6e6948c6623f8a4dff0eaca9b327cc42d126f40a85f2c044ed4ae27e3fc25a
+  digest: sha256:38ee3df3df03c5a75c1b39c6feb40925a358579b5879adfdeaff61b5754900f0
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
