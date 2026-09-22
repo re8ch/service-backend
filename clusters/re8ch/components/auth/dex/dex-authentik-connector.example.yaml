@@ -17,7 +17,7 @@ data:
           issuer: https://auth.re8ch.com/application/o/dex/
           clientID: $DEX_AUTHENTIK_CLIENT_ID
           clientSecret: $DEX_AUTHENTIK_CLIENT_SECRET
-          redirectURI: https://dex.re8ch.com/callback
+          redirectURI: https://dex.service.re8ch.com/callback
           scopes:
             - openid
             - email

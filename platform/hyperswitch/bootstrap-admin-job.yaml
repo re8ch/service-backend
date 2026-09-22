@@ -96,4 +96,4 @@ spec:
             - name: MERCHANT_NAME
               value: RE8CH
             - name: RETURN_URL
-              value: https://pay.re8ch.com
+              value: https://pay.service.re8ch.com

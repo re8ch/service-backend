@@ -34,7 +34,7 @@ if client is None:
 client.update({
     "name": "CubeSandbox",
     "secret": secret,
-    "redirectURIs": ["https://cube.re8ch.com/oauth2/callback"],
+    "redirectURIs": ["https://cube.service.re8ch.com/oauth2/callback"],
 })
 client.pop("public", None)
 path.write_text(yaml.safe_dump(config, sort_keys=False))

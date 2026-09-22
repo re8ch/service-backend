@@ -43,7 +43,7 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 - Environment: sandbox
 - Public chart ingress, web demo, monitoring bundle, card vault, analytics
   pipeline, and UCS: disabled; Cilium Gateway API owns public exposure
-- Control Center: enabled at `https://pay.re8ch.com`; email login disabled,
+- Control Center: enabled at `https://pay.service.re8ch.com`; email login disabled,
   TOTP required, sample data disabled
 - Public API: `https://pay-api.re8ch.com/v1` reaches the RE8CH payment registry;
   unmatched paths continue to reach the internal Hyperswitch router. No

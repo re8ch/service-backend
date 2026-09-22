@@ -53,14 +53,14 @@ data:
         scrape_timeout: 15s
         static_configs:
           - targets:
-              - "192.0.2.192:9788"
-              - "192.0.2.178:9788"
-              - "192.0.2.112:9788"
-              - "192.0.2.182:9788"
-              - "192.0.2.74:9788"
-              - "192.0.2.138:9788"
-              - "192.0.2.89:9788"
-              - "192.0.2.79:9788"
+              - "10.181.22.73:9788"
+              - "10.181.22.128:9788"
+              - "10.181.22.79:9788"
+              - "10.181.22.77:9788"
+              - "10.181.22.95:9788"
+              - "10.181.22.16:9788"
+              - "10.181.22.186:9788"
+              - "10.181.22.50:9788"
             labels:
               tenant: re8ch
               source: host-network
@@ -182,7 +182,7 @@ data:
         scrape_interval: 30s
         scrape_timeout: 10s
         static_configs:
-          - targets: ["192.0.2.149:9153"]
+          - targets: ["10.43.65.40:9153"]
             labels:
               tenant: re8ch
               node: rancher-panel
@@ -289,7 +289,7 @@ data:
               source: pigsty
               cls: pigsty-infra
             targets:
-              - "192.0.2.192:9100"
+              - "10.181.22.73:9100"
         relabel_configs:
           - source_labels: [__address__]
             regex: ([^:]+):.*
@@ -302,9 +302,9 @@ data:
               source: pigsty
               cls: pg-meta
             targets:
-              - "192.0.2.89:9100"
-              - "192.0.2.112:9100"
-              - "192.0.2.251:9100"
+              - "10.181.22.186:9100"
+              - "10.181.22.79:9100"
+              - "10.181.22.47:9100"
         relabel_configs:
           - source_labels: [__address__]
             regex: ([^:]+):.*
@@ -509,7 +509,7 @@ data:
               source: re8ch
               cls: http-probe
             targets:
-              - https://grafana.re8ch.com/grafana/api/health
+              - https://grafana.service.re8ch.com/grafana/api/health
           - labels:
               tenant: platform
               layer: network
@@ -600,10 +600,10 @@ data:
               source: pigsty
               cls: pg-meta
             targets:
-              - 192.0.2.192
-              - 192.0.2.89
-              - 192.0.2.112
-              - 192.0.2.251
+              - 10.181.22.73
+              - 10.181.22.186
+              - 10.181.22.79
+              - 10.181.22.47
         relabel_configs:
           - source_labels: [__address__]
             target_label: __param_target
@@ -679,7 +679,7 @@ metadata:
     app.kubernetes.io/part-of: panel-observability
 subsets:
   - addresses:
-      - ip: 192.0.2.192
+      - ip: 10.181.22.73
         hostname: icp
     ports:
       - name: metrics-alertmanager
@@ -723,11 +723,11 @@ metadata:
     app.kubernetes.io/part-of: panel-observability
 subsets:
   - addresses:
-      - ip: 192.0.2.89
+      - ip: 10.181.22.186
         hostname: pg-meta-1
-      - ip: 192.0.2.112
+      - ip: 10.181.22.79
         hostname: pg-meta-2
-      - ip: 192.0.2.251
+      - ip: 10.181.22.47
         hostname: pg-meta-3
     ports:
       - name: metrics-pg
@@ -870,8 +870,8 @@ spec:
                       - rancher-panel
                       - harbor-registry
                       - amdwsl-zt
-                      - restricted-node-296f36f2fb
-                      - restricted-node-1eb0570f74
+                      - b1-wsl-zt
+                      - a1-wsl-zt
       tolerations:
         - operator: Exists
       containers:
@@ -974,7 +974,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
@@ -1321,7 +1321,7 @@ data:
         "bench": {"tenant": "bench", "namespaces": ["bench"], "dashboardUid": "", "orgId": ""},
         "cardcat": {"tenant": "cardcat", "namespaces": ["cardcat"], "dashboardUid": "", "orgId": ""},
     }
-    SHARED_PIGSTY_IPS = {"192.0.2.89", "192.0.2.112", "192.0.2.251"}
+    SHARED_PIGSTY_IPS = {"10.181.22.186", "10.181.22.79", "10.181.22.47"}
     SHARED_PIGSTY_LOG_JOBS = {"postgres", "pgbackrest", "syslog"}
     SHARED_PIGSTY_SYSLOG_APPS = {
         "postgres",
@@ -1516,7 +1516,7 @@ spec:
           command: ["python3", "/app/tenant-logs-proxy.py"]
           env:
             - name: VLOGS_UPSTREAM
-              value: http://192.0.2.172:9428
+              value: http://10.43.41.174:9428
           ports:
             - name: http
               containerPort: 39092
@@ -1600,7 +1600,7 @@ data:
     METADATA_ENDPOINTS = {"api/v1/labels", "api/v1/series"}
     SHARED_TENANTS = {"re8ch"}
     SHARED_PIGSTY_INS = ["pg-meta-1", "pg-meta-2", "pg-meta-3"]
-    SHARED_PIGSTY_IPS = ["192.0.2.89", "192.0.2.112", "192.0.2.251"]
+    SHARED_PIGSTY_IPS = ["10.181.22.186", "10.181.22.79", "10.181.22.47"]
     SHARED_SYSTEM_DATABASES = {"wal", "log", "pgbouncer", "template0", "template1"}
     TENANT_DB_METRIC_PREFIXES = (
         "pg_db",
@@ -2938,7 +2938,7 @@ data:
         uid: pg-meta-1-anycam-prod
         type: postgres
         access: proxy
-        url: 192.0.2.89:5432
+        url: 10.181.22.186:5432
         user: dbuser_monitor
         database: anycam_prod
         isDefault: false
@@ -2958,7 +2958,7 @@ data:
         uid: pg-meta-1-qianwen-prod
         type: postgres
         access: proxy
-        url: 192.0.2.89:5432
+        url: 10.181.22.186:5432
         user: dbuser_monitor
         database: qianwen_prod
         isDefault: false
@@ -2978,7 +2978,7 @@ data:
         uid: pg-meta-1-ledger
         type: postgres
         access: proxy
-        url: 192.0.2.89:5432
+        url: 10.181.22.186:5432
         user: dbuser_monitor
         database: ledger
         isDefault: false
@@ -2998,7 +2998,7 @@ data:
         uid: pg-meta-1-meta
         type: postgres
         access: proxy
-        url: 192.0.2.89:5432
+        url: 10.181.22.186:5432
         user: dbuser_monitor
         database: meta
         isDefault: false
@@ -3018,7 +3018,7 @@ data:
         uid: pg-meta-1-postgres
         type: postgres
         access: proxy
-        url: 192.0.2.89:5432
+        url: 10.181.22.186:5432
         user: dbuser_monitor
         database: postgres
         isDefault: false
@@ -3038,7 +3038,7 @@ data:
         uid: pg-meta-2-anycam-prod
         type: postgres
         access: proxy
-        url: 192.0.2.112:5432
+        url: 10.181.22.79:5432
         user: dbuser_monitor
         database: anycam_prod
         isDefault: false
@@ -3058,7 +3058,7 @@ data:
         uid: pg-meta-2-qianwen-prod
         type: postgres
         access: proxy
-        url: 192.0.2.112:5432
+        url: 10.181.22.79:5432
         user: dbuser_monitor
         database: qianwen_prod
         isDefault: false
@@ -3078,7 +3078,7 @@ data:
         uid: pg-meta-2-ledger
         type: postgres
         access: proxy
-        url: 192.0.2.112:5432
+        url: 10.181.22.79:5432
         user: dbuser_monitor
         database: ledger
         isDefault: false
@@ -3098,7 +3098,7 @@ data:
         uid: pg-meta-2-meta
         type: postgres
         access: proxy
-        url: 192.0.2.112:5432
+        url: 10.181.22.79:5432
         user: dbuser_monitor
         database: meta
         isDefault: false
@@ -3118,7 +3118,7 @@ data:
         uid: pg-meta-2-postgres
         type: postgres
         access: proxy
-        url: 192.0.2.112:5432
+        url: 10.181.22.79:5432
         user: dbuser_monitor
         database: postgres
         isDefault: false
@@ -3138,7 +3138,7 @@ data:
         uid: pg-meta-3-anycam-prod
         type: postgres
         access: proxy
-        url: 192.0.2.251:5432
+        url: 10.181.22.47:5432
         user: dbuser_monitor
         database: anycam_prod
         isDefault: false
@@ -3158,7 +3158,7 @@ data:
         uid: pg-meta-3-qianwen-prod
         type: postgres
         access: proxy
-        url: 192.0.2.251:5432
+        url: 10.181.22.47:5432
         user: dbuser_monitor
         database: qianwen_prod
         isDefault: false
@@ -3178,7 +3178,7 @@ data:
         uid: pg-meta-3-ledger
         type: postgres
         access: proxy
-        url: 192.0.2.251:5432
+        url: 10.181.22.47:5432
         user: dbuser_monitor
         database: ledger
         isDefault: false
@@ -3198,7 +3198,7 @@ data:
         uid: pg-meta-3-meta
         type: postgres
         access: proxy
-        url: 192.0.2.251:5432
+        url: 10.181.22.47:5432
         user: dbuser_monitor
         database: meta
         isDefault: false
@@ -3218,7 +3218,7 @@ data:
         uid: pg-meta-3-postgres
         type: postgres
         access: proxy
-        url: 192.0.2.251:5432
+        url: 10.181.22.47:5432
         user: dbuser_monitor
         database: postgres
         isDefault: false
@@ -3324,7 +3324,7 @@ spec:
             - name: GF_SERVER_DOMAIN
               value: grafana.re8ch.com
             - name: GF_SERVER_ROOT_URL
-              value: https://grafana.re8ch.com/grafana/
+              value: https://grafana.service.re8ch.com/grafana/
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
             - name: GF_SECURITY_COOKIE_SECURE

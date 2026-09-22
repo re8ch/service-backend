@@ -16,7 +16,7 @@ recording rules and runbook.
    - `ceph status --format json` reports neither `HEALTH_ERR`, unfound objects,
      nor damaged/recovery-unfound PGs;
    - the `rbd-r640` StorageClass provisions and mounts a disposable canary PVC;
-   - every A1/B1/restricted-node-6dc3f140f9 control-plane member is Ready;
+   - every A1/B1/R640 control-plane member is Ready;
    - the old panel VictoriaMetrics has a verified snapshot/rollback path;
    - Cilium metrics values have been rolled out independently and all Cilium
      Pods are Ready.
@@ -62,7 +62,7 @@ evidence remains unknown. See `policies/README.md` for the namespace contract.
 
 `production/grafana.yaml` is the sole GitOps definition of the shared Grafana
 runtime. It runs one recoverable replica in `observability-system`, retains
-`https://grafana.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
+`https://grafana.service.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
 from `re8ch-grafana-database`, uses a Dex public PKCE client, and references a
 separate renderer-token Secret. `production/grafana-secrets.sops.yaml` is the
 encrypted GitOps authority for these values; plaintext credentials never enter

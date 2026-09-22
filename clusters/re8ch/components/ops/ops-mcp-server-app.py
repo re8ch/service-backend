@@ -35,8 +35,8 @@ TRUST_PROXY_CIDRS = tuple(
 KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.176:6443")
 REGISTRY_PUBLIC = os.getenv("REGISTRY_PUBLIC", "https://registry.re8ch.com")
 REGISTRY_ALT = os.getenv("REGISTRY_ALT", "https://registry.ynzs.com")
-GRAFANA_PUBLIC = os.getenv("GRAFANA_PUBLIC", "https://grafana.re8ch.com")
-HEADLAMP_PUBLIC = os.getenv("HEADLAMP_PUBLIC", "https://headlamp.re8ch.com")
+GRAFANA_PUBLIC = os.getenv("GRAFANA_PUBLIC", "https://grafana.service.re8ch.com")
+HEADLAMP_PUBLIC = os.getenv("HEADLAMP_PUBLIC", "https://headlamp.service.re8ch.com")
 TOOLHIVE_REGISTRY_URL = os.getenv(
     "TOOLHIVE_REGISTRY_URL",
     "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080/v1/registries",
@@ -254,8 +254,8 @@ RESOURCE_KINDS = {
 GUIDE = """Ops MCP for re8ch/qwen
 
 Public URLs:
-- Headlamp: https://headlamp.re8ch.com
-- Grafana:  https://grafana.re8ch.com
+- Headlamp: https://headlamp.service.re8ch.com
+- Grafana:  https://grafana.service.re8ch.com
 - Registry: https://registry.re8ch.com
 
 Authentication:
@@ -301,9 +301,9 @@ Grafana for AI agents:
 - Use MCP tool get_grafana_access only when the agent needs Grafana dashboard JSON or raw Grafana datasource query API.
 - get_grafana_access returns a Viewer-scoped Grafana service account token for this tenant org.
 - Use the returned token with: Authorization: Bearer <grafana-service-account-token>
-- Dashboard discovery: GET https://grafana.re8ch.com/ui/api/search?type=dash-db
-- Dashboard JSON: GET https://grafana.re8ch.com/ui/api/dashboards/uid/<dashboard-uid>
-- Datasource query: POST https://grafana.re8ch.com/ui/api/ds/query with datasource uid tenant-metrics.
+- Dashboard discovery: GET https://grafana.service.re8ch.com/ui/api/search?type=dash-db
+- Dashboard JSON: GET https://grafana.service.re8ch.com/ui/api/dashboards/uid/<dashboard-uid>
+- Datasource query: POST https://grafana.service.re8ch.com/ui/api/ds/query with datasource uid tenant-metrics.
 - The tenant Grafana datasource still goes through the tenant metrics proxy, so arbitrary PromQL and cross-tenant queries are rejected.
 - Do not use human Grafana web passwords for AI agents.
 
@@ -1452,7 +1452,7 @@ def get_litellm_gateway_status():
         "protectedNativeAPIs": ["/health", "/health/services", "/model/info", "/v1/models", "/key/info", "/team/list"],
         "authorization": "Protected model, provider, key, team and budget APIs require LiteLLM native credentials and are not proxied by this tool.",
         "redaction": "Master key, provider keys, database URL, UI credentials and ConfigMap contents are not read.",
-        "humanTracking": {"litellmAdmin": "https://litellm.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"litellmAdmin": "https://litellm.service.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_fleet_control_status():
@@ -1531,7 +1531,7 @@ def get_supabase_platform_status():
         "protectedNativeAPIs": ["Auth users/sessions", "PostgREST data/schema", "Storage objects/buckets", "Realtime channels", "Meta schema administration", "Kong routes/keys"],
         "authorization": "Supabase JWT/anon/service-role policies, PostgreSQL roles/RLS and component-native authorization remain authoritative; this tool does not proxy them.",
         "redaction": "JWT secrets, anon/service-role keys, database URLs, credentials, users, rows, buckets, objects and schema contents are not read.",
-        "humanTracking": {"supabaseStudio": "https://supabase.re8ch.com", "cloudbeaver": CLOUDBEAVER_PUBLIC, "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"supabaseStudio": "https://supabase.service.re8ch.com", "cloudbeaver": CLOUDBEAVER_PUBLIC, "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_neo4j_platform_status():
@@ -1574,7 +1574,7 @@ def get_neo4j_platform_status():
         "protectedNativeAPIs": ["Bolt/Cypher queries", "transaction endpoints", "database/user/role administration", "graph data and schema"],
         "authorization": "Neo4j users, roles and database privileges remain authoritative; Kubernetes readiness does not grant graph access.",
         "redaction": "Neo4j credentials, Cypher text/results, nodes, relationships, properties, indexes, constraints and configuration are not read.",
-        "humanTracking": {"neo4jBrowser": "https://neo4j.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"neo4jBrowser": "https://neo4j.service.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_identity_platform_status():
@@ -1620,7 +1620,7 @@ def get_identity_platform_status():
         "protectedNativeAPIs": ["Dex users/groups", "static clients/connectors", "tokens/sessions", "OAuth/OIDC configuration"],
         "authorization": "Dex groups and application gateway identity checks remain authoritative; Kubernetes readiness is observation only.",
         "redaction": "Users, groups, sessions, tokens, client secrets, signing keys, credentials, policy contents and identity claims are not read.",
-        "humanTracking": {"dex": "https://dex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"dex": "https://dex.service.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_agent_runtime_status():
@@ -1675,7 +1675,7 @@ def get_agent_runtime_status():
         "protectedNativeAPIs": ["Agent prompts/memory/conversations", "model/provider credentials", "sandbox files/processes/commands/output", "Codex session contents and credentials"],
         "authorization": "OpenSandbox and Codex native APIs plus Kubernetes RBAC remain authoritative; workload readiness does not grant session or execution access.",
         "redaction": "Prompts, messages, memory, model configuration, tokens, credentials, sandbox names/specifications/files/processes/output and Codex session contents are not read.",
-        "humanTracking": {"codex": "https://codex.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"codex": "https://codex.service.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_observability_platform_status():

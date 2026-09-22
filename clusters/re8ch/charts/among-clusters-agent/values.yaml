@@ -1,5 +1,5 @@
 clusterID: ""
-hubEndpoint: https://among-clusters.re8ch.com
+hubEndpoint: https://among-clusters.service.re8ch.com
 image:
   repository: ghcr.io/re8ch/among-clusters
   digest: ""

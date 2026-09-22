@@ -100,7 +100,7 @@ spec:
           ports: [{name: http, containerPort: 3000}]
           env:
             - {name: GF_SERVER_DOMAIN, value: grafana.re8ch.com}
-            - {name: GF_SERVER_ROOT_URL, value: https://grafana.re8ch.com/grafana/}
+            - {name: GF_SERVER_ROOT_URL, value: https://grafana.service.re8ch.com/grafana/}
             - {name: GF_SERVER_SERVE_FROM_SUB_PATH, value: "true"}
             - {name: GF_SECURITY_COOKIE_SECURE, value: "true"}
             - {name: GF_USERS_ALLOW_SIGN_UP, value: "false"}

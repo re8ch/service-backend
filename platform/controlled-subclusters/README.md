@@ -22,7 +22,7 @@ decisions.
 
 ## Identity contract
 
-The current Headlamp integration authenticates through `https://dex.re8ch.com` and
+The current Headlamp integration authenticates through `https://dex.service.re8ch.com` and
 Kubernetes observes usernames with the `oidc:` prefix. Until every target API server
 is verified to use one stable claim, owner RBAC may list both the verified email and
 GitHub login subjects. Those aliases grant access to one human and must be documented

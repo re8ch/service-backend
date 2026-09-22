@@ -6,13 +6,13 @@ metadata:
 data:
   devices.yaml: |
     devices:
-      - {name: vm-20-12-ubuntu, address: 192.0.2.192, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-      - {name: pg-re8ch-replica-186, address: 192.0.2.89, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-      - {name: artchais-nuclio-1, address: 192.0.2.182, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-      - {name: qianwen-nuclio-79, address: 192.0.2.112, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-      - {name: rancher-panel, address: 192.0.2.138, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-      - {name: harbor-registry, address: 192.0.2.74, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
-      - {name: restricted-node-6dc3f140f9, address: 192.0.2.178, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: vm-20-12-ubuntu, address: 10.181.22.73, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: pg-re8ch-replica-186, address: 10.181.22.186, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: artchais-nuclio-1, address: 10.181.22.77, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: qianwen-nuclio-79, address: 10.181.22.79, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: rancher-panel, address: 10.181.22.16, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: harbor-registry, address: 10.181.22.95, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
+      - {name: r640, address: 10.181.22.128, platform: frr, credential: {username: hyperglass-ro, key: /run/hyperglass-ssh/id_ed25519}, directives: [{builtins: [bgp_route, bgp_aspath, bgp_community]}]}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -112,7 +112,7 @@ spec:
       containers:
         - name: oauth2-proxy
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
-          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.re8ch.com", "--redirect-url=https://hubble.re8ch.com/oauth2/callback", "--upstream=http://hubble-ui.kube-system.svc.cluster.local:80", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
+          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.service.re8ch.com", "--redirect-url=https://hubble.re8ch.com/oauth2/callback", "--upstream=http://hubble-ui.kube-system.svc.cluster.local:80", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
           envFrom: [{secretRef: {name: oauth2-proxy-hubble}}]
           ports: [{name: http, containerPort: 4180}]
           resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
@@ -131,7 +131,7 @@ spec:
       containers:
         - name: oauth2-proxy
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
-          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.re8ch.com", "--redirect-url=https://cost.re8ch.com/oauth2/callback", "--upstream=http://opencost.opencost.svc.cluster.local:9090", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
+          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.service.re8ch.com", "--redirect-url=https://cost.re8ch.com/oauth2/callback", "--upstream=http://opencost.opencost.svc.cluster.local:9090", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
           envFrom: [{secretRef: {name: oauth2-proxy-opencost}}]
           ports: [{name: http, containerPort: 4180}]
           resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
@@ -150,7 +150,7 @@ spec:
       containers:
         - name: oauth2-proxy
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
-          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.re8ch.com", "--redirect-url=https://bgp.re8ch.com/oauth2/callback", "--upstream=http://hyperglass.qianwen-ops.svc.cluster.local:8001", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
+          args: ["--provider=oidc", "--oidc-issuer-url=https://dex.service.re8ch.com", "--redirect-url=https://bgp.re8ch.com/oauth2/callback", "--upstream=http://hyperglass.qianwen-ops.svc.cluster.local:8001", "--http-address=0.0.0.0:4180", "--email-domain=*", "--scope=openid profile email groups", "--cookie-secure=true", "--cookie-samesite=lax", "--reverse-proxy=true", "--skip-provider-button=true"]
           envFrom: [{secretRef: {name: oauth2-proxy-hyperglass}}]
           ports: [{name: http, containerPort: 4180}]
           resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}

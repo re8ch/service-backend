@@ -61,6 +61,6 @@ spec:
   consumers: [artc, qwen]
   kind: management-ui
   direction: bidirectional
-  endpoint: https://headlamp.re8ch.com
+  endpoint: https://headlamp.service.re8ch.com
   accessContract: owner-approved Kubernetes RBAC
   declarations: {publisherEventRef: "", consumerEventRefs: {}}

@@ -45,7 +45,7 @@ spec:
       selectedEdge: loudi-r640
     onboarding:
       enabled: true
-      publicEndpoint: https://among-clusters.re8ch.com
+      publicEndpoint: https://among-clusters.service.re8ch.com
       tenant: byoc-pilot
       providerSPIFFEID: spiffe://re8ch.internal/cluster/re8ch
       providerBundleDigest: sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8
@@ -80,7 +80,7 @@ spec:
     clusterID: re8ch
     tenant: byoc-pilot
     trustDomain: re8ch.internal
-    hubEndpoint: https://among-clusters.re8ch.com
+    hubEndpoint: https://among-clusters.service.re8ch.com
     # Preserve TLS/SNI and the public hostname contract while avoiding a
     # RouterOS public-IP hairpin from provider-side reconciliation traffic.
     # This is the Gateway Service ClusterIP, not a replacement authority.

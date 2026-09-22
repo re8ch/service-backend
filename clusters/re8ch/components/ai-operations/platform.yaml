@@ -204,7 +204,7 @@ data:
     clusters:
       - name: qwen-controlled
         cluster:
-          server: https://among-clusters.re8ch.com
+          server: https://among-clusters.service.re8ch.com
     users:
       - name: qwen-controlled
         user: {token: "credential://among-clusters/byoc-pilot/qwen-headlamp-admin"}
@@ -218,7 +218,7 @@ data:
     clusters:
       - name: artc-controlled
         cluster:
-          server: https://among-clusters.re8ch.com
+          server: https://among-clusters.service.re8ch.com
     users:
       - name: artc-controlled
         user: {token: "credential://among-clusters/byoc-pilot/artc-headlamp-admin"}
@@ -266,7 +266,7 @@ spec:
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/cloud/mcp"}
             - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
-            - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
+            - {name: LITELLM_BASE_URL, value: "https://litellm.service.re8ch.com"}
             - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-orchestra-proxy.opensandbox-system.svc.cluster.local:8080"}
             - {name: GH_TOKEN, valueFrom: {secretKeyRef: {name: github-native-auth, key: token, optional: true}}}
             - {name: CODEX_BASE_URL, value: "http://codex-app-server.codex-app-server.svc.cluster.local:4500"}
@@ -479,7 +479,7 @@ spec:
             - {name: MARKETPLACE_SOURCE, value: "https://github.com/re8ch/codex-admin-plugins.git"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
-            - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
+            - {name: LITELLM_BASE_URL, value: "https://litellm.service.re8ch.com"}
             - {name: OPENSANDBOX_BASE_URL, value: "http://opensandbox-orchestra-proxy.opensandbox-system.svc.cluster.local:8080"}
             - {name: GH_TOKEN, valueFrom: {secretKeyRef: {name: github-native-auth, key: token, optional: true}}}
             - {name: CODEX_BASE_URL, value: "http://codex-app-server.codex-app-server.svc.cluster.local:4500"}

@@ -144,7 +144,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
     assert admin_binding["spec"] == {
         "tenantRef": "admin",
-        "issuer": "https://dex.re8ch.com",
+        "issuer": "https://dex.service.re8ch.com",
         "group": "re8ch:tenant-admins",
         "role": "admin",
         "revoked": False,
@@ -152,7 +152,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins")
     assert user_binding["spec"] == {
         "tenantRef": "admin",
-        "issuer": "https://dex.re8ch.com",
+        "issuer": "https://dex.service.re8ch.com",
         "group": "re8ch:k8s-admins",
         "role": "admin",
         "revoked": False,
@@ -219,7 +219,7 @@ def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     )
     assert subject_binding == {
         "name": "artchais-dex-external-operator-v2",
-        "issuer": "https://dex.re8ch.com",
+        "issuer": "https://dex.service.re8ch.com",
         "subjectHash": "sha256:92948cd9df63b98d534da47c27e236b4b894808feff18558aa53996f7059c415",
         "role": "operator",
     }

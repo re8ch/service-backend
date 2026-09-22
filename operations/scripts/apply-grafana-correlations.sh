@@ -2,7 +2,7 @@
 set -euo pipefail
 
 NAMESPACE="${NAMESPACE:-qianwen-ops}"
-GRAFANA_URL="${GRAFANA_URL:-https://grafana.re8ch.com/grafana}"
+GRAFANA_URL="${GRAFANA_URL:-https://grafana.service.re8ch.com/grafana}"
 ADMIN_SECRET="${ADMIN_SECRET:-panel-grafana-admin-recovery}"
 
 python3 -u - <<'PY'
@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 
 namespace = os.environ.get("NAMESPACE", "qianwen-ops")
-grafana_url = os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/grafana").rstrip("/")
+grafana_url = os.environ.get("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana").rstrip("/")
 admin_secret = os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery")
 
 def kubectl_jsonpath(path):
