@@ -11,7 +11,7 @@ metadata:
   namespace: regional-routing
 data:
   API_GROUP: networking.re8ch.com
-  NAMESERVERS: ns-sh.re8ch.com. ns-gz.re8ch.com. ns-us.re8ch.com.
+  NAMESERVERS: ns-sh.re8ch.com. ns-gz.re8ch.com.
   SOA_RNAME: hostmaster.re8ch.com.
   PROBE_USER_AGENT: public-edge-manager/0.3
   PUBLICATION_ENABLED: "true"
