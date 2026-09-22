@@ -294,6 +294,8 @@ modules:
       digest: sha256:e473c9f84f27419ddde74ae4c464b3d6b78ec0cc50a81f4abf065598ed6c63bc
     - codename: trailhead-copper
       digest: sha256:b6d1a13fff72ace05bc60d91d612928675c9c8379683cecede76a6e1b38e7966
+    - codename: anchor-indigo
+      digest: sha256:c6c6b31f316ecf4f39b35355be93e5971b4188b8aa0b84bba9d9f5e30110d598
   platform/birfucate-metering:
     releases:
     - codename: cascade
