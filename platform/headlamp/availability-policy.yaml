@@ -19,8 +19,10 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: headlamp
-  minReplicas: 2
-  maxReplicas: 2
+  # Headlamp v0.42 stores OAuth state in process memory. A second replica can
+  # receive the callback and reject a login started by the first replica.
+  minReplicas: 1
+  maxReplicas: 1
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
