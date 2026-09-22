@@ -129,7 +129,9 @@ spec:
           resourceUrl: https://tools.service.re8ch.com/cloud/mcp
           group: platform-tools-public
           createGroup: false
-          replicas: 2
+          # Only one placement is currently schedulable; avoid a stuck rollout
+          # while the second service-plane node lacks its 64Mi request.
+          replicas: 1
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
             - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
