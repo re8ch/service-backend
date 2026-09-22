@@ -580,3 +580,5 @@ modules:
       digest: sha256:239e2db271ebcbf95a589c9a37cfebccaf3242b64f80acce6fb6c270923d38df
     - codename: prism-jade
       digest: sha256:21f26d308184012aecaa1a928c7c04e2ad8367c48ca774f5d123a6b07f2faff3
+    - codename: spectrum-jade
+      digest: sha256:df7bb4ebf2e96e6b0d62eda0261264d80260c7dac6581aaff9a1ed0898b6765c
