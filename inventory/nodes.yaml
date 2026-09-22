@@ -187,9 +187,9 @@ items:
       transport: ssh
       address: overseas-edge-50
       credentialRef: node-ssh
-      capabilities: [k3s-worker, public-edge]
+      capabilities: [k3s-worker]
       cluster:
-        membership: active
+        membership: not-observed
         roles: [egress]
         services: [k3s-agent, overseas-egress, ceph-csi]
         labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: overseas, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-edge-50-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
