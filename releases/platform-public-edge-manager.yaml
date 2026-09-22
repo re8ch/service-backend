@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-copper
+codename: zephyr-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:d73dd2b98ed1a03d01a100b635c3158e213165abec667c54b72e20ec5d715aa1
+  digest: sha256:81511a7dd7f107d08d691d14e8e6cb0c9bd2a41b855d5dac37760113fc8916e3
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

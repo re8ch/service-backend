@@ -392,6 +392,8 @@ modules:
       digest: sha256:cd2837bcbc42c3f2ee5f409914c4ccc05fc1c17a3f3f8316ac5cfbeb7b03502f
     - codename: tramontane-copper
       digest: sha256:d73dd2b98ed1a03d01a100b635c3158e213165abec667c54b72e20ec5d715aa1
+    - codename: zephyr-copper
+      digest: sha256:81511a7dd7f107d08d691d14e8e6cb0c9bd2a41b855d5dac37760113fc8916e3
   platform/adapter:
     releases:
     - codename: anchor
