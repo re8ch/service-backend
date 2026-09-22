@@ -24,10 +24,11 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
         "namespace": "flux-system",
     }
     vendored = yaml.safe_load((ROOT / "platform/paralus/vendor/ztka/Chart.yaml").read_text())
-    assert vendored["version"] == "0.3.1-re8ch.4"
+    assert vendored["version"] == "0.3.1-re8ch.5"
     assert vendored["appVersion"] == "v0.3.0"
     values = release["spec"]["values"]
     assert values["fqdn"]["domain"] == "paralus.re8ch.com"
+    assert values["fqdn"]["consoleHost"] == "paralus.service.re8ch.com"
     assert values["deploy"]["contour"]["enable"] is False
     assert values["ingress"]["enabled"] is False
     assert values["analytics"]["enable"] is False
@@ -52,7 +53,8 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
 def test_paralus_routes_preserve_console_path_routing_and_tls_passthrough():
     resources = documents(ROOT / "platform/paralus/public-routes.yaml")
     console = next(item for item in resources if item["kind"] == "HTTPRoute")
-    assert console["spec"]["hostnames"] == ["console.paralus.re8ch.com"]
+    assert console["spec"]["hostnames"] == ["paralus.service.re8ch.com"]
+    assert console["spec"]["parentRefs"][0]["sectionName"] == "service-wildcard-https"
     backends = {
         ref["name"]
         for rule in console["spec"]["rules"]

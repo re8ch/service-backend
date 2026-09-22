@@ -173,14 +173,14 @@ postgres://{{ $username }}:{{ $password }}@{{ $address }}:5432/{{ $database }}?s
 Get console full-qualified domain.
 */}}
 {{- define "ztka.consoleFQDN" -}}
-{{.Values.fqdn.hostname}}.{{.Values.fqdn.domain}}
+{{- default (printf "%s.%s" .Values.fqdn.hostname .Values.fqdn.domain) .Values.fqdn.consoleHost -}}
 {{- end -}}
 
 {{/*
 Get console full-qualified domain with scheme.
 */}}
 {{- define "ztka.consoleFQDNWithScheme" -}}
-{{- $url := printf "%s.%s" .Values.fqdn.hostname .Values.fqdn.domain -}}
+{{- $url := include "ztka.consoleFQDN" . -}}
   {{- if .Values.deploy.contour.enable -}}
     {{- if .Values.deploy.contour.tls -}}
 https://{{$url}}
@@ -202,7 +202,7 @@ https://{{$url}}
 Get console full-qualified domain with port.
 */}}
 {{- define "ztka.consoleFQDNWithPort" -}}
-{{- $url := printf "%s.%s" .Values.fqdn.hostname .Values.fqdn.domain -}}
+{{- $url := include "ztka.consoleFQDN" . -}}
   {{- if .Values.deploy.contour.enable -}}
     {{- if .Values.deploy.contour.tls -}}
 {{$url}}:443

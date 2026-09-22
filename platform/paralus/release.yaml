@@ -48,6 +48,7 @@ spec:
     fqdn:
       domain: paralus.re8ch.com
       hostname: console
+      consoleHost: paralus.service.re8ch.com
       userSubdomain: "*.user"
       coreConnectorSubdomain: "*.core-connector"
     paralus:
@@ -55,7 +56,7 @@ spec:
       initialize:
         partner: RE8CH
         partnerDesc: RE8CH tenant access control plane
-        partnerHost: console.paralus.re8ch.com
+        partnerHost: paralus.service.re8ch.com
         org: RE8CH
         orgDesc: RE8CH platform tenants
         adminEmail: admin@re8ch.com
