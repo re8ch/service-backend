@@ -80,6 +80,28 @@ def test_crds_use_status_subresources_cel_and_selectable_fields():
     assert {path.name for path in (CHART / "crds").iterdir()} == {"finops.re8ch.com.yaml", "tenancy.re8ch.com.yaml"}
 
 
+def test_cube_provider_is_distinct_and_not_approved_by_default():
+    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0"], check=True, capture_output=True, text=True).stdout
+    offerings = {item["metadata"]["name"]: item["spec"] for item in yaml.safe_load_all(rendered) if item and item["kind"] == "Consumable"}
+    cube = offerings["sandbox-cube"]
+    assert cube["serviceClass"] == "sandbox.cube.v1"
+    assert offerings["sandbox-runtime"]["serviceClass"] == "sandbox.runtime.v1"
+    assert offerings["sandbox-runtime"]["accessContract"]["provisioner"] == "opensandbox"
+    assert cube["accessContract"]["provisioner"] == "bifurcate/cube-sandbox"
+    assert cube["lifecycle"] == "Draft"
+    assert cube["endpointClass"] == "None"
+    assert cube["allowedWorkloadKinds"] == ["CubeSandbox"]
+    assert {item["name"] for item in cube["meters"]} >= {"execution_second", "cpu_core_second", "memory_gib_second", "network_egress_byte", "provisioned_gib_second"}
+    chart_values = yaml.safe_load((CHART / "values.yaml").read_text())
+    assert "cube-trial" in chart_values["discovery"]["classifications"]["evaluation-only"]
+    production = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())["spec"]["values"]
+    assert not any(
+        grant["consumableRef"] == "sandbox-cube"
+        for tenant in production["tenantPlatform"]["tenants"]
+        for grant in tenant.get("grants", [])
+    )
+
+
 def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, monkeypatch):
     config = {
         "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},

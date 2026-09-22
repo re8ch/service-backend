@@ -10,6 +10,7 @@
   (dict "name" "database-postgresql-shared" "class" "database.postgresql.shared.v1" "owner" "platform-data" "boundary" "Tenant-isolated PostgreSQL databases; superuser and host administration excluded." "kinds" (list "Deployment" "StatefulSet") "meters" (list (dict "name" "provisioned_gib_second" "unit" "GiB-second" "source" "Pigsty") (dict "name" "connection_second" "unit" "connection-second" "source" "Pigsty") (dict "name" "transaction" "unit" "transaction" "source" "Pigsty")))
   (dict "name" "ai-model-gateway" "class" "ai.model-gateway.v1" "owner" "platform-ai" "boundary" "Tenant-scoped inference routing; provider credentials and gateway administration excluded." "kinds" (list "Deployment" "NuclioFunction") "meters" (list (dict "name" "request" "unit" "request" "source" "LiteLLM") (dict "name" "input_token" "unit" "token" "source" "LiteLLM") (dict "name" "output_token" "unit" "token" "source" "LiteLLM") (dict "name" "gpu_second" "unit" "GPU-second" "source" "runtime-telemetry")))
   (dict "name" "sandbox-runtime" "class" "sandbox.runtime.v1" "owner" "platform-sandbox" "boundary" "Tenant sandbox sessions and artifacts; node and controller administration excluded." "kinds" (list "Deployment" "Job") "meters" (list (dict "name" "execution_second" "unit" "second" "source" "OpenSandbox") (dict "name" "cpu_core_second" "unit" "core-second" "source" "OpenCost") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
+  (dict "name" "sandbox-cube" "class" "sandbox.cube.v1" "owner" "platform-sandbox" "boundary" "Tenant-scoped CubeSandbox microVM sessions; Cube node, control-plane and credential administration excluded." "kinds" (list "CubeSandbox") "meters" (list (dict "name" "execution_second" "unit" "second" "source" "CubeSandbox") (dict "name" "cpu_core_second" "unit" "core-second" "source" "CubeSandbox") (dict "name" "memory_gib_second" "unit" "GiB-second" "source" "CubeSandbox") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble") (dict "name" "provisioned_gib_second" "unit" "GiB-second" "source" "Ceph")))
 }}
 {{- range $index, $item := $offerings }}
 {{ if $index }}---
@@ -23,7 +24,7 @@ spec:
   serviceClass: {{ $item.class }}
   owner: {{ $item.owner }}
   lifecycle: {{ if or (eq $item.name "compute-workload") (eq $item.name "storage-volume") }}Approved{{ else }}Draft{{ end }}
-  endpointClass: TenantSafe
+  endpointClass: {{ if eq $item.name "sandbox-cube" }}None{{ else }}TenantSafe{{ end }}
   authenticationProxyRef: tenant
   supportBoundary: {{ $item.boundary | quote }}
   accessContract:
@@ -89,6 +90,16 @@ spec:
     requestFields: [models, tokenBudget, concurrency, expiry]
     grantedResources: [VirtualKeyReference, ModelPolicy, BudgetPolicy]
     revocation: Disable the virtual key reference and preserve usage records.
+    {{- else if eq $item.name "sandbox-cube" }}
+    type: Sandbox
+    isolationUnit: TenantSandboxSession
+    isolationBoundary: One tenant/user/task-bound microVM with quota, TTL, explicit network grants and separately retained workspace artifacts.
+    isolationMechanism: Cube runtime isolation, tenant identity, per-session authorization, quota and deny-by-default network policy
+    provisioner: bifurcate/cube-sandbox
+    credentialDelivery: BrokerReference
+    requestFields: [tenantRef, subjectRef, taskRef, templateId, cpu, memoryMiB, ttlSeconds, networkProfiles, workspaceRef]
+    grantedResources: [SandboxReference, NetworkAttachmentReference, WorkspaceReference, ArtifactStoreReference]
+    revocation: Revoke the task capability, stop and delete its microVM, and retain only policy-selected workspace artifacts.
     {{- else if eq $item.name "sandbox-runtime" }}
     type: Sandbox
     isolationUnit: SandboxSession

@@ -397,6 +397,7 @@ spec:
                   - CronJob
                   - NuclioFunction
                   - PersistentVolumeClaim
+                  - CubeSandbox
               meters:
                 type: array
                 minItems: 1

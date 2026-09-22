@@ -143,6 +143,11 @@ spec:
       meters: [sandbox_second, cpu_core_second, memory_gib_second, artifact_gib_second, network_egress_byte]
       source: OpenSandbox plus OpenCost/Ceph/Hubble
       allocation: direct
+    - id: sandbox.cube.v1
+      productBoundary: Tenant-scoped CubeSandbox microVM sessions, explicit network attachment and separately retained workspace artifacts.
+      meters: [execution_second, cpu_core_second, memory_gib_second, network_egress_byte, provisioned_gib_second]
+      source: CubeSandbox plus Hubble/Ceph; draft contract only, no tenant grant or priced usage
+      allocation: direct-by-tenant-user-task-service-instance
 
   publicationGates:
     - owner-and-service-class-declared
