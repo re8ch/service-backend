@@ -26,7 +26,7 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     codex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "codex-marketplace")
     registration = json.loads(codex["data"]["re8ch-cloud-platform-tool.mcp.json"])
     server = registration["mcpServers"]["re8ch-cloud-platform-tool"]
-    assert oidc["spec"]["inline"]["issuer"] == "https://dex.re8ch.com"
+    assert oidc["spec"]["inline"]["issuer"] == "https://dex.service.re8ch.com"
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]

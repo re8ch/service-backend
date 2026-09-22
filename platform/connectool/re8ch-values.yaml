@@ -1,5 +1,5 @@
 global:
-  issuer: https://dex.re8ch.com
+  issuer: https://dex.service.re8ch.com
   scopes: [openid, profile, email, groups, offline_access]
 dex:
   contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}

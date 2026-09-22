@@ -185,7 +185,7 @@ spec:
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0@sha256:37c1570c0427e02fc7c947ef2c04e8995b8347b7abc9fcf1dbb4e376a4b221a7
           args:
             - --provider=oidc
-            - --oidc-issuer-url=https://dex.re8ch.com
+            - --oidc-issuer-url=https://dex.service.re8ch.com
             # Keep browser authorization on the public issuer while avoiding a
             # public Gateway/RouteOS hairpin for the server-side code exchange.
             - --redeem-url=http://dex.dex.svc.cluster.local/token

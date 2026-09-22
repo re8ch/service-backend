@@ -49,7 +49,7 @@ spec:
   consumers: [artc, qwen]
   kind: identity-provider
   direction: consumer-to-owner
-  endpoint: https://dex.re8ch.com
+  endpoint: https://dex.service.re8ch.com
   accessContract: OIDC discovery and registered clients
   declarations: {publisherEventRef: "", consumerEventRefs: {}}
 ---
