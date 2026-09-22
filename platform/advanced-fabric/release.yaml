@@ -61,6 +61,30 @@ spec:
               - op: add
                 path: /spec/trafficDistribution
                 value: PreferSameNode
+          # The 2 vCPU / 1.6 GiB muaya lightweight node repeatedly entered a
+          # memory-reclaim and I/O-wait loop while this six-container agent
+          # restarted Hubble every 15 seconds. Keep the lightweight node and
+          # container resource exporters there, but run fabric analysis on the
+          # nodes with enough system headroom.
+          - target:
+              group: apps
+              version: v1
+              kind: DaemonSet
+              name: advanced-fabric-agent
+            patch: |-
+              - op: add
+                path: /spec/template/spec/affinity
+                value:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/hostname
+                              operator: NotIn
+                              values: [muaya-lightweight]
+              - op: replace
+                path: /spec/template/spec/containers/0/env/1/value
+                value: "300"
   values:
     # preserveValues keeps the pre-Flux service-vip-fabric settings. Declare
     # newly schema-required optional components explicitly so chart upgrades do
