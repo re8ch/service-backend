@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: tramontane-indigo
+    delivery.re8ch.com/codename: zephyr-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:6d0e02c002ace20f6fa1f2fdf23ad0bf075b03fa572a67f19ad1e2b1fce369bc
+    digest: sha256:64cf7c283666d49b8b2840357e6fa7bd02357e28775532ad178042dc11c47714
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: tramontane-indigo
+    delivery.re8ch.com/codename: zephyr-indigo
 spec:
   interval: 10m
   retryInterval: 1m

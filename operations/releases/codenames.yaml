@@ -432,6 +432,8 @@ modules:
       digest: sha256:7f04390151cbae49fc5ef493ea08f54578f2cfee196398f975a099b32262b4f8
     - codename: tramontane-indigo
       digest: sha256:6d0e02c002ace20f6fa1f2fdf23ad0bf075b03fa572a67f19ad1e2b1fce369bc
+    - codename: zephyr-indigo
+      digest: sha256:64cf7c283666d49b8b2840357e6fa7bd02357e28775532ad178042dc11c47714
   platform/adapter:
     releases:
     - codename: anchor
