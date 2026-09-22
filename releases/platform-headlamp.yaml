@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: signal-amber
+codename: starfire-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:66bfb38d78e530b00a618d9a381b36676d358c1a2fa8f4d1751410903ce35ea6
+  digest: sha256:e247d480a8092c1e2a41e50cf19b0150e8ac8a66a412c682e3eace3ad0c6ffc2
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
