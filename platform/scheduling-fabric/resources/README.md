@@ -38,9 +38,8 @@ the node exporter tolerate this exact taint so they can restore observation.
 
 `scheduling.re8ch.com/capacity-window` is `open`, `closed` or `unknown` on the
 Node; `capacity-reasons` gives bounded evidence in Headlamp. PlacementClass
-and Kueue require `open`. Initial missing telemetry does not taint every node
-at bootstrap; after a complete observation, missing telemetry on that node
-closes its window until a fresh open sample returns. A VictoriaMetrics query
+and Kueue require `open`. Missing telemetry, including the first sample on a
+newly Ready node, closes its window until a fresh open sample arrives. A VictoriaMetrics query
 outage leaves the last taint in place. Review Pending Pods, node taints, exporter
 freshness and Rook health before manual intervention; do not remove the taint
 or delete storage content solely to clear a capacity alert.

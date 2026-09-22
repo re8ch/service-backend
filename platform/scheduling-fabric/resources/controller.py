@@ -328,17 +328,14 @@ def reconcile_capacity_windows(nodes):
         state, reasons = capacity_window(node, measurements.get(name, {}), reservations.get(name), owned)
         labels = {"scheduling.re8ch.com/capacity-window": state}
         annotations = {"scheduling.re8ch.com/capacity-reasons": ",".join(reasons)[:240]}
-        ever_observed = metadata.get("annotations", {}).get("scheduling.re8ch.com/capacity-ever-observed") == "true"
-        if state != "unknown":
-            annotations["scheduling.re8ch.com/capacity-ever-observed"] = "true"
         if (metadata.get("labels", {}).get("scheduling.re8ch.com/capacity-window") != state
                 or any(metadata.get("annotations", {}).get(key) != value for key, value in annotations.items())):
             updated = patch(f"/api/v1/nodes/{name}", {"metadata": {"labels": labels, "annotations": annotations}})
             metadata["resourceVersion"] = updated["metadata"]["resourceVersion"]
         metadata.setdefault("labels", {}).update(labels)
-        # Bootstrap waits for the first complete sample. Once observed, stale
-        # telemetry closes the window until a fresh open sample returns.
-        desired_closed = state == "closed" or (state == "unknown" and (ever_observed or owned))
+        # A Ready node with no first sample has no proven free capacity.
+        # Keep new Pods off it until a complete open sample arrives.
+        desired_closed = state != "open"
         if desired_closed == owned:
             continue
         new_taints = [t for t in taints if t.get("key") != CAPACITY_TAINT["key"]]
