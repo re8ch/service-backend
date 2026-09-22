@@ -987,7 +987,14 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
     subject = str(identity.get("subject") or "").strip()
     issuer = str(identity.get("issuer") or "https://dex.service.re8ch.com").rstrip("/")
     if TENANT_CONTROL_URL and subject:
-        payload = json.dumps({"issuer": issuer, "subjectHash": "sha256:" + hashlib.sha256(f"{issuer}\n{subject}".encode()).hexdigest(), "groups": sorted(groups)}).encode()
+        default_group = next((group.removeprefix("re8ch:default-tenant:") for group in groups if group.startswith("re8ch:default-tenant:")), "")
+        payload = json.dumps({
+            "issuer": issuer,
+            "subjectHash": "sha256:" + hashlib.sha256(f"{issuer}\n{subject}".encode()).hexdigest(),
+            "groups": sorted(groups),
+            "tenantRef": str(identity.get("requested_tenant") or ""),
+            "defaultTenant": str(identity.get("tenant") or default_group),
+        }).encode()
         request = urllib.request.Request(TENANT_CONTROL_URL + "/v1/resolve", data=payload, method="POST", headers={"Content-Type": "application/json", "X-Tenant-Caller": PROFILE})
         try:
             with urllib.request.urlopen(request, timeout=5) as response:
@@ -2226,7 +2233,14 @@ class Handler(BaseHTTPRequestHandler):
             return {"subject": "service:litellm", "groups": sorted(PROFILE_GROUPS.get(PROFILE, set())), "auth_type": "service"}
         if token.startswith("r8x_"):
             return vmcp_exchange_identity(token)
-        return registry().authenticate(token) if token.startswith("r8d_") else dex_identity(token)
+        identity = registry().authenticate(token) if token.startswith("r8d_") else dex_identity(token)
+        if identity and PROFILE == "tenant":
+            selected = self.headers.get("X-RE8CH-Tenant", "")
+            if selected:
+                if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", selected):
+                    return None
+                identity["requested_tenant"] = selected
+        return identity
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
