@@ -131,6 +131,7 @@ def placement_eligible_nodes(placement, nodes):
     spec = placement.get("spec", {})
     selector = spec.get("nodeSelector", {})
     eligible = [node for node in nodes if labels_match(node.get("metadata", {}).get("labels", {}), selector)]
+    eligible = [node for node in eligible if node.get("metadata", {}).get("labels", {}).get("scheduling.re8ch.com/capacity-window") == "open"]
     if not spec.get("allowControlPlane", False):
         eligible = [node for node in eligible if node.get("metadata", {}).get("labels", {}).get("node-role.kubernetes.io/control-plane") != "true"]
     return eligible
@@ -161,8 +162,10 @@ def reconcile_placement_admission_checks(nodes):
         annotation = next((p.get("template", {}).get("metadata", {}).get("annotations", {}).get("scheduling.re8ch.com/placement-class") for p in podsets if p.get("template", {}).get("metadata", {}).get("annotations", {}).get("scheduling.re8ch.com/placement-class")), None)
         placement = classes.get(annotation)
         eligible = placement_eligible_nodes(placement, nodes) if placement else []
-        state = "Ready" if eligible else "Rejected"
-        message = f"PlacementClass {annotation} is ready" if eligible else f"PlacementClass {annotation or '<missing>'} has no eligible nodes"
+        state = "Ready" if eligible else ("Pending" if placement else "Rejected")
+        message = (f"PlacementClass {annotation} is ready" if eligible else
+                   f"PlacementClass {annotation} is waiting for node capacity" if placement else
+                   f"PlacementClass {annotation or '<missing>'} does not exist")
         update = {"name": "re8ch-placement", "state": state, "message": message, "lastTransitionTime": now()}
         if eligible:
             update["podSetUpdates"] = [{"name": podset["name"], "nodeSelector": placement["spec"]["nodeSelector"]} for podset in podsets]
@@ -198,6 +201,156 @@ def trimaran_nodes():
     except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError):
         return set()
     return set.intersection(*series) if series else set()
+
+CAPACITY_TAINT = {"key": "scheduling.re8ch.com/capacity-window", "value": "closed", "effect": "NoSchedule"}
+CAPACITY_PATHS = ("/", "/var/lib/kubelet", "/var/lib/containerd", "/var/lib/rancher/k3s/agent/containerd")
+
+def metric_rows(query, max_age=300):
+    """Return only recent samples; a missing series is never free capacity."""
+    url = VM + "/api/v1/query?" + urllib.parse.urlencode({"query": query})
+    with urllib.request.urlopen(url, timeout=10) as response:
+        payload = json.load(response)
+    if payload.get("status") != "success":
+        raise RuntimeError("capacity metric query failed")
+    measured = time.time()
+    rows = []
+    for row in payload.get("data", {}).get("result", []):
+        try:
+            timestamp, value = float(row["value"][0]), float(row["value"][1])
+        except (KeyError, IndexError, TypeError, ValueError):
+            continue
+        if 0 <= measured - timestamp <= max_age and value >= 0 and value != float("inf"):
+            rows.append((row.get("metric", {}), value))
+    return rows
+
+def capacity_measurements():
+    names = {
+        "size": "node_filesystem_size_bytes", "available": "node_filesystem_avail_bytes",
+        "files": "node_filesystem_files", "filesFree": "node_filesystem_files_free",
+        "readonly": "node_filesystem_readonly", "deviceError": "node_filesystem_device_error",
+        "memoryTotal": "node_memory_MemTotal_bytes", "memoryAvailable": "node_memory_MemAvailable_bytes",
+    }
+    result = {}
+    for field, metric_name in names.items():
+        for labels, value in metric_rows(f'{metric_name}{{job="re8ch-node-storage-exporter"}}'):
+            node = labels.get("node")
+            if not node:
+                continue
+            if field.startswith("memory"):
+                result.setdefault(node, {})[field] = value
+            else:
+                identity = (labels.get("mountpoint"), labels.get("device"), labels.get("fstype"))
+                result.setdefault(node, {}).setdefault("mounts", {}).setdefault(identity, {})[field] = value
+    for labels, value in metric_rows("instance:node_cpu_utilisation:rate:sum"):
+        node = labels.get("node") or labels.get("instance")
+        if node:
+            result.setdefault(node, {})["cpuRatio"] = value
+    return result
+
+def capacity_window(node, measurement, reservations=None, previously_closed=False):
+    """Choose a new-allocation window from host headroom and Kubernetes limits."""
+    conditions = {c.get("type"): c.get("status") for c in node.get("status", {}).get("conditions", [])}
+    if conditions.get("Ready") != "True":
+        return "unknown", ["node-not-ready"]
+    mounts = measurement.get("mounts", {})
+    relevant = {}
+    for path in CAPACITY_PATHS:
+        candidates = [(identity, values) for identity, values in mounts.items()
+                      if identity[0] and (path == identity[0] or path.startswith(identity[0].rstrip("/") + "/"))]
+        if candidates:
+            identity, values = max(candidates, key=lambda entry: len(entry[0][0]))
+            relevant[identity] = values
+    if not relevant or "memoryTotal" not in measurement or "memoryAvailable" not in measurement or "cpuRatio" not in measurement:
+        return "unknown", ["capacity-telemetry-missing"]
+    reasons = []
+    for identity, values in relevant.items():
+        size, available = values.get("size", 0), values.get("available")
+        if size <= 0 or available is None or "readonly" not in values or "deviceError" not in values:
+            return "unknown", ["filesystem-telemetry-incomplete"]
+        if values["readonly"] or values["deviceError"]:
+            reasons.append("filesystem-error:" + identity[0])
+        limit = max(size * (0.20 if previously_closed else 0.15), (10 if previously_closed else 5) * 1024**3)
+        if available < limit:
+            reasons.append("filesystem-low:" + identity[0])
+        files, free = values.get("files"), values.get("filesFree")
+        if files and free is not None and free / files < (0.20 if previously_closed else 0.15):
+            reasons.append("inodes-low:" + identity[0])
+    memory_total, memory_available = measurement["memoryTotal"], measurement["memoryAvailable"]
+    if memory_total <= 0:
+        return "unknown", ["memory-telemetry-incomplete"]
+    if memory_available < max(memory_total * (0.20 if previously_closed else 0.10), (1 if previously_closed else 0.5) * 1024**3):
+        reasons.append("memory-low")
+    if measurement["cpuRatio"] > (0.80 if previously_closed else 0.95):
+        reasons.append("cpu-saturated")
+    allocatable = node.get("status", {}).get("allocatable", {})
+    reservations = reservations or {}
+    for resource, threshold in (("cpu", 0.80 if previously_closed else 0.90),
+                                ("memory", 0.80 if previously_closed else 0.90),
+                                ("ephemeral-storage", 0.75 if previously_closed else 0.90),
+                                ("pods", 0.85 if previously_closed else 0.95)):
+        parser = cpu if resource == "cpu" else memory
+        limit = parser(allocatable.get(resource, "0"))
+        if limit > 0 and reservations.get(resource, 0) / limit >= threshold:
+            reasons.append("requests-high:" + resource)
+    for pressure in ("DiskPressure", "MemoryPressure", "PIDPressure"):
+        if conditions.get(pressure) == "True":
+            reasons.append(pressure)
+    return ("closed" if reasons else "open"), reasons
+
+def reconcile_capacity_windows(nodes):
+    try:
+        measurements = capacity_measurements()
+    except (OSError, TimeoutError, urllib.error.URLError, ValueError, RuntimeError) as exc:
+        print(f"capacity telemetry unavailable: {exc}", flush=True)
+        return
+    reservations = {}
+    for pod in items("/api/v1/pods"):
+        node_name = pod.get("spec", {}).get("nodeName")
+        if not node_name or pod.get("status", {}).get("phase") in ("Succeeded", "Failed"):
+            continue
+        booked = reservations.setdefault(node_name, {"cpu": 0, "memory": 0, "ephemeral-storage": 0, "pods": 0})
+        booked["pods"] += 1
+        for resource in ("cpu", "memory", "ephemeral-storage"):
+            parser = cpu if resource == "cpu" else memory
+            containers = pod.get("spec", {}).get("containers", [])
+            init_containers = pod.get("spec", {}).get("initContainers", [])
+            normal = sum(parser(c.get("resources", {}).get("requests", {}).get(resource, "0")) for c in containers)
+            init = max((parser(c.get("resources", {}).get("requests", {}).get(resource, "0")) for c in init_containers), default=0)
+            overhead = parser(pod.get("spec", {}).get("overhead", {}).get(resource, "0"))
+            booked[resource] += max(normal, init) + overhead
+    for node in nodes:
+        metadata = node.get("metadata", {})
+        name = metadata.get("name")
+        if not name:
+            continue
+        taints = node.get("spec", {}).get("taints", [])
+        owned = any(t.get("key") == CAPACITY_TAINT["key"] for t in taints)
+        state, reasons = capacity_window(node, measurements.get(name, {}), reservations.get(name), owned)
+        labels = {"scheduling.re8ch.com/capacity-window": state}
+        annotations = {"scheduling.re8ch.com/capacity-reasons": ",".join(reasons)[:240]}
+        ever_observed = metadata.get("annotations", {}).get("scheduling.re8ch.com/capacity-ever-observed") == "true"
+        if state != "unknown":
+            annotations["scheduling.re8ch.com/capacity-ever-observed"] = "true"
+        if (metadata.get("labels", {}).get("scheduling.re8ch.com/capacity-window") != state
+                or any(metadata.get("annotations", {}).get(key) != value for key, value in annotations.items())):
+            updated = patch(f"/api/v1/nodes/{name}", {"metadata": {"labels": labels, "annotations": annotations}})
+            metadata["resourceVersion"] = updated["metadata"]["resourceVersion"]
+        metadata.setdefault("labels", {}).update(labels)
+        # Bootstrap waits for the first complete sample. Once observed, stale
+        # telemetry closes the window until a fresh open sample returns.
+        desired_closed = state == "closed" or (state == "unknown" and (ever_observed or owned))
+        if desired_closed == owned:
+            continue
+        new_taints = [t for t in taints if t.get("key") != CAPACITY_TAINT["key"]]
+        if desired_closed:
+            new_taints.append(CAPACITY_TAINT)
+        try:
+            request(f"/api/v1/nodes/{name}", "PATCH", [
+                {"op": "test", "path": "/metadata/resourceVersion", "value": metadata["resourceVersion"]},
+                {"op": "add", "path": "/spec/taints", "value": new_taints},
+            ], "application/json-patch+json")
+        except RuntimeError as exc:
+            print(f"capacity window taint update deferred for {name}: {exc}", flush=True)
 
 def owner_workload(pod, replicasets, deployments, statefulsets):
     owners = pod.get("metadata", {}).get("ownerReferences", [])
@@ -355,6 +508,7 @@ def run():
                 continue
             nodes = items("/api/v1/nodes")
             events = items("/api/v1/events?fieldSelector=involvedObject.kind%3DNode")
+            reconcile_capacity_windows(nodes)
             reconcile_profiles(nodes, events)
             reconcile_placement_classes(nodes)
             reconcile_placement_admission_check()

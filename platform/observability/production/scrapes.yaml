@@ -142,7 +142,7 @@ spec:
         - {targetLabel: signal_domain, replacement: storage}
       metricRelabelConfigs:
         - sourceLabels: [__name__]
-          regex: node_filesystem_(size|avail)_bytes|node_filesystem_(readonly|device_error)|node_memory_Swap(Total|Free)_bytes
+          regex: node_filesystem_(size|avail)_bytes|node_filesystem_(files|files_free|readonly|device_error)|node_memory_Swap(Total|Free)_bytes|node_memory_Mem(Total|Available)_bytes
           action: keep
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
