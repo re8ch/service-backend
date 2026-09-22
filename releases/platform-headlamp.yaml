@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: torch-amber
+codename: aurora-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:5a7c18cbdac27ffd6db03f2e434e2e536d4f5c6f79c33c0c8f17b3e8ce10a102
+  digest: sha256:b1e28ae959e84aae2f139a52222869585d8a55d327795c0729920996ae731635
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
