@@ -34,8 +34,8 @@ spec:
       annotations:
         prometheus.io/scrape: "false"
     spec:
-      # Public egress belongs to the edge node network. The proxy binds only
-      # the node's internal address and remains consumed through ClusterIP.
+      # Public egress belongs to the edge node network. The proxy binds the
+      # Pod address used by the Service endpoint, which can differ from hostIP.
       hostNetwork: true
       dnsPolicy: Default
       priorityClassName: system-cluster-critical
@@ -62,8 +62,8 @@ spec:
           image: alpine:3.22
           imagePullPolicy: IfNotPresent
           command: [/bin/sh, -ec]
-          args: ['sed "s|bind-address: 0.0.0.0|bind-address: ${HOST_IP}|" /base/config.yaml > /work/config.yaml']
-          env: [{name: HOST_IP, valueFrom: {fieldRef: {fieldPath: status.hostIP}}}]
+          args: ['sed "s|bind-address: 0.0.0.0|bind-address: ${POD_IP}|" /base/config.yaml > /work/config.yaml']
+          env: [{name: POD_IP, valueFrom: {fieldRef: {fieldPath: status.podIP}}}]
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: config, mountPath: /base, readOnly: true}
