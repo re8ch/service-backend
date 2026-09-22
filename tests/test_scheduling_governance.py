@@ -199,6 +199,7 @@ def test_placement_classes_are_the_single_portable_placement_contract():
     resources = docs(ROOT / "platform/scheduling-fabric/resources/placement.yaml")
     classes = {item["metadata"]["name"]: item for item in resources}
     assert set(classes) == {
+        "control-plane-critical",
         "service-core-local", "service-core-ab", "service-core-r640",
         "online-reliable", "batch-opportunistic", "gpu-rocm",
         "stateful-ceph", "function-execution", "public-edge", "egress",
@@ -215,6 +216,18 @@ def test_placement_classes_are_the_single_portable_placement_contract():
     }
     assert classes["service-core-ab"]["spec"]["minEligibleNodes"] == 1
     assert classes["service-core-r640"]["spec"]["minFailureDomains"] == 1
+    assert classes["control-plane-critical"]["spec"] == {
+        "workloadMode": "ControlPlaneService",
+        "nodeSelector": {"node-role.kubernetes.io/control-plane": "true"},
+        "allowControlPlane": True,
+        "topologyKey": "scheduling.re8ch.com/failure-domain",
+        "minEligibleNodes": 1,
+        "minFailureDomains": 1,
+        "distributionPolicy": "ObserveOnly",
+        "failurePolicy": "FailClosed",
+        "requiredCapabilities": ["local-kubernetes-api"],
+        "resourceFlavorName": "placement-control-plane-critical",
+    }
     for name in ("service-core-local", "service-core-ab", "service-core-r640"):
         spec = classes[name]["spec"]
         assert spec["nodeSelector"][f"scheduling.re8ch.com/pool-{spec['nodePool']}"] == "true"

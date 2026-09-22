@@ -171,6 +171,12 @@ def placement_node_rejection(placement, node):
     mode = spec.get("workloadMode", "PortableService")
     if mode == "NodeBootstrapDaemon":
         return None if labels_match(labels, spec.get("nodeSelector", {})) else "selector-mismatch"
+    if mode == "ControlPlaneService":
+        ready = any(condition.get("type") == "Ready" and condition.get("status") == "True"
+                    for condition in node.get("status", {}).get("conditions", []))
+        if not ready:
+            return "node-not-ready"
+        return None if labels_match(labels, spec.get("nodeSelector", {})) else "selector-mismatch"
     if labels.get("scheduling.re8ch.com/workload-eligible") != "true":
         return "node-not-workload-eligible"
     if mode != "NodeServingDaemon" and labels.get("scheduling.re8ch.com/capacity-window") != "open":

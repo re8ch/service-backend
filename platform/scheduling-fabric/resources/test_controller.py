@@ -95,6 +95,20 @@ class ScoreTests(unittest.TestCase):
         node = {"metadata": {"name": "joining", "labels": {"kubernetes.io/os": "linux", "scheduling.re8ch.com/workload-eligible": "false", "scheduling.re8ch.com/capacity-window": "unknown"}}}
         self.assertEqual(controller.placement_eligible_nodes(placement, [node]), [node])
 
+    def test_control_plane_service_ignores_ordinary_capacity_window_but_requires_ready(self):
+        placement = {"spec": {"workloadMode": "ControlPlaneService",
+                              "nodeSelector": {"node-role.kubernetes.io/control-plane": "true"},
+                              "allowControlPlane": True}}
+        node = {"metadata": {"name": "control", "labels": {
+                    "node-role.kubernetes.io/control-plane": "true",
+                    "scheduling.re8ch.com/workload-eligible": "false",
+                    "scheduling.re8ch.com/capacity-window": "closed",
+                }},
+                "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+        self.assertIsNone(controller.placement_node_rejection(placement, node))
+        node["status"]["conditions"][0]["status"] = "False"
+        self.assertEqual(controller.placement_node_rejection(placement, node), "node-not-ready")
+
     def test_placement_capacity_fails_closed_until_node_and_domain_minima_hold(self):
         placement = {"spec": {"workloadMode": "PortableService", "nodeSelector": {"pool": "core"}, "allowControlPlane": True,
                               "topologyKey": "scheduling.re8ch.com/failure-domain", "minEligibleNodes": 2, "minFailureDomains": 2}}

@@ -1,6 +1,21 @@
 # PlacementClass is the reviewed allowlist and capacity-floor contract.
 # Pool membership is declared once in NodeProfile and projected as labels;
-# application manifests never need to copy A1/B1/restricted-node-6dc3f140f9 hostnames.
+# application manifests never need to copy A1/B1/R640 hostnames.
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: control-plane-critical}
+spec:
+  workloadMode: ControlPlaneService
+  nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
+  requiredCapabilities: [local-kubernetes-api]
+  resourceFlavorName: placement-control-plane-critical
+---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
 metadata: {name: service-core-local}

@@ -83,7 +83,7 @@ spec:
             properties:
               workloadMode:
                 type: string
-                enum: [PortableService, StatefulService, Batch, NodeBootstrapDaemon, NodeServingDaemon]
+                enum: [PortableService, StatefulService, Batch, ControlPlaneService, NodeBootstrapDaemon, NodeServingDaemon]
               nodeSelector: {type: object, additionalProperties: {type: string}}
               allowControlPlane: {type: boolean}
               topologyKey: {type: string, minLength: 1}

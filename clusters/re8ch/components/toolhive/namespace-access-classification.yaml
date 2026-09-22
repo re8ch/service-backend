@@ -99,7 +99,7 @@ metadata: {name: nuclio, labels: {re8ch.com/domain: application-control, re8ch.c
 ---
 apiVersion: v1
 kind: Namespace
-metadata: {name: headlamp, labels: {re8ch.com/domain: human-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1, re8ch.com/config-authority: gitops}}
+metadata: {name: headlamp, labels: {re8ch.com/domain: human-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1, re8ch.com/config-authority: gitops, scheduling.re8ch.com/control-plane-allowed: "true"}}
 ---
 apiVersion: v1
 kind: Namespace
