@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-indigo
+codename: zephyr-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:6d0e02c002ace20f6fa1f2fdf23ad0bf075b03fa572a67f19ad1e2b1fce369bc
+  digest: sha256:64cf7c283666d49b8b2840357e6fa7bd02357e28775532ad178042dc11c47714
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
