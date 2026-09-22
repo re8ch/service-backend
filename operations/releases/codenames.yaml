@@ -125,6 +125,8 @@ modules:
       digest: sha256:66bfb38d78e530b00a618d9a381b36676d358c1a2fa8f4d1751410903ce35ea6
     - codename: starfire-amber
       digest: sha256:e247d480a8092c1e2a41e50cf19b0150e8ac8a66a412c682e3eace3ad0c6ffc2
+    - codename: torch-amber
+      digest: sha256:5a7c18cbdac27ffd6db03f2e434e2e536d4f5c6f79c33c0c8f17b3e8ce10a102
   platform/among-clusters:
     releases:
     - codename: bora
