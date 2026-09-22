@@ -53,12 +53,12 @@ spec:
       labels: {app.kubernetes.io/name: steel-browser-ui, app.kubernetes.io/part-of: agent-workspace}
     spec:
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       containers:
         - name: ui
           image: ghcr.io/steel-dev/steel-browser-ui:latest@sha256:d866fe57ec8a883bcedc930d533141ee628d857d570abed72358c140806b07b2
           env:
-            - {name: API_URL, value: "https://browser.re8ch.com"}
+            - {name: API_URL, value: "https://browser.service.re8ch.com"}
           ports: [{name: http, containerPort: 80}]
           resources:
             requests: {cpu: 50m, memory: 64Mi}
@@ -85,7 +85,7 @@ spec:
       labels: {app.kubernetes.io/name: steel-browser-gateway, app.kubernetes.io/part-of: agent-workspace}
     spec:
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       containers:
         - name: nginx
           image: nginx:1.29.0-alpine@sha256:42a516af16b852e33b7682d5ef8acbd5d13fe08fecadc7ed98605ba5e3b26ab8
@@ -119,14 +119,14 @@ spec:
       labels: {app.kubernetes.io/name: oauth2-proxy-steel, app.kubernetes.io/part-of: agent-workspace}
     spec:
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       containers:
         - name: oauth2-proxy
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
           args:
             - --provider=oidc
             - --oidc-issuer-url=https://dex.service.re8ch.com
-            - --redirect-url=https://browser.re8ch.com/oauth2/callback
+            - --redirect-url=https://browser.service.re8ch.com/oauth2/callback
             - --upstream=http://steel-browser-gateway:8080
             - --http-address=0.0.0.0:4180
             - --email-domain=*
@@ -165,7 +165,7 @@ metadata:
     public.re8ch.com/external-dns: enabled
   annotations:
     external-dns.alpha.kubernetes.io/hostname: browser.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:

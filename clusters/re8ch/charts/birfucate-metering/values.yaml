@@ -46,8 +46,8 @@ tenantPlatform:
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: re8ch
       identityBindings:
-        - {name: admin-github-k8s-admins, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: admin}
-        - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+        - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin}
+        - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin}
       grants: []
       nativeAccess: false
     - name: artchais
@@ -65,9 +65,9 @@ tenantPlatform:
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: artchais
       identityBindings:
-        - {name: artchais-github-admins, issuer: https://dex.re8ch.com, group: "Artchais:tenant-admins", role: admin}
-        - {name: artchais-github-operators, issuer: https://dex.re8ch.com, group: "Artchais:tenant-operators", role: operator}
-        - {name: artchais-github-viewers, issuer: https://dex.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
+        - {name: artchais-github-admins, issuer: https://dex.service.re8ch.com, group: "Artchais:tenant-admins", role: admin}
+        - {name: artchais-github-operators, issuer: https://dex.service.re8ch.com, group: "Artchais:tenant-operators", role: operator}
+        - {name: artchais-github-viewers, issuer: https://dex.service.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
       grants:
         - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
         - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
@@ -86,7 +86,7 @@ tenantPlatform:
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: tenant-ci
       identityBindings:
-        - {name: tenant-ci-github-actions, issuer: https://dex.re8ch.com, group: "re8ch:tenant-ci", role: operator}
+        - {name: tenant-ci-github-actions, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-ci", role: operator}
       grants:
         - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
         - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}

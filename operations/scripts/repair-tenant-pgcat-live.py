@@ -29,9 +29,9 @@ PGCAT_UIDS = (
 )
 
 PG_META_NODE_DEFAULTS = {
-    "pg-meta-1": {"ip": "192.0.2.89", "node": "VM-0-5-ubuntu"},
-    "pg-meta-2": {"ip": "192.0.2.112", "node": "iZuf6idwzv85k3l3kstj6iZ"},
-    "pg-meta-3": {"ip": "192.0.2.251", "node": "iZ7xv81uwok72sii7seok0Z"},
+    "pg-meta-1": {"ip": "10.181.22.186", "node": "VM-0-5-ubuntu"},
+    "pg-meta-2": {"ip": "10.181.22.79", "node": "iZuf6idwzv85k3l3kstj6iZ"},
+    "pg-meta-3": {"ip": "10.181.22.47", "node": "iZ7xv81uwok72sii7seok0Z"},
 }
 
 PG18_SAFE_PG_STAT_WAL_SQL = """SELECT
@@ -633,7 +633,7 @@ def auth_header(args: argparse.Namespace) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Repair live tenant PGCAT dashboards.")
-    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/grafana"))
+    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana"))
     parser.add_argument("--namespace", default=os.environ.get("NAMESPACE", "qianwen-ops"))
     parser.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery"))
     parser.add_argument("--admin-user", default=os.environ.get("GRAFANA_ADMIN_USER", ""))

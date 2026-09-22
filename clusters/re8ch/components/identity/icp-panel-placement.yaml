@@ -37,8 +37,8 @@ spec:
             - -enable-dynamic-clusters
             - -oidc-client-id=headlamp
             - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
-            - -oidc-idp-issuer-url=https://dex.re8ch.com
-            - -oidc-callback-url=https://headlamp.re8ch.com/oidc-callback
+            - -oidc-idp-issuer-url=https://dex.service.re8ch.com
+            - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
             - -oidc-scopes=openid,profile,email,groups
             - -plugins-dir=/headlamp/plugins
           volumeMounts:

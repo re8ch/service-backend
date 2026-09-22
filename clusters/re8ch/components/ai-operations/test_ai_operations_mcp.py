@@ -255,7 +255,7 @@ class RegistryTests(unittest.TestCase):
             def read(self): return b'{"tenantRef":"research-a","runtimeNamespaceRef":"research-a"}'
         m.urllib.request.urlopen = lambda *_args, **_kwargs: Response()
         identity = {
-            "auth_type": "dex", "issuer": "https://dex.re8ch.com",
+            "auth_type": "dex", "issuer": "https://dex.service.re8ch.com",
             "subject": "subject-1", "groups": [],
         }
         self.assertEqual(m.authenticated_tenant(identity), "research-a")
@@ -295,7 +295,7 @@ class RegistryTests(unittest.TestCase):
         tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
         identity = {
             "subject": "dex-subject-1",
-            "issuer": "https://dex.re8ch.com",
+            "issuer": "https://dex.service.re8ch.com",
             "groups": ["Artchais", "re8ch:tenant-users"],
             "auth_type": "dex",
         }
@@ -306,7 +306,7 @@ class RegistryTests(unittest.TestCase):
             tenant.vmcp_exchange_identity(token),
             {
                 "subject": "dex-subject-1",
-                "issuer": "https://dex.re8ch.com",
+                "issuer": "https://dex.service.re8ch.com",
                 "groups": ["Artchais", "re8ch:tenant-users"],
                 "auth_type": "dex",
             },
@@ -320,7 +320,7 @@ class RegistryTests(unittest.TestCase):
         tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
         tenant.dex_identity = lambda token: {
             "subject": "dex-subject-1",
-            "issuer": "https://dex.re8ch.com",
+            "issuer": "https://dex.service.re8ch.com",
             "groups": ["Artchais"],
             "auth_type": "dex",
         } if token == "incoming-dex-token" else None

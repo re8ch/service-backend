@@ -21,7 +21,7 @@ from typing import Any
 
 
 DEFAULT_RW_BASE = os.getenv("OBSERVABLE_RPC_RW_BASE_URL", "https://db-rw.re8ch.com/observable").rstrip("/")
-GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.re8ch.com/grafana").rstrip("/")
+GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana").rstrip("/")
 GRAFANA_TOKEN = os.getenv("GRAFANA_TOKEN", "")
 GRAFANA_BASIC_AUTH = os.getenv("GRAFANA_BASIC_AUTH", "")
 GRAFANA_BASIC_AUTH_USER = os.getenv("GRAFANA_BASIC_AUTH_USER", "")

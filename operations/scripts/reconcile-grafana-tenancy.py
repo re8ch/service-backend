@@ -67,9 +67,9 @@ TENANTS: dict[str, dict[str, Any]] = {
         # public PostgREST /observable gateway is wired to the observable DB.
         "pgcatSnapshots": False,
         "pgInstances": [
-            {"ins": "pg-meta-4", "url": "192.0.2.154:5432"},
-            {"ins": "pg-meta-5", "url": "192.0.2.111:5432"},
-            {"ins": "pg-meta-3", "url": "192.0.2.251:5432"},
+            {"ins": "pg-meta-4", "url": "10.181.22.24:5432"},
+            {"ins": "pg-meta-5", "url": "10.181.22.217:5432"},
+            {"ins": "pg-meta-3", "url": "10.181.22.47:5432"},
         ],
         "pgCluster": "pg-meta",
         "pgDatabases": ["qianwen_prod", "qianwen_test", "cardcat"],
@@ -90,9 +90,9 @@ TENANTS: dict[str, dict[str, Any]] = {
         # public PostgREST /observable gateway is wired to the observable DB.
         "pgcatSnapshots": False,
         "pgInstances": [
-            {"ins": "pg-re8ch-1", "url": "192.0.2.178:5432"},
-            {"ins": "pg-re8ch-2", "url": "192.0.2.89:5432"},
-            {"ins": "pg-re8ch-3", "url": "192.0.2.138:5432"},
+            {"ins": "pg-re8ch-1", "url": "10.181.22.128:5432"},
+            {"ins": "pg-re8ch-2", "url": "10.181.22.186:5432"},
+            {"ins": "pg-re8ch-3", "url": "10.181.22.16:5432"},
         ],
         "pgCluster": "pg-re8ch",
         "pgDatabases": ["ledger"],
@@ -111,9 +111,9 @@ TENANTS: dict[str, dict[str, Any]] = {
         "pgMonitorSecret": "panel-grafana-pg-monitor",
         "pgcatSnapshots": False,
         "pgInstances": [
-            {"ins": "pg-re8ch-1", "url": "192.0.2.178:5432"},
-            {"ins": "pg-re8ch-2", "url": "192.0.2.89:5432"},
-            {"ins": "pg-re8ch-3", "url": "192.0.2.138:5432"},
+            {"ins": "pg-re8ch-1", "url": "10.181.22.128:5432"},
+            {"ins": "pg-re8ch-2", "url": "10.181.22.186:5432"},
+            {"ins": "pg-re8ch-3", "url": "10.181.22.16:5432"},
         ],
         "pgCluster": "pg-re8ch",
         "pgDatabases": [
@@ -1163,7 +1163,7 @@ def reconcile_tenant(client: GrafanaClient, tenant: str, cfg: dict[str, Any], ar
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Reconcile Grafana tenant org isolation.")
-    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.re8ch.com/grafana").rstrip("/"))
+    parser.add_argument("--grafana-url", default=os.environ.get("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana").rstrip("/"))
     parser.add_argument("--namespace", default=os.environ.get("NAMESPACE", "qianwen-ops"))
     parser.add_argument("--admin-secret", default=os.environ.get("ADMIN_SECRET", "panel-grafana-admin-recovery"))
     parser.add_argument("--admin-user", default=os.environ.get("GRAFANA_ADMIN_USER", ""))

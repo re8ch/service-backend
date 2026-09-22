@@ -61,8 +61,8 @@ spec:
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
           identityBindings:
-            - {name: admin-github-k8s-admins, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: admin}
-            - {name: admin-vmcp-service, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+            - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin}
+            - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin}
           grants: []
           nativeAccess: false
         - name: artchais
@@ -80,14 +80,14 @@ spec:
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: artchais
           identityBindings:
-            - {name: artchais-github-members, issuer: https://dex.re8ch.com, group: "Artchais", role: viewer}
-            - {name: artchais-github-admins, issuer: https://dex.re8ch.com, group: "Artchais:tenant-admins", role: admin}
-            - {name: artchais-github-operators, issuer: https://dex.re8ch.com, group: "Artchais:tenant-operators", role: operator}
-            - {name: artchais-github-viewers, issuer: https://dex.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
+            - {name: artchais-github-members, issuer: https://dex.service.re8ch.com, group: "Artchais", role: viewer}
+            - {name: artchais-github-admins, issuer: https://dex.service.re8ch.com, group: "Artchais:tenant-admins", role: admin}
+            - {name: artchais-github-operators, issuer: https://dex.service.re8ch.com, group: "Artchais:tenant-operators", role: operator}
+            - {name: artchais-github-viewers, issuer: https://dex.service.re8ch.com, group: "Artchais:tenant-viewers", role: viewer}
             # Exact issuer-scoped binding for the approved external operator.
             # Only the one-way subject hash is retained in Git; raw identity
             # claims and OAuth credentials remain outside desired state.
-            - {name: artchais-dex-external-operator-v2, issuer: https://dex.re8ch.com, subjectHash: "sha256:92948cd9df63b98d534da47c27e236b4b894808feff18558aa53996f7059c415", role: operator}
+            - {name: artchais-dex-external-operator-v2, issuer: https://dex.service.re8ch.com, subjectHash: "sha256:92948cd9df63b98d534da47c27e236b4b894808feff18558aa53996f7059c415", role: operator}
           grants:
             - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
@@ -116,13 +116,13 @@ spec:
           identityBindings:
             # The same GitHub identity is deliberately projected differently by
             # audience: ordinary re8ch operator here, protected admin above.
-            - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: operator}
-            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.re8ch.com, group: "re8ch:k8s-admins", role: operator}
+            - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: operator}
+            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: operator}
             # Dex wraps the upstream GitHub numeric ID in its connector-scoped
             # stable `sub`. Hash the actual Dex userinfo `sub`, including the
             # issuer prefix used by the tenant authorizer. This remains an
             # ordinary re8ch tenant binding, not admin access.
-            - {name: re8ch-dex-woomou-subject-operator, issuer: https://dex.re8ch.com, subjectHash: "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6", role: operator}
+            - {name: re8ch-dex-woomou-subject-operator, issuer: https://dex.service.re8ch.com, subjectHash: "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6", role: operator}
             - {name: re8ch-auth-admins, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:admin", role: admin}
             - {name: re8ch-auth-operators, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:member", role: operator}
             - {name: re8ch-auth-billing, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:billing", role: viewer}
@@ -154,7 +154,7 @@ spec:
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: tenant-ci
           identityBindings:
-            - {name: tenant-ci-github-actions, issuer: https://dex.re8ch.com, group: "re8ch:tenant-ci", role: operator}
+            - {name: tenant-ci-github-actions, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-ci", role: operator}
           grants:
             - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}

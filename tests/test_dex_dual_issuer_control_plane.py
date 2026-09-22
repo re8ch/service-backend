@@ -11,7 +11,7 @@ def test_all_control_planes_share_dual_issuer_authentication():
     assert auth['apiVersion'] == 'apiserver.config.k8s.io/v1'
     assert auth['kind'] == 'AuthenticationConfiguration'
     assert [item['issuer']['url'] for item in auth['jwt']] == [
-        'https://dex.re8ch.com', 'https://dex.service.re8ch.com'
+        'https://dex.service.re8ch.com', 'https://dex.service.re8ch.com'
     ]
     for item in auth['jwt']:
         assert item['issuer']['audiences'] == ['headlamp']

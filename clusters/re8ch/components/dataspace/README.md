@@ -1,9 +1,9 @@
 # DataSpace MVP
 
-The public MVP endpoint is `https://storage.re8ch.com:8443`. Its Ingress is a
+The public MVP endpoint is `https://storage.service.re8ch.com:8443`. Its Ingress is a
 declaration consumed by the in-cluster edge/DNS controllers and targets the
-restricted-node-6dc3f140f9 edge; do not patch public DNS manually. Public 8443 is forwarded to the
-restricted-node-6dc3f140f9 Traefik `websecure` entrypoint because public 80/443 are not assumed.
+R640 edge; do not patch public DNS manually. Public 8443 is forwarded to the
+R640 Traefik `websecure` entrypoint because public 80/443 are not assumed.
 Authentication uses Dex authorization code with PKCE and audience
 `storage-collaborator`; a random device token remains an emergency bootstrap
 path only.

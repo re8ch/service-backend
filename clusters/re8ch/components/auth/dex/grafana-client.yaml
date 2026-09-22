@@ -10,4 +10,4 @@ data:
     name: RE8CH Grafana
     public: true
     redirectURIs:
-      - https://grafana.re8ch.com/grafana/login/generic_oauth
+      - https://grafana.service.re8ch.com/grafana/login/generic_oauth

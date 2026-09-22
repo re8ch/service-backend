@@ -40,7 +40,7 @@ def test_subcluster_kubeconfigs_use_broker_imports_and_opaque_references():
         cluster = template["clusters"][0]["cluster"]
         user = template["users"][0]["user"]
 
-        assert cluster["server"] == "https://among-clusters.re8ch.com"
+        assert cluster["server"] == "https://among-clusters.service.re8ch.com"
         assert user["token"] == f"credential://among-clusters/byoc-pilot/{grant}"
         assert "auth-provider" not in user
 
@@ -53,5 +53,5 @@ def test_cluster_tool_kubeconfigs_use_native_origin_and_opaque_references():
     )
     for cluster, grant in (("qwen", "qwen-headlamp-admin"), ("artc", "artc-headlamp-admin")):
         kubeconfig = yaml.safe_load(config_map["data"][f"{cluster}-controlled.yaml"])
-        assert kubeconfig["clusters"][0]["cluster"]["server"] == "https://among-clusters.re8ch.com"
+        assert kubeconfig["clusters"][0]["cluster"]["server"] == "https://among-clusters.service.re8ch.com"
         assert kubeconfig["users"][0]["user"]["token"] == f"credential://among-clusters/byoc-pilot/{grant}"

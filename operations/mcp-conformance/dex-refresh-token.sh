@@ -6,7 +6,7 @@ set -eu
 : "${DEX_REFRESH_TOKEN:?DEX_REFRESH_TOKEN is required}"
 : "${DEX_CLIENT_ID:?DEX_CLIENT_ID is required}"
 : "${DEX_RESOURCE:?DEX_RESOURCE is required}"
-: "${DEX_TOKEN_ENDPOINT:=https://dex.re8ch.com/token}"
+: "${DEX_TOKEN_ENDPOINT:=https://dex.service.re8ch.com/token}"
 
 response=$(curl --fail-with-body --silent --show-error --max-time 30 \
   -H 'Content-Type: application/x-www-form-urlencoded' \

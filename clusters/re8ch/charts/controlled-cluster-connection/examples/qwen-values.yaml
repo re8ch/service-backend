@@ -2,10 +2,10 @@ cluster:
   name: qwen
   owner: qwen
   organizationBoundary: external
-  apiEndpoint: https://192.0.2.154:6443
+  apiEndpoint: https://10.181.22.24:6443
 consumer:
   name: re8ch-headlamp
-  oidcIssuer: https://dex.re8ch.com
+  oidcIssuer: https://dex.service.re8ch.com
   usernamePrefix: "oidc:"
   scopes: [openid, profile, email, groups]
 contract:
@@ -17,7 +17,7 @@ sharedServices:
   - name: qwen-kubernetes-api
     kind: kubernetes-api
     direction: owner-to-consumer
-    endpoint: https://192.0.2.154:6443
+    endpoint: https://10.181.22.24:6443
     access: Dex OIDC plus owner-controlled RBAC
     status: active
 accessGrants:

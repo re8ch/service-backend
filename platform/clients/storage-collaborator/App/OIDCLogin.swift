@@ -17,8 +17,8 @@ final class OIDCLogin: NSObject, ASWebAuthenticationPresentationContextProviding
     }
   }
 
-  static let issuer = URL(string: "https://dex.re8ch.com")!
-  static let transportBase = URL(string: "https://dex.re8ch.com:8443")!
+  static let issuer = URL(string: "https://dex.service.re8ch.com")!
+  static let transportBase = URL(string: "https://dex.service.re8ch.com:8443")!
   static let clientID = "storage-collaborator"
   static let redirectURI = "com.re8ch.storagecollaborator:/oauth/callback"
   private var session: ASWebAuthenticationSession?

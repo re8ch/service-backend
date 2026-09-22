@@ -26,7 +26,7 @@ desired = {
     "id": "litellm",
     "name": "LiteLLM Admin UI",
     "secret": os.environ["CLIENT_SECRET"],
-    "redirectURIs": ["https://litellm.re8ch.com/sso/callback"],
+    "redirectURIs": ["https://litellm.service.re8ch.com/sso/callback"],
 }
 for index, client in enumerate(clients):
     if client.get("id") == desired["id"]:

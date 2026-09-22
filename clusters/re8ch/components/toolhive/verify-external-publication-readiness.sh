@@ -3,7 +3,7 @@ set -u
 
 : "${MCP_ORIGIN:=https://tools.re8ch.com:8443}"
 : "${MCP_RESOURCE:=$MCP_ORIGIN/mcp}"
-: "${AUTH_ORIGIN:=https://dex.re8ch.com}"
+: "${AUTH_ORIGIN:=https://dex.service.re8ch.com}"
 : "${AUTH_ISSUER:=$AUTH_ORIGIN/}"
 
 failures=0

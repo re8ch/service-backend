@@ -227,7 +227,7 @@ spec:
           # is ignored by the binary and causes validation to fail at startup.
           cors:
             wildcard_origin: false
-            origins: "https://pay.re8ch.com,https://api.re8ch.com"
+            origins: "https://pay.service.re8ch.com,https://api.re8ch.com"
           analytics:
             source: sqlx
             forex_enabled: false
