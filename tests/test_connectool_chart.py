@@ -72,7 +72,7 @@ def test_cloud_resource_url_has_a_gateway_route():
     backends = {rule["backendRefs"][0]["name"] for rule in route["spec"]["rules"]}
     assert "/cloud" in paths
     assert "/.well-known/oauth-protected-resource/cloud" in paths
-    assert backends == {"re8ch-tools-vmcp-session-router"}
+    assert backends == {"vmcp-re8ch-tools-vmcp"}
 
 
 def test_connectool_renders_admin_and_tenant_publications():
@@ -92,7 +92,7 @@ def test_connectool_renders_admin_and_tenant_publications():
         assert expressions == [{
             "key": "kubernetes.io/hostname",
             "operator": "In",
-            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
         }]
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
@@ -114,8 +114,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     assert "Object.spec.template.spec.affinity.nodeAffinity{" in serialized
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
     assert "'app': object.metadata.labels['app']" in serialized
-    for node in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"):
-        assert node in serialized
+    assert "restricted-node-6dc3f140f9" in serialized
 
 
 def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
@@ -138,7 +137,7 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
         assert terms[0]["matchExpressions"][0] == {
             "key": "kubernetes.io/hostname",
             "operator": "In",
-            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
         }
         anti = spec["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert anti["topologyKey"] == "kubernetes.io/hostname"

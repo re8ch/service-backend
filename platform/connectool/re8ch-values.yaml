@@ -12,15 +12,19 @@ toolhive:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-    tolerations: []
+                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+    # ConnecTool is a privileged control-plane workspace. Keep the global
+    # capacity window closed for ordinary workloads. Keep this privileged
+    # service on restricted-node-6dc3f140f9 while the Gateway cannot reach the A1/B1 Pod CIDRs.
+    tolerations:
+      - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     topologySpreadConstraints: []
     resources:
       requests: {cpu: 50m, memory: 64Mi}
       limits: {cpu: 500m, memory: 256Mi}
   runtimePolicy:
     enabled: true
-    nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    nodeNames: [restricted-node-6dc3f140f9]
     trafficDistribution: PreferSameNode
     backendSessionAffinity: None
     proxyResources:

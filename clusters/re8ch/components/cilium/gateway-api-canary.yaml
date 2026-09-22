@@ -570,11 +570,11 @@ spec:
   hostnames: [tools.service.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /mcp}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /oauth}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -584,9 +584,9 @@ spec:
   hostnames: [tools.service.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /cloud}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/cloud}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
