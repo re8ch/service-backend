@@ -84,6 +84,16 @@ class ScoreTests(unittest.TestCase):
         state, _ = controller.capacity_window(node, {"memoryTotal": 1024, "memoryAvailable": 1024, "cpuRatio": 0})
         self.assertEqual(state, "unknown")
 
+    @patch.object(controller, "metric_rows")
+    def test_cpu_uses_node_exporter_even_without_trimaran(self, rows):
+        def answer(query):
+            if "node_cpu_seconds_total" in query:
+                return [({"node": "n1"}, 0.35)]
+            return []
+        rows.side_effect = answer
+        self.assertEqual(controller.capacity_measurements()["n1"]["cpuRatio"], 0.35)
+        self.assertTrue(any("node_cpu_seconds_total" in call.args[0] for call in rows.call_args_list))
+
     def test_capacity_window_accounts_for_reserved_ephemeral_storage(self):
         gib = 1024 ** 3
         node = {"status": {"conditions": [{"type": "Ready", "status": "True"}], "allocatable": {"ephemeral-storage": "80Gi"}}}

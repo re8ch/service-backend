@@ -241,8 +241,8 @@ def capacity_measurements():
             else:
                 identity = (labels.get("mountpoint"), labels.get("device"), labels.get("fstype"))
                 result.setdefault(node, {}).setdefault("mounts", {}).setdefault(identity, {})[field] = value
-    for labels, value in metric_rows("instance:node_cpu_utilisation:rate:sum"):
-        node = labels.get("node") or labels.get("instance")
+    for labels, value in metric_rows('1 - avg by (node) (rate(node_cpu_seconds_total{job="re8ch-node-storage-exporter",mode="idle"}[5m]))'):
+        node = labels.get("node")
         if node:
             result.setdefault(node, {})["cpuRatio"] = value
     return result
