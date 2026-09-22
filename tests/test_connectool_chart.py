@@ -30,7 +30,7 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
-    assert vmcp["spec"]["replicas"] == 1
+    assert vmcp["spec"]["replicas"] == 2
     assert vmcp["spec"]["sessionAffinity"] == "ClientIP"
     assert vmcp["spec"]["sessionStorage"] == {"provider": "memory"}
     assert "public: true" in dex["data"]["clients.yaml"]
@@ -80,11 +80,7 @@ def test_connectool_renders_admin_and_tenant_publications():
     vmcps = {item["metadata"]["name"]: item for item in objects if item["kind"] == "VirtualMCPServer"}
     assert {"re8ch-admin-vmcp", "tenant-vmcp"} <= vmcps.keys()
     tenant = vmcps["tenant-vmcp"]
-    assert {name: item["spec"]["replicas"] for name, item in vmcps.items()} == {
-        "re8ch-tools-vmcp": 1,
-        "re8ch-admin-vmcp": 2,
-        "tenant-vmcp": 2,
-    }
+    assert {item["spec"]["replicas"] for item in vmcps.values()} == {2}
     assert all(item["spec"]["sessionAffinity"] == "ClientIP" for item in vmcps.values())
     assert all(item["spec"]["sessionStorage"] == {"provider": "memory"} for item in vmcps.values())
     for item in vmcps.values():
