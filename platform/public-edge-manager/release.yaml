@@ -61,11 +61,87 @@ spec:
       soaRname: hostmaster.re8ch.com.
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
-      zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com.]
+      zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com.]
       # ACME follows this alias into the parent Cloudflare zone. PublicEdge
       # remains authoritative for service records; no per-service parent A is
       # needed. The chart's externalCDN field is its static-record opt-in.
       externalRecords:
+        aliyun.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-hangzhou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-northeast-1.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-northeast-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-northeast-1.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-northeast-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-southeast-1.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-southeast-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-southeast-1.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-southeast-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-southeast-3.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-southeast-3.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-southeast-3.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-southeast-3.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-southeast-5.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-southeast-5.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-ap-southeast-5.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.ap-southeast-5.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-beijing.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-beijing.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-beijing.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-beijing.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-chengdu.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-chengdu.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-chengdu.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-chengdu.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-hangzhou.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-hangzhou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-hangzhou.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-hangzhou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-hongkong.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-hongkong.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-hongkong.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-hongkong.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-huhehaote.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-huhehaote.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-huhehaote.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-huhehaote.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-qingdao.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-qingdao.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-qingdao.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-qingdao.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-shanghai.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-shanghai.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-shanghai.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-shanghai.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-shenzhen.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-shenzhen.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-shenzhen.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-shenzhen.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-zhangjiakou.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-zhangjiakou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-cn-zhangjiakou.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-zhangjiakou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-eu-central-1.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.eu-central-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-eu-central-1.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.eu-central-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-eu-west-1.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.eu-west-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-eu-west-1.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.eu-west-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.cn-hangzhou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-us-east-1.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.us-east-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-us-east-1.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.us-east-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-us-west-1.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.us-west-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        aliyun-us-west-1.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1184182212873855.us-west-1.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
+        tencent.anycam.functions.re8ch.com.:
+          - {type: CNAME, value: 1301339749.ap-guangzhou.tencentscf.com., externalCDN: true, provider: tencent-scf}
+        tencent.ledger.functions.re8ch.com.:
+          - {type: CNAME, value: 1301339749.ap-guangzhou.tencentscf.com., externalCDN: true, provider: tencent-scf}
         _acme-challenge.service.re8ch.com.:
           - {type: CNAME, value: _acme-challenge.re8ch.com., externalCDN: true, provider: cloudflare-dns01}
     crd: {install: true}
