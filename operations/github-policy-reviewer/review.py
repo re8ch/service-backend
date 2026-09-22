@@ -14,7 +14,7 @@ import sys
 import time
 
 TRUSTED_AUTHORS = frozenset({"Woomou"})
-ALLOWED_ORGS = frozenset({"public-edge", "advanced-fabrics", "among-clusters"})
+ALLOWED_ORGS = frozenset({"public-edge", "advanced-fabrics", "among-clusters", "bifurcate-systems"})
 ROLLOUT_CUTOFF = "2026-09-21T15:16:00Z"
 CHECK_NAME = "re8ch-policy-reviewer"
 APP_ID = 4973967

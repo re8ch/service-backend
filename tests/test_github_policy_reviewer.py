@@ -78,6 +78,23 @@ def test_dry_run_never_approves():
     assert api.checks_posted == []
 
 
+def test_bifurcate_organization_uses_same_fail_closed_policy():
+    api = FakeAPI()
+    api.pr["head"]["repo"]["full_name"] = "bifurcate-systems/bifurcate"
+    original_pages = api.pages
+
+    def bifurcate_pages(path):
+        if path == "/installation/repositories":
+            return [{"full_name": "bifurcate-systems/bifurcate",
+                     "owner": {"login": "bifurcate-systems"},
+                     "default_branch": "main", "archived": False, "disabled": False}]
+        return original_pages(path)
+
+    api.pages = bifurcate_pages
+    assert reviewer.run(api, "bifurcate-systems") == 1
+    assert api.checks_posted[0]["conclusion"] == "success"
+
+
 def test_untrusted_author_is_not_approved():
     api = FakeAPI()
     api.pr["user"]["login"] = "outsider"

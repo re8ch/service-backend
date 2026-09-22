@@ -2,7 +2,8 @@
 
 This workflow runs from `re8ch/service-backend`'s protected `main` branch every
 five minutes and can be started manually. It mints a separate installation token
-for each of `public-edge`, `advanced-fabrics`, and `among-clusters`. The App has
+for each of `public-edge`, `advanced-fabrics`, `among-clusters`, and
+`bifurcate-systems`. The App has
 read-only repository, actions and status permissions plus checks and PR-review
 write permissions; it cannot push commits or administer repositories.
 
@@ -24,7 +25,7 @@ submitting checks or reviews; set it to `false` after a successful dry run.
 Disable by setting `POLICY_REVIEWER_ENABLED=false` or removing the secret.
 
 GitHub App installation scope and branch rules are managed in each organization.
-GitHub does not count App approvals toward required human reviews. The three
+GitHub does not count App approvals toward required human reviews. These
 organizations therefore require the App-owned `re8ch-policy-reviewer` check
 (integration ID `4973967`) and zero human approvals, while retaining the PR,
 signature, non-fast-forward and existing CI requirements. An external
