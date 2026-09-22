@@ -21,7 +21,6 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: re8ch-node-storage-exporter}
     spec:
-      tolerations: [{operator: Exists}]
       containers:
         - name: node-exporter
           image: quay.io/prometheus/node-exporter:v1.9.1
