@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: zephyr-copper
+    delivery.re8ch.com/codename: bora-indigo
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:81511a7dd7f107d08d691d14e8e6cb0c9bd2a41b855d5dac37760113fc8916e3
+    digest: sha256:1e6949bdbc06afa3d7cf388c79c5027520f400cbc2b64e3601fe6ec0f9369943
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: zephyr-copper
+    delivery.re8ch.com/codename: bora-indigo
 spec:
   interval: 10m
   retryInterval: 1m
