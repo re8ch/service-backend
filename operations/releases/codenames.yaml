@@ -434,6 +434,8 @@ modules:
       digest: sha256:6d0e02c002ace20f6fa1f2fdf23ad0bf075b03fa572a67f19ad1e2b1fce369bc
     - codename: zephyr-indigo
       digest: sha256:64cf7c283666d49b8b2840357e6fa7bd02357e28775532ad178042dc11c47714
+    - codename: bora-jade
+      digest: sha256:83fcc97004979b06d8063884bf2fc13e90f2a1e9ada22602b1bd3a6e2bbffef3
   platform/adapter:
     releases:
     - codename: anchor
