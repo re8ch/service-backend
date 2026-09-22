@@ -114,8 +114,8 @@ spec:
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/tenant/mcp"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_REQUIRED, value: {{ .Values.tenantPlatform.supplyChain.required | quote }}}

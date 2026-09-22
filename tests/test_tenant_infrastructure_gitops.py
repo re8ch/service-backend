@@ -64,7 +64,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
     }
     tenant_affinity = deployments["tenant-api"]["spec"]["template"]["spec"]["affinity"]["podAffinity"]
     assert tenant_affinity["requiredDuringSchedulingIgnoredDuringExecution"][0]["labelSelector"]["matchLabels"] == {"app": "admin-api"}
@@ -286,7 +286,7 @@ def test_connectool_has_one_generic_tenant_publication():
     publications = release["spec"]["values"]["toolhive"]["publications"]
     tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
     assert tenant["clientId"] == "re8ch-tenant"
-    assert tenant["resourceUrl"] == "https://tools.re8ch.com/tenant/mcp"
+    assert tenant["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
     assert tenant["workloads"] == [{"name": "tenant-api-backend"}]
     serialized = json.dumps(publications)
     for legacy in ("tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "tenant-artchais"):
