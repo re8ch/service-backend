@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: viewport-indigo
+codename: zenith-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:1ab1c3bcaf3342a947b11a0aab144764f7da5da9d21aedb1d5a6285e34b1501f
+  digest: sha256:564093f9a7bd0e3a7abdce3f08dade1705a0745ef04a6ea1f817358e8a8c6751
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
