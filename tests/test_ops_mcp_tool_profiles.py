@@ -28,7 +28,7 @@ class ToolProfileTests(unittest.TestCase):
         self.assertTrue(observe)
         self.assertEqual(
             operate,
-            {"get_managed_platform_operation_status", "restart_managed_platform_deployment", "scale_managed_platform_deployment"},
+            {"get_managed_platform_operation_status", "restart_managed_platform_deployment", "scale_managed_platform_deployment", "get_ceph_recovery_status", "restart_ceph_osd_1"},
         )
         self.assertFalse(observe & operate)
         self.assertFalse(observe & admin)
@@ -57,6 +57,45 @@ class ToolProfileTests(unittest.TestCase):
             self.assertNotIn("approvalId", tools[name]["inputSchema"]["properties"])
         replicas = tools["scale_managed_platform_deployment"]["inputSchema"]["properties"]["replicas"]
         self.assertEqual(replicas["enum"], [0, 1])
+        self.assertTrue(tools["get_ceph_recovery_status"]["annotations"]["readOnlyHint"])
+        self.assertFalse(tools["restart_ceph_osd_1"]["annotations"]["readOnlyHint"])
+
+    def test_ceph_recovery_refuses_unready_host(self):
+        module = load_profile("operate")
+        module.get_ceph_recovery_status = lambda: {
+            "desired": 1, "ready": 0, "pods": [{"node": "restricted-node-1eb0570f74"}],
+        }
+        calls = []
+
+        def fake_request(method, path, body=None, content_type="application/json"):
+            calls.append((method, path))
+            return {"status": {"conditions": [{"type": "Ready", "status": "False"}]}}
+
+        module.kube_request = fake_request
+        with self.assertRaisesRegex(ValueError, "not Ready"):
+            module.restart_ceph_osd_1()
+        self.assertEqual(calls, [("GET", "/api/v1/nodes/restricted-node-1eb0570f74")])
+
+    def test_ceph_recovery_only_patches_reviewed_osd(self):
+        module = load_profile("operate")
+        module.get_ceph_recovery_status = lambda: {
+            "desired": 1, "ready": 0, "pods": [{"node": "restricted-node-1eb0570f74"}],
+        }
+        calls = []
+
+        def fake_request(method, path, body=None, content_type="application/json"):
+            calls.append((method, path))
+            if method == "GET":
+                return {"status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+            return {"metadata": {"generation": 9}}
+
+        module.kube_request = fake_request
+        result = module.restart_ceph_osd_1()
+        self.assertEqual(result["deployment"], "rook-ceph-osd-1")
+        self.assertEqual(calls, [
+            ("GET", "/api/v1/nodes/restricted-node-1eb0570f74"),
+            ("PATCH", "/apis/apps/v1/namespaces/rook-ceph/deployments/rook-ceph-osd-1"),
+        ])
 
     def test_admin_uses_dex_and_excludes_authentik_and_secret_values(self):
         admin = set(self.tools("admin"))

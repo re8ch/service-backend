@@ -16,6 +16,8 @@ spec:
     - get_managed_platform_operation_status
     - restart_managed_platform_deployment
     - scale_managed_platform_deployment
+    - get_ceph_recovery_status
+    - restart_ceph_osd_1
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPToolConfig

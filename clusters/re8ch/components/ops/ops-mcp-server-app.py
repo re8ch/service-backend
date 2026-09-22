@@ -183,6 +183,7 @@ MANAGED_PLATFORM_RESTARTS = {
     ("codex-platform", "codex-session-web"),
     ("observability-system", "re8ch-grafana"),
 }
+CEPH_RECOVERY_DEPLOYMENT = "rook-ceph-osd-1"
 
 class KubeError(RuntimeError):
     def __init__(self, status, message):
@@ -1115,6 +1116,84 @@ def scale_managed_platform_deployment(args):
         "generation": doc.get("metadata", {}).get("generation"),
         "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
+
+def get_ceph_recovery_status():
+    """Return a bounded, credential-free view of the current OSD incident."""
+    namespace = "rook-ceph"
+    path = "/apis/apps/v1/namespaces/%s/deployments/%s" % (namespace, CEPH_RECOVERY_DEPLOYMENT)
+    deployment = kube_request("GET", path)
+    pods = kube_request("GET", "/api/v1/namespaces/rook-ceph/pods?labelSelector=app%3Drook-ceph-osd")
+    osd_pods = []
+    for pod in pods.get("items", []):
+        pod_name = pod.get("metadata", {}).get("name", "")
+        if not pod_name.startswith("rook-ceph-osd-1-"):
+            continue
+        status = pod.get("status", {})
+        osd_pods.append({
+            "name": pod_name,
+            "node": pod.get("spec", {}).get("nodeName"),
+            "phase": status.get("phase"),
+            "containers": [{
+                "name": item.get("name"),
+                "ready": item.get("ready"),
+                "restartCount": item.get("restartCount", 0),
+                "waitingReason": item.get("state", {}).get("waiting", {}).get("reason"),
+                "terminatedReason": item.get("state", {}).get("terminated", {}).get("reason"),
+            } for item in status.get("containerStatuses", [])],
+        })
+    events = kube_request("GET", "/api/v1/namespaces/rook-ceph/events")
+    osd_names = {item["name"] for item in osd_pods}
+    recent_events = [{"pod": item.get("involvedObject", {}).get("name"),
+                      "type": item.get("type"), "reason": item.get("reason"),
+                      "lastTimestamp": item.get("lastTimestamp")}
+                     for item in events.get("items", [])
+                     if item.get("involvedObject", {}).get("name") in osd_names]
+    cluster = kube_request("GET", "/apis/ceph.rook.io/v1/namespaces/rook-ceph/cephclusters/rook-ceph")
+    ceph_status = cluster.get("status", {})
+    deployment_status = deployment.get("status", {})
+    return {
+        "namespace": namespace,
+        "deployment": CEPH_RECOVERY_DEPLOYMENT,
+        "desired": deployment.get("spec", {}).get("replicas", 0),
+        "ready": deployment_status.get("readyReplicas", 0),
+        "available": deployment_status.get("availableReplicas", 0),
+        "pods": osd_pods,
+        "recentEvents": recent_events[-20:],
+        "ceph": {
+            "phase": ceph_status.get("phase"),
+            "health": ceph_status.get("ceph", {}).get("health"),
+            "conditions": [{"type": c.get("type"), "status": c.get("status"), "reason": c.get("reason")}
+                           for c in ceph_status.get("conditions", [])],
+        },
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+    }
+
+def restart_ceph_osd_1():
+    """Roll only the reviewed failed OSD, and only while its host is Ready."""
+    before = get_ceph_recovery_status()
+    if before["desired"] != 1 or before["ready"] != 0 or len(before["pods"]) != 1:
+        raise ValueError("OSD 1 is not in the reviewed single-pod failed state")
+    node_name = before["pods"][0]["node"]
+    if node_name not in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"):
+        raise ValueError("OSD 1 host is not a reviewed Ceph node")
+    node = kube_request("GET", "/api/v1/nodes/%s" % urllib.parse.quote(node_name))
+    ready = next((c.get("status") for c in node.get("status", {}).get("conditions", [])
+                  if c.get("type") == "Ready"), None)
+    if ready != "True":
+        raise ValueError("OSD 1 host is not Ready")
+    restarted_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    patch = {"spec": {"template": {"metadata": {"annotations": {
+        "ops.re8ch.com/restartedAt": restarted_at,
+        "ops.re8ch.com/restartedBy": "toolhive-ceph-recovery",
+    }}}}}
+    doc = kube_request(
+        "PATCH", "/apis/apps/v1/namespaces/rook-ceph/deployments/rook-ceph-osd-1",
+        patch, "application/strategic-merge-patch+json",
+    )
+    return {"namespace": "rook-ceph", "deployment": CEPH_RECOVERY_DEPLOYMENT,
+            "node": node_name, "restartedAt": restarted_at,
+            "generation": doc.get("metadata", {}).get("generation"),
+            "verification": "Re-read get_ceph_recovery_status; restart is not proof of Ceph recovery."}
 
 def get_managed_platform_operation_status():
     results = []
@@ -3927,7 +4006,7 @@ OBSERVE_TOOL_NAMES = {
 }
 OPERATE_TOOL_NAMES = {
     "get_managed_platform_operation_status", "restart_managed_platform_deployment",
-    "scale_managed_platform_deployment",
+    "scale_managed_platform_deployment", "get_ceph_recovery_status", "restart_ceph_osd_1",
 }
 ADMIN_TOOL_NAMES = {
     "list_dex_users", "get_dex_hash_instructions", "create_dex_user", "grant_user_namespace",
@@ -3957,6 +4036,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_platform_permission_coverage", "description": "Return the effective observe/operate/admin, native-authority and human-GUI decision for every live workload and Service, generated from live inventory and exact ToolHive operation allowlists.", "inputSchema": schema()},
         {"name": "get_platform_access_posture", "description": "Return credential-free namespace RBAC, ServiceAccount token, NetworkPolicy, NodePort/LoadBalancer, and Ingress review signals for AI and human security review.", "inputSchema": schema()},
         {"name": "get_managed_platform_operation_status", "description": "Return desired/ready/available state and recorded restart/scale approvals for every pre-reviewed platform operation target.", "inputSchema": schema()},
+        {"name": "get_ceph_recovery_status", "description": "Return sanitized Rook CephCluster health and OSD 1 Deployment, Pod and node placement for recovery review; no Ceph credentials or raw logs.", "inputSchema": schema()},
         {"name": "get_nuclio_function_status", "description": "Return a sanitized cross-namespace Nuclio function inventory and native states without environment variables, Secret references, annotations or last-applied configuration.", "inputSchema": schema()},
         {"name": "diagnose_nuclio_function", "description": "Diagnose one existing Nuclio function from sanitized native state, Deployment readiness, Pod scheduling/container waits and recent Events. Secret, environment and annotation data are omitted.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}}, ["namespace", "name"])},
         {"name": "get_nuclio_capacity_status", "description": "Return Nuclio-labelled node readiness, schedulability, taints, allocatable capacity, placed function Pod counts and unscheduled function Pods as a rollout gate.", "inputSchema": schema()},
@@ -3994,6 +4074,7 @@ def mcp_tools(include_admin=False):
             {"name": "set_tool_publication_stage", "description": "Admin: set canary, internal, or deprecated stage for one reviewed ToolHive publication; arbitrary resources cannot be patched.", "inputSchema": schema({"server": {"type": "string", "enum": sorted(MANAGED_TOOL_PUBLICATIONS)}, "stage": {"type": "string", "enum": sorted(PUBLICATION_STAGES)}}, ["server", "stage"])},
             {"name": "restart_managed_platform_deployment", "description": "Operate: restart one pre-reviewed platform Deployment. The tool allowlist and namespaced resourceNames RBAC enforce the target.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}}, ["namespace", "deployment"])},
             {"name": "scale_managed_platform_deployment", "description": "Operate: scale one pre-reviewed platform Deployment to exactly zero or one replica.", "inputSchema": schema({"namespace": {"type": "string", "enum": sorted({item[0] for item in MANAGED_PLATFORM_RESTARTS})}, "deployment": {"type": "string"}, "replicas": {"type": "integer", "enum": [0, 1]}}, ["namespace", "deployment", "replicas"])},
+            {"name": "restart_ceph_osd_1", "description": "Operate: roll only rook-ceph-osd-1 when its single Pod is failed and its reviewed host is Ready. Re-read Ceph status to verify recovery.", "inputSchema": schema()},
         ])
     write_tools = {
         "restart_deployment",
@@ -4008,6 +4089,7 @@ def mcp_tools(include_admin=False):
         "set_tool_publication_stage",
         "restart_managed_platform_deployment",
         "scale_managed_platform_deployment",
+        "restart_ceph_osd_1",
         "k8s_api_proxy",
         "postgres_sql_proxy",
     }
@@ -4081,6 +4163,8 @@ def call_tool(name, args, admin=False):
         return get_platform_access_posture()
     if name == "get_managed_platform_operation_status":
         return get_managed_platform_operation_status()
+    if name == "get_ceph_recovery_status":
+        return get_ceph_recovery_status()
     if name == "get_nuclio_function_status":
         return get_nuclio_function_status()
     if name == "diagnose_nuclio_function":
@@ -4152,6 +4236,8 @@ def call_tool(name, args, admin=False):
         return restart_managed_platform_deployment(args)
     if name == "scale_managed_platform_deployment":
         return scale_managed_platform_deployment(args)
+    if name == "restart_ceph_osd_1":
+        return restart_ceph_osd_1()
     raise ValueError("unknown tool: %s" % name)
 
 class Handler(BaseHTTPRequestHandler):
