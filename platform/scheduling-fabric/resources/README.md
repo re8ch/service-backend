@@ -18,6 +18,33 @@ network and cost capabilities. Measurements remain in their existing systems:
 Kubernetes/node-exporter, Cilium, VictoriaMetrics and OpenCost. Controllers
 project only safe, low-cardinality scheduling fields to Node labels.
 
+## Dynamic node capacity window
+
+The Penrose leader evaluates every Ready node once per minute. It combines
+fresh node-exporter filesystem space and inode counts, memory availability,
+five-minute CPU utilisation, Kubernetes pressure conditions, and scheduled Pod
+requests against Node allocatable CPU, memory, ephemeral storage and Pod slots.
+Only the host filesystems backing `/`, kubelet and containerd affect the node
+window. Ceph OSD raw devices and PVC mounts stay under Rook/Ceph and PVC
+capacity controls; they are not counted as independent host free space.
+
+Below 15% or 5 GiB available disk, 15% free inodes, 10% or 512 MiB available
+memory, 95% CPU utilisation, or high request/Pod occupancy, the window closes.
+Recovery requires 20% or 10 GiB disk, 20% free inodes, 20% or 1 GiB memory,
+below 80% CPU and lower request occupancy. A closed window adds the owned
+`scheduling.re8ch.com/capacity-window=closed:NoSchedule` taint. This stops new
+ordinary Pods on either scheduler without evicting running Pods. Penrose and
+the node exporter tolerate this exact taint so they can restore observation.
+
+`scheduling.re8ch.com/capacity-window` is `open`, `closed` or `unknown` on the
+Node; `capacity-reasons` gives bounded evidence in Headlamp. PlacementClass
+and Kueue require `open`. Initial missing telemetry does not taint every node
+at bootstrap; after a complete observation, missing telemetry on that node
+closes its window until a fresh open sample returns. A VictoriaMetrics query
+outage leaves the last taint in place. Review Pending Pods, node taints, exporter
+freshness and Rook health before manual intervention; do not remove the taint
+or delete storage content solely to clear a capacity alert.
+
 `ServiceOutcomePolicy` gives a Service two explicit states:
 
 - `spec.desired`: the requested Resilience/Efficiency/Stability outcome.

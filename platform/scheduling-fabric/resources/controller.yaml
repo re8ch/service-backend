@@ -70,6 +70,7 @@ spec:
       nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
       tolerations:
       - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+      - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       topologySpreadConstraints:
       - {maxSkew: 1, topologyKey: scheduling.re8ch.com/failure-domain, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/name: penrose-controller}}}
       containers:

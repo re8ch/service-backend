@@ -60,10 +60,58 @@ class ScoreTests(unittest.TestCase):
     def test_placement_excludes_control_plane_when_class_disallows_it(self):
         placement = {"spec": {"nodeSelector": {"scheduling.re8ch.com/placement-general-reliable": "true"}, "allowControlPlane": False}}
         nodes = [
-            {"metadata": {"name": "control", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "node-role.kubernetes.io/control-plane": "true"}}},
-            {"metadata": {"name": "worker", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true"}}},
+            {"metadata": {"name": "control", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/capacity-window": "open", "node-role.kubernetes.io/control-plane": "true"}}},
+            {"metadata": {"name": "worker", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/capacity-window": "open"}}},
         ]
         self.assertEqual([n["metadata"]["name"] for n in controller.placement_eligible_nodes(placement, nodes)], ["worker"])
+
+    def test_capacity_window_closes_and_reopens_with_hysteresis(self):
+        gib = 1024 ** 3
+        node = {"status": {"conditions": [{"type": "Ready", "status": "True"}], "allocatable": {
+            "cpu": "4", "memory": "8Gi", "ephemeral-storage": "80Gi", "pods": "100"}}}
+        measurement = {"mounts": {("/", "/dev/sda", "ext4"): {"size": 100*gib, "available": 12*gib,
+            "readonly": 0, "deviceError": 0, "files": 1000, "filesFree": 900}},
+            "memoryTotal": 8*gib, "memoryAvailable": 4*gib, "cpuRatio": 0.3}
+        state, reasons = controller.capacity_window(node, measurement)
+        self.assertEqual(state, "closed")
+        self.assertIn("filesystem-low:/", reasons)
+        self.assertEqual(controller.capacity_window(node, measurement, previously_closed=True)[0], "closed")
+        measurement["mounts"][("/", "/dev/sda", "ext4")]["available"] = 25*gib
+        self.assertEqual(controller.capacity_window(node, measurement, previously_closed=True)[0], "open")
+
+    def test_capacity_window_fails_unknown_when_disk_telemetry_missing(self):
+        node = {"status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+        state, _ = controller.capacity_window(node, {"memoryTotal": 1024, "memoryAvailable": 1024, "cpuRatio": 0})
+        self.assertEqual(state, "unknown")
+
+    def test_capacity_window_accounts_for_reserved_ephemeral_storage(self):
+        gib = 1024 ** 3
+        node = {"status": {"conditions": [{"type": "Ready", "status": "True"}], "allocatable": {"ephemeral-storage": "80Gi"}}}
+        measurement = {"mounts": {("/", "/dev/sda", "ext4"): {"size": 100*gib, "available": 50*gib,
+            "readonly": 0, "deviceError": 0}}, "memoryTotal": 8*gib, "memoryAvailable": 6*gib, "cpuRatio": 0.1}
+        state, reasons = controller.capacity_window(node, measurement, {"ephemeral-storage": 73*gib})
+        self.assertEqual(state, "closed")
+        self.assertIn("requests-high:ephemeral-storage", reasons)
+
+    @patch.object(controller, "request")
+    @patch.object(controller, "patch")
+    @patch.object(controller, "items", return_value=[])
+    @patch.object(controller, "capacity_measurements")
+    def test_capacity_taint_preserves_other_taints(self, metrics, _items, patch_node, request):
+        gib = 1024 ** 3
+        node = {"metadata": {"name": "n1", "resourceVersion": "1", "labels": {}, "annotations": {}},
+                "spec": {"taints": [{"key": "dedicated", "value": "storage", "effect": "NoSchedule"}]},
+                "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+        sample = {"mounts": {("/", "/dev/sda", "ext4"): {"size": 100*gib, "available": 2*gib,
+                  "readonly": 0, "deviceError": 0}}, "memoryTotal": 8*gib,
+                  "memoryAvailable": 6*gib, "cpuRatio": 0.2}
+        metrics.return_value = {"n1": sample}
+        patch_node.return_value = {"metadata": {"resourceVersion": "2"}}
+        controller.reconcile_capacity_windows([node])
+        taints = request.call_args.args[2][-1]["value"]
+        self.assertEqual(taints[0]["key"], "dedicated")
+        self.assertEqual(taints[1]["key"], controller.CAPACITY_TAINT["key"])
+        self.assertEqual(request.call_args.args[2][0]["value"], "2")
 
     def test_reliability_requires_stable_ready_window(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
