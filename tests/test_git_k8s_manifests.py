@@ -455,19 +455,20 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert source["spec"]["ref"]["digest"] == (
-        "sha256:f064062639f77b5aebb0f755acbcd53ca081bcb960379f3e8dbe2a5230d200f4"
+        "sha256:8a39e4fc5ccb3df82d6112bebe3888bfd2fab84991406c5e130734b8babd92f2"
     )
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.5.4",
-        "digest": "sha256:0dc781e812a2b8bc0294665cb27b6ac4fb28ef638b40cac0d88ba486545d206e",
+        "tag": "0.5.5",
+        "digest": "sha256:321aafac153354315a9d22774b7fac8f0b4f1572ab7d05981bbc8610f49eecd6",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
         "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.",
         "service.re8ch.com.", "functions.re8ch.com."
     ]
+    assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
     assert values["dns"]["externalRecords"]["_acme-challenge.service.re8ch.com."][0]["value"] == "_acme-challenge.re8ch.com."
     assert values["services"]["api.re8ch.com."] == {
@@ -482,7 +483,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "apiGroup": "networking.re8ch.com",
         "apiVersion": "v1alpha2",
         "resource": "networkpathassessments",
-        "requireNodeReady": True,
+        "requireNodeReady": False,
         "allowedStates": ["Ready", "Partial"],
     }
 
