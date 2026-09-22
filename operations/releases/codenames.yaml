@@ -214,6 +214,8 @@ modules:
       digest: sha256:d026714fbb95bf5be4edb748823faacd6fdeb26ce6e5dd452da7b33e288220ee
     - codename: grove-jade
       digest: sha256:15bf9ea703e199c0626a38af012bec2c6c08ccd047b810dfcfb83c9940d9fd44
+    - codename: reef-jade
+      digest: sha256:41019d3ded1cb3e99c44caaab6e77365d15b84c537dfe29fed657640b3344628
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -576,3 +578,5 @@ modules:
       digest: sha256:f5edf69ba90f8d9ccf34db639b1639d6d0ef3162cf1eb282e85fe71dc636e1fb
     - codename: focus-jade
       digest: sha256:239e2db271ebcbf95a589c9a37cfebccaf3242b64f80acce6fb6c270923d38df
+    - codename: prism-jade
+      digest: sha256:21f26d308184012aecaa1a928c7c04e2ad8367c48ca774f5d123a6b07f2faff3
