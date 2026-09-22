@@ -34,12 +34,7 @@ kubelet-arg:
   - "eviction-hard=memory.available<4Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
 kube-apiserver-arg:
   - "event-ttl=1h"
-  - "oidc-issuer-url=https://dex.re8ch.com"
-  - "oidc-client-id=headlamp"
-  - "oidc-username-claim=email"
-  - "oidc-username-prefix=oidc:"
-  - "oidc-groups-claim=groups"
-  - "oidc-groups-prefix=oidc:"
+  - "authentication-config=/etc/rancher/k3s/dex-dual-issuer-authentication.yaml"
 embedded-registry: true
 cluster-init: true
 etcd-arg:
