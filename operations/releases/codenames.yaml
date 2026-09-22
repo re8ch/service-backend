@@ -560,3 +560,5 @@ modules:
       digest: sha256:1ab1c3bcaf3342a947b11a0aab144764f7da5da9d21aedb1d5a6285e34b1501f
     - codename: zenith-indigo
       digest: sha256:564093f9a7bd0e3a7abdce3f08dade1705a0745ef04a6ea1f817358e8a8c6751
+    - codename: aperture-jade
+      digest: sha256:f5edf69ba90f8d9ccf34db639b1639d6d0ef3162cf1eb282e85fe71dc636e1fb
