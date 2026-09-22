@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tenant identity resolver and CRD status controller.
 
-Kubernetes CRDs are authoritative. This service never accepts a client supplied
-tenant and never returns the OIDC subject. Runtime callers send its SHA-256 hash
-over a cluster-internal authenticated channel.
+Kubernetes CRDs are authoritative. A selected tenant is verified against active
+bindings; the OIDC subject is never returned. Runtime callers send its SHA-256
+hash over a cluster-internal authenticated channel.
 """
 
 import calendar
@@ -52,6 +52,7 @@ ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
 LOG = logging.getLogger("tenant-control-controller")
 RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
+TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 
 
 class Kubernetes:
@@ -192,7 +193,7 @@ def condition(kind, ok, reason, message=""):
 ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
 
 
-def resolve(issuer, subject_hash, groups=None, caller="tenant"):
+def resolve(issuer, subject_hash, groups=None, caller="tenant", requested_tenant=None, default_tenant=None):
     subject_matches = []
     group_matches = []
     groups = {str(group) for group in (groups or []) if isinstance(group, str)}
@@ -215,25 +216,29 @@ def resolve(issuer, subject_hash, groups=None, caller="tenant"):
             subject_matches.append(match)
         elif group_match:
             group_matches.append(match)
-    # An explicit, issuer-scoped subject binding is more specific than broad
-    # organization/team membership. This lets a multi-organization identity
-    # have one deterministic tenant without accepting a client-selected tenant.
-    # Multiple explicit subject bindings remain ambiguous and are denied below.
-    matches = subject_matches or group_matches
+    # A requested tenant is only a selector. It cannot grant access by itself.
+    # Combine subject and group grants within the selected tenant.
+    matches = subject_matches + group_matches
     tenants_matched = sorted(set(tenant for tenant, _ in matches if tenant))
-    if len(tenants_matched) != 1:
-        raise PermissionError("identity must resolve to exactly one active tenant")
+    selected = requested_tenant or default_tenant
+    if selected:
+        if selected not in tenants_matched:
+            raise PermissionError("identity is not bound to the selected tenant")
+    elif len(tenants_matched) == 1:
+        selected = tenants_matched[0]
+    else:
+        raise PermissionError("select an active tenant")
     tenants = {item["metadata"]["name"]: item for item in kube().list("tenants")}
-    tenant = tenants.get(tenants_matched[0])
+    tenant = tenants.get(selected)
     if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
         raise PermissionError("tenant is not active")
-    role = max((role for tenant_ref, role in matches if tenant_ref == tenants_matched[0]), key=lambda value: ROLE_ORDER.get(value, 0))
+    role = max((role for tenant_ref, role in matches if tenant_ref == selected), key=lambda value: ROLE_ORDER.get(value, 0))
     if role not in ROLE_ORDER:
         raise PermissionError("identity binding has an invalid role")
     policy = tenant.get("spec", {}).get("namespacePolicy", {})
-    default_namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or tenants_matched[0]
+    default_namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or selected
     return {
-        "tenantRef": tenants_matched[0],
+        "tenantRef": selected,
         "role": role,
         "defaultNamespace": default_namespace,
         "runtimeNamespaceRef": default_namespace,
@@ -785,7 +790,10 @@ class Handler(BaseHTTPRequestHandler):
                 if subject_hash and not subject_hash.startswith("sha256:"): raise ValueError()
                 if not isinstance(groups, list) or len(groups) > 128 or any(not isinstance(group, str) or len(group) > 256 for group in groups): raise ValueError()
                 if not subject_hash and not groups: raise ValueError()
-                self.send_json(200, resolve(issuer, subject_hash, groups, caller=caller))
+                requested_tenant = str(body.get("tenantRef") or "")
+                default_tenant = str(body.get("defaultTenant") or "")
+                if any(value and not TENANT_NAME_RE.fullmatch(value) for value in (requested_tenant, default_tenant)): raise ValueError()
+                self.send_json(200, resolve(issuer, subject_hash, groups, caller=caller, requested_tenant=requested_tenant, default_tenant=default_tenant))
                 return
             tenant = self.headers["X-Tenant-Ref"]
             namespace = runtime_namespace(tenant)
