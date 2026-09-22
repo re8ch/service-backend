@@ -55,11 +55,19 @@ spec:
       app.kubernetes.io/name: controlled-cluster-relay
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: control-plane-critical
+        scheduling.re8ch.com/pinned-reason: controlled subcluster API routes are reachable only from A1
       labels:
         app.kubernetes.io/name: controlled-cluster-relay
+        scheduling.re8ch.com/control-plane-allowed: "true"
     spec:
       nodeSelector:
         kubernetes.io/hostname: restricted-node-1eb0570f74
+      priorityClassName: system-cluster-critical
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       containers:
         - name: relay
           image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d

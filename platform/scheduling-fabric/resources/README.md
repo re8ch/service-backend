@@ -82,6 +82,13 @@ deadlock recovery. `RequireSpread` is reserved for workloads whose correctness
 really depends on distinct domains. All current classes fail closed when their
 declared capacity floor is absent.
 
+`control-plane-critical` is the recovery-plane exception to ordinary workload
+capacity gating. It is restricted to native Kubernetes control-plane nodes,
+requires the node to be Ready, and may tolerate a closed ordinary capacity
+window. It does not tolerate `NotReady` or `Unreachable` eviction taints.
+Headlamp and its election/relay helpers use this class so the inspection plane
+remains available while it is diagnosing the workload plane.
+
 ## Default and dynamic cohorts
 
 - `default-scheduler` remains the read-only K3s/upstream baseline.
