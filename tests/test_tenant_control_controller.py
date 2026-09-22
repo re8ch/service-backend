@@ -113,6 +113,10 @@ def test_groups_spanning_tenants_are_denied(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais"), tenant("other")]))
     with pytest.raises(PermissionError):
         controller.resolve("https://dex.service.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
+    assert controller.resolve("https://dex.service.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"], default_tenant="other")["tenantRef"] == "other"
+    assert controller.resolve("https://dex.service.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"], requested_tenant="artchais", default_tenant="other")["tenantRef"] == "artchais"
+    with pytest.raises(PermissionError):
+        controller.resolve("https://dex.service.re8ch.com", "", ["Artchais:tenant-admins"], requested_tenant="other")
 
 
 def test_explicit_subject_binding_overrides_group_membership_in_another_tenant(monkeypatch):
@@ -128,13 +132,20 @@ def test_explicit_subject_binding_overrides_group_membership_in_another_tenant(m
     )
 
     assert controller.resolve(
-        "https://dex.service.re8ch.com", digest, ["Artchais"]
+        "https://dex.service.re8ch.com", digest, ["Artchais"], requested_tenant="re8ch"
     ) == {
         "tenantRef": "re8ch",
         "role": "operator",
         "defaultNamespace": "re8ch",
         "runtimeNamespaceRef": "re8ch",
     }
+
+
+def test_subject_and_group_roles_union_inside_selected_tenant(monkeypatch):
+    digest = "sha256:" + "a" * 64
+    bindings = [binding("artchais", digest=digest, role="viewer"), group_binding("artchais", "Artchais:tenant-admins", "admin")]
+    monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
+    assert controller.resolve("https://dex.service.re8ch.com", digest, ["Artchais:tenant-admins"], requested_tenant="artchais")["role"] == "admin"
 
 
 def test_controller_exposes_only_admin_and_tenant_callers():
