@@ -138,6 +138,9 @@ spec:
   updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 3}}
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: node-serving-agent
+        scheduling.re8ch.com/pinned-reason: DNS authority is limited to the reviewed regional NS nodes
       labels:
         app.kubernetes.io/name: regional-routing-authority
         app.kubernetes.io/part-of: regional-routing
@@ -270,6 +273,9 @@ spec:
     matchLabels: {app.kubernetes.io/name: regional-edge-tls-proxy}
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: node-serving-agent
+        scheduling.re8ch.com/pinned-reason: provider-owned TLS listener exists only on overseas-edge-50
       labels:
         app.kubernetes.io/name: regional-edge-tls-proxy
         app.kubernetes.io/part-of: regional-routing

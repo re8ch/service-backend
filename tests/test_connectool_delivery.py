@@ -22,14 +22,13 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     registry = release["spec"]["values"]["toolhive"]["registry"]["release"]
     assert registry["enabled"] is True
     assert registry["version"] == "1.5.0"
-    registry_expression = registry["values"]["affinity"]["nodeAffinity"][
+    registry_expressions = registry["values"]["affinity"]["nodeAffinity"][
         "requiredDuringSchedulingIgnoredDuringExecution"
-    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert registry_expression == {
-        "key": "kubernetes.io/hostname",
-        "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
-    }
+    ]["nodeSelectorTerms"][0]["matchExpressions"]
+    assert registry_expressions == [
+        {"key": "scheduling.re8ch.com/pool-service-core-ab", "operator": "In", "values": ["true"]},
+        {"key": "scheduling.re8ch.com/network-serving", "operator": "In", "values": ["true"]},
+    ]
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
     assert {item["name"]: item["replicas"] for item in publications} == {

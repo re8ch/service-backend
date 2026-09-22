@@ -110,11 +110,21 @@ spec:
       app.kubernetes.io/name: fleet-egress-proxy
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: online-reliable
       labels:
         app.kubernetes.io/name: fleet-egress-proxy
     spec:
       nodeSelector:
-        kubernetes.io/hostname: vm-20-12-ubuntu
+        scheduling.re8ch.com/placement-general-reliable: "true"
+        scheduling.re8ch.com/network-serving: "true"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: scheduling.re8ch.com/failure-domain
+          whenUnsatisfiable: ScheduleAnyway
+          nodeTaintsPolicy: Honor
+          nodeAffinityPolicy: Honor
+          labelSelector: {matchLabels: {app.kubernetes.io/name: fleet-egress-proxy}}
       hostAliases:
         - ip: 192.0.2.187
           hostnames:
@@ -290,11 +300,21 @@ spec:
       app.kubernetes.io/name: fleet-redis
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: online-reliable
       labels:
         app.kubernetes.io/name: fleet-redis
     spec:
       nodeSelector:
-        kubernetes.io/hostname: vm-20-12-ubuntu
+        scheduling.re8ch.com/placement-general-reliable: "true"
+        scheduling.re8ch.com/network-serving: "true"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: scheduling.re8ch.com/failure-domain
+          whenUnsatisfiable: ScheduleAnyway
+          nodeTaintsPolicy: Honor
+          nodeAffinityPolicy: Honor
+          labelSelector: {matchLabels: {app.kubernetes.io/name: fleet-redis}}
       tolerations:
         - key: anchor
           operator: Equal

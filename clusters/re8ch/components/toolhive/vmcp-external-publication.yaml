@@ -104,14 +104,14 @@ spec:
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19}
+      annotations:
+        scheduling.re8ch.com/placement-class: service-core-ab
+        scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
+      nodeSelector:
+        scheduling.re8ch.com/pool-service-core-ab: "true"
+        scheduling.re8ch.com/network-serving: "true"
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-admin-vmcp-internal}}
@@ -162,15 +162,14 @@ spec:
   podTemplateSpec:
     metadata:
       annotations:
-        scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19
+        scheduling.re8ch.com/placement-class: service-core-ab
+        scheduling.re8ch.com/placement-revision: workload-contract-v1
         observability.re8ch.com/probe-revision: shared-observability-v1
     spec:
+      nodeSelector:
+        scheduling.re8ch.com/pool-service-core-ab: "true"
+        scheduling.re8ch.com/network-serving: "true"
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-observe-vmcp-internal}}
@@ -212,14 +211,14 @@ spec:
   resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
   podTemplateSpec:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-revision: a1-b1-recovery-2026-09-19}
+      annotations:
+        scheduling.re8ch.com/placement-class: service-core-ab
+        scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
+      nodeSelector:
+        scheduling.re8ch.com/pool-service-core-ab: "true"
+        scheduling.re8ch.com/network-serving: "true"
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {toolhive-name: ops-operate-vmcp-internal}}

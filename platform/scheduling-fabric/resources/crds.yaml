@@ -79,11 +79,22 @@ spec:
         properties:
           spec:
             type: object
-            required: [nodeSelector, allowControlPlane, topologyKey]
+            required: [workloadMode, nodeSelector, allowControlPlane, topologyKey, minEligibleNodes, minFailureDomains, distributionPolicy, failurePolicy]
             properties:
+              workloadMode:
+                type: string
+                enum: [PortableService, StatefulService, Batch, NodeBootstrapDaemon, NodeServingDaemon]
               nodeSelector: {type: object, additionalProperties: {type: string}}
               allowControlPlane: {type: boolean}
               topologyKey: {type: string, minLength: 1}
+              minEligibleNodes: {type: integer, minimum: 1}
+              minFailureDomains: {type: integer, minimum: 1}
+              nodePool: {type: string, minLength: 1}
+              distributionPolicy: {type: string, enum: [ObserveOnly, PreferSpread, RequireSpread]}
+              maxSkew: {type: integer, minimum: 1, default: 1}
+              whenUnsatisfiable: {type: string, enum: [ScheduleAnyway, DoNotSchedule]}
+              nodeTaintsPolicy: {type: string, enum: [Honor]}
+              failurePolicy: {type: string, enum: [FailClosed]}
               requiredCapabilities: {type: array, items: {type: string}}
               resourceFlavorName: {type: string, minLength: 1}
           status: {type: object, x-kubernetes-preserve-unknown-fields: true}

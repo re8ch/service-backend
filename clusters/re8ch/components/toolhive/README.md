@@ -19,17 +19,21 @@ allowlists. ConnecTool aggregates only the explicitly reviewed backends into
 the cloud, admin and tenant vMCPs. Generic Kubernetes/SQL proxies and
 credential-returning tools are not published on a default surface.
 
-ConnecTool owns the label-scoped runtime policy for ToolHive-generated child
-resources. Every `toolhive=true` workload is restricted to `restricted-node-1eb0570f74` and
-`restricted-node-296f36f2fb`, spread one replica per hostname, given bounded rollout settings,
-and exposed through Services that prefer same-node endpoints. Each public vMCP
-and each private backend/proxy has two replicas. Memory-backed sessions use
-`ClientIP` affinity; clients reconnect after a node failure instead of making a
-shared Redis instance part of the availability path.
+PlacementClasses preserve the intentional split in this heterogeneous cluster.
+Private ToolHive MCP backends use `service-core-ab` (A1/B1 only); ConnecTool's
+generated vMCP and session-router children use `service-core-r640`. The chart
+0.5.2 runtime policy still renders the restricted-node-6dc3f140f9 hostname as a compatibility layer,
+but NodeProfile pool membership and PlacementClass are the desired-state
+authority. Health and capacity can remove a member from the usable set; they
+cannot widen either workload onto an unrelated node.
 
-restricted-node-6dc3f140f9 remains the PublicEdge transport authority, but it is not an MCP compute,
-control, or session-state node. The direct external and managed MCPServer
-generations are retired; ConnecTool vMCP is the only public MCP publication.
+Two-replica private backends keep hard per-host anti-affinity because that is a
+specific service contract, not a cluster-wide balancing rule. Other placement
+skew is observed or preferred without blocking recovery. Memory-backed sessions
+use `ClientIP` affinity; clients reconnect after a node failure instead of
+making a shared Redis instance part of the availability path. The direct
+external and managed MCPServer generations are retired; ConnecTool vMCP is the
+only public MCP publication.
 
 Keep SSH and the Kubernetes control-plane path available as independent
 break-glass access. Operational MCP must not be the only way to repair its own

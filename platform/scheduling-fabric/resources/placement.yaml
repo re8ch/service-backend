@@ -1,51 +1,153 @@
-# PlacementClass is the application-facing contract.  The controller projects
-# only these bounded labels from NodeProfile/inventory; workloads never select
-# infrastructure host names for portable placement.
+# PlacementClass is the reviewed allowlist and capacity-floor contract.
+# Pool membership is declared once in NodeProfile and projected as labels;
+# application manifests never need to copy A1/B1/restricted-node-6dc3f140f9 hostnames.
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
-metadata: {name: general-reliable}
+metadata: {name: service-core-local}
 spec:
-  nodeSelector: {scheduling.re8ch.com/placement-general-reliable: "true"}
+  workloadMode: PortableService
+  nodePool: service-core-local
+  nodeSelector: {scheduling.re8ch.com/pool-service-core-local: "true", scheduling.re8ch.com/network-serving: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
+  requiredCapabilities: [network]
+  resourceFlavorName: placement-service-core-local
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: service-core-ab}
+spec:
+  workloadMode: PortableService
+  nodePool: service-core-ab
+  nodeSelector: {scheduling.re8ch.com/pool-service-core-ab: "true", scheduling.re8ch.com/network-serving: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
+  requiredCapabilities: [network]
+  resourceFlavorName: placement-service-core-ab
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: service-core-r640}
+spec:
+  workloadMode: PortableService
+  nodePool: service-core-r640
+  nodeSelector: {scheduling.re8ch.com/pool-service-core-r640: "true", scheduling.re8ch.com/network-serving: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
+  requiredCapabilities: [network]
+  resourceFlavorName: placement-service-core-r640
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: online-reliable}
+spec:
+  workloadMode: PortableService
+  nodeSelector: {scheduling.re8ch.com/placement-general-reliable: "true", scheduling.re8ch.com/network-serving: "true"}
   allowControlPlane: false
   topologyKey: scheduling.re8ch.com/failure-domain
-  resourceFlavorName: placement-general-reliable
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: PreferSpread
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway
+  nodeTaintsPolicy: Honor
+  failurePolicy: FailClosed
+  requiredCapabilities: [network]
+  resourceFlavorName: placement-online-reliable
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
 metadata: {name: batch-opportunistic}
 spec:
-  nodeSelector: {scheduling.re8ch.com/placement-batch-opportunistic: "true"}
+  workloadMode: Batch
+  nodeSelector: {scheduling.re8ch.com/placement-batch-opportunistic: "true", scheduling.re8ch.com/network-serving: "true"}
   allowControlPlane: false
   topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: PreferSpread
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway
+  nodeTaintsPolicy: Honor
+  failurePolicy: FailClosed
+  requiredCapabilities: [network]
   resourceFlavorName: placement-batch-opportunistic
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
 metadata: {name: gpu-rocm}
 spec:
-  nodeSelector: {scheduling.re8ch.com/capability-gpu: rocm-wsl}
+  workloadMode: Batch
+  nodeSelector: {scheduling.re8ch.com/capability-gpu: rocm-wsl, scheduling.re8ch.com/gpu-serving: "true"}
   allowControlPlane: false
   topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
   requiredCapabilities: [gpu]
   resourceFlavorName: placement-gpu-rocm
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
-metadata: {name: ceph-client}
+metadata: {name: stateful-ceph}
 spec:
-  nodeSelector: {scheduling.re8ch.com/capability-storage-ceph-client: "true"}
+  workloadMode: StatefulService
+  nodeSelector: {scheduling.re8ch.com/placement-general-reliable: "true", scheduling.re8ch.com/ceph-serving: "true"}
   allowControlPlane: false
   topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: PreferSpread
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway
+  nodeTaintsPolicy: Honor
+  failurePolicy: FailClosed
   requiredCapabilities: [storage]
-  resourceFlavorName: placement-ceph-client
+  resourceFlavorName: placement-stateful-ceph
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: function-execution}
+spec:
+  workloadMode: Batch
+  nodeSelector: {scheduling.re8ch.com/function-serving: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: PreferSpread
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway
+  nodeTaintsPolicy: Honor
+  failurePolicy: FailClosed
+  requiredCapabilities: [function-execution, network]
+  resourceFlavorName: placement-function-execution
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
 metadata: {name: public-edge}
 spec:
-  nodeSelector: {scheduling.re8ch.com/capability-public-edge: "true"}
+  workloadMode: PortableService
+  nodeSelector: {scheduling.re8ch.com/public-edge-serving: "true"}
   allowControlPlane: false
   topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
   requiredCapabilities: [public-edge]
   resourceFlavorName: placement-public-edge
 ---
@@ -53,17 +155,42 @@ apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
 metadata: {name: egress}
 spec:
-  nodeSelector: {scheduling.re8ch.com/capability-egress: "true"}
+  workloadMode: PortableService
+  nodeSelector: {scheduling.re8ch.com/egress-serving: "true"}
   allowControlPlane: false
   topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
   requiredCapabilities: [egress]
   resourceFlavorName: placement-egress
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: PlacementClass
-metadata: {name: service-core}
+metadata: {name: node-bootstrap}
 spec:
-  nodeSelector: {scheduling.re8ch.com/service-plane-eligible: "true"}
+  workloadMode: NodeBootstrapDaemon
+  nodeSelector: {kubernetes.io/os: linux}
   allowControlPlane: true
   topologyKey: scheduling.re8ch.com/failure-domain
-  resourceFlavorName: placement-service-core
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
+  resourceFlavorName: placement-node-bootstrap
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: PlacementClass
+metadata: {name: node-serving-agent}
+spec:
+  workloadMode: NodeServingDaemon
+  nodeSelector: {scheduling.re8ch.com/workload-eligible: "true"}
+  allowControlPlane: true
+  topologyKey: scheduling.re8ch.com/failure-domain
+  minEligibleNodes: 1
+  minFailureDomains: 1
+  distributionPolicy: ObserveOnly
+  failurePolicy: FailClosed
+  requiredCapabilities: [network]
+  resourceFlavorName: placement-node-serving-agent

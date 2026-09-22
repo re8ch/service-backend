@@ -12,10 +12,22 @@ spec:
       app.kubernetes.io/name: ontology-microscope-adapter
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: online-reliable
       labels:
         app.kubernetes.io/name: ontology-microscope-adapter
         saas.re8ch.com/tenant: re8ch
     spec:
+      nodeSelector:
+        scheduling.re8ch.com/placement-general-reliable: "true"
+        scheduling.re8ch.com/network-serving: "true"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: scheduling.re8ch.com/failure-domain
+          whenUnsatisfiable: ScheduleAnyway
+          nodeTaintsPolicy: Honor
+          nodeAffinityPolicy: Honor
+          labelSelector: {matchLabels: {app.kubernetes.io/name: ontology-microscope-adapter}}
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true

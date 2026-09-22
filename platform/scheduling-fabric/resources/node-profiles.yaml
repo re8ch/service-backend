@@ -36,7 +36,7 @@ spec:
   background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: Main server and capacity anchor}
   failureDomains: {site: cn-hunan-r640, power: r640-mains, network: r640-dedicated-line, host: restricted-node-6dc3f140f9}
   reliability: {class: anchor, disruptionRisk: 15, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
-  capabilities: {cpuClass: server, bandwidthMbps: 200, servicePlane: core, storage: [ceph-osd, ceph-client, object-client], draDeviceClasses: [re8ch-usb], scheduling: [stable, dynamic]}
+  capabilities: {cpuClass: server, bandwidthMbps: 200, servicePlane: core, functionExecution: true, placementPools: [service-core-local, service-core-r640], storage: [ceph-osd, ceph-client, object-client], draDeviceClasses: [re8ch-usb], scheduling: [stable, dynamic]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -49,7 +49,7 @@ spec:
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-a1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-a1, power: a1-workstation, network: a1-local-uplink, host: a1-windows}
   reliability: {class: variable, disruptionRisk: 45}
-  capabilities: {bandwidthMbps: 200, servicePlane: core, storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
+  capabilities: {bandwidthMbps: 200, servicePlane: core, placementPools: [service-core-local, service-core-ab], storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -62,7 +62,7 @@ spec:
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-b1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-b1, power: b1-workstation, network: b1-local-uplink, host: b1-windows}
   reliability: {class: variable, disruptionRisk: 45}
-  capabilities: {bandwidthMbps: 200, servicePlane: core, storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
+  capabilities: {bandwidthMbps: 200, servicePlane: core, placementPools: [service-core-local, service-core-ab], storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -136,7 +136,7 @@ spec:
   background: {provider: aliyun, region: cn, ownership: rented, environment: cloud, account: muaya, costClass: fixed-cloud}
   failureDomains: {site: aliyun-lightweight, power: aliyun-lightweight, network: aliyun-lightweight-uplink, host: muaya-lightweight}
   reliability: {class: stable, disruptionRisk: 25}
-  capabilities: {bandwidthClass: constrained-public, scheduling: [stable, dynamic], storage: [ceph-client]}
+  capabilities: {bandwidthClass: constrained-public, functionExecution: true, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -148,7 +148,7 @@ spec:
   background: {provider: aliyun, region: cn, ownership: rented, environment: cloud, account: muaya, costClass: fixed-cloud}
   failureDomains: {site: aliyun-ecs, power: aliyun-ecs, network: aliyun-ecs-uplink, host: muaya-ecs}
   reliability: {class: stable, disruptionRisk: 25}
-  capabilities: {bandwidthClass: constrained-public, scheduling: [stable, dynamic], storage: [ceph-client]}
+  capabilities: {bandwidthClass: constrained-public, functionExecution: true, scheduling: [stable, dynamic], storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1

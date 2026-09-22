@@ -10,38 +10,63 @@ spec: {}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
-metadata: {name: placement-general-reliable}
-spec: {nodeLabels: {scheduling.re8ch.com/placement-general-reliable: "true"}}
+metadata: {name: placement-service-core-local}
+spec: {nodeLabels: {scheduling.re8ch.com/pool-service-core-local: "true", scheduling.re8ch.com/network-serving: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-service-core-ab}
+spec: {nodeLabels: {scheduling.re8ch.com/pool-service-core-ab: "true", scheduling.re8ch.com/network-serving: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-service-core-r640}
+spec: {nodeLabels: {scheduling.re8ch.com/pool-service-core-r640: "true", scheduling.re8ch.com/network-serving: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-online-reliable}
+spec: {nodeLabels: {scheduling.re8ch.com/placement-general-reliable: "true", scheduling.re8ch.com/network-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
 metadata: {name: placement-batch-opportunistic}
-spec: {nodeLabels: {scheduling.re8ch.com/placement-batch-opportunistic: "true"}}
+spec: {nodeLabels: {scheduling.re8ch.com/placement-batch-opportunistic: "true", scheduling.re8ch.com/network-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
 metadata: {name: placement-gpu-rocm}
-spec: {nodeLabels: {scheduling.re8ch.com/capability-gpu: rocm-wsl}}
+spec: {nodeLabels: {scheduling.re8ch.com/capability-gpu: rocm-wsl, scheduling.re8ch.com/gpu-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
-metadata: {name: placement-ceph-client}
-spec: {nodeLabels: {scheduling.re8ch.com/capability-storage-ceph-client: "true"}}
+metadata: {name: placement-stateful-ceph}
+spec: {nodeLabels: {scheduling.re8ch.com/placement-general-reliable: "true", scheduling.re8ch.com/ceph-serving: "true"}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-function-execution}
+spec: {nodeLabels: {scheduling.re8ch.com/function-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
 metadata: {name: placement-public-edge}
-spec: {nodeLabels: {scheduling.re8ch.com/capability-public-edge: "true"}}
+spec: {nodeLabels: {scheduling.re8ch.com/public-edge-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
 metadata: {name: placement-egress}
-spec: {nodeLabels: {scheduling.re8ch.com/capability-egress: "true"}}
+spec: {nodeLabels: {scheduling.re8ch.com/egress-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
-metadata: {name: placement-service-core}
-spec: {nodeLabels: {scheduling.re8ch.com/service-plane-eligible: "true"}}
+metadata: {name: placement-node-bootstrap}
+spec: {nodeLabels: {kubernetes.io/os: linux}}
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata: {name: placement-node-serving-agent}
+spec: {nodeLabels: {scheduling.re8ch.com/workload-eligible: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ClusterQueue

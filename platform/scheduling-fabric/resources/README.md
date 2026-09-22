@@ -67,6 +67,21 @@ applies the same selector to queued PodSets. Hostname pinning remains native
 only for documented locality or public-delivery dependencies and must carry
 `pinned-reason`.
 
+The cluster is intentionally heterogeneous. PlacementClass therefore starts
+with an allowlist, not an assumption that every Ready node is interchangeable.
+`service-core-local`, `service-core-ab` and `service-core-r640` preserve the
+reviewed A1/B1/restricted-node-6dc3f140f9 relationships through NodeProfile pool membership. Health,
+capability and capacity-window labels dynamically shrink each pool to its
+currently usable set; they never expand it to an unrelated node.
+
+Availability is expressed as a capacity floor (`minEligibleNodes` and
+`minFailureDomains`). `distributionPolicy: ObserveOnly` records eligible nodes
+and domains without inventing a balancing requirement. `PreferSpread` uses
+`ScheduleAnyway`, so skew is evidence and a preference rather than a reason to
+deadlock recovery. `RequireSpread` is reserved for workloads whose correctness
+really depends on distinct domains. All current classes fail closed when their
+declared capacity floor is absent.
+
 ## Default and dynamic cohorts
 
 - `default-scheduler` remains the read-only K3s/upstream baseline.

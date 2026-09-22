@@ -118,7 +118,14 @@ def profile_labels(spec, target):
         labels[f"scheduling.re8ch.com/capability-storage-{storage}"] = "true"
     if capabilities.get("gpu"):
         labels["scheduling.re8ch.com/capability-gpu"] = str(capabilities["gpu"])
-    for key in ("publicEdge", "egress", "trafficQuotaAware"):
+    # Placement pools are the reviewed, durable allowlists for heterogeneous
+    # infrastructure. Workloads consume these labels through PlacementClass;
+    # they do not repeat hostnames in every manifest.
+    known_pools = ("service-core-local", "service-core-ab", "service-core-r640")
+    memberships = set(capabilities.get("placementPools", []))
+    for pool in known_pools:
+        labels[f"scheduling.re8ch.com/pool-{pool}"] = "true" if pool in memberships else "false"
+    for key in ("publicEdge", "egress", "trafficQuotaAware", "functionExecution"):
         if capabilities.get(key): labels[f"scheduling.re8ch.com/capability-{key.replace('E', '-e').lower()}"] = "true"
     # These are eligibility classes, never a replacement for native hard
     # locality constraints such as node-local disks or Gateway backends.
@@ -127,30 +134,88 @@ def profile_labels(spec, target):
     labels["scheduling.re8ch.com/placement-batch-opportunistic"] = "true" if capabilities.get("scheduling") else "false"
     return labels
 
-def placement_eligible_nodes(placement, nodes):
+SERVING_LABELS = (
+    "scheduling.re8ch.com/workload-eligible",
+    "scheduling.re8ch.com/network-serving",
+    "scheduling.re8ch.com/ceph-serving",
+    "scheduling.re8ch.com/gpu-serving",
+    "scheduling.re8ch.com/egress-serving",
+    "scheduling.re8ch.com/public-edge-serving",
+    "scheduling.re8ch.com/function-serving",
+)
+
+def serving_labels(spec, reliability):
+    """Project current capacity separately from durable node capabilities."""
+    capabilities = spec.get("capabilities", {})
+    eligible = bool(reliability.get("eligible"))
+    storage = capabilities.get("storage", [])
+    values = {
+        "scheduling.re8ch.com/workload-eligible": eligible,
+        "scheduling.re8ch.com/network-serving": eligible,
+        "scheduling.re8ch.com/ceph-serving": eligible and "ceph-client" in storage,
+        "scheduling.re8ch.com/gpu-serving": eligible and bool(capabilities.get("gpu")),
+        "scheduling.re8ch.com/egress-serving": eligible and bool(capabilities.get("egress")),
+        "scheduling.re8ch.com/public-edge-serving": eligible and bool(capabilities.get("publicEdge")),
+        "scheduling.re8ch.com/function-serving": eligible and bool(capabilities.get("functionExecution")),
+    }
+    return {key: "true" if value else "false" for key, value in values.items()}
+
+def placement_node_rejection(placement, node):
     spec = placement.get("spec", {})
-    selector = spec.get("nodeSelector", {})
-    eligible = [node for node in nodes if labels_match(node.get("metadata", {}).get("labels", {}), selector)]
-    eligible = [node for node in eligible if node.get("metadata", {}).get("labels", {}).get("scheduling.re8ch.com/capacity-window") == "open"]
-    if not spec.get("allowControlPlane", False):
-        eligible = [node for node in eligible if node.get("metadata", {}).get("labels", {}).get("node-role.kubernetes.io/control-plane") != "true"]
-    return eligible
+    labels = node.get("metadata", {}).get("labels", {})
+    pool = spec.get("nodePool")
+    if pool and labels.get(f"scheduling.re8ch.com/pool-{pool}") != "true":
+        return "outside-allowed-pool"
+    if not spec.get("allowControlPlane", False) and labels.get("node-role.kubernetes.io/control-plane") == "true":
+        return "control-plane-disallowed"
+    mode = spec.get("workloadMode", "PortableService")
+    if mode == "NodeBootstrapDaemon":
+        return None if labels_match(labels, spec.get("nodeSelector", {})) else "selector-mismatch"
+    if labels.get("scheduling.re8ch.com/workload-eligible") != "true":
+        return "node-not-workload-eligible"
+    if mode != "NodeServingDaemon" and labels.get("scheduling.re8ch.com/capacity-window") != "open":
+        return "capacity-window-not-open"
+    if not labels_match(labels, spec.get("nodeSelector", {})):
+        return "capability-selector-mismatch"
+    return None
+
+def placement_eligible_nodes(placement, nodes):
+    return [node for node in nodes if placement_node_rejection(placement, node) is None]
+
+def placement_capacity(placement, nodes):
+    eligible = placement_eligible_nodes(placement, nodes)
+    spec = placement.get("spec", {})
+    domains = {node.get("metadata", {}).get("labels", {}).get(spec.get("topologyKey")) for node in eligible} - {None}
+    minimum_nodes = int(spec.get("minEligibleNodes", 1))
+    minimum_domains = int(spec.get("minFailureDomains", 1))
+    available = len(eligible) >= minimum_nodes and len(domains) >= minimum_domains
+    blocked = {}
+    for node in nodes:
+        reason = placement_node_rejection(placement, node)
+        if reason:
+            blocked[reason] = blocked.get(reason, 0) + 1
+    return eligible, domains, available, blocked
 
 def reconcile_placement_classes(nodes):
     for placement in items(GROUP + "/placementclasses"):
-        eligible = placement_eligible_nodes(placement, nodes)
-        domains = {node.get("metadata", {}).get("labels", {}).get(placement.get("spec", {}).get("topologyKey")) for node in eligible}
-        ready = bool(eligible)
-        message = f"{len(eligible)} eligible nodes across {len(domains - {None})} failure domains"
+        eligible, domains, available, blocked = placement_capacity(placement, nodes)
+        spec = placement.get("spec", {})
+        message = (f"{len(eligible)}/{spec.get('minEligibleNodes', 1)} eligible nodes across "
+                   f"{len(domains)}/{spec.get('minFailureDomains', 1)} failure domains; "
+                   f"distribution={spec.get('distributionPolicy', 'ObserveOnly')}")
         conditions = [
             {"type": "Ready", "status": "True", "reason": "Validated", "message": "Placement class definition is valid", "lastTransitionTime": now()},
-            {"type": "Available", "status": "True" if ready else "False",
-             "reason": "EligibleNodes" if ready else "NoEligibleNodes",
+            {"type": "Available", "status": "True" if available else "False",
+             "reason": "CapacitySatisfied" if available else "FailClosedCapacityUnsatisfied",
              "message": message, "lastTransitionTime": now()},
         ]
         patch(f"{GROUP}/placementclasses/{placement['metadata']['name']}",
               {"status": {"observedGeneration": placement["metadata"].get("generation"), "eligibleNodes": len(eligible),
-                          "failureDomains": len(domains - {None}), "conditions": conditions}}, True)
+                          "failureDomains": len(domains), "eligibleNodeNames": sorted(n["metadata"]["name"] for n in eligible),
+                          "capacityFloor": {"nodes": int(spec.get("minEligibleNodes", 1)),
+                                            "failureDomains": int(spec.get("minFailureDomains", 1))},
+                          "distributionPolicy": spec.get("distributionPolicy", "ObserveOnly"),
+                          "blockedReasons": blocked, "conditions": conditions}}, True)
 
 def reconcile_placement_admission_checks(nodes):
     """Mark Kueue placement checks Ready only when a named class is usable.
@@ -165,13 +230,13 @@ def reconcile_placement_admission_checks(nodes):
         podsets = workload.get("spec", {}).get("podSets", [])
         annotation = next((p.get("template", {}).get("metadata", {}).get("annotations", {}).get("scheduling.re8ch.com/placement-class") for p in podsets if p.get("template", {}).get("metadata", {}).get("annotations", {}).get("scheduling.re8ch.com/placement-class")), None)
         placement = classes.get(annotation)
-        eligible = placement_eligible_nodes(placement, nodes) if placement else []
-        state = "Ready" if eligible else ("Pending" if placement else "Rejected")
-        message = (f"PlacementClass {annotation} is ready" if eligible else
+        eligible, _, available, _ = placement_capacity(placement, nodes) if placement else ([], set(), False, {})
+        state = "Ready" if available else ("Pending" if placement else "Rejected")
+        message = (f"PlacementClass {annotation} is ready" if available else
                    f"PlacementClass {annotation} is waiting for node capacity" if placement else
                    f"PlacementClass {annotation or '<missing>'} does not exist")
         update = {"name": "re8ch-placement", "state": state, "message": message, "lastTransitionTime": now()}
-        if eligible:
+        if available:
             update["podSetUpdates"] = [{"name": podset["name"], "nodeSelector": placement["spec"]["nodeSelector"]} for podset in podsets]
         remaining = [check for check in checks if check.get("name") != "re8ch-placement"]
         patch(f"/apis/kueue.x-k8s.io/v1beta2/namespaces/{workload['metadata']['namespace']}/workloads/{workload['metadata']['name']}", {"status": {"admissionChecks": remaining + [update]}}, True)
@@ -422,7 +487,9 @@ def reconcile_profiles(nodes, events):
             projected = dict(labels)
             projected["scheduling.re8ch.com/failure-domain"] = spec.get("failureDomains", {}).get("host", node_name)
             projected["scheduling.re8ch.com/reliability-score"] = str(reliability["score"])
-            projected["scheduling.re8ch.com/service-plane-eligible"] = "true" if reliability["eligible"] else "false"
+            service_plane_eligible = bool(spec.get("capabilities", {}).get("servicePlane")) and reliability["eligible"]
+            projected["scheduling.re8ch.com/service-plane-eligible"] = "true" if service_plane_eligible else "false"
+            projected.update(serving_labels(spec, reliability))
             if spec.get("capabilities", {}).get("servicePlane") and not reliability["eligible"]:
                 projected["scheduling.re8ch.com/service-plane"] = None
             elif not spec.get("capabilities", {}).get("servicePlane"):
