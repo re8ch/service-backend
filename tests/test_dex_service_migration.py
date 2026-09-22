@@ -21,7 +21,8 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
         "issuer": "https://dex.re8ch.com",
         "connectors": [{"type": "github", "config": {"clientSecret": "test-only-secret",
                           "redirectURI": "https://dex.re8ch.com/callback"}}],
-        "staticClients": [{"id": "headlamp", "secret": "another-test-only-secret"}],
+        "staticClients": [{"id": "headlamp", "secret": "another-test-only-secret",
+                           "redirectURIs": ["https://headlamp.re8ch.com/oidc-callback"]}],
     }
     old = {"data": {"config.yaml": base64.b64encode(yaml.safe_dump(config).encode()).decode()}}
     created = []
@@ -48,6 +49,10 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
     assert derived["connectors"][0]["config"]["redirectURI"] == "https://dex.service.re8ch.com/callback"
     assert derived["connectors"][0]["config"]["clientSecret"] == "test-only-secret"
     assert derived["staticClients"][0]["secret"] == "another-test-only-secret"
+    assert derived["staticClients"][0]["redirectURIs"] == [
+        "https://headlamp.re8ch.com/oidc-callback",
+        "https://headlamp.service.re8ch.com/oidc-callback",
+    ]
     assert any(path.endswith("/deployments/dex-service") for _, path in created)
     created.clear()
     with pytest.raises(SystemExit) as stopped:

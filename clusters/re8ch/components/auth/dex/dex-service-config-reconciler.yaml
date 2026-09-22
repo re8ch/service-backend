@@ -58,6 +58,13 @@ data:
         raise RuntimeError('expected exactly one canonical GitHub connector')
     config['issuer'] = 'https://dex.service.re8ch.com'
     github[0]['config']['redirectURI'] = 'https://dex.service.re8ch.com/callback'
+    headlamp = [item for item in config.get('staticClients', []) if item.get('id') == 'headlamp']
+    if len(headlamp) != 1:
+        raise RuntimeError('expected exactly one Headlamp OIDC client')
+    callback = 'https://headlamp.service.re8ch.com/oidc-callback'
+    redirects = headlamp[0].setdefault('redirectURIs', [])
+    if callback not in redirects:
+        redirects.append(callback)
     encoded = base64.b64encode(yaml.safe_dump(config, sort_keys=False).encode()).decode()
     path = '/api/v1/namespaces/dex/secrets/dex-config-service'
     try:
