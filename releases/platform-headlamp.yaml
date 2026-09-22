@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: lighthouse-copper
+codename: signal-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:95cda2b64a593d9f5405cf6bcd40502cd05aa2e33417e60c46acc45634443319
+  digest: sha256:f303654172b074c303473b2c2405bdcc0d0c5bfbbd563cef25692f88daad8ef5
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

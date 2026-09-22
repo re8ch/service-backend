@@ -135,6 +135,8 @@ modules:
       digest: sha256:c2925f4ed14c0fa37516de32687c89d2739bdba08b15cf9dd73f79614dcfced5
     - codename: lighthouse-copper
       digest: sha256:95cda2b64a593d9f5405cf6bcd40502cd05aa2e33417e60c46acc45634443319
+    - codename: signal-copper
+      digest: sha256:f303654172b074c303473b2c2405bdcc0d0c5bfbbd563cef25692f88daad8ef5
   platform/among-clusters:
     releases:
     - codename: bora
@@ -222,6 +224,11 @@ modules:
       digest: sha256:b79c21c2c6b2a7c6c28d033728b573149fa597641dc3f92f39fb07e55cb698ad
     - codename: wetland-jade
       digest: sha256:41458dbd45627c41008ca733662b19d2b4d6c7a55bc96e5b9d47eaa256df9e7e
+    - codename: atoll-pearl
+      digest: sha256:43ba10a38bb8ec38fbeb87a2c11fdefb852a22159421d064f4884781a6eff9d9
+      quarantined: missing-or-invalid-signature
+    - codename: canopy-pearl
+      digest: sha256:d56ccb3abe01cc75aae912c758ad804134aa838424514066f8cb725583dfe029
   platform/cloud-platform:
     releases:
     - codename: atoll
