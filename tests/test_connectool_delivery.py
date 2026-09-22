@@ -11,10 +11,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.5.1"}
+    assert source["spec"]["ref"] == {"tag": "0.5.2"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.1$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.2$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
@@ -32,8 +32,13 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     }
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
-    assert {item["replicas"] for item in publications} == {2}
+    assert {item["name"]: item["replicas"] for item in publications} == {
+        "re8ch-tools-vmcp": 1,
+        "re8ch-admin-vmcp": 2,
+        "tenant-vmcp": 2,
+    }
     by_name = {item["name"]: item for item in publications}
+    assert by_name["re8ch-tools-vmcp"]["allowSingleReplicaWhenCapacityLimited"] is True
     assert by_name["re8ch-tools-vmcp"]["workloads"] == [
         {"name": "ops-observe-vmcp-internal", "toolConfigRef": "ops-public-read-tools"},
         {"name": "ops-operate-vmcp-internal", "toolConfigRef": "ops-operate-tools"},
