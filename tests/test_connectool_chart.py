@@ -102,7 +102,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     objects = render()
     pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
     assert pdbs == {
-        "re8ch-tools-vmcp-pdb", "re8ch-admin-vmcp-pdb", "tenant-vmcp-pdb",
+        "re8ch-admin-vmcp-pdb", "tenant-vmcp-pdb",
         "re8ch-tools-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
     }
     policies = [item for item in objects if item["kind"] == "MutatingAdmissionPolicy"]

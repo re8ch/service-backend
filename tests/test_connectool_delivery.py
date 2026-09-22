@@ -11,10 +11,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.5.1"}
+    assert source["spec"]["ref"] == {"tag": "0.5.2"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.1$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.2$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
