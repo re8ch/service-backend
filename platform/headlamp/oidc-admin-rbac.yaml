@@ -16,6 +16,11 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
 subjects:
+  # The shared Dex group survives switching from the GitHub connector to the
+  # unified account broker. Keep the named users during the migration window.
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: oidc:re8ch:k8s-admins
   # Kubernetes uses the OIDC email claim as the username. Retain the GitHub
   # login as a compatibility subject if the API-server claim mapping changes.
   - apiGroup: rbac.authorization.k8s.io
