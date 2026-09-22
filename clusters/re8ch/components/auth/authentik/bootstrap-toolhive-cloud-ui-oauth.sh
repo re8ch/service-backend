@@ -40,12 +40,15 @@ if [[ "$provider" == "null" ]]; then
       issuer_mode: "per_provider",
       include_claims_in_id_token: true,
       property_mappings: $property_mappings,
-      redirect_uris: [{matching_mode: "strict", url: "https://tools.re8ch.com/api/auth/oauth2/callback/oidc"}]
+      redirect_uris: [{matching_mode: "strict", url: "https://tools.service.re8ch.com/api/auth/oauth2/callback/oidc"}]
     }' | curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
       -d @- "$API/providers/oauth2/")
 fi
 
 provider_pk=$(jq -r .pk <<<"$provider")
+provider=$(jq -n '{redirect_uris: [{matching_mode: "strict", url: "https://tools.service.re8ch.com/api/auth/oauth2/callback/oidc"}]}' |
+  curl -fsS -X PATCH -H "$auth_header" -H 'Content-Type: application/json' \
+    -d @- "$API/providers/oauth2/${provider_pk}/")
 client_secret=$(jq -r .client_secret <<<"$provider")
 [[ -n "$client_secret" && "$client_secret" != "null" ]]
 
@@ -57,13 +60,20 @@ if [[ -z "$application_pk" ]]; then
       slug: "toolhive-cloud-ui",
       provider: $provider,
       meta_description: "Official ToolHive visualization for the RE8CH MCP catalog",
-      meta_launch_url: "https://tools.re8ch.com/",
+      meta_launch_url: "https://tools.service.re8ch.com/",
       open_in_new_tab: true
     }' | curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
       -d @- "$API/core/applications/" | jq -r .pk)
 fi
+curl -fsS -X PATCH -H "$auth_header" -H 'Content-Type: application/json' \
+  -d '{"meta_launch_url":"https://tools.service.re8ch.com/"}' \
+  "$API/core/applications/${application_pk}/" >/dev/null
 
-better_auth_secret=$(openssl rand -base64 48 | tr -d '\n')
+better_auth_secret=$(${K[@]} -n toolhive-system get secret toolhive-cloud-ui-auth \
+  -o jsonpath='{.data.better-auth-secret}' 2>/dev/null | base64 -d || true)
+if [[ -z "$better_auth_secret" ]]; then
+  better_auth_secret=$(openssl rand -base64 48 | tr -d '\n')
+fi
 "${K[@]}" -n toolhive-system create secret generic toolhive-cloud-ui-auth \
   --from-literal=oidc-client-secret="$client_secret" \
   --from-literal=better-auth-secret="$better_auth_secret" \
