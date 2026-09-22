@@ -32,7 +32,7 @@ spec:
           ports: [{name: http, containerPort: 8080}]
           env:
             - {name: DATASPACE_STORAGE_ROOT, value: /data}
-            - {name: DATASPACE_OIDC_ISSUER, value: "https://dex.re8ch.com"}
+            - {name: DATASPACE_OIDC_ISSUER, value: "https://dex.service.re8ch.com"}
             - {name: DATASPACE_OIDC_AUDIENCE, value: "storage-collaborator"}
             - name: DATASPACE_DEVICE_TOKEN
               valueFrom: {secretKeyRef: {name: dataspace-gateway, key: device-token}}

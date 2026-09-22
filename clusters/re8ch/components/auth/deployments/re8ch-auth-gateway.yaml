@@ -134,7 +134,7 @@ spec:
                   key: AUTHENTIK_OIDC_CLIENT_SECRET
                   optional: true
             - name: DEX_OIDC_ISSUER
-              value: https://dex.re8ch.com
+              value: https://dex.service.re8ch.com
             - name: DEX_OIDC_SCOPES
               value: openid email profile groups
             - name: DEX_OIDC_CLIENT_ID

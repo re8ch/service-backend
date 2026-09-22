@@ -219,11 +219,11 @@ spec:
               valueFrom:
                 secretKeyRef: {name: litellm-dex-sso, key: client-secret}
             - name: GENERIC_AUTHORIZATION_ENDPOINT
-              value: https://dex.re8ch.com/auth
+              value: https://dex.service.re8ch.com/auth
             - name: GENERIC_TOKEN_ENDPOINT
-              value: https://dex.re8ch.com/token
+              value: https://dex.service.re8ch.com/token
             - name: GENERIC_USERINFO_ENDPOINT
-              value: https://dex.re8ch.com/userinfo
+              value: https://dex.service.re8ch.com/userinfo
             - name: GENERIC_SCOPE
               value: openid email profile groups
             - name: DOCS_URL

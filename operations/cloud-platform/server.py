@@ -16,7 +16,7 @@ from runtime import CloudPlatform, Identity, Inventory, OperationError, Operatio
 HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 PORT = int(os.getenv("LISTEN_PORT", "19443"))
 SERVICE_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
-DEX_USERINFO = os.getenv("DEX_USERINFO_URL", "https://dex.re8ch.com/userinfo")
+DEX_USERINFO = os.getenv("DEX_USERINFO_URL", "https://dex.service.re8ch.com/userinfo")
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))

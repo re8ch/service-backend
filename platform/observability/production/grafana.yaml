@@ -120,9 +120,9 @@ spec:
             - {name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID, value: re8ch-grafana}
             - {name: GF_AUTH_GENERIC_OAUTH_USE_PKCE, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_SCOPES, value: "openid profile email groups"}
-            - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: https://dex.re8ch.com/auth}
-            - {name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL, value: https://dex.re8ch.com/token}
-            - {name: GF_AUTH_GENERIC_OAUTH_API_URL, value: https://dex.re8ch.com/userinfo}
+            - {name: GF_AUTH_GENERIC_OAUTH_AUTH_URL, value: https://dex.service.re8ch.com/auth}
+            - {name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL, value: https://dex.service.re8ch.com/token}
+            - {name: GF_AUTH_GENERIC_OAUTH_API_URL, value: https://dex.service.re8ch.com/userinfo}
             - {name: GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP, value: "true"}
             - {name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH, value: "contains(groups[*], 're8ch:k8s-admins') && 'Admin' || 'Viewer'"}
             - {name: GF_AUTH_GENERIC_OAUTH_ORG_ATTRIBUTE_PATH, value: "contains(groups[*], 're8ch:k8s-admins') && 'RE8CH Platform' || contains(groups[*], 're8ch:qwen-operators') && 'Qianwen' || contains(groups[*], 're8ch:ledger-operators') && 'Ledger' || contains(groups[*], 're8ch:anycam-operators') && 'Anycam' || contains(groups[*], 're8ch:bench-operators') && 'Bench' || contains(groups[*], 're8ch:cardcat-operators') && 'Cardcat' || 'NoAccess'"}
