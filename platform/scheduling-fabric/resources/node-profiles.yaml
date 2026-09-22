@@ -122,8 +122,8 @@ spec:
   reservationProfile: worker-small
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-vm-20-12, power: tencent-vm-20-12, network: tencent-vm-20-12-uplink, host: vm-20-12-ubuntu}
-  reliability: {class: stable, disruptionRisk: 25, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
-  capabilities: {bandwidthClass: constrained-public, servicePlane: core, scheduling: [stable, dynamic], storage: [ceph-client]}
+  reliability: {class: variable, disruptionRisk: 45, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {bandwidthClass: constrained-public, storage: [ceph-client]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
