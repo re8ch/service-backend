@@ -296,6 +296,8 @@ modules:
       digest: sha256:b6d1a13fff72ace05bc60d91d612928675c9c8379683cecede76a6e1b38e7966
     - codename: anchor-indigo
       digest: sha256:c6c6b31f316ecf4f39b35355be93e5971b4188b8aa0b84bba9d9f5e30110d598
+    - codename: beacon-indigo
+      digest: sha256:5c394dbc59527f3821c5f83912a72cc06726c4a5c7f63e843b3cc53e26d4f9db
   platform/birfucate-metering:
     releases:
     - codename: cascade
