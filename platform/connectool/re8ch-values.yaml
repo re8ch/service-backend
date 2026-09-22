@@ -13,6 +13,12 @@ toolhive:
           nodeSelectorTerms:
             - matchExpressions:
                 - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector: {matchLabels: {app: virtualmcpserver, toolhive-name: re8ch-tools-vmcp}}
+              topologyKey: kubernetes.io/hostname
     tolerations: []
     topologySpreadConstraints: []
     resources:
