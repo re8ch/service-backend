@@ -17,6 +17,8 @@ def test_node_storage_exporter_is_bounded_and_read_only():
     container = pod["containers"][0]
     assert not pod.get("hostNetwork", False)
     assert not pod.get("hostPID", False)
+    assert not any(toleration.get("operator") == "Exists" and not toleration.get("key")
+                   for toleration in pod.get("tolerations", []))
     assert container["securityContext"]["readOnlyRootFilesystem"]
     assert not container["securityContext"]["allowPrivilegeEscalation"]
     assert container["resources"]["requests"] == {"cpu": "10m", "memory": "12Mi"}
