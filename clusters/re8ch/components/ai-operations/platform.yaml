@@ -261,9 +261,9 @@ spec:
             - {name: RE8CH_TOOL_PROFILE, value: all}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-ai-tools}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
-            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/cloud/mcp"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/cloud/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/cloud/mcp"}
             - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
             - {name: LITELLM_BASE_URL, value: "https://litellm.re8ch.com"}
@@ -336,9 +336,9 @@ spec:
           env:
             - {name: RE8CH_TOOL_PROFILE, value: infra}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-cluster-infra-tool}
-            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/infra/mcp"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/infra/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/infra/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/infra/mcp"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: INFRA_EXEC_NODE, value: restricted-node-1eb0570f74}
             - {name: LITELLM_BASE_URL, value: "http://litellm.llm-gateway.svc.cluster.local:4000"}
@@ -403,9 +403,9 @@ spec:
             - {name: RE8CH_TOOL_PROFILE, value: tenant}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-harbor-tenant}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
-            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/harbor-tenant/mcp"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/harbor-tenant/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/harbor-tenant/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/harbor-tenant/mcp"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: CREDENTIAL_NAMESPACE, value: credential-broker}
             - {name: HARBOR_TENANTS_PATH, value: /etc/re8ch-ai-operations/harbor-tenants.json}
@@ -471,9 +471,9 @@ spec:
           env:
             - {name: RE8CH_TOOL_PROFILE, value: orchestra}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-agent-orchestra-collab}
-            - {name: PUBLIC_ORIGIN, value: "https://tools.re8ch.com"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.re8ch.com/orchestra/mcp"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.re8ch.com/.well-known/oauth-protected-resource/orchestra/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/orchestra/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/orchestra/mcp"}
             - {name: INSTALL_STATE_HMAC_KEY, valueFrom: {secretKeyRef: {name: marketplace-installer, key: state-hmac-key}}}
             - {name: INSTALL_REDIRECT_URI, value: "https://marketplace.re8ch.com/install/callback"}
             - {name: MARKETPLACE_SOURCE, value: "https://github.com/re8ch/codex-admin-plugins.git"}
