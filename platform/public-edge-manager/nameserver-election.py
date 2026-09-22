@@ -43,8 +43,14 @@ def api_request(path, method="GET", payload=None):
                  "Content-Type": "application/merge-patch+json" if method == "PATCH" else "application/json"},
     )
     context = ssl.create_default_context(cafile=f"{SA}/ca.crt")
-    with urllib.request.urlopen(request, context=context, timeout=10) as response:
-        return json.load(response)
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(request, context=context, timeout=10) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == 3:
+                raise
+            time.sleep(2 ** attempt)
 
 
 def encode_name(name):
@@ -247,7 +253,13 @@ def reconcile_parent(token, selected):
 
 def main():
     nodes = api_request("/api/v1/nodes")
-    edges = api_request(f"/apis/{GROUP}/v1alpha1/publicedges")
+    try:
+        edges = api_request(f"/apis/{GROUP}/v1alpha1/publicedges")
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+        # PublicEdges only enrich capacity and region. ExternalIP plus the
+        # authoritative public DNS probe remain the election requirements.
+        print(f"PublicEdge metadata unavailable; using Node facts: {exc}", flush=True)
+        edges = {"items": []}
     discovered = discover(nodes, edges)
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(12, len(discovered) or 1)) as pool:
         qualified = [item for item in pool.map(probe, discovered) if item]
