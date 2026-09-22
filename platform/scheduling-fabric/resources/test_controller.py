@@ -84,6 +84,16 @@ class ScoreTests(unittest.TestCase):
         state, _ = controller.capacity_window(node, {"memoryTotal": 1024, "memoryAvailable": 1024, "cpuRatio": 0})
         self.assertEqual(state, "unknown")
 
+    @patch.object(controller, "metric_rows")
+    def test_cpu_uses_node_exporter_even_without_trimaran(self, rows):
+        def answer(query):
+            if "node_cpu_seconds_total" in query:
+                return [({"node": "n1"}, 0.35)]
+            return []
+        rows.side_effect = answer
+        self.assertEqual(controller.capacity_measurements()["n1"]["cpuRatio"], 0.35)
+        self.assertTrue(any("node_cpu_seconds_total" in call.args[0] for call in rows.call_args_list))
+
     def test_capacity_window_accounts_for_reserved_ephemeral_storage(self):
         gib = 1024 ** 3
         node = {"status": {"conditions": [{"type": "Ready", "status": "True"}], "allocatable": {"ephemeral-storage": "80Gi"}}}
@@ -112,6 +122,18 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(taints[0]["key"], "dedicated")
         self.assertEqual(taints[1]["key"], controller.CAPACITY_TAINT["key"])
         self.assertEqual(request.call_args.args[2][0]["value"], "2")
+
+    @patch.object(controller, "request")
+    @patch.object(controller, "patch")
+    @patch.object(controller, "items", return_value=[])
+    @patch.object(controller, "capacity_measurements", return_value={})
+    def test_first_missing_sample_closes_ready_node(self, _metrics, _items, patch_node, request):
+        node = {"metadata": {"name": "n1", "resourceVersion": "1", "labels": {}, "annotations": {}},
+                "spec": {"taints": []}, "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+        patch_node.return_value = {"metadata": {"resourceVersion": "2"}}
+        controller.reconcile_capacity_windows([node])
+        self.assertEqual(node["metadata"]["labels"]["scheduling.re8ch.com/capacity-window"], "unknown")
+        self.assertIn(controller.CAPACITY_TAINT, request.call_args.args[2][-1]["value"])
 
     def test_reliability_requires_stable_ready_window(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
