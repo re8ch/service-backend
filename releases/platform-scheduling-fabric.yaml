@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: reef-jade
+codename: tundra-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:41019d3ded1cb3e99c44caaab6e77365d15b84c537dfe29fed657640b3344628
+  digest: sha256:b79c21c2c6b2a7c6c28d033728b573149fa597641dc3f92f39fb07e55cb698ad
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
