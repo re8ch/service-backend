@@ -362,7 +362,7 @@ spec:
   - backendRefs:
     - group: ''
       kind: Service
-      name: dex
+      name: dex-service
       port: 80
       weight: 1
     filters:
@@ -397,7 +397,7 @@ spec:
   - backendRefs:
     - group: ''
       kind: Service
-      name: dex
+      name: dex-service
       port: 80
       weight: 1
     filters:

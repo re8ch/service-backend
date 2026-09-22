@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: dex-service-config-reconciler, namespace: dex}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: dex-service-config-reconciler, namespace: dex}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [dex-config, dex-config-service]
+    verbs: [get, patch]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [dex-service]
+    verbs: [patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: dex-service-config-reconciler, namespace: dex}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: dex-service-config-reconciler}
+subjects: [{kind: ServiceAccount, name: dex-service-config-reconciler, namespace: dex}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: dex-service-config-reconciler, namespace: dex}
+data:
+  reconcile.py: |
+    import base64
+    import json
+    import ssl
+    import time
+    import urllib.error
+    import urllib.request
+    import yaml
+
+    api = 'https://kubernetes.default.svc'
+    token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read().strip()
+    context = ssl.create_default_context(cafile='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt')
+
+    def request(path, method='GET', body=None, content_type='application/json'):
+        data = None if body is None else json.dumps(body).encode()
+        req = urllib.request.Request(api + path, data=data, method=method, headers={
+            'Authorization': 'Bearer ' + token, 'Content-Type': content_type,
+        })
+        with urllib.request.urlopen(req, context=context, timeout=20) as response:
+            return json.load(response)
+
+    source = request('/api/v1/namespaces/dex/secrets/dex-config')
+    config = yaml.safe_load(base64.b64decode(source['data']['config.yaml']))
+    if config.get('issuer') != 'https://dex.re8ch.com':
+        raise RuntimeError('canonical Dex issuer changed; refusing to derive a stale config')
+    github = [item for item in config.get('connectors', []) if item.get('type') == 'github']
+    if len(github) != 1:
+        raise RuntimeError('expected exactly one canonical GitHub connector')
+    config['issuer'] = 'https://dex.service.re8ch.com'
+    github[0]['config']['redirectURI'] = 'https://dex.service.re8ch.com/callback'
+    encoded = base64.b64encode(yaml.safe_dump(config, sort_keys=False).encode()).decode()
+    path = '/api/v1/namespaces/dex/secrets/dex-config-service'
+    try:
+        target = request(path)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        target = None
+    if target and target.get('data', {}).get('config.yaml') == encoded:
+        raise SystemExit(0)
+    if target:
+        request(path, 'PATCH', {'data': {'config.yaml': encoded}}, 'application/merge-patch+json')
+    else:
+        request('/api/v1/namespaces/dex/secrets', 'POST', {
+            'apiVersion': 'v1', 'kind': 'Secret',
+            'metadata': {'name': 'dex-config-service', 'namespace': 'dex'},
+            'type': 'Opaque', 'data': {'config.yaml': encoded},
+        })
+    request('/apis/apps/v1/namespaces/dex/deployments/dex-service', 'PATCH', {
+        'spec': {'template': {'metadata': {'annotations': {
+            'dex.re8ch.com/config-reconciled-at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        }}}}}, 'application/merge-patch+json')
+    print('Dex service issuer configuration reconciled; rollout requested')
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: dex-service-config-reconciler, namespace: dex}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: dex-service-config-reconciler}}
+  template:
+    metadata: {labels: {app: dex-service-config-reconciler}}
+    spec:
+      serviceAccountName: dex-service-config-reconciler
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      containers:
+        - name: reconcile
+          image: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
+          command: [/bin/sh, -c]
+          args:
+            - |
+              while true; do
+                python3 /scripts/reconcile.py
+                sleep 60
+              done
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
+          volumeMounts: [{name: script, mountPath: /scripts, readOnly: true}]
+      volumes: [{name: script, configMap: {name: dex-service-config-reconciler, defaultMode: 0444}}]

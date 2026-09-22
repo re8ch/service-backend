@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex-service
+  namespace: dex
+  labels: {app.kubernetes.io/name: dex-service}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/name: dex-service}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: dex-service}}
+    spec:
+      dnsPolicy: ClusterFirst
+      hostAliases:
+        - ip: 192.0.2.85
+          hostnames: [pg-re8ch-primary.pigsty-external.svc.cluster.local]
+      imagePullSecrets: [{name: ghcr-re8ch}]
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: dex
+          image: ghcr.io/re8ch/dex:v2.44.0-amd64@sha256:3b472d149aab6bb00516230bed8c582fc66a037966b8c222219b3942228cc5b2
+          imagePullPolicy: IfNotPresent
+          command: [/usr/local/bin/dex]
+          args: [serve, /etc/dex/config.yaml]
+          ports: [{name: http, containerPort: 5556}]
+          env:
+            - {name: GITHUB_CLIENT_ID, valueFrom: {secretKeyRef: {name: dex-github, key: client-id}}}
+            - {name: GITHUB_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: dex-github, key: client-secret}}}
+            - {name: DEX_DB_PASSWORD, valueFrom: {secretKeyRef: {name: dex-postgres, key: password}}}
+            - {name: HTTP_PROXY, value: "http://identity-egress.egress-fabric.svc.cluster.local:17893"}
+            - {name: HTTPS_PROXY, value: "http://identity-egress.egress-fabric.svc.cluster.local:17893"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.203/8,192.0.2.225/10"}
+          readinessProbe: {httpGet: {path: /.well-known/openid-configuration, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 20, periodSeconds: 20}
+          resources: {requests: {cpu: 20m, memory: 64Mi}, limits: {cpu: 300m, memory: 256Mi}}
+          volumeMounts: [{name: config, mountPath: /etc/dex, readOnly: true}]
+      volumes: [{name: config, secret: {secretName: dex-config-service}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: dex-service, namespace: dex}
+spec:
+  selector: {app.kubernetes.io/name: dex-service}
+  ports: [{name: http, port: 80, targetPort: http, protocol: TCP}]
