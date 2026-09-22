@@ -1168,6 +1168,109 @@ def get_ceph_recovery_status():
         "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
+def _fresh_metric_rows(expression, max_age_seconds=360):
+    """Read only fixed expressions; stale series are never reported as zero."""
+    now = time.time()
+    rows = prom_query(expression)
+    if len(rows) > 1000:
+        raise RuntimeError("storage metrics exceeded the reviewed series limit")
+    fresh = []
+    for row in rows:
+        sample = row.get("value", [])
+        if len(sample) != 2:
+            continue
+        try:
+            sampled_at, value = float(sample[0]), float(sample[1])
+        except (TypeError, ValueError):
+            continue
+        if 0 <= now - sampled_at <= max_age_seconds:
+            fresh.append((row.get("metric", {}), value, sampled_at))
+    return fresh
+
+def get_ceph_storage_status():
+    """Expose native Ceph inventory with metrics freshness, not a generic shell."""
+    cluster = kube_request("GET", "/apis/ceph.rook.io/v1/namespaces/rook-ceph/cephclusters/rook-ceph")
+    osd_up = _fresh_metric_rows('ceph_osd_up{job="rook-ceph-mgr"}')
+    osd_in = _fresh_metric_rows('ceph_osd_in{job="rook-ceph-mgr"}')
+    pg_clean = _fresh_metric_rows('ceph_pg_clean{job="rook-ceph-mgr"}')
+    pg_total = _fresh_metric_rows('ceph_pg_total{job="rook-ceph-mgr"}')
+    health = _fresh_metric_rows('ceph_health_status{job="rook-ceph-mgr"}')
+    in_by_daemon = {metric.get("ceph_daemon"): value for metric, value, _ in osd_in}
+    osds = [{"id": metric.get("ceph_daemon"), "up": value == 1,
+             "in": in_by_daemon.get(metric.get("ceph_daemon")) == 1}
+            for metric, value, _ in osd_up]
+    return {
+        "cluster": "rook-ceph",
+        "phase": cluster.get("status", {}).get("phase"),
+        "healthCode": int(health[0][1]) if health else None,
+        "osds": sorted(osds, key=lambda item: item["id"] or ""),
+        "placementGroups": {"clean": int(sum(row[1] for row in pg_clean)) if pg_clean else None,
+                            "total": int(sum(row[1] for row in pg_total)) if pg_total else None},
+        "metricsFresh": bool(osd_up and osd_in and pg_clean and pg_total and health),
+        "source": "Rook CephCluster and fixed Ceph manager metrics",
+    }
+
+def get_ready_node_storage_inventory():
+    """Bounded mounted-filesystem and swap inventory for Ready nodes only."""
+    nodes = kube_request("GET", "/api/v1/nodes").get("items", [])
+    ready = {node.get("metadata", {}).get("name") for node in nodes
+             if any(c.get("type") == "Ready" and c.get("status") == "True"
+                    for c in node.get("status", {}).get("conditions", []))}
+    ready.discard(None)
+    if len(ready) > 200:
+        raise RuntimeError("Ready node count exceeded the reviewed inventory limit")
+    names = {
+        "size": "node_filesystem_size_bytes",
+        "available": "node_filesystem_avail_bytes",
+        "readonly": "node_filesystem_readonly",
+        "deviceError": "node_filesystem_device_error",
+        "swapTotal": "node_memory_SwapTotal_bytes",
+        "swapFree": "node_memory_SwapFree_bytes",
+    }
+    samples = {key: _fresh_metric_rows('%s{job="re8ch-node-storage-exporter"}' % metric)
+               for key, metric in names.items()}
+    mounts = {}
+    for key in ("size", "available", "readonly", "deviceError"):
+        for metric, value, sampled_at in samples[key]:
+            node = metric.get("node")
+            if node not in ready:
+                continue
+            identity = (node, metric.get("mountpoint"), metric.get("device"), metric.get("fstype"))
+            row = mounts.setdefault(identity, {"node": node, "mountpoint": identity[1],
+                                                "device": identity[2], "fstype": identity[3]})
+            row[key] = value
+            row["sampledAt"] = max(sampled_at, row.get("sampledAt", 0))
+    swap = {}
+    for key in ("swapTotal", "swapFree"):
+        for metric, value, sampled_at in samples[key]:
+            node = metric.get("node")
+            if node in ready:
+                swap.setdefault(node, {})[key] = value
+    results = []
+    for node in sorted(ready):
+        filesystems = []
+        for identity, row in mounts.items():
+            if identity[0] != node or row.get("size", 0) <= 0 or "available" not in row:
+                continue
+            size, available = int(row["size"]), int(row["available"])
+            filesystems.append({"mountpoint": row["mountpoint"], "device": row["device"],
+                                "fstype": row["fstype"], "sizeBytes": size,
+                                "availableBytes": available,
+                                "usedPercent": round(100 * (1 - available / size), 1),
+                                "readOnly": row.get("readonly") == 1,
+                                "deviceError": row.get("deviceError") == 1})
+        filesystems.sort(key=lambda item: (item["mountpoint"] or "", item["device"] or ""))
+        swap_row = swap.get(node, {})
+        total, free = int(swap_row.get("swapTotal", 0)), int(swap_row.get("swapFree", 0))
+        results.append({"node": node, "ready": True, "metricsAvailable": bool(filesystems),
+                        "filesystems": filesystems[:32],
+                        "filesystemsTruncated": len(filesystems) > 32,
+                        "swap": {"totalBytes": total, "usedBytes": max(total - free, 0),
+                                 "usedPercent": round(100 * (1 - free / total), 1) if total else 0}
+                        if "swapTotal" in swap_row and "swapFree" in swap_row else None})
+    return {"nodes": results, "scope": "Ready nodes and mounted host filesystems; raw Ceph OSD capacity is reported by get_ceph_storage_status",
+            "cleanupPolicy": "observe and alert only; never delete PVC, Ceph data, images, or host files automatically"}
+
 def restart_ceph_osd_1():
     """Roll only the reviewed failed OSD, and only while its host is Ready."""
     before = get_ceph_recovery_status()
@@ -4003,6 +4106,7 @@ OBSERVE_TOOL_NAMES = {
     "get_supabase_platform_status", "get_neo4j_platform_status", "get_identity_platform_status",
     "get_agent_runtime_status", "get_observability_platform_status", "get_artifact_platform_status",
     "get_database_routing_status", "get_external_publication_readiness",
+    "get_ceph_storage_status", "get_ready_node_storage_inventory",
 }
 OPERATE_TOOL_NAMES = {
     "get_managed_platform_operation_status", "restart_managed_platform_deployment",
@@ -4037,6 +4141,8 @@ def mcp_tools(include_admin=False):
         {"name": "get_platform_access_posture", "description": "Return credential-free namespace RBAC, ServiceAccount token, NetworkPolicy, NodePort/LoadBalancer, and Ingress review signals for AI and human security review.", "inputSchema": schema()},
         {"name": "get_managed_platform_operation_status", "description": "Return desired/ready/available state and recorded restart/scale approvals for every pre-reviewed platform operation target.", "inputSchema": schema()},
         {"name": "get_ceph_recovery_status", "description": "Return sanitized Rook CephCluster health and OSD 1 Deployment, Pod and node placement for recovery review; no Ceph credentials or raw logs.", "inputSchema": schema()},
+        {"name": "get_ceph_storage_status", "description": "Return bounded Rook/Ceph OSD and placement-group status from native Ceph manager metrics, with freshness checks.", "inputSchema": schema()},
+        {"name": "get_ready_node_storage_inventory", "description": "Return mounted-filesystem capacity and swap usage for Ready nodes only; never delete files or infer raw disk capacity from mounts.", "inputSchema": schema()},
         {"name": "get_nuclio_function_status", "description": "Return a sanitized cross-namespace Nuclio function inventory and native states without environment variables, Secret references, annotations or last-applied configuration.", "inputSchema": schema()},
         {"name": "diagnose_nuclio_function", "description": "Diagnose one existing Nuclio function from sanitized native state, Deployment readiness, Pod scheduling/container waits and recent Events. Secret, environment and annotation data are omitted.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}}, ["namespace", "name"])},
         {"name": "get_nuclio_capacity_status", "description": "Return Nuclio-labelled node readiness, schedulability, taints, allocatable capacity, placed function Pod counts and unscheduled function Pods as a rollout gate.", "inputSchema": schema()},
@@ -4165,6 +4271,10 @@ def call_tool(name, args, admin=False):
         return get_managed_platform_operation_status()
     if name == "get_ceph_recovery_status":
         return get_ceph_recovery_status()
+    if name == "get_ceph_storage_status":
+        return get_ceph_storage_status()
+    if name == "get_ready_node_storage_inventory":
+        return get_ready_node_storage_inventory()
     if name == "get_nuclio_function_status":
         return get_nuclio_function_status()
     if name == "diagnose_nuclio_function":

@@ -4,6 +4,7 @@ resources:
   - storage.yaml
   - logs.yaml
   - collectors.yaml
+  - node-storage-exporter.yaml
   - alertmanager.yaml
   - scrapes.yaml
   - rules.yaml
