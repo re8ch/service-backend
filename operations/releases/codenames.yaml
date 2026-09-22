@@ -133,6 +133,8 @@ modules:
       digest: sha256:078065f46e2fb8eb50a45fdedbd9871bffcb106492d2282f034ac665f5f62d79
     - codename: lantern-copper
       digest: sha256:c2925f4ed14c0fa37516de32687c89d2739bdba08b15cf9dd73f79614dcfced5
+    - codename: lighthouse-copper
+      digest: sha256:95cda2b64a593d9f5405cf6bcd40502cd05aa2e33417e60c46acc45634443319
   platform/among-clusters:
     releases:
     - codename: bora
