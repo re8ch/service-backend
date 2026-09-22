@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: beacon-indigo
+codename: harbor-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:5c394dbc59527f3821c5f83912a72cc06726c4a5c7f63e843b3cc53e26d4f9db
+  digest: sha256:119475726d68c921f237ef0df81027e5b26dcea4f5deeff04009e341a96cef3e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
