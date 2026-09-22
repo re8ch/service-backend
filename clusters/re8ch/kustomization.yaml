@@ -19,6 +19,8 @@ resources:
 - secrets/hyperswitch-runtime-values.sops.yaml
 - secrets/hyperswitch-bootstrap-admin.sops.yaml
 - secrets/tenant-claim-internal-auth.sops.yaml
+- secrets/re8ch-auth-broker-client-auth.sops.yaml
+- secrets/re8ch-auth-broker-client-dex.sops.yaml
 - secrets/tenant-registry-supply-chain.sops.yaml
 - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
 - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
