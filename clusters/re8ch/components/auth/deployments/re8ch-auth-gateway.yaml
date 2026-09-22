@@ -48,7 +48,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-return-2026062701
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:auth-broker-20260923-648dbe0@sha256:a929e65b41eb4877f51978368bfaf1d9f0aad5a74411973851d3067fad194e62
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
