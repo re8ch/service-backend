@@ -36,7 +36,6 @@ spec:
       dnsPolicy: ClusterFirst
       nodeSelector:
         scheduling.re8ch.com/pool-service-core-r640: "true"
-        scheduling.re8ch.com/network-serving: "true"
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
