@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: tundra-jade
+    delivery.re8ch.com/codename: wetland-jade
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:b79c21c2c6b2a7c6c28d033728b573149fa597641dc3f92f39fb07e55cb698ad
+    digest: sha256:41458dbd45627c41008ca733662b19d2b4d6c7a55bc96e5b9d47eaa256df9e7e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: tundra-jade
+    delivery.re8ch.com/codename: wetland-jade
 spec:
   interval: 10m
   retryInterval: 1m
