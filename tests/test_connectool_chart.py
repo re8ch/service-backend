@@ -198,6 +198,8 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
                 "id": "re8ch-grafana", "name": "RE8CH Grafana", "public": True,
                 "redirectURIs": ["https://grafana.service.re8ch.com/grafana/login/generic_oauth"],
             })}}
+        if method == "GET" and path.endswith("paralus-oidc-client"):
+            return {"data": {"clientSecret": base64.b64encode(b"test-only-paralus-secret").decode()}}
         if method == "GET" and path.endswith("dex-config"):
             return copy.deepcopy(secret)
         writes.append((method, path))
@@ -215,6 +217,11 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
     grafana = next(item for item in updated["staticClients"] if item["id"] == "re8ch-grafana")
     assert grafana["public"] is True
     assert grafana["redirectURIs"] == ["https://grafana.service.re8ch.com/grafana/login/generic_oauth"]
+    paralus = next(item for item in updated["staticClients"] if item["id"] == "paralus-service")
+    assert paralus["secret"] == "test-only-paralus-secret"
+    assert paralus["redirectURIs"] == [
+        "https://paralus.service.re8ch.com/self-service/methods/oidc/callback/re8ch-dex"
+    ]
     assert any(path.endswith("deployments/dex") for _, path in writes)
     writes.clear()
     import pytest

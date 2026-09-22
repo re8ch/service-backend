@@ -215,6 +215,8 @@ Get console full-qualified domain with port.
     {{- else -}}
 {{$url}}:80
     {{- end -}}
+  {{- else -}}
+{{$url}}:443
   {{- end -}}
 {{- end -}}
 
