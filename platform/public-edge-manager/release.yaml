@@ -5,7 +5,7 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:f064062639f77b5aebb0f755acbcd53ca081bcb960379f3e8dbe2a5230d200f4}
+  ref: {digest: sha256:8a39e4fc5ccb3df82d6112bebe3888bfd2fab84991406c5e130734b8babd92f2}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -52,13 +52,14 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.5.4"
-      digest: sha256:0dc781e812a2b8bc0294665cb27b6ac4fb28ef638b40cac0d88ba486545d206e
+      tag: "0.5.5"
+      digest: sha256:321aafac153354315a9d22774b7fac8f0b4f1572ab7d05981bbc8610f49eecd6
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
     dns:
       soaRname: hostmaster.re8ch.com.
+      nameserversConfigMap: public-edge-nameservers
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com.]
@@ -145,7 +146,7 @@ spec:
         _acme-challenge.service.re8ch.com.:
           - {type: CNAME, value: _acme-challenge.re8ch.com., externalCDN: true, provider: cloudflare-dns01}
     crd: {install: true}
-    nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com., ns-us.re8ch.com.]
+    nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com.]
     authorityNodes:
       # These VPC addresses receive the providers' public-IP DNAT on port 53.
       domain-ex: {bindAddress: 192.0.2.200, area: CN, region: shanghai}
@@ -241,14 +242,13 @@ spec:
       latencyDivisorMs: 20
       latencyPenaltyCap: 50
       localNodeBonus: 5
-    # Require fresh Advanced Fabric evidence and the same exact Node Ready=True
-    # eligibility fact used by its path rankings.
+    # Require fresh measured path evidence independent of kubelet scheduling state.
     fabricEvidence:
       mode: Required
       apiGroup: networking.re8ch.com
       apiVersion: v1alpha2
       resource: networkpathassessments
-      requireNodeReady: true
+      requireNodeReady: false
       allowedStates: [Ready, Partial]
     publication:
       enabled: true

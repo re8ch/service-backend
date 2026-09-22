@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: public-edge-nameserver-election, namespace: regional-routing}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: public-edge-nameserver-election}
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [list]
+  - apiGroups: [networking.re8ch.com]
+    resources: [publicedges]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: public-edge-nameserver-election}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: public-edge-nameserver-election}
+subjects:
+  - {kind: ServiceAccount, name: public-edge-nameserver-election, namespace: regional-routing}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: public-edge-nameserver-election, namespace: regional-routing}
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [public-edge-nameservers]
+    verbs: [get, patch]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: public-edge-nameserver-election, namespace: regional-routing}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: public-edge-nameserver-election}
+subjects:
+  - {kind: ServiceAccount, name: public-edge-nameserver-election, namespace: regional-routing}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: public-edge-nameserver-read-cloudflare, namespace: qianwen-ops}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [cloudflare-pg-dns-controller-secret]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: public-edge-nameserver-read-cloudflare, namespace: qianwen-ops}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: public-edge-nameserver-read-cloudflare}
+subjects:
+  - {kind: ServiceAccount, name: public-edge-nameserver-election, namespace: regional-routing}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: public-edge-nameserver-election, namespace: regional-routing}
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          serviceAccountName: public-edge-nameserver-election
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          tolerations:
+            - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+          containers:
+            - name: election
+              image: python:3.12-alpine
+              imagePullPolicy: IfNotPresent
+              command: [python3, /scripts/nameserver-election.py]
+              env:
+                - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
+                - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
+              resources:
+                requests: {cpu: 20m, memory: 64Mi}
+                limits: {cpu: 300m, memory: 192Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: [ALL]}
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 65532
+              volumeMounts:
+                - {name: script, mountPath: /scripts, readOnly: true}
+          volumes:
+            - name: script
+              configMap: {name: public-edge-nameserver-election-script, defaultMode: 0444}
