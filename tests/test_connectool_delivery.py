@@ -32,7 +32,11 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     }
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
-    assert {item["replicas"] for item in publications} == {2}
+    assert {item["name"]: item["replicas"] for item in publications} == {
+        "re8ch-tools-vmcp": 1,
+        "re8ch-admin-vmcp": 2,
+        "tenant-vmcp": 2,
+    }
     by_name = {item["name"]: item for item in publications}
     assert by_name["re8ch-tools-vmcp"]["workloads"] == [
         {"name": "ops-observe-vmcp-internal", "toolConfigRef": "ops-public-read-tools"},
