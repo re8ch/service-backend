@@ -126,6 +126,28 @@ spec:
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
+  name: re8ch-node-storage
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  discoveryRole: endpointslice
+  namespaceSelector: {matchNames: [observability-system]}
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-node-storage-exporter}}
+  endpoints:
+    - port: metrics
+      interval: 2m
+      scrapeTimeout: 15s
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_endpointslice_endpoint_node_name], targetLabel: node}
+        - {targetLabel: signal_domain, replacement: storage}
+      metricRelabelConfigs:
+        - sourceLabels: [__name__]
+          regex: node_filesystem_(size|avail)_bytes|node_filesystem_(readonly|device_error)|node_memory_Swap(Total|Free)_bytes
+          action: keep
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
   name: ceph-exporter
   namespace: observability-system
   labels: {observability.re8ch.com/managed: "true"}

@@ -40,6 +40,44 @@ class ToolProfileTests(unittest.TestCase):
             self.assertNotIn("secret", tool["name"].lower())
             self.assertNotIn("sql_proxy", tool["name"])
             self.assertNotIn("kubeconfig", tool["name"])
+        self.assertIn("get_ceph_storage_status", self.tools("observe"))
+        self.assertIn("get_ready_node_storage_inventory", self.tools("observe"))
+
+    def test_storage_inventory_filters_unready_nodes_and_missing_metrics(self):
+        module = load_profile("observe")
+        module.kube_request = lambda method, path: {"items": [
+            {"metadata": {"name": "ready-a"}, "status": {"conditions": [{"type": "Ready", "status": "True"}]}},
+            {"metadata": {"name": "down-b"}, "status": {"conditions": [{"type": "Ready", "status": "False"}]}},
+            {"metadata": {"name": "ready-c"}, "status": {"conditions": [{"type": "Ready", "status": "True"}]}},
+        ]}
+        def metric(name, node, value):
+            labels = {"node": node}
+            if name.startswith("node_filesystem_"):
+                labels.update({"mountpoint": "/", "device": "/dev/sda", "fstype": "ext4"})
+            return (labels, value, 100)
+        rows = {
+            "node_filesystem_size_bytes": [metric("node_filesystem_size_bytes", "ready-a", 1000), metric("node_filesystem_size_bytes", "down-b", 1000)],
+            "node_filesystem_avail_bytes": [metric("node_filesystem_avail_bytes", "ready-a", 250), metric("node_filesystem_avail_bytes", "down-b", 100)],
+            "node_filesystem_readonly": [metric("node_filesystem_readonly", "ready-a", 0)],
+            "node_filesystem_device_error": [],
+            "node_memory_SwapTotal_bytes": [metric("node_memory_SwapTotal_bytes", "ready-a", 100)],
+            "node_memory_SwapFree_bytes": [metric("node_memory_SwapFree_bytes", "ready-a", 40)],
+        }
+        module._fresh_metric_rows = lambda expr: rows[expr.split("{")[0]]
+        result = module.get_ready_node_storage_inventory()
+        self.assertEqual([row["node"] for row in result["nodes"]], ["ready-a", "ready-c"])
+        self.assertEqual(result["nodes"][0]["filesystems"][0]["usedPercent"], 75.0)
+        self.assertEqual(result["nodes"][0]["swap"]["usedPercent"], 60.0)
+        self.assertFalse(result["nodes"][1]["metricsAvailable"])
+
+    def test_ceph_status_does_not_call_missing_metrics_healthy(self):
+        module = load_profile("observe")
+        module.kube_request = lambda method, path: {"status": {"phase": "Ready"}}
+        module._fresh_metric_rows = lambda expr: []
+        result = module.get_ceph_storage_status()
+        self.assertIsNone(result["healthCode"])
+        self.assertIsNone(result["placementGroups"]["clean"])
+        self.assertFalse(result["metricsFresh"])
 
     def test_each_profile_advertises_dex_oidc_scope(self):
         for profile in ("observe", "operate", "admin"):
