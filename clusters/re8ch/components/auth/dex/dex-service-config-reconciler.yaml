@@ -15,7 +15,7 @@ rules:
     verbs: [create]
   - apiGroups: [apps]
     resources: [deployments]
-    resourceNames: [dex-service]
+    resourceNames: [dex, dex-service]
     verbs: [patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -56,8 +56,6 @@ data:
     github = [item for item in config.get('connectors', []) if item.get('type') == 'github']
     if len(github) != 1:
         raise RuntimeError('expected exactly one canonical GitHub connector')
-    config['issuer'] = 'https://dex.service.re8ch.com'
-    github[0]['config']['redirectURI'] = 'https://dex.service.re8ch.com/callback'
     headlamp = [item for item in config.get('staticClients', []) if item.get('id') == 'headlamp']
     if len(headlamp) != 1:
         raise RuntimeError('expected exactly one Headlamp OIDC client')
@@ -65,6 +63,19 @@ data:
     redirects = headlamp[0].setdefault('redirectURIs', [])
     if callback not in redirects:
         redirects.append(callback)
+    # The Kubernetes API authenticates the canonical issuer. Register the
+    # service-domain callback there before deriving the separate Dex service.
+    canonical_encoded = base64.b64encode(yaml.safe_dump(config, sort_keys=False).encode()).decode()
+    if source['data']['config.yaml'] != canonical_encoded:
+        request('/api/v1/namespaces/dex/secrets/dex-config', 'PATCH', {
+            'data': {'config.yaml': canonical_encoded},
+        }, 'application/merge-patch+json')
+        request('/apis/apps/v1/namespaces/dex/deployments/dex', 'PATCH', {
+            'spec': {'template': {'metadata': {'annotations': {
+                'dex.re8ch.com/config-reconciled-at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            }}}}}, 'application/merge-patch+json')
+    config['issuer'] = 'https://dex.service.re8ch.com'
+    github[0]['config']['redirectURI'] = 'https://dex.service.re8ch.com/callback'
     encoded = base64.b64encode(yaml.safe_dump(config, sort_keys=False).encode()).decode()
     path = '/api/v1/namespaces/dex/secrets/dex-config-service'
     try:

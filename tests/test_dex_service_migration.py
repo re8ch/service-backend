@@ -37,6 +37,8 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
                 raise urllib.error.HTTPError(path, 404, "missing", {}, None)
             return copy.deepcopy(target)
         created.append((method, path))
+        if method == "PATCH" and path.endswith("/dex-config"):
+            old["data"].update(body["data"])
         if method == "POST" and path.endswith("/secrets"):
             target = body
         return {}
@@ -44,7 +46,14 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
     scope = dict(base64=base64, yaml=yaml, time=time, urllib=urllib, request=request)
     exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
     derived = yaml.safe_load(base64.b64decode(target["data"]["config.yaml"]))
-    assert yaml.safe_load(base64.b64decode(old["data"]["config.yaml"])) == config
+    canonical = yaml.safe_load(base64.b64decode(old["data"]["config.yaml"]))
+    assert canonical["issuer"] == config["issuer"]
+    assert canonical["connectors"] == config["connectors"]
+    assert canonical["staticClients"][0]["secret"] == "another-test-only-secret"
+    assert canonical["staticClients"][0]["redirectURIs"] == [
+        "https://headlamp.re8ch.com/oidc-callback",
+        "https://headlamp.service.re8ch.com/oidc-callback",
+    ]
     assert derived["issuer"] == "https://dex.service.re8ch.com"
     assert derived["connectors"][0]["config"]["redirectURI"] == "https://dex.service.re8ch.com/callback"
     assert derived["connectors"][0]["config"]["clientSecret"] == "test-only-secret"
@@ -54,6 +63,7 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
         "https://headlamp.service.re8ch.com/oidc-callback",
     ]
     assert any(path.endswith("/deployments/dex-service") for _, path in created)
+    assert any(path.endswith("/deployments/dex") for _, path in created)
     created.clear()
     with pytest.raises(SystemExit) as stopped:
         exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
