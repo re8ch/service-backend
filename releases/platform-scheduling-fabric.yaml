@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: wetland-jade
+codename: canopy-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:41458dbd45627c41008ca733662b19d2b4d6c7a55bc96e5b9d47eaa256df9e7e
+  digest: sha256:d56ccb3abe01cc75aae912c758ad804134aa838424514066f8cb725583dfe029
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
