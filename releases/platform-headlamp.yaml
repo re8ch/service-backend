@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: flare-copper
+codename: lantern-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:078065f46e2fb8eb50a45fdedbd9871bffcb106492d2282f034ac665f5f62d79
+  digest: sha256:c2925f4ed14c0fa37516de32687c89d2739bdba08b15cf9dd73f79614dcfced5
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
