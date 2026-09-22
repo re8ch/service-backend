@@ -44,7 +44,7 @@ spec:
     isolationBoundary: Tenant organization or folder boundary with explicit datasource UID grants; Grafana server administration remains platform-only.
     isolationMechanism: OIDC team mapping, folder RBAC and datasource permissions
     provisioner: observability-tenant-controller
-    tenantEndpoint: https://grafana.re8ch.com
+    tenantEndpoint: https://grafana.service.re8ch.com
     credentialDelivery: OIDC
     requestFields: [organizationRef, role, folderRefs, datasourceRefs]
     grantedResources: [GrafanaOrganization, GrafanaTeam, GrafanaFolderGrant, GrafanaDatasourceGrant]

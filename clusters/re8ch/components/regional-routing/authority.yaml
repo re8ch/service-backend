@@ -119,7 +119,7 @@ data:
         "paths": {"api":["auth","nuclio","ledger","image","compocv"],"pay-ui":["hyperswitch"],"pay-api":["hyperswitch"],"db-ro":["postgrest"],"db-rw":["postgrest"]},
         "probes": {
           "api": "https://api.re8ch.com/__edge/ready",
-          "pay-ui": "https://pay.re8ch.com/",
+          "pay-ui": "https://pay.service.re8ch.com/",
           "pay-api": "https://pay-api.re8ch.com/health",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"

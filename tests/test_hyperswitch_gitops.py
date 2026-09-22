@@ -164,7 +164,7 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     )
     cors = app["server"]["configs"]["cors"]
     assert cors["wildcard_origin"] is False
-    assert "https://pay.re8ch.com" in cors["origins"]
+    assert "https://pay.service.re8ch.com" in cors["origins"]
     connectors = app["server"]["configs"]["connectors"]
     assert connectors["alipaycn"]["base_url"].startswith(
         "https://openapi-sandbox.dl.alipaydev.com/"

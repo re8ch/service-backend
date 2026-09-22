@@ -60,7 +60,7 @@ ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 VMCP_TOKEN_EXCHANGE_TTL = int(os.getenv("VMCP_TOKEN_EXCHANGE_TTL_SECONDS", "300"))
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
-GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.re8ch.com")
+GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
@@ -1882,7 +1882,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             "ceph": ["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"), "--namespace", "rook-ceph", "exec", "deploy/rook-ceph-tools", "--", "ceph", "status", "--format", "json"],
             "pigsty": ["pg_isready"],
             "harbor": ["curl", "-fsS", os.getenv("HARBOR_HEALTH_URL", "https://registry.re8ch.com/api/v2.0/health")],
-            "grafana": ["curl", "-fsS", os.getenv("GRAFANA_HEALTH_URL", "https://grafana.re8ch.com/api/health")],
+            "grafana": ["curl", "-fsS", os.getenv("GRAFANA_HEALTH_URL", "https://grafana.service.re8ch.com/api/health")],
             "github": ["gh", "repo", "view", os.getenv("GITHUB_REPOSITORY", "re8ch/cloud-functions"), "--json", "nameWithOwner,defaultBranchRef"],
             "litellm": ["curl", "-fsS", os.getenv("LITELLM_BASE_URL", "http://litellm.llm-gateway.svc.cluster.local:4000") + "/health/readiness"],
         }

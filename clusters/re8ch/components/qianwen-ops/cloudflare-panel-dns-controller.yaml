@@ -12,25 +12,25 @@ data:
   DNS_COMMENT: managed by qianwen-ops/cloudflare-panel-dns-controller
   RUN_INTERVAL_SECONDS: "300"
   DNS_RECORDS: |
-    portainer.re8ch.com=192.0.2.67
-    grafana.re8ch.com=192.0.2.67
-    hubble.re8ch.com=192.0.2.67
-    cost.re8ch.com=192.0.2.67
-    bgp.re8ch.com=192.0.2.67
-    dbgui.re8ch.com=192.0.2.67
-    teable.re8ch.com=192.0.2.79
-    files.re8ch.com=192.0.2.79
-    phonycenter.re8ch.com=192.0.2.67
-    feishu-agent.re8ch.com=192.0.2.99
-    registry.re8ch.com=192.0.2.67
+    portainer.re8ch.com=1.14.174.244
+    grafana.re8ch.com=1.14.174.244
+    hubble.re8ch.com=1.14.174.244
+    cost.re8ch.com=1.14.174.244
+    bgp.re8ch.com=1.14.174.244
+    dbgui.re8ch.com=1.14.174.244
+    teable.re8ch.com=223.159.210.222
+    files.re8ch.com=223.159.210.222
+    phonycenter.re8ch.com=1.14.174.244
+    feishu-agent.re8ch.com=42.194.130.91
+    registry.re8ch.com=1.14.174.244
     # Nuclio runtime identities. nuc-1 remains a compatibility alias for nuc-2.
-    nuc-1.re8ch.com=192.0.2.110
-    nuc-2.re8ch.com=192.0.2.110
-    nuc-3.re8ch.com=192.0.2.210
+    nuc-1.re8ch.com=47.103.114.218
+    nuc-2.re8ch.com=47.103.114.218
+    nuc-3.re8ch.com=8.136.187.255
     # pg-meta physical node identities; role-aware clients still use db-rw/db-ro.
-    pg-1.re8ch.com=192.0.2.183
-    pg-2.re8ch.com=192.0.2.122
-    pg-3.re8ch.com=192.0.2.92
+    pg-1.re8ch.com=8.138.148.187
+    pg-2.re8ch.com=47.103.8.177
+    pg-3.re8ch.com=8.163.112.229
     # Temporary TXT ownership handoff to ExternalDNS. Values are base64 because
     # ExternalDNS ownership payloads contain commas used by this parser.
     _re8ch-externaldns.a-portainer.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
@@ -39,7 +39,6 @@ data:
     _re8ch-externaldns.a-cost.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
     _re8ch-externaldns.a-bgp.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
     _re8ch-externaldns.a-dbgui.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
-    _re8ch-externaldns.a-fleet.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcGFuZWwtc2VydmljZXMtZG5z,type=TXT,content-base64=true,ttl=1,proxied=false
     _re8ch-externaldns.a-files.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
     _re8ch-externaldns.a-phonycenter.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false
     _re8ch-externaldns.a-registry.re8ch.com=aGVyaXRhZ2U9ZXh0ZXJuYWwtZG5zLGV4dGVybmFsLWRucy9vd25lcj1yZThjaC1rM3MtY2xvdWRmbGFyZSxleHRlcm5hbC1kbnMvcmVzb3VyY2U9aW5ncmVzcy9xaWFud2VuLW9wcy9zdGF0aWMtcjY0MC1zZXJ2aWNlcy1kbnM=,type=TXT,content-base64=true,ttl=1,proxied=false

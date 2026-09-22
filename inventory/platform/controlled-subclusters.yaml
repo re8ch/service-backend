@@ -12,18 +12,18 @@ spec:
     - name: artc
       owner: artc
       organizationBoundary: external
-      apiEndpoint: https://192.0.2.145:6443
+      apiEndpoint: https://10.181.22.68:6443
       consumer: re8ch-headlamp
-      oidcIssuer: https://dex.re8ch.com
+      oidcIssuer: https://dex.service.re8ch.com
       ownerDeclaration: platform/controlled-subclusters/owner-examples/artc-headlamp-admin.yaml
       consumerDeclaration: platform/headlamp/artc-kubeconfig.yaml
       status: proposed
     - name: qwen
       owner: qwen
       organizationBoundary: external
-      apiEndpoint: https://192.0.2.115:6443
+      apiEndpoint: https://10.181.22.24:6443
       consumer: re8ch-headlamp
-      oidcIssuer: https://dex.re8ch.com
+      oidcIssuer: https://dex.service.re8ch.com
       ownerDeclaration: platform/controlled-subclusters/owner-examples/qwen-headlamp-owner.yaml
       consumerDeclaration: platform/headlamp/qwen-kubeconfig.yaml
       status: proposed

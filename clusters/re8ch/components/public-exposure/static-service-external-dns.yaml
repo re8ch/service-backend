@@ -16,7 +16,7 @@ metadata:
   namespace: qianwen-ops
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: portainer.re8ch.com,hubble.re8ch.com,cost.re8ch.com,bgp.re8ch.com,dbgui.re8ch.com,fleet.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: portainer.re8ch.com,hubble.re8ch.com,cost.re8ch.com,bgp.re8ch.com,dbgui.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.67
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"

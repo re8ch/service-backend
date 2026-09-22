@@ -1,11 +1,11 @@
-# restricted-node-6dc3f140f9 Voice Gateway 部署与回滚
+# R640 Voice Gateway 部署与回滚
 
 ## 部署前条件
 
 1. 备份 GXW 配置并记录八路当前 SIP 目标端口；不要修改 A8-C。
 2. 取得业务 HMAC、Agent Digest 账户以及百炼 ASR/TTS API key/配额。
 3. MikroTik 导出脱敏配置，确认禁用 SIP helper 不影响其他 SIP 设备。
-4. 在 restricted-node-6dc3f140f9 暂存本目录为 `/opt/video-infra-src`。
+4. 在 R640 暂存本目录为 `/opt/video-infra-src`。
 
 ## 安装和激活
 
@@ -41,14 +41,14 @@ HOMER is the SIP signalling evidence layer for the voice gateway. Its public
 operator entrypoint is:
 
 ```text
-https://phonycenter.re8ch.com:8443/
+https://phonycenter.service.re8ch.com:8443/
 ```
 
-The explicit port is required because the upstream restricted-node-6dc3f140f9 edge currently carries
+The explicit port is required because the upstream R640 edge currently carries
 public HTTPS to Traefik on TCP 8443. Cloudflare DNS is controller-managed and
 resolves the host to the MikroTik public address. MikroTik forwards only TCP
-8443 to restricted-node-6dc3f140f9 TCP 443; Traefik then proxies the `phonycenter.re8ch.com` host to
-the HOMER UI at `192.0.2.97:19080`.
+8443 to R640 TCP 443; Traefik then proxies the `phonycenter.re8ch.com` host to
+the HOMER UI at `192.168.88.251:19080`.
 
 Only HOMER HTTP UI/API traffic is published. Do not publish HEP `19060`, SIP
 `5060/5080/5160`, ESL `8021`, RTP, DuckDB, Jitsi, or LiveKit ports through this

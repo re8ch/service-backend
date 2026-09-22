@@ -82,7 +82,7 @@ spec:
         app.kubernetes.io/name: litellm-postgresql
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -166,7 +166,7 @@ spec:
         app.kubernetes.io/name: litellm
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -211,7 +211,7 @@ spec:
                   name: litellm-ui-auth
                   key: UI_PASSWORD
             - name: PROXY_BASE_URL
-              value: https://litellm.re8ch.com
+              value: https://litellm.service.re8ch.com
             - name: GENERIC_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: litellm-dex-sso, key: client-id}

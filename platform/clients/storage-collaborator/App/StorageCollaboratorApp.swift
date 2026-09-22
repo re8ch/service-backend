@@ -8,7 +8,7 @@ import StorageCollaboratorKit
 }
 
 @MainActor @Observable final class AppModel {
-  var gateway = "https://storage.re8ch.com:8443/"
+  var gateway = "https://storage.service.re8ch.com:8443/"
   var token = ""
   var workspaces:[Workspace] = []
   var status = "Not connected"

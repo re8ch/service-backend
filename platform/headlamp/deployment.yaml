@@ -292,11 +292,11 @@ spec:
             - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
             - -oidc-client-id=headlamp
             - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
-            - -oidc-idp-issuer-url=https://dex.re8ch.com
+            - -oidc-idp-issuer-url=https://dex.service.re8ch.com
             # Headlamp v0.42 represents an unset in-cluster OIDC CA as a
             # non-nil empty string. Point it at the valid system trust bundle.
             - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
-            - -oidc-callback-url=https://headlamp.re8ch.com/oidc-callback
+            - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
             # Headlamp adds openid itself when building the authorization URL.
             - -oidc-scopes=profile,email,groups,offline_access
             - -oidc-use-cookie

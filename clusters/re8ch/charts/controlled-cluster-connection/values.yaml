@@ -6,7 +6,7 @@ cluster:
 
 consumer:
   name: re8ch-headlamp
-  oidcIssuer: https://dex.re8ch.com
+  oidcIssuer: https://dex.service.re8ch.com
   usernamePrefix: "oidc:"
   scopes: [openid, profile, email, groups]
 

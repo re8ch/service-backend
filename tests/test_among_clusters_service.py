@@ -27,21 +27,21 @@ def test_gitops_consumes_signed_oci_release_by_digest():
     }
     assert release["spec"]["values"]["onboarding"] == {
         "enabled": True,
-        "publicEndpoint": "https://among-clusters.re8ch.com",
+        "publicEndpoint": "https://among-clusters.service.re8ch.com",
         "tenant": "byoc-pilot",
         "providerSPIFFEID": "spiffe://re8ch.internal/cluster/re8ch",
         "providerBundleDigest": "sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8",
         "providerBundleSecret": "among-clusters-agent-identity",
-        "providerQUICEndpoint": "quic://192.0.2.79:8443",
+        "providerQUICEndpoint": "quic://223.159.210.222:8443",
         "imageDigest": "sha256:3a6b90956f55914d595a9e24d8382b1697a8ef0ad51a65e60b77faa76ed7b692",
         "chartVersion": "0.3.25",
     }
     agent_source = next(item for item in objects if item["kind"] == "OCIRepository" and item["metadata"]["name"] == "among-clusters-agent")
     assert agent_source["spec"]["ref"]["digest"] == AGENT_CHART_DIGEST
     agent_release = next(item for item in objects if item.get("kind") == "HelmRelease" and item["metadata"]["name"] == "among-clusters-agent")
-    assert agent_release["spec"]["values"]["hubEndpoint"] == "https://among-clusters.re8ch.com"
+    assert agent_release["spec"]["values"]["hubEndpoint"] == "https://among-clusters.service.re8ch.com"
     assert agent_release["spec"]["values"]["hostAliases"] == [{
-        "ip": "192.0.2.67",
+        "ip": "10.43.158.127",
         "hostnames": ["among-clusters.re8ch.com"],
     }]
     assert agent_release["spec"]["values"]["ciliumPolicy"] == {"enabled": False}
@@ -49,7 +49,7 @@ def test_gitops_consumes_signed_oci_release_by_digest():
         "kubernetes.io/os": "linux",
         "scheduling.re8ch.com/service-plane": "core",
     }
-    assert agent_release["spec"]["values"]["gateway"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert agent_release["spec"]["values"]["gateway"]["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
     gateway_patch = agent_release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]
     assert gateway_patch["target"]["name"] == "among-clusters-gateway"
     assert "node-role.kubernetes.io/control-plane" in gateway_patch["patch"]
@@ -150,7 +150,7 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
     assert service["metadata"]["labels"]["peering.re8ch.com/advertise"] == "true"
     assert service["metadata"]["annotations"]["peering.re8ch.com/target-peers"] == "*"
     assert service["spec"]["internalTrafficPolicy"] == "Local"
-    assert service["spec"]["clusterIP"] == "192.0.2.78"
+    assert service["spec"]["clusterIP"] == "10.43.252.214"
     assert service["spec"]["ports"][0]["port"] == 17891
 
     policy = next(item for item in pilot if item["kind"] == "NetworkPolicy")
@@ -168,8 +168,8 @@ def test_byoc_pilot_is_provider_star_and_exports_mihomos_explicitly():
         "toEntities": ["host", "remote-node"],
         "toPorts": [{"ports": [{"port": "17891", "protocol": "TCP"}]}],
     }]
-    assert rule["to"][1]["ipBlock"]["cidr"] == "192.0.2.183/32"
-    assert rule["to"][2]["ipBlock"]["cidr"] == "192.0.2.78/32"
+    assert rule["to"][1]["ipBlock"]["cidr"] == "10.181.22.128/32"
+    assert rule["to"][2]["ipBlock"]["cidr"] == "10.43.252.214/32"
     assert rule["ports"] == [{"protocol": "TCP", "port": 17891}]
-    assert policy["metadata"]["annotations"]["re8ch.com/network-authority"] == "public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority"
+    assert policy["metadata"]["annotations"]["re8ch.com/network-authority"] == "public-mesh/inventory.json#r640.publicAuthority"
     assert policy["metadata"]["annotations"]["re8ch.com/r640-dummy-purpose"] == "internal-host-endpoint-only-not-public"

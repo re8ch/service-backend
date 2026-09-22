@@ -19,8 +19,8 @@ data:
         args:
           concurrent: 2
           upstreams:
-            - {addr: https://dns.alidns.com/dns-query, dial_addr: 192.0.2.131}
-            - {addr: https://doh.pub/dns-query, dial_addr: 192.0.2.148}
+            - {addr: https://dns.alidns.com/dns-query, dial_addr: 223.5.5.5}
+            - {addr: https://doh.pub/dns-query, dial_addr: 119.29.29.29}
       - tag: forward_global
         type: forward
         args:
@@ -60,8 +60,8 @@ data:
       refuse_any: true
       # AdGuard's upstream bootstrap resolver cannot resolve cluster.local.
       # This Service IP is explicitly reserved below and verified by GitOps.
-      upstream_dns: [192.0.2.146:5353]
-      bootstrap_dns: [192.0.2.131, 192.0.2.148]
+      upstream_dns: [10.43.66.51:5353]
+      bootstrap_dns: [223.5.5.5, 119.29.29.29]
       cache_size: 4194304
       cache_ttl_min: 60
       cache_ttl_max: 86400
@@ -116,12 +116,12 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, amdwsl-zt]
+                    values: [r640, a1-wsl-zt, b1-wsl-zt, amdwsl-zt]
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [r640]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
@@ -149,10 +149,10 @@ apiVersion: v1
 kind: Service
 metadata: {name: mosdns, namespace: egress-fabric}
 spec:
-  # AdGuard and one preferred MosDNS replica share restricted-node-6dc3f140f9.  Local routing keeps
+  # AdGuard and one preferred MosDNS replica share r640.  Local routing keeps
   # DNS independent of the currently degraded WSL cross-node Pod path.
   internalTrafficPolicy: Local
-  clusterIP: 192.0.2.146
+  clusterIP: 10.43.66.51
   selector: {app.kubernetes.io/name: mosdns}
   ports:
     - {name: dns-udp, port: 5353, targetPort: dns-udp, protocol: UDP}
@@ -182,7 +182,7 @@ spec:
       priorityClassName: system-cluster-critical
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: wait-mosdns
@@ -229,7 +229,7 @@ kind: Service
 metadata:
   name: access-dns
   namespace: egress-fabric
-  annotations: {lbipam.cilium.io/ips: 192.0.2.78}
+  annotations: {lbipam.cilium.io/ips: 10.251.0.12}
   labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
 spec:
   type: LoadBalancer
@@ -259,12 +259,12 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-access-dns}}
     spec:
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: oauth2-proxy
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0@sha256:37c1570c0427e02fc7c947ef2c04e8995b8347b7abc9fcf1dbb4e376a4b221a7
-          args: [--provider=oidc, --oidc-issuer-url=https://dex.re8ch.com, --redirect-url=https://dns.access.re8ch.com/oauth2/callback, --upstream=http://access-dns-admin:3000, --http-address=0.0.0.0:4180, --email-domain=*, --scope=openid profile email, --cookie-secure=true, --cookie-samesite=lax, --reverse-proxy=true, --skip-provider-button=true]
+          args: [--provider=oidc, --oidc-issuer-url=https://dex.service.re8ch.com, --redirect-url=https://dns.access.re8ch.com/oauth2/callback, --upstream=http://access-dns-admin:3000, --http-address=0.0.0.0:4180, --email-domain=*, --scope=openid profile email, --cookie-secure=true, --cookie-samesite=lax, --reverse-proxy=true, --skip-provider-button=true]
           envFrom: [{secretRef: {name: oauth2-proxy-access-dns}}]
           ports: [{name: http, containerPort: 4180}]
           readinessProbe: {httpGet: {path: /ping, port: http}, periodSeconds: 5}
@@ -292,7 +292,7 @@ metadata:
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: dns.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec: {ingressClassName: external-dns-only, rules: [{host: dns.access.re8ch.com}]}
@@ -321,7 +321,7 @@ metadata: {name: access-dns, namespace: egress-fabric}
 spec:
   endpointSelector: {matchLabels: {app.kubernetes.io/name: access-adguard}}
   ingress:
-    - fromCIDR: [192.0.2.16/24, 192.0.2.224/16]
+    - fromCIDR: [192.168.88.0/24, 10.42.0.0/16]
       toPorts: [{ports: [{port: "5353", protocol: UDP}, {port: "5353", protocol: TCP}]}]
     - fromEntities: [cluster]
       toPorts: [{ports: [{port: "5353", protocol: UDP}, {port: "5353", protocol: TCP}]}]

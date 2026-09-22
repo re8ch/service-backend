@@ -14,12 +14,12 @@ if [[ -n "$not_ready" ]]; then
   exit 1
 fi
 
-${KUBECTL} get node restricted-node-6dc3f140f9 overseas-edge-50 >/dev/null
+${KUBECTL} get node r640 overseas-edge-50 >/dev/null
 ${KUBECTL} get storageclass local-path >/dev/null
 ${KUBECTL} -n llm-gateway get secret re8ch-wildcard-tls >/dev/null
 ${KUBECTL} get ingressclass traefik >/dev/null
 
-curl -fsS --max-time 10 https://headlamp.re8ch.com/ >/dev/null
+curl -fsS --max-time 10 https://headlamp.service.re8ch.com/ >/dev/null
 qwen_code="$(curl -ksS -o /dev/null -w '%{http_code}' --max-time 10 https://api-guangzhou24.re8ch.com/ || true)"
 case "$qwen_code" in
   200|401|403|404) ;;

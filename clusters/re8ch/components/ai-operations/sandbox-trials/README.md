@@ -1,7 +1,7 @@
-# restricted-node-6dc3f140f9 self-hosted sandbox trials
+# R640 self-hosted sandbox trials
 
 > **Status (2026-09-19): CubeSandbox is an active, bounded qualification
-> runtime.** It is restored for clean, disposable agent workloads on restricted-node-6dc3f140f9 and
+> runtime.** It is restored for clean, disposable agent workloads on R640 and
 > remains outside the production tenant runtime. New workloads require an
 > explicit qualification task, scoped credentials, and pause-on-acceptance.
 > MitOS remains a separate microVM candidate.
@@ -13,7 +13,7 @@ Hard safety rules:
 
 - no host-kernel installation or automatic reboot;
 - no automatic cluster DNS rewrite;
-- compute is pinned to `restricted-node-6dc3f140f9`;
+- compute is pinned to `r640`;
 - no public ingress during qualification;
 - all durable test data uses dedicated CephFS claims;
 - remove trial workloads without deleting shared CRDs or unrelated storage.
@@ -24,9 +24,9 @@ MitOS is pinned to chart/application `v1.43.0`. CubeSandbox is pinned to `v0.6.0
 `mysql.password`, `mysql.rootPassword`, and `redis.password` from a temporary
 values file or Helm `--set-string` arguments. Never commit those values.
 
-## 2026-08-17 restricted-node-6dc3f140f9 qualification result
+## 2026-08-17 R640 qualification result
 
-Both runtimes reached real guest command execution on restricted-node-6dc3f140f9; this was not a
+Both runtimes reached real guest command execution on R640; this was not a
 Pod-readiness-only test.
 
 - CubeSandbox `v0.6.0`: the control plane, node runtime, CubeProxy, MySQL and
@@ -36,7 +36,7 @@ Pod-readiness-only test.
   `sandbox-code:latest` image. Sandbox `93c2f34f26da40738ac44cd91dc18f85`
   executed a shell command, wrote `/home/cube-proof`, paused in about 1.09 s,
   resumed/connect-ed in about 32 ms, and retained the file.
-- MitOS `v1.43.0`: pool `terminal-trial` is Ready and advertises the restricted-node-6dc3f140f9 KVM
+- MitOS `v1.43.0`: pool `terminal-trial` is Ready and advertises the R640 KVM
   capacity. `terminal-session-2` executed commands through the token-gated
   sandbox API. Ubuntu 26.04 requires the documented forkd AppArmor/seccomp
   exceptions plus `FOWNER`; those settings are captured in `mitos-values.yaml`.
@@ -44,15 +44,15 @@ Pod-readiness-only test.
 Cube guest egress was repaired on 2026-08-17 by enabling route-aware
 `cube-router` and correcting the published chart/image variable mismatches
 documented below. A fresh guest resolved through cluster DNS, reached GitHub
-directly with HTTP 200, and reported public IP `192.0.2.3` through the
-normal restricted-node-6dc3f140f9 -> MikroTik -> LA route. Direct OpenAI was reset by the mainland
+directly with HTTP 200, and reported public IP `38.207.168.50` through the
+normal R640 -> MikroTik -> LA route. Direct OpenAI was reset by the mainland
 cross-border path, while the same guest explicitly using the node-local Mihomo
 Service reached OpenAI and received the expected unauthenticated HTTP 401.
-Only the then-current DNS endpoint `192.0.2.207/32` and Mihomo
-`192.0.2.252/32` were admitted from
+Only the then-current DNS endpoint `10.43.11.204/32` and Mihomo
+`10.43.67.182/32` were admitted from
 Cube's otherwise private-range-denied policy.
 
-MitOS still has `eth0` (`192.0.2.237/30`) but cannot reach its `192.0.2.12`
+MitOS still has `eth0` (`10.200.0.2/30`) but cannot reach its `10.200.0.1`
 gateway. CephFS currently owns Cube control-plane durable state; it is not yet
 mounted as a guest workspace volume.
 
@@ -84,9 +84,9 @@ preserved. Do not reintroduce the retired external PostgreSQL configuration.
 ## Shared browser runtime
 
 The first Steel Browser runtime is deployed in `ai-operations`, pinned to
-`restricted-node-6dc3f140f9`. Chromium runs only inside Steel. Browser-Use connects directly to
+`r640`. Chromium runs only inside Steel. Browser-Use connects directly to
 `ws://steel-browser.ai-operations.svc.cluster.local:3000`; humans use the
-Dex-authenticated Steel UI/Viewer at `https://browser.re8ch.com`.
+Dex-authenticated Steel UI/Viewer at `https://browser.service.re8ch.com`.
 
 Steel browser data uses the `steel-browser-data` CephFS claim. Cilium policies
 allow API/CDP traffic from the Agent namespaces, DNS, browser web egress and the
@@ -103,7 +103,7 @@ connects to a different runtime when it needs a different identity.
 ## CubeSandbox route-aware egress direction
 
 Human operators use the Dex-protected public dashboard at
-<https://cube.re8ch.com>. The same-origin `/cubeapi/v1` and `/sandbox/` paths
+<https://cube.service.re8ch.com>. The same-origin `/cubeapi/v1` and `/sandbox/` paths
 remain behind the same oauth2-proxy boundary; CubeAPI is not published as a
 separate unauthenticated endpoint. The Gateway API resources are in
 `cube-public-gateway.yaml`, and `register-cube-dex-client.sh` creates the
@@ -151,27 +151,27 @@ and exit while the real cubelet keeps serving. The wrapper re-discovers the
 serving PID after that exit, verifies port 9999, updates the pidfile, and owns
 its termination signal so DaemonSet updates do not leave an orphan cubelet.
 
-The patch also supplies `CUBE_SANDBOX_NETWORK_CIDR=192.0.2.179/18` to
+The patch also supplies `CUBE_SANDBOX_NETWORK_CIDR=172.16.0.0/18` to
 `cube-egress-net`. Its published iptables script derives the TPROXY listener
 address from this variable and does not consume the chart's
 `CUBE_TPROXY_ON_IP`, despite that value being present in the DaemonSet.
 
 Guest traffic then enters the cube-node Pod's Linux routing stack and follows
-the restricted-node-6dc3f140f9/Cilium path; restricted-node-6dc3f140f9's upstream default route is managed at the MikroTik
+the R640/Cilium path; R640's upstream default route is managed at the MikroTik
 boundary. No additional eBPF program is added to a CubeBox.
 
 Mihomo remains an explicit optional path. A sandbox process that needs it may
 set:
 
 ```bash
-export HTTP_PROXY=http://192.0.2.252:7890
-export HTTPS_PROXY=http://192.0.2.252:7890
+export HTTP_PROXY=http://10.43.67.182:7890
+export HTTPS_PROXY=http://10.43.67.182:7890
 export NO_PROXY=127.0.0.1,localhost,.svc,.cluster.local
 ```
 
-`192.0.2.252:7890` is the `egress-fabric/mihomo-node` Service with local
+`10.43.67.182:7890` is the `egress-fabric/mihomo-node` Service with local
 traffic policy. Do not set these variables globally: direct traffic should
-inherit the normal restricted-node-6dc3f140f9 -> MikroTik route, while Mihomo is selected only for
+inherit the normal R640 -> MikroTik route, while Mihomo is selected only for
 destinations that need an explicit cross-border proxy.
 
 Cube's default network policy denies private ranges. Sandboxes that opt into
@@ -180,9 +180,9 @@ Mihomo must allow only the DNS and proxy endpoints they consume:
 ```json
 {
   "network": {
-    "allowOut": ["192.0.2.42/32", "192.0.2.252/32"]
+    "allowOut": ["10.43.65.40/32", "10.43.67.182/32"]
   }
 }
 ```
 
-Do not allow the full Service CIDR or `192.0.2.203/8` just to reach the proxy.
+Do not allow the full Service CIDR or `10.0.0.0/8` just to reach the proxy.

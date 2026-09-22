@@ -23,11 +23,11 @@ class FakeKube:
 
 
 def binding(tenant, digest="sha256:" + "a" * 64, revoked=False, role="viewer"):
-    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.re8ch.com", "subjectHash": digest, "role": role, "revoked": revoked}}
+    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.service.re8ch.com", "subjectHash": digest, "role": role, "revoked": revoked}}
 
 
 def group_binding(tenant, group, role):
-    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.re8ch.com", "group": group, "role": role}}
+    return {"spec": {"tenantRef": tenant, "issuer": "https://dex.service.re8ch.com", "group": group, "role": role}}
 
 
 def tenant(name, lifecycle="Active"):
@@ -36,7 +36,7 @@ def tenant(name, lifecycle="Active"):
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
-    assert controller.resolve("https://dex.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "defaultNamespace": "acme", "runtimeNamespaceRef": "acme"}
+    assert controller.resolve("https://dex.service.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "defaultNamespace": "acme", "runtimeNamespaceRef": "acme"}
 
 
 def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
@@ -45,7 +45,7 @@ def test_group_identity_resolves_highest_role_for_one_tenant(monkeypatch):
         group_binding("artchais", "Artchais:tenant-operators", "operator"),
     ]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
-    result = controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-viewers", "Artchais:tenant-operators"])
+    result = controller.resolve("https://dex.service.re8ch.com", "", ["Artchais:tenant-viewers", "Artchais:tenant-operators"])
     assert result == {"tenantRef": "artchais", "role": "operator", "defaultNamespace": "artchais", "runtimeNamespaceRef": "artchais"}
 
 
@@ -56,8 +56,8 @@ def test_tenant_publication_excludes_admin_binding(monkeypatch):
     ]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("admin"), tenant("artchais")]))
     groups = ["re8ch:tenant-admins", "Artchais:tenant-operators"]
-    assert controller.resolve("https://dex.re8ch.com", "", groups, caller="tenant")["tenantRef"] == "artchais"
-    assert controller.resolve("https://dex.re8ch.com", "", groups, caller="admin")["tenantRef"] == "admin"
+    assert controller.resolve("https://dex.service.re8ch.com", "", groups, caller="tenant")["tenantRef"] == "artchais"
+    assert controller.resolve("https://dex.service.re8ch.com", "", groups, caller="admin")["tenantRef"] == "admin"
 
 
 def test_admin_identity_projects_to_re8ch_operator_in_tenant_publication(monkeypatch):
@@ -69,13 +69,13 @@ def test_admin_identity_projects_to_re8ch_operator_in_tenant_publication(monkeyp
         controller, "KUBE", FakeKube(bindings, [tenant("admin"), tenant("re8ch")])
     )
     groups = ["re8ch:tenant-admins"]
-    assert controller.resolve("https://dex.re8ch.com", "", groups, caller="tenant") == {
+    assert controller.resolve("https://dex.service.re8ch.com", "", groups, caller="tenant") == {
         "tenantRef": "re8ch",
         "role": "operator",
         "defaultNamespace": "re8ch",
         "runtimeNamespaceRef": "re8ch",
     }
-    assert controller.resolve("https://dex.re8ch.com", "", groups, caller="admin") == {
+    assert controller.resolve("https://dex.service.re8ch.com", "", groups, caller="admin") == {
         "tenantRef": "admin",
         "role": "admin",
         "defaultNamespace": "admin",
@@ -112,7 +112,7 @@ def test_groups_spanning_tenants_are_denied(monkeypatch):
     bindings = [group_binding("artchais", "Artchais:tenant-admins", "admin"), group_binding("other", "Other:tenant-admins", "admin")]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais"), tenant("other")]))
     with pytest.raises(PermissionError):
-        controller.resolve("https://dex.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
+        controller.resolve("https://dex.service.re8ch.com", "", ["Artchais:tenant-admins", "Other:tenant-admins"])
 
 
 def test_explicit_subject_binding_overrides_group_membership_in_another_tenant(monkeypatch):
@@ -128,7 +128,7 @@ def test_explicit_subject_binding_overrides_group_membership_in_another_tenant(m
     )
 
     assert controller.resolve(
-        "https://dex.re8ch.com", digest, ["Artchais"]
+        "https://dex.service.re8ch.com", digest, ["Artchais"]
     ) == {
         "tenantRef": "re8ch",
         "role": "operator",
@@ -196,7 +196,7 @@ def test_lease_renewal_sends_a_complete_replace_document(monkeypatch):
 def test_missing_ambiguous_revoked_or_inactive_identity_is_denied(monkeypatch, bindings, tenants):
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, tenants))
     with pytest.raises(PermissionError):
-        controller.resolve("https://dex.re8ch.com", "sha256:" + "a" * 64)
+        controller.resolve("https://dex.service.re8ch.com", "sha256:" + "a" * 64)
 
 
 def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
@@ -211,12 +211,12 @@ def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
         if "group" in item
     ]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais")]))
-    assert controller.resolve("https://dex.re8ch.com", "", ["Artchais"])["role"] == "viewer"
-    assert controller.resolve("https://dex.re8ch.com", "", ["Artchais", "Artchais:tenant-admins"])["role"] == "admin"
+    assert controller.resolve("https://dex.service.re8ch.com", "", ["Artchais"])["role"] == "viewer"
+    assert controller.resolve("https://dex.service.re8ch.com", "", ["Artchais", "Artchais:tenant-admins"])["role"] == "admin"
     with pytest.raises(PermissionError):
-        controller.resolve("https://dex.re8ch.com", "", ["OtherOrganization"])
+        controller.resolve("https://dex.service.re8ch.com", "", ["OtherOrganization"])
     with pytest.raises(PermissionError):
-        controller.resolve("https://dex.re8ch.com", "", ["Artchais"], caller="admin")
+        controller.resolve("https://dex.service.re8ch.com", "", ["Artchais"], caller="admin")
 
 
 class AmongClustersKube:
