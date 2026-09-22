@@ -65,6 +65,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 240
       backoffLimit: 1
       ttlSecondsAfterFinished: 86400
       template:
@@ -79,9 +80,6 @@ spec:
               image: python:3.12-alpine
               imagePullPolicy: IfNotPresent
               command: [python3, /scripts/nameserver-election.py]
-              env:
-                - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
-                - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
               resources:
                 requests: {cpu: 20m, memory: 64Mi}
                 limits: {cpu: 300m, memory: 192Mi}
