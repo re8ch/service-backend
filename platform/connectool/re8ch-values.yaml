@@ -13,12 +13,6 @@ toolhive:
           nodeSelectorTerms:
             - matchExpressions:
                 - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector: {matchLabels: {app: virtualmcpserver, toolhive-name: re8ch-tools-vmcp}}
-              topologyKey: kubernetes.io/hostname
     tolerations: []
     topologySpreadConstraints: []
     resources:
@@ -63,7 +57,8 @@ toolhive:
       resourceUrl: https://tools.service.re8ch.com/cloud/mcp
       group: platform-tools-public
       createGroup: false
-      replicas: 2
+      replicas: 1
+      allowSingleReplicaWhenCapacityLimited: true
       workloads:
         - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
         - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}

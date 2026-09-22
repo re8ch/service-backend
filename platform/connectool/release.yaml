@@ -5,12 +5,12 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.5.1"}
+  ref: {tag: "0.5.2"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.1$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.2$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -46,14 +46,6 @@ spec:
               nodeSelectorTerms:
                 - matchExpressions:
                     - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
-          # A1 is above allocatable memory; allow both replicas on B1 until
-          # service-plane capacity is restored, while preferring separation.
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                podAffinityTerm:
-                  labelSelector: {matchLabels: {app: virtualmcpserver, toolhive-name: re8ch-tools-vmcp}}
-                  topologyKey: kubernetes.io/hostname
         tolerations: []
         topologySpreadConstraints: []
         resources:
@@ -137,7 +129,8 @@ spec:
           resourceUrl: https://tools.service.re8ch.com/cloud/mcp
           group: platform-tools-public
           createGroup: false
-          replicas: 2
+          replicas: 1
+          allowSingleReplicaWhenCapacityLimited: true
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
             - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
