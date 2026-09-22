@@ -16,7 +16,11 @@ def test_relay_is_pinned_to_the_authoritative_a1_entrypoint():
     relay = next(item for item in documents("controlled-cluster-relay.yaml") if item["kind"] == "Deployment")
     spec = relay["spec"]["template"]["spec"]
 
-    assert spec["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-1eb0570f74"
+    assert spec["nodeSelector"]["kubernetes.io/hostname"] == "a1-wsl-zt"
+    annotations = relay["spec"]["template"]["metadata"]["annotations"]
+    assert annotations["scheduling.re8ch.com/placement-class"] == "control-plane-critical"
+    assert annotations["scheduling.re8ch.com/pinned-reason"]
+    assert spec["priorityClassName"] == "system-cluster-critical"
     assert "@sha256:" in spec["containers"][0]["image"]
 
 

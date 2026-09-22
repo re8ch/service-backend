@@ -19,7 +19,7 @@ spec:
         pattern:
           metadata:
             annotations:
-              scheduling.re8ch.com/placement-class: "service-core-local|service-core-ab|service-core-r640|online-reliable|batch-opportunistic|gpu-rocm|stateful-ceph|function-execution|public-edge|egress|node-bootstrap|node-serving-agent"
+              scheduling.re8ch.com/placement-class: "control-plane-critical|service-core-local|service-core-ab|service-core-r640|online-reliable|batch-opportunistic|gpu-rocm|stateful-ceph|function-execution|public-edge|egress|node-bootstrap|node-serving-agent"
     - name: placement-class-disallows-unexplained-host-pinning
       match:
         any:

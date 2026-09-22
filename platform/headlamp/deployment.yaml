@@ -16,33 +16,23 @@ spec:
       app.kubernetes.io/name: headlamp
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: control-plane-critical
       labels:
         app.kubernetes.io/name: headlamp
+        scheduling.re8ch.com/control-plane-allowed: "true"
     spec:
       serviceAccountName: headlamp
+      priorityClassName: system-cluster-critical
       # Keep token and key requests for the Kubernetes API's trusted Dex issuer on the
       # in-cluster Cilium Gateway, avoiding public-edge hairpin routing.
       hostAliases:
         - ip: "192.0.2.213"
           hostnames:
             - dex.re8ch.com
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    # The in-cluster proxy uses the node-local API endpoint, so
-                    # Headlamp must run beside a Kubernetes control plane.
-                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values: [restricted-node-6dc3f140f9]
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
@@ -52,7 +42,8 @@ spec:
                     app.kubernetes.io/name: headlamp
                 topologyKey: kubernetes.io/hostname
       tolerations:
-        - operator: Exists
+        - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       # Use the selected control-plane node's local API listener. This removes
       # the single remote node/transit address from Headlamp's watch path.
       hostNetwork: true
