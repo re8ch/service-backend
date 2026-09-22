@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: source-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+        networking.re8ch.com/egress-policy: auto
