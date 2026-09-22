@@ -318,6 +318,8 @@ modules:
       digest: sha256:d82f8cebad695771b4783e5ec4ce7a6dbdcbb9fba5f9a5155b1cb795777f891d
     - codename: harbor-indigo
       digest: sha256:119475726d68c921f237ef0df81027e5b26dcea4f5deeff04009e341a96cef3e
+    - codename: meridian-indigo
+      digest: sha256:23eef6eebbbbb92526f34aef8ca34c1556274458e26307533ff684e581c9eaac
   platform/birfucate-metering:
     releases:
     - codename: cascade
