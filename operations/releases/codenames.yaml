@@ -414,6 +414,8 @@ modules:
       digest: sha256:1e6949bdbc06afa3d7cf388c79c5027520f400cbc2b64e3601fe6ec0f9369943
     - codename: chinook-indigo
       digest: sha256:1e6e6948c6623f8a4dff0eaca9b327cc42d126f40a85f2c044ed4ae27e3fc25a
+    - codename: etesian-indigo
+      digest: sha256:38ee3df3df03c5a75c1b39c6feb40925a358579b5879adfdeaff61b5754900f0
   platform/adapter:
     releases:
     - codename: anchor
