@@ -33,6 +33,13 @@ spec:
               - op: add
                 path: /spec/template/spec/nodeName
                 value: restricted-node-6dc3f140f9
+          - target: {kind: Deployment, name: paralus-kratos}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/hostAliases
+                value:
+                  - ip: 192.0.2.209
+                    hostnames: [dex.re8ch.com]
           - target: {kind: StatefulSet}
             patch: |-
               - op: add
