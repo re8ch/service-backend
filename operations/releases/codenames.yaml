@@ -220,6 +220,8 @@ modules:
       digest: sha256:41019d3ded1cb3e99c44caaab6e77365d15b84c537dfe29fed657640b3344628
     - codename: tundra-jade
       digest: sha256:b79c21c2c6b2a7c6c28d033728b573149fa597641dc3f92f39fb07e55cb698ad
+    - codename: wetland-jade
+      digest: sha256:41458dbd45627c41008ca733662b19d2b4d6c7a55bc96e5b9d47eaa256df9e7e
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -520,6 +522,8 @@ modules:
       digest: sha256:648d23b23f33de22ccb163ae77da5d8670ec06410506e4fdba7d7a0b66ccf3a2
     - codename: telescope
       digest: sha256:a38ce117ad2df875de1267fc5c0ead1c8ac319b4cf788ccea1cb6cd024bd1e95
+    - codename: viewport
+      digest: sha256:9c0bc9fc07dc9f1a0d4f7d7d0432a9157b9d0ec4e91e4260bdca2b6b45cf50c4
   platform/observability/production:
     releases:
     - codename: aperture
