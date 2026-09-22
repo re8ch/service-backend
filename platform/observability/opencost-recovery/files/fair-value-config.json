@@ -31,7 +31,7 @@
     {"name": "qianwen-nuclio-79", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 2, "memoryGiB": 2, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
     {"name": "artchais-nuclio-1", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
     {"name": "pg-re8ch-replica-186", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
-    {"name": "vm-20-12-ubuntu", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
+    {"name": "vm-20-12-ubuntu", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 2, "memoryGiB": 2, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
     {"name": "qianwen-prod-nuclio-3", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
     {"name": "qianwen-test-nuclio-2", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
     {"name": "overseas-edge-50", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},

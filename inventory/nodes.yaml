@@ -270,7 +270,7 @@ items:
         membership: active
         roles: [observe]
         services: [k3s-agent, observability, ceph-csi]
-        labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: vm-20-12-ubuntu, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
+        labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: vm-20-12-ubuntu, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1978068, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
         network: {region: cn-unverified, zone: cn-unverified, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}

@@ -141,12 +141,16 @@ def reconcile_placement_classes(nodes):
         eligible = placement_eligible_nodes(placement, nodes)
         domains = {node.get("metadata", {}).get("labels", {}).get(placement.get("spec", {}).get("topologyKey")) for node in eligible}
         ready = bool(eligible)
-        condition = {"type": "Ready", "status": "True" if ready else "False",
-                     "reason": "EligibleNodes" if ready else "NoEligibleNodes",
-                     "message": f"{len(eligible)} eligible nodes across {len(domains - {None})} failure domains", "lastTransitionTime": now()}
+        message = f"{len(eligible)} eligible nodes across {len(domains - {None})} failure domains"
+        conditions = [
+            {"type": "Ready", "status": "True", "reason": "Validated", "message": "Placement class definition is valid", "lastTransitionTime": now()},
+            {"type": "Available", "status": "True" if ready else "False",
+             "reason": "EligibleNodes" if ready else "NoEligibleNodes",
+             "message": message, "lastTransitionTime": now()},
+        ]
         patch(f"{GROUP}/placementclasses/{placement['metadata']['name']}",
               {"status": {"observedGeneration": placement["metadata"].get("generation"), "eligibleNodes": len(eligible),
-                          "failureDomains": len(domains - {None}), "conditions": [condition]}}, True)
+                          "failureDomains": len(domains - {None}), "conditions": conditions}}, True)
 
 def reconcile_placement_admission_checks(nodes):
     """Mark Kueue placement checks Ready only when a named class is usable.
@@ -186,7 +190,10 @@ def cpu(value="0"):
 
 def memory(value="0"):
     text = str(value)
-    units = {"Ki": 1024, "Mi": 1024**2, "Gi": 1024**3, "Ti": 1024**4}
+    units = {"Ki": 1024, "Mi": 1024**2, "Gi": 1024**3, "Ti": 1024**4,
+             "Pi": 1024**5, "Ei": 1024**6, "k": 1000, "M": 1000**2,
+             "G": 1000**3, "T": 1000**4, "P": 1000**5, "E": 1000**6,
+             "m": 0.001}
     for suffix, factor in units.items():
         if text.endswith(suffix): return float(text[:-len(suffix)]) * factor
     return float(text or 0)
@@ -367,7 +374,7 @@ def score_service(service, slices, pods, pod_metrics, nodes, replicasets, deploy
     workloads = [owner_workload(p, replicasets, deployments, statefulsets) for p in members]
     workloads = [w for w in workloads if w]
     desired = max([w.get("spec", {}).get("replicas", 0) for w in workloads] or [0])
-    endpoints = [e for s in slices if s.get("metadata", {}).get("labels", {}).get("kubernetes.io/service-name") == name for e in s.get("endpoints", [])]
+    endpoints = [e for s in slices if s.get("metadata", {}).get("labels", {}).get("kubernetes.io/service-name") == name for e in (s.get("endpoints") or [])]
     ready = sum(1 for e in endpoints if e.get("conditions", {}).get("ready") is True)
     expected = max(desired, len(endpoints), 1)
     availability = min(1, ready / expected)

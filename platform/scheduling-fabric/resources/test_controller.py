@@ -29,9 +29,17 @@ class ScoreTests(unittest.TestCase):
         self.assertIsNone(result["observation"]["scores"]["efficiency"])
         self.assertFalse(result["observation"]["complete"])
 
+    def test_empty_endpoint_slice_does_not_stop_reconciliation(self):
+        service = {"metadata": {"name": "api", "namespace": "test"}, "spec": {"selector": {"app": "api"}}}
+        empty_slice = {"metadata": {"labels": {"kubernetes.io/service-name": "api"}}, "endpoints": None}
+        result = controller.score_service(service, [empty_slice], [], [], [], [], [], [])
+        self.assertFalse(result["eligible"])
+        self.assertEqual(result["observation"]["evidence"]["readyEndpoints"], 0)
+
     def test_quantity_parsers(self):
         self.assertAlmostEqual(controller.cpu("750m"),.75)
         self.assertEqual(controller.memory("2Gi"),2*1024**3)
+        self.assertEqual(controller.memory("10M"),10_000_000)
 
     def test_profile_projects_owned_service_plane(self):
         labels = controller.profile_labels({
@@ -64,6 +72,17 @@ class ScoreTests(unittest.TestCase):
             {"metadata": {"name": "worker", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/capacity-window": "open"}}},
         ]
         self.assertEqual([n["metadata"]["name"] for n in controller.placement_eligible_nodes(placement, nodes)], ["worker"])
+
+    @patch.object(controller, "patch")
+    @patch.object(controller, "items")
+    def test_unavailable_placement_class_keeps_definition_ready(self, items, patch_status):
+        items.return_value = [{"metadata": {"name": "gpu-rocm", "generation": 1},
+                               "spec": {"nodeSelector": {"scheduling.re8ch.com/capability-gpu": "rocm-wsl"}}}]
+        controller.reconcile_placement_classes([])
+        status = patch_status.call_args.args[1]["status"]
+        self.assertEqual(status["eligibleNodes"], 0)
+        self.assertEqual([(c["type"], c["status"]) for c in status["conditions"]],
+                         [("Ready", "True"), ("Available", "False")])
 
     def test_capacity_window_closes_and_reopens_with_hysteresis(self):
         gib = 1024 ** 3
