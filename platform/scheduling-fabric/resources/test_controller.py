@@ -55,6 +55,14 @@ class ScoreTests(unittest.TestCase):
         labels = controller.profile_labels({}, "worker")
         self.assertNotIn("scheduling.re8ch.com/service-plane", labels)
 
+    def test_profile_projects_reviewed_pool_membership_without_host_selectors(self):
+        labels = controller.profile_labels({
+            "capabilities": {"placementPools": ["service-core-local", "service-core-ab"]},
+        }, "restricted-node-1eb0570f74")
+        self.assertEqual(labels["scheduling.re8ch.com/pool-service-core-local"], "true")
+        self.assertEqual(labels["scheduling.re8ch.com/pool-service-core-ab"], "true")
+        self.assertEqual(labels["scheduling.re8ch.com/pool-service-core-r640"], "false")
+
     def test_profile_projects_bounded_inventory_capabilities(self):
         labels = controller.profile_labels({
             "background": {"provider": "overseas", "environment": "cross-border", "costClass": "metered-bandwidth"},
@@ -66,12 +74,45 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(labels["scheduling.re8ch.com/placement-general-reliable"], "true")
 
     def test_placement_excludes_control_plane_when_class_disallows_it(self):
-        placement = {"spec": {"nodeSelector": {"scheduling.re8ch.com/placement-general-reliable": "true"}, "allowControlPlane": False}}
+        placement = {"spec": {"workloadMode": "PortableService", "nodeSelector": {"scheduling.re8ch.com/placement-general-reliable": "true"}, "allowControlPlane": False}}
         nodes = [
-            {"metadata": {"name": "control", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/capacity-window": "open", "node-role.kubernetes.io/control-plane": "true"}}},
-            {"metadata": {"name": "worker", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/capacity-window": "open"}}},
+            {"metadata": {"name": "control", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/workload-eligible": "true", "scheduling.re8ch.com/capacity-window": "open", "node-role.kubernetes.io/control-plane": "true"}}},
+            {"metadata": {"name": "worker", "labels": {"scheduling.re8ch.com/placement-general-reliable": "true", "scheduling.re8ch.com/workload-eligible": "true", "scheduling.re8ch.com/capacity-window": "open"}}},
         ]
         self.assertEqual([n["metadata"]["name"] for n in controller.placement_eligible_nodes(placement, nodes)], ["worker"])
+
+    def test_portable_placement_excludes_stale_and_closed_nodes(self):
+        placement = {"spec": {"workloadMode": "PortableService", "nodeSelector": {"pool": "stable"}, "allowControlPlane": True}}
+        nodes = [
+            {"metadata": {"name": "ready", "labels": {"pool": "stable", "scheduling.re8ch.com/workload-eligible": "true", "scheduling.re8ch.com/capacity-window": "open"}}},
+            {"metadata": {"name": "stale", "labels": {"pool": "stable", "scheduling.re8ch.com/workload-eligible": "false", "scheduling.re8ch.com/capacity-window": "open"}}},
+            {"metadata": {"name": "closed", "labels": {"pool": "stable", "scheduling.re8ch.com/workload-eligible": "true", "scheduling.re8ch.com/capacity-window": "closed"}}},
+        ]
+        self.assertEqual([n["metadata"]["name"] for n in controller.placement_eligible_nodes(placement, nodes)], ["ready"])
+
+    def test_bootstrap_daemon_keeps_registered_nodes_in_its_coverage(self):
+        placement = {"spec": {"workloadMode": "NodeBootstrapDaemon", "nodeSelector": {"kubernetes.io/os": "linux"}, "allowControlPlane": True}}
+        node = {"metadata": {"name": "joining", "labels": {"kubernetes.io/os": "linux", "scheduling.re8ch.com/workload-eligible": "false", "scheduling.re8ch.com/capacity-window": "unknown"}}}
+        self.assertEqual(controller.placement_eligible_nodes(placement, [node]), [node])
+
+    def test_placement_capacity_fails_closed_until_node_and_domain_minima_hold(self):
+        placement = {"spec": {"workloadMode": "PortableService", "nodeSelector": {"pool": "core"}, "allowControlPlane": True,
+                              "topologyKey": "scheduling.re8ch.com/failure-domain", "minEligibleNodes": 2, "minFailureDomains": 2}}
+        nodes = [{"metadata": {"name": "one", "labels": {"pool": "core", "scheduling.re8ch.com/workload-eligible": "true",
+                  "scheduling.re8ch.com/capacity-window": "open", "scheduling.re8ch.com/failure-domain": "fd1"}}}]
+        _, domains, available, _ = controller.placement_capacity(placement, nodes)
+        self.assertEqual(domains, {"fd1"})
+        self.assertFalse(available)
+
+    def test_pool_membership_is_a_hard_upper_bound(self):
+        placement = {"spec": {"workloadMode": "PortableService", "nodePool": "service-core-ab",
+                              "nodeSelector": {"scheduling.re8ch.com/pool-service-core-ab": "true"},
+                              "allowControlPlane": True}}
+        unrelated = {"metadata": {"name": "healthy-cloud", "labels": {
+            "scheduling.re8ch.com/workload-eligible": "true",
+            "scheduling.re8ch.com/capacity-window": "open",
+        }}}
+        self.assertEqual(controller.placement_node_rejection(placement, unrelated), "outside-allowed-pool")
 
     @patch.object(controller, "patch")
     @patch.object(controller, "items")
@@ -183,6 +224,14 @@ class ScoreTests(unittest.TestCase):
         result = controller.node_reliability(node, [], spec, datetime(2026, 9, 19, 0, 30, tzinfo=timezone.utc))
         self.assertTrue(result["eligible"])
         self.assertEqual(result["score"], 80)
+
+    def test_serving_labels_fail_closed_with_node_reliability(self):
+        spec = {"capabilities": {"storage": ["ceph-client"], "gpu": "rocm-wsl", "egress": True,
+                                  "publicEdge": True, "functionExecution": True}}
+        healthy = controller.serving_labels(spec, {"eligible": True})
+        self.assertTrue(all(healthy[key] == "true" for key in controller.SERVING_LABELS))
+        unhealthy = controller.serving_labels(spec, {"eligible": False})
+        self.assertTrue(all(unhealthy[key] == "false" for key in controller.SERVING_LABELS))
 
     @patch.object(controller.urllib.request, "urlopen", side_effect=OSError("metrics unavailable"))
     def test_trimaran_outage_does_not_block_node_projection(self, _urlopen):

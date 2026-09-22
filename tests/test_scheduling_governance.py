@@ -198,8 +198,32 @@ def test_dynamic_scheduler_uses_production_metrics_and_hard_spread():
 def test_placement_classes_are_the_single_portable_placement_contract():
     resources = docs(ROOT / "platform/scheduling-fabric/resources/placement.yaml")
     classes = {item["metadata"]["name"]: item for item in resources}
-    assert set(classes) == {"general-reliable", "batch-opportunistic", "gpu-rocm", "ceph-client", "public-edge", "egress", "service-core"}
+    assert set(classes) == {
+        "service-core-local", "service-core-ab", "service-core-r640",
+        "online-reliable", "batch-opportunistic", "gpu-rocm",
+        "stateful-ceph", "function-execution", "public-edge", "egress",
+        "node-bootstrap", "node-serving-agent",
+    }
     assert all(item["spec"]["topologyKey"] == "scheduling.re8ch.com/failure-domain" for item in classes.values())
+    assert all(item["spec"]["failurePolicy"] == "FailClosed" for item in classes.values())
+    assert {classes[name]["spec"]["distributionPolicy"] for name in (
+        "service-core-local", "service-core-ab", "service-core-r640"
+    )} == {"ObserveOnly"}
+    assert classes["service-core-local"]["spec"]["nodeSelector"] == {
+        "scheduling.re8ch.com/pool-service-core-local": "true",
+        "scheduling.re8ch.com/network-serving": "true",
+    }
+    assert classes["service-core-ab"]["spec"]["minEligibleNodes"] == 1
+    assert classes["service-core-r640"]["spec"]["minFailureDomains"] == 1
+    for name in ("service-core-local", "service-core-ab", "service-core-r640"):
+        spec = classes[name]["spec"]
+        assert spec["nodeSelector"][f"scheduling.re8ch.com/pool-{spec['nodePool']}"] == "true"
+    preferred = [item for item in classes.values() if item["spec"]["distributionPolicy"] == "PreferSpread"]
+    assert preferred
+    assert all(item["spec"]["whenUnsatisfiable"] == "ScheduleAnyway" for item in preferred)
+    assert all(item["spec"]["nodeTaintsPolicy"] == "Honor" for item in preferred)
+    assert classes["node-bootstrap"]["spec"]["workloadMode"] == "NodeBootstrapDaemon"
+    assert classes["node-serving-agent"]["spec"]["workloadMode"] == "NodeServingDaemon"
     assert all(item["spec"]["resourceFlavorName"].startswith("placement-") for item in classes.values())
     policies = docs(GOVERNANCE / "policies/kyverno.yaml")
     assert any(item["metadata"]["name"] == "audit-placement-class-contract" for item in policies)
@@ -210,6 +234,18 @@ def test_placement_classes_are_the_single_portable_placement_contract():
     assert all(strategy["admissionChecks"] == [{"name": "re8ch-placement", "onFlavors": ["default"]}] for strategy in strategies)
     flavors = {item["metadata"]["name"] for item in queues if item["kind"] == "ResourceFlavor"}
     assert {"default", *(item["spec"]["resourceFlavorName"] for item in classes.values())} <= flavors
+
+
+def test_first_unready_cohort_uses_only_reviewed_classes():
+    cohort = yaml.safe_load((ROOT / "platform/scheduling-fabric/workload-cohorts.yaml").read_text())
+    classes = {
+        item["metadata"]["name"]
+        for item in docs(ROOT / "platform/scheduling-fabric/resources/placement.yaml")
+    }
+    workloads = cohort["spec"]["workloads"]
+    assert len(workloads) == 40
+    assert {item["placementClass"] for item in workloads} <= classes
+    assert cohort["spec"]["enforcement"] == "Audit"
 
 
 def test_penrose_source_changes_roll_the_controller():

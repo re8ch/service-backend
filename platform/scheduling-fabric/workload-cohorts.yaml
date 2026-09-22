@@ -1,0 +1,49 @@
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: WorkloadPlacementCohort
+metadata:
+  name: unready-2026-09-23
+spec:
+  source: platform-observe
+  capturedAt: "2026-09-23T00:00:00+08:00"
+  enforcement: Audit
+  workloads:
+    - {namespace: auth, kind: Deployment, name: re8ch-auth-gateway, placementClass: service-core-r640, authority: gitops}
+    - {namespace: comfy-agent, kind: Deployment, name: comfyui-agent-r640, placementClass: gpu-rocm, authority: live-drift}
+    - {namespace: comfy-agent, kind: Deployment, name: comfyui-amd, placementClass: gpu-rocm, authority: live-drift}
+    - {namespace: cosyvoice, kind: Deployment, name: cosyvoice, placementClass: gpu-rocm, authority: live-drift}
+    - {namespace: edge-devices, kind: Deployment, name: device-fabric-controller, placementClass: online-reliable, authority: live-drift}
+    - {namespace: egress-fabric, kind: DaemonSet, name: mihomos-global-exit, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: egress-fabric, kind: DaemonSet, name: mihomos-mobile-publication, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: egress-fabric, kind: DaemonSet, name: mihomos-node-cn, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: egress-fabric, kind: DaemonSet, name: mihomos-node-global, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: egress-fabric, kind: DaemonSet, name: mihomos-status-agent, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: egress-fabric, kind: Deployment, name: identity-egress, placementClass: egress, authority: gitops}
+    - {namespace: egress-fabric, kind: Deployment, name: personal-access-my-kul, placementClass: egress, authority: live-drift}
+    - {namespace: fleet, kind: Deployment, name: fleet-egress-proxy, placementClass: online-reliable, authority: gitops}
+    - {namespace: fleet, kind: Deployment, name: fleet-redis, placementClass: online-reliable, authority: gitops}
+    - {namespace: incidentrelay, kind: Deployment, name: incidentrelay-telegram, placementClass: online-reliable, authority: gitops}
+    - {namespace: kube-system, kind: DaemonSet, name: advanced-fabric-agent, placementClass: node-bootstrap, authority: gitops}
+    - {namespace: kube-system, kind: DaemonSet, name: advanced-fabric-pod-conformance, placementClass: node-serving-agent, authority: live-drift}
+    - {namespace: kube-system, kind: DaemonSet, name: cilium, placementClass: node-bootstrap, authority: gitops}
+    - {namespace: kube-system, kind: DaemonSet, name: podcidr-fabric-reconciler, placementClass: node-bootstrap, authority: gitops}
+    - {namespace: kube-system, kind: DaemonSet, name: re8ch-node-external-ip-agent, placementClass: node-serving-agent, authority: live-drift}
+    - {namespace: kyverno, kind: Deployment, name: kyverno-admission-controller, placementClass: service-core-local, authority: gitops-generated}
+    - {namespace: nuclio, kind: Deployment, name: ledger-decision-analysis, placementClass: function-execution, authority: live-drift}
+    - {namespace: nuclio, kind: Deployment, name: nuclio-controller, placementClass: service-core-local, authority: live-drift}
+    - {namespace: nuclio, kind: Deployment, name: nuclio-dashboard, placementClass: service-core-local, authority: live-drift}
+    - {namespace: observability-system, kind: DaemonSet, name: re8ch-node-storage-exporter, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: observability-system, kind: Deployment, name: victoria-metrics-operator, placementClass: service-core-local, authority: gitops}
+    - {namespace: observability-system, kind: StatefulSet, name: vmalertmanager-re8ch-alertmanager, placementClass: service-core-local, authority: gitops-generated}
+    - {namespace: ops, kind: Deployment, name: cloudbeaver, placementClass: stateful-ceph, authority: gitops}
+    - {namespace: re8ch-ontology-microscope, kind: Deployment, name: ontology-microscope-adapter, placementClass: online-reliable, authority: gitops}
+    - {namespace: re8ch-ontology-microscope, kind: Deployment, name: ontology-microscope-evaluation-worker, placementClass: batch-opportunistic, authority: gitops}
+    - {namespace: regional-routing, kind: DaemonSet, name: regional-edge-tls-proxy, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: rook-ceph, kind: Deployment, name: rook-ceph-exporter-a1-wsl-zt, placementClass: node-serving-agent, authority: gitops-generated}
+    - {namespace: toolhive-system, kind: Deployment, name: ops-admin-vmcp-internal, placementClass: service-core-ab, authority: gitops}
+    - {namespace: toolhive-system, kind: Deployment, name: ops-operate-vmcp-internal, placementClass: service-core-ab, authority: gitops}
+    - {namespace: toolhive-system, kind: Deployment, name: re8ch-admin-vmcp, placementClass: service-core-r640, authority: gitops-generated}
+    - {namespace: toolhive-system, kind: Deployment, name: re8ch-admin-vmcp-session-router, placementClass: service-core-r640, authority: gitops-generated}
+    - {namespace: toolhive-system, kind: Deployment, name: re8ch-tools-vmcp-session-router, placementClass: service-core-r640, authority: gitops-generated}
+    - {namespace: toolhive-system, kind: Deployment, name: tenant-vmcp, placementClass: service-core-r640, authority: gitops-generated}
+    - {namespace: toolhive-system, kind: Deployment, name: tenant-vmcp-session-router, placementClass: service-core-r640, authority: gitops-generated}
+    - {namespace: toolhive-system, kind: StatefulSet, name: ops-admin-vmcp-internal, placementClass: service-core-ab, authority: gitops}

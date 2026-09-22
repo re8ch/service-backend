@@ -99,7 +99,10 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
         "tenant-vmcp": 2,
     }
     toolhive = release["spec"]["values"]["toolhive"]
-    assert toolhive["placement"]["nodeSelector"] == {}
+    assert toolhive["placement"]["nodeSelector"] == {
+        "scheduling.re8ch.com/pool-service-core-r640": "true",
+        "scheduling.re8ch.com/network-serving": "true",
+    }
     assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"
@@ -129,17 +132,18 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
         )
         assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == expected_generation
         pod_spec = spec["podTemplateSpec"]["spec"]
-        expected_annotations = {"scheduling.re8ch.com/placement-revision": "a1-b1-recovery-2026-09-19"}
+        expected_annotations = {
+            "scheduling.re8ch.com/placement-class": "service-core-ab",
+            "scheduling.re8ch.com/placement-revision": "workload-contract-v1",
+        }
         if server["metadata"]["name"] == "ops-observe-vmcp-internal":
             expected_annotations["observability.re8ch.com/probe-revision"] = "shared-observability-v1"
         assert spec["podTemplateSpec"]["metadata"]["annotations"] == expected_annotations
-        assert "nodeSelector" not in pod_spec
-        expression = pod_spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-        assert expression == {
-            "key": "kubernetes.io/hostname",
-            "operator": "In",
-            "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        assert pod_spec["nodeSelector"] == {
+            "scheduling.re8ch.com/pool-service-core-ab": "true",
+            "scheduling.re8ch.com/network-serving": "true",
         }
+        assert "nodeAffinity" not in pod_spec["affinity"]
 
     auth = {item["metadata"]["name"]: item for item in internal if item["kind"] == "MCPExternalAuthConfig"}
     assert auth["vmcp-observe-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {

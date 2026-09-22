@@ -5,11 +5,13 @@ spec:
   updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1}}
   selector: {matchLabels: {app.kubernetes.io/name: mihomo-egress-cn}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: mihomo-egress-cn}}
+    metadata:
+      annotations: {scheduling.re8ch.com/placement-class: node-serving-agent}
+      labels: {app.kubernetes.io/name: mihomo-egress-cn}
     spec:
       hostNetwork: true
       priorityClassName: system-node-critical
-      nodeSelector: {networking.re8ch.com/mihomo-exit-cn: enabled}
+      nodeSelector: {networking.re8ch.com/mihomo-exit-cn: enabled, scheduling.re8ch.com/workload-eligible: "true"}
       tolerations: [{operator: Exists}]
       automountServiceAccountToken: false
       dnsPolicy: Default
@@ -54,12 +56,13 @@ spec:
   selector: {matchLabels: {app.kubernetes.io/name: mihomo-node-global}}
   template:
     metadata:
+      annotations: {scheduling.re8ch.com/placement-class: node-serving-agent}
       labels: {app.kubernetes.io/name: mihomo-node-global, networking.re8ch.com/mihomo-local-proxy: "true"}
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical
-      nodeSelector: {networking.re8ch.com/geo: global}
+      nodeSelector: {networking.re8ch.com/geo: global, scheduling.re8ch.com/workload-eligible: "true"}
       tolerations: [{operator: Exists}]
       automountServiceAccountToken: false
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}

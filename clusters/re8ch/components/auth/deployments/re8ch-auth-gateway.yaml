@@ -21,6 +21,8 @@ spec:
     type: Recreate
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: service-core-r640
       labels:
         app.kubernetes.io/name: re8ch-auth-gateway
         app.kubernetes.io/component: gateway
@@ -33,7 +35,8 @@ spec:
       hostNetwork: false
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        scheduling.re8ch.com/pool-service-core-r640: "true"
+        scheduling.re8ch.com/network-serving: "true"
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists

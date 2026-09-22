@@ -23,10 +23,22 @@ spec:
       app.kubernetes.io/name: ontology-microscope-neo4j
   template:
     metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: batch-opportunistic
       labels:
         app.kubernetes.io/name: ontology-microscope-neo4j
         saas.re8ch.com/tenant: re8ch
     spec:
+      nodeSelector:
+        scheduling.re8ch.com/placement-batch-opportunistic: "true"
+        scheduling.re8ch.com/network-serving: "true"
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: scheduling.re8ch.com/failure-domain
+          whenUnsatisfiable: ScheduleAnyway
+          nodeTaintsPolicy: Honor
+          nodeAffinityPolicy: Honor
+          labelSelector: {matchLabels: {app.kubernetes.io/name: ontology-microscope-evaluation-worker}}
       automountServiceAccountToken: false
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
