@@ -19,7 +19,7 @@ def test_node_storage_exporter_is_bounded_and_read_only():
     assert not pod.get("hostPID", False)
     assert container["securityContext"]["readOnlyRootFilesystem"]
     assert not container["securityContext"]["allowPrivilegeEscalation"]
-    assert container["resources"]["requests"] == {"cpu": "10m", "memory": "24Mi"}
+    assert container["resources"]["requests"] == {"cpu": "10m", "memory": "12Mi"}
     assert "--collector.disable-defaults" in container["args"]
     assert all(mount["readOnly"] for mount in container["volumeMounts"])
 
