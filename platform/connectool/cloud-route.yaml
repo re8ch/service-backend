@@ -6,9 +6,9 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
   rules:
     - matches: [{path: {type: PathPrefix, value: /cloud}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/cloud}}]
-      backendRefs: [{name: re8ch-tools-vmcp-session-router, port: 4483}]
+      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
 ---
 # DNS authority is deliberately separate from the data-plane route. ExternalDNS
 # consumes this object, while Cilium Gateway remains the only request path.

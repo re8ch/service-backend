@@ -100,7 +100,7 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     }
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["placement"]["nodeSelector"] == {}
-    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"
 

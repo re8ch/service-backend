@@ -102,7 +102,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
             "limits": {"cpu": "100m", "memory": "64Mi"},
         },
     }
-    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
@@ -123,7 +123,7 @@ def test_release_is_digest_signed_and_verified():
         assert expected in release
 
 
-def test_public_and_internal_mcp_clients_use_session_routers():
+def test_public_and_internal_mcp_clients_use_declared_frontends():
     route_files = [
         ROOT / "platform/connectool/cloud-route.yaml",
         ROOT / "clusters/re8ch/components/regional-routing/migrated-public-http-routes.yaml",
@@ -132,7 +132,10 @@ def test_public_and_internal_mcp_clients_use_session_routers():
         ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml",
     ]
     rendered_routes = "\n".join(path.read_text() for path in route_files)
-    assert "vmcp-re8ch-tools-vmcp" not in rendered_routes
+    # The privileged Tools publication is a singleton on restricted-node-6dc3f140f9 during the
+    # A1/B1 fabric incident, so its public route can safely target vMCP
+    # directly. Multi-replica admin and tenant publications keep routers.
+    assert "vmcp-re8ch-tools-vmcp" in rendered_routes
     assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
     assert "re8ch-tools-vmcp-session-router" in rendered_routes
     assert "re8ch-admin-vmcp-session-router" in rendered_routes
