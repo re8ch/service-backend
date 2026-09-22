@@ -45,7 +45,6 @@ data:
       "browser.re8ch.com.": {"service":"browser","class":"web","probePath":"/"},
       "storage.re8ch.com.": {"service":"storage","class":"web","probePath":"/"},
       "agent.re8ch.com.": {"service":"agent","class":"web","probePath":"/healthz"},
-      "access.re8ch.com.": {"service":"access","class":"web","probePath":"/"},
       "opensandbox.re8ch.com.": {"service":"opensandbox","class":"web","probePath":"/healthz"},
       "admin.re8ch.com.": {"service":"admin-tools","class":"web","probePath":"/mcp"},
       "operate.tools.re8ch.com.": {"service":"operate-tools","class":"web","probePath":"/mcp"},
