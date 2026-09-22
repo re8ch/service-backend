@@ -3,7 +3,7 @@ kind: OrganizationTopology
 metadata:
   enterprise: re8ch
   enterpriseDisplayName: Reachieve LLC
-  observedAt: "2026-09-12"
+  observedAt: "2026-09-22"
 spec:
   principle: Git for Everything in Collaboration, Kubernetes for Runtime, Flux for Convergence, Headlamp for Inspection
   githubRole: universal-coordination-event-bus
@@ -38,6 +38,12 @@ spec:
         - {source: re8ch/headlamp-public-edge, target: public-edge/headlamp-public-edge, state: pilot-complete}
         - {source: re8ch/mihomos-cluster, target: public-edge/mihomos-cluster, state: transferred}
         - {source: re8ch/headlamp-mihomos-cluster, target: public-edge/headlamp-mihomos-cluster, state: pilot-complete}
+    - login: bifurcate-systems
+      displayName: Bifurcate Systems
+      state: created-in-enterprise
+      repositories:
+        - {source: "new:organization-governance", target: bifurcate-systems/.github, state: created}
+        - {source: "embedded:re8ch/cloud-functions/apps/bifurcate@b35cdf1", target: bifurcate-systems/bifurcate, state: extracted-with-history}
   retainedAuthorities:
     - {repository: re8ch/service-backend, role: aggregate-gitops-authority, until: github-provider-cutover}
     - {repository: re8ch/cloud-functions, role: platform-runtime-controller, until: post-cutover-boundary-review}
