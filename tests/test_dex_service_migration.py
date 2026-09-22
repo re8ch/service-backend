@@ -27,6 +27,7 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
     old = {"data": {"config.yaml": base64.b64encode(yaml.safe_dump(config).encode()).decode()}}
     created = []
     target = None
+    broker_secret = None
 
     def request(path, method="GET", body=None, content_type="application/json"):
         nonlocal target
@@ -36,11 +37,17 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
             if target is None:
                 raise urllib.error.HTTPError(path, 404, "missing", {}, None)
             return copy.deepcopy(target)
+        if method == "GET" and path.endswith("/re8ch-auth-broker-oidc"):
+            if broker_secret is None:
+                raise urllib.error.HTTPError(path, 404, "missing", {}, None)
+            return copy.deepcopy(broker_secret)
         created.append((method, path))
         if method == "PATCH" and path.endswith("/dex-config"):
             old["data"].update(body["data"])
         if method == "POST" and path.endswith("/secrets"):
             target = body
+        if method == "PATCH" and path.endswith("/dex-config-service"):
+            target["data"].update(body["data"])
         return {}
 
     scope = dict(base64=base64, yaml=yaml, time=time, urllib=urllib, request=request)
@@ -69,6 +76,20 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
         exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
     assert stopped.value.code == 0
     assert created == []
+
+    broker_secret = {"data": {
+        "client-id": base64.b64encode(b"broker-client").decode(),
+        "client-secret": base64.b64encode(b"broker-secret").decode(),
+    }}
+    exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
+    derived = yaml.safe_load(base64.b64decode(target["data"]["config.yaml"]))
+    assert canonical["connectors"] == config["connectors"]
+    broker = next(item for item in derived["connectors"] if item.get("id") == "re8ch-auth")
+    assert broker["config"]["issuer"] == "https://api.re8ch.com/auth"
+    assert broker["config"]["redirectURI"] == "https://dex.service.re8ch.com/callback"
+    assert broker["config"]["clientID"] == "broker-client"
+    assert broker["config"]["insecureEnableGroups"] is True
+    assert any(path.endswith("/deployments/dex-service") for _, path in created)
 
 
 def test_new_hostname_targets_only_parallel_dex_service():

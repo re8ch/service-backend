@@ -8,7 +8,7 @@ metadata: {name: dex-service-config-reconciler, namespace: dex}
 rules:
   - apiGroups: [""]
     resources: [secrets]
-    resourceNames: [dex-config, dex-config-service]
+    resourceNames: [dex-config, dex-config-service, re8ch-auth-broker-oidc]
     verbs: [get, patch]
   - apiGroups: [""]
     resources: [secrets]
@@ -76,6 +76,35 @@ data:
             }}}}}, 'application/merge-patch+json')
     config['issuer'] = 'https://dex.service.re8ch.com'
     github[0]['config']['redirectURI'] = 'https://dex.service.re8ch.com/callback'
+    # Keep the canonical public Dex separate. The broker has one confidential
+    # client whose callback belongs to the service issuer only.
+    try:
+        broker_secret = request('/api/v1/namespaces/dex/secrets/re8ch-auth-broker-oidc')
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        broker_secret = None
+    connectors = [item for item in config.get('connectors', []) if item.get('id') != 're8ch-auth']
+    if broker_secret:
+        values = broker_secret.get('data', {})
+        client_id = base64.b64decode(values.get('client-id', '')).decode().strip()
+        client_secret = base64.b64decode(values.get('client-secret', '')).decode().strip()
+        if not client_id or not client_secret:
+            raise RuntimeError('broker OIDC Secret must contain client-id and client-secret')
+        connectors.append({
+            'type': 'oidc', 'id': 're8ch-auth', 'name': 'RE8CH Account',
+            'config': {
+                'issuer': 'https://api.re8ch.com/auth',
+                'clientID': client_id,
+                'clientSecret': client_secret,
+                'redirectURI': 'https://dex.service.re8ch.com/callback',
+                'scopes': ['openid', 'profile', 'email', 'groups'],
+                'getUserInfo': True,
+                'insecureEnableGroups': True,
+                'insecureSkipEmailVerified': True,
+            },
+        })
+    config['connectors'] = connectors
     encoded = base64.b64encode(yaml.safe_dump(config, sort_keys=False).encode()).decode()
     path = '/api/v1/namespaces/dex/secrets/dex-config-service'
     try:
