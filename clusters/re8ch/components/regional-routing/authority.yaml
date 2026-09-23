@@ -20,7 +20,7 @@ data:
   AUTHORITY_AREAS_JSON: '{"restricted-node-1eb0570f74":"CN","restricted-node-296f36f2fb":"CN","domain-ex":"CN","vm-20-12-ubuntu":"CN","overseas-kl":"APAC","overseas-la":"US"}'
   # Publication must be elected by an off-LAN observer. A1 can hairpin through
   # RouterOS and incorrectly classify an externally unreachable restricted-node-6dc3f140f9 as ready.
-  PUBLISHER_NODE: vm-20-12-ubuntu
+  PUBLISHER_NODE: restricted-node-296f36f2fb
   READINESS_GATES_JSON: '{"db-rw":{"configMap":{"namespace":"kube-system","name":"pg-re8ch-role-authority","dataKey":"authority.json"},"requiredFields":{"authority":"patroni"},"addressPath":["leader","address"],"endpointSlice":{"namespace":"pigsty-external","name":"pg-re8ch-primary"},"requireSingleReadyAddress":true}}'
   PUBLICATION_REFS_JSON: '{"registry":{"namespace":"qianwen-ops","name":"static-cilium-edge-services-dns"},"headlamp":{"namespace":"headlamp","name":"headlamp-dns-authority"},"grafana":{"namespace":"observability-system","name":"grafana-dns-authority"},"dex":{"namespace":"dex","name":"dex-dns-authority"},"litellm":{"namespace":"llm-gateway","name":"litellm-dns-authority"},"cube":{"namespace":"cube-trial","name":"cube-dns-authority"},"dbgui":{"namespace":"ops","name":"cloudbeaver-dns-authority"},"collab":{"namespace":"mail-system","name":"stalwart-collaboration-public"},"stalwart-admin":{"namespace":"mail-system","name":"stalwart-admin-public"}}'
   SERVICES_JSON: |-
@@ -155,9 +155,9 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: kubernetes.io/hostname
+                  - key: networking.re8ch.com/regional-authority-enabled
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, domain-ex, vm-20-12-ubuntu, overseas-kl]
+                    values: ["true"]
       tolerations: [{operator: Exists}]
       containers:
         - name: authority
@@ -172,8 +172,8 @@ spec:
             - {name: dns-udp, containerPort: 53, protocol: UDP}
             - {name: dns-tcp, containerPort: 53, protocol: TCP}
             - {name: http, containerPort: 8080, protocol: TCP}
-          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
-          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 30, periodSeconds: 15, timeoutSeconds: 5, failureThreshold: 6}
           resources:
             requests: {cpu: 20m, memory: 32Mi}
             limits: {cpu: 250m, memory: 128Mi}
