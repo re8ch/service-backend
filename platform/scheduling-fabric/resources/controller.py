@@ -281,6 +281,7 @@ def trimaran_nodes():
     return set.intersection(*series) if series else set()
 
 CAPACITY_TAINT = {"key": "scheduling.re8ch.com/capacity-window", "value": "closed", "effect": "NoSchedule"}
+CEPH_QUORUM_BRIDGE_LABEL = "storage.re8ch.com/ceph-pilot"
 CAPACITY_PATHS = ("/", "/var/lib/kubelet", "/var/lib/containerd", "/var/lib/rancher/k3s/agent/containerd")
 
 def metric_rows(query, max_age=300):
@@ -413,7 +414,11 @@ def reconcile_capacity_windows(nodes):
         metadata.setdefault("labels", {}).update(labels)
         # A Ready node with no first sample has no proven free capacity.
         # Keep new Pods off it until a complete open sample arrives.
-        desired_closed = state != "open"
+        # Existing Rook daemon templates still select the legacy pilot label.
+        # Keep those three declared hosts schedulable until Rook regains quorum
+        # and rolls the templates onto capability-storage-ceph-osd.
+        quorum_bridge = metadata.get("labels", {}).get(CEPH_QUORUM_BRIDGE_LABEL) == "true"
+        desired_closed = state != "open" and not quorum_bridge
         if desired_closed == owned:
             continue
         new_taints = [t for t in taints if t.get("key") != CAPACITY_TAINT["key"]]
