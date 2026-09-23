@@ -2,6 +2,10 @@ apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-1eb0570f74
+  labels:
+    # Compatibility bridge for existing Rook Pod templates. Remove after the
+    # operator rolls every daemon onto capability-storage-ceph-osd.
+    storage.re8ch.com/ceph-pilot: "true"
   annotations:
     networking.re8ch.com/host-platform: WindowsServer2022-WSL2-NAT
     networking.re8ch.com/windows-lan-ip: 192.0.2.246
@@ -16,6 +20,8 @@ apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-296f36f2fb
+  labels:
+    storage.re8ch.com/ceph-pilot: "true"
   annotations:
     networking.re8ch.com/host-platform: WindowsServer2022-WSL2-NAT
     networking.re8ch.com/windows-lan-ip: 192.0.2.35
@@ -42,7 +48,9 @@ apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-6dc3f140f9
-  labels: {networking.re8ch.com/public-edge: loudi-r640}
+  labels:
+    networking.re8ch.com/public-edge: loudi-r640
+    storage.re8ch.com/ceph-pilot: "true"
   annotations:
     networking.re8ch.com/public-ip: 192.0.2.138
     networking.re8ch.com/public-authority: RouterOS
