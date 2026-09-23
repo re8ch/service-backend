@@ -1271,6 +1271,33 @@ def get_ready_node_storage_inventory():
     return {"nodes": results, "scope": "Ready nodes and mounted host filesystems; raw Ceph OSD capacity is reported by get_ceph_storage_status",
             "cleanupPolicy": "observe and alert only; never delete PVC, Ceph data, images, or host files automatically"}
 
+def get_runtime_storage_analyses(args=None):
+    """Return bounded analysis summaries without snippets or raw observer events."""
+    args = args or {}
+    namespace, name = args.get("namespace"), args.get("name")
+    if namespace:
+        validate_k8s_name(namespace, "namespace")
+    if name:
+        validate_k8s_name(name, "name")
+    if name and not namespace:
+        raise ValueError("namespace is required when name is provided")
+    if name:
+        items = [kube_request("GET", "/apis/anatomy.re8ch.com/v1alpha1/namespaces/%s/runtimeanalyses/%s" % (namespace, name))]
+    else:
+        path = "/apis/anatomy.re8ch.com/v1alpha1/namespaces/%s/runtimeanalyses" % namespace if namespace else "/apis/anatomy.re8ch.com/v1alpha1/runtimeanalyses"
+        items = kube_request("GET", path).get("items", [])
+    rows = []
+    for item in sorted(items, key=lambda value: value.get("metadata", {}).get("creationTimestamp", ""), reverse=True)[:100]:
+        metadata, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+        rows.append({"namespace": metadata.get("namespace"), "name": metadata.get("name"),
+                     "createdAt": metadata.get("creationTimestamp"), "target": spec.get("target"),
+                     "traceId": spec.get("traceId"), "phase": status.get("phase"),
+                     "correlation": status.get("correlation"), "summary": status.get("summary"),
+                     "topLocators": status.get("topLocators", []), "findings": status.get("findings", []),
+                     "evidenceDigest": status.get("evidence", {}).get("digest")})
+    return {"analyses": rows, "truncated": len(items) > 100,
+            "safety": "Content snippets and raw observer events are excluded."}
+
 def restart_ceph_osd_1():
     """Roll only the reviewed failed OSD, and only while its host is Ready."""
     before = get_ceph_recovery_status()
@@ -4106,7 +4133,7 @@ OBSERVE_TOOL_NAMES = {
     "get_supabase_platform_status", "get_neo4j_platform_status", "get_identity_platform_status",
     "get_agent_runtime_status", "get_observability_platform_status", "get_artifact_platform_status",
     "get_database_routing_status", "get_external_publication_readiness",
-    "get_ceph_storage_status", "get_ready_node_storage_inventory",
+    "get_ceph_storage_status", "get_ready_node_storage_inventory", "get_runtime_storage_analyses",
 }
 OPERATE_TOOL_NAMES = {
     "get_managed_platform_operation_status", "restart_managed_platform_deployment",
@@ -4143,6 +4170,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_ceph_recovery_status", "description": "Return sanitized Rook CephCluster health and OSD 1 Deployment, Pod and node placement for recovery review; no Ceph credentials or raw logs.", "inputSchema": schema()},
         {"name": "get_ceph_storage_status", "description": "Return bounded Rook/Ceph OSD and placement-group status from native Ceph manager metrics, with freshness checks.", "inputSchema": schema()},
         {"name": "get_ready_node_storage_inventory", "description": "Return mounted-filesystem capacity and swap usage for Ready nodes only; never delete files or infer raw disk capacity from mounts.", "inputSchema": schema()},
+        {"name": "get_runtime_storage_analyses", "description": "Return bounded call-level filesystem and object-storage analysis summaries without snippets or raw events.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}})},
         {"name": "get_nuclio_function_status", "description": "Return a sanitized cross-namespace Nuclio function inventory and native states without environment variables, Secret references, annotations or last-applied configuration.", "inputSchema": schema()},
         {"name": "diagnose_nuclio_function", "description": "Diagnose one existing Nuclio function from sanitized native state, Deployment readiness, Pod scheduling/container waits and recent Events. Secret, environment and annotation data are omitted.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}}, ["namespace", "name"])},
         {"name": "get_nuclio_capacity_status", "description": "Return Nuclio-labelled node readiness, schedulability, taints, allocatable capacity, placed function Pod counts and unscheduled function Pods as a rollout gate.", "inputSchema": schema()},
@@ -4275,6 +4303,8 @@ def call_tool(name, args, admin=False):
         return get_ceph_storage_status()
     if name == "get_ready_node_storage_inventory":
         return get_ready_node_storage_inventory()
+    if name == "get_runtime_storage_analyses":
+        return get_runtime_storage_analyses(args)
     if name == "get_nuclio_function_status":
         return get_nuclio_function_status()
     if name == "diagnose_nuclio_function":

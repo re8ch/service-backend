@@ -53,3 +53,43 @@ def test_quantity_comparison_blocks_smaller_restore_targets():
     controller = load_controller()
     assert controller.quantity_bytes("1Mi") < controller.quantity_bytes("1Gi")
     assert controller.quantity_bytes("2Gi") == 2 * 1024 * 1024 * 1024
+
+
+def test_analysis_events_are_bounded_normalized_and_safely_redacted():
+    controller = load_controller()
+    event = controller.normalize_access_event({
+        "backend": "Filesystem", "operation": "Read", "path": "/workspace/.ssh/id_rsa",
+        "bytes": 12, "count": 2, "contentEvidence": {"state": "Captured", "snippet": "secret"},
+    })
+    assert event["contentEvidence"] == {"state": "Redacted", "reason": "SensitivePath"}
+    assert event["count"] == 2
+    assert event["bytes"] == 12
+
+
+def test_analysis_summary_keeps_storage_operations_separate():
+    controller = load_controller()
+    events = [
+        controller.normalize_access_event({"backend": "Filesystem", "operation": "Scan", "path": "/workspace", "count": 3}),
+        controller.normalize_access_event({"backend": "Filesystem", "operation": "Modify", "path": "/workspace/a", "bytes": 8}),
+        controller.normalize_access_event({"backend": "S3", "operation": "Read", "bucket": "artifacts", "key": "a", "bytes": 20}),
+    ]
+    assert controller.summarize_access_events(events) == {
+        "eventCount": 3,
+        "operationCounts": {"Scan": 3, "Modify": 1, "Read": 1},
+        "backendCounts": {"Filesystem": 2, "S3": 1},
+        "bytes": 28,
+    }
+
+
+def test_analysis_rejects_unknown_operations_and_backends():
+    controller = load_controller()
+    for event in (
+        {"backend": "Database", "operation": "Read", "path": "x"},
+        {"backend": "Filesystem", "operation": "Execute", "path": "x"},
+    ):
+        try:
+            controller.normalize_access_event(event)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid observer evidence was accepted")

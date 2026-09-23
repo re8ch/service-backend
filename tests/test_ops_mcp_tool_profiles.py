@@ -42,6 +42,20 @@ class ToolProfileTests(unittest.TestCase):
             self.assertNotIn("kubeconfig", tool["name"])
         self.assertIn("get_ceph_storage_status", self.tools("observe"))
         self.assertIn("get_ready_node_storage_inventory", self.tools("observe"))
+        self.assertIn("get_runtime_storage_analyses", self.tools("observe"))
+
+    def test_runtime_analysis_summary_excludes_raw_content_evidence(self):
+        module = load_profile("observe")
+        module.kube_request = lambda method, path: {"items": [{
+            "metadata": {"namespace": "tenant-a", "name": "call-1", "creationTimestamp": "2026-09-23T00:00:00Z"},
+            "spec": {"target": {"podName": "worker", "containerName": "app"}, "traceId": "a" * 32},
+            "status": {"phase": "Ready", "summary": {"eventCount": 2}, "topLocators": ["/workspace/a"],
+                       "evidence": {"digest": "sha256:test", "configMap": "contains-raw-events"}},
+        }]}
+        result = module.get_runtime_storage_analyses({})
+        self.assertEqual(result["analyses"][0]["evidenceDigest"], "sha256:test")
+        self.assertNotIn("evidence", result["analyses"][0])
+        self.assertNotIn("events", result["analyses"][0])
 
     def test_storage_inventory_filters_unready_nodes_and_missing_metrics(self):
         module = load_profile("observe")
