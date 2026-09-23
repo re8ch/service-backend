@@ -30,6 +30,14 @@ GitHub main 是期望状态，签名提交是持久状态转换，PR 是提案�
 
 配置接受的原子性仅指一个 Git ref 的转换。跨 Kubernetes 对象没有事务原子性；记录逐对象结果和 partial 状态。要求运行态原子切换的服务必须声明蓝绿/路由切换机制，未具备时拒绝这种保证。
 
+### 本地协议实验（不等于 GitHub 已通过）
+
+`tests/test_github_spec_acceptance_protocol.py` 使用临时 bare Git 仓库验证实际 ref 行为，未写生产 ref。五个实验确认：同旧 OID 的并发候选仅一个成功；即使新目标可 fast-forward，旧 OID 不符也被拒绝；CAS 本身不验证父关系；单独读取另一 validity ref 会与撤销竞争；本地 Git 多 ref transaction 可同时验证 validity 并更新 main。
+
+GitHub API 是否提供同等多 ref 原子验证尚未证明，不能由本地 transaction 推断。生产默认设计因此将失效记录作为同一 main 账本的签名状态转换，接纳和失效经过同一个受信执行入口；Issue/Check 只作为投影。失效提交前，执行许可尚未被原子撤销，必须显式暴露这个时间窗口。失效提交推进 main 后，旧 base 的候选必须拒绝。任何替代协议须证明同样的竞态行为；不能把先读取 Issue 再更新 main 当事务。
+
+这些测试尚未覆盖远端 receive-pack、GitHub Rulesets、签名校验、App token、PR 关联或执行端租约。下一个门槛是在隔离 GitHub 目标验证这些接口，生产 main 不作协议试验场。
+
 ## 外部执行与观察
 
 显式保存 desired SHA/digest、accepted deployment revision、applied inventory digest 和 observed runtime generation/status，四者不得混同。每次尝试关联 PR、commit、Deployment、run ID、策略版本、资源集合和到期授权。
