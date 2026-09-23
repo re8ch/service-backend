@@ -28,6 +28,7 @@ metadata:
   name: overseas-la
   labels:
     networking.re8ch.com/dns-authority-candidate: "true"
+    networking.re8ch.com/public-edge: us-la
   annotations:
     networking.re8ch.com/dns-nameserver: ns-la.re8ch.com.
     networking.re8ch.com/dns-region: us-ca

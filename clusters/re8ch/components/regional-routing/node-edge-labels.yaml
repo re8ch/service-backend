@@ -51,3 +51,10 @@ metadata:
     networking.re8ch.com/public-delivery-mode: EBGPTransitAndDNAT
     networking.re8ch.com/required-forward-ports: "80,443"
     networking.re8ch.com/credentials-secret-ref: ops/mikrotik-routeros-admin
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-la
+  labels:
+    networking.re8ch.com/public-edge: us-la

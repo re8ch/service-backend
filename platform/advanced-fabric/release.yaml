@@ -185,8 +185,15 @@ spec:
           - name: overseas-la
             wireguardInterfaces: [wg-pt-b1]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
+            wireguardPeerPolicies:
+              - interface: wg-pt-b1
+                peer: ETC/pX4zvVrz+vBXlPuM0DUwHP4E+AdrMl9Xd5tv/XY=
+                allowedPrefixes: [192.0.2.101/32, 192.0.2.4/32, 192.0.2.57/16, 192.0.2.65/24, 192.0.2.121/24]
             sourceIdentityRules:
               - {source: 192.0.2.147, destination: 192.0.2.65/24}
+              # PublicEdge ingress keeps the LA node identity while AdvFab
+              # carries traffic to the shared Gateway and final Pod paths.
+              - {source: 192.0.2.147, destination: 192.0.2.121/24}
           - name: overseas-kl
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
             wireguardAllowedPrefixes: [192.0.2.116/32]

@@ -213,6 +213,18 @@ spec:
         priority: -30
         serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot]
         forwarding: {mode: DirectGateway}
+      - name: us-la
+        area: US
+        region: us-ca
+        nodeName: overseas-la
+        endpoint: {type: PublicIP, value: 192.0.2.111}
+        gatewayVIP: 192.0.2.213
+        capacityMbps: 1000
+        priority: 20
+        protocols: [dns-udp, dns-tcp, http, https, tls-passthrough]
+        ports: [53, 80, 443]
+        serviceClasses: [api, db-ro, web]
+        forwarding: {mode: DirectGateway}
     readinessGates:
       db-rw:
         configMap: {namespace: kube-system, name: pg-re8ch-role-authority, dataKey: authority.json}
