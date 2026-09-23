@@ -57,3 +57,15 @@
 - https://github.com/re8ch/gitops-spec-lab/actions/runs/35893493615 的两个 job 成功后，精确 SHA push 通过（4196418405），没有禁用或删除 required checks。
 
 这是来源绑定实验，不是可信验证器实验：fixture 本身来自候选 PR，因此不能证明候选无法修改自己的检查。生产必需检查仍需由受保护的固定验证器生成。接纳主体仍是 Woomou，尚未验证专用 App 的写入身份。
+
+### 真实并发接纳
+
+开放 PR #3 和 #4 均基于 `0ad3b2165360c206575890ac6d3723af7ab13b42`，各自 GitHub Actions 的两个来源绑定检查都通过。两个独立 git push 进程并发使用同一显式旧 SHA lease：
+
+- A：`c61cccc451e6d5c8e8ccc9b855413994345f2335`；PR https://github.com/re8ch/gitops-spec-lab/pull/3 。
+- B：`444c6912c6fffd9f2579609669d390f88eb62e0c`；PR https://github.com/re8ch/gitops-spec-lab/pull/4 。
+- B 退出 0；A 退出 1，服务端错误 `cannot lock ref`，实际 main 已是 B、expected 仍为原父。
+- API 读回 main 精确等于 B，没有组合 A/B 的新提交，没有重试合并失败候选。
+- 两次 rule suite 均为 pass（A 4196443473，B 4196443205）：规则通过不代表 ref transaction 成功。必须结合传输结果和权威 ref 读回判定接纳；丢失回执时也不能只查规则审计。
+
+此结果证明 GitHub 托管的同父竞争保持单一赢家；身份仍是 Woomou，尚非专用 App。失败候选保留为过期提案，不自动 rebase。
