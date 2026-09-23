@@ -141,6 +141,8 @@ modules:
       digest: sha256:f303654172b074c303473b2c2405bdcc0d0c5bfbbd563cef25692f88daad8ef5
     - codename: starfire-copper
       digest: sha256:e7f6f5ef156394f291ca5344b7cca739a310e8c65a71cded289ffa7f33006732
+    - codename: torch-copper
+      digest: sha256:c044c71e661e3a526d8d11c95ec068615f9669517ee1bb10a4b47b1bb49c2a06
   platform/among-clusters:
     releases:
     - codename: bora

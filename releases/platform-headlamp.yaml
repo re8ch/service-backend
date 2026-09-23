@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: starfire-copper
+codename: torch-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:e7f6f5ef156394f291ca5344b7cca739a310e8c65a71cded289ffa7f33006732
+  digest: sha256:c044c71e661e3a526d8d11c95ec068615f9669517ee1bb10a4b47b1bb49c2a06
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
