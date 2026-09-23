@@ -81,3 +81,11 @@ PR https://github.com/re8ch/gitops-spec-lab/pull/5 的签名候选 `1c94a4d16922
 - 两个 job 成功。run 的 head_sha 指向候选、referenced_workflows 为空，不能据此判断验证器来源；本次通过 jobs logs API 验证实际执行内容。`gh run view --log` 因内部 workflow ID 查询 404 失败，不代表运行失败。
 
 结论：此配置下，组织 required workflow 的固定 SHA 没有被候选同路径修改替换。此试验只证明代码来源固定，不证明 fixture 已实施权限检查；候选仍可提出修改，真正的生产路径/资源所有权拒绝需要可信验证器实现。PR #5 保持开放，尚未接纳到 main。后续仍须验证删除工作流、同名 job 冒充、固定验证器安全读取候选数据，以及专用 App 身份下的接纳。
+
+### 删除候选工作流仍不能抑制固定验证器
+
+PR https://github.com/re8ch/gitops-spec-lab/pull/6 的签名单父候选 `2773f28cf1a5f838dd956ac406be7b9744e18e10` 基于 main `444c6912c6fffd9f2579609669d390f88eb62e0c`，仅删除 `.github/workflows/lab-contract.yml`。组织规则和固定源 SHA 不变。
+
+运行 https://github.com/re8ch/gitops-spec-lab/actions/runs/35894371470 成功：job `107294497288` 和 `107294497763` 的实际日志分别包含原始 `Protocol fixture only; no deployment authorization.` 与 `Expected-origin fixture; no deployment authorization.`。因此本配置的候选删除没有阻止必需验证器运行。PR 保持开放，main 未改变。
+
+注意：两个 fixture 成功不表示删除应获授权。实际策略必须另外拒绝未授权的工作流/策略变更；固定工作流解决的是“谁来判定”，不是替代判定逻辑。同名 job 冒充、候选输入注入和 App 接纳身份仍待验证。
