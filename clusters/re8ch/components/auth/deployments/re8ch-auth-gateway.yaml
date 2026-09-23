@@ -109,7 +109,9 @@ spec:
             - name: AUTH_SMTP_FROM_NAME
               value: RE8CH Image Registry
             - name: AUTH_GATEWAY_DEFAULT_RETURN_URL
-              value: https://re8ch.com
+              value: https://auth.re8ch.com
+            - name: AUTH_ACCOUNT_ORIGINS
+              value: https://re8ch.com,https://api.re8ch.com,https://auth.re8ch.com
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
