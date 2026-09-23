@@ -19,3 +19,15 @@ metadata:
   annotations:
     networking.re8ch.com/dns-nameserver: ns-gz.re8ch.com.
     networking.re8ch.com/dns-region: cn-shanghai
+---
+# The election controller still requires successful external UDP and TCP 53
+# probes before this candidate can enter the parent-zone delegation.
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-la
+  labels:
+    networking.re8ch.com/dns-authority-candidate: "true"
+  annotations:
+    networking.re8ch.com/dns-nameserver: ns-la.re8ch.com.
+    networking.re8ch.com/dns-region: us-ca

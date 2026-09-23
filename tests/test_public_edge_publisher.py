@@ -17,7 +17,12 @@ def test_public_edge_publisher_uses_available_authority_node():
         "area": "CN",
         "region": "shanghai",
     }
-    assert set(values["authorityNodes"]) == {"domain-ex", "suxunji"}
+    assert set(values["authorityNodes"]) == {"domain-ex", "suxunji", "overseas-la"}
+    assert values["authorityNodes"]["overseas-la"] == {
+        "bindAddress": "192.0.2.29",
+        "area": "US",
+        "region": "us-ca",
+    }
     admitted = list(yaml.safe_load_all((ROOT / "platform/public-edge-manager/dns-candidate-nodes.yaml").read_text()))
     assert {item["metadata"]["name"] for item in admitted} == set(values["authorityNodes"])
     assert "overseas-kl" not in values["authorityNodes"]

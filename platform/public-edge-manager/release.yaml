@@ -62,7 +62,7 @@ spec:
       nameserversConfigMap: public-edge-nameservers
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
-      zones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com.]
+      zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com.]
       # ACME follows this alias into the parent Cloudflare zone. PublicEdge
       # remains authoritative for service records; no per-service parent A is
       # needed. The chart's externalCDN field is its static-record opt-in.
@@ -151,10 +151,12 @@ spec:
       # These VPC addresses receive the providers' public-IP DNAT on port 53.
       domain-ex: {bindAddress: 192.0.2.241, area: CN, region: shanghai}
       suxunji: {bindAddress: 192.0.2.6, area: CN, region: shanghai}
+      overseas-la: {bindAddress: 192.0.2.29, area: US, region: us-ca}
     services:
       # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
       # /auth/me exercises the real API gateway path and returns 200 without a session.
       api.re8ch.com.: {service: api, class: api, probePath: /auth/me, acceptedStatuses: [200]}
+      auth.re8ch.com.: {service: auth, class: web, probePath: /, acceptedStatuses: [200]}
       db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
       db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
