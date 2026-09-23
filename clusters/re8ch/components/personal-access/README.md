@@ -8,7 +8,7 @@ members of ZeroTier/NetBird. RouterOS remains a public L4 entry point only:
 - UDP/443 is forwarded to `192.0.2.75`; Hysteria2 uses one multi-endpoint
   service because UDP cannot be shared using TLS SNI.
 - The regional Mihomo listeners hand traffic to the node-local smart-egress
-  SOCKS listener on `127.0.0.1:17891`.
+  SOCKS service at `identity-egress.egress-fabric.svc.cluster.local:17893`.
 - Subscription URLs and proxy credentials are unique per device. Revocation or
   rotation updates the runtime Secret and rolls both regional Deployments.
 
