@@ -48,6 +48,19 @@ GitHub API 是否提供同等多 ref 原子验证尚未证明，不能由本地 
 
 ## 外部执行与观察
 
+### 路径权限准入（未启用）
+
+`scope_gate.py` 是有限的通用纯数据判定器，不执行候选、不访问集群、不授予部署权限。策略格式为 version、protected 路径前缀及 services 的 actorIds/paths；身份使用 API 数字 ID。保护路径优先于 grant；服务间重叠授权、未知服务/身份、跨边界改动、重命名来源越权、缺页/重复/不支持的差异均默认拒绝。`tests/test_github_spec_scope.py` 包含对抗测试。
+
+接入固定验证器之前必须完成以下输入契约，当前未声称已完成：
+
+- 策略及判定器从独立可信 SHA 加载，绝不能从候选内容选取。新增服务注册走平台审查，不能服务自授权。
+- 通过 GitHub API 取得作者 ID、当前 PR HEAD/base 和全部差异；分页前后绑定同一 HEAD/base，发生变化即重试或拒绝。保守拒绝 3000 文件及以上，避免 PR files API 上限产生截断授权；总数来自 API，不来自 PR 声明。
+- `pathEligible` 只是一项合取条件，不是执行许可。GitHub 验签、精确父关系、前序失效、固定验证器检查及原子接纳仍独立检查。
+- 路径归属不证明对象归属：可信渲染还必须拒绝跨 namespace/资源身份、集群级对象、危险引用、符号链接和未固定远程 bases。渲染器本身应隔离执行且无部署凭证。此模块不解析 manifest，也不能代替该层。
+
+远端现有 `operations/github-policy-reviewer/README.md` 经 API 核对，描述的是作者/签名/CI 准入，不是资源所有权策略；不复用它的成功状态来声称服务权限已校验。当前没有为生产臆造服务授权映射，lab 示例 actorIds 不代表生产权限。
+
 显式保存 desired SHA/digest、accepted deployment revision、applied inventory digest 和 observed runtime generation/status，四者不得混同。每次尝试关联 PR、commit、Deployment、run ID、策略版本、资源集合和到期授权。
 
 GitHub 托管 Actions 负责验证、计划、批准后的有限执行、健康评估及重试。每服务独立 concurrency group；失效链更新与接纳使用统一串行入口并在执行前复核。所有任务有 deadline、重试预算与终态；崩溃后先观察实际结果再重试，不能因没有回执就假定未应用。
