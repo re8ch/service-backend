@@ -1,7 +1,8 @@
 # Runtime Anatomy
 
-Status: CephFS file-state canary MVP. The chart installs six alpha CRDs, one
-controller, a labelled canary PVC/runtime, and the final scope ConfigMap.
+Status: CephFS file-state canary plus explicit call-level storage analysis. The
+chart installs seven alpha CRDs, one controller, an on-demand node observer, a
+labelled canary PVC/runtime, and the final scope ConfigMap.
 
 The initial delivery is the
 [`runtime-anatomy`](../../charts/runtime-anatomy) Helm chart. It publishes one
@@ -30,6 +31,39 @@ time. Commits form a directed acyclic graph (DAG), so operators and higher-level
 agents can snapshot, diff, branch, checkout, restore and garbage-collect runtime
 state without pretending that every backend has Git semantics or supports an
 atomic snapshot.
+
+The complementary **Runtime Analysis** is a bounded observation of an existing
+Pod/container. It records which declared persistent-volume paths were scanned,
+read or modified during one trace-correlated call or explicit time window. It
+does not make an empty-observation claim: missing node or object-store evidence
+finishes as `Incomplete`, never as a successful zero-access result.
+
+## Call-level storage analysis
+
+Create analyses through `operations/runtime-anatomy/cli.py`:
+
+```sh
+python operations/runtime-anatomy/cli.py -n tenant-a analyze start \
+  --pod worker-0 --container app \
+  --trace-id 0123456789abcdef0123456789abcdef \
+  --volume /workspace=worker-home --s3-scope artifacts:runs/42 --wait
+```
+
+The controller freezes the Pod UID, container runtime identity, node and actual
+PVC mount mapping. The node observer is dormant without a `Capturing`
+`RuntimeAnalysis`; while active it attaches `strace` only to that container's
+cgroup-selected process tree and emits normalized, bounded evidence. This
+portable v1 collector identifies itself as `PtraceObserver`. A future eBPF
+collector must use the same event envelope and must not silently upgrade the
+correlation confidence.
+
+Filesystem evidence distinguishes `Scan`, `Read`, `Create`, `Modify`, `Rename`,
+`Delete` and `Metadata`. Content evidence is limited to small UTF-8 post-state
+snippets and always suppresses credential paths and credential-like text. S3
+keys cannot be recovered from TLS traffic: object access is accepted only from
+provider audit evidence attributable by trace ID, identity and time window. If
+that evidence is absent, the requested bucket is reported as
+`ObjectAuditUnavailable`.
 
 ## 1. Problem statement
 
@@ -283,7 +317,7 @@ provenance:
   sourceUID: 7ee0...
   resourceVersion: "1920234"
   adapterImageDigest: sha256:...
-  nodeName: restricted-node-6dc3f140f9
+  nodeName: r640
 ```
 
 Artifact URIs are opaque references. Credentials required to read them are

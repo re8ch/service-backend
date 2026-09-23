@@ -105,7 +105,7 @@ def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
 def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
     crds = list(yaml.safe_load_all((CHART / "crds/runtime-anatomy.yaml").read_text()))
     assert {item["spec"]["names"]["kind"] for item in crds} == {
-        "Runtime", "RuntimeCommit", "RuntimeDiff", "RuntimeBranch", "RuntimeCheckout", "RuntimeGarbageCollection"
+        "Runtime", "RuntimeCommit", "RuntimeDiff", "RuntimeBranch", "RuntimeCheckout", "RuntimeGarbageCollection", "RuntimeAnalysis"
     }
     resources = render("--set", "canary.enabled=true")
     runtime = next(item for item in resources if item["kind"] == "Runtime")
@@ -116,3 +116,30 @@ def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
     assert claim["metadata"]["annotations"]["anatomy.re8ch.com/snapshot-adapter"] == "csi-volume-snapshot-v1"
     assert claim["metadata"]["name"] == "runtime-anatomy-source-v4"
     assert runtime["spec"]["subjectRef"]["name"] == "runtime-anatomy-source-v4"
+
+
+def test_call_observer_is_explicit_bounded_and_digest_pinned():
+    resources = render()
+    observer = next(item for item in resources if item["kind"] == "DaemonSet" and item["metadata"]["name"].endswith("-observer"))
+    pod = observer["spec"]["template"]["spec"]
+    assert pod["hostPID"] is True
+    container = pod["containers"][0]
+    assert "@sha256:" in container["image"]
+    assert container["securityContext"]["capabilities"]["add"] == ["SYS_PTRACE"]
+    assert any(volume["hostPath"]["path"] == "/proc" for volume in pod["volumes"] if "hostPath" in volume)
+    cluster_role = next(item for item in resources if item["kind"] == "ClusterRole" and item["metadata"]["name"].endswith("-observer"))
+    assert all("configmaps" not in rule["resources"] for rule in cluster_role["rules"])
+    role = next(item for item in resources if item["kind"] == "Role" and item["metadata"]["name"].endswith("-observer-evidence"))
+    config_rule = next(rule for rule in role["rules"] if "configmaps" in rule["resources"])
+    assert set(config_rule["verbs"]) == {"get", "list", "create", "update"}
+
+
+def test_analysis_crd_enforces_trace_duration_and_content_caps():
+    crds = list(yaml.safe_load_all((CHART / "crds/runtime-anatomy.yaml").read_text()))
+    analysis = next(item for item in crds if item["spec"]["names"]["kind"] == "RuntimeAnalysis")
+    spec = analysis["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]["properties"]
+    assert spec["traceId"]["pattern"] == "^[0-9a-f]{32}$"
+    assert spec["durationSeconds"]["maximum"] == 900
+    policy = spec["evidencePolicy"]["properties"]
+    assert policy["maxSnippetBytes"]["maximum"] == 4096
+    assert policy["maxTotalSnippetBytes"]["maximum"] == 1048576

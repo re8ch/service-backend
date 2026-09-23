@@ -57,7 +57,7 @@ spec:
               target=/headlamp/plugins/runtime-anatomy-0.2.0
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '810706935eacb94a354af4336adc93c6222b0592361316fe6e10846397220a20  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '6684c8e3e1fad425931e9fc130363f9eb414b5fddc3a06b6c7ec731297352e99  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1

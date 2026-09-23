@@ -50,6 +50,9 @@ rules:
   - apiGroups: ["sandbox.opensandbox.io"]
     resources: ["batchsandboxes", "batchsandboxes/status", "pools", "pools/status", "sandboxsnapshots", "sandboxsnapshots/status"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["anatomy.re8ch.com"]
+    resources: ["runtimeanalyses", "runtimeanalyses/status"]
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

@@ -15,10 +15,10 @@ metadata:
     {{- include "runtime-anatomy.labels" . | nindent 4 }}
 rules:
   - apiGroups: [anatomy.re8ch.com]
-    resources: [runtimes, runtimecommits, runtimediffs, runtimebranches, runtimecheckouts, runtimegarbagecollections]
+    resources: [runtimes, runtimecommits, runtimediffs, runtimebranches, runtimecheckouts, runtimegarbagecollections, runtimeanalyses]
     verbs: [get, list, watch]
   - apiGroups: [anatomy.re8ch.com]
-    resources: [runtimes/status, runtimecommits/status, runtimediffs/status, runtimebranches/status, runtimecheckouts/status, runtimegarbagecollections/status]
+    resources: [runtimes/status, runtimecommits/status, runtimediffs/status, runtimebranches/status, runtimecheckouts/status, runtimegarbagecollections/status, runtimeanalyses/status]
     verbs: [get, patch, update]
   - apiGroups: [batch]
     resources: [jobs]
@@ -40,6 +40,30 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ include "runtime-anatomy.fullname" . }}-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "runtime-anatomy.fullname" . }}-controller
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller-evidence
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-controller-evidence
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "runtime-anatomy.fullname" . }}-controller-evidence
 subjects:
   - kind: ServiceAccount
     name: {{ include "runtime-anatomy.fullname" . }}-controller
@@ -92,6 +116,8 @@ spec:
               value: {{ .Values.controller.image | quote }}
             - name: VOLUME_SNAPSHOT_CLASS
               value: {{ .Values.canary.volumeSnapshotClassName | quote }}
+            - name: EVIDENCE_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}

@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import ssl
 import time
 import urllib.error
@@ -20,6 +21,13 @@ TIMEOUT = int(os.getenv("JOB_TIMEOUT_SECONDS", "300"))
 IMAGE = os.getenv("ADAPTER_IMAGE", "python:3.13-alpine")
 SNAPSHOT_CLASS = os.getenv("VOLUME_SNAPSHOT_CLASS", "runtime-anatomy-cephfs")
 CANARY_LABEL = "anatomy.re8ch.com/canary"
+ANALYSIS_LABEL = "anatomy.re8ch.com/analysis"
+EVIDENCE_NAMESPACE = os.getenv("EVIDENCE_NAMESPACE", "runtime-anatomy")
+ANALYSIS_TERMINAL_PHASES = {"Ready", "Incomplete", "Blocked", "Failed"}
+SENSITIVE_PATH_PARTS = {
+    ".aws", ".docker", ".kube", ".ssh", "credentials", "id_rsa", "id_ed25519",
+    "serviceaccount", "token", "secrets", "cookies",
+}
 
 
 def request(path, method="GET", body=None, allow_404=False, raw_response=False):
@@ -60,6 +68,99 @@ def condition(kind, state, reason, message=""):
 
 def fail(obj, plural, reason, message):
     patch_status(obj, plural, {"phase": "Failed", "conditions": [condition("Ready", "False", reason, message)]})
+
+
+def utc_now():
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def parse_timestamp(value):
+    return int(time.mktime(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ")))
+
+
+def sensitive_path(path):
+    parts = {part.lower() for part in str(path).replace("\\", "/").split("/") if part}
+    return bool(parts & SENSITIVE_PATH_PARTS) or any(
+        token in part for part in parts for token in ("password", "private-key", "access-key", "secret-key")
+    )
+
+
+def normalize_access_event(event):
+    """Validate an observer event before it can influence sealed analysis evidence."""
+    operation = event.get("operation")
+    allowed = {"Scan", "Read", "Create", "Modify", "Rename", "Delete", "Metadata"}
+    if operation not in allowed:
+        raise ValueError(f"unsupported storage operation {operation!r}")
+    backend = event.get("backend")
+    if backend not in {"Filesystem", "S3"}:
+        raise ValueError(f"unsupported storage backend {backend!r}")
+    locator = event.get("path") if backend == "Filesystem" else event.get("key")
+    if not locator or len(str(locator)) > 4096:
+        raise ValueError("storage event locator is missing or too long")
+    result = {
+        "backend": backend,
+        "operation": operation,
+        "firstObservedAt": event.get("firstObservedAt"),
+        "lastObservedAt": event.get("lastObservedAt"),
+        "count": max(1, int(event.get("count", 1))),
+        "bytes": max(0, int(event.get("bytes", 0))),
+        "source": event.get("source", "Unknown"),
+        "confidence": event.get("confidence", "Unknown"),
+    }
+    for key in ("volume", "claimName", "mountPath", "path", "endpoint", "bucket", "key", "versionId", "etag", "statusCode"):
+        if event.get(key) is not None:
+            result[key] = event[key]
+    content = event.get("contentEvidence")
+    if content:
+        if sensitive_path(locator):
+            result["contentEvidence"] = {"state": "Redacted", "reason": "SensitivePath"}
+        else:
+            result["contentEvidence"] = content
+    return result
+
+
+def summarize_access_events(events):
+    operations = {}
+    backends = {}
+    bytes_seen = 0
+    for event in events:
+        operations[event["operation"]] = operations.get(event["operation"], 0) + event["count"]
+        backends[event["backend"]] = backends.get(event["backend"], 0) + 1
+        bytes_seen += event["bytes"]
+    return {"eventCount": len(events), "operationCounts": operations, "backendCounts": backends, "bytes": bytes_seen}
+
+
+def enforce_content_policy(events, policy):
+    enabled = policy.get("captureTextSnippets", True)
+    per_item = min(max(int(policy.get("maxSnippetBytes", 4096)), 0), 4096)
+    max_count = min(max(int(policy.get("maxSnippetCount", 100)), 0), 100)
+    max_total = min(max(int(policy.get("maxTotalSnippetBytes", 1048576)), 0), 1048576)
+    captured = total = 0
+    credential_pattern = re.compile(
+        r"(?i)(authorization\s*[:=]|bearer\s+[a-z0-9._-]+|password\s*[:=]|secret[_-]?key\s*[:=]|-----BEGIN [A-Z ]*PRIVATE KEY-----)"
+    )
+    for event in events:
+        evidence = event.get("contentEvidence")
+        if not evidence or evidence.get("state") == "Redacted":
+            continue
+        snippet = evidence.get("snippet")
+        if not enabled or not isinstance(snippet, str):
+            event["contentEvidence"] = {"state": "MetadataOnly", "reason": "ContentCaptureDisabled" if not enabled else "NoTextSnippet"}
+            continue
+        encoded = snippet.encode("utf-8", errors="replace")
+        if credential_pattern.search(snippet):
+            event["contentEvidence"] = {"state": "Redacted", "reason": "CredentialPattern"}
+            continue
+        if captured >= max_count or total >= max_total:
+            event["contentEvidence"] = {"state": "MetadataOnly", "reason": "AnalysisContentLimit"}
+            continue
+        remaining = min(per_item, max_total - total)
+        clipped = encoded[:remaining].decode("utf-8", errors="ignore")
+        event["contentEvidence"] = {key: value for key, value in evidence.items() if key != "snippet"}
+        event["contentEvidence"].update({"state": "Captured", "snippet": clipped, "truncated": len(encoded) > len(clipped.encode())})
+        captured += 1
+        total += len(clipped.encode())
+    return events
 
 
 def validate_runtime(namespace, name):
@@ -337,7 +438,138 @@ def reconcile_gc(obj):
         fail(obj, "runtimegarbagecollections", "ScanFailed", str(error))
 
 
-RECONCILERS = [("runtimes", reconcile_runtime), ("runtimecommits", reconcile_commit), ("runtimediffs", reconcile_diff), ("runtimebranches", reconcile_branch), ("runtimecheckouts", reconcile_checkout), ("runtimegarbagecollections", reconcile_gc)]
+def analysis_evidence_name(obj):
+    return "runtime-analysis-" + obj["metadata"]["uid"][:12]
+
+
+def resolve_analysis_target(obj):
+    namespace = obj["metadata"]["namespace"]
+    spec = obj.get("spec", {})
+    target = spec.get("target", {})
+    pod_name = target.get("podName")
+    container_name = target.get("containerName")
+    if not pod_name or not container_name:
+        raise ValueError("spec.target.podName and containerName are required")
+    pod = request(f"/api/v1/namespaces/{namespace}/pods/{pod_name}", allow_404=True)
+    if not pod:
+        raise ValueError("target Pod was not found")
+    statuses = {item.get("name"): item for item in pod.get("status", {}).get("containerStatuses", [])}
+    status = statuses.get(container_name)
+    if not status:
+        raise ValueError("target container was not found")
+    container_id = status.get("containerID", "")
+    if not container_id:
+        raise ValueError("target container has no runtime identity")
+    container = next(item for item in pod.get("spec", {}).get("containers", []) if item.get("name") == container_name)
+    mounts = {item.get("mountPath"): item.get("name") for item in container.get("volumeMounts", [])}
+    volumes = {item.get("name"): item for item in pod.get("spec", {}).get("volumes", [])}
+    requested = spec.get("volumes") or [{"mountPath": path} for path in sorted(mounts)]
+    resolved = []
+    for item in requested:
+        mount_path = item.get("mountPath")
+        volume_name = mounts.get(mount_path)
+        if not volume_name:
+            raise ValueError(f"mountPath {mount_path!r} is not mounted by the target container")
+        source = volumes.get(volume_name, {})
+        claim_name = source.get("persistentVolumeClaim", {}).get("claimName")
+        if item.get("claimName") and item["claimName"] != claim_name:
+            raise ValueError(f"mountPath {mount_path!r} does not use requested claim {item['claimName']!r}")
+        if not claim_name:
+            continue
+        pvc = request(f"/api/v1/namespaces/{namespace}/persistentvolumeclaims/{claim_name}", allow_404=True) or {}
+        resolved.append({"name": volume_name, "mountPath": mount_path, "claimName": claim_name,
+                         "claimUID": pvc.get("metadata", {}).get("uid"),
+                         "storageClassName": pvc.get("spec", {}).get("storageClassName")})
+    return pod, container_id, resolved
+
+
+def analysis_evidence(obj):
+    name = analysis_evidence_name(obj)
+    config = request(f"/api/v1/namespaces/{EVIDENCE_NAMESPACE}/configmaps/{name}", allow_404=True)
+    if not config:
+        return None
+    if config.get("metadata", {}).get("labels", {}).get(ANALYSIS_LABEL) != obj["metadata"]["uid"]:
+        raise ValueError("observer evidence identity does not match RuntimeAnalysis UID")
+    raw = config.get("data", {}).get("events.json", "[]")
+    if len(raw.encode()) > 4 * 1024 * 1024:
+        raise ValueError("observer evidence exceeds the 4 MiB ingestion bound")
+    events = json.loads(raw)
+    if not isinstance(events, list) or len(events) > 10000:
+        raise ValueError("observer evidence must contain at most 10000 events")
+    normalized = [normalize_access_event(event) for event in events]
+    normalized = enforce_content_policy(normalized, obj.get("spec", {}).get("evidencePolicy", {}))
+    digest = "sha256:" + hashlib.sha256(json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    data = config.get("data", {})
+    return {"events": normalized, "digest": digest, "complete": data.get("complete") == "true",
+            "evidenceURI": data.get("evidenceURI"), "observer": data.get("observer", "unknown"),
+            "error": data.get("observerError") or None}
+
+
+def reconcile_analysis(obj):
+    if obj.get("status", {}).get("phase") in ANALYSIS_TERMINAL_PHASES:
+        return
+    namespace = obj["metadata"]["namespace"]
+    status = obj.get("status", {})
+    spec = obj.get("spec", {})
+    try:
+        if not status.get("startedAt"):
+            pod, container_id, volumes = resolve_analysis_target(obj)
+            duration = min(max(int(spec.get("durationSeconds", 60)), 1), 900)
+            now = int(time.time())
+            confidence = "TraceCorrelated" if spec.get("traceId") else "WindowCorrelated"
+            patch_status(obj, "runtimeanalyses", {
+                "phase": "Capturing", "startedAt": utc_now(), "startedEpoch": now,
+                "deadlineEpoch": now + duration, "evidenceConfigMap": analysis_evidence_name(obj),
+                "target": {"podUID": pod["metadata"]["uid"], "containerID": container_id,
+                           "nodeName": pod.get("spec", {}).get("nodeName"), "volumes": volumes},
+                "correlation": {"traceId": spec.get("traceId"), "confidence": confidence},
+                "conditions": [condition("Ready", "False", "CaptureWindowOpen",
+                                         "Waiting for the node observer and object audit adapters")],
+            })
+            return
+        evidence = analysis_evidence(obj)
+        expired = int(time.time()) >= int(status.get("deadlineEpoch", 0))
+        stopped = spec.get("stop") is True
+        if not evidence and not (expired or stopped):
+            return
+        if not evidence:
+            patch_status(obj, "runtimeanalyses", {
+                **status, "phase": "Incomplete", "completedAt": utc_now(),
+                "summary": {"eventCount": 0, "operationCounts": {}, "backendCounts": {}, "bytes": 0},
+                "conditions": [condition("Ready", "False", "ObserverEvidenceUnavailable",
+                                         "No attributable filesystem or object audit evidence was received")],
+            })
+            return
+        if not evidence["complete"] and not evidence["error"] and not (expired or stopped):
+            return
+        events = evidence["events"]
+        summary = summarize_access_events(events)
+        requested_buckets = {scope.get("bucket") for scope in spec.get("objectScopes", []) if scope.get("bucket")}
+        observed_buckets = {event.get("bucket") for event in events if event.get("backend") == "S3"}
+        missing_buckets = sorted(requested_buckets - observed_buckets)
+        if missing_buckets and not (expired or stopped):
+            return
+        locators = []
+        for event in events:
+            locator = event.get("path") or event.get("key")
+            if locator not in locators:
+                locators.append(locator)
+        phase = "Ready" if evidence["complete"] and not missing_buckets else "Incomplete"
+        reason = "ObjectAuditUnavailable" if missing_buckets else "EvidenceSealed" if evidence["complete"] else "ObserverFailed" if evidence["error"] else "CaptureWindowExpired"
+        message = ("No attributable audit events for buckets: " + ", ".join(missing_buckets)) if missing_buckets else evidence["error"] or ""
+        patch_status(obj, "runtimeanalyses", {
+            **status, "phase": phase, "completedAt": utc_now(), "summary": summary,
+            "topLocators": locators[:20], "evidence": {"digest": evidence["digest"],
+            "uri": evidence["evidenceURI"], "configMap": analysis_evidence_name(obj),
+            "namespace": EVIDENCE_NAMESPACE, "observer": evidence["observer"], "eventsTruncated": len(locators) > 20},
+            "findings": ([{"reason": "ObjectAuditUnavailable", "buckets": missing_buckets}] if missing_buckets else []),
+            "conditions": [condition("Ready", "True" if phase == "Ready" else "False", reason, message)],
+        })
+    except Exception as error:
+        fail(obj, "runtimeanalyses", "AnalysisFailed", str(error))
+
+
+RECONCILERS = [("runtimes", reconcile_runtime), ("runtimecommits", reconcile_commit), ("runtimediffs", reconcile_diff), ("runtimebranches", reconcile_branch), ("runtimecheckouts", reconcile_checkout), ("runtimegarbagecollections", reconcile_gc), ("runtimeanalyses", reconcile_analysis)]
 
 
 def run_once():
