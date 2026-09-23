@@ -4,7 +4,7 @@ metadata:
     name: service-backend-github-proxy
     namespace: flux-system
 stringData:
-    address: ENC[AES256_GCM,data:S4VLfD4fHik1UDVaUuh4fQpg7Y/SOrSagw==,iv:zEBrBbk+qGAHfmVmwSJmGPPjuU5UaQotusYBXozv05E=,tag:x3mHU+uztHRF9zjXc6FjeQ==,type:str]
+    address: ENC[AES256_GCM,data:/9uSPfOIqdVUcm5g+6yyeYr99lo1JnprofNo1rcyhpFfj4IKm9g/G6pWhA4r7oKqnFv4DjsIgaSbvYnD,iv:ZwGhmuxAFowkZca1Fx5+PqVpVf/BmKuYSKwmpkqV1Sk=,tag:ovvKTQ8VQQ9/nBSbhzl5tQ==,type:str]
 sops:
     age:
         - enc: |
@@ -17,6 +17,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-09-23T11:09:21Z"
-    mac: ENC[AES256_GCM,data:U+jTbDMQ8Iy/M/Y663hiUldrUHI9B1XlBSLBQVQ2iyscdHq2CGo39EuZAlquyuSrM6q0l8athBrgEVc7f1gRNRkxuz6RjmT3F0dPQoThJEYauDzlrlJWsHKQ2PG1p47FKzr0WpBdw/piJ5nJ7cPhyacECOrcdqooXUypZum/u4o=,iv:JEcVTihPHG0blb6gNCdLVt7xgrZzIR+FJXMhFn97YJ0=,tag:IOEWS3XMqFlR0Pg/Sp1dDQ==,type:str]
+    lastmodified: "2026-09-23T13:37:38Z"
+    mac: ENC[AES256_GCM,data:iA2uY3zgu08VBMKAHVEFbkq6MTKOt5gx8FLzs5UMrBMaKgz5TDbmh7MDkd16JjXRRYnlnmxNC7ONf6OV34deQyLosxFUlOd8xuCL9A3pt1QwqwWKZhSuZacUSCqenyDgVNGQRA+tv2coJCKaiMkfT/c1CrVwLl9qtDjakCiZ1e4=,iv:jO+YobmP4GLhaKpRRMa2XoTbEWZ/N7xKlM2m/ciLvgU=,tag:QasMRFh0QapBdJF9/JeF5g==,type:str]
     version: 3.13.3
