@@ -22,7 +22,7 @@ import urllib.request
 API = "https://api.cloudflare.com/client/v4"
 GROUP = "networking.re8ch.com"
 ZONE = "re8ch.com"
-CHILD_ZONES = ("api", "db-ro", "db-rw", "service", "functions")
+CHILD_ZONES = ("auth", "api", "db-ro", "db-rw", "service", "functions")
 ELECTION_NAME = "public-edge-nameservers"
 NS_ANNOTATION = f"{GROUP}/dns-nameserver"
 CAPACITY_ANNOTATION = f"{GROUP}/dns-capacity-mbps"
