@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: delta-pearl
+codename: grove-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:e5e4972129d58fd67bcd529732a9cc21ec7eac17c077184315ba277c3be7e5b1
+  digest: sha256:83afd53c64dbb2decac6084a7ff0214936a2fe53d9a62ca06b5bd36e6998668a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
