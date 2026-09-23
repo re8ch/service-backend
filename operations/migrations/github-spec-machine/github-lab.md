@@ -89,3 +89,16 @@ PR https://github.com/re8ch/gitops-spec-lab/pull/6 的签名单父候选 `2773f2
 运行 https://github.com/re8ch/gitops-spec-lab/actions/runs/35894371470 成功：job `107294497288` 和 `107294497763` 的实际日志分别包含原始 `Protocol fixture only; no deployment authorization.` 与 `Expected-origin fixture; no deployment authorization.`。因此本配置的候选删除没有阻止必需验证器运行。PR 保持开放，main 未改变。
 
 注意：两个 fixture 成功不表示删除应获授权。实际策略必须另外拒绝未授权的工作流/策略变更；固定工作流解决的是“谁来判定”，不是替代判定逻辑。同名 job 冒充、候选输入注入和 App 接纳身份仍待验证。
+
+### 实际路径越权拒绝与正向接纳
+
+通过平台初始化 PR https://github.com/re8ch/gitops-spec-lab/pull/7 安装 `.github/workflows/lab-scope.yml`，签名单父 SHA `d54da7b3d4a3c4c4667756eadc8988e1810cfd6f`。工作流内嵌 scope_gate 纯数据逻辑，通过 API 分页读取 PR files，前后检查 HEAD/base/state/count/author 一致，不 checkout 或执行候选。实验策略仅允许数字用户 ID `61690719` 在 service-a 路线上修改 `services/a`；protected 包含 `.github` 和 `platform/network`，不是生产权限映射。
+
+初始化 PR 自身修改 `.github`，新 scope job 按预期失败；当时该 job 尚非 required。原有 pinned required workflow 成功，在未禁用旧规则的情况下精确接纳此平台初始化提交（rule suite `4196620368`）。随后仅向 lab 专属组织规则 `23891300` 追加该 workflow 的固定 SHA，保留旧固定 workflow、active、空 bypass。此顺序是显式平台 bootstrap，不是服务变更绕过已启用检查。
+
+同一基线和同一作者的成对实验：
+
+- 越权 PR https://github.com/re8ch/gitops-spec-lab/pull/8 ，候选 `fc6d7203f6ff26b1880f5f0ac6bc8c593dcb42ff` 修改 `services/b/unauthorized.json`。固定 workflow run `35895133860` / job `107297066237` 返回 `outside-service-scope` 并失败。随后精确 SHA push 被 GH013 `Required workflows 'Lab trusted scope' failed` 拒绝，rule suite `4196635302` fail；当时 main 读回仍为 d54da7b。
+- 正向 PR https://github.com/re8ch/gitops-spec-lab/pull/9 ，候选 `e6b62df0d57a1695b9f3703b0fa327a71ead0cbf` 仅修改 `services/a/allowed.json`。固定 workflow run `35895165630` / job `107297171582` 返回 pathEligible=true。精确 SHA push 成功，rule suite `4196642064` pass，API 读回 main 和 PR mergeCommit 均精确等于候选。
+
+这证明 lab 中路径准入不仅显示红灯，还能经 GitHub 原生 required workflow 阻止 ref 接纳，同时保留正向接纳能力。尚未证明渲染后的资源权限、App 接纳身份、全链失效或部署/漂移纠正；所有报告仍为 authorization=false。PR #8 保留为拒绝证据。管理员依然可以管理规则，这不是对组织管理员的防篡改承诺。
