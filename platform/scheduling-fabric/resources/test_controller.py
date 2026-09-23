@@ -209,6 +209,19 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(node["metadata"]["labels"]["scheduling.re8ch.com/capacity-window"], "unknown")
         self.assertIn(controller.CAPACITY_TAINT, request.call_args.args[2][-1]["value"])
 
+    @patch.object(controller, "request")
+    @patch.object(controller, "patch")
+    @patch.object(controller, "items", return_value=[])
+    @patch.object(controller, "capacity_measurements", return_value={})
+    def test_ceph_quorum_bridge_removes_capacity_taint(self, _metrics, _items, patch_node, request):
+        node = {"metadata": {"name": "restricted-node-6dc3f140f9", "resourceVersion": "1", "labels": {
+                    controller.CEPH_QUORUM_BRIDGE_LABEL: "true"}, "annotations": {}},
+                "spec": {"taints": [controller.CAPACITY_TAINT]},
+                "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+        patch_node.return_value = {"metadata": {"resourceVersion": "2"}}
+        controller.reconcile_capacity_windows([node])
+        self.assertNotIn(controller.CAPACITY_TAINT, request.call_args.args[2][-1]["value"])
+
     def test_reliability_requires_stable_ready_window(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
             {"type": "Ready", "status": "True", "lastTransitionTime": "2026-09-19T00:20:00Z"},
