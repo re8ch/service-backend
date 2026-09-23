@@ -47,6 +47,7 @@ resources:
 - components/auth/deployments/auth-postgrest.yaml
 - components/auth/deployments/re8ch-auth-gateway.yaml
 - components/auth/services/re8ch-auth-gateway.yaml
+- components/auth/user-center.yaml
 - components/egress-fabric/identity-egress.yaml
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml
