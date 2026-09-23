@@ -157,7 +157,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, domain-ex, vm-20-12-ubuntu, overseas-kl, overseas-la]
+                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, domain-ex, vm-20-12-ubuntu, overseas-kl]
       tolerations: [{operator: Exists}]
       containers:
         - name: authority
@@ -294,7 +294,7 @@ spec:
     metadata:
       annotations:
         scheduling.re8ch.com/placement-class: node-serving-agent
-        scheduling.re8ch.com/pinned-reason: provider-owned TLS listener exists only on overseas-edge-50
+        scheduling.re8ch.com/pinned-reason: LA PublicEdge terminates TLS before AdvFab routes to final Pods
       labels:
         app.kubernetes.io/name: regional-edge-tls-proxy
         app.kubernetes.io/part-of: regional-routing
@@ -302,7 +302,7 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       priorityClassName: system-node-critical
-      nodeSelector: {kubernetes.io/hostname: overseas-edge-50}
+      nodeSelector: {kubernetes.io/hostname: overseas-la}
       tolerations: [{operator: Exists}]
       containers:
         - name: nginx
