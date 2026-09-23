@@ -137,6 +137,8 @@ modules:
       digest: sha256:95cda2b64a593d9f5405cf6bcd40502cd05aa2e33417e60c46acc45634443319
     - codename: signal-copper
       digest: sha256:f303654172b074c303473b2c2405bdcc0d0c5bfbbd563cef25692f88daad8ef5
+    - codename: starfire-copper
+      digest: sha256:e7f6f5ef156394f291ca5344b7cca739a310e8c65a71cded289ffa7f33006732
   platform/among-clusters:
     releases:
     - codename: bora
@@ -470,6 +472,8 @@ modules:
       digest: sha256:a7a22277ee62ac0f866dc9d5b19bfe98b81e5d0c88e1b18769ed27477c9ea00d
     - codename: canopy
       digest: sha256:99d634ac29f80efe87663edaefd5005a5a27072ad10442e4bfefde4918af4f24
+    - codename: delta
+      digest: sha256:07adfd608968339e24232d8b6202c5437d39c4e7fee28d417cd09f4bdd0a9525
   platform/secretary-system:
     releases:
     - codename: aegis
