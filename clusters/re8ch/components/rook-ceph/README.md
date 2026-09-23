@@ -102,23 +102,12 @@ The production Ceph cluster requires Messenger v2 secure mode. Therefore
 Without an explicit v2 mode, the kernel client can send a v1 banner to port
 3300, producing a misleading `no mds` mount error even when MDS is healthy.
 
-## Install
+## Reconciliation
 
-```sh
-kubectl label node restricted-node-6dc3f140f9 restricted-node-1eb0570f74 restricted-node-296f36f2fb storage.re8ch.com/ceph-pilot=true
-helm repo add rook-release https://charts.rook.io/release
-helm upgrade --install rook-ceph rook-release/rook-ceph \
-  --version v1.20.3 --namespace rook-ceph --create-namespace \
-  -f operator-values.yaml
-helm repo add ceph-csi-operator https://ceph.github.io/ceph-csi-operator
-helm upgrade --install ceph-csi-drivers \
-  ceph-csi-operator/ceph-csi-drivers \
-  --version 1.0.4 --namespace rook-ceph \
-  -f csi-drivers-values.yaml
-helm upgrade --install rook-ceph-cluster rook-release/rook-ceph-cluster \
-  --version v1.20.3 --namespace rook-ceph \
-  -f cluster-values.yaml
-```
+Flux owns the `rook-ceph`, `ceph-csi-drivers`, and `rook-ceph-cluster` Helm
+releases through `releases.yaml`. Their values are generated into immutable
+reviewed ConfigMaps by the root Kustomization. Do not run `helm upgrade`
+directly against these releases.
 
 Do not install the cluster chart until the operator deployment and discovery
 pods are healthy.

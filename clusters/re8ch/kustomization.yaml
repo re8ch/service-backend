@@ -72,6 +72,7 @@ resources:
 - components/toolhive/retire-legacy-session-redis.yaml
 - components/toolhive/registry.yaml
 - components/toolhive/operator-release.yaml
+- components/rook-ceph/releases.yaml
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
@@ -97,6 +98,22 @@ patches:
     name: source-controller
     namespace: flux-system
 configMapGenerator:
+- name: rook-ceph-operator-values
+  namespace: flux-system
+  files:
+  - values.yaml=components/rook-ceph/operator-values.yaml
+- name: rook-ceph-csi-values
+  namespace: flux-system
+  files:
+  - values.yaml=components/rook-ceph/csi-drivers-values.yaml
+- name: rook-ceph-cluster-values
+  namespace: flux-system
+  files:
+  - values.yaml=components/rook-ceph/cluster-values.yaml
+- name: rook-ceph-production-overlay
+  namespace: flux-system
+  files:
+  - values.yaml=components/rook-ceph/cluster-values-production-encrypted.yaml
 - name: ops-mcp-server-code
   namespace: toolhive-system
   files:
