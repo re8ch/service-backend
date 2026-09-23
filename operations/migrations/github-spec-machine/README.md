@@ -73,7 +73,7 @@ GitHub 托管 Actions 负责验证、计划、批准后的有限执行、健康�
 
 ## 迁移与验收
 
-先验证接纳协议与授权，随后建立只读 shadow。候选为现有 domain-platform-adapter；先核对 live inventory 和业务影响。它的外层包含 HelmRelease/OCIRepository，外层 parity 不证明 Helm controller 已被替代。完整撤出还必须覆盖该服务的 Helm 生命周期、artifact 获取和运行资源所有权。
+先验证接纳协议与授权，随后建立只读 shadow。暂选现有 domain-platform-adapter，仅作无写入观察；远端 chart 声明包含 LiteLLM/Nuclio 路由和集群级读取，尚不能认定它非关键。live inventory/业务影响确认不满足条件时必须重选，不能直接切换。它的外层包含 HelmRelease/OCIRepository，外层 parity 不证明 Helm controller 已被替代。完整撤出还必须覆盖该服务的 Helm 生命周期、artifact 获取和运行资源所有权。固定远端证据、四态观测及量化验收见 [shadow contract](shadow-contract.md)。
 
 shadow 期间 Flux 保持唯一 writer。写入切换必须通过独立签名 PR：停止旧 writer、确认停止、转移稳定 inventory/字段所有权、启用外部 executor；不得同时写。逐服务迁移，最后处理 bootstrap、网络和根对账，完成前不删除 Flux。
 
