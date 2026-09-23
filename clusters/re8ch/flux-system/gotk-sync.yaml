@@ -8,7 +8,6 @@ spec:
   url: https://github.com/re8ch/service-backend.git
   ref: {branch: main}
   secretRef: {name: service-backend-github-app-auth}
-  proxySecretRef: {name: service-backend-github-proxy}
   verify:
     mode: HEAD
     secretRef: {name: service-backend-verification-keys}

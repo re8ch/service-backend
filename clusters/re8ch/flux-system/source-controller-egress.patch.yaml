@@ -8,4 +8,6 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
-        networking.re8ch.com/egress-policy: auto
+        kubernetes.io/hostname: suxunji
+      tolerations:
+        - operator: Exists
