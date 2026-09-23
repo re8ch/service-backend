@@ -34,3 +34,15 @@
 ## 退出条件
 
 所有案例在 App 身份下得到预期结果才允许设计 production 接纳切换。仅个人 token 成功、仅本地 Git 成功、只有 shadow 工作流绿色均不算通过。lab 试验不批准任何集群写入；后续需要独立验证 bridge 身份、只读 watch 和单一 writer 交接。
+
+## 2026-09-24 实测：开放 PR 支持保留候选 SHA
+
+用户已批准并创建私有 `re8ch/gitops-spec-lab`。初始本地签名配置缺失导致首个 commit 失败；管理员完成 SSH signing 配置，在 bootstrap 阶段暂时禁用新建的 lab 规则以推送初始提交，然后重新启用。以下测试全部发生在规则 active、bypass_actors=[]、current_user_can_bypass=never 之后。
+
+- 基线：`d021f93b6a5daca87dd8942ec64acab1ad7ea76e`。
+- 无 PR 的签名单父候选 `9474768407c5dcd94d0b617244f971566237f6c7` 被 GH013 拒绝，原因必须经过 PR。Rule suite `4196364974` 为 fail。
+- 有开放 PR #1 的签名单父候选 `07daded6f0d93b432119c44604400c97d27873b1`，使用显式旧 SHA 的 force-with-lease push 成功，main 保留完全相同的候选 SHA，未生成 merge/squash/rebase commit。
+- GitHub 自动将 https://github.com/re8ch/gitops-spec-lab/pull/1 标记 MERGED，mergeCommit 为该候选 SHA。Rule suite `4196375753` 为 pass，actor 为 Woomou；签名 verified=true。
+- 规则集 `23891051` 保持 active：required PR、签名、线性历史、禁止非快进、禁止删除，无 bypass。审批人数为 0，尚未加入 required checks。
+
+结论：此前关于原生 required-PR 与精确 SHA push 可能不兼容的疑点，在这个受限配置下已被实际反例消除。仍未证明指定 App 的 required checks、人工批准、受限 App 接纳与并发竞争；不能将本次个人身份结果推广成 production 完整接纳。
