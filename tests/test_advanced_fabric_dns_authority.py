@@ -16,9 +16,20 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
     dns = release["spec"]["values"]["advancedFabric"]["dns"]
 
     assert dns["enabled"] is True
+    assert dns["replicas"] == 3
+    assert dns["pdbMinAvailable"] == 2
     assert dns["testNodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
     hostnames = dns["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert hostnames == {"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}
+    assert hostnames == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"],
+    }
+    anti_affinity = dns["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
+    assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
+    assert anti_affinity["labelSelector"]["matchLabels"] == {
+        "app.kubernetes.io/name": "advanced-fabric-doh"
+    }
     assert dns["service"] == {"name": "advanced-fabric-dns", "clusterIP": "192.0.2.149"}
     assert dns["conditionalForwarders"]["zt.re8ch.com"] == [
         "192.0.2.192", "192.0.2.138", "192.0.2.74"
