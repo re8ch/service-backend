@@ -235,6 +235,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: canopy-pearl
       digest: sha256:d56ccb3abe01cc75aae912c758ad804134aa838424514066f8cb725583dfe029
+    - codename: delta-pearl
+      digest: sha256:e5e4972129d58fd67bcd529732a9cc21ec7eac17c077184315ba277c3be7e5b1
   platform/cloud-platform:
     releases:
     - codename: atoll
