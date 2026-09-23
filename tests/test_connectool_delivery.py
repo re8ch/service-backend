@@ -11,14 +11,20 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.5.2"}
+    assert source["spec"]["ref"] == {"tag": "0.6.0"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.2$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
     assert release["spec"]["chartRef"] == {"kind": "OCIRepository", "name": "connectool"}
+    distribution = release["spec"]["values"]["distribution"]
+    assert distribution["updated"] == "2026-09-23"
+    assert {item["entryClass"] for item in distribution["channels"]} == {
+        "self-service", "official-review", "unavailable",
+    }
+    assert len(distribution["channels"]) == 11
     registry = release["spec"]["values"]["toolhive"]["registry"]["release"]
     assert registry["enabled"] is True
     assert registry["version"] == "1.5.0"
@@ -88,8 +94,8 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "replicas": 2,
         "image": {
             "repository": "ghcr.io/among-clusters/connectool-session-router",
-            "tag": "0.5.0",
-            "digest": "sha256:94323d4285cfe601fabebbb80265da7e289515271d130a90125697081236136d",
+            "tag": "0.6.0",
+            "digest": "sha256:310606bf35a1f0c673ca3219850cb7f2ae118ff23016132c28540ecf5792d543",
             "pullPolicy": "IfNotPresent",
         },
         "listenPort": 8080,

@@ -5,12 +5,12 @@ spec:
   interval: 10m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.5.2"}
+  ref: {tag: "0.6.0"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.5\.2$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -36,6 +36,20 @@ spec:
       scopes: [openid, profile, email, groups, offline_access]
     dex:
       contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}
+    distribution:
+      updated: "2026-09-23"
+      channels:
+        - {id: openai-private, surfaces: [ChatGPT, ChatGPT Work, Codex], entryClass: self-service, status: package-ready, integration: agent-plugin, publication: re8ch-tools-vmcp, artifact: .agents/plugins/marketplace.json, detail: "Portable Agent Plugin packages are ready; ChatGPT developer mode creates the account-local MCP registration.", documentation: https://developers.openai.com/plugins/build/plugins}
+        - {id: openai-public, surfaces: [ChatGPT, Codex], entryClass: official-review, status: review-required, integration: universal-plugin-directory, publication: re8ch-tools-vmcp, detail: "Verified developer identity, reviewer credentials and OpenAI approval are required.", documentation: https://developers.openai.com/plugins/deploy/submission}
+        - {id: anthropic-custom-connector, surfaces: [Claude, Claude Desktop, Cowork], entryClass: self-service, status: oauth-registration-required, integration: remote-mcp, publication: re8ch-tools-vmcp, detail: "An owner can add the URL directly; the platform OAuth callback must be registered before sign-in.", documentation: https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp}
+        - {id: anthropic-private-plugin, surfaces: [Claude, Claude Code, Cowork], entryClass: self-service, status: package-ready, integration: claude-marketplace, publication: re8ch-tools-vmcp, artifact: .claude-plugin/marketplace.json, detail: "Install from the repository or synchronize the private organization marketplace.", documentation: https://code.claude.com/docs/en/plugin-marketplaces}
+        - {id: anthropic-public, surfaces: [Claude, Claude Code, Cowork], entryClass: official-review, status: review-required, integration: connector-and-community-directories, publication: re8ch-tools-vmcp, detail: "Connector and community plugin listings require separate Anthropic reviews.", documentation: https://support.anthropic.com/en/articles/11596036-anthropic-mcp-directory-faq}
+        - {id: cursor-team, surfaces: [Cursor IDE, Cursor CLI], entryClass: self-service, status: package-ready, integration: team-marketplace, publication: re8ch-tools-vmcp, artifact: .cursor-plugin/marketplace.json, detail: "Team and Enterprise admins can import the private plugin repository.", documentation: https://prod.cursor.com/docs/plugins}
+        - {id: cursor-public, surfaces: [Cursor IDE, Cursor CLI], entryClass: official-review, status: blocked-private-source, integration: cursor-marketplace, publication: re8ch-tools-vmcp, detail: "A public open-source repository and Cursor review are required.", documentation: https://prod.cursor.com/docs/reference/plugins}
+        - {id: workbuddy, surfaces: [WorkBuddy], entryClass: official-review, status: oauth-registration-required, integration: mcp-connector, publication: re8ch-tools-vmcp, artifact: distribution/workbuddy, detail: "Connector bundles are ready; server-side OAuth and publication require WorkBuddy coordination.", documentation: https://open.workbuddy.cn/docs/connector}
+        - {id: coze-custom, surfaces: [Coze web, Coze desktop], entryClass: self-service, status: oauth-registration-required, integration: custom-mcp, publication: re8ch-tools-vmcp, artifact: distribution/coze/mcp.json, detail: "The MCP JSON is importable; Coze OAuth callback registration is still required.", documentation: https://docs.coze.cn/mcp}
+        - {id: coze-team-store, surfaces: [Coze team, Coze enterprise], entryClass: self-service, status: admin-review-optional, integration: team-mcp-store, publication: re8ch-tools-vmcp, artifact: distribution/coze/mcp.json, detail: "Creator publication is direct unless the organization enables MCP review.", documentation: https://docs.coze.cn/mcp}
+        - {id: doubao, surfaces: [Doubao], entryClass: unavailable, status: new-publication-unavailable, integration: coze-publish-channel, detail: "Coze removed new Doubao publication on 2026-07-01; existing publications are unaffected.", documentation: https://docs.coze.cn/recent-updates}
     toolhive:
       namespace: toolhive-system
       placement:
@@ -114,8 +128,8 @@ spec:
         replicas: 2
         image:
           repository: ghcr.io/among-clusters/connectool-session-router
-          tag: "0.5.0"
-          digest: "sha256:94323d4285cfe601fabebbb80265da7e289515271d130a90125697081236136d"
+          tag: "0.6.0"
+          digest: "sha256:310606bf35a1f0c673ca3219850cb7f2ae118ff23016132c28540ecf5792d543"
           pullPolicy: IfNotPresent
         listenPort: 8080
         servicePort: 4483
