@@ -6,6 +6,12 @@ allowLoopDevices: false
 nodeSelector:
   kubernetes.io/hostname: restricted-node-6dc3f140f9
 
+tolerations:
+  - key: scheduling.re8ch.com/capacity-window
+    operator: Equal
+    value: closed
+    effect: NoSchedule
+
 resources:
   limits:
     memory: 512Mi
@@ -14,4 +20,4 @@ resources:
     memory: 256Mi
 
 discover:
-  nodeAffinity: "storage.re8ch.com/ceph-pilot=true"
+  nodeAffinity: "scheduling.re8ch.com/capability-storage-ceph-osd=true"

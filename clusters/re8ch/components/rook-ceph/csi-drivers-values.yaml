@@ -17,16 +17,26 @@ drivers:
     enabled: true
     name: rook-ceph.rbd.csi.ceph.com
     nodePlugin:
+      tolerations:
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: storage.re8ch.com/ceph-client
+                  - key: scheduling.re8ch.com/capability-storage-ceph-client
                     operator: In
                     values: ["true"]
     controllerPlugin:
       replicas: 2
+      tolerations:
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -52,6 +62,10 @@ drivers:
       ms_mode: secure
     nodePlugin:
       tolerations:
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
+          effect: NoSchedule
         - key: dedicated
           operator: Equal
           value: panel
@@ -65,7 +79,7 @@ drivers:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: storage.re8ch.com/ceph-client
+                  - key: scheduling.re8ch.com/capability-storage-ceph-client
                     operator: In
                     values: ["true"]
     controllerPlugin:
@@ -74,6 +88,11 @@ drivers:
       # A1/B1 currently cannot reliably reach the Kubernetes Service VIP from
       # PodCIDR. Keep the CSI control plane independent of that service path.
       hostNetwork: true
+      tolerations:
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
