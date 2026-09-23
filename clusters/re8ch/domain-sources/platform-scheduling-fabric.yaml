@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: grove-pearl
+    delivery.re8ch.com/codename: reef-pearl
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:83afd53c64dbb2decac6084a7ff0214936a2fe53d9a62ca06b5bd36e6998668a
+    digest: sha256:2b23d37c5b6310bd9a11ab765d8e9e882b356fc5eb417f6acb2ce544bd6ec396
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: grove-pearl
+    delivery.re8ch.com/codename: reef-pearl
 spec:
   interval: 10m
   retryInterval: 1m
