@@ -46,3 +46,14 @@
 - 规则集 `23891051` 保持 active：required PR、签名、线性历史、禁止非快进、禁止删除，无 bypass。审批人数为 0，尚未加入 required checks。
 
 结论：此前关于原生 required-PR 与精确 SHA push 可能不兼容的疑点，在这个受限配置下已被实际反例消除。仍未证明指定 App 的 required checks、人工批准、受限 App 接纳与并发竞争；不能将本次个人身份结果推广成 production 完整接纳。
+
+### 指定 App 的 required checks
+
+同一规则集新增 `lab-contract` 和 `lab-origin-proof`，均绑定官方 `github-actions` App ID 15368，strict=true，do_not_enforce_on_create=false。
+
+- 候选 d87ffb8c2a7b5ef3ec6b0491348151fe9dd991a0 缺少 origin-proof 时被拒绝（rule suite 4196403646）。
+- Woomou 通过 commit status API 写同名 success 后，仍被拒绝：not set by the expected GitHub app（4196406434）。PR checks CLI 显示 pass 不代表绑定规则已通过。
+- 作者将尚未接纳的实验提案改为产生两个实际 Actions jobs，重新签名为 0ad3b2165360c206575890ac6d3723af7ab13b42，父 SHA 仍是 07daded6f0d93b432119c44604400c97d27873b1。仅实验分支使用显式旧 SHA lease 更新；主线未改写。原候选的失败证据保留在 rule suites。
+- https://github.com/re8ch/gitops-spec-lab/actions/runs/35893493615 的两个 job 成功后，精确 SHA push 通过（4196418405），没有禁用或删除 required checks。
+
+这是来源绑定实验，不是可信验证器实验：fixture 本身来自候选 PR，因此不能证明候选无法修改自己的检查。生产必需检查仍需由受保护的固定验证器生成。接纳主体仍是 Woomou，尚未验证专用 App 的写入身份。
