@@ -218,9 +218,19 @@ class ScoreTests(unittest.TestCase):
                     controller.CEPH_QUORUM_BRIDGE_LABEL: "true"}, "annotations": {}},
                 "spec": {"taints": [controller.CAPACITY_TAINT]},
                 "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
-        patch_node.return_value = {"metadata": {"resourceVersion": "2"}}
+        request.return_value = {"metadata": {"resourceVersion": "2"}}
         controller.reconcile_capacity_windows([node])
         self.assertNotIn(controller.CAPACITY_TAINT, request.call_args.args[2][-1]["value"])
+
+    @patch.object(controller, "request")
+    @patch.object(controller, "capacity_measurements", side_effect=TimeoutError)
+    def test_ceph_quorum_bridge_runs_when_telemetry_times_out(self, _metrics, request):
+        node = {"metadata": {"name": "restricted-node-6dc3f140f9", "resourceVersion": "1", "labels": {
+                    controller.CEPH_QUORUM_BRIDGE_LABEL: "true"}},
+                "spec": {"taints": [controller.CAPACITY_TAINT]}}
+        request.return_value = {"metadata": {"resourceVersion": "2"}}
+        controller.reconcile_capacity_windows([node])
+        self.assertEqual(node["spec"]["taints"], [])
 
     def test_reliability_requires_stable_ready_window(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
