@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-jade
+    delivery.re8ch.com/codename: chinook-jade
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:83fcc97004979b06d8063884bf2fc13e90f2a1e9ada22602b1bd3a6e2bbffef3
+    digest: sha256:4b3cfcf4f5054b1ed08bde14ae04334634a833986f3e6cfd839b88fca25f2d00
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-jade
+    delivery.re8ch.com/codename: chinook-jade
 spec:
   interval: 10m
   retryInterval: 1m
