@@ -102,3 +102,13 @@ PR https://github.com/re8ch/gitops-spec-lab/pull/6 的签名单父候选 `2773f2
 - 正向 PR https://github.com/re8ch/gitops-spec-lab/pull/9 ，候选 `e6b62df0d57a1695b9f3703b0fa327a71ead0cbf` 仅修改 `services/a/allowed.json`。固定 workflow run `35895165630` / job `107297171582` 返回 pathEligible=true。精确 SHA push 成功，rule suite `4196642064` pass，API 读回 main 和 PR mergeCommit 均精确等于候选。
 
 这证明 lab 中路径准入不仅显示红灯，还能经 GitHub 原生 required workflow 阻止 ref 接纳，同时保留正向接纳能力。尚未证明渲染后的资源权限、App 接纳身份、全链失效或部署/漂移纠正；所有报告仍为 authorization=false。PR #8 保留为拒绝证据。管理员依然可以管理规则，这不是对组织管理员的防篡改承诺。
+
+### 同名、同 App 的成功任务不能覆盖固定验证器失败
+
+PR https://github.com/re8ch/gitops-spec-lab/pull/10 ，候选 `c78cbe2629e39296345716cb5052c1c105887421`，父为 `e6b62df0d57a1695b9f3703b0fa327a71ead0cbf`。候选删除 `.github/workflows/lab-scope.yml`，添加另一路径 `scope-impostor.yml`，故意使用相同 workflow 名 `Lab trusted scope` 和 job 名 `lab-scope`，无条件 echo 成功；同时越权修改 service-b 文件。
+
+- 冒充任务 run `35895419069` / job `107298016381` 成功，来自同一个 GitHub Actions App。
+- required 固定任务 run `35895419161` / job `107298025708` 仍执行受信代码，返回 `outside-service-scope` 和 `protected-path` 并失败。
+- 精确 SHA push 被 GH013 `Required workflows 'Lab trusted scope' failed` 拒绝；rule suite `4196679633` fail；API 读回 main 仍是 e6b62df。
+
+因此本实验的 required workflow 约束不是仅以显示名称或 Actions App 身份匹配成功检查，候选制造同名绿灯未绕过固定工作流准入。证据来自实际运行日志、拒绝响应、规则审计和 ref 读回，不能只看 PR checks 汇总。PR #10 保持开放作为负向证据。
