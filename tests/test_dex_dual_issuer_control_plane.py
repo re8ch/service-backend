@@ -11,7 +11,7 @@ def test_all_control_planes_share_dual_issuer_authentication():
     assert auth['apiVersion'] == 'apiserver.config.k8s.io/v1'
     assert auth['kind'] == 'AuthenticationConfiguration'
     assert [item['issuer']['url'] for item in auth['jwt']] == [
-        'https://dex.service.re8ch.com', 'https://dex.service.re8ch.com'
+        'https://dex.re8ch.com', 'https://dex.service.re8ch.com'
     ]
     for item in auth['jwt']:
         assert item['issuer']['audiences'] == ['headlamp']
@@ -22,3 +22,13 @@ def test_all_control_planes_share_dual_issuer_authentication():
         flags = config['kube-apiserver-arg']
         assert 'authentication-config=/etc/rancher/k3s/dex-dual-issuer-authentication.yaml' in flags
         assert not any(flag.startswith('oidc-') for flag in flags)
+
+
+def test_headlamp_uses_service_issuer_and_callback():
+    deployment = yaml.safe_load((ROOT.parents[3] / 'platform/headlamp/deployment.yaml').read_text())
+    pod = deployment['spec']['template']['spec']
+    container = next(item for item in pod['containers'] if item['name'] == 'headlamp')
+    assert '-oidc-idp-issuer-url=https://dex.service.re8ch.com' in container['args']
+    assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
+    aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
+    assert aliases['dex.service.re8ch.com'] == '192.0.2.213'
