@@ -34,7 +34,7 @@ data:
     external-controller: 127.0.0.1:9090
     secret: __CONTROLLER_SECRET__
     proxies:
-      - {name: NODE-SMART-EGRESS, type: socks5, server: 127.0.0.1, port: 17891, udp: true}
+      - {name: NODE-SMART-EGRESS, type: socks5, server: identity-egress.egress-fabric.svc.cluster.local, port: 17893, udp: true}
     listeners:
       - name: access-anytls
         type: anytls
@@ -222,7 +222,7 @@ kind: Service
 metadata:
   name: personal-access-hysteria2
   namespace: egress-fabric
-  annotations: {lbipam.cilium.io/ips: 192.0.2.224}
+  annotations: {lbipam.cilium.io/ips: 10.251.0.11}
   labels: {networking.re8ch.com/lb-pool: service-vip, networking.re8ch.com/bgp-advertise: enabled}
 spec:
   type: LoadBalancer
@@ -236,22 +236,22 @@ metadata: {name: personal-access-auto-public, namespace: egress-fabric, labels: 
 addressType: IPv4
 ports: [{name: anytls, port: 24443, protocol: TCP}]
 endpoints:
-  - {addresses: [192.0.2.111], conditions: {ready: true}, zone: us-la}
-  - {addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}
+  - {addresses: [179.255.126.104], conditions: {ready: true}, zone: us-la}
+  - {addresses: [198.20.153.89], conditions: {ready: true}, zone: my-kul}
 ---
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
 metadata: {name: personal-access-us-ca-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-us-ca}}
 addressType: IPv4
 ports: [{name: anytls, port: 24443, protocol: TCP}]
-endpoints: [{addresses: [192.0.2.111], conditions: {ready: true}, zone: us-la}]
+endpoints: [{addresses: [179.255.126.104], conditions: {ready: true}, zone: us-la}]
 ---
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
 metadata: {name: personal-access-my-kul-public, namespace: egress-fabric, labels: {kubernetes.io/service-name: personal-access-my-kul}}
 addressType: IPv4
 ports: [{name: anytls, port: 24443, protocol: TCP}]
-endpoints: [{addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}]
+endpoints: [{addresses: [198.20.153.89], conditions: {ready: true}, zone: my-kul}]
 ---
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
@@ -259,8 +259,8 @@ metadata: {name: personal-access-hysteria2-public, namespace: egress-fabric, lab
 addressType: IPv4
 ports: [{name: hysteria2, port: 24444, protocol: UDP}]
 endpoints:
-  - {addresses: [192.0.2.111], conditions: {ready: true}, zone: us-la}
-  - {addresses: [192.0.2.145], conditions: {ready: true}, zone: my-kul}
+  - {addresses: [179.255.126.104], conditions: {ready: true}, zone: us-la}
+  - {addresses: [198.20.153.89], conditions: {ready: true}, zone: my-kul}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: TLSRoute
@@ -271,7 +271,7 @@ metadata:
   annotations:
     networking.re8ch.com/tls-mode: passthrough
     external-dns.alpha.kubernetes.io/hostname: access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
@@ -303,7 +303,7 @@ metadata:
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com,sub.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:
