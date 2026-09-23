@@ -35,6 +35,7 @@ const RuntimeDiff = anatomyResource('RuntimeDiff', 'runtimediffs');
 const RuntimeBranch = anatomyResource('RuntimeBranch', 'runtimebranches');
 const RuntimeCheckout = anatomyResource('RuntimeCheckout', 'runtimecheckouts');
 const RuntimeGarbageCollection = anatomyResource('RuntimeGarbageCollection', 'runtimegarbagecollections');
+const RuntimeAnalysis = anatomyResource('RuntimeAnalysis', 'runtimeanalyses');
 const raw = (item: any) => item?.jsonData || item || {};
 
 type RuntimeScope = {
@@ -231,6 +232,40 @@ function TimelineResources() {
   </>;
 }
 
+function AnalysisView({available}: {available: boolean}) {
+  if (!available) return <Alert severity="info">RuntimeAnalysis API 尚未安装。</Alert>;
+  return <AnalysisResources/>;
+}
+
+function AnalysisResources() {
+  const [analyses, error] = RuntimeAnalysis.useList({} as any);
+  const rows = (analyses || []).map(raw);
+  return <>
+    {error && <Alert severity="warning">调用级存储证据不可见：{String(error)}</Alert>}
+    <Alert severity="info" sx={{mb: 2}}>
+      分析必须显式启动。TraceCorrelated 表示按 trace ID 与时间窗关联；WindowCorrelated 只能证明目标容器在该窗口内访问了存储。
+    </Alert>
+    <SectionBox title={`Storage call analyses (${rows.length})`}>
+      <Table data={rows} columns={[
+        {header: 'Analysis', accessorFn: (x: any) => `${x.metadata?.namespace}/${x.metadata?.name}`},
+        {header: 'Target', accessorFn: (x: any) => `${x.spec?.target?.podName || '-'}/${x.spec?.target?.containerName || '-'}`},
+        {header: 'Phase', accessorFn: (x: any) => <StatusLabel status={phaseColor(x.status?.phase)}>{x.status?.phase || 'Pending'}</StatusLabel>},
+        {header: 'Correlation', accessorFn: (x: any) => x.status?.correlation?.confidence || '-'},
+        {header: 'Events', accessorFn: (x: any) => x.status?.summary?.eventCount ?? '-'},
+        {header: 'Scanned / read', accessorFn: (x: any) => `${x.status?.summary?.operationCounts?.Scan || 0} / ${x.status?.summary?.operationCounts?.Read || 0}`},
+        {header: 'Modified', accessorFn: (x: any) => ['Create', 'Modify', 'Rename', 'Delete'].reduce((sum, key) => sum + (x.status?.summary?.operationCounts?.[key] || 0), 0)},
+        {header: 'Evidence', accessorFn: (x: any) => shortDigest(x.status?.evidence?.digest)},
+      ] as any}/>
+    </SectionBox>
+    <SectionBox title="Touched storage parts">
+      <Table data={rows.flatMap((analysis: any) => (analysis.status?.topLocators || []).map((locator: string) => ({analysis: analysis.metadata?.name, locator})))} columns={[
+        {header: 'Analysis', accessorKey: 'analysis'},
+        {header: 'Path / object key', accessorKey: 'locator'},
+      ] as any}/>
+    </SectionBox>
+  </>;
+}
+
 function objectName(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}`;
 }
@@ -288,7 +323,7 @@ function Dashboard() {
   const spec = scope?.spec || {};
   const snapshotsAvailable = apiGroups?.has('snapshot.storage.k8s.io/v1') === true;
   const timelineAvailable = apiGroups?.has('anatomy.re8ch.com/v1alpha1') === true;
-  const tabs = ['Overview', 'Storage', 'State classes', 'Images', 'Timeline'];
+  const tabs = ['Overview', 'Storage', 'State classes', 'Images', 'Timeline', 'Analyses'];
 
   return <Box sx={{p: 2}}>
     <Typography variant="h4">Runtime Anatomy</Typography>
@@ -374,6 +409,8 @@ function Dashboard() {
         v0.2.0 的操作只创建声明式 CR；controller 强制 canary 边界，GC 固定为 DryRun。
       </Typography>
     </>}
+
+    {tab === 5 && <AnalysisView available={timelineAvailable}/>}
   </Box>;
 }
 

@@ -133,6 +133,8 @@ credentials:
 observation:
   dimensions: [Health, Freshness, Validity, Durability, Restorability, Provenance]
   volumePlanes: [Declaration, Control, DataPath, Backend, Capacity, Protection, Recovery]
+  callOperations: [Scan, Read, Create, Modify, Rename, Delete, Metadata]
+  correlationModes: [TraceCorrelated, WindowCorrelated]
   unknownIsHealthy: false
 
 retention:
@@ -146,6 +148,15 @@ controller:
   image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
   pollIntervalSeconds: 5
   jobTimeoutSeconds: 300
+
+observer:
+  enabled: true
+  # Portable v1 attaches only while an explicit RuntimeAnalysis is active.
+  # The emitted source is PtraceObserver; the evidence contract also supports
+  # a future eBPF implementation without changing the CRD or CLI.
+  image: docker.io/nicolaka/netshoot:v0.14@sha256:7f08c4aff13ff61a35d30e30c5c1ea8396eac6ab4ce19fd02d5a4b3b5d0d09a2
+  pollIntervalSeconds: 5
+  maxConcurrentPerNode: 1
 
 canary:
   enabled: false

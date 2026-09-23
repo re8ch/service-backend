@@ -1,0 +1,116 @@
+{{- if .Values.observer.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer
+rules:
+  - apiGroups: [anatomy.re8ch.com]
+    resources: [runtimeanalyses]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "runtime-anatomy.fullname" . }}-observer
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "runtime-anatomy.fullname" . }}-observer
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer-evidence
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list, create, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer-evidence
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "runtime-anatomy.fullname" . }}-observer-evidence
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "runtime-anatomy.fullname" . }}-observer
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+data:
+  observer.py: |
+{{ .Files.Get "files/observer.py" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "runtime-anatomy.fullname" . }}-observer
+  labels:
+    {{- include "runtime-anatomy.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: runtime-anatomy-observer}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: runtime-anatomy-observer
+        app.kubernetes.io/part-of: runtime-anatomy
+      annotations:
+        checksum/observer: {{ .Files.Get "files/observer.py" | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "runtime-anatomy.fullname" . }}-observer
+      hostPID: true
+      priorityClassName: system-node-critical
+      containers:
+        - name: observer
+          image: {{ .Values.observer.image }}
+          command: [python3, /runtime/observer.py]
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+            - name: POLL_INTERVAL_SECONDS
+              value: {{ .Values.observer.pollIntervalSeconds | quote }}
+            - name: MAX_TRACE_BYTES
+              value: "16777216"
+            - name: EVIDENCE_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+            capabilities: {add: [SYS_PTRACE]}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 500m, memory: 192Mi}
+          volumeMounts:
+            - {name: runtime, mountPath: /runtime, readOnly: true}
+            - {name: host-proc, mountPath: /host/proc, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: runtime
+          configMap: {name: {{ include "runtime-anatomy.fullname" . }}-observer}
+        - name: host-proc
+          hostPath: {path: /proc, type: Directory}
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}
+{{- end }}

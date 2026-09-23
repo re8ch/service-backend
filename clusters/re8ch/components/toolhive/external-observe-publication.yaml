@@ -27,6 +27,7 @@ spec:
     - get_managed_platform_operation_status
     - get_ceph_storage_status
     - get_ready_node_storage_inventory
+    - get_runtime_storage_analyses
     - get_nuclio_function_status
     - diagnose_nuclio_function
     - get_nuclio_capacity_status
