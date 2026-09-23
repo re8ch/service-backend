@@ -58,6 +58,8 @@ spec:
               value: "8080"
             - name: NODE_ENV
               value: prod
+            - name: GODEBUG
+              value: netdns=cgo
             - name: HTTPS_PROXY
               value: http://identity-egress.egress-fabric.svc.cluster.local:17893
             - name: HTTP_PROXY
@@ -69,9 +71,9 @@ spec:
             - name: PUBLIC_API_BASE_URL
               value: https://api.re8ch.com/auth
             - name: MGR_RPC_RW_BASE_URL
-              value: http://pgwrite.pigsty-external.svc.cluster.local:3000
+              value: http://192.0.2.158:3000
             - name: MGR_RPC_RO_BASE_URL
-              value: http://pgwrite.pigsty-external.svc.cluster.local:3000
+              value: http://192.0.2.158:3000
             - name: AUTH_SERVICE_ROLE
               value: auth_app_rw
             - name: AUTH_GATEWAY_COOKIE_NAME
