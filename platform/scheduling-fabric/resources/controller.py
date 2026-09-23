@@ -377,6 +377,25 @@ def capacity_window(node, measurement, reservations=None, previously_closed=Fals
     return ("closed" if reasons else "open"), reasons
 
 def reconcile_capacity_windows(nodes):
+    # Quorum recovery must not depend on observability. The legacy Rook Pods
+    # need this taint removed before Ceph can restore the metrics backend.
+    for node in nodes:
+        metadata = node.get("metadata", {})
+        if metadata.get("labels", {}).get(CEPH_QUORUM_BRIDGE_LABEL) != "true":
+            continue
+        taints = node.get("spec", {}).get("taints", [])
+        if not any(t.get("key") == CAPACITY_TAINT["key"] for t in taints):
+            continue
+        new_taints = [t for t in taints if t.get("key") != CAPACITY_TAINT["key"]]
+        try:
+            updated = request(f"/api/v1/nodes/{metadata['name']}", "PATCH", [
+                {"op": "test", "path": "/metadata/resourceVersion", "value": metadata["resourceVersion"]},
+                {"op": "add", "path": "/spec/taints", "value": new_taints},
+            ], "application/json-patch+json")
+            metadata["resourceVersion"] = updated["metadata"]["resourceVersion"]
+            node.setdefault("spec", {})["taints"] = new_taints
+        except RuntimeError as exc:
+            print(f"ceph quorum bridge taint update deferred for {metadata.get('name')}: {exc}", flush=True)
     try:
         measurements = capacity_measurements()
     except (OSError, TimeoutError, urllib.error.URLError, ValueError, RuntimeError) as exc:
