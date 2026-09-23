@@ -44,6 +44,31 @@ def test_skill_only_plugins_do_not_duplicate_mcp_registration():
     assert "skills/cluster-infra/SKILL.md" in codex["data"]["plugins.yaml"]
 
 
+def test_cross_platform_distribution_contract_is_complete():
+    contract = next(
+        item for item in render()
+        if item["kind"] == "ConfigMap"
+        and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "platform-distribution"
+    )
+    payload = json.loads(contract["data"]["platforms.json"])
+    by_id = {item["id"]: item for item in payload["channels"]}
+    assert payload["updated"] == "2026-09-23"
+    assert set(by_id) == {
+        "openai-private", "openai-public", "anthropic-custom-connector",
+        "anthropic-private-plugin", "anthropic-public", "cursor-team",
+        "cursor-public", "workbuddy", "coze-custom", "coze-team-store", "doubao",
+    }
+    assert by_id["openai-private"]["entryClass"] == "self-service"
+    assert by_id["openai-public"]["entryClass"] == "official-review"
+    assert by_id["doubao"]["entryClass"] == "unavailable"
+    assert by_id["doubao"]["status"] == "new-publication-unavailable"
+    assert all(
+        item.get("publication") == "re8ch-tools-vmcp"
+        for item in payload["channels"]
+        if item["entryClass"] != "unavailable"
+    )
+
+
 def test_chart_contains_no_credentials():
     rendered = yaml.safe_dump_all(render())
     for forbidden in ("clientSecret", "refreshToken", "privateKey", "kind: Secret"):
