@@ -69,3 +69,15 @@
 - 两次 rule suite 均为 pass（A 4196443473，B 4196443205）：规则通过不代表 ref transaction 成功。必须结合传输结果和权威 ref 读回判定接纳；丢失回执时也不能只查规则审计。
 
 此结果证明 GitHub 托管的同父竞争保持单一赢家；身份仍是 Woomou，尚非专用 App。失败候选保留为过期提案，不自动 rebase。
+
+### 固定验证器来源，避免候选自证
+
+组织规则 `23891300 spec-lab-pinned-validator` 仅匹配 lab repository ID `1383863668` 的 `refs/heads/main`，active、无 bypass。required workflow 固定为该仓库 `.github/workflows/lab-contract.yml` 的完整 SHA `0ad3b2165360c206575890ac6d3723af7ab13b42`，不跟随候选或分支。首次创建因源仓库未允许 Actions 共享返回 422；仅将私有 lab 的 Actions access 设置为 organization 后创建成功，未改变生产规则。
+
+PR https://github.com/re8ch/gitops-spec-lab/pull/5 的签名候选 `1c94a4d16922548bd62cbe38a24292602fcb5165` 替换两个 job 的 echo 为 `CANDIDATE_REPLACEMENT_MUST_NOT_REPLACE_PINNED_VALIDATOR`。实际运行 https://github.com/re8ch/gitops-spec-lab/actions/runs/35893933294 ：
+
+- job `107293019160` 日志仍执行原始 `Protocol fixture only; no deployment authorization.`。
+- job `107293018844` 日志仍执行原始 `Expected-origin fixture; no deployment authorization.`。
+- 两个 job 成功。run 的 head_sha 指向候选、referenced_workflows 为空，不能据此判断验证器来源；本次通过 jobs logs API 验证实际执行内容。`gh run view --log` 因内部 workflow ID 查询 404 失败，不代表运行失败。
+
+结论：此配置下，组织 required workflow 的固定 SHA 没有被候选同路径修改替换。此试验只证明代码来源固定，不证明 fixture 已实施权限检查；候选仍可提出修改，真正的生产路径/资源所有权拒绝需要可信验证器实现。PR #5 保持开放，尚未接纳到 main。后续仍须验证删除工作流、同名 job 冒充、固定验证器安全读取候选数据，以及专用 App 身份下的接纳。
