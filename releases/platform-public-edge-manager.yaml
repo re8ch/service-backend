@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-jade
+codename: etesian-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:4b3cfcf4f5054b1ed08bde14ae04334634a833986f3e6cfd839b88fca25f2d00
+  digest: sha256:3afeddae8a839ab4bc368cfc5e563427959afe21daac15c680487a1aeb1b634f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

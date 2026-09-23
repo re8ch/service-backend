@@ -260,6 +260,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: etesian-amber
       digest: sha256:86c263c92c836217d878030ee616568fe0e291b8ffa94886c3fc731b2ba7ddbf
+    - codename: mistral-amber
+      digest: sha256:8dd675542ce7e44725353019b5093d814a8b37c06c617fb72779387562def5e0
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -462,6 +464,8 @@ modules:
       digest: sha256:83fcc97004979b06d8063884bf2fc13e90f2a1e9ada22602b1bd3a6e2bbffef3
     - codename: chinook-jade
       digest: sha256:4b3cfcf4f5054b1ed08bde14ae04334634a833986f3e6cfd839b88fca25f2d00
+    - codename: etesian-jade
+      digest: sha256:3afeddae8a839ab4bc368cfc5e563427959afe21daac15c680487a1aeb1b634f
   platform/adapter:
     releases:
     - codename: anchor
