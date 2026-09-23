@@ -3,7 +3,7 @@ kind: GitRepository
 metadata: {name: service-backend, namespace: flux-system}
 spec:
   interval: 5m
-  timeout: 5m
+  timeout: 15m
   provider: github
   url: https://github.com/re8ch/service-backend.git
   ref: {branch: main}
