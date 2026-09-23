@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/personal-access
-codename: citadel
+codename: sentinel
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
-  digest: sha256:a8504fa2db3156ea01948f58946bad50f4e39a275517f32b049e6946bc893d77
+  digest: sha256:7773cecd3a93ae1e7d3aa444c4e671d12138a54fc510ce258c86e3173cd2c9ab
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
