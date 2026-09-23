@@ -99,3 +99,34 @@ def test_git_transaction_can_verify_validity_and_update_head_together(graph):
     result = git(repo, "update-ref", "--stdin", stdin=transaction, check=False)
     assert result.returncode != 0
     assert git(repo, "rev-parse", "refs/heads/main").stdout.strip() == base
+
+
+def test_receive_pack_exact_lease_rejects_second_proposal(graph, tmp_path):
+    remote, base, commit = graph
+    first, second = commit("proposal A", base), commit("proposal B", base)
+    client = tmp_path / "client"
+    subprocess.run(["git", "clone", str(remote), str(client)], check=True, capture_output=True)
+    # Fetch immutable proposals without moving the target ref.
+    git(client, "fetch", "origin", first, second)
+    lease = f"--force-with-lease=refs/heads/main:{base}"
+    accepted = git(client, "push", "origin", lease, f"{first}:refs/heads/main", check=False)
+    rejected = git(client, "push", "origin", lease, f"{second}:refs/heads/main", check=False)
+    assert accepted.returncode == 0, accepted.stderr
+    assert rejected.returncode != 0
+    assert "stale info" in rejected.stderr
+    assert git(remote, "rev-parse", "refs/heads/main").stdout.strip() == first
+
+
+def test_receive_pack_lease_is_not_a_non_fast_forward_safety_policy(graph, tmp_path):
+    remote, base, commit = graph
+    unrelated = commit("unrelated proposal")
+    client = tmp_path / "client"
+    subprocess.run(["git", "clone", str(remote), str(client)], check=True, capture_output=True)
+    git(client, "fetch", "origin", unrelated)
+    lease = f"--force-with-lease=refs/heads/main:{base}"
+    # The transport option carries the old OID but also permits forced updates.
+    # Server policy must forbid them independently; the executor must check parentage.
+    git(remote, "config", "receive.denyNonFastForwards", "true")
+    rejected = git(client, "push", "origin", lease, f"{unrelated}:refs/heads/main", check=False)
+    assert rejected.returncode != 0
+    assert git(remote, "rev-parse", "refs/heads/main").stdout.strip() == base

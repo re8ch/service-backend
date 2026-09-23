@@ -38,6 +38,12 @@ GitHub API 是否提供同等多 ref 原子验证尚未证明，不能由本地 
 
 这些测试尚未覆盖远端 receive-pack、GitHub Rulesets、签名校验、App token、PR 关联或执行端租约。下一个门槛是在隔离 GitHub 目标验证这些接口，生产 main 不作协议试验场。
 
+补充实验通过真实本地 receive-pack 验证显式 `--force-with-lease=refs/heads/main:<base>` 拒绝第二个过期提案。该选项自身允许非 fast-forward，因此必须独立验证候选单父关系，并由服务端禁止非 fast-forward。测试已证明开启服务端限制后无关根提交被拒绝。累计七项实验通过；GitHub 托管 receive-pack 和 Rulesets 兼容性仍未验证。
+
+2026-09-23 通过组织 installations API 读取的权限确认：现有 `re8ch-flux-reaction`（4927936）具有 Checks/Deployments/Issues/PR/Statuses 写权限，但 Contents 只读；`re8ch-domain-promoter`（4950282）具有 Contents/PR 写权限，但不承担 Deployment/Checks 写入。目前未发现专用于本方案的 App，不能在运行时偷偷借用管理员个人令牌或合并多个 App 的权限来声称单 App 验证完成。优先演进现有 reaction 身份或注册一个受限身份，安装权限变更与 Rulesets 配置需单独审查。
+
+同次读取 main Ruleset 23148035 确认 required PR、签名、线性历史和禁止非 fast-forward 都生效，allowed_merge_methods 为 squash/rebase；唯一列出的 bypass 是 Team 的 pull_request 模式。接纳协议不应假设直接 push 已获许可。组织仓库查询未发现明确的协议 sandbox，两个 archive 仓库不作为实验目标。
+
 ## 外部执行与观察
 
 显式保存 desired SHA/digest、accepted deployment revision、applied inventory digest 和 observed runtime generation/status，四者不得混同。每次尝试关联 PR、commit、Deployment、run ID、策略版本、资源集合和到期授权。
