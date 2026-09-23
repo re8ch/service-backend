@@ -4,19 +4,19 @@ metadata:
     name: service-backend-github-proxy
     namespace: flux-system
 stringData:
-    address: ENC[AES256_GCM,data:6sH4K4j2N3we41ttnDTP1/rzeerQ+BEN97i8AHTAO6MSEzCWjV0tqMOqPrC4pQxhVVES,iv:6lniVb1yTWS/CyZgRJbB4OLEfE0UESyG9raYycQ7uyI=,tag:z7sqmu9/dWHgOgLUv7AnAw==,type:str]
+    address: ENC[AES256_GCM,data:0Uu/NHkQk6A23i5R7z1lHCfC97RR4+Q2L0I=,iv:nTNqD35jdoETEdqMq+o4HdLVjqjj6TRY/v9HLxr8dl4=,tag:AELUSC//2LS8hKqi2mtBLA==,type:str]
 sops:
     age:
         - enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBRWmwvUTlSdk13eFUrMGtT
-            cHJqT3VCa3Q2YnFzclMyS052MnVzSlNoSkZVCjh5MGhyVFdyeUJySFZrQmJZY0xV
-            N1VwS0J2Wm5CelF0YjRhOGlpSEpmeFkKLS0tIDN2N3ByQjluN3hPNUFEZ0lLcDRk
-            bnNaN3FUelpqZVMxaTlhTTlhUUZJSjQKugcgurbgXgIkmLW/ATyXtYiqm1dfIn2t
-            JOiae3joYWQ2zX1wTeGZMPhitpn56OWtJG7Sbmg0MITgbf3xMSZmkA==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB5Zy90d0hpRndOV3phWFlq
+            WjBhd1NBRGJvNlAzc3h2MXBOa3lBQWF4RnpNCmZ3V2c2ZnVLRlRzK1cxYUEvOTVB
+            anhyZXVSdXVScmJraFp6WUNzU2lYRFEKLS0tIEhONmtvUTA2d0FYNXhKRExGd3Rm
+            dTZqTXBSYk1lY1pKVDVJOGI0cHg2UTAKgQSGBeNm+LbqdTdYpcnqOrAFfhIikKHa
+            VaGPOxYN4Jx0w9oPjD1KW5EAO9cL6M+HQjLhOplHKPUIpZ8i1d4bdQ==
             -----END AGE ENCRYPTED FILE-----
           recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-09-13T08:05:11Z"
-    mac: ENC[AES256_GCM,data:FCaKfx4vaEOKfo3XzWNxy59JnteuEvxiNt17ynDT/ROYifyUM5RPOuMn4dYkU5FPqqCL0YMO6KO800Ot9MW0q3IdiThBeDoNQ3+OITBbxP38N0f47OAwbeJZWtUBtmJj6cEAV+YhHZIKHcxJVIGMzB4/mJeb/7FpdRbE2HTMFXA=,iv:uDrDV5bhEjEPCbxv8FZmp08J82OT7X+itBL27xnVRBA=,tag:q/hOLoFiMQJn8kP9oAQWIw==,type:str]
+    lastmodified: "2026-09-23T10:56:35Z"
+    mac: ENC[AES256_GCM,data:rxsqA7r7o6VUYOouXyxprTG4dUi2/P8XsZ6/FLbQkD2huHFxiwGhD62IEto5B7cAT4LIfjujJxLmcj/yZ8iVlENJ42SWbZFj5d2rV7F8WosJlk1ItfsddKIc4U9rnWexuW+5Du21F/0NZQIf8EwSr1w6Bwxc1mM+FtP2aP5UB+Q=,iv:IkP46LNpLp92Qsk3GCtNU5pjIm9JljwAqIBoZeiciU8=,tag:8VsZ/tMyDGl0Tnxh88pgCg==,type:str]
     version: 3.13.3
