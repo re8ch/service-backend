@@ -1,0 +1,67 @@
+# GitHub spec machine：外部对账契约
+
+状态：设计与验证阶段；尚未启用。目标是逐步撤出集群内 Flux 对账职责，不能把 shadow 成功宣称为迁移完成。
+
+## 目标与权威
+
+用户通过 GitHub PR、声明文件、Checks、Environment 和 Deployment 操作；无需编写服务专用控制器。平台使用有限的 Actions 任务和轻量集群桥接，不新增外部常驻 GitHub App 服务、数据库或调度控制面。一个 RE8CH GitOps App 提供受限身份，App 身份不意味着必须部署 App 服务器。有限的通用适配程序不应被伪称为完全零代码。
+
+GitHub main 是期望状态，签名提交是持久状态转换，PR 是提案与证据入口。Deployment 记录执行尝试和已接受修订，不成为第二份期望状态。Checks、Actions 日志和 artifacts 有保留期，长期验收记录必须有签名 Git 记录或不可变 release evidence；不在 Git 内保存原始遥测或明文 Secret。
+
+目标集群不拉取 Git、不选择修订、不定时应用配置、不自行纠漂。Kubernetes 自身维持 Pod/Deployment 等运行语义的控制器继续工作；这里撤出的是 GitOps 配置对账。桥接只观察事实、传送事件和执行外部批准的有限操作。
+
+## 四项基础保证
+
+1. 严格基线：验证绑定 base SHA、候选 SHA/tree、策略版本、服务输入摘要和流水线版本。主线变化后旧接纳许可作废，作者主动更新提案。系统不自动 merge、rebase 或解决冲突。前序修订被撤销认可后，后继候选均失效，后继已执行修订标记 tainted，保留历史并停止新执行；恢复通过明确引用失效链的新 PR。不能自动恢复历史上已经发生的运行副作用。
+2. 服务作用域：服务声明拥有的路径及渲染后 GVK/namespace/name/字段、依赖契约、订阅事件、核验周期、测试注册、并发/超时/资源预算。核验周期只触发读与比较，差异才产生执行请求。模块变更只运行拥有者与真实契约消费者的测试；重用证据必须匹配全部输入摘要。共享安全策略变更才扩展影响范围。
+3. PR 对账：平台强制权限/基线检查加服务注册的 SHA 固定流水线。候选 PR 不能用自己修改的策略或流水线给自己授权；新注册先经独立平台审查。漂移恢复关联原批准 PR；改变期望配置必须有新 PR。PR 内容不能作为 shell 命令执行。
+4. 越权拒绝：平台验证渲染后资源所有权，执行端 RBAC/admission 再次强制。核心网络契约不因节点不可用而修改。节点不符合契约时拒绝承载或报告降级；自动恢复不能更换出口、放宽规则或修改服务来迁就节点。
+
+## GitHub 接纳协议的可行性门槛
+
+不能把绿色 Merge 按钮、Actions concurrency 或 REST ref 的 force=false 直接当作严格事务。
+
+- GitHub REST ref 更新没有 expected-old-SHA 参数；fast-forward 不是完整的比较交换。
+- GraphQL createCommitOnBranch 有 expectedHeadOid，但会创建新提交；不能把它冒充接受原来经过检查的 SHA。
+- Actions concurrency 可限制同时执行，但工作流开始顺序不等于作者提交顺序，也不能替代持久账本和授权锁。
+- 当前 main 要求 PR 且允许 squash/rebase；严格接纳与这些规则的交互必须在隔离测试仓库证明，不能为试验先放宽生产规则。
+
+优先验证精确 signed candidate 的单父提交接纳：候选只有一个父提交，必须等于期望 main；使用 Git receive-pack 的显式旧新 OID 更新，证明并发更新时只接受一个候选，且不生成合并提交。若 GitHub Rulesets 不允许在不破坏 PR 必经要求的前提下执行，报告能力缺口，禁止暗中降级为自动 squash。测试其他协议必须保持等价 tree 验证、签名、父版本绑定和 PR 审计。
+
+配置接受的原子性仅指一个 Git ref 的转换。跨 Kubernetes 对象没有事务原子性；记录逐对象结果和 partial 状态。要求运行态原子切换的服务必须声明蓝绿/路由切换机制，未具备时拒绝这种保证。
+
+## 外部执行与观察
+
+显式保存 desired SHA/digest、accepted deployment revision、applied inventory digest 和 observed runtime generation/status，四者不得混同。每次尝试关联 PR、commit、Deployment、run ID、策略版本、资源集合和到期授权。
+
+GitHub 托管 Actions 负责验证、计划、批准后的有限执行、健康评估及重试。每服务独立 concurrency group；失效链更新与接纳使用统一串行入口并在执行前复核。所有任务有 deadline、重试预算与终态；崩溃后先观察实际结果再重试，不能因没有回执就假定未应用。
+
+集群观察器对受管对象使用 list/watch；保存游标，410 后 relist，删除事件和断线重连也产生失效提示。观察器不比较 desired、不选修订、不执行恢复。事件先持久化为 GitHub 事件记录并去重，再触发 Actions；GitHub 不可用时允许有限本地传输缓冲，但它不是期望状态。积压溢出标记 observation-gap，恢复后重新取快照。低频只读补偿允许；周期性全量 apply 禁止。
+
+执行端只接受经过认证、未过期、匹配服务/资源范围/修订的操作。使用稳定的每服务 SSA field manager，不为每次执行创建新 manager。不允许通用 shell、长期 cluster-admin 或从待部署 PR 加载特权执行代码。OIDC broker 的 issuer/audience/workflow/environment 信任契约尚需验证；仓库历史记录曾将其标为 deferred，不能假设已部署。
+
+授权撤销与网络分区无法保证即时终止正在进行的多对象操作：采用短期租约、每批复核和明确的部分执行记录。网络/API 不通时报告 unavailable，恢复后由 GitHub 重新批准执行。宿主机恢复不属于服务 actuator 权限。
+
+## 迁移与验收
+
+先验证接纳协议与授权，随后建立只读 shadow。候选为现有 domain-platform-adapter；先核对 live inventory 和业务影响。它的外层包含 HelmRelease/OCIRepository，外层 parity 不证明 Helm controller 已被替代。完整撤出还必须覆盖该服务的 Helm 生命周期、artifact 获取和运行资源所有权。
+
+shadow 期间 Flux 保持唯一 writer。写入切换必须通过独立签名 PR：停止旧 writer、确认停止、转移稳定 inventory/字段所有权、启用外部 executor；不得同时写。逐服务迁移，最后处理 bootstrap、网络和根对账，完成前不删除 Flux。
+
+验收包含：两个同基线 PR 竞争只接纳一个；基线前进使旧许可失效；前序失效禁止后继执行；无关服务不重跑；修改检查器不能自批准；渲染后跨服务资源拒绝；核心网络修改拒绝；status-only 不触发 apply；owned-spec drift/删除触发外部处理；重复、丢失和乱序事件；watch 410/relist；GitHub outage；API 分区；runner 被驱逐；执行后回执丢失；部分 apply；恢复后不执行过期修订。
+
+必须重放历史 #535/#562/#563/#566/#573/#574 的故障类别：出口失效、节点迁移、跨节点 artifact 不可达和现场修复被覆盖。验收证明 GitHub 仍可记录、验证与组织恢复；API 不可达时准确报告不可执行，不能声称仍可部署。
+
+最终完成条件是所有纳入服务由 GitHub 发起对账，集群无自行纠漂的 Flux 路径，故障注入和权限拒绝经过实际验证，长期账本可恢复。架构文档、绿灯单测、shadow parity 都只是中间证据。
+
+## 证据
+
+- 仓库基线：84fe99054d96f1fe216806bcfb155adb879ae059；已存在按 domain 分流 CI，但不等于按服务完全隔离。
+- https://github.com/re8ch/service-backend/pull/573
+- https://github.com/re8ch/service-backend/pull/574
+- https://docs.github.com/en/rest/git/refs
+- https://docs.github.com/en/graphql/reference/commits
+- https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+- https://docs.github.com/en/rest/deployments/deployments
+
+能力核对日期：2026-09-23。下一实现门槛是隔离验证严格接纳、App 权限和桥接身份，而不是提前启用 production apply。
