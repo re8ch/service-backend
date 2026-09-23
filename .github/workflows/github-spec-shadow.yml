@@ -1,0 +1,59 @@
+name: GitHub spec acceptance shadow
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: spec-shadow-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  acceptance-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Observe exact candidate and current authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/proposal.json"
+          gh api "repos/$REPOSITORY/git/ref/heads/main" > "$RUNNER_TEMP/authority.json"
+          gh api "repos/$REPOSITORY/git/commits/$EVENT_HEAD" > "$RUNNER_TEMP/candidate.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          proposal = json.loads((root / 'proposal.json').read_text())
+          authority = json.loads((root / 'authority.json').read_text())['object']['sha']
+          candidate = json.loads((root / 'candidate.json').read_text())
+          head = os.environ['EVENT_HEAD']
+          parents = [p['sha'] for p in candidate['parents']]
+          reasons = []
+          if proposal['state'] != 'open': reasons.append('proposal-not-open')
+          if proposal['base']['ref'] != 'main': reasons.append('target-not-main')
+          if proposal['head']['sha'] != head: reasons.append('event-superseded')
+          if candidate['sha'] != head: reasons.append('candidate-mismatch')
+          if parents != [authority]: reasons.append('not-single-parent-current-main')
+          if not candidate.get('verification', {}).get('verified', False):
+              reasons.append('signature-not-github-verified')
+          result = {
+              'mode': 'shadow', 'authorization': False,
+              'pr': int(os.environ['PR_NUMBER']), 'candidate': head,
+              'observedMain': authority, 'parents': parents,
+              'structuralEligibility': not reasons, 'reasons': reasons,
+              'unverified': ['trusted-signer-policy', 'resource-ownership',
+                  'ancestor-invalidation', 'atomic-admission', 'runtime-convergence'],
+          }
+          text = json.dumps(result, indent=2)
+          print(text)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write('### Read-only acceptance observation\n\n```json\n' + text + '\n```\n')
+              out.write('\nJob success means observation completed, not deployment approval. '
+                        'The main SHA may change after this observation.\n')
+          PY
