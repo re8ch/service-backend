@@ -268,11 +268,13 @@ spec:
       dns:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
-        # Keep authoritative DNS on the A/B fabric. Both nodes have verified
-        # API reachability and this removes DNS reconciliation from restricted-node-6dc3f140f9's pod
-        # sandbox failure domain.
-        replicas: 2
-        pdbMinAvailable: 1
+        # DNS is a recovery-plane service, not an ordinary balanced workload.
+        # Keep exactly one replica in each reviewed control-plane failure
+        # domain so loss of A1 or B1 cannot remove half of the cluster DNS
+        # authority. restricted-node-6dc3f140f9 is deliberately admitted as the third independent
+        # floor; the hard anti-affinity below prevents replica co-location.
+        replicas: 3
+        pdbMinAvailable: 2
         # Keep release validation on the A/B fabric so an unrelated restricted-node-6dc3f140f9
         # sandbox failure cannot stall or fail this network rollout.
         testNodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
@@ -288,7 +290,7 @@ spec:
                 - matchExpressions:
                     - key: kubernetes.io/hostname
                       operator: In
-                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
