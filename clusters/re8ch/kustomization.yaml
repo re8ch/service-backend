@@ -61,6 +61,7 @@ resources:
 - components/regional-routing/service-http01-issuer.yaml
 - components/regional-routing/node-edge-labels.yaml
 - components/regional-routing/authority.yaml
+- components/regional-routing/public-edge-rbac.yaml
 - components/mcp-registry/registry.yaml
 - components/toolhive/external-observe-publication.yaml
 - components/toolhive/external-observe-rbac.yaml
