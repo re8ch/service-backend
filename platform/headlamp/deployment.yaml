@@ -333,6 +333,25 @@ spec:
             - name: artc-kubeconfig
               mountPath: /etc/headlamp/artc
               readOnly: true
+        # Headlamp v0.42 completes OIDC through a popup-local storage event.
+        # Mobile Safari can suppress that event after the backend has already
+        # set the token cookie. This helper provides a same-origin fallback.
+        - name: oidc-landing
+          image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+          ports:
+            - name: oidc-landing
+              containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: oidc-landing}
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 5m, memory: 8Mi}
+            limits: {cpu: 50m, memory: 32Mi}
+          volumeMounts:
+            - name: oidc-landing
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
       volumes:
         - name: plugins
           # Plugins are installed deterministically by init containers.
@@ -370,3 +389,6 @@ spec:
             name: headlamp-artc-kubeconfig-template
         - name: artc-kubeconfig
           emptyDir: {}
+        - name: oidc-landing
+          configMap:
+            name: headlamp-oidc-landing

@@ -9,6 +9,7 @@ resources:
   - artc-kubeconfig.yaml
   - controlled-cluster-relay.yaml
   - oidc-admin-rbac.yaml
+  - oidc-landing.yaml
 configMapGenerator:
   - name: headlamp-advanced-fabric-v0231
     namespace: headlamp
