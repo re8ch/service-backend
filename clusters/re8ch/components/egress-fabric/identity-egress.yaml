@@ -21,7 +21,7 @@ metadata:
   namespace: egress-fabric
   labels: {app.kubernetes.io/name: identity-egress}
 spec:
-  replicas: 2
+  replicas: 3
   strategy:
     type: RollingUpdate
     # There are exactly two edge failure domains. Replace one replica at a
@@ -44,7 +44,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl, overseas-la]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl, overseas-la, restricted-node-6dc3f140f9]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
@@ -114,6 +114,20 @@ spec:
   ports:
     - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-egress-control-plane
+  namespace: egress-fabric
+  labels: {app.kubernetes.io/name: identity-egress}
+spec:
+  # Dex runs on restricted-node-6dc3f140f9. Only select the colocated endpoint so OAuth never
+  # depends on a cross-node Service path to an overseas edge.
+  internalTrafficPolicy: Local
+  selector: {app.kubernetes.io/name: identity-egress}
+  ports:
+    - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
+---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata: {name: identity-egress, namespace: egress-fabric}
@@ -132,7 +146,8 @@ spec:
         - namespaceSelector:
             matchLabels: {kubernetes.io/metadata.name: dex}
           podSelector:
-            matchLabels: {app.kubernetes.io/name: dex}
+            matchExpressions:
+              - {key: app.kubernetes.io/name, operator: In, values: [dex, dex-service]}
       ports: [{port: 17893, protocol: TCP}]
   egress:
     - to:
