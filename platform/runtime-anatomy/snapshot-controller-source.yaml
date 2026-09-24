@@ -4,7 +4,7 @@ metadata:
   name: external-snapshotter
   namespace: flux-system
 spec:
-  interval: 1h
+  interval: 6m
   url: https://github.com/kubernetes-csi/external-snapshotter.git
   # Reuse the credential-free global egress path used by the authoritative
   # control-plane source. GitHub credentials remain isolated in its App Secret.

@@ -2,7 +2,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata: {name: public-edge-manager, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
   ref: {digest: sha256:8a39e4fc5ccb3df82d6112bebe3888bfd2fab84991406c5e130734b8babd92f2}
@@ -11,7 +11,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata: {name: public-edge-manager, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   dependsOn:
     - name: advanced-fabric
       namespace: flux-system

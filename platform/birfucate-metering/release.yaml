@@ -4,7 +4,7 @@ metadata:
   name: birfucate-metering
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 1m
   releaseName: birfucate-metering
   targetNamespace: observability-ai
   storageNamespace: observability-ai

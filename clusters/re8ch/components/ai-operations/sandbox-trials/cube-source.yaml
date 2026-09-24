@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: cube-sandbox
 spec:
-  interval: 24h
+  interval: 144m
   timeout: 5m
   url: https://github.com/tencentcloud/CubeSandbox.git
   ref:
