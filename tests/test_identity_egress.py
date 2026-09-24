@@ -10,7 +10,7 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
-def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
+def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     docs = documents(ROOT / "clusters/re8ch/components/egress-fabric/identity-egress.yaml")
     deployment = next(item for item in docs if item["kind"] == "Deployment")
     service = next(item for item in docs if item["kind"] == "Service")
@@ -37,7 +37,7 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
     assert "requiredDuringSchedulingIgnoredDuringExecution" in affinity["podAntiAffinity"]
     nodes = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
     assert nodes == ["overseas-kl", "overseas-la", "restricted-node-6dc3f140f9"]
-    assert "github.com%2Flogin%2Foauth%2Faccess_token" in container["readinessProbe"]["httpGet"]["path"]
+    assert "accounts.google.com%2F.well-known%2Fopenid-configuration" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
     local_service = next(
         item for item in docs
@@ -46,15 +46,21 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
     assert budget["spec"]["minAvailable"] == 1
 
 
-def test_identity_egress_is_restricted_to_dex_ingress():
+def test_identity_egress_is_restricted_to_declared_identity_consumers():
     docs = documents(ROOT / "clusters/re8ch/components/egress-fabric/identity-egress.yaml")
     policy = next(item for item in docs if item["kind"] == "NetworkPolicy")
     rule = policy["spec"]["ingress"][0]
-    source = rule["from"][0]
-    assert source["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "dex"
-    expression = source["podSelector"]["matchExpressions"][0]
+    dex_source, auth_source = rule["from"]
+    assert dex_source["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "dex"
+    expression = dex_source["podSelector"]["matchExpressions"][0]
     assert expression == {
         "key": "app.kubernetes.io/name", "operator": "In", "values": ["dex", "dex-service"]}
+    assert auth_source == {
+        "namespaceSelector": {
+            "matchLabels": {"kubernetes.io/metadata.name": "auth"}},
+        "podSelector": {
+            "matchLabels": {"app.kubernetes.io/name": "re8ch-auth-gateway"}},
+    }
 
 
 def test_identity_egress_is_reachable_from_the_cluster_root_overlay():

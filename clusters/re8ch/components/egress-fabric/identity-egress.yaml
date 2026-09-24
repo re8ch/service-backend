@@ -86,8 +86,11 @@ spec:
             failureThreshold: 30
             periodSeconds: 2
           readinessProbe:
+            # Provider discovery is on the user-login critical path. Keep an
+            # endpoint out of rotation when it cannot reach Google's OIDC
+            # metadata instead of letting the auth gateway fail by timeout.
             httpGet:
-              path: /proxies/DIRECT/delay?url=https%3A%2F%2Fgithub.com%2Flogin%2Foauth%2Faccess_token&timeout=5000
+              path: /proxies/DIRECT/delay?url=https%3A%2F%2Faccounts.google.com%2F.well-known%2Fopenid-configuration&timeout=5000
               port: controller
             periodSeconds: 10
             timeoutSeconds: 7
@@ -153,6 +156,10 @@ spec:
           podSelector:
             matchExpressions:
               - {key: app.kubernetes.io/name, operator: In, values: [dex, dex-service]}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: auth}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: re8ch-auth-gateway}
       ports: [{port: 17893, protocol: TCP}]
   egress:
     - to:
