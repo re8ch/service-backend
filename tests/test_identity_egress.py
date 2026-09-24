@@ -39,6 +39,7 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert nodes == ["overseas-kl", "overseas-la", "restricted-node-6dc3f140f9"]
     assert "accounts.google.com%2F.well-known%2Fopenid-configuration" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
+    assert "trafficDistribution" not in service["spec"]
     local_service = next(
         item for item in docs
         if item["kind"] == "Service" and item["metadata"]["name"] == "identity-egress-control-plane")
@@ -50,7 +51,7 @@ def test_identity_egress_is_restricted_to_declared_identity_consumers():
     docs = documents(ROOT / "clusters/re8ch/components/egress-fabric/identity-egress.yaml")
     policy = next(item for item in docs if item["kind"] == "NetworkPolicy")
     rule = policy["spec"]["ingress"][0]
-    dex_source, auth_source = rule["from"]
+    dex_source, auth_source, flux_source = rule["from"]
     assert dex_source["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "dex"
     expression = dex_source["podSelector"]["matchExpressions"][0]
     assert expression == {
@@ -60,6 +61,12 @@ def test_identity_egress_is_restricted_to_declared_identity_consumers():
             "matchLabels": {"kubernetes.io/metadata.name": "auth"}},
         "podSelector": {
             "matchLabels": {"app.kubernetes.io/name": "re8ch-auth-gateway"}},
+    }
+    assert flux_source == {
+        "namespaceSelector": {
+            "matchLabels": {"kubernetes.io/metadata.name": "flux-system"}},
+        "podSelector": {
+            "matchLabels": {"app": "source-controller"}},
     }
 
 

@@ -117,7 +117,6 @@ metadata:
 spec:
   type: ClusterIP
   internalTrafficPolicy: Cluster
-  trafficDistribution: PreferClose
   selector: {app.kubernetes.io/name: identity-egress}
   ports:
     - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
@@ -160,6 +159,10 @@ spec:
             matchLabels: {kubernetes.io/metadata.name: auth}
           podSelector:
             matchLabels: {app.kubernetes.io/name: re8ch-auth-gateway}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: flux-system}
+          podSelector:
+            matchLabels: {app: source-controller}
       ports: [{port: 17893, protocol: TCP}]
   egress:
     - to:

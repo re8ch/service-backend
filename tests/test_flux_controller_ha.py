@@ -1,67 +1,74 @@
 from pathlib import Path
+import shutil
+import subprocess
 
 import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
 CLUSTER = ROOT / "clusters/re8ch"
+REPLICATED = {
+    "helm-controller",
+    "kustomize-controller",
+    "notification-controller",
+}
+CONTROL_PLANES = {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}
 
 
-def test_helm_controller_has_two_failure_domain_separated_replicas():
-    patch = yaml.safe_load(
-        (CLUSTER / "flux-system/helm-controller-ha.patch.yaml").read_text()
+def rendered_documents():
+    command = ["kustomize", "build"] if shutil.which("kustomize") else ["kubectl", "kustomize"]
+    output = subprocess.check_output([*command, str(CLUSTER)], text=True)
+    return list(yaml.safe_load_all(output))
+
+
+def test_flux_controllers_use_three_control_planes_and_stable_dns():
+    deployments = {
+        item["metadata"]["name"]: item
+        for item in rendered_documents()
+        if item and item["kind"] == "Deployment" and item["metadata"].get("namespace") == "flux-system"
+    }
+    for name in REPLICATED:
+        deployment = deployments[name]
+        assert deployment["spec"]["replicas"] == 3
+        pod = deployment["spec"]["template"]["spec"]
+        expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+        assert expression["key"] == "kubernetes.io/hostname"
+        assert set(expression["values"]) == CONTROL_PLANES
+        assert pod["dnsPolicy"] == "None"
+        assert pod["dnsConfig"]["nameservers"] == ["192.0.2.131"]
+        assert pod["topologySpreadConstraints"][0]["matchLabelKeys"] == ["app"]
+        assert "--enable-leader-election" in pod["containers"][0]["args"]
+
+
+def test_source_controller_is_single_active_with_three_node_failover():
+    deployment = next(
+        item for item in rendered_documents()
+        if item and item["kind"] == "Deployment"
+        and item["metadata"].get("namespace") == "flux-system"
+        and item["metadata"]["name"] == "source-controller"
     )
-    spec = patch["spec"]
-    assert spec["replicas"] == 2
-    assert spec["strategy"]["rollingUpdate"] == {
-        "maxSurge": 1,
-        "maxUnavailable": 0,
-    }
-    pod_spec = spec["template"]["spec"]
-    terms = pod_spec["affinity"]["nodeAffinity"][
-        "requiredDuringSchedulingIgnoredDuringExecution"
-    ]["nodeSelectorTerms"]
-    expression = terms[0]["matchExpressions"][0]
-    assert expression == {
-        "key": "kubernetes.io/hostname",
-        "operator": "In",
-        "values": ["restricted-node-6dc3f140f9", "domain-ex", "vm-20-12-ubuntu"],
-    }
-    anti_affinity = pod_spec["affinity"]["podAntiAffinity"][
-        "requiredDuringSchedulingIgnoredDuringExecution"
-    ][0]
-    assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
-    assert anti_affinity["labelSelector"]["matchLabels"] == {
-        "app": "helm-controller"
-    }
+    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["strategy"]["type"] == "Recreate"
+    pod = deployment["spec"]["template"]["spec"]
+    expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert set(expression["values"]) == CONTROL_PLANES
+    assert pod["dnsConfig"]["nameservers"] == ["192.0.2.131"]
 
 
-def test_helm_controller_ha_has_a_minimum_availability_budget():
+def test_replicated_controllers_have_quorum_disruption_budgets():
     budgets = list(yaml.safe_load_all((CLUSTER / "flux-system/controller-ha.yaml").read_text()))
-    assert {b['metadata']['name'] for b in budgets} == {
-        'helm-controller', 'kustomize-controller', 'notification-controller'}
+    assert {item["metadata"]["name"] for item in budgets} == REPLICATED
     for item in budgets:
-        assert item['kind'] == 'PodDisruptionBudget'
-        assert item['spec']['minAvailable'] == 1
-        assert item['spec']['selector']['matchLabels']['app'] == item['metadata']['name']
-    budget = next(b for b in budgets if b['metadata']['name'] == 'helm-controller')
-    assert budget["kind"] == "PodDisruptionBudget"
-    assert budget["spec"]["minAvailable"] == 1
-    assert budget["spec"]["selector"]["matchLabels"] == {
-        "app": "helm-controller"
-    }
+        assert item["kind"] == "PodDisruptionBudget"
+        assert item["spec"]["minAvailable"] == 2
+        assert item["spec"]["selector"]["matchLabels"]["app"] == item["metadata"]["name"]
 
 
 def test_root_kustomization_applies_ha_overlay_without_editing_generated_flux():
     root = yaml.safe_load((CLUSTER / "kustomization.yaml").read_text())
     assert "flux-system/controller-ha.yaml" in root["resources"]
-    assert {
-        "path": "flux-system/helm-controller-ha.patch.yaml",
-        "target": {
-            "group": "apps",
-            "version": "v1",
-            "kind": "Deployment",
-            "name": "helm-controller",
-            "namespace": "flux-system",
-        },
-    } in root["patches"]
+    assert any(
+        patch.get("target", {}).get("name")
+        == "(helm-controller|kustomize-controller|notification-controller)"
+        for patch in root["patches"]
+    )

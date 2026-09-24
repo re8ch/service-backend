@@ -4,10 +4,26 @@ metadata:
   name: source-controller
   namespace: flux-system
 spec:
+  replicas: 1
+  strategy:
+    type: Recreate
   template:
     spec:
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: [192.0.2.131]
+        searches: [flux-system.svc.cluster.local, svc.cluster.local, cluster.local]
+        options: [{name: ndots, value: "5"}]
       nodeSelector:
         kubernetes.io/os: linux
         networking.re8ch.com/egress-policy: auto
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
       tolerations:
         - operator: Exists
