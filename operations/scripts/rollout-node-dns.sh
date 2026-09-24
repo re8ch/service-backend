@@ -27,7 +27,7 @@ spec:
       containers:
         - name: installer
           image: registry.re8ch.com/library/re8ch-ai-operations@sha256:64cd56927f85b10b88e36a35f1650cd1fac6d86e56bebe2787c0fa81d74e1faa
-          command: [/bin/sh, /operations/config/install.sh]
+          command: [/bin/sh, /config/install.sh]
           securityContext: {privileged: true, runAsUser: 0, runAsGroup: 0}
           volumeMounts: [{name: host, mountPath: /host}, {name: config, mountPath: /config, readOnly: true}]
       volumes:
