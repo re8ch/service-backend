@@ -1,5 +1,6 @@
 """Guard the fast reconciliation entrypoint and stateless controller failover."""
 import plistlib
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -19,7 +20,8 @@ def test_root_frequency_and_local_sync():
 
 
 def test_rendered_controller_failover_and_source_cache_safety():
-    rendered = subprocess.check_output(['kustomize', 'build', str(ROOT / 'clusters/re8ch')], text=True)
+    command = ['kustomize', 'build'] if shutil.which('kustomize') else ['kubectl', 'kustomize']
+    rendered = subprocess.check_output([*command, str(ROOT / 'clusters/re8ch')], text=True)
     docs = list(yaml.safe_load_all(rendered))
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
     for name in ('helm-controller', 'kustomize-controller', 'notification-controller'):
