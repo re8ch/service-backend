@@ -57,7 +57,10 @@ def test_source_controller_is_single_active_with_three_node_failover():
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert set(expression["values"]) == CONTROL_PLANES
     assert pod["dnsConfig"]["nameservers"] == ["192.0.2.240"]
-    assert "--storage-adv-addr=192.0.2.252" in pod["containers"][0]["args"]
+    manager = pod["containers"][0]
+    assert "--storage-adv-addr=$(POD_IP):9090" in manager["args"]
+    pod_ip = next(item for item in manager["env"] if item["name"] == "POD_IP")
+    assert pod_ip["valueFrom"]["fieldRef"]["fieldPath"] == "status.podIP"
     service = next(
         item for item in documents
         if item and item["kind"] == "Service"
