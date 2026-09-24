@@ -46,6 +46,8 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
         assert anti_affinity["matchLabelKeys"] == ["app"]
         assert "--enable-leader-election" in pod["containers"][0]["args"]
+        if name in {"helm-controller", "kustomize-controller"}:
+            assert "--concurrent=10" in pod["containers"][0]["args"]
 
 
 def test_source_controller_is_single_active_with_three_node_failover():

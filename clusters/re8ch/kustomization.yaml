@@ -123,6 +123,16 @@ patches:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
         effect: NoSchedule
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: (helm-controller|kustomize-controller)
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --concurrent=10
 - path: flux-system/source-controller-egress.patch.yaml
   target:
     group: apps
