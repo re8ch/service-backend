@@ -141,9 +141,10 @@ metadata:
   namespace: egress-fabric
   labels: {app.kubernetes.io/name: identity-egress}
 spec:
-  # Dex runs on restricted-node-6dc3f140f9. Only select the colocated endpoint so OAuth never
-  # depends on a cross-node Service path to an overseas edge.
-  internalTrafficPolicy: Local
+  # Prefer the colocated healthy endpoint, but retain symmetric failover to
+  # another AdvFab exit when the local proxy loses upstream connectivity.
+  internalTrafficPolicy: Cluster
+  trafficDistribution: PreferSameNode
   selector: {app.kubernetes.io/name: identity-egress}
   ports:
     - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
