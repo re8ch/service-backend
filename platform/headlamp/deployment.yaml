@@ -283,12 +283,10 @@ spec:
             - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
             - -oidc-client-id=headlamp
             - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
-            # The in-cluster context sends the browser's OIDC token directly to
-            # kube-apiserver. Keep this on the canonical issuer that every
-            # control-plane API already trusts. The service-domain Dex instance
-            # is additive and must not become Headlamp's issuer until Headlamp
-            # uses the Paralus access proxy instead of the bare Kubernetes API.
-            - -oidc-idp-issuer-url=https://dex.re8ch.com
+            # Use the service-domain issuer managed alongside the Headlamp
+            # route. The browser callback and Dex discovery metadata must agree
+            # on this issuer throughout the login flow.
+            - -oidc-idp-issuer-url=https://dex.service.re8ch.com
             # Headlamp v0.42 represents an unset in-cluster OIDC CA as a
             # non-nil empty string. Point it at the valid system trust bundle.
             - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt

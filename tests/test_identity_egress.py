@@ -33,9 +33,13 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
     affinity = deployment["spec"]["template"]["spec"]["affinity"]
     assert "requiredDuringSchedulingIgnoredDuringExecution" in affinity["podAntiAffinity"]
     nodes = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
-    assert nodes == ["overseas-kl", "overseas-la"]
+    assert nodes == ["overseas-kl", "overseas-la", "restricted-node-6dc3f140f9"]
     assert "github.com%2Flogin%2Foauth%2Faccess_token" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
+    local_service = next(
+        item for item in docs
+        if item["kind"] == "Service" and item["metadata"]["name"] == "identity-egress-control-plane")
+    assert local_service["spec"]["internalTrafficPolicy"] == "Local"
     assert budget["spec"]["minAvailable"] == 1
 
 
@@ -45,7 +49,9 @@ def test_identity_egress_is_restricted_to_dex_ingress():
     rule = policy["spec"]["ingress"][0]
     source = rule["from"][0]
     assert source["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "dex"
-    assert source["podSelector"]["matchLabels"]["app.kubernetes.io/name"] == "dex"
+    expression = source["podSelector"]["matchExpressions"][0]
+    assert expression == {
+        "key": "app.kubernetes.io/name", "operator": "In", "values": ["dex", "dex-service"]}
 
 
 def test_identity_egress_is_reachable_from_the_cluster_root_overlay():

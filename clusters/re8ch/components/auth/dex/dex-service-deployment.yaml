@@ -29,8 +29,8 @@ spec:
             - {name: GITHUB_CLIENT_ID, valueFrom: {secretKeyRef: {name: dex-github, key: client-id}}}
             - {name: GITHUB_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: dex-github, key: client-secret}}}
             - {name: DEX_DB_PASSWORD, valueFrom: {secretKeyRef: {name: dex-postgres, key: password}}}
-            - {name: HTTP_PROXY, value: "http://identity-egress.egress-fabric.svc.cluster.local:17893"}
-            - {name: HTTPS_PROXY, value: "http://identity-egress.egress-fabric.svc.cluster.local:17893"}
+            - {name: HTTP_PROXY, value: "http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893"}
+            - {name: HTTPS_PROXY, value: "http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893"}
             - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
           readinessProbe: {httpGet: {path: /.well-known/openid-configuration, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 20, periodSeconds: 20}
