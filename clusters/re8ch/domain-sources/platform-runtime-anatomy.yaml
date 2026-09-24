@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/runtime-anatomy
-    delivery.re8ch.com/codename: delta
+    delivery.re8ch.com/codename: grove
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-runtime-anatomy
   ref:
-    digest: sha256:07adfd608968339e24232d8b6202c5437d39c4e7fee28d417cd09f4bdd0a9525
+    digest: sha256:bfdf7734057b7df29c7b32bfaab6063e35ef077df88753fae28f8665b3acdef9
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/runtime-anatomy
-    delivery.re8ch.com/codename: delta
+    delivery.re8ch.com/codename: grove
 spec:
   interval: 1m
   retryInterval: 1m

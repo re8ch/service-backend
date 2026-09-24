@@ -428,6 +428,8 @@ modules:
       digest: sha256:df05dbed8fa1b56c451debb0e117fdce5cc46d7e6e7ce4f48feb698f1c3bf46c
     - codename: harbor
       digest: sha256:e1a1eb6761d921aa808608733e4ad7cf99bfecafed10e9e5de76ae70546cdb38
+    - codename: meridian
+      digest: sha256:15f994a240f924bc5ec2d7232d6ee6457901ba1cc5e4fad1eb857f74c8c53fd8
   platform/public-edge-manager:
     releases:
     - codename: bora
@@ -506,6 +508,8 @@ modules:
       digest: sha256:99d634ac29f80efe87663edaefd5005a5a27072ad10442e4bfefde4918af4f24
     - codename: delta
       digest: sha256:07adfd608968339e24232d8b6202c5437d39c4e7fee28d417cd09f4bdd0a9525
+    - codename: grove
+      digest: sha256:bfdf7734057b7df29c7b32bfaab6063e35ef077df88753fae28f8665b3acdef9
   platform/secretary-system:
     releases:
     - codename: aegis
