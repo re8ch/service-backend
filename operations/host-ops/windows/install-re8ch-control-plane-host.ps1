@@ -21,6 +21,7 @@ $config = [ordered]@{
     nodeName = $NodeName
     distribution = $Distribution
     bootGraceSeconds = $inventory.spec.watchdog.bootGraceSeconds
+    localWslProbeTimeoutSeconds = $inventory.spec.watchdog.localWslProbeTimeoutSeconds
     failureThreshold = $inventory.spec.watchdog.failureThreshold
     nodeReplyTimeoutSeconds = $inventory.spec.watchdog.nodeReplyTimeoutSeconds
     hostRebootCooldownSeconds = $inventory.spec.watchdog.hostRebootCooldownSeconds
@@ -38,6 +39,21 @@ if ($PSCmdlet.ShouldProcess($NodeName, 'install RE8CH control-plane host recover
     New-Item -ItemType Directory -Path $programDirectory -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 're8ch-control-plane-watchdog.ps1') -Destination $watchdogPath -Force
     $config | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $configPath -Encoding UTF8
+    # WSL memory policy belongs to the Windows account that owns the lifecycle
+    # task. dropCache returns reclaimable Linux page cache promptly while the
+    # fixed ceiling leaves Windows enough memory to run the independent
+    # watchdog and OpenSSH recovery plane. Applying it is deferred until the
+    # next declared WSL lifecycle restart or Windows reboot.
+    $wslConfigPath = Join-Path $env:USERPROFILE '.wslconfig'
+    @(
+        '[wsl2]'
+        ('memory={0}' -f $node[0].wsl.memory)
+        ('swap={0}' -f $node[0].wsl.swap)
+        'pageReporting=true'
+        ''
+        '[experimental]'
+        ('autoMemoryReclaim={0}' -f $node[0].wsl.autoMemoryReclaim)
+    ) | Set-Content -LiteralPath $wslConfigPath -Encoding ascii
     if (-not (Get-Service -Name sshd -ErrorAction SilentlyContinue)) {
         $capability = Get-WindowsCapability -Online -Name 'OpenSSH.Server~~~~192.0.2.138'
         if ($capability.State -ne 'Installed') {
