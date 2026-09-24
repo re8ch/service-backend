@@ -65,7 +65,25 @@ GitHub API 是否提供同等多 ref 原子验证尚未证明，不能由本地 
 
 GitHub 托管 Actions 负责验证、计划、批准后的有限执行、健康评估及重试。每服务独立 concurrency group；失效链更新与接纳使用统一串行入口并在执行前复核。所有任务有 deadline、重试预算与终态；崩溃后先观察实际结果再重试，不能因没有回执就假定未应用。
 
-集群观察器对受管对象使用 list/watch；保存游标，410 后 relist，删除事件和断线重连也产生失效提示。观察器不比较 desired、不选修订、不执行恢复。事件先持久化为 GitHub 事件记录并去重，再触发 Actions；GitHub 不可用时允许有限本地传输缓冲，但它不是期望状态。积压溢出标记 observation-gap，恢复后重新取快照。低频只读补偿允许；周期性全量 apply 禁止。
+集群外的只读观察器主动连接 Kubernetes API，对受管对象使用 list/watch；保存游标，410 后 relist，删除事件和断线重连也产生失效提示。观察器不比较 desired、不选修订、不执行恢复，也不必部署到被管理集群。事件先持久化为 GitHub 事件记录并去重，再触发 Actions；GitHub 不可用时允许有限本地传输缓冲，但它不是期望状态。积压溢出标记 observation-gap，恢复后重新取快照。低频只读补偿允许；周期性全量 apply 禁止。
+
+### 现场应急接管与决策实现
+
+用户确认：外部 watch 不应阻塞其他程序现场应急修改。观察持续进行；经授权的 scoped hold 暂停相应对象/字段的自动修复，不暂停其他服务。GitHub 不可用时现场接管标记只表达“禁止自动写入”，不表达 desired，不自动导入现场配置。标记的身份、权限与审计必须验证，不能信任任何任意 annotation。期限到期默认升级告警并保持 hold，显式释放后才可重新计划。未协作的未知修改不能被可靠识别为应急操作，默认 review，不承诺自动纠漂同时绝不干扰任意未标记修改。
+
+`reconcile_decision.py` 实现无 I/O 的外部决策内核，支持 stdin JSON 重放，尚未接入线上。它区分 observe、held、review、await-acceptance、blocked、escalate、no-spec-change 和 plan-repair；全部返回 authorization=false。计划绑定 cluster/service/object UID/resourceVersion、desired/accepted/policy revision 与字段摘要。无关 main 提交只要完整服务输入摘要未改变，不会被误当作本服务新版本；输入摘要须包含依赖与共享策略。对象缺失暂时 fail-closed，不伪装已支持创建/删除。
+
+调用方必须使用可信 GitHub/集群数据构造输入并核验身份与新鲜度；此内核不验证签名、时间或权限证明，不能把直接提交的 JSON/Issue body 当作授权。`changeClass=expected` 只能由可信分类器根据批准操作回执及对象前置条件得出，不能单凭 fieldManager 名称或用户标签声明。unknown/unattributed 走 review。
+
+实际执行前必须重新检查接管状态、接纳有效性与对象版本，使用 API 原子版本前置条件避免读后被现场更新的竞态。SSA 的字段冲突辅助检测不等于事务锁，不使用 force-conflicts 抢占现场字段。跨对象 hold 与写入若非同一事务仍有窗口；不得承诺立即停止已在途请求，多对象部分结果必须记账。没有共同接管协议时无法保证零冲突。
+
+### 恢复后的实施顺序
+
+1. 外部观察传输：实现 allowlist list/watch、游标续接、410 重建、脱敏和有界 outbox；独立故障域运行，不获得 apply 权限。
+2. GitHub 事件消费：固定 workflow 从可信事件记录读取，重取 authority 与快照，调用决策内核，输出四态 Check；Issue/dispatch 是线索而非执行许可。
+3. 隔离闭环：针对测试 API/隔离运行环境验证断连、乱序、hold 与修复计划；不得把重放测试计作真实集群验收。
+4. 获得只读接口后核实非关键 PoC 和运行 inventory，运行 live shadow，Flux 保持唯一 writer。
+5. 验证专用 App、Environment 批准、短期执行权限和 scoped 接管竞态，再通过独立 PR 做单服务 writer 交接。之后逐服务迁移，最后才移除 Flux。
 
 执行端只接受经过认证、未过期、匹配服务/资源范围/修订的操作。使用稳定的每服务 SSA field manager，不为每次执行创建新 manager。不允许通用 shell、长期 cluster-admin 或从待部署 PR 加载特权执行代码。OIDC broker 的 issuer/audience/workflow/environment 信任契约尚需验证；仓库历史记录曾将其标为 deferred，不能假设已部署。
 
