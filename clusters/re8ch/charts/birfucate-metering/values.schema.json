@@ -18,6 +18,7 @@
           "type": "object", "additionalProperties": false, "required": ["nodeNames"],
           "properties": {"nodeNames": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
         },
+        "tolerations": {"type": "array", "items": {"type": "object"}},
         "state": {
           "type": "object", "additionalProperties": false, "required": ["storageClassName", "size"],
           "properties": {"storageClassName": {"type": "string", "minLength": 1}, "size": {"type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi)$"}}
