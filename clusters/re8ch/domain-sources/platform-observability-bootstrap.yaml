@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/bootstrap
-    delivery.re8ch.com/codename: viewport
+    delivery.re8ch.com/codename: aperture-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
   ref:
-    digest: sha256:ea502d5c0afda2974bf7ae1dad816fd32941871e87b76b7042e8892b204b5ed2
+    digest: sha256:088ea7adbcb327190f9f8d997320fe5856ef5b8b8356abcd326a18ef3ad98195
   verify:
     provider: cosign
     matchOIDCIdentity:
