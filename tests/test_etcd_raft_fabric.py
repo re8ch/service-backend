@@ -79,7 +79,7 @@ def test_advanced_fabric_release_validation_does_not_depend_on_r640():
     release = list(yaml.safe_load_all((ROOT / "platform/advanced-fabric/release.yaml").read_text()))
     values = next(document for document in release if document["kind"] == "HelmRelease")["spec"]["values"]
     assert values["advancedFabric"]["dns"]["testNodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-1eb0570f74"
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
     }
 
 

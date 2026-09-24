@@ -144,7 +144,7 @@ class AdvancedFabricTests(unittest.TestCase):
         resources = [doc for doc in yaml.safe_load_all(release_path.read_text()) if doc]
         release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
         dns = release["spec"]["values"]["advancedFabric"]["dns"]
-        self.assertEqual(dns["testNodeSelector"], {"kubernetes.io/hostname": "restricted-node-1eb0570f74"})
+        self.assertEqual(dns["testNodeSelector"], {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"})
 
     def test_release_pins_controller_to_verified_control_plane_api_path(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"

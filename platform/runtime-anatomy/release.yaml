@@ -39,3 +39,9 @@ spec:
       gcMode: DryRun
     canary:
       enabled: true
+    # Keep the controller available while the privileged observer image is
+    # mirrored into the private registry. Docker Hub currently rejects its
+    # pinned digest on every uncached node, which otherwise leaves this release
+    # permanently pending on an unready DaemonSet.
+    observer:
+      enabled: false
