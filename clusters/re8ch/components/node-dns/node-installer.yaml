@@ -23,7 +23,7 @@ data:
     Wants=systemd-resolved.service network-online.target
     [Service]
     Type=oneshot
-    ExecStart=/bin/sh -ec 'iface=$(/usr/sbin/ip -o -4 addr show scope global | while read -r _ name _ addr _; do case "$addr" in 10.181.22.*) echo "$name"; break;; esac; done); test -n "$iface"; /usr/bin/resolvectl dns "$iface" 192.0.2.192 192.0.2.138; /usr/bin/resolvectl domain "$iface" ~zt.re8ch.com; /usr/bin/resolvectl default-route "$iface" no'
+    ExecStart=/bin/sh -ec 'public_iface=$(/usr/sbin/ip route show default | while read -r _ _ _ _ name _; do echo "$name"; break; done); test -n "$public_iface"; /usr/bin/resolvectl dns "$public_iface" 1.1.1.1 192.0.2.58; /usr/bin/resolvectl default-route "$public_iface" yes; iface=$(/usr/sbin/ip -o -4 addr show scope global | while read -r _ name _ addr _; do case "$addr" in 10.181.22.*) echo "$name"; break;; esac; done); test -n "$iface"; /usr/bin/resolvectl dns "$iface" 192.0.2.192 192.0.2.138; /usr/bin/resolvectl domain "$iface" ~zt.re8ch.com; /usr/bin/resolvectl default-route "$iface" no'
     RemainAfterExit=yes
     [Install]
     WantedBy=multi-user.target
