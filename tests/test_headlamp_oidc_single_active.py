@@ -17,3 +17,15 @@ def test_headlamp_hpa_cannot_override_single_active_deployment():
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     assert hpa["spec"]["scaleTargetRef"]["name"] == deployment["metadata"]["name"]
     assert hpa["spec"]["minReplicas"] == hpa["spec"]["maxReplicas"] == 1
+
+
+def test_headlamp_direct_api_context_uses_control_plane_trusted_issuer():
+    deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
+    container = next(
+        item for item in deployment["spec"]["template"]["spec"]["containers"]
+        if item["name"] == "headlamp"
+    )
+
+    assert "-in-cluster" in container["args"]
+    assert "-oidc-idp-issuer-url=https://dex.re8ch.com" in container["args"]
+    assert "-oidc-idp-issuer-url=https://dex.service.re8ch.com" not in container["args"]
