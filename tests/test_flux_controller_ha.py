@@ -44,8 +44,9 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
 
 
 def test_source_controller_is_single_active_with_three_node_failover():
+    documents = rendered_documents()
     deployment = next(
-        item for item in rendered_documents()
+        item for item in documents
         if item and item["kind"] == "Deployment"
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "source-controller"
@@ -56,6 +57,15 @@ def test_source_controller_is_single_active_with_three_node_failover():
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert set(expression["values"]) == CONTROL_PLANES
     assert pod["dnsConfig"]["nameservers"] == ["192.0.2.131"]
+    assert "--storage-adv-addr=192.0.2.252" in pod["containers"][0]["args"]
+    service = next(
+        item for item in documents
+        if item and item["kind"] == "Service"
+        and item["metadata"].get("namespace") == "flux-system"
+        and item["metadata"]["name"] == "source-controller"
+    )
+    assert service["spec"]["clusterIP"] == "192.0.2.252"
+    assert service["spec"]["clusterIPs"] == ["192.0.2.252"]
 
 
 def test_replicated_controllers_have_quorum_disruption_budgets():

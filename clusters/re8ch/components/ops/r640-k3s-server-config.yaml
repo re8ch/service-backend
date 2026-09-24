@@ -1,5 +1,7 @@
 node-name: restricted-node-6dc3f140f9
 node-ip: 192.0.2.205
+node-taint:
+  - "node-role.kubernetes.io/control-plane=true:NoSchedule"
 node-external-ip: 192.0.2.79
 cluster-dns: 192.0.2.42
 advertise-address: 192.0.2.205

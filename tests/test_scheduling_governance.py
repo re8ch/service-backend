@@ -164,8 +164,13 @@ def test_control_plane_reservations_are_declared_without_noexecute():
         for name in ("r640-k3s-server-config.yaml", "a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml")
     }
     assert "max-pods=256" in configs["r640-k3s-server-config.yaml"]["kubelet-arg"]
+    for config in configs.values():
+        assert config["node-taint"] == ["node-role.kubernetes.io/control-plane=true:NoSchedule"]
     for name in ("a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml"):
         assert "max-pods=128" in configs[name]["kubelet-arg"]
+        assert "kube-reserved=cpu=2,memory=2Gi,ephemeral-storage=2Gi,pid=2048" in configs[name]["kubelet-arg"]
+        assert "system-reserved=cpu=1,memory=2Gi,ephemeral-storage=2Gi,pid=2048" in configs[name]["kubelet-arg"]
+        assert "eviction-hard=memory.available<2Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%" in configs[name]["kubelet-arg"]
     for config in configs.values():
         args = config["kubelet-arg"]
         assert any(value.startswith("kube-reserved=") for value in args)
