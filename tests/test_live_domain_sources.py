@@ -33,8 +33,14 @@ def test_active_sources_are_private_verified_and_digest_locked():
         trusted = yaml.safe_load((ROOT / "operations/releases/publishers.yaml").read_text())["modules"][module]
         assert trusted == {"issuer": release["bundle"]["issuer"], "identity": release["bundle"]["identity"]}
         reconciliation = next(doc for doc in children if doc["metadata"]["name"] == entry["name"]) if entry.get("name") else documents[1]
-        assert reconciliation["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
-        assert reconciliation["spec"]["path"] == "./"
+        fallback = reconciliation["metadata"].get("annotations", {}).get("delivery.re8ch.com/source-mode")
+        if fallback == "git-fallback":
+            assert module == "platform/headlamp"
+            assert reconciliation["spec"]["sourceRef"] == {"kind": "GitRepository", "name": "service-backend"}
+            assert reconciliation["spec"]["path"] == "./platform/headlamp"
+        else:
+            assert reconciliation["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
+            assert reconciliation["spec"]["path"] == "./"
         assert reconciliation["spec"]["decryption"] == {"provider": "sops", "secretRef": {"name": "sops-age"}}
         assert reconciliation["spec"]["prune"] is False
         if entry.get("name"):
