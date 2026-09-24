@@ -130,6 +130,29 @@ patches:
     kind: Deployment
     name: source-controller
     namespace: flux-system
+- target:
+    group: ""
+    version: v1
+    kind: Service
+    name: source-controller
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/clusterIP
+      value: 192.0.2.252
+    - op: add
+      path: /spec/clusterIPs
+      value: [192.0.2.252]
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: source-controller
+    namespace: flux-system
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/args/6
+      value: --storage-adv-addr=192.0.2.252
 configMapGenerator:
 - name: rook-ceph-operator-values
   namespace: flux-system
