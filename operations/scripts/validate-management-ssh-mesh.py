@@ -28,6 +28,10 @@ def main() -> None:
         for address in ssh["addresses"]:
             ipaddress.ip_address(address)
         if node["platform"] == "windows-server-2022":
+            if node["wsl"].get("autoMemoryReclaim") != "dropCache":
+                raise SystemExit(f"{node['name']} must promptly return reclaimable WSL page cache")
+            if node["wsl"].get("memory") != "12GB" or node["wsl"].get("swap") != "3GB":
+                raise SystemExit(f"{node['name']} must preserve the reviewed WSL memory ceiling")
             path = ssh["preferredPath"]
             if path["mode"] != "peer-wsl-jump":
                 raise SystemExit(f"{node['name']} must use the peer WSL recovery path")

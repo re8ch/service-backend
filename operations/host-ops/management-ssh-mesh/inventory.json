@@ -27,7 +27,7 @@
           "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.208", "destinationAddress": "192.0.2.145"},
           "legacyDirectAddresses": ["192.0.2.169"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.18"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.18", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "dropCache"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 10
       },
@@ -42,7 +42,7 @@
           "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.18", "destinationAddress": "192.0.2.253"},
           "legacyDirectAddresses": ["192.0.2.181"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.208"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.208", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "dropCache"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 20
       }
@@ -50,6 +50,7 @@
     "allowedSourceCidrs": ["192.0.2.253/24", "192.0.2.16/24", "192.0.2.180/24", "192.0.2.160/24", "192.0.2.90/24"],
     "watchdog": {
       "intervalSeconds": 300,
+      "localWslProbeTimeoutSeconds": 30,
       "bootGraceSeconds": 900,
       "failureThreshold": 3,
       "nodeReplyTimeoutSeconds": 600,

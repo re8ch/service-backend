@@ -34,7 +34,13 @@ function Test-TcpEndpoint([string] $Address, [int] $Port, [int] $TimeoutMillisec
 
 function Test-LocalWsl {
     $arguments = @('-d', $config.distribution, '--exec', '/bin/sh', '-lc', 'systemctl is-active --quiet k3s && systemctl is-active --quiet ssh && ip -4 addr show | grep -q "10.181.22."')
-    $process = Start-Process -FilePath "$env:SystemRoot\System32\wsl.exe" -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+    $process = Start-Process -FilePath "$env:SystemRoot\System32\wsl.exe" -ArgumentList $arguments -PassThru -WindowStyle Hidden
+    $timeoutMilliseconds = [int] $config.localWslProbeTimeoutSeconds * 1000
+    if (-not $process.WaitForExit($timeoutMilliseconds)) {
+        Write-WatchdogLog "status=probe-timeout timeoutSeconds=$($config.localWslProbeTimeoutSeconds)"
+        try { $process.Kill($true) } catch { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+        return $false
+    }
     return $process.ExitCode -eq 0
 }
 
