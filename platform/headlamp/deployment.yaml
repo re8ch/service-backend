@@ -346,8 +346,11 @@ spec:
             initialDelaySeconds: 2
             periodSeconds: 10
           resources:
-            requests: {cpu: 5m, memory: 8Mi}
-            limits: {cpu: 50m, memory: 32Mi}
+            # Alpine nginx briefly exceeds 32Mi while loading its config and
+            # modules. Keep the steady-state request small but leave enough
+            # startup headroom to avoid an OOM/reconcile loop.
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 128Mi}
           volumeMounts:
             - name: oidc-landing
               mountPath: /etc/nginx/conf.d
