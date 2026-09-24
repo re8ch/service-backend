@@ -224,7 +224,10 @@ def publish(modules, out, bootstrap=False):
             raw = subprocess.check_output(["flux", "push", "artifact", "oci://" + repository + ":" + codename,
                 "--path", temporary, "--source", "https://github.com/re8ch/service-backend",
                 "--revision", "main@sha1:" + revision, "--annotations", "delivery.re8ch.com/revision=" + revision,
-                "--reproducible", "--output", "json"], cwd=ROOT)
+                # OSS-backed Harbor commits currently take about six minutes.
+                # Keep the operation bounded, but above Flux CLI's five-minute
+                # default so a successful registry commit is not abandoned.
+                "--timeout", "15m", "--reproducible", "--output", "json"], cwd=ROOT)
             digest = json.loads(raw)["digest"]
         reference = repository + "@" + digest
         subprocess.run(["cosign", "sign", "--yes", reference], check=True)
