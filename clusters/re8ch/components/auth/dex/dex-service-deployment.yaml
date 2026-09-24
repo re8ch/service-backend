@@ -11,16 +11,16 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: dex-service}}
     spec:
-      # This service issuer is pinned to restricted-node-6dc3f140f9 and uses the node's working
-      # provider route/DNS for GitHub OAuth. It therefore does not depend on
-      # cluster DNS or a Service VIP during authentication.
+      # Use the declared healthy overseas identity-egress authority while the
+      # cluster DNS/Service datapath is degraded. This matches the auth gateway
+      # and avoids the intermittently timing-out direct mainland route.
       hostNetwork: true
       dnsPolicy: Default
       hostAliases:
-        - ip: 192.0.2.202
+        - ip: 10.43.141.120
           hostnames: [pg-re8ch-primary.pigsty-external.svc.cluster.local]
       imagePullSecrets: [{name: ghcr-re8ch}]
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       tolerations: [{operator: Exists}]
       containers:
         - name: dex
@@ -33,7 +33,9 @@ spec:
             - {name: GITHUB_CLIENT_ID, valueFrom: {secretKeyRef: {name: dex-github, key: client-id}}}
             - {name: GITHUB_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: dex-github, key: client-secret}}}
             - {name: DEX_DB_PASSWORD, valueFrom: {secretKeyRef: {name: dex-postgres, key: password}}}
-            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
+            - {name: HTTP_PROXY, value: "http://10.250.0.104:17893"}
+            - {name: HTTPS_PROXY, value: "http://10.250.0.104:17893"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,10.0.0.0/8,100.64.0.0/10"}
           readinessProbe: {httpGet: {path: /.well-known/openid-configuration, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 20, periodSeconds: 20}
           resources: {requests: {cpu: 20m, memory: 64Mi}, limits: {cpu: 300m, memory: 256Mi}}
