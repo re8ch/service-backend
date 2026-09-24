@@ -4,7 +4,7 @@ metadata:
   name: external-snapshotter-crds
   namespace: flux-system
 spec:
-  interval: 1h
+  interval: 6m
   path: ./client/config/crd
   prune: true
   sourceRef:
@@ -20,7 +20,7 @@ metadata:
 spec:
   dependsOn:
     - name: external-snapshotter-crds
-  interval: 1h
+  interval: 6m
   path: ./deploy/kubernetes/snapshot-controller
   prune: true
   sourceRef:

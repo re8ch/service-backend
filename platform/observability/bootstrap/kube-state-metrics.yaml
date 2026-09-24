@@ -4,7 +4,7 @@ metadata:
   name: prometheus-community
   namespace: observability-system
 spec:
-  interval: 1h
+  interval: 6m
   timeout: 5m
   url: https://prometheus-community.github.io/helm-charts
 ---
@@ -14,7 +14,7 @@ metadata:
   name: re8ch-kube-state-metrics
   namespace: observability-system
 spec:
-  interval: 30m
+  interval: 3m
   chart:
     spec:
       chart: kube-state-metrics

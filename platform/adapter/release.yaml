@@ -2,7 +2,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata: {name: adapter, namespace: flux-system}
 spec:
-  interval: 30m
+  interval: 3m
   provider: generic
   url: oci://registry.re8ch.com/helm/adapter
   ref: {digest: sha256:feb775e9995f8ba8f6d36b5bd0b095b8598346085b4536e8b8c2130246ec0870}
@@ -11,7 +11,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata: {name: adapter, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   releaseName: adapter
   targetNamespace: adapter
   storageNamespace: adapter

@@ -4,7 +4,7 @@ metadata:
   name: advanced-fabric
   namespace: flux-system
 spec:
-  interval: 30m
+  interval: 3m
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
@@ -21,7 +21,7 @@ metadata:
   name: advanced-fabric
   namespace: flux-system
 spec:
-  interval: 30m
+  interval: 3m
   releaseName: service-vip-fabric
   targetNamespace: kube-system
   storageNamespace: kube-system

@@ -4,7 +4,7 @@ metadata:
   name: incidentrelay
   namespace: flux-system
 spec:
-  interval: 30m
+  interval: 3m
   provider: generic
   url: oci://ghcr.io/roxy-wi/incidentrelay-charts/incidentrelay
   ref:
@@ -16,7 +16,7 @@ metadata:
   name: incidentrelay
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 1m
   timeout: 3m
   releaseName: incidentrelay
   targetNamespace: incidentrelay

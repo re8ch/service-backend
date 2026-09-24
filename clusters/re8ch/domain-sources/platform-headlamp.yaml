@@ -8,7 +8,7 @@ metadata:
     delivery.re8ch.com/codename: aurora-indigo
     delivery.re8ch.com/source-mode: git-fallback
 spec:
-  interval: 10m
+  interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
     digest: sha256:2d44da7ec2bc97436e4c9422abcfd486c5cd835c7dee779ddce7e88c0515511e
@@ -30,7 +30,7 @@ metadata:
     delivery.re8ch.com/codename: aurora-indigo
     delivery.re8ch.com/source-mode: git-fallback
 spec:
-  interval: 10m
+  interval: 1m
   retryInterval: 1m
   timeout: 5m
   # Harbor currently accepts the bundle but times out while committing its
