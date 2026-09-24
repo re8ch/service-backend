@@ -39,11 +39,13 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert nodes == ["overseas-kl", "overseas-la", "restricted-node-6dc3f140f9"]
     assert "accounts.google.com%2F.well-known%2Fopenid-configuration" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
+    assert service["spec"]["clusterIP"] == "192.0.2.117"
     assert "trafficDistribution" not in service["spec"]
     gitops_service = next(
         item for item in docs
         if item["kind"] == "Service" and item["metadata"]["name"] == "identity-egress-gitops")
     assert gitops_service["spec"]["internalTrafficPolicy"] == "Cluster"
+    assert gitops_service["spec"]["clusterIP"] == "192.0.2.186"
     assert "trafficDistribution" not in gitops_service["spec"]
     local_service = next(
         item for item in docs

@@ -116,6 +116,7 @@ metadata:
   labels: {app.kubernetes.io/name: identity-egress}
 spec:
   type: ClusterIP
+  clusterIP: 192.0.2.117
   internalTrafficPolicy: Cluster
   selector: {app.kubernetes.io/name: identity-egress}
   ports:
@@ -129,6 +130,7 @@ metadata:
   labels: {app.kubernetes.io/name: identity-egress}
 spec:
   type: ClusterIP
+  clusterIP: 192.0.2.186
   internalTrafficPolicy: Cluster
   selector: {app.kubernetes.io/name: identity-egress}
   ports:

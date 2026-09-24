@@ -33,7 +33,14 @@ spec:
         saas.re8ch.com/function: gateway
     spec:
       hostNetwork: false
-      dnsPolicy: ClusterFirst
+      # The auth broker must resolve the identity-egress Service even when the
+      # locality-aware advanced DNS VIP is degraded. The canonical kube-dns
+      # Service has all healthy DNS backends and is stable across node moves.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: [192.0.2.131]
+        searches: [auth.svc.cluster.local, svc.cluster.local, cluster.local]
+        options: [{name: ndots, value: "5"}]
       nodeSelector:
         scheduling.re8ch.com/pool-service-core-r640: "true"
       tolerations:
@@ -61,9 +68,9 @@ spec:
             - name: GODEBUG
               value: netdns=cgo
             - name: HTTPS_PROXY
-              value: http://identity-egress.egress-fabric.svc.cluster.local:17893
+              value: http://192.0.2.117:17893
             - name: HTTP_PROXY
-              value: http://identity-egress.egress-fabric.svc.cluster.local:17893
+              value: http://192.0.2.117:17893
             - name: NO_PROXY
               value: localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.179/12,192.0.2.148/16
             - name: API_BASE_URL
