@@ -64,21 +64,21 @@ spec:
     headerName: X-Ops-Token
     valueSecretRef: {name: ops-mcp-admin-upstream, key: x-ops-token}
 ---
-# Each internal workload has two backend and proxy replicas. ConnecTool's
-# runtime policy spreads operator-generated children across stable worker
-# nodes and configures their Services to prefer a same-node endpoint.
+# Keep each internal workload on the restricted-node-6dc3f140f9 service anchor. The generated proxy
+# waits for every backend replica before serving, so declaring A/B replicas
+# makes the whole tool unavailable when either WSL control-plane host is down.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
   name: ops-admin-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: a1-b1-recovery-2026-09-19}
+  annotations: {re8ch.com/reconcile-generation: r640-fallback-2026-09-24}
 spec:
   groupRef: {name: platform-admin-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 2
-  backendReplicas: 2
+  replicas: 1
+  backendReplicas: 1
   sessionAffinity: ClientIP
   sessionStorage: {provider: memory}
   transport: streamable-http
@@ -105,11 +105,11 @@ spec:
   podTemplateSpec:
     metadata:
       annotations:
-        scheduling.re8ch.com/placement-class: service-core-ab
+        scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
       nodeSelector:
-        scheduling.re8ch.com/pool-service-core-ab: "true"
+        scheduling.re8ch.com/pool-service-core-r640: "true"
         scheduling.re8ch.com/network-serving: "true"
       affinity:
         podAntiAffinity:
@@ -132,7 +132,7 @@ metadata:
   name: ops-observe-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: public-read, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: observe-capacity-recovery-2026-09-21}
+  annotations: {re8ch.com/reconcile-generation: r640-fallback-2026-09-24}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
@@ -162,12 +162,12 @@ spec:
   podTemplateSpec:
     metadata:
       annotations:
-        scheduling.re8ch.com/placement-class: service-core-ab
+        scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
         observability.re8ch.com/probe-revision: shared-observability-v1
     spec:
       nodeSelector:
-        scheduling.re8ch.com/pool-service-core-ab: "true"
+        scheduling.re8ch.com/pool-service-core-r640: "true"
         scheduling.re8ch.com/network-serving: "true"
       affinity:
         podAntiAffinity:
@@ -187,12 +187,12 @@ metadata:
   name: ops-operate-vmcp-internal
   namespace: toolhive-system
   labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}
-  annotations: {re8ch.com/reconcile-generation: a1-b1-recovery-2026-09-19}
+  annotations: {re8ch.com/reconcile-generation: r640-fallback-2026-09-24}
 spec:
   groupRef: {name: platform-tools-public}
   image: docker.1ms.run/library/python:3.12-alpine
-  replicas: 2
-  backendReplicas: 2
+  replicas: 1
+  backendReplicas: 1
   sessionAffinity: ClientIP
   sessionStorage: {provider: memory}
   transport: streamable-http
@@ -212,11 +212,11 @@ spec:
   podTemplateSpec:
     metadata:
       annotations:
-        scheduling.re8ch.com/placement-class: service-core-ab
+        scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
       nodeSelector:
-        scheduling.re8ch.com/pool-service-core-ab: "true"
+        scheduling.re8ch.com/pool-service-core-r640: "true"
         scheduling.re8ch.com/network-serving: "true"
       affinity:
         podAntiAffinity:

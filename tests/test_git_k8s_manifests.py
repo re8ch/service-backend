@@ -117,30 +117,27 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     }
     for server in servers:
         spec = server["spec"]
-        expected_replicas = 1 if server["metadata"]["name"] == "ops-observe-vmcp-internal" else 2
-        assert spec["replicas"] == expected_replicas
-        assert spec["backendReplicas"] == expected_replicas
+        assert spec["replicas"] == 1
+        assert spec["backendReplicas"] == 1
         assert spec["sessionAffinity"] == "ClientIP"
         assert spec["sessionStorage"] == {"provider": "memory"}
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.57/16"
-        expected_generation = (
-            "observe-capacity-recovery-2026-09-21"
-            if server["metadata"]["name"] == "ops-observe-vmcp-internal"
-            else "a1-b1-recovery-2026-09-19"
+        assert (
+            server["metadata"]["annotations"]["re8ch.com/reconcile-generation"]
+            == "r640-fallback-2026-09-24"
         )
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == expected_generation
         pod_spec = spec["podTemplateSpec"]["spec"]
         expected_annotations = {
-            "scheduling.re8ch.com/placement-class": "service-core-ab",
+            "scheduling.re8ch.com/placement-class": "service-core-r640",
             "scheduling.re8ch.com/placement-revision": "workload-contract-v1",
         }
         if server["metadata"]["name"] == "ops-observe-vmcp-internal":
             expected_annotations["observability.re8ch.com/probe-revision"] = "shared-observability-v1"
         assert spec["podTemplateSpec"]["metadata"]["annotations"] == expected_annotations
         assert pod_spec["nodeSelector"] == {
-            "scheduling.re8ch.com/pool-service-core-ab": "true",
+            "scheduling.re8ch.com/pool-service-core-r640": "true",
             "scheduling.re8ch.com/network-serving": "true",
         }
         assert "nodeAffinity" not in pod_spec["affinity"]
