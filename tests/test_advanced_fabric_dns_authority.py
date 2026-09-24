@@ -44,6 +44,8 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
     )
     assert "trafficDistribution" in authoritative_dns_patch["patch"]
     assert "PreferSameNode" in authoritative_dns_patch["patch"]
+    assert "internalTrafficPolicy" in authoritative_dns_patch["patch"]
+    assert "Local" in authoritative_dns_patch["patch"]
 
 
 def test_every_managed_server_uses_fixed_cluster_dns():
