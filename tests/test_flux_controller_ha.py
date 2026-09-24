@@ -30,13 +30,16 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
     for name in REPLICATED:
         deployment = deployments[name]
         assert deployment["spec"]["replicas"] == 3
+        assert deployment["spec"]["strategy"]["rollingUpdate"] == {"maxSurge": 1, "maxUnavailable": 1}
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression["key"] == "kubernetes.io/hostname"
         assert set(expression["values"]) == CONTROL_PLANES
         assert pod["dnsPolicy"] == "None"
         assert pod["dnsConfig"]["nameservers"] == ["192.0.2.240"]
-        assert pod["topologySpreadConstraints"][0]["matchLabelKeys"] == ["app"]
+        anti_affinity = pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
+        assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
+        assert anti_affinity["matchLabelKeys"] == ["app"]
         assert "--enable-leader-election" in pod["containers"][0]["args"]
 
 
