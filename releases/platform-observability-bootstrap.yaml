@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/bootstrap
-codename: viewport
+codename: aperture-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
-  digest: sha256:ea502d5c0afda2974bf7ae1dad816fd32941871e87b76b7042e8892b204b5ed2
+  digest: sha256:088ea7adbcb327190f9f8d997320fe5856ef5b8b8356abcd326a18ef3ad98195
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
