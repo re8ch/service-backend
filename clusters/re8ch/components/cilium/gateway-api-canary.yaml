@@ -313,6 +313,16 @@ spec:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}
   hostnames: [headlamp.service.re8ch.com]
   rules:
+    # /oidc-callback still terminates in Headlamp and sets the cookie. Only
+    # replace its final /auth landing page so mobile browsers do not depend on
+    # a cross-window storage event.
+    - matches:
+        - path:
+            type: Exact
+            value: /auth
+      backendRefs:
+        - name: headlamp-oidc-landing
+          port: 80
     - backendRefs:
         - name: headlamp
           port: 80
