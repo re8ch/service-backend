@@ -418,6 +418,8 @@ modules:
       digest: sha256:4e848d378b34acdab4c390bbd6c0366e5cbaf7ae5b67b2314da7fd953c5625f3
     - codename: cascade-indigo
       digest: sha256:2de4d2edd4b49ee9ec1fd464534d5f57ab02aa31393dcf13b2ff222bdb449a7f
+    - codename: confluence-indigo
+      digest: sha256:d03a328c2896ca412337e121c6489c30b369841778dcf531bcb729bbd086ceaf
   platform/hyperswitch:
     releases:
     - codename: anchor

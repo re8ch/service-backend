@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: cascade-indigo
+codename: confluence-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:2de4d2edd4b49ee9ec1fd464534d5f57ab02aa31393dcf13b2ff222bdb449a7f
+  digest: sha256:d03a328c2896ca412337e121c6489c30b369841778dcf531bcb729bbd086ceaf
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
