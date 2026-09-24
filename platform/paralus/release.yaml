@@ -4,7 +4,7 @@ metadata:
   name: paralus
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 1m
   timeout: 15m
   releaseName: paralus
   targetNamespace: paralus
@@ -22,7 +22,7 @@ spec:
     cleanupOnFail: true
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
-  # Keep Paralus on restricted-node-6dc3f140f9 until every control-plane node has the immutable
+  # Keep Paralus on R640 until every control-plane node has the immutable
   # Paralus and PostgreSQL images available from the private registry. A1
   # currently cannot use the external Docker Hub proxy, so widening placement
   # before that supply-chain gate would strand the RWO database during rollout.
@@ -33,13 +33,13 @@ spec:
             patch: |-
               - op: add
                 path: /spec/template/spec/nodeName
-                value: restricted-node-6dc3f140f9
+                value: r640
           - target: {kind: Deployment, name: paralus-kratos}
             patch: |-
               - op: add
                 path: /spec/template/spec/hostAliases
                 value:
-                  - ip: 192.0.2.213
+                  - ip: 10.251.0.4
                     hostnames: [dex.re8ch.com]
           # The initialization container must be able to reach PostgreSQL even
           # while cluster DNS is being repaired. Without this bootstrap path a
@@ -49,7 +49,7 @@ spec:
               - op: add
                 path: /spec/template/spec/hostAliases
                 value:
-                  - ip: 192.0.2.156
+                  - ip: 10.43.74.52
                     hostnames:
                       - paralus-postgresql
                       - paralus-postgresql.paralus
@@ -59,12 +59,12 @@ spec:
             patch: |-
               - op: add
                 path: /spec/template/spec/nodeName
-                value: restricted-node-6dc3f140f9
+                value: r640
           - target: {kind: Job}
             patch: |-
               - op: add
                 path: /spec/template/spec/nodeName
-                value: restricted-node-6dc3f140f9
+                value: r640
   values:
     replicaCount: 2
     fqdn:
@@ -104,7 +104,7 @@ spec:
         secretKeys:
           userPasswordKey: DB_PASSWORD
       primary:
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        nodeSelector: {kubernetes.io/hostname: r640}
         resources:
           requests: {cpu: 100m, memory: 256Mi}
           limits: {cpu: "1", memory: 1Gi}
@@ -117,22 +117,22 @@ spec:
     resources:
       requests: {cpu: 100m, memory: 128Mi}
       limits: {cpu: "1", memory: 1Gi}
-    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    nodeSelector: {kubernetes.io/hostname: r640}
     kratos:
       secret:
         nameOverride: paralus-db
       deployment:
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        nodeSelector: {kubernetes.io/hostname: r640}
         resources:
           requests: {cpu: 50m, memory: 96Mi}
           limits: {cpu: 500m, memory: 512Mi}
       statefulSet:
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        nodeSelector: {kubernetes.io/hostname: r640}
         resources:
           requests: {cpu: 25m, memory: 64Mi}
           limits: {cpu: 300m, memory: 256Mi}
       job:
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        nodeSelector: {kubernetes.io/hostname: r640}
     affinity:
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:

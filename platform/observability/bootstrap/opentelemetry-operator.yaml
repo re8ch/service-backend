@@ -4,7 +4,7 @@ metadata:
   name: open-telemetry
   namespace: observability-system
 spec:
-  interval: 1h
+  interval: 6m
   timeout: 5m
   url: https://open-telemetry.github.io/opentelemetry-helm-charts
 ---
@@ -14,7 +14,7 @@ metadata:
   name: re8ch-opentelemetry-operator
   namespace: observability-system
 spec:
-  interval: 30m
+  interval: 3m
   releaseName: otel-operator
   targetNamespace: opentelemetry-operator
   chart:

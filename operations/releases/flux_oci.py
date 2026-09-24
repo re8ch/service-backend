@@ -52,7 +52,7 @@ def manifests(release: dict) -> list[dict]:
         "apiVersion": "source.toolkit.fluxcd.io/v1", "kind": "OCIRepository",
         "metadata": metadata,
         "spec": {
-            "interval": "10m", "url": bundle["url"], "ref": {"digest": bundle["digest"]},
+            "interval": "1m", "url": bundle["url"], "ref": {"digest": bundle["digest"]},
             "verify": {"provider": "cosign", "matchOIDCIdentity": [{
                 "issuer": "^" + re.escape(bundle["issuer"]) + "$",
                 "subject": "^" + re.escape(bundle["identity"]) + "$",
@@ -62,7 +62,7 @@ def manifests(release: dict) -> list[dict]:
     reconciliation = {
         "apiVersion": "kustomize.toolkit.fluxcd.io/v1", "kind": "Kustomization",
         "metadata": metadata,
-        "spec": {"interval": "10m", "retryInterval": "1m", "timeout": "5m",
+        "spec": {"interval": "1m", "retryInterval": "1m", "timeout": "5m",
                  "path": "./", "prune": False, "wait": True,
                  "sourceRef": {"kind": "OCIRepository", "name": name}},
     }

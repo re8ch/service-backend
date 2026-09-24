@@ -2,7 +2,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata: {name: connectool, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
   ref: {tag: "0.6.0"}
@@ -16,7 +16,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata: {name: connectool, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   releaseName: connectool
   targetNamespace: connectool
   storageNamespace: connectool

@@ -4,7 +4,7 @@ metadata:
   name: observability-bootstrap
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 1m
   path: ./
   prune: false
   wait: true
@@ -23,7 +23,7 @@ metadata:
   name: observability-opencost-recovery
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 1m
   path: ./
   prune: false
   wait: true
@@ -43,7 +43,7 @@ metadata:
   namespace: flux-system
 spec:
   suspend: false
-  interval: 10m
+  interval: 1m
   path: ./
   prune: false
   wait: true

@@ -7,7 +7,7 @@ metadata:
     delivery.re8ch.com/module: platform/scheduling-fabric
     delivery.re8ch.com/codename: reef-pearl
 spec:
-  interval: 10m
+  interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
     digest: sha256:2b23d37c5b6310bd9a11ab765d8e9e882b356fc5eb417f6acb2ce544bd6ec396
@@ -28,7 +28,7 @@ metadata:
     delivery.re8ch.com/module: platform/scheduling-fabric
     delivery.re8ch.com/codename: reef-pearl
 spec:
-  interval: 10m
+  interval: 1m
   retryInterval: 1m
   timeout: 5m
   path: ./

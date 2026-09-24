@@ -14,7 +14,7 @@ metadata:
   annotations:
     supply-chain.re8ch.com/chart-index-sha256: fae31d000e9f98b55300ac7558e36913a858ac0606c002534b665936f38cf525
 spec:
-  interval: 24h
+  interval: 144m
   url: https://kubernetes-sigs.github.io/descheduler/
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
@@ -25,14 +25,14 @@ metadata:
   annotations:
     supply-chain.re8ch.com/chart-index-sha256: 7b7fe31ed204b16d52d52744e9a23442eeb1fa70a5b87e8a7a1ef49a57833f10
 spec:
-  interval: 24h
+  interval: 144m
   url: https://kyverno.github.io/kyverno/
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: scheduling-governance-controllers, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   path: ./platform/scheduling-fabric/governance/controllers
   prune: false
   wait: true
@@ -44,7 +44,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: scheduling-governance-policies, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   path: ./platform/scheduling-fabric/governance/policies
   prune: false
   wait: true

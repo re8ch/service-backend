@@ -37,7 +37,14 @@ def test_helm_controller_has_two_failure_domain_separated_replicas():
 
 
 def test_helm_controller_ha_has_a_minimum_availability_budget():
-    budget = yaml.safe_load((CLUSTER / "flux-system/controller-ha.yaml").read_text())
+    budgets = list(yaml.safe_load_all((CLUSTER / "flux-system/controller-ha.yaml").read_text()))
+    assert {b['metadata']['name'] for b in budgets} == {
+        'helm-controller', 'kustomize-controller', 'notification-controller'}
+    for item in budgets:
+        assert item['kind'] == 'PodDisruptionBudget'
+        assert item['spec']['minAvailable'] == 1
+        assert item['spec']['selector']['matchLabels']['app'] == item['metadata']['name']
+    budget = next(b for b in budgets if b['metadata']['name'] == 'helm-controller')
     assert budget["kind"] == "PodDisruptionBudget"
     assert budget["spec"]["minAvailable"] == 1
     assert budget["spec"]["selector"]["matchLabels"] == {

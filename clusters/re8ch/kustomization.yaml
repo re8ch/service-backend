@@ -83,6 +83,49 @@ resources:
 patchesStrategicMerge:
 - retire-legacy-mcp.patch.yaml
 patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: (kustomize-controller|notification-controller)
+    namespace: flux-system
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 2
+    - op: add
+      path: /spec/strategy
+      value:
+        type: RollingUpdate
+        rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    - op: add
+      path: /spec/template/spec/affinity
+      value:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [restricted-node-6dc3f140f9, domain-ex, vm-20-12-ubuntu]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: [kustomize-controller]
+            topologyKey: kubernetes.io/hostname
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: notification-controller
+    namespace: flux-system
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/affinity/podAntiAffinity/requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector/matchExpressions/0/values
+      value: [notification-controller]
 - path: flux-system/helm-controller-ha.patch.yaml
   target:
     group: apps

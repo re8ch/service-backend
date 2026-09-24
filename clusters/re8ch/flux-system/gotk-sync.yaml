@@ -2,7 +2,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata: {name: service-backend, namespace: flux-system}
 spec:
-  interval: 5m
+  interval: 30s
   timeout: 15m
   provider: github
   url: https://github.com/re8ch/service-backend.git
@@ -17,7 +17,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: service-backend, namespace: flux-system}
 spec:
-  interval: 10m
+  interval: 1m
   path: ./clusters/re8ch
   prune: false
   # The root owns intentionally suspended and condition-reporting resources;

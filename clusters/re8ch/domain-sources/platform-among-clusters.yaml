@@ -7,7 +7,7 @@ metadata:
     delivery.re8ch.com/module: platform/among-clusters
     delivery.re8ch.com/codename: tramontane
 spec:
-  interval: 10m
+  interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
   ref:
     digest: sha256:735c9843e9b1bb5edbfa9c5b2af8362daf68e0e5049baaa0b1ec53b116fb2ed3
@@ -28,7 +28,7 @@ metadata:
     delivery.re8ch.com/module: platform/among-clusters
     delivery.re8ch.com/codename: tramontane
 spec:
-  interval: 10m
+  interval: 1m
   retryInterval: 1m
   timeout: 5m
   path: ./

@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: cube-sandbox
 spec:
-  interval: 30m
+  interval: 3m
   timeout: 10m
   releaseName: cube-trial
   chart:
@@ -103,7 +103,7 @@ spec:
                           - |
                             cfg=/opt/cube-image/Cubelet/config/config.toml
                             sed -i -E \
-                              -e 's|^([[:space:]]*)cidr = .*|\1cidr = "192.0.2.33/18"|' \
+                              -e 's|^([[:space:]]*)cidr = .*|\1cidr = "172.16.0.0/18"|' \
                               -e 's|^([[:space:]]*)cube_router_enable = .*|\1cube_router_enable = true|' \
                               -e 's|^([[:space:]]*)cube_router_cidr = .*|\1cube_router_cidr = ""|' \
                               "${cfg}"
@@ -128,4 +128,4 @@ spec:
                       - name: cube-egress-net
                         env:
                           - name: CUBE_SANDBOX_NETWORK_CIDR
-                            value: 192.0.2.33/18
+                            value: 172.16.0.0/18
