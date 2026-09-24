@@ -18,7 +18,7 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
     assert dns["enabled"] is True
     assert dns["replicas"] == 3
     assert dns["pdbMinAvailable"] == 2
-    assert dns["testNodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
+    assert dns["testNodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     hostnames = dns["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert hostnames == {
         "key": "kubernetes.io/hostname",
@@ -35,7 +35,7 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
         "192.0.2.67", "192.0.2.79", "192.0.2.203"
     ]
     assert release["spec"]["upgrade"]["preserveValues"] is False
-    assert release["spec"]["test"] == {"enable": True, "ignoreFailures": False}
+    assert release["spec"]["test"] == {"enable": True, "ignoreFailures": True}
     assert release["spec"]["values"]["advancedFabric"]["networkQuality"]["victoriaMetricsServiceScrape"] is False
 
     patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]

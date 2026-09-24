@@ -41,6 +41,20 @@ spec:
                 value:
                   - ip: 192.0.2.209
                     hostnames: [dex.re8ch.com]
+          # The initialization container must be able to reach PostgreSQL even
+          # while cluster DNS is being repaired. Without this bootstrap path a
+          # transient lookup timeout leaves Helm in a repeating rollback loop.
+          - target: {kind: Deployment, name: paralus}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/hostAliases
+                value:
+                  - ip: 192.0.2.38
+                    hostnames:
+                      - paralus-postgresql
+                      - paralus-postgresql.paralus
+                      - paralus-postgresql.paralus.svc
+                      - paralus-postgresql.paralus.svc.cluster.local
           - target: {kind: StatefulSet}
             patch: |-
               - op: add
