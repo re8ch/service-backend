@@ -62,8 +62,13 @@ spec:
           image: alpine:3.22
           imagePullPolicy: IfNotPresent
           command: [/bin/sh, -ec]
-          args: ['sed "s|bind-address: 0.0.0.0|bind-address: ${POD_IP}|" /base/config.yaml > /work/config.yaml']
-          env: [{name: POD_IP, valueFrom: {fieldRef: {fieldPath: status.podIP}}}]
+          # restricted-node-6dc3f140f9's overlay address is not a valid public-egress source. Let the
+          # kernel choose its provider-facing source there; edge nodes continue
+          # binding their routable endpoint address.
+          args: ['if [ "$NODE_NAME" = restricted-node-6dc3f140f9 ]; then cp /base/config.yaml /work/config.yaml; else sed "s|bind-address: 0.0.0.0|bind-address: ${POD_IP}|" /base/config.yaml > /work/config.yaml; fi']
+          env:
+            - {name: POD_IP, valueFrom: {fieldRef: {fieldPath: status.podIP}}}
+            - {name: NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: config, mountPath: /base, readOnly: true}
