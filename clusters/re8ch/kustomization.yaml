@@ -98,7 +98,7 @@ patches:
       path: /spec/strategy
       value:
         type: RollingUpdate
-        rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+        rollingUpdate: {maxSurge: 1, maxUnavailable: 1}
     - op: add
       path: /spec/template/spec/affinity
       value:
@@ -109,17 +109,11 @@ patches:
               - key: kubernetes.io/hostname
                 operator: In
                 values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-    - op: add
-      path: /spec/template/spec/topologySpreadConstraints
-      value:
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: DoNotSchedule
-        labelSelector:
-          matchExpressions:
-          - key: app
-            operator: Exists
-        matchLabelKeys: [app]
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector: {}
+            matchLabelKeys: [app]
+            topologyKey: kubernetes.io/hostname
     - op: replace
       path: /spec/template/spec/dnsPolicy
       value: None

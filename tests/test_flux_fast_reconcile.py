@@ -30,8 +30,8 @@ def test_rendered_controller_failover_and_source_cache_safety():
         assert deployment['spec']['replicas'] == 3
         pod = deployment['spec']['template']['spec']
         assert '--enable-leader-election' in pod['containers'][0]['args']
-        spread = pod['topologySpreadConstraints'][0]
-        assert spread['topologyKey'] == 'kubernetes.io/hostname'
-        assert spread['matchLabelKeys'] == ['app']
+        anti_affinity = pod['affinity']['podAntiAffinity']['requiredDuringSchedulingIgnoredDuringExecution'][0]
+        assert anti_affinity['topologyKey'] == 'kubernetes.io/hostname'
+        assert anti_affinity['matchLabelKeys'] == ['app']
     # Never load-balance artifact requests over independently empty caches.
     assert deployments['source-controller']['spec']['replicas'] == 1

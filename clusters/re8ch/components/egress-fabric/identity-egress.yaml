@@ -124,6 +124,19 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: identity-egress-gitops
+  namespace: egress-fabric
+  labels: {app.kubernetes.io/name: identity-egress}
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  selector: {app.kubernetes.io/name: identity-egress}
+  ports:
+    - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: identity-egress-control-plane
   namespace: egress-fabric
   labels: {app.kubernetes.io/name: identity-egress}

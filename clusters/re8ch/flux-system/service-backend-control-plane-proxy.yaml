@@ -7,4 +7,4 @@ type: Opaque
 stringData:
   # This contains only the non-secret in-cluster proxy endpoint. Provider and
   # GitHub credentials remain in their SOPS-managed Secrets.
-  address: http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893
+  address: http://identity-egress-gitops.egress-fabric.svc.cluster.local:17893
