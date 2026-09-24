@@ -27,7 +27,7 @@
           "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.4", "destinationAddress": "192.0.2.246"},
           "legacyDirectAddresses": ["192.0.2.17"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.176", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "dropCache"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.176", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 10
       },
@@ -42,7 +42,7 @@
           "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.176", "destinationAddress": "192.0.2.35"},
           "legacyDirectAddresses": ["192.0.2.126"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.4", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "dropCache"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.4", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 20
       }
