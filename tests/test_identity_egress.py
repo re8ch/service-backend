@@ -27,7 +27,10 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_real_github_path():
     init = deployment["spec"]["template"]["spec"]["initContainers"][0]
     assert init["env"][0]["name"] == "POD_IP"
     assert init["env"][0]["valueFrom"]["fieldRef"]["fieldPath"] == "status.podIP"
+    assert init["env"][1]["name"] == "NODE_NAME"
+    assert init["env"][1]["valueFrom"]["fieldRef"]["fieldPath"] == "spec.nodeName"
     assert "bind-address: ${POD_IP}" in init["args"][0]
+    assert '"$NODE_NAME" = restricted-node-6dc3f140f9' in init["args"][0]
     assert container["args"][:2] == ["-d", "/var/lib/mihomo"]
     assert any(volume["name"] == "state" and "emptyDir" in volume for volume in deployment["spec"]["template"]["spec"]["volumes"])
     affinity = deployment["spec"]["template"]["spec"]["affinity"]
