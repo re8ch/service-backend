@@ -28,11 +28,17 @@ spec:
   install: {remediation: {retries: 3}}
   upgrade: {remediation: {retries: 3, remediateLastFailure: true}}
   values:
+    # Keep telemetry admission fail-open: an unavailable observability webhook
+    # must not block unrelated resources or Flux reconciliation.
+    admissionWebhooks:
+      failurePolicy: Ignore
+      pods:
+        failurePolicy: Ignore
     # A1/B1 remain tainted while Cilium is unhealthy. Keep the bootstrap
-    # control plane available on restricted-node-6dc3f140f9; expand only after the node gate clears.
+    # control plane available on R640; expand only after the node gate clears.
     replicaCount: 1
     fullnameOverride: otel-operator-opentelemetry-operator
-    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    nodeSelector: {kubernetes.io/hostname: r640}
     pdb: {create: true, minAvailable: 1}
     manager:
       collectorImage:

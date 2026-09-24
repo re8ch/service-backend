@@ -27,6 +27,7 @@ def test_victoria_metrics_operator_is_an_r640_singleton():
     }
     assert values["replicaCount"] == 1
     assert values["podDisruptionBudget"]["enabled"] is False
+    assert values["admissionWebhooks"] == {"enabled": True, "policy": "Ignore"}
     assert "podAntiAffinity" not in values["affinity"]
     assert values["tolerations"] == [
         {
@@ -40,6 +41,16 @@ def test_victoria_metrics_operator_is_an_r640_singleton():
         {"name": "KUBERNETES_SERVICE_HOST", "value": "192.0.2.116"},
         {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
     ]
+
+
+def test_opentelemetry_admission_is_fail_open():
+    resources = yaml_documents(OBSERVABILITY / "bootstrap" / "opentelemetry-operator.yaml")
+    release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
+
+    assert release["spec"]["values"]["admissionWebhooks"] == {
+        "failurePolicy": "Ignore",
+        "pods": {"failurePolicy": "Ignore"},
+    }
 
 
 def test_production_reconciliation_is_enabled_from_verified_oci_source():
