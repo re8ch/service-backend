@@ -6,6 +6,7 @@ metadata:
   annotations:
     delivery.re8ch.com/module: platform/headlamp
     delivery.re8ch.com/codename: aurora-indigo
+    delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 10m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
@@ -27,16 +28,20 @@ metadata:
   annotations:
     delivery.re8ch.com/module: platform/headlamp
     delivery.re8ch.com/codename: aurora-indigo
+    delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 10m
   retryInterval: 1m
   timeout: 5m
-  path: ./
+  # Harbor currently accepts the bundle but times out while committing its
+  # signature. Reconcile this module from the already verified main Git source
+  # until signed OCI publication is healthy again.
+  path: ./platform/headlamp
   prune: false
   wait: false
   sourceRef:
-    kind: OCIRepository
-    name: domain-platform-headlamp
+    kind: GitRepository
+    name: service-backend
   decryption:
     provider: sops
     secretRef:
