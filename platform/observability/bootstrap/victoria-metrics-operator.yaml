@@ -43,7 +43,10 @@ spec:
       disable_prometheus_converter: true
     admissionWebhooks:
       enabled: true
-    # restricted-node-6dc3f140f9 is the durable admission/control-plane anchor. A second replica on
+      # Observability validation must not become a cluster-wide GitOps gate
+      # when the single webhook endpoint is unreachable across the fabric.
+      policy: Ignore
+    # R640 is the durable admission/control-plane anchor. A second replica on
     # the same machine does not add failure-domain redundancy and previously
     # left every Helm upgrade waiting on an unschedulable Pod.
     replicaCount: 1
@@ -58,7 +61,7 @@ spec:
     # health-owned control-plane anycast VIP without placing workloads on A1/B1.
     env:
       - name: KUBERNETES_SERVICE_HOST
-        value: "192.0.2.220"
+        value: "10.250.0.1"
       - name: KUBERNETES_SERVICE_PORT
         value: "6443"
     tolerations:
@@ -73,7 +76,7 @@ spec:
             - matchExpressions:
                 - key: kubernetes.io/hostname
                   operator: In
-                  values: [restricted-node-6dc3f140f9]
+                  values: [r640]
     resources:
       requests: {cpu: 100m, memory: 128Mi}
       limits: {cpu: 1, memory: 512Mi}
