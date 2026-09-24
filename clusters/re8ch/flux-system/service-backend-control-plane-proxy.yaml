@@ -7,4 +7,6 @@ type: Opaque
 stringData:
   # This contains only the non-secret in-cluster proxy endpoint. Provider and
   # GitHub credentials remain in their SOPS-managed Secrets.
-  address: http://192.0.2.186:17893
+  # Use the control-plane-local Service so Flux follows service discovery and
+  # never depends on a reserved ClusterIP or a cross-node proxy endpoint.
+  address: http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893
