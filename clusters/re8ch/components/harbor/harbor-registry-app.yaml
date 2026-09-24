@@ -132,6 +132,18 @@ spec:
       port: 443
       targetPort: https
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harbor-proxy-upload-timeout
+  namespace: harbor
+data:
+  harbor.https.upload-timeout.conf: |-
+    # OSS-backed blob commits can take several minutes. Nginx otherwise uses
+    # its 60-second client-body timeout and returns 408 while the registry is
+    # still committing the upload.
+    client_body_timeout 900s;
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -152,7 +164,7 @@ spec:
         app.kubernetes.io/component: log
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -211,7 +223,7 @@ spec:
         app.kubernetes.io/component: postgresql
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -268,7 +280,7 @@ spec:
         app.kubernetes.io/component: redis
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -316,7 +328,7 @@ spec:
         app.kubernetes.io/component: registry
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -379,7 +391,7 @@ spec:
         app.kubernetes.io/component: registryctl
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -445,7 +457,7 @@ spec:
         app.kubernetes.io/component: core
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -468,7 +480,7 @@ spec:
               valueFrom: {fieldRef: {fieldPath: status.hostIP}}
             - {name: HTTP_PROXY, value: "http://$(NODE_IP):17891"}
             - {name: HTTPS_PROXY, value: "http://$(NODE_IP):17891"}
-            - {name: NO_PROXY, value: "127.0.0.1,localhost,::1,core,registry,registryctl,redis,postgresql,jobservice,portal,log,trivy-adapter,harbor-registry,.svc,.svc.cluster.local,.cluster.local,.re8ch.com,192.0.2.203/8,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,::1,core,registry,registryctl,redis,postgresql,jobservice,portal,log,trivy-adapter,harbor-registry,.svc,.svc.cluster.local,.cluster.local,.re8ch.com,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"}
           ports:
             - name: http
               containerPort: 8080
@@ -528,7 +540,7 @@ spec:
         app.kubernetes.io/component: portal
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -577,7 +589,7 @@ spec:
         app.kubernetes.io/component: jobservice
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -600,7 +612,7 @@ spec:
               valueFrom: {fieldRef: {fieldPath: status.hostIP}}
             - {name: HTTP_PROXY, value: "http://$(NODE_IP):17891"}
             - {name: HTTPS_PROXY, value: "http://$(NODE_IP):17891"}
-            - {name: NO_PROXY, value: "127.0.0.1,localhost,::1,core,registry,registryctl,redis,postgresql,jobservice,portal,log,trivy-adapter,harbor-registry,.svc,.svc.cluster.local,.cluster.local,.re8ch.com,192.0.2.203/8,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,::1,core,registry,registryctl,redis,postgresql,jobservice,portal,log,trivy-adapter,harbor-registry,.svc,.svc.cluster.local,.cluster.local,.re8ch.com,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"}
           ports:
             - name: http
               containerPort: 8080
@@ -646,7 +658,7 @@ spec:
         app.kubernetes.io/component: proxy
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -680,6 +692,10 @@ spec:
               mountPath: /etc/nginx
               subPath: nginx
               readOnly: true
+            - name: upload-timeout
+              mountPath: /etc/nginx/conf.d/harbor.https.upload-timeout.conf
+              subPath: harbor.https.upload-timeout.conf
+              readOnly: true
             - name: harbor-data
               mountPath: /etc/cert
               subPath: secret/cert
@@ -689,6 +705,9 @@ spec:
               subPath: shared/trust-certificates
               readOnly: true
       volumes:
+        - name: upload-timeout
+          configMap:
+            name: harbor-proxy-upload-timeout
         - name: harbor-data
           hostPath:
             path: /var/lib/rancher/harbor/data
