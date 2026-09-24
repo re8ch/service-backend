@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/runtime-anatomy
-codename: delta
+codename: grove
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-runtime-anatomy
-  digest: sha256:07adfd608968339e24232d8b6202c5437d39c4e7fee28d417cd09f4bdd0a9525
+  digest: sha256:bfdf7734057b7df29c7b32bfaab6063e35ef077df88753fae28f8665b3acdef9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
