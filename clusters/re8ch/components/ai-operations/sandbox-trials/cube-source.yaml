@@ -9,6 +9,10 @@ spec:
   interval: 144m
   timeout: 5m
   url: https://github.com/tencentcloud/CubeSandbox.git
+  # Reuse the DNS-discovered control-plane egress service used by the primary
+  # GitRepository instead of depending on whichever node has direct Internet.
+  proxySecretRef:
+    name: service-backend-control-plane-proxy
   ref:
     commit: 8721dd151971ce3c2966482bbd32904ad98f378e
   ignore: |
