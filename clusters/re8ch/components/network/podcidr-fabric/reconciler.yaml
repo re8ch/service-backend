@@ -266,11 +266,21 @@ data:
         # traffic by rewriting its next hop to the RR identity/transit IP.
         # Do not delete route-maps while bgpd is using them. FRR 8.4 can drop
         # bgpd during that transaction; redefine the desired clauses in place.
-        echo 'route-map POD-FABRIC-RR-OUT permit 10'
+        echo 'route-map POD-FABRIC-RR-IDENTITY-OUT permit 10'
         echo 'match ip address prefix-list POD-FABRIC-RR-SELF'
         echo "set ip next-hop ${internal_ip}"
         echo 'exit'
-        echo 'route-map POD-FABRIC-RR-OUT permit 20'
+        echo 'route-map POD-FABRIC-RR-IDENTITY-OUT permit 20'
+        echo 'match ip address prefix-list POD-FABRIC-OUT'
+        echo 'exit'
+        # Transport spokes peer over the point-to-point WireGuard subnet and
+        # must receive a next hop in that same subnet. Advertising the
+        # ZeroTier identity here creates an asymmetric forward/reverse path.
+        echo 'route-map POD-FABRIC-RR-TRANSPORT-OUT permit 10'
+        echo 'match ip address prefix-list POD-FABRIC-RR-SELF'
+        echo "set ip next-hop ${transport_ip}"
+        echo 'exit'
+        echo 'route-map POD-FABRIC-RR-TRANSPORT-OUT permit 20'
         echo 'match ip address prefix-list POD-FABRIC-OUT'
         echo 'exit'
         echo 'no ip route 192.0.2.52/24 Null0 254'
@@ -331,9 +341,15 @@ data:
             echo "no neighbor ${peer} next-hop-self force"
             echo "neighbor ${peer} attribute-unchanged next-hop"
           fi
-          echo "neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
           if [ "${mode}" = transport ]; then
+            echo "no neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
+            echo "no neighbor ${peer} route-map POD-FABRIC-RR-IDENTITY-OUT out"
+            echo "neighbor ${peer} route-map POD-FABRIC-RR-TRANSPORT-OUT out"
             echo "no neighbor ${peer} route-map POD-NH-${last} in"
+          else
+            echo "no neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
+            echo "no neighbor ${peer} route-map POD-FABRIC-RR-TRANSPORT-OUT out"
+            echo "neighbor ${peer} route-map POD-FABRIC-RR-IDENTITY-OUT out"
           fi
         done
         jq -c --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own)' /config/inventory.json | while read -r other_rr; do
@@ -343,7 +359,9 @@ data:
           echo "neighbor ${peer} prefix-list POD-FABRIC-OUT out"
           echo "neighbor ${peer} maximum-prefix 64 90 restart 5"
           echo "neighbor ${peer} attribute-unchanged next-hop"
-          echo "neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
+          echo "no neighbor ${peer} route-map POD-FABRIC-RR-OUT out"
+          echo "no neighbor ${peer} route-map POD-FABRIC-RR-TRANSPORT-OUT out"
+          echo "neighbor ${peer} route-map POD-FABRIC-RR-IDENTITY-OUT out"
         done
         echo 'exit-address-family'
         echo 'end'
@@ -510,14 +528,24 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: ab-readiness-v1
+        networking.re8ch.com/config-revision: symmetric-transport-next-hop-v1
     spec:
       hostPID: true
       hostNetwork: true
       priorityClassName: system-node-critical
       tolerations: [{operator: Exists}]
-      nodeSelector:
-        networking.re8ch.com/podcidr-fabric: enabled
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: networking.re8ch.com/podcidr-fabric
+                    operator: In
+                    values: [enabled]
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
       containers:
         - name: reconciler
           image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26

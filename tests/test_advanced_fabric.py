@@ -139,6 +139,28 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertIn('.peers[$b1].state == "Established"', reconciler)
         self.assertIn('ip -4 route show exact "${prefix}"', reconciler)
 
+    def test_podcidr_fabric_uses_symmetric_transport_next_hops_on_control_planes(self):
+        root = pathlib.Path(__file__).parents[1]
+        resources = [
+            item for item in yaml.safe_load_all(
+                (root / "clusters/re8ch/components/network/podcidr-fabric/reconciler.yaml").read_text()
+            ) if item
+        ]
+        config = next(item for item in resources if item["kind"] == "ConfigMap")
+        script = config["data"]["reconcile.sh"]
+        self.assertIn("POD-FABRIC-RR-TRANSPORT-OUT", script)
+        self.assertIn('set ip next-hop ${transport_ip}', script)
+        self.assertIn('set ip next-hop ${internal_ip}', script)
+        daemonset = next(item for item in resources if item["kind"] == "DaemonSet")
+        terms = daemonset["spec"]["template"]["spec"]["affinity"]["nodeAffinity"][
+            "requiredDuringSchedulingIgnoredDuringExecution"
+        ]["nodeSelectorTerms"]
+        assert any(term["matchExpressions"][0] == {
+            "key": "kubernetes.io/hostname",
+            "operator": "In",
+            "values": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        } for term in terms)
+
     def test_release_pins_dns_helm_test_to_healthy_peer(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"
         resources = [doc for doc in yaml.safe_load_all(release_path.read_text()) if doc]
