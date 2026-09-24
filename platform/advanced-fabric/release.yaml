@@ -245,10 +245,10 @@ spec:
       weightedEcmp:
         enabled: true
       controller:
-        # The controller must reach the in-cluster API before it can publish
-        # checksum-bound host transactions. Zan's Pod-to-Service path is
-        # currently unavailable; A1 has a verified direct API path.
-        nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+        # This controller owns the freshness clock for NetworkPathAssessment.
+        # Keep it on the always-on control node so a workstation outage cannot
+        # make every PublicEdge fail closed with expired evidence.
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       virtualIngress:
         enabled: true
         replicas: 2

@@ -151,7 +151,7 @@ class AdvancedFabricTests(unittest.TestCase):
         resources = [doc for doc in yaml.safe_load_all(release_path.read_text()) if doc]
         release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
         controller = release["spec"]["values"]["advancedFabric"]["controller"]
-        self.assertEqual(controller["nodeSelector"], {"kubernetes.io/hostname": "restricted-node-1eb0570f74"})
+        self.assertEqual(controller["nodeSelector"], {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"})
 
 
 if __name__ == "__main__":

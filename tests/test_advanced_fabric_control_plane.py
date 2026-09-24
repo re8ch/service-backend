@@ -76,7 +76,7 @@ def test_control_plane_rollout_does_not_enable_routeros_mutation():
 
 def test_controller_runs_on_verified_control_plane_api_path():
     advanced = release_values()["advancedFabric"]
-    assert advanced["controller"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
+    assert advanced["controller"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
 
 
 def test_virtual_ingress_controller_is_ha_and_confined_to_a1_b1():
