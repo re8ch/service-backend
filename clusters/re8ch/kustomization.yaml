@@ -150,9 +150,16 @@ patches:
     name: source-controller
     namespace: flux-system
   patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: POD_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.podIP
     - op: replace
       path: /spec/template/spec/containers/0/args/6
-      value: --storage-adv-addr=192.0.2.252
+      value: --storage-adv-addr=$(POD_IP):9090
 configMapGenerator:
 - name: rook-ceph-operator-values
   namespace: flux-system
