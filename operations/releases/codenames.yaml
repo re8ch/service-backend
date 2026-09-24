@@ -272,6 +272,8 @@ modules:
       digest: sha256:86c263c92c836217d878030ee616568fe0e291b8ffa94886c3fc731b2ba7ddbf
     - codename: mistral-amber
       digest: sha256:8dd675542ce7e44725353019b5093d814a8b37c06c617fb72779387562def5e0
+    - codename: sirocco-amber
+      digest: sha256:5317a449bf96d73d20e3a0ba99fd2bd50b678dbc48d166e419d3268ca8084d3b
   platform/git-workspaces:
     releases:
     - codename: andromeda
