@@ -276,6 +276,11 @@ modules:
       digest: sha256:8dd675542ce7e44725353019b5093d814a8b37c06c617fb72779387562def5e0
     - codename: sirocco-amber
       digest: sha256:5317a449bf96d73d20e3a0ba99fd2bd50b678dbc48d166e419d3268ca8084d3b
+    - codename: tramontane-amber
+      digest: sha256:a003cc6fef4033174b9a017d44771b77068a1b75aa600ec89a7c5f341f6e4d96
+      quarantined: missing-or-invalid-signature
+    - codename: zephyr-amber
+      digest: sha256:cdbdc65d7763d81820c974f8c88f19a6af7fb6e3bd87e62ccdb3bd9b6b318b43
   platform/git-workspaces:
     releases:
     - codename: andromeda
