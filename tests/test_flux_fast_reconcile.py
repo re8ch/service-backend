@@ -16,6 +16,9 @@ def test_root_frequency_and_local_sync():
     assert docs[0]['spec']['timeout'] == '15m'
     assert docs[1]['spec']['timeout'] == '3m'
     assert docs[0]['spec']['proxySecretRef']['name'] == 'service-backend-control-plane-proxy'
+    proxy = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-control-plane-proxy.yaml').read_text())
+    assert proxy['stringData']['address'] == (
+        'http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893')
     config = plistlib.loads((ROOT / 'operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist').read_bytes())
     assert config['StartInterval'] == 30
 
