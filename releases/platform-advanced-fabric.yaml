@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: sirocco-amber
+codename: zephyr-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:5317a449bf96d73d20e3a0ba99fd2bd50b678dbc48d166e419d3268ca8084d3b
+  digest: sha256:cdbdc65d7763d81820c974f8c88f19a6af7fb6e3bd87e62ccdb3bd9b6b318b43
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
