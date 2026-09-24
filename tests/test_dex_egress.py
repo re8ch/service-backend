@@ -20,8 +20,9 @@ def test_dex_egress_matches_each_issuer_runtime():
         assert "192.0.2.183/8" in environment["NO_PROXY"]
         pod = deployment["spec"]["template"]["spec"]
         if deployment["metadata"]["name"] == "dex-service":
-            assert "HTTP_PROXY" not in environment
-            assert "HTTPS_PROXY" not in environment
+            expected = "http://192.0.2.147:17893"
+            assert environment["HTTP_PROXY"] == expected
+            assert environment["HTTPS_PROXY"] == expected
             assert pod["hostNetwork"] is True
             assert pod["dnsPolicy"] == "Default"
         else:
