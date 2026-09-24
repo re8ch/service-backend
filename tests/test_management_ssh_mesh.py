@@ -57,13 +57,13 @@ def test_windows_installer_separates_wsl_owner_from_host_reboot_authority() -> N
     assert "pageReporting=true" in script
 
 
-def test_wsl_memory_policy_is_bounded_and_promptly_reclaims_cache() -> None:
+def test_wsl_memory_policy_is_bounded_and_gradually_reclaims_cache() -> None:
     inventory = json.loads((ROOT / "operations/host-ops/management-ssh-mesh/inventory.json").read_text())
     windows = [node for node in inventory["spec"]["nodes"] if node["platform"].startswith("windows")]
     for node in windows:
         assert node["wsl"]["memory"] == "12GB"
         assert node["wsl"]["swap"] == "3GB"
-        assert node["wsl"]["autoMemoryReclaim"] == "dropCache"
+        assert node["wsl"]["autoMemoryReclaim"] == "gradual"
 
 
 def test_windows_management_uses_peer_wsl_jump_and_lan_destination() -> None:
