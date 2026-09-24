@@ -116,13 +116,7 @@ patches:
             topologyKey: kubernetes.io/hostname
     - op: replace
       path: /spec/template/spec/dnsPolicy
-      value: None
-    - op: add
-      path: /spec/template/spec/dnsConfig
-      value:
-        nameservers: [192.0.2.240]
-        searches: [flux-system.svc.cluster.local, svc.cluster.local, cluster.local]
-        options: [{name: ndots, value: "5"}]
+      value: ClusterFirst
 - path: flux-system/source-controller-egress.patch.yaml
   target:
     group: apps
@@ -130,36 +124,6 @@ patches:
     kind: Deployment
     name: source-controller
     namespace: flux-system
-- target:
-    group: ""
-    version: v1
-    kind: Service
-    name: source-controller
-    namespace: flux-system
-  patch: |-
-    - op: add
-      path: /spec/clusterIP
-      value: 192.0.2.252
-    - op: add
-      path: /spec/clusterIPs
-      value: [192.0.2.252]
-- target:
-    group: apps
-    version: v1
-    kind: Deployment
-    name: source-controller
-    namespace: flux-system
-  patch: |-
-    - op: add
-      path: /spec/template/spec/containers/0/env/-
-      value:
-        name: POD_IP
-        valueFrom:
-          fieldRef:
-            fieldPath: status.podIP
-    - op: replace
-      path: /spec/template/spec/containers/0/args/6
-      value: --storage-adv-addr=$(POD_IP):9090
 configMapGenerator:
 - name: rook-ceph-operator-values
   namespace: flux-system

@@ -9,11 +9,9 @@ spec:
     type: Recreate
   template:
     spec:
-      dnsPolicy: None
-      dnsConfig:
-        nameservers: [192.0.2.240]
-        searches: [flux-system.svc.cluster.local, svc.cluster.local, cluster.local]
-        options: [{name: ndots, value: "5"}]
+      # Follow the node's declared clusterDNS instead of pinning a historical
+      # Service IP. This keeps restricted-node-6dc3f140f9, A1 and B1 on the same DNS path.
+      dnsPolicy: ClusterFirst
       nodeSelector:
         kubernetes.io/os: linux
         networking.re8ch.com/egress-policy: auto
