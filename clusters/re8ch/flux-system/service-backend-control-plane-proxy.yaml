@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-backend-control-plane-proxy
+  namespace: flux-system
+type: Opaque
+stringData:
+  # This contains only the non-secret in-cluster proxy endpoint. Provider and
+  # GitHub credentials remain in their SOPS-managed Secrets.
+  address: http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893
