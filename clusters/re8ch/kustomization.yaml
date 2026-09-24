@@ -117,6 +117,12 @@ patches:
     - op: replace
       path: /spec/template/spec/dnsPolicy
       value: ClusterFirst
+    - op: add
+      path: /spec/template/spec/tolerations
+      value:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
 - path: flux-system/source-controller-egress.patch.yaml
   target:
     group: apps

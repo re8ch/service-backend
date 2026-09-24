@@ -37,6 +37,11 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         assert set(expression["values"]) == CONTROL_PLANES
         assert pod["dnsPolicy"] == "ClusterFirst"
         assert "dnsConfig" not in pod
+        assert {
+            "key": "node-role.kubernetes.io/control-plane",
+            "operator": "Exists",
+            "effect": "NoSchedule",
+        } in pod["tolerations"]
         anti_affinity = pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
         assert anti_affinity["matchLabelKeys"] == ["app"]
