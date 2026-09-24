@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - release.yaml
   - public-routes.yaml
+  - identity-control-plane.yaml

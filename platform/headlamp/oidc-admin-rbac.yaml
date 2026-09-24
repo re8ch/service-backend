@@ -8,24 +8,15 @@ metadata:
     re8ch.com/access-level: cluster-admin
     re8ch.com/principal-type: human-oidc-user
   annotations:
-    re8ch.com/identity-source: dex-github
-    re8ch.com/equivalent-principal: oidc:admin@re8ch.com
-    re8ch.com/identity-evidence: "Dex GitHub connector reports username Woomou and email hliu74@apple.com"
+    re8ch.com/identity-source: dex-break-glass-group
+    re8ch.com/access-contract: direct-kubernetes-superuser-not-for-product-users
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
-  # The shared Dex group survives switching from the GitHub connector to the
-  # unified account broker. Keep the named users during the migration window.
+  # Direct Kubernetes authorization is reserved for the reviewed break-glass
+  # group. Product users are authorized through Paralus projects and groups.
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
     name: oidc:re8ch:k8s-admins
-  # Kubernetes uses the OIDC email claim as the username. Retain the GitHub
-  # login as a compatibility subject if the API-server claim mapping changes.
-  - apiGroup: rbac.authorization.k8s.io
-    kind: User
-    name: oidc:hliu74@apple.com
-  - apiGroup: rbac.authorization.k8s.io
-    kind: User
-    name: oidc:Woomou

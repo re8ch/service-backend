@@ -1,0 +1,197 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paralus-identity-contract
+  namespace: paralus
+data:
+  contract.json: |-
+    {
+      "provider": {
+        "apiVersion": "system.k8smgmt.io/v3",
+        "kind": "OIDCProvider",
+        "metadata": {
+          "name": "re8ch-dex",
+          "displayName": "RE8CH account",
+          "description": "GitOps-managed user identity provider. Kubernetes break-glass authorization remains separate.",
+          "partner": "RE8CH",
+          "organization": "RE8CH"
+        },
+        "spec": {
+          "providerName": "generic",
+          "clientId": "paralus-service",
+          "scopes": ["openid", "profile", "email", "groups"],
+          "issuerUrl": "https://dex.service.re8ch.com",
+          "requestedClaims": {"groups": {"essential": true}}
+        }
+      },
+      "groups": [
+        {
+          "apiVersion": "system.k8smgmt.io/v3",
+          "kind": "Group",
+          "metadata": {"name": "re8ch:paralus-viewers", "partner": "RE8CH", "organization": "RE8CH"},
+          "spec": {"type": "SSO", "users": [], "projectNamespaceRoles": [{"project": "defaultproject", "role": "PROJECT_READ_ONLY"}]}
+        },
+        {
+          "apiVersion": "system.k8smgmt.io/v3",
+          "kind": "Group",
+          "metadata": {"name": "re8ch:paralus-cluster-admins", "partner": "RE8CH", "organization": "RE8CH"},
+          "spec": {"type": "SSO", "users": [], "projectNamespaceRoles": [{"project": "defaultproject", "role": "CLUSTER_ADMIN"}]}
+        },
+        {
+          "apiVersion": "system.k8smgmt.io/v3",
+          "kind": "Group",
+          "metadata": {"name": "re8ch:paralus-admins", "partner": "RE8CH", "organization": "RE8CH"},
+          "spec": {"type": "SSO", "users": [], "projectNamespaceRoles": [{"role": "ADMIN"}]}
+        }
+      ]
+    }
+  reconcile.py: |-
+    import base64
+    import json
+    import logging
+    import os
+    import ssl
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    API = os.getenv("PARALUS_API", "http://paralus.paralus.svc.cluster.local:11000").rstrip("/")
+    CONTRACT = "/contract/contract.json"
+    TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    CLIENT_SECRET_PATH = "/api/v1/namespaces/dex/secrets/paralus-oidc-client"
+
+    def http(url, method="GET", body=None, headers=None, context=None):
+        data = None if body is None else json.dumps(body, separators=(",", ":")).encode()
+        request = urllib.request.Request(url, data=data, method=method)
+        request.add_header("Accept", "application/json")
+        if data is not None:
+            request.add_header("Content-Type", "application/json")
+        for key, value in (headers or {}).items():
+            request.add_header(key, value)
+        try:
+            with urllib.request.urlopen(request, timeout=15, context=context) as response:
+                payload = response.read()
+                return response.status, json.loads(payload) if payload else {}
+        except urllib.error.HTTPError as exc:
+            payload = exc.read()
+            if exc.code == 404:
+                return 404, {}
+            raise RuntimeError(f"request failed method={method} status={exc.code}") from exc
+
+    def client_secret():
+        token = open(TOKEN_PATH, encoding="utf-8").read().strip()
+        context = ssl.create_default_context(cafile=CA_PATH)
+        _, secret = http(
+            "https://kubernetes.default.svc" + CLIENT_SECRET_PATH,
+            headers={"Authorization": "Bearer " + token}, context=context)
+        encoded = secret.get("data", {}).get("clientSecret", "")
+        if not encoded:
+            raise RuntimeError("dex/paralus-oidc-client is missing clientSecret")
+        return base64.b64decode(encoded).decode()
+
+    def auth_headers():
+        key_id = os.environ.get("PARALUS_API_KEY_ID", "").strip()
+        token = os.environ.get("PARALUS_API_TOKEN", "").strip()
+        if not key_id or not token:
+            raise RuntimeError("paralus-gitops-api must provide keyId and token")
+        return {"X-API-KEYID": key_id, "X-API-TOKEN": token}
+
+    def upsert(collection_path, item_path, document, headers):
+        name = urllib.parse.quote(document["metadata"]["name"], safe="")
+        status, _ = http(f"{API}{item_path}/{name}", headers=headers)
+        method = "POST" if status == 404 else "PUT"
+        target = f"{API}{collection_path}" if method == "POST" else f"{API}{item_path}/{name}"
+        http(target, method, document, headers)
+        logging.info("reconciled kind=%s name=%s", document["kind"], document["metadata"]["name"])
+
+    def reconcile():
+        contract = json.load(open(CONTRACT, encoding="utf-8"))
+        headers = auth_headers()
+        provider = contract["provider"]
+        provider["spec"]["clientSecret"] = client_secret()
+        provider_path = "/auth/v3/sso/oidc/provider"
+        upsert(provider_path, provider_path, provider, headers)
+        for group in contract["groups"]:
+            metadata = group["metadata"]
+            partner = urllib.parse.quote(metadata["partner"], safe="")
+            organization = urllib.parse.quote(metadata["organization"], safe="")
+            prefix = f"/auth/v3/partner/{partner}/organization/{organization}"
+            upsert(prefix + "/groups", prefix + "/group", group, headers)
+
+    def run_forever():
+        while True:
+            reconcile()
+            time.sleep(60)
+
+    if __name__ == "__main__":
+        run_forever()
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: paralus-identity-reconciler, namespace: paralus}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: paralus-identity-client-secret-reader, namespace: dex}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [paralus-oidc-client]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: paralus-identity-client-secret-reader, namespace: dex}
+subjects: [{kind: ServiceAccount, name: paralus-identity-reconciler, namespace: paralus}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: paralus-identity-client-secret-reader}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paralus-identity-reconciler
+  namespace: paralus
+  labels: {app.kubernetes.io/name: paralus-identity-reconciler, app.kubernetes.io/part-of: paralus}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: paralus-identity-reconciler}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: paralus-identity-reconciler, app.kubernetes.io/part-of: paralus}}
+    spec:
+      serviceAccountName: paralus-identity-reconciler
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      containers:
+        - name: reconcile
+          image: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
+          command: [python3, /contract/reconcile.py]
+          env:
+            - {name: PARALUS_API, value: "http://paralus.paralus.svc.cluster.local:11000"}
+            - name: PARALUS_API_KEY_ID
+              valueFrom: {secretKeyRef: {name: paralus-gitops-api, key: keyId}}
+            - name: PARALUS_API_TOKEN
+              valueFrom: {secretKeyRef: {name: paralus-gitops-api, key: token}}
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 200m, memory: 128Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: contract, mountPath: /contract, readOnly: true}]
+      volumes: [{name: contract, configMap: {name: paralus-identity-contract, defaultMode: 0444}}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: paralus-identity-reconciler, namespace: paralus}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: paralus-identity-reconciler}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: paralus}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: paralus}}
+      ports: [{port: 11000, protocol: TCP}]
+    - to:
+        - ipBlock: {cidr: 192.0.2.248/32}
+      ports: [{port: 443, protocol: TCP}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]

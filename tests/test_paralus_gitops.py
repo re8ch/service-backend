@@ -98,4 +98,56 @@ def test_paralus_is_in_the_production_kustomization():
     cluster = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "../../platform/paralus" in cluster["resources"]
     component = yaml.safe_load((ROOT / "platform/paralus/kustomization.yaml").read_text())
-    assert set(component["resources"]) == {"release.yaml", "public-routes.yaml"}
+    assert set(component["resources"]) == {
+        "release.yaml", "public-routes.yaml", "identity-control-plane.yaml"}
+
+
+def test_paralus_identity_contract_is_gitops_managed_and_least_privilege():
+    resources = documents(ROOT / "platform/paralus/identity-control-plane.yaml")
+    contract_cm = next(item for item in resources if item["kind"] == "ConfigMap")
+    contract = __import__("json").loads(contract_cm["data"]["contract.json"])
+    provider = contract["provider"]
+    assert provider["metadata"]["name"] == "re8ch-dex"
+    assert provider["spec"]["issuerUrl"] == "https://dex.service.re8ch.com"
+    assert provider["spec"]["clientId"] == "paralus-service"
+    assert provider["spec"]["scopes"] == ["openid", "profile", "email", "groups"]
+    assert "clientSecret" not in provider["spec"]
+
+    groups = {item["metadata"]["name"]: item for item in contract["groups"]}
+    assert set(groups) == {
+        "re8ch:paralus-viewers",
+        "re8ch:paralus-cluster-admins",
+        "re8ch:paralus-admins",
+    }
+    assert groups["re8ch:paralus-viewers"]["spec"]["projectNamespaceRoles"][0]["role"] == "PROJECT_READ_ONLY"
+    assert groups["re8ch:paralus-cluster-admins"]["spec"]["projectNamespaceRoles"][0]["role"] == "CLUSTER_ADMIN"
+    assert groups["re8ch:paralus-admins"]["spec"]["projectNamespaceRoles"][0]["role"] == "ADMIN"
+
+    role = next(item for item in resources if item["kind"] == "Role")
+    assert role["rules"] == [{
+        "apiGroups": [""], "resources": ["secrets"],
+        "resourceNames": ["paralus-oidc-client"], "verbs": ["get"]}]
+    deployment = next(item for item in resources if item["kind"] == "Deployment")
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    assert "@sha256:" in container["image"]
+    assert {item["name"] for item in container["env"]} == {
+        "PARALUS_API", "PARALUS_API_KEY_ID", "PARALUS_API_TOKEN"}
+    script = contract_cm["data"]["reconcile.py"]
+    assert "/auth/v3/sso/oidc/provider" in script
+    assert 'prefix + "/groups"' in script
+    assert 'prefix + "/group"' in script
+    assert "clientSecret" in script
+    assert "logging.info" in script and "PARALUS_API_TOKEN" not in script.split("logging.info", 1)[1]
+    compile(script, "reconcile.py", "exec")
+
+
+def test_direct_kubernetes_admin_is_group_only_break_glass():
+    binding = yaml.safe_load((ROOT / "platform/headlamp/oidc-admin-rbac.yaml").read_text())
+    assert binding["roleRef"]["name"] == "cluster-admin"
+    assert binding["subjects"] == [{
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Group",
+        "name": "oidc:re8ch:k8s-admins",
+    }]
+    assert binding["metadata"]["annotations"]["re8ch.com/access-contract"] == (
+        "direct-kubernetes-superuser-not-for-product-users")
