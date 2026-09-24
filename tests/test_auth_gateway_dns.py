@@ -19,5 +19,5 @@ def test_auth_gateway_uses_stable_cluster_dns_service():
         "cluster.local",
     ]
     env = {item["name"]: item.get("value") for item in pod["containers"][0]["env"]}
-    assert env["HTTP_PROXY"] == "http://192.0.2.117:17893"
-    assert env["HTTPS_PROXY"] == "http://192.0.2.117:17893"
+    assert env["HTTP_PROXY"] == "http://192.0.2.29:17893"
+    assert env["HTTPS_PROXY"] == "http://192.0.2.29:17893"

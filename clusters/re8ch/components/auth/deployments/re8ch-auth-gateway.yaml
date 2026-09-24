@@ -68,9 +68,11 @@ spec:
             - name: GODEBUG
               value: netdns=cgo
             - name: HTTPS_PROXY
-              value: http://192.0.2.117:17893
+              # Control-plane Cilium Service translation is currently degraded.
+              # overseas-la is the declared healthy identity-egress authority.
+              value: http://192.0.2.29:17893
             - name: HTTP_PROXY
-              value: http://192.0.2.117:17893
+              value: http://192.0.2.29:17893
             - name: NO_PROXY
               value: localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.179/12,192.0.2.148/16
             - name: API_BASE_URL
