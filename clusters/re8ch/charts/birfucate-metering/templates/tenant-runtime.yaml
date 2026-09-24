@@ -46,6 +46,7 @@ spec:
               podAffinityTerm:
                 labelSelector: {matchLabels: {app: tenant-api}}
                 topologyKey: kubernetes.io/hostname
+      tolerations: {{- toYaml .Values.tenantPlatform.tolerations | nindent 8 }}
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
@@ -98,6 +99,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector: {matchLabels: {app: admin-api}}
               topologyKey: kubernetes.io/hostname
+      tolerations: {{- toYaml .Values.tenantPlatform.tolerations | nindent 8 }}
       imagePullSecrets: [{name: harbor-registry-pull}]
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:

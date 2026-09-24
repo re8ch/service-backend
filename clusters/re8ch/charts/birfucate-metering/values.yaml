@@ -25,6 +25,7 @@ tenantPlatform:
   tenantReadinessPath: /readyz
   placement:
     nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+  tolerations: []
   state:
     storageClassName: rbd-r640
     size: 1Gi
