@@ -174,6 +174,17 @@ def test_control_plane_reservations_are_declared_without_noexecute():
         assert not any("NoExecute" in value for value in args)
 
 
+def test_advanced_fabric_controller_runs_on_always_on_control_node():
+    release = list(
+        yaml.safe_load_all(
+            (ROOT / "platform/advanced-fabric/release.yaml").read_text()
+        )
+    )
+    helm_release = next(item for item in release if item and item.get("kind") == "HelmRelease")
+    selector = helm_release["spec"]["values"]["advancedFabric"]["controller"]["nodeSelector"]
+    assert selector == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+
+
 def test_prefer_taint_stage_is_not_blocked_by_existing_pending_pods():
     rollout = (
         ROOT / "operations/scripts/rollout-control-plane-isolation.sh"
