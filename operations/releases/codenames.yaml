@@ -89,6 +89,13 @@ modules:
       digest: sha256:52f25f9990898e3b0baf45d96d425d7fd79cc61315dadafcc7f34dd098aae04a
     - codename: sirocco
       digest: sha256:784c5f78b102afb9c0ceff1982e9ae030e95f60e62e3ebda78cf0168bdbfb341
+    - codename: tramontane
+      digest: sha256:0cc4d75dceef9045526856dec25a2d6e2115312b8e4779edc8a0ebd604c4d681
+      quarantined: missing-or-invalid-signature
+    - codename: zephyr
+      digest: sha256:889960036034eec3745107a4d16c88f2e8809cd42d3e2744f8617b5754338f9c
+    - codename: bora-amber
+      digest: sha256:3c5d1d04b5c64532f704cf852eaf42e5b9a625b455b8b41b2d37fbdca0e86d94
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
