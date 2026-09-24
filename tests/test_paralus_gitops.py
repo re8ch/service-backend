@@ -35,12 +35,11 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
     assert values["postgresql"]["primary"]["persistence"]["storageClass"] == "rbd-r640"
     assert values["postgresql"]["auth"]["secretKeys"]["userPasswordKey"] == "DB_PASSWORD"
     assert values["kratos"]["secret"]["nameOverride"] == "paralus-db"
-    control_plane = {"node-role.kubernetes.io/control-plane": "true"}
-    assert values["replicaCount"] == 3
-    assert values["nodeSelector"] == control_plane
-    assert values["postgresql"]["primary"]["nodeSelector"] == control_plane
-    assert values["kratos"]["deployment"]["nodeSelector"] == control_plane
-    assert values["kratos"]["statefulSet"]["nodeSelector"] == control_plane
+    assert values["replicaCount"] == 2
+    assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["postgresql"]["primary"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["kratos"]["deployment"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["kratos"]["statefulSet"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
 
     patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
     assert {item["target"]["kind"] for item in patches} == {
@@ -49,9 +48,8 @@ def test_paralus_release_is_pinned_and_uses_cluster_publication_stack():
         "Job",
     }
     placement = [item for item in patches if item["target"].get("name") is None]
-    assert all("path: /spec/template/spec/nodeSelector" in item["patch"] for item in placement)
-    assert all('node-role.kubernetes.io/control-plane: "true"' in item["patch"] for item in placement)
-    assert all("path: /spec/template/spec/tolerations" in item["patch"] for item in placement)
+    assert all("path: /spec/template/spec/nodeName" in item["patch"] for item in placement)
+    assert all("value: restricted-node-6dc3f140f9" in item["patch"] for item in placement)
     kratos = next(item for item in patches if item["target"].get("name") == "paralus-kratos")
     assert "hostnames: [dex.re8ch.com]" in kratos["patch"]
 

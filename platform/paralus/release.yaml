@@ -22,24 +22,18 @@ spec:
     cleanupOnFail: true
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
-  # Paralus is a control-plane access service. Keep all chart workloads
-  # eligible for the three etcd/control-plane nodes; anti-affinity spreads the
-  # stateless replicas while normal scheduler accounting keeps a pressured B1
-  # from accepting work beyond its requests.
+  # Keep Paralus on restricted-node-6dc3f140f9 until every control-plane node has the immutable
+  # Paralus and PostgreSQL images available from the private registry. A1
+  # currently cannot use the external Docker Hub proxy, so widening placement
+  # before that supply-chain gate would strand the RWO database during rollout.
   postRenderers:
     - kustomize:
         patches:
           - target: {kind: Deployment}
             patch: |-
               - op: add
-                path: /spec/template/spec/nodeSelector
-                value:
-                  node-role.kubernetes.io/control-plane: "true"
-              - op: add
-                path: /spec/template/spec/tolerations
-                value:
-                  - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
-                  - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+                path: /spec/template/spec/nodeName
+                value: restricted-node-6dc3f140f9
           - target: {kind: Deployment, name: paralus-kratos}
             patch: |-
               - op: add
@@ -50,27 +44,15 @@ spec:
           - target: {kind: StatefulSet}
             patch: |-
               - op: add
-                path: /spec/template/spec/nodeSelector
-                value:
-                  node-role.kubernetes.io/control-plane: "true"
-              - op: add
-                path: /spec/template/spec/tolerations
-                value:
-                  - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
-                  - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+                path: /spec/template/spec/nodeName
+                value: restricted-node-6dc3f140f9
           - target: {kind: Job}
             patch: |-
               - op: add
-                path: /spec/template/spec/nodeSelector
-                value:
-                  node-role.kubernetes.io/control-plane: "true"
-              - op: add
-                path: /spec/template/spec/tolerations
-                value:
-                  - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
-                  - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+                path: /spec/template/spec/nodeName
+                value: restricted-node-6dc3f140f9
   values:
-    replicaCount: 3
+    replicaCount: 2
     fqdn:
       domain: paralus.re8ch.com
       hostname: console
@@ -108,7 +90,7 @@ spec:
         secretKeys:
           userPasswordKey: DB_PASSWORD
       primary:
-        nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         resources:
           requests: {cpu: 100m, memory: 256Mi}
           limits: {cpu: "1", memory: 1Gi}
@@ -121,22 +103,22 @@ spec:
     resources:
       requests: {cpu: 100m, memory: 128Mi}
       limits: {cpu: "1", memory: 1Gi}
-    nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     kratos:
       secret:
         nameOverride: paralus-db
       deployment:
-        nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         resources:
           requests: {cpu: 50m, memory: 96Mi}
           limits: {cpu: 500m, memory: 512Mi}
       statefulSet:
-        nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         resources:
           requests: {cpu: 25m, memory: 64Mi}
           limits: {cpu: 300m, memory: 256Mi}
       job:
-        nodeSelector: {node-role.kubernetes.io/control-plane: "true"}
+        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     affinity:
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
