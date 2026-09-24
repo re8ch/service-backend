@@ -35,8 +35,8 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression["key"] == "kubernetes.io/hostname"
         assert set(expression["values"]) == CONTROL_PLANES
-        assert pod["dnsPolicy"] == "None"
-        assert pod["dnsConfig"]["nameservers"] == ["192.0.2.131"]
+        assert pod["dnsPolicy"] == "ClusterFirst"
+        assert "dnsConfig" not in pod
         anti_affinity = pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
         assert anti_affinity["matchLabelKeys"] == ["app"]
@@ -56,19 +56,19 @@ def test_source_controller_is_single_active_with_three_node_failover():
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert set(expression["values"]) == CONTROL_PLANES
-    assert pod["dnsConfig"]["nameservers"] == ["192.0.2.131"]
+    assert pod["dnsPolicy"] == "ClusterFirst"
+    assert "dnsConfig" not in pod
     manager = pod["containers"][0]
-    assert "--storage-adv-addr=$(POD_IP):9090" in manager["args"]
-    pod_ip = next(item for item in manager["env"] if item["name"] == "POD_IP")
-    assert pod_ip["valueFrom"]["fieldRef"]["fieldPath"] == "status.podIP"
+    assert "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local." in manager["args"]
+    assert all(item["name"] != "POD_IP" for item in manager.get("env", []))
     service = next(
         item for item in documents
         if item and item["kind"] == "Service"
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "source-controller"
     )
-    assert service["spec"]["clusterIP"] == "192.0.2.252"
-    assert service["spec"]["clusterIPs"] == ["192.0.2.252"]
+    assert "clusterIP" not in service["spec"]
+    assert "clusterIPs" not in service["spec"]
 
 
 def test_replicated_controllers_have_quorum_disruption_budgets():

@@ -1,7 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-bootstrap-admin-v10
+  # Jobs have immutable PodTemplates. Bump the generation whenever the
+  # bootstrap contract changes so Flux creates a replacement instead of
+  # attempting an impossible in-place patch.
+  name: hyperswitch-bootstrap-admin-v11
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
