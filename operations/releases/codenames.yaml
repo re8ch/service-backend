@@ -516,6 +516,8 @@ modules:
       digest: sha256:1f4e553ae307b71f79dd2c5023404a70789c1edaf8faf6ebcf9aaf34c8ce7ad6
     - codename: etesian-pearl
       digest: sha256:c7b19f314222a68dbb6685c2168020943a509cdb0661c7e57436024cb8a7247d
+    - codename: mistral-pearl
+      digest: sha256:7a56de9406bb092dd329347d909c550bab9d2b4f7ba3cffbdac0c05c3463dc33
   platform/adapter:
     releases:
     - codename: anchor
