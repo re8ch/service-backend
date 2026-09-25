@@ -7,7 +7,7 @@ type: Opaque
 stringData:
   # This contains only the non-secret in-cluster proxy endpoint. Provider and
   # GitHub credentials remain in their SOPS-managed Secrets.
-  # Source delivery is pinned to restricted-node-6dc3f140f9. Use its stable host-network proxy
-  # endpoint so GitOps recovery does not depend on the degraded
-  # PodCIDR-to-ClusterIP dataplane it is responsible for repairing.
-  address: http://192.0.2.179:17893
+  # Source delivery runs on restricted-node-6dc3f140f9, but its direct 443 path is not a reliable
+  # recovery path. Use the stable LA host-network proxy endpoint; this also
+  # avoids depending on the degraded PodCIDR-to-ClusterIP dataplane.
+  address: http://192.0.2.147:17893
