@@ -152,6 +152,20 @@ modules:
       digest: sha256:c044c71e661e3a526d8d11c95ec068615f9669517ee1bb10a4b47b1bb49c2a06
     - codename: aurora-indigo
       digest: sha256:2d44da7ec2bc97436e4c9422abcfd486c5cd835c7dee779ddce7e88c0515511e
+    - codename: flare-indigo
+      digest: sha256:57e133e00dc46f0c56722bc448732893622dd71d97e7a108f0b1fe54efa08191
+      quarantined: missing-or-invalid-signature
+    - codename: lantern-indigo
+      digest: sha256:e45fc57da315ef935a963b712509e18f6b0290932325895e4aa542edf288ddd7
+      quarantined: missing-or-invalid-signature
+    - codename: lighthouse-indigo
+      digest: sha256:263bd976c59caeab91cd0dac0fd7083c53faf804ef1b77d18903b660c5679435
+      quarantined: missing-or-invalid-signature
+    - codename: signal-indigo
+      digest: sha256:ce7bf9b81e2dd798ec9d2e40249b32bb41977a96f59ed886c799fe25f8573c16
+      quarantined: missing-or-invalid-signature
+    - codename: starfire-indigo
+      digest: sha256:7a52c32616f8fadbb48ca9e3962f6be85b0e8107239709891a51ec544dfd2254
   platform/among-clusters:
     releases:
     - codename: bora
@@ -558,6 +572,8 @@ modules:
       digest: sha256:5358158d8904b815a4823fcf8f6158ce1a658edc78c0ec6b221728593c929cf1
     - codename: chinook-silver
       digest: sha256:3ec297d2532b134648f07a528c47568eb36e8f95d266ebcfd8f80302250b1dfc
+    - codename: etesian-silver
+      digest: sha256:f4c0fe3022eb4e8ff14ecdb7e2c63f95211ba899a7e03fc24cf9ba5ca3d7f062
   platform/adapter:
     releases:
     - codename: anchor
