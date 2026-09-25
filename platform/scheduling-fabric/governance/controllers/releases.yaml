@@ -86,6 +86,14 @@ spec:
       sourceRef: {kind: HelmRepository, name: kyverno-official}
   install: {createNamespace: false, crds: CreateReplace, remediation: {retries: 1}}
   upgrade: {crds: CreateReplace, timeout: 10m, remediation: {retries: 1, remediateLastFailure: false}}
+  postRenderers:
+    - kustomize:
+        patches:
+          - target: {version: v1, kind: Service, name: kyverno-svc}
+            patch: |-
+              - op: add
+                path: /spec/internalTrafficPolicy
+                value: Local
   values:
     admissionController:
       replicas: 3
