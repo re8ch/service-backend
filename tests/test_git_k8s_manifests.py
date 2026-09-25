@@ -100,7 +100,7 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     }
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["placement"]["nodeSelector"] == {
-        "scheduling.re8ch.com/pool-service-core-r640": "true",
+        "scheduling.re8ch.com/pool-service-core-local": "true",
         "scheduling.re8ch.com/network-serving": "true",
     }
     assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
