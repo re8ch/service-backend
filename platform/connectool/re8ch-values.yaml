@@ -94,7 +94,8 @@ toolhive:
       resourceUrl: https://admin.re8ch.com:8443/mcp
       group: platform-admin-public
       createGroup: false
-      replicas: 2
+      replicas: 1
+      allowSingleReplicaWhenCapacityLimited: true
       workloads:
         - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
         - {name: admin-api-backend}
@@ -114,7 +115,8 @@ toolhive:
       resourceUrl: https://tools.service.re8ch.com/tenant/mcp
       group: tenant-public
       createGroup: true
-      replicas: 2
+      replicas: 1
+      allowSingleReplicaWhenCapacityLimited: true
       workloads:
         - {name: tenant-api-backend}
       outgoingAuth:
