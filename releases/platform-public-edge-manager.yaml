@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: etesian-jade
+codename: mistral-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:3afeddae8a839ab4bc368cfc5e563427959afe21daac15c680487a1aeb1b634f
+  digest: sha256:3a1d852c1c5c6be32a9c7edeb5330ba1705aded559e0f69e0cfbc083edcd4653
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
