@@ -436,6 +436,9 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
 
 
 def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/regional-routing/public-edge-node-metadata.yaml" in root["resources"]
+
     metadata = documents(
         ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml"
     )
