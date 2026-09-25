@@ -60,7 +60,24 @@ cephClusterSpec:
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
           effect: NoSchedule
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: scheduling.re8ch.com/capability-storage-ceph-osd
+                  operator: In
+                  values: ["true"]
+    # Rook does not reliably inherit placement.all tolerations into an OSD
+    # Deployment during a safety-gated rolling update. Declare them directly
+    # so an OSD can always restart on its existing, tainted storage host.
+    osd:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
         - key: scheduling.re8ch.com/capacity-window
           operator: Equal
           value: closed
