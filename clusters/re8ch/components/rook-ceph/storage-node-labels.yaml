@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-6dc3f140f9
+  labels:
+    scheduling.re8ch.com/capability-storage-ceph-osd: "true"
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-1eb0570f74
+  labels:
+    scheduling.re8ch.com/capability-storage-ceph-osd: "true"
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-296f36f2fb
+  labels:
+    scheduling.re8ch.com/capability-storage-ceph-osd: "true"

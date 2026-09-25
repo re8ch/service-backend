@@ -87,6 +87,7 @@ spec:
     metadata: {labels: {app: tenant-control-controller, saas.re8ch.com/tenant: platform}}
     spec:
       serviceAccountName: tenant-control-controller
+      tolerations: {{- toYaml .Values.tenantPlatform.tolerations | nindent 8 }}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
