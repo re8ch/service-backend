@@ -67,6 +67,7 @@ resources:
 - components/toolhive/platform-restart-rbac.yaml
 # ConnecTool aggregates these private ToolHive workloads on stable workers.
 - components/toolhive/vmcp-external-publication.yaml
+- components/toolhive/runtime-child-tolerations.yaml
 - components/toolhive/retire-legacy-session-redis.yaml
 - components/toolhive/registry.yaml
 - components/toolhive/operator-release.yaml
