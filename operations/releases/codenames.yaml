@@ -502,6 +502,8 @@ modules:
       digest: sha256:3afeddae8a839ab4bc368cfc5e563427959afe21daac15c680487a1aeb1b634f
     - codename: mistral-jade
       digest: sha256:3a1d852c1c5c6be32a9c7edeb5330ba1705aded559e0f69e0cfbc083edcd4653
+    - codename: sirocco-jade
+      digest: sha256:ce0e54a65b4dd8dda659760304e485390e96e52ac72d35d6530600fcd8847c9f
   platform/adapter:
     releases:
     - codename: anchor
