@@ -402,12 +402,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"] == {"digest": "sha256:049023b5a0d7cfc31189e58caab608cce140a97a01bca70289f440ffbddc77f8"}
+    assert source["spec"]["ref"] == {"digest": "sha256:6f8276f1919ee43e4388e5d77283155315df83a6c18376a6a3c4286d80a8213f"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.5",
-        "digest": "sha256:c59519eaebc2ba71197b69fcab3eba40a0140d8c4260b81db198fc10251e0b1f",
+        "tag": "0.6.6",
+        "digest": "sha256:a78217fb5e541a88d44479b206ec383873ad7106cebd0adb5147c8a3827555bb",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -425,6 +425,9 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["discovery"]["replicas"] == 2
     assert values["discovery"]["gatewayNamespace"] == "kube-system"
     assert values["probe"]["maxWorkers"] == 8
+    assert values["candidateSelection"]["failoverGraceSeconds"] == 300
+    assert values["candidateSelection"]["minReadySeconds"] == 120
+    assert values["candidateSelection"]["minHoldSeconds"] == 600
     assert values["fabricEvidence"] == {
         "mode": "Required",
         "apiGroup": "networking.re8ch.com",

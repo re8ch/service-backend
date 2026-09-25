@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:049023b5a0d7cfc31189e58caab608cce140a97a01bca70289f440ffbddc77f8}
+  ref: {digest: sha256:6f8276f1919ee43e4388e5d77283155315df83a6c18376a6a3c4286d80a8213f}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -31,8 +31,8 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.5"
-      digest: sha256:c59519eaebc2ba71197b69fcab3eba40a0140d8c4260b81db198fc10251e0b1f
+      tag: "0.6.6"
+      digest: sha256:a78217fb5e541a88d44479b206ec383873ad7106cebd0adb5147c8a3827555bb
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -206,7 +206,7 @@ spec:
       responseTimeoutSeconds: 12
       intervalSeconds: 3
       maxWorkers: 8
-      userAgent: public-edge-manager/0.5.4
+      userAgent: public-edge-manager/0.6.6
     candidateSelection:
       capacityWeight: 10
       localAreaBonus: 100000
@@ -214,6 +214,11 @@ spec:
       latencyDivisorMs: 20
       latencyPenaltyCap: 50
       localNodeBonus: 5
+      # Preserve the elected public target through transient probe/state noise.
+      # A replacement must be continuously ready before the DNS answer moves.
+      failoverGraceSeconds: 300
+      minReadySeconds: 120
+      minHoldSeconds: 600
       resolverCidrs:
         CN: [192.0.2.228/24, 192.0.2.90/24, 192.0.2.95/24]
         US: [192.0.2.219/24, 192.0.2.172/24]
