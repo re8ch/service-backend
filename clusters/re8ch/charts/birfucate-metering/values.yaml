@@ -49,6 +49,10 @@ tenantPlatform:
       identityBindings:
         - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin}
         - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+        # Compatibility for the currently deployed runtime image, whose
+        # service identity uses Dex's public issuer. Keep the internal issuer
+        # binding above for direct in-cluster identities and future images.
+        - {name: admin-vmcp-service-public, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
       grants: []
       nativeAccess: false
     - name: artchais
