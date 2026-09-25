@@ -1029,3 +1029,27 @@ spec:
   repository: https://github.com/re8ch/thiking-machine.git
   folder: catalogs/thiking-machine/modules/thiking-machine/source
   branchPrefix: workspace/thiking-machine-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: user-hub-maintain
+  namespace: git-workspaces
+spec:
+  email: user-hub-maintain@phonaid.com
+  provider: github
+  project: user-hub
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: user-hub-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: user-hub-maintain
+  projectRef: user-hub
+  repository: https://github.com/re8ch/user-hub.git
+  folder: catalogs/platform/modules/user-hub/source
+  branchPrefix: workspace/user-hub-maintain/

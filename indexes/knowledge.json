@@ -1010,6 +1010,12 @@
     "ref": "catalogs/_shared/backend-platform-context.md"
   },
   {
+    "kind": "agent-memory",
+    "module": "user-hub",
+    "ref": "catalogs/platform/modules/user-hub/MEMORY.md",
+    "sha256": "4496a64c092e9fc31ef722623a94b09dacdc305ecbf1e1fafa2e2e924f2a36b6"
+  },
+  {
     "module": "qianwen-app",
     "ref": "README.md"
   },
