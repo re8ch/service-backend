@@ -436,6 +436,8 @@ modules:
       digest: sha256:15f994a240f924bc5ec2d7232d6ee6457901ba1cc5e4fad1eb857f74c8c53fd8
     - codename: passage
       digest: sha256:fce16977839dab7ddfdc8f89a136afdd843f9887af72d008d6f8248511ade616
+    - codename: trailhead
+      digest: sha256:a8f3234c17e42cd4c7130d17a7027891373b87bbb0677be04e1264d097692064
   platform/public-edge-manager:
     releases:
     - codename: bora
@@ -506,6 +508,8 @@ modules:
       digest: sha256:ce0e54a65b4dd8dda659760304e485390e96e52ac72d35d6530600fcd8847c9f
     - codename: tramontane-jade
       digest: sha256:b48100831841b029164febe9f17d1186b5dc1df9570e5f540303e55003462bbb
+    - codename: zephyr-jade
+      digest: sha256:cbe6a719e9049e0d12560b2e7180a7046b77cc2a03fea296239504b42d120c1f
   platform/adapter:
     releases:
     - codename: anchor

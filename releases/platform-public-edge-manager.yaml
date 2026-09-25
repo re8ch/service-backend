@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-jade
+codename: zephyr-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:b48100831841b029164febe9f17d1186b5dc1df9570e5f540303e55003462bbb
+  digest: sha256:cbe6a719e9049e0d12560b2e7180a7046b77cc2a03fea296239504b42d120c1f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
