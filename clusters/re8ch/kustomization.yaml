@@ -73,7 +73,6 @@ resources:
 - components/toolhive/registry.yaml
 - components/toolhive/operator-release.yaml
 - components/rook-ceph/releases.yaml
-- components/rook-ceph/storage-node-labels.yaml
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source

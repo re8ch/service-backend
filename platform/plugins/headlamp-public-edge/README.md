@@ -6,9 +6,12 @@ backend Service for every public hostname. `Accepted` means the Gateway accepted
 and resolved the route; `In-cluster path` additionally requires a selected public exit,
 ready backend EndpointSlice and ready Pod. Empty parent conditions no longer
 count as accepted. Candidate Ready is checked against a live Node and fresh
-PublicEdge evidence. This does not prove external DNS/TLS reachability; the
+PublicEdge evidence. PowerDNS-authoritative zones and legacy published domains
+are shown separately; authoritative rows derive their service-specific exit
+from PublicEdge probes instead of obsolete ExternalDNS annotations. This does
+not prove external DNS/TLS reachability; the
 scheduled public authority monitor covers that separate boundary. The plugin
 never patches DNS or routing.
 
-The plugin requires read access to `PublicEdge`, `Node`, `HTTPRoute`, `Ingress`, `Pod`
-and `EndpointSlice` resources.
+The plugin requires read access to `PublicEdge`, `Node`, `HTTPRoute`, `Ingress`, `Pod`,
+`EndpointSlice` and the PublicEdge records `ConfigMap`.

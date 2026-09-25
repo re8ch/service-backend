@@ -167,10 +167,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/public-edge-0.2.1
+              target=/headlamp/plugins/public-edge-0.2.2
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo 'd0e0d61e977ecb1e714fe5141e19ee5df146e953e53e73fdedb238721796df05  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '957717e998a59983254c75b76bd43dd9a8829213e9d44a0d24506264152a0149  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -372,7 +372,7 @@ spec:
             name: headlamp-among-clusters-v0324
         - name: public-edge-plugin
           configMap:
-            name: headlamp-public-edge-v021
+            name: headlamp-public-edge-v022
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v011
