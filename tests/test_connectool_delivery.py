@@ -32,8 +32,18 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "requiredDuringSchedulingIgnoredDuringExecution"
     ]["nodeSelectorTerms"][0]["matchExpressions"]
     assert registry_expressions == [
-        {"key": "scheduling.re8ch.com/pool-service-core-ab", "operator": "In", "values": ["true"]},
+        {"key": "scheduling.re8ch.com/pool-service-core-r640", "operator": "In", "values": ["true"]},
         {"key": "scheduling.re8ch.com/network-serving", "operator": "In", "values": ["true"]},
+    ]
+    assert registry["values"]["replicaCount"] == 1
+    assert registry["values"]["tolerations"] == [
+        {"key": "node-role.kubernetes.io/control-plane", "operator": "Exists"},
+        {
+            "key": "scheduling.re8ch.com/capacity-window",
+            "operator": "Equal",
+            "value": "closed",
+            "effect": "NoSchedule",
+        },
     ]
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
