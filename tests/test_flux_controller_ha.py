@@ -50,7 +50,7 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
             assert "--concurrent=10" in pod["containers"][0]["args"]
 
 
-def test_source_controller_is_single_active_with_three_node_failover():
+def test_source_controller_is_single_active_on_verified_delivery_node():
     documents = rendered_documents()
     deployment = next(
         item for item in documents
@@ -62,7 +62,7 @@ def test_source_controller_is_single_active_with_three_node_failover():
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert set(expression["values"]) == CONTROL_PLANES
+    assert expression["values"] == ["restricted-node-6dc3f140f9"]
     assert pod["dnsPolicy"] == "ClusterFirst"
     assert "dnsConfig" not in pod
     manager = pod["containers"][0]

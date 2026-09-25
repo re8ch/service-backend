@@ -50,8 +50,8 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     local_service = next(
         item for item in docs
         if item["kind"] == "Service" and item["metadata"]["name"] == "identity-egress-control-plane")
-    assert local_service["spec"]["internalTrafficPolicy"] == "Cluster"
-    assert local_service["spec"]["trafficDistribution"] == "PreferSameNode"
+    assert local_service["spec"]["internalTrafficPolicy"] == "Local"
+    assert "trafficDistribution" not in local_service["spec"]
     assert "clusterIP" not in local_service["spec"]
     assert budget["spec"]["minAvailable"] == 1
 
