@@ -95,8 +95,8 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
-        "re8ch-admin-vmcp": 2,
-        "tenant-vmcp": 2,
+        "re8ch-admin-vmcp": 1,
+        "tenant-vmcp": 1,
     }
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["placement"]["nodeSelector"] == {
