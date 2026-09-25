@@ -402,12 +402,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"] == {"digest": "sha256:27395fcbc2b6c168bb6657bc0fee2792a5d8b3407479a988f49834f7286d2ac0"}
+    assert source["spec"]["ref"] == {"digest": "sha256:7c0df147ea38e8bc21b51698b78a90c6473277937b4c751af52e9a251d072e89"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.8",
-        "digest": "sha256:53f47fb1436475d5b97cdc9b6b5412a2a24197c9680ba07dd0785e8c362fd33d",
+        "tag": "0.6.9",
+        "digest": "sha256:f4c0ac955eb8f234b88d57bb5fe7a6f736e84dd3a994c0303d3c3971dd2f32d1",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -424,8 +424,15 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
     assert values["discovery"]["minimumCapacityMbps"] == 100
+    assert values["discovery"]["capacityInventory"] == {
+        "apiGroup": "networking.advfab.org",
+        "apiVersion": "v1alpha1",
+        "resource": "advancedfabrics",
+        "name": "advanced-fabric",
+    }
     assert values["discovery"]["gatewayNamespace"] == "kube-system"
     assert values["probe"]["maxWorkers"] == 8
+    assert values["probe"]["intervalSeconds"] == 15
     assert values["candidateSelection"]["failoverGraceSeconds"] == 300
     assert values["candidateSelection"]["minReadySeconds"] == 120
     assert values["candidateSelection"]["minHoldSeconds"] == 600
@@ -443,12 +450,10 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
 def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/regional-routing/public-edge-node-metadata.yaml" in root["resources"]
+    assert "components/rook-ceph/storage-node-labels.yaml" not in root["resources"]
 
     metadata = documents(
         ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml"
-    )
-    metadata.extend(
-        documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
     )
     regions = {
         item["metadata"]["name"]: item["metadata"]["labels"]["topology.kubernetes.io/region"]
@@ -460,6 +465,15 @@ def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window()
         "overseas-la": "us-ca",
         "vm-20-12-ubuntu": "cn-guangzhou",
     }
+    capacities = {
+        item["metadata"]["name"]: item["metadata"].get("annotations", {}).get(
+            "networking.re8ch.com/capacity-mbps"
+        )
+        for item in metadata
+    }
+    assert capacities["overseas-la"] == "1000"
+    assert capacities["restricted-node-6dc3f140f9"] == "200"
+    assert capacities["vm-20-12-ubuntu"] == "3"
 
     release = next(
         item
