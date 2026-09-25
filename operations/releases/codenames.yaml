@@ -374,6 +374,11 @@ modules:
       digest: sha256:119475726d68c921f237ef0df81027e5b26dcea4f5deeff04009e341a96cef3e
     - codename: meridian-indigo
       digest: sha256:23eef6eebbbbb92526f34aef8ca34c1556274458e26307533ff684e581c9eaac
+    - codename: passage-indigo
+      digest: sha256:c823e84090c9e62f0c4b2d1a89b3a4d4a41c0d534e1c2f0f2358505b9107b15a
+      quarantined: missing-or-invalid-signature
+    - codename: trailhead-indigo
+      digest: sha256:32fd4d0f345674835c03621ef414f26f44f3fe053167fa36c6054ccaa51f0d6b
   platform/birfucate-metering:
     releases:
     - codename: cascade
