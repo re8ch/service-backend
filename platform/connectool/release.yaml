@@ -57,7 +57,9 @@ spec:
           scheduling.re8ch.com/pool-service-core-r640: "true"
           scheduling.re8ch.com/network-serving: "true"
         affinity: {}
-        tolerations: []
+        tolerations:
+          - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+          - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         topologySpreadConstraints: []
         resources:
           requests: {cpu: 50m, memory: 64Mi}
