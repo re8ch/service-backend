@@ -996,6 +996,26 @@
     "sha256": "a9ab4700f78c488cc65bd56c0bc29dc4b02a6d11e8f4b46ec6af689bfca692bc"
   },
   {
+    "module": "user-hub",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "user-hub",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "user-hub",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "user-hub",
+    "ref": "catalogs/platform/modules/user-hub/MEMORY.md",
+    "sha256": "7a5d8284cdf1fe29e7f1adc34635d5c984dc79cd7b404e616ce950606ab7582f"
+  },
+  {
     "module": "qianwen-app",
     "ref": "README.md"
   },
