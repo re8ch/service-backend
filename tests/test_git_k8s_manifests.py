@@ -354,14 +354,13 @@ def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
 
 
 def test_stalwart_collaboration_is_registered_with_public_edge_manager():
-    authority = next(
+    release = next(
         item
-        for item in documents(ROOT / "clusters/re8ch/components/regional-routing/authority.yaml")
-        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "regional-routing-authority"
+        for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
+        if item["kind"] == "HelmRelease"
     )
-    config = authority["data"]
-    services = yaml.safe_load(config["SERVICES_JSON"])
-    publications = yaml.safe_load(config["PUBLICATION_REFS_JSON"])
+    values = release["spec"]["values"]
+    services = values["services"]
     collab = services["collab.tools.re8ch.com."]
     assert collab == {
         "service": "collab",
@@ -369,19 +368,6 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
         "probePath": "/.well-known/jmap",
         "acceptedStatuses": [200, 307],
     }
-    assert publications["collab"] == {"namespace": "mail-system", "name": "stalwart-collaboration-public"}
-
-    chart_values = yaml.safe_load(
-        (ROOT / "clusters/re8ch/charts/public-edge-manager/values.yaml").read_text()
-    )
-    assert chart_values["services"]["collab.tools.re8ch.com."] == collab
-    assert chart_values["publication"]["refs"]["collab"] == publications["collab"]
-
-    dns_values = yaml.safe_load(
-        (ROOT / "clusters/re8ch/charts/public-edge-manager/values-dns-authority.yaml").read_text()
-    )
-    assert dns_values["publication"]["refs"]["collab"] == publications["collab"]
-
     admin = services["stalwart-admin.tools.re8ch.com."]
     assert admin == {
         "service": "stalwart-admin",
@@ -389,12 +375,6 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
         "probePath": "/admin",
         "acceptedStatuses": [200, 302],
     }
-    admin_ref = {"namespace": "mail-system", "name": "stalwart-admin-public"}
-    assert publications["stalwart-admin"] == admin_ref
-    assert chart_values["services"]["stalwart-admin.tools.re8ch.com."] == admin
-    assert chart_values["publication"]["refs"]["stalwart-admin"] == admin_ref
-    assert dns_values["publication"]["refs"]["stalwart-admin"] == admin_ref
-
     mail = services["mail.re8ch.com."]
     assert mail == {
         "service": "mail",
@@ -402,47 +382,14 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
         "probePath": "/api/health",
         "acceptedStatuses": [200],
     }
-    assert chart_values["services"]["mail.re8ch.com."] == mail
-    assert "mail" not in publications
-    assert "mail" not in chart_values["publication"]["refs"]
-    assert "mail" not in dns_values["publication"]["refs"]
-
-    release = next(
-        item
-        for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
-        if item["kind"] == "HelmRelease"
-    )
-    release_values = release["spec"]["values"]
-    assert release_values["services"]["mail.re8ch.com."] == mail
-    assert "mail" not in release_values["publication"]["refs"]
+    assert values["publication"] == {"enabled": False, "adapters": {}, "refs": {}}
 
 
 def test_public_edge_uses_the_public_digest_pinned_controller_supply_chain():
-    values = yaml.safe_load(
-        (ROOT / "clusters/re8ch/charts/public-edge-manager/values.yaml").read_text()
-    )
-    assert values["image"] == {
-        "repository": "ghcr.io/re8ch/public-edge-manager",
-        "tag": "0.3.1",
-        "digest": "sha256:557fa1c9c9b56cafa3c0c8c45a7143a2c2931e1e6cbbbd3baaca54bd0f31ecd7",
-        "pullPolicy": "IfNotPresent",
-    }
-    assert values["readinessGates"]["db-rw"]["requiredFields"] == {
-        "authority": "patroni"
-    }
+    legacy_chart = ROOT / "clusters/re8ch/charts/public-edge-manager"
+    assert not [path for path in legacy_chart.glob("**/*") if path.is_file()]
 
-    authority_docs = documents(
-        ROOT / "clusters/re8ch/components/regional-routing/authority.yaml"
-    )
-    daemonset = next(item for item in authority_docs if item["kind"] == "DaemonSet")
-    container = daemonset["spec"]["template"]["spec"]["containers"][0]
-    assert container["image"] == (
-        "ghcr.io/re8ch/public-edge-manager@"
-        "sha256:557fa1c9c9b56cafa3c0c8c45a7143a2c2931e1e6cbbbd3baaca54bd0f31ecd7"
-    )
-    assert "command" not in container
-    assert container["securityContext"]["runAsNonRoot"] is True
-    assert all(volume.get("name") != "script" for volume in container.get("volumeMounts", []))
+    assert not (ROOT / "clusters/re8ch/components/regional-routing/authority.yaml").exists()
 
     kustomization = yaml.safe_load(
         (ROOT / "clusters/re8ch/components/regional-routing/kustomization.yaml").read_text()
@@ -455,14 +402,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"]["digest"] == (
-        "sha256:8a39e4fc5ccb3df82d6112bebe3888bfd2fab84991406c5e130734b8babd92f2"
-    )
+    assert source["spec"]["ref"] == {"tag": "0.6.0"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.5.5",
-        "digest": "sha256:321aafac153354315a9d22774b7fac8f0b4f1572ab7d05981bbc8610f49eecd6",
+        "tag": "0.6.0",
+        "digest": "",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -475,9 +420,10 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["services"]["api.re8ch.com."] == {
         "service": "api", "class": "api", "probePath": "/auth/me", "acceptedStatuses": [200]
     }
-    assert values["workload"]["dnsCandidateLabel"] == "networking.re8ch.com/dns-authority-candidate"
-    api_host_patch = release["spec"]["postRenderers"][0]["kustomize"]["patches"][0]["patch"]
-    assert 'name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"' in api_host_patch
+    assert "postRenderers" not in release["spec"]
+    assert "authorityNodes" not in values and "publicEdges" not in values
+    assert values["discovery"]["replicas"] == 2
+    assert values["discovery"]["gatewayNamespace"] == "kube-system"
     assert values["probe"]["maxWorkers"] == 8
     assert values["fabricEvidence"] == {
         "mode": "Required",

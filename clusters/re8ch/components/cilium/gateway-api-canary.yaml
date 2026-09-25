@@ -95,6 +95,8 @@ kind: Gateway
 metadata:
   name: re8ch-gateway-canary
   namespace: kube-system
+  labels:
+    networking.re8ch.com/public-edge-gateway: "true"
 spec:
   gatewayClassName: cilium-re8ch
   infrastructure:
