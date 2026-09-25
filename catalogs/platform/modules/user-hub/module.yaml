@@ -1,0 +1,19 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: user-hub, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: 'https://github.com/re8ch/user-hub.git', defaultBranch: main, owner: re8ch}
+  projectType: static-web-application
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [docker]
+  deployments: [kubernetes/auth/re8ch-user-center]
+  source:
+    kind: submodule
+    path: source
+    metadataPolicy: in-repository
+  identity:
+    maintainerAddress: user-hub-maintain@phonaid.com
+    accountClass: project-maintainer

@@ -221,3 +221,7 @@
 [submodule "platform/headlamp-birfucate"]
 	path = catalogs/platform/modules/headlamp-birfucate/source
 	url = https://github.com/among-clusters/headlamp-birfucate.git
+[submodule "platform/user-hub"]
+	path = catalogs/platform/modules/user-hub/source
+	url = https://github.com/re8ch/user-hub.git
+	branch = main

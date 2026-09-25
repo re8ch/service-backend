@@ -432,6 +432,15 @@
     "source": "catalogs/platform/modules/tool-distribution/source"
   },
   {
+    "catalog": "platform",
+    "commit": "6b9d3c6cc5f9d614e460c89aaf48b1b071cc6e31",
+    "id": "user-hub",
+    "ownership": "owned",
+    "projectType": "static-web-application",
+    "repository": "https://github.com/re8ch/user-hub.git",
+    "source": "catalogs/platform/modules/user-hub/source"
+  },
+  {
     "catalog": "qianwen",
     "commit": "86cbb76d6786f5d0a8279126515562bed97a15fb",
     "id": "qianwen-app",

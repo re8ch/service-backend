@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-09-18T06:58:37Z'
-  generation: 1789714717
+  generatedAt: '2026-09-25T05:17:33Z'
+  generation: 1790313453
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -115,7 +115,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/compocv.git
   connectool:
-    commit: 48f893924bf05e5011d0504785544bdfa3ae7e92
+    commit: b95f978a6b10cc6d4a655a1d6743b2a2fc9fd936
     defaultBranch: main
     dependencies: []
     repository: https://github.com/among-clusters/connectool.git
@@ -293,6 +293,11 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
+  user-hub:
+    commit: 6b9d3c6cc5f9d614e460c89aaf48b1b071cc6e31
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/re8ch/user-hub.git
   z-anatomy-models:
     commit: 7ff6c89d1fdbbe527ea705e9c3688052b981126f
     defaultBranch: master
