@@ -87,7 +87,9 @@ spec:
           version: 1.5.0
           sourceNamespace: flux-system
           values:
-            replicaCount: 2
+            # The registry database and available core-node capacity are both
+            # single-site. A second replica cannot be scheduled safely here.
+            replicaCount: 1
             image:
               registryServerUrl: ghcr.io/stacklok/thv-registry-api:v1.5.0
               pullPolicy: IfNotPresent
@@ -111,12 +113,11 @@ spec:
                 requiredDuringSchedulingIgnoredDuringExecution:
                   nodeSelectorTerms:
                     - matchExpressions:
-                        - {key: scheduling.re8ch.com/pool-service-core-ab, operator: In, values: ["true"]}
+                        - {key: scheduling.re8ch.com/pool-service-core-r640, operator: In, values: ["true"]}
                         - {key: scheduling.re8ch.com/network-serving, operator: In, values: ["true"]}
-              podAntiAffinity:
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-registry-server}}
-                    topologyKey: kubernetes.io/hostname
+            tolerations:
+              - {key: node-role.kubernetes.io/control-plane, operator: Exists}
+              - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
             extraEnv:
               - name: THV_REGISTRY_DATABASE_PASSWORD
                 valueFrom: {secretKeyRef: {name: toolhive-registry-database, key: migration-password}}
