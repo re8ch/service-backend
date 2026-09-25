@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: meridian
+codename: passage
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:15f994a240f924bc5ec2d7232d6ee6457901ba1cc5e4fad1eb857f74c8c53fd8
+  digest: sha256:fce16977839dab7ddfdc8f89a136afdd843f9887af72d008d6f8248511ade616
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

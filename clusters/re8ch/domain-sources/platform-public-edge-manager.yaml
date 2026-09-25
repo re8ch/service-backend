@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-jade
+    delivery.re8ch.com/codename: mistral-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:3afeddae8a839ab4bc368cfc5e563427959afe21daac15c680487a1aeb1b634f
+    digest: sha256:3a1d852c1c5c6be32a9c7edeb5330ba1705aded559e0f69e0cfbc083edcd4653
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-jade
+    delivery.re8ch.com/codename: mistral-jade
 spec:
   interval: 1m
   retryInterval: 1m
