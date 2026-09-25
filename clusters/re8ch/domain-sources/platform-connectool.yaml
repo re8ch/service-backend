@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: anchor-jade
+    delivery.re8ch.com/codename: beacon-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:d251a412994d6ffa3e4aae1fa84946f2afca54205290d493cd3fb3698a1b9722
+    digest: sha256:a393da300337d72da5993d53824b89b2ab006e31346b9b0b3e198032684dc6b1
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: anchor-jade
+    delivery.re8ch.com/codename: beacon-jade
 spec:
   interval: 1m
   retryInterval: 1m
