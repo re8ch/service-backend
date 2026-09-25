@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: tramontane-pearl
+    delivery.re8ch.com/codename: zephyr-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:327ae6293746c33947f29f1bbaa50255d93cc333853b1c8a93ced832b2cb1069
+    digest: sha256:7f87d1df331f13d66c8bf993a4e429112e3d6bc5e5623afe6fabb372e7539dea
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: tramontane-pearl
+    delivery.re8ch.com/codename: zephyr-pearl
 spec:
   interval: 1m
   retryInterval: 1m
