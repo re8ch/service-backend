@@ -556,6 +556,8 @@ modules:
       digest: sha256:7f87d1df331f13d66c8bf993a4e429112e3d6bc5e5623afe6fabb372e7539dea
     - codename: bora-silver
       digest: sha256:5358158d8904b815a4823fcf8f6158ce1a658edc78c0ec6b221728593c929cf1
+    - codename: chinook-silver
+      digest: sha256:3ec297d2532b134648f07a528c47568eb36e8f95d266ebcfd8f80302250b1dfc
   platform/adapter:
     releases:
     - codename: anchor
