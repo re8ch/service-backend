@@ -422,6 +422,8 @@ modules:
       digest: sha256:2de4d2edd4b49ee9ec1fd464534d5f57ab02aa31393dcf13b2ff222bdb449a7f
     - codename: confluence-indigo
       digest: sha256:d03a328c2896ca412337e121c6489c30b369841778dcf531bcb729bbd086ceaf
+    - codename: eddy-indigo
+      digest: sha256:8c193e6af6a713f779adcc3a926086e7f5b51430e2a6239df3da8683597bd6cb
   platform/hyperswitch:
     releases:
     - codename: anchor
