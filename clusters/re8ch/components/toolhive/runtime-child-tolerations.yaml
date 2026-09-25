@@ -1,43 +1,31 @@
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicy
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
 metadata:
   name: re8ch-toolhive-child-tolerations
 spec:
-  failurePolicy: Fail
-  reinvocationPolicy: IfNeeded
-  matchConstraints:
-    resourceRules:
-      - apiGroups: [apps]
-        apiVersions: [v1]
-        operations: [CREATE, UPDATE]
-        resources: [deployments, statefulsets]
-  matchConditions:
-    - name: is-toolhive-child-workload
-      expression: >-
-        object.metadata.namespace == 'toolhive-system' &&
-        has(object.metadata.labels) &&
-        'toolhive' in object.metadata.labels &&
-        object.metadata.labels['toolhive'] == 'true'
-  mutations:
-    - patchType: JSONPatch
-      jsonPatch:
-        expression: >-
-          [JSONPatch{
-            op: has(object.spec.template.spec.tolerations) ? 'replace' : 'add',
-            path: '/spec/template/spec/tolerations',
-            value: [
-              Object.spec.template.spec.tolerations{key: 'node-role.kubernetes.io/control-plane', operator: 'Exists', effect: 'NoSchedule'},
-              Object.spec.template.spec.tolerations{key: 'scheduling.re8ch.com/capacity-window', operator: 'Equal', value: 'closed', effect: 'NoSchedule'}
-            ]
-          }]
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingAdmissionPolicyBinding
-metadata:
-  name: re8ch-toolhive-child-tolerations
-spec:
-  policyName: re8ch-toolhive-child-tolerations
-  matchResources:
-    namespaceSelector:
-      matchLabels:
-        kubernetes.io/metadata.name: toolhive-system
+  admission: true
+  background: false
+  validationFailureAction: Audit
+  rules:
+    - name: add-r640-capacity-tolerations
+      match:
+        any:
+          - resources:
+              kinds: [Deployment, StatefulSet]
+              namespaces: [toolhive-system]
+              selector:
+                matchLabels:
+                  toolhive: "true"
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                tolerations:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+                    effect: NoSchedule
+                  - key: scheduling.re8ch.com/capacity-window
+                    operator: Equal
+                    value: closed
+                    effect: NoSchedule
