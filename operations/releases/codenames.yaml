@@ -514,6 +514,8 @@ modules:
       digest: sha256:c9a28e1ca6002dc06d129eda6d542f5794c61211de9e748aa32d9ca9012ea12b
     - codename: chinook-pearl
       digest: sha256:1f4e553ae307b71f79dd2c5023404a70789c1edaf8faf6ebcf9aaf34c8ce7ad6
+    - codename: etesian-pearl
+      digest: sha256:c7b19f314222a68dbb6685c2168020943a509cdb0661c7e57436024cb8a7247d
   platform/adapter:
     releases:
     - codename: anchor
