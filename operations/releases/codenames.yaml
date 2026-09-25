@@ -292,6 +292,8 @@ modules:
     releases:
     - codename: andromeda
       digest: sha256:c5d91bfe5bad45f5160b2bf6900befb2aea5bbd6e6dd3ab39b4c02ea185855ef
+    - codename: aquila
+      digest: sha256:16cc2243eaa3b4dc96ae71d450afa3da6730d982f36bb6b38d65e3f379a1ef0b
   platform/workspace-controller:
     releases:
     - codename: andromeda
