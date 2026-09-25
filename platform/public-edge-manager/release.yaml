@@ -32,7 +32,10 @@ spec:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
       tag: "0.6.6"
-      digest: sha256:a78217fb5e541a88d44479b206ec383873ad7106cebd0adb5147c8a3827555bb
+      # Pin the amd64 manifest used by the current PublicEdge nodes. restricted-node-6dc3f140f9's
+      # containerd cannot reliably hydrate the signed multi-arch index through
+      # its GHCR blob path, while this immutable child manifest is verified.
+      digest: sha256:73a9e6d5538e027c8642777980634befefe7fd4474a6332d522092056989acf1
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}

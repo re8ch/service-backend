@@ -407,7 +407,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
         "tag": "0.6.6",
-        "digest": "sha256:a78217fb5e541a88d44479b206ec383873ad7106cebd0adb5147c8a3827555bb",
+        "digest": "sha256:73a9e6d5538e027c8642777980634befefe7fd4474a6332d522092056989acf1",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
