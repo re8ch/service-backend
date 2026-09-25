@@ -39,9 +39,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
-        "re8ch-admin-vmcp": 2,
-        "tenant-vmcp": 2,
+        "re8ch-admin-vmcp": 1,
+        "tenant-vmcp": 1,
     }
+    assert all(item.get("allowSingleReplicaWhenCapacityLimited") is True for item in publications)
     by_name = {item["name"]: item for item in publications}
     assert by_name["re8ch-tools-vmcp"]["allowSingleReplicaWhenCapacityLimited"] is True
     assert by_name["re8ch-tools-vmcp"]["workloads"] == [
