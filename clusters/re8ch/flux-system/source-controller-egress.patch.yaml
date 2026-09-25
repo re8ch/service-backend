@@ -22,6 +22,10 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    # Source delivery is a singleton and depends on the local
+                    # identity-egress control-plane proxy path. restricted-node-6dc3f140f9 has both a
+                    # healthy proxy endpoint and registry-blob DNS; A1 cannot
+                    # reach that Service VIP and B1 cannot pull the image.
+                    values: [restricted-node-6dc3f140f9]
       tolerations:
         - operator: Exists
