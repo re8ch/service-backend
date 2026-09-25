@@ -996,6 +996,20 @@
     "sha256": "a9ab4700f78c488cc65bd56c0bc29dc4b02a6d11e8f4b46ec6af689bfca692bc"
   },
   {
+    "module": "user-hub",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "user-hub",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "user-hub",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
     "module": "qianwen-app",
     "ref": "README.md"
   },

@@ -328,6 +328,10 @@
     "ref": "toolhive"
   },
   {
+    "module": "user-hub",
+    "ref": "docker"
+  },
+  {
     "module": "qianwen-app",
     "ref": "npm"
   },
