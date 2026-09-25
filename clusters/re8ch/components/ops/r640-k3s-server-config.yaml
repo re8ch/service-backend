@@ -40,7 +40,7 @@ kubelet-arg:
 kube-apiserver-arg:
   - "event-ttl=1h"
   - "authentication-config=/etc/rancher/k3s/dex-dual-issuer-authentication.yaml"
-embedded-registry: true
+embedded-registry: false
 cluster-init: true
 etcd-arg:
   - "advertise-client-urls=https://192.0.2.179:2379"

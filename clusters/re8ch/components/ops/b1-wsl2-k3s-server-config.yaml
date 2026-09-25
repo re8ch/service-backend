@@ -20,7 +20,7 @@ write-kubeconfig-mode: "0644"
 disable:
   - servicelb
   - coredns
-embedded-registry: true
+embedded-registry: false
 kubelet-arg:
   # B1 is a 12 GiB embedded-etcd control-plane voter, not a general worker.
   # Leave room for a rolling ToolHive/ConnecTool cohort without advertising
