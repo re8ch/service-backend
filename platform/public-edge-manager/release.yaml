@@ -5,7 +5,8 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:8a39e4fc5ccb3df82d6112bebe3888bfd2fab84991406c5e130734b8babd92f2}
+  # Replace with the signed 0.6.0 digest after the product release publishes.
+  ref: {tag: 0.6.0}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -28,32 +29,11 @@ spec:
     disableTakeOwnership: false
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
-  postRenderers:
-    # The restricted-node-6dc3f140f9 ZeroTier/dummy identity (192.0.2.183) is not reachable from
-    # suxunji. Its transport/control-plane address is verified from both DNS
-    # nodes with the manager's service account and the cluster CA.
-    - kustomize:
-        patches:
-          - target:
-              group: apps
-              version: v1
-              kind: DaemonSet
-              name: public-edge-manager
-            patch: |
-              - op: add
-                path: /spec/template/spec/containers/0/env/-
-                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.205"}
-              - op: add
-                path: /spec/template/spec/containers/0/env/-
-                value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
-              - op: add
-                path: /spec/template/spec/containers/0/env/-
-                value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.5.5"
-      digest: sha256:321aafac153354315a9d22774b7fac8f0b4f1572ab7d05981bbc8610f49eecd6
+      tag: "0.6.0"
+      digest: ""
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -146,12 +126,24 @@ spec:
         _acme-challenge.service.re8ch.com.:
           - {type: CNAME, value: _acme-challenge.re8ch.com., externalCDN: true, provider: cloudflare-dns01}
     crd: {install: true}
-    nameservers: [ns-sh.re8ch.com., ns-gz.re8ch.com.]
-    authorityNodes:
-      # These VPC addresses receive the providers' public-IP DNAT on port 53.
-      domain-ex: {bindAddress: 192.0.2.241, area: CN, region: shanghai}
-      suxunji: {bindAddress: 192.0.2.6, area: CN, region: shanghai}
-      overseas-la: {bindAddress: 192.0.2.29, area: US, region: us-ca}
+    # Used only to create the initial ConfigMap. The controller replaces it
+    # with stable hash-based names after public UDP/TCP 53 qualification.
+    nameservers: [ns-bootstrap.re8ch.com.]
+    discovery:
+      enabled: true
+      replicas: 2
+      intervalSeconds: 15
+      probeTimeoutSeconds: 2
+      defaultCapacityMbps: 100
+      maxNameservers: 3
+      gatewayNamespace: kube-system
+      gatewaySelector: networking.re8ch.com/public-edge-gateway=true
+      authorityLabel: networking.re8ch.com/public-edge-authority-ready
+      ingressLabel: networking.re8ch.com/public-edge-ready
+      serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot, service-overseas]
+      parentZone: re8ch.com
+      childZones: [auth.re8ch.com, api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com]
+      cloudflareSecretRef: {namespace: qianwen-ops, name: cloudflare-pg-dns-controller-secret, key: CF_API_TOKEN}
     services:
       # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
       # /auth/me exercises the real API gateway path and returns 200 without a session.
@@ -186,45 +178,13 @@ spec:
       ledger-decisions.service.re8ch.com.: {service: ledger-decisions-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307, 401, 403]}
       mail.service.re8ch.com.: {service: mail-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307]}
       pay.service.re8ch.com.: {service: pay-service, class: service-overseas, probePath: /, acceptedStatuses: [200, 302, 307, 401]}
+      pay-api.re8ch.com.: {service: pay-api, class: service-overseas, probePath: /health, acceptedStatuses: [200, 401, 404]}
       dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
       collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
       mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
       stalwart-admin.tools.re8ch.com.: {service: stalwart-admin, class: web, probePath: /admin, acceptedStatuses: [200, 302]}
       hooks.re8ch.com.: {service: hooks, class: web, probePath: /hook/, acceptedStatuses: [400, 404]}
-    publicEdges:
-      - name: guangzhou-zan
-        area: CN
-        region: guangzhou
-        nodeName: zan
-        endpoint: {type: PublicIP, value: 192.0.2.67}
-        gatewayVIP: 192.0.2.250
-        capacityMbps: 100
-        priority: 10
-        serviceClasses: [api, db-ro, db-rw, web, registry]
-        forwarding: {mode: DirectGateway}
-      - name: loudi-r640
-        area: CN
-        region: loudi
-        nodeName: restricted-node-6dc3f140f9
-        endpoint: {type: PublicIP, value: 192.0.2.79}
-        gatewayVIP: 192.0.2.209
-        capacityMbps: 1000
-        priority: -30
-        serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot, service-overseas]
-        forwarding: {mode: DirectGateway}
-      - name: us-la
-        area: US
-        region: us-ca
-        nodeName: overseas-la
-        endpoint: {type: PublicIP, value: 192.0.2.91}
-        gatewayVIP: 192.0.2.209
-        capacityMbps: 1000
-        priority: 20
-        protocols: [dns-udp, dns-tcp, http, https, tls-passthrough]
-        ports: [53, 80, 443]
-        serviceClasses: [api, db-ro, web, service-overseas]
-        forwarding: {mode: DirectGateway}
     readinessGates:
       db-rw:
         configMap: {namespace: kube-system, name: pg-re8ch-role-authority, dataKey: authority.json}
@@ -234,8 +194,6 @@ spec:
         requireSingleReadyAddress: true
     workload:
       httpPort: 18080
-      dnsCandidateLabel: networking.re8ch.com/dns-authority-candidate
-      dnsCandidateValue: "true"
       containerSecurityContext:
         allowPrivilegeEscalation: false
         capabilities: {add: [NET_BIND_SERVICE], drop: [ALL]}
@@ -256,6 +214,9 @@ spec:
       latencyDivisorMs: 20
       latencyPenaltyCap: 50
       localNodeBonus: 5
+      resolverCidrs:
+        CN: [192.0.2.228/24, 192.0.2.90/24, 192.0.2.95/24]
+        US: [192.0.2.219/24, 192.0.2.172/24]
     # Require fresh measured path evidence independent of kubelet scheduling state.
     fabricEvidence:
       mode: Required
@@ -264,17 +225,8 @@ spec:
       resource: networkpathassessments
       requireNodeReady: false
       allowedStates: [Ready, Partial]
-    publication:
-      enabled: true
-      publisherNode: suxunji
-      refs:
-        registry: {namespace: qianwen-ops, name: static-cilium-edge-services-dns}
-        dex: {namespace: dex, name: dex-dns-authority}
-        dbgui: {namespace: ops, name: cloudbeaver-dns-authority}
-        collab: {namespace: mail-system, name: stalwart-collaboration-public}
-        stalwart-admin: {namespace: mail-system, name: stalwart-admin-public}
-        hooks: {namespace: flux-system, name: github-flux-webhook-dns-authority}
-    rbac: {mutateIngresses: true}
+    publication: {enabled: false, adapters: {}, refs: {}}
+    rbac: {mutateIngresses: false}
     service: {type: ClusterIP, annotations: {}, externalTrafficPolicy: ""}
     resources:
       requests: {cpu: 20m, memory: 32Mi}

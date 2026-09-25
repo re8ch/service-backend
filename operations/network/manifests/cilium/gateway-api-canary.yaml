@@ -28,6 +28,8 @@ kind: Gateway
 metadata:
   name: re8ch-gateway-canary
   namespace: kube-system
+  labels:
+    networking.re8ch.com/public-edge-gateway: "true"
   annotations:
     # DNS names belong to the public 443 edge, while the Gateway and backend
     # Pods may live anywhere in the Cilium routing domain.

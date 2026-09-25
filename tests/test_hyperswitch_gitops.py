@@ -232,12 +232,15 @@ def test_public_routes_use_dedicated_tls_listeners():
     }
 
 
-def test_publicedge_only_advertises_hyperswitch_from_r640():
-    authority = (ROOT / "clusters/re8ch/components/regional-routing/authority.yaml").read_text()
-    assert '"pay.re8ch.com."' not in authority
-    assert '"pay-api.re8ch.com.": {"service":"pay-api"' in authority
-    assert '"pay-ui":["hyperswitch"]' not in authority
-    assert '"pay-api":["hyperswitch"]' in authority
+def test_publicedge_catalog_only_advertises_the_supported_hyperswitch_names():
+    resources = yaml.safe_load_all(
+        (ROOT / "platform/public-edge-manager/release.yaml").read_text()
+    )
+    release = next(item for item in resources if item.get("kind") == "HelmRelease")
+    services = release["spec"]["values"]["services"]
+    assert "pay.re8ch.com." not in services
+    assert services["pay-api.re8ch.com."]["service"] == "pay-api"
+    assert services["pay.service.re8ch.com."]["service"] == "pay-service"
 
 
 def test_pay_ui_listeners_reject_the_retired_apex_hostname():
@@ -263,7 +266,7 @@ def test_pay_ui_listeners_reject_the_retired_apex_hostname():
     } == {"re8ch-service-wildcard-tls"}
 
 
-def test_pay_service_is_eligible_for_the_overseas_edge():
+def test_pay_service_is_eligible_for_every_discovered_capable_edge():
     release = yaml.safe_load_all(
         (ROOT / "platform/public-edge-manager/release.yaml").read_text()
     )
@@ -272,9 +275,8 @@ def test_pay_service_is_eligible_for_the_overseas_edge():
     assert values["services"]["pay.service.re8ch.com."]["class"] == (
         "service-overseas"
     )
-    edges = {edge["name"]: edge for edge in values["publicEdges"]}
-    assert "service-overseas" in edges["loudi-r640"]["serviceClasses"]
-    assert "service-overseas" in edges["us-la"]["serviceClasses"]
+    assert "service-overseas" in values["discovery"]["serviceClasses"]
+    assert "publicEdges" not in values
 
 
 def test_rendered_helm_values_namespace_and_job_admission():

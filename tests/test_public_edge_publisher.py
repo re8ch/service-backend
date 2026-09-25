@@ -6,27 +6,20 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_public_edge_publisher_uses_available_authority_node():
+def test_public_edge_discovers_nodes_without_inventory_or_publisher():
     documents = list(yaml.safe_load_all((ROOT / "platform/public-edge-manager/release.yaml").read_text()))
     release = next(item for item in documents if item.get("kind") == "HelmRelease")
     values = release["spec"]["values"]
-    publisher = values["publication"]["publisherNode"]
-    assert publisher == "suxunji"
-    assert values["authorityNodes"][publisher] == {
-        "bindAddress": "192.0.2.6",
-        "area": "CN",
-        "region": "shanghai",
-    }
-    assert set(values["authorityNodes"]) == {"domain-ex", "suxunji", "overseas-la"}
-    assert values["authorityNodes"]["overseas-la"] == {
-        "bindAddress": "192.0.2.29",
-        "area": "US",
-        "region": "us-ca",
-    }
-    admitted = list(yaml.safe_load_all((ROOT / "platform/public-edge-manager/dns-candidate-nodes.yaml").read_text()))
-    assert {item["metadata"]["name"] for item in admitted} == set(values["authorityNodes"])
-    assert "overseas-kl" not in values["authorityNodes"]
-    assert "vm-20-12-ubuntu" not in values["authorityNodes"]
+    assert "authorityNodes" not in values
+    assert "publicEdges" not in values
+    assert "publisherNode" not in values["publication"]
+    assert values["publication"]["enabled"] is False
+    discovery = values["discovery"]
+    assert discovery["replicas"] == 2
+    assert discovery["gatewaySelector"] == "networking.re8ch.com/public-edge-gateway=true"
+    assert discovery["maxNameservers"] == 3
+    assert not (ROOT / "platform/public-edge-manager/dns-candidate-nodes.yaml").exists()
+    assert not (ROOT / "platform/public-edge-manager/nameserver-election.yaml").exists()
     assert values["fabricEvidence"]["mode"] == "Required"
     assert values["fabricEvidence"]["requireNodeReady"] is False
 
