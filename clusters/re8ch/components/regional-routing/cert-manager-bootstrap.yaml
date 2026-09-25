@@ -81,7 +81,7 @@ subjects:
 ---
 apiVersion: batch/v1
 kind: Job
-metadata: {name: cert-manager-cloudflare-bootstrap, namespace: cert-manager}
+metadata: {name: cert-manager-cloudflare-bootstrap-v2, namespace: cert-manager}
 spec:
   ttlSecondsAfterFinished: 300
   backoffLimit: 3
