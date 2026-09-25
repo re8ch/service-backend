@@ -144,6 +144,9 @@ spec:
   # Control-plane callers are pinned to restricted-node-6dc3f140f9, which has a healthy local proxy.
   # Do not select a remote host-network endpoint across a broken PodCIDR path.
   internalTrafficPolicy: Local
+  # A transient upstream readiness failure must not remove the control plane's
+  # only recovery proxy while the local process is still accepting requests.
+  publishNotReadyAddresses: true
   selector: {app.kubernetes.io/name: identity-egress}
   ports:
     - {name: proxy, port: 17893, targetPort: proxy, protocol: TCP}
