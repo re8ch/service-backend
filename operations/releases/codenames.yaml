@@ -379,6 +379,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: trailhead-indigo
       digest: sha256:32fd4d0f345674835c03621ef414f26f44f3fe053167fa36c6054ccaa51f0d6b
+    - codename: anchor-jade
+      digest: sha256:d251a412994d6ffa3e4aae1fa84946f2afca54205290d493cd3fb3698a1b9722
   platform/birfucate-metering:
     releases:
     - codename: cascade
