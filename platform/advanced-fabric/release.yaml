@@ -320,6 +320,9 @@ spec:
         service: {name: advanced-fabric-dns, clusterIP: 192.0.2.42}
         doh: {serviceName: advanced-fabric-doh, caSecretName: advanced-fabric-doh-tls}
         migration: {phase: active}
+      componentAPI:
+        publishAssessments: true
+        validitySeconds: 300
       networkQuality:
         enabled: true
         # Keep the critical DNS/network release independent from an optional

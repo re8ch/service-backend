@@ -462,6 +462,7 @@ def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window()
         if item["kind"] == "HelmRelease"
     )
     assert release["spec"]["values"]["advancedFabric"]["networkQuality"]["freshnessSeconds"] == 300
+    assert release["spec"]["values"]["advancedFabric"]["componentAPI"]["validitySeconds"] == 300
 
 
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
