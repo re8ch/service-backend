@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/git-workspaces
-codename: andromeda
+codename: aquila
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-git-workspaces
-  digest: sha256:c5d91bfe5bad45f5160b2bf6900befb2aea5bbd6e6dd3ab39b4c02ea185855ef
+  digest: sha256:16cc2243eaa3b4dc96ae71d450afa3da6730d982f36bb6b38d65e3f379a1ef0b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
