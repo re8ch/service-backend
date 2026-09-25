@@ -198,6 +198,9 @@ spec:
         requireSingleReadyAddress: true
     workload:
       httpPort: 18080
+      tolerations:
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+        - {key: node.cilium.io/agent-not-ready, operator: Exists, effect: NoSchedule}
       containerSecurityContext:
         allowPrivilegeEscalation: false
         capabilities: {add: [NET_BIND_SERVICE], drop: [ALL]}

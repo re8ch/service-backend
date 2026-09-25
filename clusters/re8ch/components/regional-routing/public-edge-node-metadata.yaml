@@ -2,10 +2,19 @@ apiVersion: v1
 kind: Node
 metadata:
   name: overseas-la
+  annotations:
+    networking.re8ch.com/capacity-mbps: "1000"
   labels:
     networking.re8ch.com/geo: global
     topology.kubernetes.io/region: us-ca
     topology.kubernetes.io/zone: us-ca
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-6dc3f140f9
+  annotations:
+    networking.re8ch.com/capacity-mbps: "200"
 ---
 apiVersion: v1
 kind: Node
@@ -17,3 +26,35 @@ metadata:
     networking.re8ch.com/geo: cn
     topology.kubernetes.io/region: cn-guangzhou
     topology.kubernetes.io/zone: guangzhou
+---
+apiVersion: v1
+kind: Node
+metadata: {name: qwen-1, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: qwen-2, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: qwen-3, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: suxunji, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: muaya-lightweight, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: muaya-ecs, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: zan, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
+---
+apiVersion: v1
+kind: Node
+metadata: {name: domain-ex, annotations: {networking.re8ch.com/capacity-mbps: "3"}}
