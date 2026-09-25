@@ -39,7 +39,7 @@ data:
         endpoint: ["https://registry.re8ch.com"]
         rewrite: {"^(.*)$": "proxy-oracle/$1"}
       registry.re8ch.com:
-        endpoint: ["https://registry.re8ch.com:28443"]
+        endpoint: ["https://registry.re8ch.com"]
   install.sh: |
     #!/bin/sh
     set -eu
@@ -47,6 +47,7 @@ data:
     host=/host
     registry_dir="$host/etc/rancher/k3s"
     registry_file="$registry_dir/registries.yaml"
+    hosts_file="$host/etc/hosts"
     prefix=/config/registries-prefix.yaml
     proxy_url=http://127.0.0.1:17891
     no_proxy=127.0.0.1,localhost,::1,ghcr.io,.ghcr.io,.re8ch.com,.zt.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16
@@ -70,6 +71,22 @@ data:
       fi
       install -m 0600 "$work" "$registry_file"
     fi
+
+    # Kubelet/containerd runs in the host network namespace, where public DNS
+    # can hairpin registry.re8ch.com through the edge instead of reaching the
+    # in-cluster Harbor origin. Keep the stable Harbor Service IP authoritative
+    # for node-local image pulls.
+    hosts_work=$(mktemp "$host/etc/.hosts.XXXXXX")
+    awk '
+      {
+        keep=1
+        for (i=2; i<=NF; i++) if ($i == "registry.re8ch.com") keep=0
+        if (keep) print
+      }
+    ' "$hosts_file" >"$hosts_work"
+    printf '%s\n' '192.0.2.218 registry.re8ch.com # re8ch cluster-local Harbor origin' >>"$hosts_work"
+    cat "$hosts_work" >"$hosts_file"
+    rm -f "$hosts_work"
 
     # Some former servers retain a disabled k3s.service alongside the active
     # agent unit. Selecting by unit-file existence can accidentally start a

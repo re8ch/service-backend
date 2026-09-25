@@ -9,8 +9,8 @@ data:
     mkdir -p "$host/etc/systemd/resolved.conf.d"
     cat >"$host/etc/systemd/resolved.conf.d/10-re8ch-public-dns.conf" <<'EOF'
     [Resolve]
-    DNS=1.1.1.1 192.0.2.131
-    FallbackDNS=8.8.8.8 192.0.2.121
+    DNS=1.1.1.1 223.5.5.5
+    FallbackDNS=8.8.8.8 114.114.114.114
     DNSSEC=no
     DNSOverTLS=no
     LLMNR=no
@@ -23,7 +23,7 @@ data:
     Wants=systemd-resolved.service network-online.target
     [Service]
     Type=oneshot
-    ExecStart=/bin/sh -ec 'public_iface=$(/usr/sbin/ip route show default | while read -r _ _ _ _ name _; do echo "$name"; break; done); test -n "$public_iface"; /usr/bin/resolvectl dns "$public_iface" 1.1.1.1 192.0.2.131; /usr/bin/resolvectl default-route "$public_iface" yes; iface=$(/usr/sbin/ip -o -4 addr show scope global | while read -r _ name _ addr _; do case "$addr" in 10.181.22.*) echo "$name"; break;; esac; done); test -n "$iface"; /usr/bin/resolvectl dns "$iface" 192.0.2.67 192.0.2.79; /usr/bin/resolvectl domain "$iface" ~zt.re8ch.com; /usr/bin/resolvectl default-route "$iface" no'
+    ExecStart=/bin/sh -ec 'public_iface=$(/usr/sbin/ip route show default | while read -r _ _ _ _ name _; do echo "$name"; break; done); test -n "$public_iface"; /usr/bin/resolvectl dns "$public_iface" 1.1.1.1 223.5.5.5; /usr/bin/resolvectl default-route "$public_iface" yes; iface=$(/usr/sbin/ip -o -4 addr show scope global | while read -r _ name _ addr _; do case "$addr" in 10.181.22.*) echo "$name"; break;; esac; done); test -n "$iface"; /usr/bin/resolvectl dns "$iface" 10.181.22.73 10.181.22.16; /usr/bin/resolvectl domain "$iface" ~zt.re8ch.com; /usr/bin/resolvectl default-route "$iface" no'
     RemainAfterExit=yes
     [Install]
     WantedBy=multi-user.target
@@ -37,5 +37,23 @@ data:
       ln -sfn /run/systemd/resolve/stub-resolv.conf "$host/etc/resolv.conf"
       chroot "$host" resolvectl flush-caches
     else
-      echo "systemd-resolved is not installed; leaving this node's resolver unchanged"
+      # WSL control-plane nodes commonly lack systemd-resolved and inherit a
+      # transient NAT resolver that cannot resolve Harbor's signed blob host.
+      # Disable WSL regeneration and install explicit public resolvers.
+      if [ ! -e "$host/etc/resolv.conf.re8ch-backup" ]; then
+        cp -a "$host/etc/resolv.conf" "$host/etc/resolv.conf.re8ch-backup"
+      fi
+      if [ -f "$host/etc/wsl.conf" ]; then
+        if ! grep -q '^generateResolvConf=false$' "$host/etc/wsl.conf"; then
+          printf '\n[network]\ngenerateResolvConf=false\n' >>"$host/etc/wsl.conf"
+        fi
+      else
+        printf '[network]\ngenerateResolvConf=false\n' >"$host/etc/wsl.conf"
+      fi
+      rm -f "$host/etc/resolv.conf"
+      cat >"$host/etc/resolv.conf" <<'EOF'
+    nameserver 1.1.1.1
+    nameserver 223.5.5.5
+    options timeout:2 attempts:2
+    EOF
     fi

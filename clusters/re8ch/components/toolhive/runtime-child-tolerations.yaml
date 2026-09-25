@@ -4,7 +4,8 @@ metadata:
   name: re8ch-toolhive-child-tolerations
 spec:
   admission: true
-  background: false
+  background: true
+  generateExisting: true
   validationFailureAction: Audit
   rules:
     - name: add-r640-capacity-tolerations
@@ -29,3 +30,34 @@ spec:
                     operator: Equal
                     value: closed
                     effect: NoSchedule
+    - name: project-functions-shared-pull-secret
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              names: [toolhive-system]
+      generate:
+        apiVersion: v1
+        kind: Secret
+        name: harbor-functions-shared-pull
+        namespace: toolhive-system
+        synchronize: true
+        clone:
+          namespace: anycam
+          name: harbor-functions-shared-pull
+    - name: add-session-router-image-pull-secret
+      match:
+        any:
+          - resources:
+              kinds: [Deployment]
+              namespaces: [toolhive-system]
+              selector:
+                matchLabels:
+                  app.kubernetes.io/component: session-router
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                imagePullSecrets:
+                  - name: harbor-functions-shared-pull
