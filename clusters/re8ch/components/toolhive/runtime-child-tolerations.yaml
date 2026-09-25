@@ -61,3 +61,36 @@ spec:
               spec:
                 imagePullSecrets:
                   - name: harbor-functions-shared-pull
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: kyverno-toolhive-pull-secret-source, namespace: anycam}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [harbor-functions-shared-pull]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: kyverno-toolhive-pull-secret-source, namespace: anycam}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: kyverno-toolhive-pull-secret-source}
+subjects:
+  - {kind: ServiceAccount, name: kyverno-admission-controller, namespace: kyverno}
+  - {kind: ServiceAccount, name: kyverno-background-controller, namespace: kyverno}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: kyverno-toolhive-pull-secret-target, namespace: toolhive-system}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: kyverno-toolhive-pull-secret-target, namespace: toolhive-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: kyverno-toolhive-pull-secret-target}
+subjects:
+  - {kind: ServiceAccount, name: kyverno-admission-controller, namespace: kyverno}
+  - {kind: ServiceAccount, name: kyverno-background-controller, namespace: kyverno}
