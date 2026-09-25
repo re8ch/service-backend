@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: beacon-jade
+codename: compass-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:a393da300337d72da5993d53824b89b2ab006e31346b9b0b3e198032684dc6b1
+  digest: sha256:ee12168b507cef187088c3779cfccff3d4728cbec430dd67ec6104c665c3a11a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
