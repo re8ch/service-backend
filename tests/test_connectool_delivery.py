@@ -104,9 +104,9 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "enabled": True,
         "replicas": 2,
         "image": {
-            "repository": "ghcr.io/among-clusters/connectool-session-router",
-            "tag": "0.6.0",
-            "digest": "sha256:310606bf35a1f0c673ca3219850cb7f2ae118ff23016132c28540ecf5792d543",
+            "repository": "registry.re8ch.com/functions-shared/connectool-session-router",
+            "tag": "0.6.0-amd64",
+            "digest": "sha256:df1a3def6fcf05916e5fce18d5147e3ff5e1804780060b9da54de7c571e5359a",
             "pullPolicy": "IfNotPresent",
         },
         "listenPort": 8080,
