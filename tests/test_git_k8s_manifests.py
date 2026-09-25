@@ -436,12 +436,19 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
 
 
 def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/regional-routing/public-edge-node-metadata.yaml" in root["resources"]
+
     metadata = documents(
         ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml"
+    )
+    metadata.extend(
+        documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
     )
     regions = {
         item["metadata"]["name"]: item["metadata"]["labels"]["topology.kubernetes.io/region"]
         for item in metadata
+        if item["metadata"]["name"] in {"restricted-node-6dc3f140f9", "overseas-la", "vm-20-12-ubuntu"}
     }
     assert regions == {
         "restricted-node-6dc3f140f9": "cn-hunan",

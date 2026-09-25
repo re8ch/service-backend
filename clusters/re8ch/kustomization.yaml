@@ -60,6 +60,7 @@ resources:
 - components/observable/postgrest-ha.yaml
 - components/regional-routing/cert-manager-bootstrap.yaml
 - components/regional-routing/service-http01-issuer.yaml
+- components/regional-routing/public-edge-node-metadata.yaml
 - components/mcp-registry/registry.yaml
 - components/toolhive/external-observe-publication.yaml
 - components/toolhive/external-observe-rbac.yaml
