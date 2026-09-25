@@ -114,7 +114,7 @@ def test_connectool_renders_admin_and_tenant_publications():
     assert all(item["spec"]["sessionStorage"] == {"provider": "memory"} for item in vmcps.values())
     for item in vmcps.values():
         assert item["spec"]["podTemplateSpec"]["spec"]["nodeSelector"] == {
-            "scheduling.re8ch.com/pool-service-core-r640": "true",
+            "scheduling.re8ch.com/pool-service-core-local": "true",
             "scheduling.re8ch.com/network-serving": "true",
         }
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
@@ -156,7 +156,7 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
         assert deployment["spec"]["replicas"] == 2
         spec = deployment["spec"]["template"]["spec"]
         assert spec["nodeSelector"] == {
-            "scheduling.re8ch.com/pool-service-core-r640": "true",
+            "scheduling.re8ch.com/pool-service-core-local": "true",
             "scheduling.re8ch.com/network-serving": "true",
         }
         anti = spec["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
