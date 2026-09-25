@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Node
 metadata:
   name: restricted-node-6dc3f140f9
+  annotations: {networking.re8ch.com/capacity-mbps: "200"}
   labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
