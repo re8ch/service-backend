@@ -64,7 +64,10 @@ metadata: {name: suxunji, labels: {networking.re8ch.com/mihomo-node: enabled, ne
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: vm-20-12-ubuntu, labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}}
+metadata:
+  name: vm-20-12-ubuntu
+  annotations: {networking.re8ch.com/capacity-mbps: "3"}
+  labels: {networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/geo: cn, topology.kubernetes.io/region: cn-unverified, topology.kubernetes.io/zone: cn-unverified}
 ---
 apiVersion: v1
 kind: Node
@@ -74,5 +77,6 @@ apiVersion: v1
 kind: Node
 metadata:
   name: overseas-la
+  annotations: {networking.re8ch.com/capacity-mbps: "1000"}
   # Exit eligibility is intentionally absent while the node is NotReady.
   labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: us-ca, topology.kubernetes.io/zone: us-ca}
