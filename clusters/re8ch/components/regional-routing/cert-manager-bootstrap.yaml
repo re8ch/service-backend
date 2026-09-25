@@ -112,3 +112,6 @@ spec:
               except urllib.error.HTTPError as error:
                   if error.code != 409:
                       raise
+          resources:
+            requests: {cpu: 10m, memory: 24Mi}
+            limits: {cpu: 100m, memory: 64Mi}

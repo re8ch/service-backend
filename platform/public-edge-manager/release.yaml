@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:6f8276f1919ee43e4388e5d77283155315df83a6c18376a6a3c4286d80a8213f}
+  ref: {digest: sha256:0bace8ad68e0bce73731ceda376db0aed431e3516eae58a14429e0ec26744e43}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -31,11 +31,11 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.6"
+      tag: "0.6.7"
       # Pin the amd64 manifest used by the current PublicEdge nodes. restricted-node-6dc3f140f9's
       # containerd cannot reliably hydrate the signed multi-arch index through
       # its GHCR blob path, while this immutable child manifest is verified.
-      digest: sha256:73a9e6d5538e027c8642777980634befefe7fd4474a6332d522092056989acf1
+      digest: sha256:0e1eede45c4e7cecc3e571cdb8807e9cb48d5ad8cc261e948f01710624cb88c1
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -138,6 +138,7 @@ spec:
       intervalSeconds: 15
       probeTimeoutSeconds: 2
       defaultCapacityMbps: 100
+      minimumCapacityMbps: 100
       maxNameservers: 3
       gatewayNamespace: kube-system
       gatewaySelector: networking.re8ch.com/public-edge-gateway=true
@@ -209,14 +210,16 @@ spec:
       responseTimeoutSeconds: 12
       intervalSeconds: 3
       maxWorkers: 8
-      userAgent: public-edge-manager/0.6.6
+      userAgent: public-edge-manager/0.6.7
     candidateSelection:
       capacityWeight: 10
       localAreaBonus: 100000
       priorityWeight: 1
       latencyDivisorMs: 20
       latencyPenaltyCap: 50
-      localNodeBonus: 5
+      # DNS authorities must converge on the same exit; hosting DNS locally is
+      # not evidence that the node has adequate public application bandwidth.
+      localNodeBonus: 0
       # Preserve the elected public target through transient probe/state noise.
       # A replacement must be continuously ready before the DNS answer moves.
       failoverGraceSeconds: 300

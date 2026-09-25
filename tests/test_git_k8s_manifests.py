@@ -402,12 +402,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"] == {"digest": "sha256:6f8276f1919ee43e4388e5d77283155315df83a6c18376a6a3c4286d80a8213f"}
+    assert source["spec"]["ref"] == {"digest": "sha256:0bace8ad68e0bce73731ceda376db0aed431e3516eae58a14429e0ec26744e43"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.6",
-        "digest": "sha256:73a9e6d5538e027c8642777980634befefe7fd4474a6332d522092056989acf1",
+        "tag": "0.6.7",
+        "digest": "sha256:0e1eede45c4e7cecc3e571cdb8807e9cb48d5ad8cc261e948f01710624cb88c1",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -423,11 +423,13 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert "postRenderers" not in release["spec"]
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
+    assert values["discovery"]["minimumCapacityMbps"] == 100
     assert values["discovery"]["gatewayNamespace"] == "kube-system"
     assert values["probe"]["maxWorkers"] == 8
     assert values["candidateSelection"]["failoverGraceSeconds"] == 300
     assert values["candidateSelection"]["minReadySeconds"] == 120
     assert values["candidateSelection"]["minHoldSeconds"] == 600
+    assert values["candidateSelection"]["localNodeBonus"] == 0
     assert values["fabricEvidence"] == {
         "mode": "Required",
         "apiGroup": "networking.re8ch.com",
