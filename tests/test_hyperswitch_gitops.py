@@ -209,7 +209,7 @@ def test_public_routes_use_dedicated_tls_listeners():
     routes = list(yaml.safe_load_all(ROUTES.read_text()))
     http_routes = [route for route in routes if route["kind"] == "HTTPRoute"]
     assert {route["spec"]["hostnames"][0] for route in http_routes} == {
-        "pay.re8ch.com",
+        "pay.service.re8ch.com",
         "pay-api.re8ch.com",
     }
     for route in http_routes:
@@ -224,13 +224,57 @@ def test_public_routes_use_dedicated_tls_listeners():
     assert authority["metadata"]["annotations"][
         "external-dns.alpha.kubernetes.io/target"
     ] == "192.0.2.138"
+    assert authority["metadata"]["annotations"][
+        "external-dns.alpha.kubernetes.io/hostname"
+    ] == "pay-api.re8ch.com"
+    assert {rule["host"] for rule in authority["spec"]["rules"]} == {
+        "pay-api.re8ch.com"
+    }
 
 
 def test_publicedge_only_advertises_hyperswitch_from_r640():
     authority = (ROOT / "clusters/re8ch/components/regional-routing/authority.yaml").read_text()
-    assert '"pay.re8ch.com.": {"service":"pay-ui"' in authority
+    assert '"pay.re8ch.com."' not in authority
     assert '"pay-api.re8ch.com.": {"service":"pay-api"' in authority
-    assert '"pay-ui":["hyperswitch"],"pay-api":["hyperswitch"]' in authority
+    assert '"pay-ui":["hyperswitch"]' not in authority
+    assert '"pay-api":["hyperswitch"]' in authority
+
+
+def test_pay_ui_listeners_reject_the_retired_apex_hostname():
+    gateway_files = [
+        ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml",
+        ROOT / "clusters/re8ch/components/regional-routing/regional-gateways.yaml",
+    ]
+    listeners = []
+    for gateway_file in gateway_files:
+        for resource in yaml.safe_load_all(gateway_file.read_text()):
+            if resource and resource.get("kind") == "Gateway":
+                listeners.extend(
+                    listener
+                    for listener in resource["spec"]["listeners"]
+                    if listener["name"] == "pay-ui-https"
+                )
+    assert len(listeners) == 6
+    assert {listener["hostname"] for listener in listeners} == {
+        "pay.service.re8ch.com"
+    }
+    assert {
+        listener["tls"]["certificateRefs"][0]["name"] for listener in listeners
+    } == {"re8ch-service-wildcard-tls"}
+
+
+def test_pay_service_is_eligible_for_the_overseas_edge():
+    release = yaml.safe_load_all(
+        (ROOT / "platform/public-edge-manager/release.yaml").read_text()
+    )
+    helm_release = next(item for item in release if item.get("kind") == "HelmRelease")
+    values = helm_release["spec"]["values"]
+    assert values["services"]["pay.service.re8ch.com."]["class"] == (
+        "service-overseas"
+    )
+    edges = {edge["name"]: edge for edge in values["publicEdges"]}
+    assert "service-overseas" in edges["loudi-r640"]["serviceClasses"]
+    assert "service-overseas" in edges["us-la"]["serviceClasses"]
 
 
 def test_rendered_helm_values_namespace_and_job_admission():

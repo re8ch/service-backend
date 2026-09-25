@@ -26,7 +26,6 @@ data:
   SERVICES_JSON: |-
     {
       "api.re8ch.com.": {"service":"api","class":"api","probePath":"/__edge/ready","paths":["auth","nuclio","ledger","image","compocv"]},
-      "pay.re8ch.com.": {"service":"pay-ui","class":"web","probePath":"/","paths":["hyperswitch"]},
       "pay-api.re8ch.com.": {"service":"pay-api","class":"api","probePath":"/health","paths":["hyperswitch"]},
       "db-ro.re8ch.com.": {"service":"db-ro","class":"db-ro","probePath":"/auth/","paths":["postgrest"]},
       "db-rw.re8ch.com.": {"service":"db-rw","class":"db-rw","probePath":"/auth/","paths":["postgrest"]},
@@ -115,10 +114,9 @@ data:
         "gatewayVip": "192.0.2.213",
         "priority": -30,
         "priorityByRegion": {"shanghai": -10, "guangzhou": -10, "los-angeles": 25},
-        "paths": {"api":["auth","nuclio","ledger","image","compocv"],"pay-ui":["hyperswitch"],"pay-api":["hyperswitch"],"db-ro":["postgrest"],"db-rw":["postgrest"]},
+        "paths": {"api":["auth","nuclio","ledger","image","compocv"],"pay-api":["hyperswitch"],"db-ro":["postgrest"],"db-rw":["postgrest"]},
         "probes": {
           "api": "https://api.re8ch.com/__edge/ready",
-          "pay-ui": "https://pay.service.re8ch.com/",
           "pay-api": "https://pay-api.re8ch.com/health",
           "db-ro": "https://db-ro.re8ch.com/auth/",
           "db-rw": "https://db-rw.re8ch.com/auth/"
