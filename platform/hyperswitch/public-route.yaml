@@ -28,34 +28,9 @@ spec:
     - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: pay-api-https}
     - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: pay-api-https}
     - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: pay-api-https}
-  hostnames: [pay-api.re8ch.com]
+  hostnames: [pay-api.service.re8ch.com]
   rules:
     - matches:
         - path: {type: PathPrefix, value: /v1}
       backendRefs: [{name: nuclio-payment-registry-api, port: 8080}]
     - backendRefs: [{name: hyperswitch-hyperswitch-server, port: 80}]
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: hyperswitch-public-dns-authority
-  namespace: payments
-  labels:
-    networking.re8ch.com/dns-authority: public-edge
-  annotations:
-    networking.re8ch.com/dns-authority: public-edge
-    networking.re8ch.com/selected-public-edge: restricted-node-6dc3f140f9
-    external-dns.alpha.kubernetes.io/hostname: pay-api.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.79
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-spec:
-  # DNS authority only. Public TLS terminates on the Cilium Gateways above.
-  ingressClassName: external-dns-only
-  rules:
-    - host: pay-api.re8ch.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend: {service: {name: hyperswitch-hyperswitch-server, port: {number: 80}}}
