@@ -1013,7 +1013,7 @@
     "kind": "agent-memory",
     "module": "user-hub",
     "ref": "catalogs/platform/modules/user-hub/MEMORY.md",
-    "sha256": "4496a64c092e9fc31ef722623a94b09dacdc305ecbf1e1fafa2e2e924f2a36b6"
+    "sha256": "7a5d8284cdf1fe29e7f1adc34635d5c984dc79cd7b404e616ce950606ab7582f"
   },
   {
     "module": "qianwen-app",
