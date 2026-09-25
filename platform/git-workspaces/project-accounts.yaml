@@ -42,7 +42,7 @@ metadata:
 spec:
   accountRef: aesthete-maintain
   projectRef: aesthete
-  repository: https://github.com/re8ch/aesthete.git
+  repository: https://github.com/aesthete-robotics/aesthete.git
   folder: catalogs/aesthete/modules/aesthete/source
   branchPrefix: workspace/aesthete-maintain/
 ---
@@ -66,7 +66,7 @@ metadata:
 spec:
   accountRef: anycam-maintain
   projectRef: anycam
-  repository: https://github.com/re8ch/Anycam.git
+  repository: https://github.com/anycam-app/Anycam.git
   folder: catalogs/anycam/modules/anycam/source
   branchPrefix: workspace/anycam-maintain/
 ---
@@ -90,7 +90,7 @@ metadata:
 spec:
   accountRef: anycam-backend-maintain
   projectRef: anycam-backend
-  repository: https://github.com/re8ch/anycam-backend.git
+  repository: https://github.com/anycam-app/anycam-backend.git
   folder: catalogs/anycam/modules/anycam-backend/source
   branchPrefix: workspace/anycam-backend-maintain/
 ---
@@ -114,7 +114,7 @@ metadata:
 spec:
   accountRef: anycam-ios-maintain
   projectRef: anycam-ios
-  repository: https://github.com/re8ch/AnycamIOS.git
+  repository: https://github.com/anycam-app/AnycamIOS.git
   folder: catalogs/anycam/modules/anycam-ios/source
   branchPrefix: workspace/anycam-ios-maintain/
 ---
@@ -138,7 +138,7 @@ metadata:
 spec:
   accountRef: anycam-website-maintain
   projectRef: anycam-website
-  repository: https://github.com/re8ch/anycam-website.git
+  repository: https://github.com/anycam-app/anycam-website.git
   folder: catalogs/anycam/modules/anycam-website/source
   branchPrefix: workspace/anycam-website-maintain/
 ---
@@ -162,7 +162,7 @@ metadata:
 spec:
   accountRef: anysiteonearth-maintain
   projectRef: anysiteonearth
-  repository: https://github.com/re8ch/anysiteonearth.git
+  repository: https://github.com/anysiteonearth/anysiteonearth.git
   folder: catalogs/anysiteonearth/modules/anysiteonearth/source
   branchPrefix: workspace/anysiteonearth-maintain/
 ---
@@ -186,9 +186,57 @@ metadata:
 spec:
   accountRef: anysiteonearth-website-maintain
   projectRef: anysiteonearth-website
-  repository: https://github.com/re8ch/anysiteonearth-website.git
+  repository: https://github.com/anysiteonearth/anysiteonearth-website.git
   folder: catalogs/anysiteonearth/modules/anysiteonearth-website/source
   branchPrefix: workspace/anysiteonearth-website-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: arthandler-artchais-web-maintain
+  namespace: git-workspaces
+spec:
+  email: arthandler-artchais-web-maintain@phonaid.com
+  provider: github
+  project: arthandler-artchais-web
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: arthandler-artchais-web-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: arthandler-artchais-web-maintain
+  projectRef: arthandler-artchais-web
+  repository: https://github.com/artchais-studio/arthandler-artchais-web.git
+  folder: catalogs/artchais/modules/arthandler-artchais-web/source
+  branchPrefix: workspace/arthandler-artchais-web-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: arthandler-gallery-robot-maintain
+  namespace: git-workspaces
+spec:
+  email: arthandler-gallery-robot-maintain@phonaid.com
+  provider: github
+  project: arthandler-gallery-robot
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: arthandler-gallery-robot-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: arthandler-gallery-robot-maintain
+  projectRef: arthandler-gallery-robot
+  repository: https://github.com/artchais-studio/ArtHandler-Gallery-Robot.git
+  folder: catalogs/artchais/modules/arthandler-gallery-robot/source
+  branchPrefix: workspace/arthandler-gallery-robot-maintain/
 ---
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
@@ -210,7 +258,7 @@ metadata:
 spec:
   accountRef: baozou-ppt-studio-maintain
   projectRef: baozou-ppt-studio
-  repository: https://github.com/re8ch/baozou-ppt-studio.git
+  repository: https://github.com/baozou-ppt-studio/baozou-ppt-studio.git
   folder: catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source
   branchPrefix: workspace/baozou-ppt-studio-maintain/
 ---
@@ -234,7 +282,7 @@ metadata:
 spec:
   accountRef: director-engines-maintain
   projectRef: director-engines
-  repository: https://github.com/re8ch/director-engines.git
+  repository: https://github.com/baozou-ppt-studio/director-engines.git
   folder: catalogs/baozou-ppt-studio/modules/director-engines/source
   branchPrefix: workspace/director-engines-maintain/
 ---
@@ -282,7 +330,7 @@ metadata:
 spec:
   accountRef: compocv-maintain
   projectRef: compocv
-  repository: https://github.com/re8ch/compocv.git
+  repository: https://github.com/compocv/compocv.git
   folder: catalogs/compocv/modules/compocv/source
   branchPrefix: workspace/compocv-maintain/
 ---
@@ -306,7 +354,7 @@ metadata:
 spec:
   accountRef: farseer-maintain
   projectRef: farseer
-  repository: https://github.com/re8ch/farseer.git
+  repository: https://github.com/farseer-video/farseer.git
   folder: catalogs/farseer/modules/farseer/source
   branchPrefix: workspace/farseer-maintain/
 ---
@@ -330,7 +378,7 @@ metadata:
 spec:
   accountRef: garageband-mcp-maintain
   projectRef: garageband-mcp
-  repository: https://github.com/re8ch/garageband-mcp.git
+  repository: https://github.com/garageband-mcp/garageband-mcp.git
   folder: catalogs/garageband/modules/garageband-mcp/source
   branchPrefix: workspace/garageband-mcp-maintain/
 ---
@@ -354,7 +402,7 @@ metadata:
 spec:
   accountRef: garageband-mcp-site-maintain
   projectRef: garageband-mcp-site
-  repository: https://github.com/re8ch/garageband-mcp-site.git
+  repository: https://github.com/garageband-mcp/garageband-mcp-site.git
   folder: catalogs/garageband/modules/garageband-mcp-site/source
   branchPrefix: workspace/garageband-mcp-site-maintain/
 ---
@@ -378,7 +426,7 @@ metadata:
 spec:
   accountRef: jjklive-maintain
   projectRef: jjklive
-  repository: https://github.com/re8ch/jjklive.git
+  repository: https://github.com/jjklive/jjklive.git
   folder: catalogs/jjklive/modules/jjklive/source
   branchPrefix: workspace/jjklive-maintain/
 ---
@@ -402,7 +450,7 @@ metadata:
 spec:
   accountRef: ledger-maintain
   projectRef: ledger
-  repository: https://github.com/re8ch/ledger.git
+  repository: https://github.com/lizhang-ledger/ledger.git
   folder: catalogs/ledger/modules/ledger/source
   branchPrefix: workspace/ledger-maintain/
 ---
@@ -426,7 +474,7 @@ metadata:
 spec:
   accountRef: ledger-dashboard-maintain
   projectRef: ledger-dashboard
-  repository: https://github.com/re8ch/ledger-dashboard.git
+  repository: https://github.com/lizhang-ledger/ledger-dashboard.git
   folder: catalogs/ledger/modules/ledger-dashboard/source
   branchPrefix: workspace/ledger-dashboard-maintain/
 ---
@@ -450,7 +498,7 @@ metadata:
 spec:
   accountRef: ledger-site-maintain
   projectRef: ledger-site
-  repository: https://github.com/re8ch/ledger-website.git
+  repository: https://github.com/lizhang-ledger/ledger-website.git
   folder: catalogs/ledger/modules/ledger-site/source
   branchPrefix: workspace/ledger-site-maintain/
 ---
@@ -474,7 +522,7 @@ metadata:
 spec:
   accountRef: motor-muscle-sim-maintain
   projectRef: motor-muscle-sim
-  repository: https://github.com/re8ch/motor-muscle-sim.git
+  repository: https://github.com/motor-muscle-sim/motor-muscle-sim.git
   folder: catalogs/motor-muscle-sim/modules/motor-muscle-sim/source
   branchPrefix: workspace/motor-muscle-sim-maintain/
 ---
@@ -522,7 +570,7 @@ metadata:
 spec:
   accountRef: phonaid-android-maintain
   projectRef: phonaid-android
-  repository: https://github.com/re8ch/phonaid-android.git
+  repository: https://github.com/phonaid/phonaid-android.git
   folder: catalogs/phonaid/modules/phonaid-android/source
   branchPrefix: workspace/phonaid-android-maintain/
 ---
@@ -546,7 +594,7 @@ metadata:
 spec:
   accountRef: phonaid-service-maintain
   projectRef: phonaid-service
-  repository: https://github.com/re8ch/phonaid-service.git
+  repository: https://github.com/phonaid/phonaid-service.git
   folder: catalogs/phonaid/modules/phonaid-service/source
   branchPrefix: workspace/phonaid-service-maintain/
 ---
@@ -570,7 +618,7 @@ metadata:
 spec:
   accountRef: phonaid-website-maintain
   projectRef: phonaid-website
-  repository: https://github.com/re8ch/phonaid-website.git
+  repository: https://github.com/phonaid/phonaid-website.git
   folder: catalogs/phonaid/modules/phonaid-website/source
   branchPrefix: workspace/phonaid-website-maintain/
 ---
@@ -985,6 +1033,30 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: user-hub-maintain
+  namespace: git-workspaces
+spec:
+  email: user-hub-maintain@phonaid.com
+  provider: github
+  project: user-hub
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: user-hub-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: user-hub-maintain
+  projectRef: user-hub
+  repository: https://github.com/re8ch/user-hub.git
+  folder: catalogs/platform/modules/user-hub/source
+  branchPrefix: workspace/user-hub-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: space-mining-stage-maintain
   namespace: git-workspaces
 spec:
@@ -1002,7 +1074,7 @@ metadata:
 spec:
   accountRef: space-mining-stage-maintain
   projectRef: space-mining-stage
-  repository: https://github.com/re8ch/space-mining-stage.git
+  repository: https://github.com/space-mining-stage/space-mining-stage.git
   folder: catalogs/space-mining-stage/modules/space-mining-stage/source
   branchPrefix: workspace/space-mining-stage-maintain/
 ---
@@ -1026,30 +1098,6 @@ metadata:
 spec:
   accountRef: thiking-machine-maintain
   projectRef: thiking-machine
-  repository: https://github.com/re8ch/thiking-machine.git
+  repository: https://github.com/thinking-machine-labs/thiking-machine.git
   folder: catalogs/thiking-machine/modules/thiking-machine/source
   branchPrefix: workspace/thiking-machine-maintain/
----
-apiVersion: governance.re8ch.com/v1alpha1
-kind: GitAccount
-metadata:
-  name: user-hub-maintain
-  namespace: git-workspaces
-spec:
-  email: user-hub-maintain@phonaid.com
-  provider: github
-  project: user-hub
-  mailbox: stalwart
-  googleWorkspace: eligible
----
-apiVersion: governance.re8ch.com/v1alpha1
-kind: GitWorkspace
-metadata:
-  name: user-hub-maintain
-  namespace: git-workspaces
-spec:
-  accountRef: user-hub-maintain
-  projectRef: user-hub
-  repository: https://github.com/re8ch/user-hub.git
-  folder: catalogs/platform/modules/user-hub/source
-  branchPrefix: workspace/user-hub-maintain/

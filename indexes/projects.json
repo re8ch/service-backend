@@ -14,7 +14,7 @@
     "id": "aesthete",
     "ownership": "owned",
     "projectType": "visual-product",
-    "repository": "https://github.com/re8ch/aesthete.git",
+    "repository": "https://github.com/aesthete-robotics/aesthete.git",
     "source": "catalogs/aesthete/modules/aesthete/source"
   },
   {
@@ -32,7 +32,7 @@
     "id": "anycam",
     "ownership": "owned",
     "projectType": "app",
-    "repository": "https://github.com/re8ch/Anycam.git",
+    "repository": "https://github.com/anycam-app/Anycam.git",
     "source": "catalogs/anycam/modules/anycam/source"
   },
   {
@@ -41,7 +41,7 @@
     "id": "anycam-backend",
     "ownership": "owned",
     "projectType": "service",
-    "repository": "https://github.com/re8ch/anycam-backend.git",
+    "repository": "https://github.com/anycam-app/anycam-backend.git",
     "source": "catalogs/anycam/modules/anycam-backend/source"
   },
   {
@@ -50,7 +50,7 @@
     "id": "anycam-ios",
     "ownership": "owned",
     "projectType": "ios",
-    "repository": "https://github.com/re8ch/AnycamIOS.git",
+    "repository": "https://github.com/anycam-app/AnycamIOS.git",
     "source": "catalogs/anycam/modules/anycam-ios/source"
   },
   {
@@ -59,7 +59,7 @@
     "id": "anycam-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/anycam-website.git",
+    "repository": "https://github.com/anycam-app/anycam-website.git",
     "source": "catalogs/anycam/modules/anycam-website/source"
   },
   {
@@ -68,7 +68,7 @@
     "id": "anysiteonearth",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/anysiteonearth.git",
+    "repository": "https://github.com/anysiteonearth/anysiteonearth.git",
     "source": "catalogs/anysiteonearth/modules/anysiteonearth/source"
   },
   {
@@ -77,7 +77,7 @@
     "id": "anysiteonearth-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/anysiteonearth-website.git",
+    "repository": "https://github.com/anysiteonearth/anysiteonearth-website.git",
     "source": "catalogs/anysiteonearth/modules/anysiteonearth-website/source"
   },
   {
@@ -102,18 +102,18 @@
     "catalog": "artchais",
     "commit": "541afc8f91a93604621b6c7c35344c0709c6d0f9",
     "id": "arthandler-artchais-web",
-    "ownership": "collaboration",
+    "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/arthandler-artchais-web.git",
+    "repository": "https://github.com/artchais-studio/arthandler-artchais-web.git",
     "source": "catalogs/artchais/modules/arthandler-artchais-web/source"
   },
   {
     "catalog": "artchais",
     "commit": "d18ba129b46ea9e5011fdb02bb841cea78418d26",
     "id": "arthandler-gallery-robot",
-    "ownership": "collaboration",
+    "ownership": "owned",
     "projectType": "automation",
-    "repository": "https://github.com/Woomou/ArtHandler-Gallery-Robot.git",
+    "repository": "https://github.com/artchais-studio/ArtHandler-Gallery-Robot.git",
     "source": "catalogs/artchais/modules/arthandler-gallery-robot/source"
   },
   {
@@ -122,7 +122,7 @@
     "id": "baozou-ppt-studio",
     "ownership": "owned",
     "projectType": "presentation-product",
-    "repository": "https://github.com/re8ch/baozou-ppt-studio.git",
+    "repository": "https://github.com/baozou-ppt-studio/baozou-ppt-studio.git",
     "source": "catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source"
   },
   {
@@ -131,7 +131,7 @@
     "id": "director-engines",
     "ownership": "owned",
     "projectType": "rendering-engine",
-    "repository": "https://github.com/re8ch/director-engines.git",
+    "repository": "https://github.com/baozou-ppt-studio/director-engines.git",
     "source": "catalogs/baozou-ppt-studio/modules/director-engines/source"
   },
   {
@@ -149,7 +149,7 @@
     "id": "compocv",
     "ownership": "owned",
     "projectType": "product-api",
-    "repository": "https://github.com/re8ch/compocv.git",
+    "repository": "https://github.com/compocv/compocv.git",
     "source": "catalogs/compocv/modules/compocv/source"
   },
   {
@@ -158,7 +158,7 @@
     "id": "farseer",
     "ownership": "owned",
     "projectType": "product-api",
-    "repository": "https://github.com/re8ch/farseer.git",
+    "repository": "https://github.com/farseer-video/farseer.git",
     "source": "catalogs/farseer/modules/farseer/source"
   },
   {
@@ -167,7 +167,7 @@
     "id": "garageband-mcp",
     "ownership": "owned",
     "projectType": "mcp-server",
-    "repository": "https://github.com/re8ch/garageband-mcp.git",
+    "repository": "https://github.com/garageband-mcp/garageband-mcp.git",
     "source": "catalogs/garageband/modules/garageband-mcp/source"
   },
   {
@@ -176,7 +176,7 @@
     "id": "garageband-mcp-site",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/garageband-mcp-site.git",
+    "repository": "https://github.com/garageband-mcp/garageband-mcp-site.git",
     "source": "catalogs/garageband/modules/garageband-mcp-site/source"
   },
   {
@@ -185,7 +185,7 @@
     "id": "jjklive",
     "ownership": "owned",
     "projectType": "game",
-    "repository": "https://github.com/re8ch/jjklive.git",
+    "repository": "https://github.com/jjklive/jjklive.git",
     "source": "catalogs/jjklive/modules/jjklive/source"
   },
   {
@@ -194,7 +194,7 @@
     "id": "ledger",
     "ownership": "owned",
     "projectType": "finance-platform",
-    "repository": "https://github.com/re8ch/ledger.git",
+    "repository": "https://github.com/lizhang-ledger/ledger.git",
     "source": "catalogs/ledger/modules/ledger/source"
   },
   {
@@ -203,7 +203,7 @@
     "id": "ledger-dashboard",
     "ownership": "owned",
     "projectType": "web-dashboard",
-    "repository": "https://github.com/re8ch/ledger-dashboard.git",
+    "repository": "https://github.com/lizhang-ledger/ledger-dashboard.git",
     "source": "catalogs/ledger/modules/ledger-dashboard/source"
   },
   {
@@ -212,7 +212,7 @@
     "id": "ledger-site",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/ledger-website.git",
+    "repository": "https://github.com/lizhang-ledger/ledger-website.git",
     "source": "catalogs/ledger/modules/ledger-site/source"
   },
   {
@@ -221,7 +221,7 @@
     "id": "motor-muscle-sim",
     "ownership": "owned",
     "projectType": "simulation",
-    "repository": "https://github.com/re8ch/motor-muscle-sim.git",
+    "repository": "https://github.com/motor-muscle-sim/motor-muscle-sim.git",
     "source": "catalogs/motor-muscle-sim/modules/motor-muscle-sim/source"
   },
   {
@@ -248,7 +248,7 @@
     "id": "phonaid-android",
     "ownership": "owned",
     "projectType": "android",
-    "repository": "https://github.com/re8ch/phonaid-android.git",
+    "repository": "https://github.com/phonaid/phonaid-android.git",
     "source": "catalogs/phonaid/modules/phonaid-android/source"
   },
   {
@@ -257,7 +257,7 @@
     "id": "phonaid-service",
     "ownership": "owned",
     "projectType": "service",
-    "repository": "https://github.com/re8ch/phonaid-service.git",
+    "repository": "https://github.com/phonaid/phonaid-service.git",
     "source": "catalogs/phonaid/modules/phonaid-service/source"
   },
   {
@@ -266,7 +266,7 @@
     "id": "phonaid-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/phonaid-website.git",
+    "repository": "https://github.com/phonaid/phonaid-website.git",
     "source": "catalogs/phonaid/modules/phonaid-website/source"
   },
   {
@@ -509,7 +509,7 @@
     "id": "space-mining-stage",
     "ownership": "owned",
     "projectType": "game",
-    "repository": "https://github.com/re8ch/space-mining-stage.git",
+    "repository": "https://github.com/space-mining-stage/space-mining-stage.git",
     "source": "catalogs/space-mining-stage/modules/space-mining-stage/source"
   },
   {
@@ -518,7 +518,7 @@
     "id": "thiking-machine",
     "ownership": "owned",
     "projectType": "ai-research",
-    "repository": "https://github.com/re8ch/thiking-machine.git",
+    "repository": "https://github.com/thinking-machine-labs/thiking-machine.git",
     "source": "catalogs/thiking-machine/modules/thiking-machine/source"
   }
 ]

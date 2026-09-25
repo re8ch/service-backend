@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-09-25T05:17:33Z'
-  generation: 1790313453
+  generatedAt: '2026-09-25T06:06:19Z'
+  generation: 1790316379
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -19,7 +19,7 @@ modules:
     commit: 1e06ed1aebca1067a1b1c07bc24833bfb70a2ef3
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/aesthete.git
+    repository: https://github.com/aesthete-robotics/aesthete.git
   among-clusters:
     commit: 9393b40a1cfc0a06e5f296792915188afc45a781
     defaultBranch: main
@@ -29,33 +29,33 @@ modules:
     commit: 51151cc9d7d4395d47fcdf27b32c015ac2d34e31
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/Anycam.git
+    repository: https://github.com/anycam-app/Anycam.git
   anycam-backend:
     commit: 7b0a7fce25661632fed83184105c97612268e308
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/anycam-backend.git
+    repository: https://github.com/anycam-app/anycam-backend.git
   anycam-ios:
     commit: f5d3cc7eae370f48e31612d8dfa8a65e899709a2
     defaultBranch: main
     dependencies:
     - anycam-backend
-    repository: https://github.com/re8ch/AnycamIOS.git
+    repository: https://github.com/anycam-app/AnycamIOS.git
   anycam-website:
     commit: 37df7b97a36cf52e8afaa96cfc7699600e0d1e1d
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/anycam-website.git
+    repository: https://github.com/anycam-app/anycam-website.git
   anysiteonearth:
     commit: 4902b906dec60aca6265ad5bed0ba0973491d995
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/anysiteonearth.git
+    repository: https://github.com/anysiteonearth/anysiteonearth.git
   anysiteonearth-website:
     commit: 43532c9d1bcf77a7389bb3a12b74817b388ee939
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/anysiteonearth-website.git
+    repository: https://github.com/anysiteonearth/anysiteonearth-website.git
   artchais-microservices:
     commit: aa2b9eda6785027c41bf789c0f201a36c5a02d55
     defaultBranch: main
@@ -72,18 +72,18 @@ modules:
     defaultBranch: main
     dependencies:
     - artchais-web
-    repository: https://github.com/re8ch/arthandler-artchais-web.git
+    repository: https://github.com/artchais-studio/arthandler-artchais-web.git
   arthandler-gallery-robot:
     commit: d18ba129b46ea9e5011fdb02bb841cea78418d26
     defaultBranch: main
     dependencies:
     - artchais-web
-    repository: https://github.com/Woomou/ArtHandler-Gallery-Robot.git
+    repository: https://github.com/artchais-studio/ArtHandler-Gallery-Robot.git
   baozou-ppt-studio:
     commit: 6638d35c72443dad258c2f248076f751e0a337c0
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/baozou-ppt-studio.git
+    repository: https://github.com/baozou-ppt-studio/baozou-ppt-studio.git
   brand-assets:
     commit: e1fd190fefd8e8535dfd1410327e901afde873c2
     defaultBranch: main
@@ -113,7 +113,7 @@ modules:
     commit: bc4c867a44047b0fd0e016d47d2798b6570b6b7b
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/compocv.git
+    repository: https://github.com/compocv/compocv.git
   connectool:
     commit: b95f978a6b10cc6d4a655a1d6743b2a2fc9fd936
     defaultBranch: main
@@ -123,23 +123,23 @@ modules:
     commit: 012ebfd676464b062e986758548c3215d2f12b24
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/director-engines.git
+    repository: https://github.com/baozou-ppt-studio/director-engines.git
   farseer:
     commit: f2555e92c9ccf2c7cc402010dcb6b631d98612f1
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/farseer.git
+    repository: https://github.com/farseer-video/farseer.git
   garageband-mcp:
     commit: d430c62fdbb14edaddba5ebadd47ca24ee669aef
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/garageband-mcp.git
+    repository: https://github.com/garageband-mcp/garageband-mcp.git
   garageband-mcp-site:
     commit: 33f05b518e06c1f5fc86ee4cad000c1fb6c94bb7
     defaultBranch: main
     dependencies:
     - garageband-mcp
-    repository: https://github.com/re8ch/garageband-mcp-site.git
+    repository: https://github.com/garageband-mcp/garageband-mcp-site.git
   headlamp-advanced-fabric:
     commit: 4c4e6b757943a2c9591772e325155c1f13bbaf57
     defaultBranch: main
@@ -161,23 +161,23 @@ modules:
     commit: 232dabf876406a0d47bf22ebb7388d39cf39e6c2
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/jjklive.git
+    repository: https://github.com/jjklive/jjklive.git
   ledger:
     commit: 20966b88af0df626e2b4f9de5bd4686f6e9f7b64
     defaultBranch: main
     dependencies:
     - ledger-dashboard
-    repository: https://github.com/re8ch/ledger.git
+    repository: https://github.com/lizhang-ledger/ledger.git
   ledger-dashboard:
     commit: 67b4ee074621d1e19e86503ab01844fb6cdf3631
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/ledger-dashboard.git
+    repository: https://github.com/lizhang-ledger/ledger-dashboard.git
   ledger-site:
     commit: 5c76495e98c8a81c2b735846546d8ee5bf15d57a
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/ledger-website.git
+    repository: https://github.com/lizhang-ledger/ledger-website.git
   mcp-registry:
     commit: 6036804f1c62633b5e7d2927f411a6f4127f148a
     defaultBranch: main
@@ -192,7 +192,7 @@ modules:
     commit: ba37d6cf9b82c71e1bda20e291382f1dc72c14d1
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/motor-muscle-sim.git
+    repository: https://github.com/motor-muscle-sim/motor-muscle-sim.git
   netbird-core:
     commit: 335adfe9c371cdd3b7433d62ec9ac888a57aa2c1
     defaultBranch: main
@@ -213,18 +213,18 @@ modules:
     defaultBranch: main
     dependencies:
     - phonaid-service
-    repository: https://github.com/re8ch/phonaid-android.git
+    repository: https://github.com/phonaid/phonaid-android.git
   phonaid-service:
     commit: a76b242c4ef107393ca94f731708a34237448e27
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/phonaid-service.git
+    repository: https://github.com/phonaid/phonaid-service.git
   phonaid-website:
     commit: 7b7d3e8ff0a7e6dfebb6b6b1b49dba3be307c2fa
     defaultBranch: main
     dependencies:
     - phonaid-service
-    repository: https://github.com/re8ch/phonaid-website.git
+    repository: https://github.com/phonaid/phonaid-website.git
   product-public-data:
     commit: f694be0bc4b7d01b499c03b20c1198c0112b7dbf
     defaultBranch: main
@@ -282,12 +282,12 @@ modules:
     commit: 34d3befceffe587fcbd926d00e88bdf733447392
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/space-mining-stage.git
+    repository: https://github.com/space-mining-stage/space-mining-stage.git
   thiking-machine:
     commit: bf6a4968d66ef5f2067851defa7e3e0d69265b1e
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/thiking-machine.git
+    repository: https://github.com/thinking-machine-labs/thiking-machine.git
   tool-distribution:
     commit: 21f3df9ac8d9d046537ba5f395e3ca44672b27d3
     defaultBranch: main

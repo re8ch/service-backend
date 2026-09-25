@@ -1,4 +1,4 @@
 apiVersion: workspace.re8ch.com/v1alpha2
 kind: WorkspaceModule
 metadata: {name: aesthete, catalog: aesthete}
-spec: {ownership: owned, lifecycle: active, repository: {provider: github, url: 'https://github.com/re8ch/aesthete.git', defaultBranch: main, owner: re8ch}, projectType: visual-product, writePolicy: github-pr, knowledge: [README.md], tools: [python, blender, git-lfs], source: {kind: submodule, path: source, metadataPolicy: in-repository}, identity: {maintainerAddress: aesthete-maintain@phonaid.com, accountClass: project-maintainer}, clusterIndex: {path: .re8ch/cluster-resources.yaml}}
+spec: {ownership: owned, lifecycle: active, repository: {provider: github, url: 'https://github.com/aesthete-robotics/aesthete.git', defaultBranch: main, owner: aesthete-robotics}, projectType: visual-product, writePolicy: github-pr, knowledge: [README.md], tools: [python, blender, git-lfs], source: {kind: submodule, path: source, metadataPolicy: in-repository}, identity: {maintainerAddress: aesthete-maintain@phonaid.com, accountClass: project-maintainer}, clusterIndex: {path: .re8ch/cluster-resources.yaml}}

@@ -4,7 +4,7 @@
 	branch = main
 [submodule "aesthete/aesthete"]
 	path = catalogs/aesthete/modules/aesthete/source
-	url = https://github.com/re8ch/aesthete.git
+	url = https://github.com/aesthete-robotics/aesthete.git
 	branch = main
 [submodule "aesthete/z-anatomy-models"]
 	path = catalogs/aesthete/modules/z-anatomy-models/source
@@ -12,27 +12,27 @@
 	branch = master
 [submodule "anycam/anycam-backend"]
 	path = catalogs/anycam/modules/anycam-backend/source
-	url = https://github.com/re8ch/anycam-backend.git
+	url = https://github.com/anycam-app/anycam-backend.git
 	branch = main
 [submodule "anycam/anycam-ios"]
 	path = catalogs/anycam/modules/anycam-ios/source
-	url = https://github.com/re8ch/AnycamIOS.git
+	url = https://github.com/anycam-app/AnycamIOS.git
 	branch = main
 [submodule "anycam/anycam-website"]
 	path = catalogs/anycam/modules/anycam-website/source
-	url = https://github.com/re8ch/anycam-website.git
+	url = https://github.com/anycam-app/anycam-website.git
 	branch = main
 [submodule "anycam/anycam"]
 	path = catalogs/anycam/modules/anycam/source
-	url = https://github.com/re8ch/Anycam.git
+	url = https://github.com/anycam-app/Anycam.git
 	branch = main
 [submodule "anysiteonearth/anysiteonearth-website"]
 	path = catalogs/anysiteonearth/modules/anysiteonearth-website/source
-	url = https://github.com/re8ch/anysiteonearth-website.git
+	url = https://github.com/anysiteonearth/anysiteonearth-website.git
 	branch = main
 [submodule "anysiteonearth/anysiteonearth"]
 	path = catalogs/anysiteonearth/modules/anysiteonearth/source
-	url = https://github.com/re8ch/anysiteonearth.git
+	url = https://github.com/anysiteonearth/anysiteonearth.git
 	branch = main
 [submodule "artchais/artchais-microservices"]
 	path = catalogs/artchais/modules/artchais-microservices/source
@@ -44,19 +44,19 @@
 	branch = main
 [submodule "artchais/arthandler-artchais-web"]
 	path = catalogs/artchais/modules/arthandler-artchais-web/source
-	url = https://github.com/re8ch/arthandler-artchais-web.git
+	url = https://github.com/artchais-studio/arthandler-artchais-web.git
 	branch = main
 [submodule "artchais/arthandler-gallery-robot"]
 	path = catalogs/artchais/modules/arthandler-gallery-robot/source
-	url = https://github.com/Woomou/ArtHandler-Gallery-Robot.git
+	url = https://github.com/artchais-studio/ArtHandler-Gallery-Robot.git
 	branch = main
 [submodule "baozou-ppt-studio/baozou-ppt-studio"]
 	path = catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source
-	url = https://github.com/re8ch/baozou-ppt-studio.git
+	url = https://github.com/baozou-ppt-studio/baozou-ppt-studio.git
 	branch = main
 [submodule "baozou-ppt-studio/director-engines"]
 	path = catalogs/baozou-ppt-studio/modules/director-engines/source
-	url = https://github.com/re8ch/director-engines.git
+	url = https://github.com/baozou-ppt-studio/director-engines.git
 	branch = main
 [submodule "career-ops/career-ops"]
 	path = catalogs/career-ops/modules/career-ops/source
@@ -64,35 +64,35 @@
 	branch = main
 [submodule "compocv/compocv"]
 	path = catalogs/compocv/modules/compocv/source
-	url = https://github.com/re8ch/compocv.git
+	url = https://github.com/compocv/compocv.git
 	branch = main
 [submodule "garageband/garageband-mcp-site"]
 	path = catalogs/garageband/modules/garageband-mcp-site/source
-	url = https://github.com/re8ch/garageband-mcp-site.git
+	url = https://github.com/garageband-mcp/garageband-mcp-site.git
 	branch = main
 [submodule "garageband/garageband-mcp"]
 	path = catalogs/garageband/modules/garageband-mcp/source
-	url = https://github.com/re8ch/garageband-mcp.git
+	url = https://github.com/garageband-mcp/garageband-mcp.git
 	branch = main
 [submodule "jjklive/jjklive"]
 	path = catalogs/jjklive/modules/jjklive/source
-	url = https://github.com/re8ch/jjklive.git
+	url = https://github.com/jjklive/jjklive.git
 	branch = main
 [submodule "ledger/ledger-dashboard"]
 	path = catalogs/ledger/modules/ledger-dashboard/source
-	url = https://github.com/re8ch/ledger-dashboard.git
+	url = https://github.com/lizhang-ledger/ledger-dashboard.git
 	branch = main
 [submodule "ledger/ledger-site"]
 	path = catalogs/ledger/modules/ledger-site/source
-	url = https://github.com/re8ch/ledger-website.git
+	url = https://github.com/lizhang-ledger/ledger-website.git
 	branch = main
 [submodule "ledger/ledger"]
 	path = catalogs/ledger/modules/ledger/source
-	url = https://github.com/re8ch/ledger.git
+	url = https://github.com/lizhang-ledger/ledger.git
 	branch = main
 [submodule "motor-muscle-sim/motor-muscle-sim"]
 	path = catalogs/motor-muscle-sim/modules/motor-muscle-sim/source
-	url = https://github.com/re8ch/motor-muscle-sim.git
+	url = https://github.com/motor-muscle-sim/motor-muscle-sim.git
 	branch = main
 [submodule "network-decomplexer/netbird-core"]
 	path = catalogs/network-decomplexer/modules/netbird-core/source
@@ -104,15 +104,15 @@
 	branch = main
 [submodule "phonaid/phonaid-android"]
 	path = catalogs/phonaid/modules/phonaid-android/source
-	url = https://github.com/re8ch/phonaid-android.git
+	url = https://github.com/phonaid/phonaid-android.git
 	branch = main
 [submodule "phonaid/phonaid-service"]
 	path = catalogs/phonaid/modules/phonaid-service/source
-	url = https://github.com/re8ch/phonaid-service.git
+	url = https://github.com/phonaid/phonaid-service.git
 	branch = main
 [submodule "phonaid/phonaid-website"]
 	path = catalogs/phonaid/modules/phonaid-website/source
-	url = https://github.com/re8ch/phonaid-website.git
+	url = https://github.com/phonaid/phonaid-website.git
 	branch = main
 [submodule "platform/advanced-fabric"]
 	path = catalogs/platform/modules/advanced-fabric/source
@@ -200,11 +200,11 @@
 	branch = master
 [submodule "space-mining-stage/space-mining-stage"]
 	path = catalogs/space-mining-stage/modules/space-mining-stage/source
-	url = https://github.com/re8ch/space-mining-stage.git
+	url = https://github.com/space-mining-stage/space-mining-stage.git
 	branch = main
 [submodule "thiking-machine/thiking-machine"]
 	path = catalogs/thiking-machine/modules/thiking-machine/source
-	url = https://github.com/re8ch/thiking-machine.git
+	url = https://github.com/thinking-machine-labs/thiking-machine.git
 	branch = main
 [submodule "platform/among-clusters"]
 	path = catalogs/platform/modules/among-clusters/source
@@ -216,7 +216,7 @@
 	branch = main
 [submodule "farseer/farseer"]
 	path = catalogs/farseer/modules/farseer/source
-	url = https://github.com/re8ch/farseer.git
+	url = https://github.com/farseer-video/farseer.git
 	branch = main
 [submodule "platform/headlamp-birfucate"]
 	path = catalogs/platform/modules/headlamp-birfucate/source
