@@ -434,6 +434,8 @@ modules:
       digest: sha256:e1a1eb6761d921aa808608733e4ad7cf99bfecafed10e9e5de76ae70546cdb38
     - codename: meridian
       digest: sha256:15f994a240f924bc5ec2d7232d6ee6457901ba1cc5e4fad1eb857f74c8c53fd8
+    - codename: passage
+      digest: sha256:fce16977839dab7ddfdc8f89a136afdd843f9887af72d008d6f8248511ade616
   platform/public-edge-manager:
     releases:
     - codename: bora
@@ -498,6 +500,8 @@ modules:
       digest: sha256:4b3cfcf4f5054b1ed08bde14ae04334634a833986f3e6cfd839b88fca25f2d00
     - codename: etesian-jade
       digest: sha256:3afeddae8a839ab4bc368cfc5e563427959afe21daac15c680487a1aeb1b634f
+    - codename: mistral-jade
+      digest: sha256:3a1d852c1c5c6be32a9c7edeb5330ba1705aded559e0f69e0cfbc083edcd4653
   platform/adapter:
     releases:
     - codename: anchor
