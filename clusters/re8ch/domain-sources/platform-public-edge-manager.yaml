@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-pearl
+    delivery.re8ch.com/codename: tramontane-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:264d9cbd650c8f1379c3661948bfba2f9e406293d03d90a341fa3ae589de0299
+    digest: sha256:327ae6293746c33947f29f1bbaa50255d93cc333853b1c8a93ced832b2cb1069
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-pearl
+    delivery.re8ch.com/codename: tramontane-pearl
 spec:
   interval: 1m
   retryInterval: 1m
