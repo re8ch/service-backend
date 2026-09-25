@@ -23,7 +23,7 @@ fi
 
 # Re-apply after CRD discovery so ClusterIssuer is created, then wait before certificates.
 kubectl --context "$context" apply -f "$regional/cert-manager-bootstrap.yaml"
-kubectl --context "$context" wait --for=condition=Complete job/cert-manager-cloudflare-bootstrap -n cert-manager --timeout=180s
+kubectl --context "$context" wait --for=condition=Complete job/cert-manager-cloudflare-bootstrap-v2 -n cert-manager --timeout=180s
 kubectl --context "$context" apply -f "$regional/clusterissuer.yaml"
 kubectl --context "$context" wait --for=condition=Ready clusterissuer/re8ch-cloudflare-dns01 --timeout=180s
 kubectl --context "$context" apply -f "$regional/gateway-certificates.yaml"
