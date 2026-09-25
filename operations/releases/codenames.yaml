@@ -288,6 +288,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: zephyr-amber
       digest: sha256:cdbdc65d7763d81820c974f8c88f19a6af7fb6e3bd87e62ccdb3bd9b6b318b43
+    - codename: bora-copper
+      digest: sha256:8bf4ba0a5f9a0919ecef9468bf3ed13f7b5731b83f4442b0fc0bca07e3e642e3
   platform/git-workspaces:
     releases:
     - codename: andromeda
