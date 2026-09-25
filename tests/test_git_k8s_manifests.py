@@ -442,9 +442,13 @@ def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window()
     metadata = documents(
         ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml"
     )
+    metadata.extend(
+        documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
+    )
     regions = {
         item["metadata"]["name"]: item["metadata"]["labels"]["topology.kubernetes.io/region"]
         for item in metadata
+        if item["metadata"]["name"] in {"restricted-node-6dc3f140f9", "overseas-la", "vm-20-12-ubuntu"}
     }
     assert regions == {
         "restricted-node-6dc3f140f9": "cn-hunan",
