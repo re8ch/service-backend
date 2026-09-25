@@ -1,49 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata: {name: re8ch-user-center-web, namespace: auth}
-data:
-  default.conf: |
-    server {
-      listen 8080;
-      root /usr/share/nginx/html;
-      index index.html;
-      add_header X-Content-Type-Options nosniff always;
-      add_header Referrer-Policy strict-origin-when-cross-origin always;
-      add_header Content-Security-Policy "default-src 'self'; connect-src https://api.re8ch.com; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'" always;
-      location = /healthz { access_log off; return 200 'ok\n'; }
-      location / { try_files $uri $uri/ /index.html; }
-    }
-  index.html: |
-    <!doctype html>
-    <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RE8CH 用户中心</title>
-    <style>
-    :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033;background:#f3f6fb}*{box-sizing:border-box}body{margin:0}header{background:#101828;color:white;padding:18px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between}header span{color:#a9b6cb}.shell{max-width:1100px;margin:28px auto;padding:0 20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:white;border:1px solid #dce3ee;border-radius:12px;padding:20px;box-shadow:0 8px 24px #1018280a}.wide{grid-column:1/-1}.hidden{display:none!important}h1,h2{margin:0 0 10px}p{color:#667085;line-height:1.5}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.stack{display:grid;gap:10px}.item{border:1px solid #e2e8f0;border-radius:9px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{color:#667085;font-size:13px}.error{color:#b42318}.badge{background:#e8f1ff;color:#1849a9;border-radius:999px;padding:3px 8px;font-size:12px}button,.button{border:0;border-radius:8px;background:#175cd3;color:white;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer;text-decoration:none;display:inline-flex}.secondary{background:#eef2f7;color:#27364b}.danger{background:#b42318}input,select{border:1px solid #cfd8e6;border-radius:8px;padding:10px 11px;font:inherit;min-width:220px}.login{max-width:620px;margin:70px auto}.providers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}@media(max-width:720px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.providers{grid-template-columns:1fr}header span{display:none}}
-    </style></head><body>
-    <header><strong>RE8CH 用户中心</strong><span>统一身份 · 租户 · 集群访问</span></header><main class="shell">
-      <section id="loading" class="card">正在读取登录状态…</section>
-      <section id="login" class="card login hidden"><h1>登录用户中心</h1><p>登录后管理身份、租户、会话和集群入口。</p><div class="providers"><button data-provider="google">Google</button><button data-provider="apple" class="secondary">Apple</button><button data-provider="github" class="secondary">GitHub</button></div><p><a id="other-login" class="button secondary">邮箱、手机或密码登录</a></p></section>
-      <section id="app" class="grid hidden">
-        <article class="card"><h2>我的身份</h2><div id="profile" class="stack"></div><p class="row"><button onclick="location.reload()" class="secondary">刷新</button><button id="logout" class="danger">退出</button></p></article>
-        <article class="card"><h2>集群服务</h2><p>Paralus 使用 Dex OIDC 身份承接 Kubernetes RBAC。</p><div class="row"><a class="button" href="https://paralus.service.re8ch.com" target="_blank" rel="noopener">进入 Paralus</a><a class="button secondary" href="https://dex.service.re8ch.com/.well-known/openid-configuration" target="_blank" rel="noopener">Dex OIDC</a></div></article>
-        <article class="card"><h2>组织与租户</h2><div id="orgs" class="stack"></div></article>
-        <article class="card"><h2>登录会话</h2><div id="sessions" class="stack"></div></article>
-        <article class="card wide"><h2>合并账号</h2><p>先在来源账号生成一次性合并码，再登录目标账号并提交。组织成员关系、资源权限和外部身份会归入目标账号。</p><div class="row"><button id="merge-start">生成合并码</button><input id="merge-code" placeholder="一次性合并码"><button id="merge-complete" class="secondary">完成合并</button></div><p id="merge-status" class="muted"></p></article>
-        <article id="admin" class="card wide hidden"><h2>组织管理 <span class="badge">管理员</span></h2><p>管理员功能与用户中心共用页面，通过租户角色自动显示。</p><div class="row"><select id="admin-tenant"></select><button id="load-members" class="secondary">读取成员</button></div><div id="members" class="stack" style="margin:14px 0"></div><div class="row"><input id="member-subject" placeholder="用户 subject"><select id="member-role"><option>member</option><option>viewer</option><option>operator</option><option>admin</option><option>owner</option></select><button id="add-member">保存成员角色</button></div><p id="admin-status" class="muted"></p></article>
-      </section></main>
-    <script>
-    const API='https://api.re8ch.com/auth',$=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let identity;
-    async function req(path,opt={}){let r=await fetch(API+path,{credentials:'include',headers:{'Content-Type':'application/json'},...opt}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error?.message||`请求失败 (${r.status})`);return d}
-    function login(provider){let u=new URL(API+'/start');if(provider)u.searchParams.set('provider',provider);u.searchParams.set('service','user-center');u.searchParams.set('return_to',location.href);return u}
-    document.querySelectorAll('[data-provider]').forEach(b=>b.onclick=()=>location.assign(login(b.dataset.provider)));$('other-login').href=login('');
-    function val(k,v){return `<div><span class="muted">${esc(k)}</span><br><strong>${esc(v||'—')}</strong></div>`}
-    async function boot(){try{identity=(await req('/me')).identity;$('loading').classList.add('hidden');if(!identity){$('login').classList.remove('hidden');return}$('app').classList.remove('hidden');render();sessions()}catch(e){$('loading').innerHTML=`<span class="error">${esc(e.message)}</span>`}}
-    function render(){let os=identity.organizations||[];$('profile').innerHTML=val('姓名',identity.name)+val('账号',identity.email||identity.phone)+val('登录来源',identity.provider)+val('认证方式',(identity.amr||[]).join(', '));$('orgs').innerHTML=os.length?os.map(o=>`<div class="item"><div><strong>${esc(o.displayName||o.tenantRef)}</strong><div class="muted">${esc(o.tenantRef)}</div></div><div class="row"><span class="badge">${esc(o.role)}</span><button class="secondary tenant" data-v="${esc(o.tenantRef)}">设为默认</button></div></div>`).join(''):'<span class="muted">尚未加入组织</span>';document.querySelectorAll('.tenant').forEach(b=>b.onclick=()=>tenant(b.dataset.v));let admins=os.filter(o=>['owner','admin'].includes(String(o.role).toLowerCase()));if(admins.length){$('admin').classList.remove('hidden');$('admin-tenant').innerHTML=admins.map(o=>`<option value="${esc(o.tenantRef)}">${esc(o.displayName||o.tenantRef)}</option>`).join('')}}
-    async function tenant(tenantRef){try{await req('/account/default-tenant',{method:'POST',body:JSON.stringify({tenantRef})});alert('默认租户已更新')}catch(e){alert(e.message)}}
-    async function sessions(){try{let a=(await req('/sessions')).sessions||[];$('sessions').innerHTML=a.length?a.map(s=>`<div class="item"><div><strong>${esc(s.userAgent||s.deviceId||'会话')}</strong><div class="muted">${esc(s.ip||'')} ${esc(s.expiresAt||'')}</div></div><button class="danger revoke" data-v="${esc(s.id||s.sessionId)}">撤销</button></div>`).join(''):'<span class="muted">无活动会话</span>';document.querySelectorAll('.revoke').forEach(b=>b.onclick=async()=>{await req(`/sessions/${encodeURIComponent(b.dataset.v)}/revoke`,{method:'POST',body:'{}'});sessions()})}catch(e){$('sessions').innerHTML=`<span class="error">${esc(e.message)}</span>`}}
-    $('logout').onclick=async()=>{await req('/logout',{method:'POST',body:'{}'});location.reload()};$('merge-start').onclick=async()=>{try{let d=await req('/account/merge/start',{method:'POST',body:'{}'});$('merge-code').value=d.code;$('merge-status').textContent='合并码已生成，有效期：'+d.expiresAt}catch(e){$('merge-status').textContent=e.message}};$('merge-complete').onclick=async()=>{try{await req('/account/merge/complete',{method:'POST',body:JSON.stringify({code:$('merge-code').value.trim()})});$('merge-status').textContent='合并完成，请重新登录。'}catch(e){$('merge-status').textContent=e.message}};
-    async function members(){try{let d=await req(`/organizations/${encodeURIComponent($('admin-tenant').value)}/members`),a=d.members||[];$('members').innerHTML=a.length?a.map(m=>`<div class="item"><div><strong>${esc(m.name||m.email||m.subject)}</strong><div class="muted">${esc(m.subject||'')}</div></div><span class="badge">${esc(m.role)}</span></div>`).join(''):'<span class="muted">暂无成员</span>'}catch(e){$('admin-status').textContent=e.message}}$('load-members').onclick=members;$('add-member').onclick=async()=>{try{await req(`/organizations/${encodeURIComponent($('admin-tenant').value)}/members`,{method:'POST',body:JSON.stringify({subject:$('member-subject').value.trim(),role:$('member-role').value})});$('admin-status').textContent='成员角色已保存';members()}catch(e){$('admin-status').textContent=e.message}};boot();
-    </script></body></html>
----
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: re8ch-user-center, namespace: auth}
@@ -53,21 +7,19 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: re8ch-user-center, app.kubernetes.io/part-of: re8ch-auth}}
     spec:
+      imagePullSecrets: [{name: ghcr-re8ch}]
       containers:
         - name: web
-          image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+          image: ghcr.io/re8ch/user-hub@sha256:e6ed2ba8ab55bf7e6455e135a6933f3c3ed4d1c06497bfcb5b9b6c06cc427632
           ports: [{name: http, containerPort: 8080}]
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 15}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 101, capabilities: {drop: [ALL]}}
           volumeMounts:
-            - {name: web, mountPath: /usr/share/nginx/html, readOnly: true}
-            - {name: web, mountPath: /etc/nginx/conf.d/default.conf, subPath: default.conf, readOnly: true}
             - {name: cache, mountPath: /var/cache/nginx}
             - {name: run, mountPath: /var/run}
       volumes:
-        - {name: web, configMap: {name: re8ch-user-center-web}}
         - {name: cache, emptyDir: {}}
         - {name: run, emptyDir: {}}
 ---
