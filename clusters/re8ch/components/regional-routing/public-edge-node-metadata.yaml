@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: restricted-node-6dc3f140f9
+  labels:
+    networking.re8ch.com/geo: cn
+    topology.kubernetes.io/region: cn-hunan
+    topology.kubernetes.io/zone: hunan
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-la
+  labels:
+    networking.re8ch.com/geo: global
+    topology.kubernetes.io/region: us-ca
+    topology.kubernetes.io/zone: us-ca
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: vm-20-12-ubuntu
+  labels:
+    networking.re8ch.com/geo: cn
+    topology.kubernetes.io/region: cn-guangzhou
+    topology.kubernetes.io/zone: guangzhou

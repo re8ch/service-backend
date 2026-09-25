@@ -435,6 +435,28 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     }
 
 
+def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window():
+    metadata = documents(
+        ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml"
+    )
+    regions = {
+        item["metadata"]["name"]: item["metadata"]["labels"]["topology.kubernetes.io/region"]
+        for item in metadata
+    }
+    assert regions == {
+        "restricted-node-6dc3f140f9": "cn-hunan",
+        "overseas-la": "us-ca",
+        "vm-20-12-ubuntu": "cn-guangzhou",
+    }
+
+    release = next(
+        item
+        for item in documents(ROOT / "platform/advanced-fabric/release.yaml")
+        if item["kind"] == "HelmRelease"
+    )
+    assert release["spec"]["values"]["advancedFabric"]["networkQuality"]["freshnessSeconds"] == 300
+
+
 def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
     plan = next(item for item in resources if item["kind"] == "ConfigMap")

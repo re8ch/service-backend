@@ -329,7 +329,10 @@ spec:
         intervalSeconds: 30
         timeoutSeconds: 2
         samples: 20
-        freshnessSeconds: 120
+        # Five minutes absorbs short collector/control-plane gaps without
+        # masking sustained path loss. PublicEdge still requires reachable
+        # Ready/Partial evidence and therefore fails closed after the grace.
+        freshnessSeconds: 300
         minimumHistorySamples: 3
         minimumCoverageRatio: 1
         maximumLossRatio: 0
