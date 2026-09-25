@@ -139,7 +139,7 @@ spec:
     hyperswitch-control-center:
       enabled: true
       dependencies:
-        router: {host: "https://pay-api.re8ch.com"}
+        router: {host: "https://pay-api.service.re8ch.com"}
         clickhouse: {enabled: false}
       ingress: {enabled: false}
       config:

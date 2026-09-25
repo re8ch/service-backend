@@ -45,7 +45,7 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   pipeline, and UCS: disabled; Cilium Gateway API owns public exposure
 - Control Center: enabled at `https://pay.service.re8ch.com`; email login disabled,
   TOTP required, sample data disabled
-- Public API: `https://pay-api.re8ch.com/v1` reaches the RE8CH payment registry;
+- Public API: `https://pay-api.service.re8ch.com/v1` reaches the RE8CH payment registry;
   unmatched paths continue to reach the internal Hyperswitch router. No
   credentials are stored in this file.
 - Router source: RE8CH Hyperswitch fork commit
@@ -74,5 +74,5 @@ remain active until equivalent connectors pass replay and reconciliation tests.
   available, request/response signatures, AES-256-GCM notification decryption,
   replay rejection and payment/refund event mapping are verified with signed
   fixtures. The first network smoke test must use a dedicated low-value order.
-- Provider notifications terminate at `pay-api.re8ch.com`; fulfillment remains
+- Provider notifications terminate at `pay-api.service.re8ch.com`; fulfillment remains
   a separate idempotent consumer and is never executed directly by a connector.

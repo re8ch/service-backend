@@ -210,26 +210,13 @@ def test_public_routes_use_dedicated_tls_listeners():
     http_routes = [route for route in routes if route["kind"] == "HTTPRoute"]
     assert {route["spec"]["hostnames"][0] for route in http_routes} == {
         "pay.service.re8ch.com",
-        "pay-api.re8ch.com",
+        "pay-api.service.re8ch.com",
     }
     for route in http_routes:
         assert len(route["spec"]["parentRefs"]) == 6
         assert all(ref["sectionName"].endswith("-https") for ref in route["spec"]["parentRefs"])
 
-    authority = next(route for route in routes if route["kind"] == "Ingress")
-    assert authority["spec"]["ingressClassName"] == "external-dns-only"
-    assert authority["metadata"]["labels"] == {
-        "networking.re8ch.com/dns-authority": "public-edge"
-    }
-    assert authority["metadata"]["annotations"][
-        "external-dns.alpha.kubernetes.io/target"
-    ] == "192.0.2.138"
-    assert authority["metadata"]["annotations"][
-        "external-dns.alpha.kubernetes.io/hostname"
-    ] == "pay-api.re8ch.com"
-    assert {rule["host"] for rule in authority["spec"]["rules"]} == {
-        "pay-api.re8ch.com"
-    }
+    assert all(route["kind"] != "Ingress" for route in routes)
 
 
 def test_publicedge_catalog_only_advertises_the_supported_hyperswitch_names():
@@ -239,31 +226,34 @@ def test_publicedge_catalog_only_advertises_the_supported_hyperswitch_names():
     release = next(item for item in resources if item.get("kind") == "HelmRelease")
     services = release["spec"]["values"]["services"]
     assert "pay.re8ch.com." not in services
-    assert services["pay-api.re8ch.com."]["service"] == "pay-api"
+    assert "pay-api.re8ch.com." not in services
     assert services["pay.service.re8ch.com."]["service"] == "pay-service"
+    assert services["pay-api.service.re8ch.com."]["service"] == "pay-api"
 
 
-def test_pay_ui_listeners_reject_the_retired_apex_hostname():
+def test_pay_listeners_reject_the_retired_apex_hostnames():
     gateway_files = [
         ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml",
         ROOT / "clusters/re8ch/components/regional-routing/regional-gateways.yaml",
     ]
-    listeners = []
+    listeners = {"pay-ui-https": [], "pay-api-https": []}
     for gateway_file in gateway_files:
         for resource in yaml.safe_load_all(gateway_file.read_text()):
             if resource and resource.get("kind") == "Gateway":
-                listeners.extend(
-                    listener
-                    for listener in resource["spec"]["listeners"]
-                    if listener["name"] == "pay-ui-https"
-                )
-    assert len(listeners) == 6
-    assert {listener["hostname"] for listener in listeners} == {
-        "pay.service.re8ch.com"
+                for listener in resource["spec"]["listeners"]:
+                    if listener["name"] in listeners:
+                        listeners[listener["name"]].append(listener)
+    expected = {
+        "pay-ui-https": "pay.service.re8ch.com",
+        "pay-api-https": "pay-api.service.re8ch.com",
     }
-    assert {
-        listener["tls"]["certificateRefs"][0]["name"] for listener in listeners
-    } == {"re8ch-service-wildcard-tls"}
+    for name, hostname in expected.items():
+        assert len(listeners[name]) == 6
+        assert {listener["hostname"] for listener in listeners[name]} == {hostname}
+        assert {
+            listener["tls"]["certificateRefs"][0]["name"]
+            for listener in listeners[name]
+        } == {"re8ch-service-wildcard-tls"}
 
 
 def test_pay_service_is_eligible_for_every_discovered_capable_edge():
@@ -273,6 +263,9 @@ def test_pay_service_is_eligible_for_every_discovered_capable_edge():
     helm_release = next(item for item in release if item.get("kind") == "HelmRelease")
     values = helm_release["spec"]["values"]
     assert values["services"]["pay.service.re8ch.com."]["class"] == (
+        "service-overseas"
+    )
+    assert values["services"]["pay-api.service.re8ch.com."]["class"] == (
         "service-overseas"
     )
     assert "service-overseas" in values["discovery"]["serviceClasses"]
