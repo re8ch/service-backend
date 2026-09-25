@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-pearl
+codename: zephyr-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:327ae6293746c33947f29f1bbaa50255d93cc333853b1c8a93ced832b2cb1069
+  digest: sha256:7f87d1df331f13d66c8bf993a4e429112e3d6bc5e5623afe6fabb372e7539dea
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

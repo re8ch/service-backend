@@ -166,6 +166,11 @@ modules:
       digest: sha256:f4383b56ecc16666356b34b8cb38ae97940f3ef56574352cef5910c96b27edd8
     - codename: tramontane
       digest: sha256:735c9843e9b1bb5edbfa9c5b2af8362daf68e0e5049baaa0b1ec53b116fb2ed3
+    - codename: zephyr
+      digest: sha256:ac83e255f6b5b71369d310337303985cf82673551336ec93d1e38f05a483eefc
+      quarantined: missing-or-invalid-signature
+    - codename: bora-amber
+      digest: sha256:caaabb5650fd4e1de16d63ef75393e3e20370e6353b37a0d2553e51718fb68bf
   platform/scheduling-fabric:
     releases:
     - codename: atoll
@@ -292,6 +297,8 @@ modules:
       digest: sha256:8bf4ba0a5f9a0919ecef9468bf3ed13f7b5731b83f4442b0fc0bca07e3e642e3
     - codename: chinook-copper
       digest: sha256:af131eec7e7bf2ef0627a5657bd65a2df06088886b7b683321c513f31cf70bf9
+    - codename: etesian-copper
+      digest: sha256:53a56f3296d967183636a7fb61704cd1ef31c7cabdff0445697e3246f6559ad9
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -543,6 +550,8 @@ modules:
       digest: sha256:264d9cbd650c8f1379c3661948bfba2f9e406293d03d90a341fa3ae589de0299
     - codename: tramontane-pearl
       digest: sha256:327ae6293746c33947f29f1bbaa50255d93cc333853b1c8a93ced832b2cb1069
+    - codename: zephyr-pearl
+      digest: sha256:7f87d1df331f13d66c8bf993a4e429112e3d6bc5e5623afe6fabb372e7539dea
   platform/adapter:
     releases:
     - codename: anchor
