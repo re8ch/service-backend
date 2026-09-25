@@ -49,7 +49,7 @@ data:
     registry_file="$registry_dir/registries.yaml"
     prefix=/config/registries-prefix.yaml
     proxy_url=http://127.0.0.1:17891
-    no_proxy=127.0.0.1,localhost,::1,.re8ch.com,.zt.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16
+    no_proxy=127.0.0.1,localhost,::1,ghcr.io,.ghcr.io,.re8ch.com,.zt.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16
 
     mkdir -p "$registry_dir"
     work=$(mktemp "$registry_dir/.registries.yaml.XXXXXX")
