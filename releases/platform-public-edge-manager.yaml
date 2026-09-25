@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: zephyr-pearl
+codename: bora-silver
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:7f87d1df331f13d66c8bf993a4e429112e3d6bc5e5623afe6fabb372e7539dea
+  digest: sha256:5358158d8904b815a4823fcf8f6158ce1a658edc78c0ec6b221728593c929cf1
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
