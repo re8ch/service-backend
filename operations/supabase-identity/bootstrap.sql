@@ -8,3 +8,8 @@ where not exists (select 1 from pg_database where datname = 're8ch_identity')
 grant connect, create on database re8ch_identity to supabase_auth_admin;
 grant connect, create on database re8ch_identity to supabase_admin;
 grant connect on database re8ch_identity to supabase_storage_admin, authenticator;
+
+\connect re8ch_identity
+-- PostgreSQL 15+ does not grant CREATE on the public schema to every role.
+-- GoTrue creates its migration ledger there before creating its auth schema.
+grant usage, create on schema public to supabase_auth_admin;
