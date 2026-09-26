@@ -1,0 +1,9 @@
+# Cilium's DaemonSet selects this existing, inventory-listed node by label.
+# Keep capacity, region, and PublicEdge eligibility in the shared inventory;
+# this resource owns only the CNI enrollment bit.
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-la
+  labels:
+    re8ch.com/cilium-migrate: "true"
