@@ -187,12 +187,18 @@ spec:
                 name: hyperswitch-pigsty-credentials
                 key: primaryPlainPassword
         readOnly:
-          # This deployment has one Pigsty primary endpoint, not a separately
-          # available read replica. A second pool against the same host with a
-          # distinct credential made authentication-method discovery wait for
-          # the pool timeout and return HE_00. Let Router reads use the proven
-          # primary pool until a real replica is published and health-gated.
-          enabled: false
+          # The chart requires a read pool, but this deployment has no separate
+          # read replica. Reuse the proven primary endpoint and credential so
+          # auth-method discovery cannot strand Router on an unavailable pool.
+          enabled: true
+          host: "pg-re8ch-primary.pigsty-external.svc.cluster.local"
+          auth:
+            username: hyperswitch_migrator
+            database: hyperswitch
+            password:
+              _secretRef:
+                name: hyperswitch-pigsty-credentials
+                key: primaryPassword
       redis:
         master:
           persistence:
