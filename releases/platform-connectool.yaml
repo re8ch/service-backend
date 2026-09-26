@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: meridian-jade
+codename: trailhead-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:9f962f7d7e04e2c9e9eb7486b0e37d638b85ec0fe45e2c5443aa6b4a960ad7e3
+  digest: sha256:6114e610cbbfa9212dd74e316eee57a30f0d12abe9321d7f1203c5e7eb2307ee
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
