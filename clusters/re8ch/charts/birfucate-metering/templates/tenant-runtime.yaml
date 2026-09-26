@@ -211,5 +211,7 @@ spec:
       # for a short-lived, audience-bound backend identity token.
       backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # Resource discovery does not carry an MCP session and must not depend on
+      # session-router affinity or replica health.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
 {{- end }}
