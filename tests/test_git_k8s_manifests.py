@@ -402,12 +402,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"] == {"digest": "sha256:7c0df147ea38e8bc21b51698b78a90c6473277937b4c751af52e9a251d072e89"}
+    assert source["spec"]["ref"] == {"digest": "sha256:68fe8becefa456ae652d567ed0e1219912298f96a143083a9b446f2b128d3f77"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.9",
-        "digest": "sha256:f4c0ac955eb8f234b88d57bb5fe7a6f736e84dd3a994c0303d3c3971dd2f32d1",
+        "tag": "0.6.10",
+        "digest": "sha256:559b2c2d3a7eada65e7888c7a196ff495ae3708861c79be8fb5033391ee6bce5",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -424,12 +424,11 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
     assert values["discovery"]["minimumCapacityMbps"] == 100
-    assert values["discovery"]["capacityInventory"] == {
-        "apiGroup": "networking.advfab.org",
-        "apiVersion": "v1alpha1",
-        "resource": "advancedfabrics",
-        "name": "advanced-fabric",
+    assert values["discovery"]["nodeInventory"]["overseas-la"] == {
+        "capacityMbps": 1000, "region": "us-ca",
     }
+    assert "capacityInventory" not in values["discovery"]
+    assert "dependsOn" not in release["spec"]
     assert values["discovery"]["gatewayNamespace"] == "kube-system"
     assert values["probe"]["maxWorkers"] == 8
     assert values["probe"]["intervalSeconds"] == 15
@@ -447,7 +446,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     }
 
 
-def test_public_edge_capacity_uses_fabric_inventory_without_creating_nodes():
+def test_public_edge_owns_capacity_inventory_without_creating_nodes():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/regional-routing/public-edge-node-metadata.yaml" not in root["resources"]
     assert "components/rook-ceph/storage-node-labels.yaml" in root["resources"]
@@ -459,21 +458,12 @@ def test_public_edge_capacity_uses_fabric_inventory_without_creating_nodes():
         item for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
         if item["kind"] == "HelmRelease"
     )
-    assert release["spec"]["values"]["discovery"]["capacityInventory"] == {
-        "apiGroup": "networking.advfab.org",
-        "apiVersion": "v1alpha1",
-        "resource": "advancedfabrics",
-        "name": "advanced-fabric",
-    }
-    fabric = next(
-        item for item in documents(ROOT / "platform/advanced-fabric/release.yaml")
-        if item["kind"] == "HelmRelease"
-    )["spec"]["values"]["advancedFabric"]
-    nodes = {node["name"]: node for node in fabric["nodes"]}
-    assert (nodes["overseas-la"]["uplinkMbps"], nodes["overseas-la"]["region"]) == (1000, "us-ca")
-    assert (nodes["restricted-node-6dc3f140f9"]["uplinkMbps"], nodes["restricted-node-6dc3f140f9"]["region"]) == (200, "cn-hunan")
-    assert nodes["vm-20-12-ubuntu"]["uplinkMbps"] == 3
+    nodes = release["spec"]["values"]["discovery"]["nodeInventory"]
+    assert nodes["overseas-la"] == {"capacityMbps": 1000, "region": "us-ca"}
+    assert nodes["restricted-node-6dc3f140f9"] == {"capacityMbps": 200, "region": "cn-hunan"}
+    assert nodes["vm-20-12-ubuntu"] == {"capacityMbps": 3, "region": "cn-guangzhou"}
     assert not {"qwen-1", "qwen-2", "qwen-3"} & nodes.keys()
+    assert "dependsOn" not in release["spec"]
 
     release = next(
         item
