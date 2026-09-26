@@ -1,18 +1,29 @@
 # Supabase Auth identity migration
 
-The deployment target is a new Pigsty database named `re8ch_identity`. The
+The deployment target is the existing `pg-re8ch` Pigsty cluster, using its
+primary Service `pg-re8ch-primary.pigsty-external.svc.cluster.local` and a
+separate database named `re8ch_identity`. The
 existing RE8CH `auth` database and the existing Supabase `postgres` database
 remain in service until their consumers are migrated and verified. Do not
 retarget the current Supabase stack by changing only `POSTGRES_DB`: GoTrue,
 PostgREST and Storage use separate secret-held DSNs, and Studio/Meta use
 `POSTGRES_DB`.
 
+`identity-stack.yaml` is the isolated candidate for GoTrue, PostgREST,
+Studio/Meta and Kong. It is deliberately not part of the live Kustomization.
+It uses the new `supabase-identity` namespace and Secret, without touching the
+existing Supabase stack. Provision `supabase-identity-secrets` with distinct
+DSNs for `re8ch_identity` before adding this file to GitOps. The existing
+Secret must not be copied verbatim because its DSNs still name `postgres`.
+
 ## Database and secret preparation
 
 1. Observe Pigsty primary and backup/PITR health. Record schema-only and
    count-only inventories of both source databases. No credential values or
    password hashes may enter Git or logs.
-2. From an approved Pigsty admin session, run `bootstrap.sql` with
+2. Reuse the existing `supabase_admin`, `supabase_auth_admin`,
+   `supabase_storage_admin`, `authenticator`, `anon` and `authenticated`
+   roles on `pg-re8ch`. From an approved admin session on its primary, run `bootstrap.sql` with
    `psql -X -v ON_ERROR_STOP=1 -d postgres -f bootstrap.sql`. It creates only
    `re8ch_identity` and grants the existing Supabase roles access. Confirm
    the target is empty before first GoTrue startup.
@@ -28,9 +39,17 @@ PostgREST and Storage use separate secret-held DSNs, and Studio/Meta use
 ## Public issuer gate
 
 The approved new issuer is `https://auth.re8ch.com/auth/v1`. Current GoTrue
-v2.189.0 contains the OAuth Server routes, but the self-hosted configuration
-still needs a live integration check. Enable OAuth Server only on the isolated
-deployment, configure asymmetric signing keys, and assert the OIDC discovery
+v2.189.0 contains the OAuth Server routes, but supports only `openid`,
+`profile`, `email` and `phone` scopes. The current ConnecTool clients request
+`groups` and `offline_access`; the candidate therefore keeps the OAuth server
+disabled. A newer reviewed GoTrue build must support refresh tokens, clients
+must request supported scopes, and a reviewed access-token hook plus a live
+GitHub team synchronization path must restore the `groups` claim and exact
+resource audiences before tool cutover. Do not infer platform administrator
+membership from an organization `admin` role.
+
+Enable OAuth Server only on the isolated deployment after these contracts
+exist, configure asymmetric signing keys, and assert the OIDC discovery
 `issuer`, JWKS, PKCE, refresh token and userinfo behavior before modifying the
 public route. Register Stalwart and the three ConnecTool public clients with
 their reviewed callback URIs. Verify GitHub organization membership remains
