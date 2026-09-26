@@ -454,6 +454,8 @@ modules:
       digest: sha256:6114e610cbbfa9212dd74e316eee57a30f0d12abe9321d7f1203c5e7eb2307ee
     - codename: anchor-pearl
       digest: sha256:c3f04105f7477f9f5728244aba3bcd26a6b1d9560ebe6fe814dfa144a9df1720
+    - codename: beacon-pearl
+      digest: sha256:57f9015fd30c6e643217d987b13a3286600f8c020ddee083ccf98c68e59169f3
   platform/birfucate-metering:
     releases:
     - codename: cascade
