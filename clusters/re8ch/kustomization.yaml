@@ -130,6 +130,27 @@ patches:
     group: apps
     version: v1
     kind: Deployment
+    name: notification-controller
+    namespace: flux-system
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 2
+    - op: add
+      path: /spec/template/spec/affinity/nodeAffinity/preferredDuringSchedulingIgnoredDuringExecution
+      value:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+      - weight: 80
+        preference:
+          matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb]}
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
     name: (helm-controller|kustomize-controller)
     namespace: flux-system
   patch: |-

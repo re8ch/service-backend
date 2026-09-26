@@ -29,7 +29,7 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
     }
     for name in REPLICATED:
         deployment = deployments[name]
-        assert deployment["spec"]["replicas"] == 3
+        assert deployment["spec"]["replicas"] == (2 if name == "notification-controller" else 3)
         assert deployment["spec"]["strategy"]["rollingUpdate"] == {"maxSurge": 1, "maxUnavailable": 1}
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -46,6 +46,9 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
         assert anti_affinity["matchLabelKeys"] == ["app"]
         assert "--enable-leader-election" in pod["containers"][0]["args"]
+        if name == "notification-controller":
+            preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
+            assert [item["preference"]["matchExpressions"][0]["values"] for item in preferred] == [["restricted-node-6dc3f140f9"], ["restricted-node-296f36f2fb"]]
         if name in {"helm-controller", "kustomize-controller"}:
             assert "--concurrent=10" in pod["containers"][0]["args"]
 
@@ -83,7 +86,7 @@ def test_replicated_controllers_have_quorum_disruption_budgets():
     assert {item["metadata"]["name"] for item in budgets} == REPLICATED
     for item in budgets:
         assert item["kind"] == "PodDisruptionBudget"
-        assert item["spec"]["minAvailable"] == 2
+        assert item["spec"]["minAvailable"] == (1 if item["metadata"]["name"] == "notification-controller" else 2)
         assert item["spec"]["selector"]["matchLabels"]["app"] == item["metadata"]["name"]
 
 

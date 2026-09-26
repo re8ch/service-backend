@@ -24,6 +24,6 @@ metadata:
   name: notification-controller
   namespace: flux-system
 spec:
-  minAvailable: 2
+  minAvailable: 1
   selector:
     matchLabels: {app: notification-controller}
