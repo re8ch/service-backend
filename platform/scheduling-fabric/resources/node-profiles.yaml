@@ -153,6 +153,30 @@ spec:
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
+metadata: {name: overseas-la-2}
+spec:
+  nodeName: overseas-la-2
+  reservationProfile: worker-small
+  background: {provider: dmit, region: us-ca, ownership: rented, environment: cross-border, account: dmit-2, costClass: metered-bandwidth}
+  failureDomains: {site: us-la, power: overseas-la-2, network: overseas-la-2-uplink, host: overseas-la-2}
+  reliability: {class: variable, disruptionRisk: 40, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {bandwidthMbps: 1000, trafficQuotaAware: true, egress: true, publicEdge: true, scheduling: [dynamic, egress]}
+  sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: NodeProfile
+metadata: {name: overseas-flk}
+spec:
+  nodeName: overseas-flk
+  reservationProfile: worker-small
+  background: {provider: hetzner, region: de-fsn, ownership: rented, environment: cross-border, account: hetzner, costClass: metered-bandwidth}
+  failureDomains: {site: de-fsn, power: overseas-flk, network: overseas-flk-uplink, host: overseas-flk}
+  reliability: {class: variable, disruptionRisk: 40, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  capabilities: {bandwidthMbps: 400, trafficQuotaAware: true, egress: true, publicEdge: true, scheduling: [dynamic, egress]}
+  sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
+---
+apiVersion: scheduling.re8ch.com/v1alpha1
+kind: NodeProfile
 metadata: {name: overseas-la}
 spec:
   nodeName: overseas-la

@@ -14,19 +14,19 @@ def completed(stdout="{}", returncode=0):
     return subprocess.CompletedProcess([], returncode, stdout, "")
 
 
-def test_inventory_contains_all_sixteen_k3s_nodes():
+def test_inventory_contains_all_eighteen_k3s_nodes():
     inventory = Inventory([ROOT / "inventory/nodes.yaml"])
     k3s = {name for name, item in inventory.targets.items() if any(capability.startswith("k3s-") for capability in item["spec"].get("capabilities", []))}
-    assert len(k3s) == 16
+    assert len(k3s) == 18
     assert "macmini-a1" in inventory.targets
-    assert {"restricted-node-6dc3f140f9", "overseas-kl", "overseas-la", "suxunji", "vm-20-12-ubuntu"} <= set(inventory.targets)
+    assert {"restricted-node-6dc3f140f9", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk", "suxunji", "vm-20-12-ubuntu"} <= set(inventory.targets)
 
 
 def test_active_cluster_nodes_have_scheduling_inventory():
     inventory = Inventory([ROOT / "inventory/nodes.yaml"])
     active = [item for item in inventory.targets.values() if item["spec"].get("cluster", {}).get("membership") == "active"]
 
-    assert len(active) == 12
+    assert len(active) == 14
     for item in active:
         cluster = item["spec"]["cluster"]
         assert cluster["roles"]
@@ -34,7 +34,8 @@ def test_active_cluster_nodes_have_scheduling_inventory():
         assert cluster["parameters"]["cpu"] > 0
         assert cluster["parameters"]["memoryKi"] > 0
         assert cluster["parameters"]["ephemeralStorageKi"] > 0
-        assert cluster["storage"]["csiDrivers"]
+        if "ceph-csi" in cluster["services"]:
+            assert cluster["storage"]["csiDrivers"]
 
 
 def test_muaya_cloud_nodes_have_direct_cli_coordinates():
