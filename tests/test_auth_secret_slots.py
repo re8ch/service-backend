@@ -77,7 +77,10 @@ def test_dex_github_credentials_are_migrated_without_exposing_values():
         ],
     }
     script = pod_spec["containers"][0]["args"][0]
-    assert "--server-side" in script
-    assert "GITHUB_OAUTH_CLIENT_ID=/source/client-id" in script
-    assert "GITHUB_OAUTH_CLIENT_SECRET=/source/client-secret" in script
+    assert "--type=json" in script
+    assert "--patch-file=/tmp/github-credentials.patch.json" in script
+    assert 'base64 < /source/client-id' in script
+    assert 'base64 < /source/client-secret' in script
+    assert '/data/GITHUB_OAUTH_CLIENT_ID' in script
+    assert '/data/GITHUB_OAUTH_CLIENT_SECRET' in script
     assert "rollout restart deployment/re8ch-auth-gateway" in script
