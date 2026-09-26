@@ -8,7 +8,7 @@ metadata: {name: dex-service-config-reconciler, namespace: dex}
 rules:
   - apiGroups: [""]
     resources: [secrets]
-    resourceNames: [dex-config, dex-config-service, re8ch-auth-broker-oidc]
+    resourceNames: [dex-config, dex-config-service, re8ch-auth-broker-oidc, supabase-identity-oidc]
     verbs: [get, patch]
   - apiGroups: [""]
     resources: [secrets]
@@ -30,6 +30,7 @@ metadata: {name: dex-service-config-reconciler, namespace: dex}
 data:
   reconcile.py: |
     import base64
+    import copy
     import json
     import ssl
     import time
@@ -93,6 +94,31 @@ data:
         'redirectURIs': stalwart_redirects,
     })
     stalwart.pop('secret', None)
+    # Supabase uses a dedicated Dex client and GitHub connector. Restricting
+    # this connector leaves the existing Dex clients and GitHub login intact.
+    try:
+        identity_secret = request('/api/v1/namespaces/dex/secrets/supabase-identity-oidc')
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        identity_secret = None
+    if identity_secret:
+        identity_values = identity_secret.get('data', {})
+        identity_client_id = base64.b64decode(identity_values.get('client-id', '')).decode().strip()
+        identity_client_secret = base64.b64decode(identity_values.get('client-secret', '')).decode().strip()
+        if identity_client_id != 'supabase-identity' or not identity_client_secret:
+            raise RuntimeError('supabase-identity-oidc Secret must contain the expected client ID and secret')
+        identity_client = next((item for item in clients if item.get('id') == identity_client_id), None)
+        if identity_client is None:
+            identity_client = {'id': identity_client_id}
+            clients.append(identity_client)
+        identity_client.update({
+            'name': 'RE8CH Supabase Identity',
+            'secret': identity_client_secret,
+            'redirectURIs': ['https://auth.re8ch.com/auth/v1/callback'],
+            'allowedConnectors': ['github-re8ch-identity'],
+            'ssoSharedWith': [],
+        })
     # Keep the canonical public Dex separate. The broker has one confidential
     # client whose callback belongs to the service issuer only.
     try:
@@ -102,6 +128,15 @@ data:
             raise
         broker_secret = None
     connectors = [item for item in config.get('connectors', []) if item.get('id') != 're8ch-auth']
+    if identity_secret:
+        restricted_github = copy.deepcopy(github[0])
+        restricted_github['id'] = 'github-re8ch-identity'
+        restricted_github['name'] = 'RE8CH GitHub Identity'
+        restricted_github['grantTypes'] = ['authorization_code', 'refresh_token']
+        restricted_github['config']['orgs'] = [{'name': 're8ch'}]
+        restricted_github['config']['loadAllGroups'] = False
+        connectors = [item for item in connectors if item.get('id') != restricted_github['id']]
+        connectors.append(restricted_github)
     if broker_secret and base64.b64decode(broker_secret.get('data', {}).get('enabled', '')).decode().strip() == 'true':
         values = broker_secret.get('data', {})
         client_id = base64.b64decode(values.get('client-id', '')).decode().strip()
@@ -156,7 +191,7 @@ spec:
     metadata: {labels: {app: dex-service-config-reconciler}}
     spec:
       serviceAccountName: dex-service-config-reconciler
-      nodeSelector: {kubernetes.io/hostname: r640}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       containers:
         - name: reconcile
           image: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d
