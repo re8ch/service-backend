@@ -127,7 +127,15 @@ def test_hyperswitch_vendor_workloads_use_baseline_and_r640_rbd():
         "pg-re8ch-primary.pigsty-external.svc.cluster.local"
     )
     read_only = app["externalPostgresql"]["readOnly"]
-    assert read_only == {"enabled": False}
+    assert read_only["enabled"] is True
+    assert read_only["host"] == app["externalPostgresql"]["primary"]["host"]
+    assert read_only["auth"]["username"] == "hyperswitch_migrator"
+    assert read_only["auth"]["password"] == {
+        "_secretRef": {
+            "name": "hyperswitch-pigsty-credentials",
+            "key": "primaryPassword",
+        }
+    }
     assert app["redis"]["master"]["persistence"]["storageClass"] == "rbd-r640"
     assert values["hyperswitch-ucs"]["enabled"] is False
 
