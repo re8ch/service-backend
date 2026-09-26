@@ -574,6 +574,8 @@ modules:
       digest: sha256:3ec297d2532b134648f07a528c47568eb36e8f95d266ebcfd8f80302250b1dfc
     - codename: etesian-silver
       digest: sha256:f4c0fe3022eb4e8ff14ecdb7e2c63f95211ba899a7e03fc24cf9ba5ca3d7f062
+    - codename: mistral-silver
+      digest: sha256:351c2a4f62cd21336c0e0740b06213ccd7a5a01c4987427cc5575a77c2e61414
   platform/adapter:
     releases:
     - codename: anchor
