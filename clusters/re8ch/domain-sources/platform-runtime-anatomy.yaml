@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/runtime-anatomy
-    delivery.re8ch.com/codename: reef
+    delivery.re8ch.com/codename: tundra
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-runtime-anatomy
   ref:
-    digest: sha256:614a345398b382d44caff79fcfc6e3a6aeb60373426a4990e18eed18c7095419
+    digest: sha256:6131e5deacc2bdd6ea07e85c6bfc943241d51c3d4beccc2d3ccdb544f4fd1e73
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/runtime-anatomy
-    delivery.re8ch.com/codename: reef
+    delivery.re8ch.com/codename: tundra
 spec:
   interval: 1m
   retryInterval: 1m
