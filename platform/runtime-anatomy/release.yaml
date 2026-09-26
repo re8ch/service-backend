@@ -5,6 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m
+  timeout: 10m
   releaseName: runtime-anatomy
   targetNamespace: runtime-anatomy
   storageNamespace: runtime-anatomy
@@ -24,7 +25,7 @@ spec:
   upgrade:
     cleanupOnFail: true
     remediation:
-      retries: 3
+      retries: 5
       strategy: rollback
   rollback:
     cleanupOnFail: true
