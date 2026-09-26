@@ -16,6 +16,8 @@ resources:
 - flux-system/github-webhook-route.yaml
 - flux-system/controller-ha.yaml
 - secrets/stalwart-recovery-admin.sops.yaml
+- secrets/stalwart-idp-recovery.sops.yaml
+- secrets/stalwart-idp-oidc-keys.sops.yaml
 - secrets/among-clusters-hub-admin.sops.yaml
 - secrets/hyperswitch-runtime-values.sops.yaml
 - secrets/hyperswitch-bootstrap-admin.sops.yaml

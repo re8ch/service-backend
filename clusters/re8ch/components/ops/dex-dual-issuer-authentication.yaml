@@ -13,3 +13,10 @@ jwt:
     claimMappings:
       username: {claim: email, prefix: 'oidc:'}
       groups: {claim: groups, prefix: 'oidc:'}
+  - issuer:
+      url: https://id-stalwart.tools.re8ch.com
+      audiences: [kubectl-stalwart-pilot]
+    claimMappings:
+      # Stalwart v0.16.18 issues stable email claims but does not emit groups.
+      # The pilot therefore reuses the existing named-user RBAC binding.
+      username: {claim: email, prefix: 'oidc:'}

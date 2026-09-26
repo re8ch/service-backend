@@ -323,6 +323,39 @@ def test_stalwart_management_is_internal_and_digest_pinned():
     assert "@sha256:" in image
 
 
+def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
+    resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
+    stateful_set = next(item for item in resources if item["kind"] == "StatefulSet")
+    assert stateful_set["metadata"]["name"] == "stalwart-idp"
+    assert stateful_set["spec"]["replicas"] == 1
+    assert stateful_set["spec"]["volumeClaimTemplates"][0]["metadata"]["name"] == "data"
+    container = stateful_set["spec"]["template"]["spec"]["containers"][0]
+    assert {item["name"]: item["value"] for item in container["env"]}["STALWART_PUBLIC_URL"] == (
+        "https://id-stalwart.tools.re8ch.com"
+    )
+    plan = next(
+        item
+        for item in resources
+        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan"
+    )["data"]["plan.ndjson"]
+    assert '"issuerUrl":"https://dex.service.re8ch.com"' in plan
+    assert '"signatureAlgorithm":"es256"' in plan
+    assert '"clientId":"kubectl-stalwart-pilot"' in plan
+
+
+def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
+    resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
+    route = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public")
+    assert route["spec"]["hostnames"] == ["id-stalwart.tools.re8ch.com"]
+    paths = {
+        match["path"]["value"]
+        for rule in route["spec"]["rules"]
+        for match in rule.get("matches", [])
+    }
+    assert paths == {"/", "/.well-known", "/auth", "/login", "/account", "/api/discover"}
+    assert "/api" not in paths
+
+
 def test_stalwart_public_route_only_exposes_collaboration_paths():
     resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
     route = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public")

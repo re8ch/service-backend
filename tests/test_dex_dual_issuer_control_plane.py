@@ -11,12 +11,18 @@ def test_all_control_planes_share_dual_issuer_authentication():
     assert auth['apiVersion'] == 'apiserver.config.k8s.io/v1'
     assert auth['kind'] == 'AuthenticationConfiguration'
     assert [item['issuer']['url'] for item in auth['jwt']] == [
-        'https://dex.re8ch.com', 'https://dex.service.re8ch.com'
+        'https://dex.re8ch.com', 'https://dex.service.re8ch.com',
+        'https://id-stalwart.tools.re8ch.com'
     ]
-    for item in auth['jwt']:
+    for item in auth['jwt'][:2]:
         assert item['issuer']['audiences'] == ['headlamp']
         assert item['claimMappings']['username'] == {'claim': 'email', 'prefix': 'oidc:'}
         assert item['claimMappings']['groups'] == {'claim': 'groups', 'prefix': 'oidc:'}
+    stalwart = auth['jwt'][2]
+    assert stalwart['issuer']['audiences'] == ['kubectl-stalwart-pilot']
+    assert stalwart['claimMappings'] == {
+        'username': {'claim': 'email', 'prefix': 'oidc:'}
+    }
     for node in ('restricted-node-6dc3f140f9', 'a1-wsl2', 'b1-wsl2'):
         config = yaml.safe_load((ROOT / f'{node}-k3s-server-config.yaml').read_text())
         flags = config['kube-apiserver-arg']

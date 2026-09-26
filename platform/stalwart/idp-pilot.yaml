@@ -1,0 +1,192 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-idp-config, namespace: mail-system}
+data:
+  config.json: |
+    {"@type":"RocksDb","path":"/var/lib/stalwart-idp"}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart-idp
+  namespace: mail-system
+  annotations:
+    governance.re8ch.com/exposure: oidc-pilot-only
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: stalwart-idp}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stalwart-idp
+  namespace: mail-system
+  labels: {app.kubernetes.io/name: stalwart-idp, app.kubernetes.io/component: identity-provider}
+spec:
+  serviceName: stalwart-idp
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy: {type: RollingUpdate}
+  selector: {matchLabels: {app.kubernetes.io/name: stalwart-idp}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: stalwart-idp, app.kubernetes.io/component: identity-provider}
+      annotations:
+        governance.re8ch.com/identity-stage: github-kubernetes-rbac-pilot
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: stalwart-idp
+          image: ghcr.io/stalwartlabs/stalwart:v0.16.18@sha256:9ed1d343243b7aa72969e372a7240b7ddea07730781d4b68a0dc3d8d51c418bb
+          imagePullPolicy: IfNotPresent
+          args: [--config, /etc/stalwart/config.json]
+          envFrom: [{secretRef: {name: stalwart-idp-recovery}}]
+          env:
+            - {name: STALWART_PUBLIC_URL, value: "https://id-stalwart.tools.re8ch.com"}
+          ports: [{name: http, containerPort: 8080}]
+          livenessProbe:
+            httpGet: {path: /healthz/live, port: http}
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: {path: /healthz/ready, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: config, mountPath: /etc/stalwart, readOnly: true}
+            - {name: data, mountPath: /var/lib/stalwart-idp}
+            - {name: tmp, mountPath: /tmp}
+            - {name: oidc-keys, mountPath: /var/run/stalwart-idp, readOnly: true}
+      volumes:
+        - {name: config, configMap: {name: stalwart-idp-config}}
+        - {name: tmp, emptyDir: {}}
+        - {name: oidc-keys, secret: {secretName: stalwart-idp-oidc-keys}}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: rbd-r640
+        resources: {requests: {storage: 5Gi}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-idp-bootstrap-plan, namespace: mail-system}
+data:
+  plan.ndjson: |
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"github-dex":{"@type":"Oidc","description":"RE8CH GitHub via Dex","issuerUrl":"https://dex.service.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
+    {"@type":"update","object":"Authentication","value":{"directoryId":"#github-dex"}}
+    {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":false,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":"15m","idTokenExpiry":"15m","refreshTokenExpiry":"8h","refreshTokenRenewal":"1h"}}
+    {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"kubectl-pilot":{"clientId":"kubectl-stalwart-pilot","description":"Kubernetes RBAC Stalwart pilot","redirectUris":{"http://127.0.0.1:8000":true,"http://localhost:8000":true}}}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-idp-bootstrap-v1
+  namespace: mail-system
+  labels:
+    governance.re8ch.com/change-plane: deploying
+    app.kubernetes.io/name: stalwart-idp-bootstrap
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata: {labels: {app.kubernetes.io/name: stalwart-idp-bootstrap}}
+    spec:
+      restartPolicy: Never
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: reconcile
+          image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+          command: [/bin/sh, -ceu]
+          args:
+            - |
+              export STALWART_URL=http://stalwart-idp.mail-system.svc.cluster.local:8080
+              export STALWART_USER="${STALWART_RECOVERY_ADMIN%%:*}"
+              export STALWART_PASSWORD="${STALWART_RECOVERY_ADMIN#*:}"
+              unset STALWART_RECOVERY_ADMIN
+              cli=/cli/usr/local/bin/stalwart-cli
+              for attempt in $(seq 1 30); do
+                if "${cli}" describe Authentication >/dev/null 2>&1; then break; fi
+                if [ "${attempt}" -eq 30 ]; then exit 1; fi
+                sleep 2
+              done
+              "${cli}" apply --file /plan/plan.ndjson --dry-run
+              "${cli}" apply --file /plan/plan.ndjson --json
+          envFrom: [{secretRef: {name: stalwart-idp-recovery}}]
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: plan, mountPath: /plan, readOnly: true}
+            - {name: cli, mountPath: /cli, readOnly: true}
+      volumes:
+        - {name: plan, configMap: {name: stalwart-idp-bootstrap-plan}}
+        - name: cli
+          image:
+            reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+            pullPolicy: IfNotPresent
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: stalwart-idp-public
+  namespace: mail-system
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: id-stalwart.tools.re8ch.com
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    governance.re8ch.com/exposure: oidc-pilot-only
+spec:
+  hostnames: [id-stalwart.tools.re8ch.com]
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-wildcard-https}
+  rules:
+    - matches:
+        - {path: {type: Exact, value: /}}
+      filters:
+        - type: RequestRedirect
+          requestRedirect: {statusCode: 302, path: {type: ReplaceFullPath, replaceFullPath: /account}}
+    - matches:
+        - {path: {type: PathPrefix, value: /.well-known}}
+        - {path: {type: PathPrefix, value: /auth}}
+        - {path: {type: Exact, value: /login}}
+        - {path: {type: PathPrefix, value: /account}}
+        - {path: {type: PathPrefix, value: /api/discover}}
+      backendRefs: [{name: stalwart-idp, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: stalwart-idp-redirect, namespace: mail-system}
+spec:
+  hostnames: [id-stalwart.tools.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect: {scheme: https, statusCode: 308}
