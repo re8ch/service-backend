@@ -790,3 +790,5 @@ modules:
       digest: sha256:21f26d308184012aecaa1a928c7c04e2ad8367c48ca774f5d123a6b07f2faff3
     - codename: spectrum-jade
       digest: sha256:df7bb4ebf2e96e6b0d62eda0261264d80260c7dac6581aaff9a1ed0898b6765c
+    - codename: telescope-jade
+      digest: sha256:09b11e06d80a1843d1e1f5bde4049af076906079452286593c060b956099b4a4
