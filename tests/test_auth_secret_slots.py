@@ -34,6 +34,9 @@ def test_gateway_reads_dedicated_broker_secret():
     deployment = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
     env = {item["name"]: item for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert env["AUTH_OIDC_CLIENT_ID"]["value"] == "stalwart-idp"
+    assert env["AUTH_OIDC_PUBLIC_CLIENT_IDS"]["value"] == (
+        "re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant"
+    )
     assert "AUTH_OIDC_CLIENT_SECRET" not in env
     assert env["AUTH_OIDC_SIGNING_KEY_PEM"]["valueFrom"]["secretKeyRef"] == {
         "name": "re8ch-auth-broker-client", "key": "AUTH_OIDC_SIGNING_KEY_PEM"

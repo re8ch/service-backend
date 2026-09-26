@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:stalwart-broker-678e6a8-secure@sha256:52fa33b0097dd4424f133adac9fbad8458e2a38dbeabb30320e2e17b80f8a4a5
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:auth-public-pkce-df8dcfe@sha256:3dbe5accbbc06196ac20d4c2dc240ed9c56928b70cc1baf3baadcde0175a1677
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -154,6 +154,8 @@ spec:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_SECRET, optional: true}
             - name: AUTH_OIDC_CLIENT_ID
               value: stalwart-idp
+            - name: AUTH_OIDC_PUBLIC_CLIENT_IDS
+              value: re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant
             - name: AUTH_OIDC_ISSUER
               value: https://auth.re8ch.com
             - name: AUTH_OIDC_SIGNING_KEY_PEM
