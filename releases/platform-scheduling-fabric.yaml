@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: atoll-silver
+codename: delta-silver
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:f1a667368a08c95e353b99826fc410bd96f28da7eac7dcfd86171f114997cd80
+  digest: sha256:928399220bb3dc4633e435812f00d164cb5da9b0c673d84a562b04cee3559570
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
