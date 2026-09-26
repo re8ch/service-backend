@@ -301,6 +301,8 @@ modules:
       digest: sha256:ccc1f26a9bf5ba1a4059fefacfe7b120ad43ecf467cf232b7e9862f2b904a5c1
     - codename: delta
       digest: sha256:7cce4f50b55ea70b7545a46e102d2855810867a01dc2aa1f2651cfcf31cdca4a
+    - codename: grove
+      digest: sha256:b0c2da0f10e749fd277732d0c31a554ab1a3c1218b6bffa7e5da688ce8159c35
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -458,6 +460,8 @@ modules:
       digest: sha256:c3f04105f7477f9f5728244aba3bcd26a6b1d9560ebe6fe814dfa144a9df1720
     - codename: beacon-pearl
       digest: sha256:57f9015fd30c6e643217d987b13a3286600f8c020ddee083ccf98c68e59169f3
+    - codename: compass-pearl
+      digest: sha256:f8fae46e59dc91a2fb9eb778e716ba8829901d4e66dcf2e92a9381dbba8df46f
   platform/birfucate-metering:
     releases:
     - codename: cascade
