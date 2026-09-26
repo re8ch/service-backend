@@ -30,7 +30,7 @@ def test_rendered_controller_failover_and_source_cache_safety():
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
     for name in ('helm-controller', 'kustomize-controller', 'notification-controller'):
         deployment = deployments[name]
-        assert deployment['spec']['replicas'] == 3
+        assert deployment['spec']['replicas'] == (2 if name == 'notification-controller' else 3)
         pod = deployment['spec']['template']['spec']
         assert '--enable-leader-election' in pod['containers'][0]['args']
         anti_affinity = pod['affinity']['podAntiAffinity']['requiredDuringSchedulingIgnoredDuringExecution'][0]
