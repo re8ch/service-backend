@@ -65,58 +65,141 @@ metadata:
   name: supabase-identity-kong-config
   namespace: supabase-identity
 data:
-  kong-entrypoint.sh: "#!/bin/sh\nif [ -n \"$SUPABASE_SECRET_KEY\" ] && [ -n \"$SUPABASE_PUBLISHABLE_KEY\"\
-    \ ]; then\n  export LUA_AUTH_EXPR=\"\\$((headers.authorization ~= nil and headers.authorization:sub(1,\
-    \ 10) ~= 'Bearer sb_' and headers.authorization) or (headers.apikey == '$SUPABASE_SECRET_KEY'\
-    \ and 'Bearer $SERVICE_ROLE_KEY_ASYMMETRIC') or (headers.apikey == '$SUPABASE_PUBLISHABLE_KEY'\
-    \ and 'Bearer $ANON_KEY_ASYMMETRIC') or headers.apikey)\"\n  export LUA_RT_WS_EXPR=\"\
-    \\$((query_params.apikey == '$SUPABASE_SECRET_KEY' and '$SERVICE_ROLE_KEY_ASYMMETRIC')\
-    \ or (query_params.apikey == '$SUPABASE_PUBLISHABLE_KEY' and '$ANON_KEY_ASYMMETRIC')\
-    \ or query_params.apikey)\"\nelse\n  export LUA_AUTH_EXPR=\"\\$((headers.authorization\
-    \ ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization)\
-    \ or headers.apikey)\"\n  export LUA_RT_WS_EXPR=\"\\$(query_params.apikey)\"\n\
-    fi\nawk '{\n  result = \"\"\n  rest = $0\n  while (match(rest, /\\$[A-Za-z_][A-Za-z_0-9]*/))\
-    \ {\n    varname = substr(rest, RSTART + 1, RLENGTH - 1)\n    if (varname in ENVIRON)\
-    \ {\n      result = result substr(rest, 1, RSTART - 1) ENVIRON[varname]\n    }\
-    \ else {\n      result = result substr(rest, 1, RSTART + RLENGTH - 1)\n    }\n\
-    \    rest = substr(rest, RSTART + RLENGTH)\n  }\n  print result rest\n}' /home/kong/temp.yml\
-    \ > \"$KONG_DECLARATIVE_CONFIG\"\nsed -i '/^[[:space:]]*- key:[[:space:]]*$/d'\
-    \ \"$KONG_DECLARATIVE_CONFIG\"\nexec /entrypoint.sh kong docker-start\n"
-  kong.yml: "_format_version: '2.1'\n_transform: true\nconsumers:\n  - username: DASHBOARD\n\
-    \  - username: anon\n    keyauth_credentials:\n      - key: $SUPABASE_ANON_KEY\n\
-    \  - username: service_role\n    keyauth_credentials:\n      - key: $SUPABASE_SERVICE_KEY\n\
-    acls:\n  - consumer: anon\n    group: anon\n  - consumer: service_role\n    group:\
-    \ admin\nbasicauth_credentials:\n  - consumer: DASHBOARD\n    username: '$DASHBOARD_USERNAME'\n\
-    \    password: '$DASHBOARD_PASSWORD'\nservices:\n  - name: auth-v1-open\n    url:\
-    \ http://supabase-identity-auth:9999/verify\n    routes:\n      - name: auth-v1-open\n\
-    \        strip_path: true\n        paths: [/auth/v1/verify]\n    plugins:\n  \
-    \    - name: cors\n  - name: auth-v1-open-callback\n    url: http://supabase-identity-auth:9999/callback\n\
-    \    routes:\n      - name: auth-v1-open-callback\n        strip_path: true\n\
-    \        paths: [/auth/v1/callback]\n    plugins:\n      - name: cors\n  - name:\
-    \ auth-v1-open-authorize\n    url: http://supabase-identity-auth:9999/authorize\n\
-    \    routes:\n      - name: auth-v1-open-authorize\n        strip_path: true\n\
-    \        paths: [/auth/v1/authorize]\n    plugins:\n      - name: cors\n  - name:\
-    \ auth-v1\n    url: http://supabase-identity-auth:9999/\n    routes:\n      -\
-    \ name: auth-v1-all\n        strip_path: true\n        paths: [/auth/v1/]\n  \
-    \  plugins:\n      - name: cors\n      - name: key-auth\n        config:\n   \
-    \       hide_credentials: false\n      - name: request-transformer\n        config:\n\
-    \          replace:\n            headers:\n              - \"Authorization: $LUA_AUTH_EXPR\"\
-    \n      - name: acl\n        config:\n          hide_groups_header: true\n   \
-    \       allow: [admin, anon]\n  - name: rest-v1\n    url: http://supabase-identity-rest:3000/\n\
-    \    routes:\n      - name: rest-v1-all\n        strip_path: true\n        paths:\
-    \ [/rest/v1/]\n    plugins:\n      - name: cors\n      - name: key-auth\n    \
-    \    config:\n          hide_credentials: false\n      - name: request-transformer\n\
-    \        config:\n          replace:\n            headers:\n              - \"\
-    Authorization: $LUA_AUTH_EXPR\"\n      - name: acl\n        config:\n        \
-    \  hide_groups_header: true\n          allow: [admin, anon]\n  - name: meta\n\
-    \    url: http://supabase-identity-meta:8080/\n    routes:\n      - name: meta-all\n\
-    \        strip_path: true\n        paths: [/pg/]\n    plugins:\n      - name:\
-    \ key-auth\n        config:\n          hide_credentials: false\n      - name:\
-    \ acl\n        config:\n          hide_groups_header: true\n          allow: [admin]\n\
-    \  - name: dashboard\n    url: http://supabase-identity-studio:3000/\n    routes:\n\
-    \      - name: dashboard-all\n        strip_path: true\n        paths: [/]\n \
-    \   plugins:\n      - name: cors\n      - name: basic-auth\n        config:\n\
-    \          hide_credentials: true\n"
+  kong-entrypoint.sh: |
+    #!/bin/sh
+    if [ -n "$SUPABASE_SECRET_KEY" ] && [ -n "$SUPABASE_PUBLISHABLE_KEY" ]; then
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or (headers.apikey == '$SUPABASE_SECRET_KEY' and 'Bearer $SERVICE_ROLE_KEY_ASYMMETRIC') or (headers.apikey == '$SUPABASE_PUBLISHABLE_KEY' and 'Bearer $ANON_KEY_ASYMMETRIC') or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$((query_params.apikey == '$SUPABASE_SECRET_KEY' and '$SERVICE_ROLE_KEY_ASYMMETRIC') or (query_params.apikey == '$SUPABASE_PUBLISHABLE_KEY' and '$ANON_KEY_ASYMMETRIC') or query_params.apikey)"
+    else
+      export LUA_AUTH_EXPR="\$((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+      export LUA_RT_WS_EXPR="\$(query_params.apikey)"
+    fi
+    awk '{
+      result = ""
+      rest = $0
+      while (match(rest, /\$[A-Za-z_][A-Za-z_0-9]*/)) {
+        varname = substr(rest, RSTART + 1, RLENGTH - 1)
+        if (varname in ENVIRON) {
+          result = result substr(rest, 1, RSTART - 1) ENVIRON[varname]
+        } else {
+          result = result substr(rest, 1, RSTART + RLENGTH - 1)
+        }
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+      print result rest
+    }' /home/kong/temp.yml > "$KONG_DECLARATIVE_CONFIG"
+    sed -i '/^[[:space:]]*- key:[[:space:]]*$/d' "$KONG_DECLARATIVE_CONFIG"
+    exec /entrypoint.sh kong docker-start
+  kong.yml: |
+    _format_version: '2.1'
+    _transform: true
+    consumers:
+      - username: DASHBOARD
+      - username: anon
+        keyauth_credentials:
+          - key: $SUPABASE_ANON_KEY
+      - username: service_role
+        keyauth_credentials:
+          - key: $SUPABASE_SERVICE_KEY
+    acls:
+      - consumer: anon
+        group: anon
+      - consumer: service_role
+        group: admin
+    basicauth_credentials:
+      - consumer: DASHBOARD
+        username: '$DASHBOARD_USERNAME'
+        password: '$DASHBOARD_PASSWORD'
+    services:
+      - name: auth-v1-open
+        url: http://supabase-identity-auth:9999/verify
+        routes:
+          - name: auth-v1-open
+            strip_path: true
+            paths: [/auth/v1/verify]
+        plugins:
+          - name: cors
+      - name: auth-v1-open-callback
+        url: http://supabase-identity-auth:9999/callback
+        routes:
+          - name: auth-v1-open-callback
+            strip_path: true
+            paths: [/auth/v1/callback]
+        plugins:
+          - name: cors
+      - name: auth-v1-open-authorize
+        url: http://supabase-identity-auth:9999/authorize
+        routes:
+          - name: auth-v1-open-authorize
+            strip_path: true
+            paths: [/auth/v1/authorize]
+        plugins:
+          - name: cors
+      - name: auth-v1
+        url: http://supabase-identity-auth:9999/
+        routes:
+          - name: auth-v1-all
+            strip_path: true
+            paths: [/auth/v1/]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              replace:
+                headers:
+                  - "Authorization: $LUA_AUTH_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: rest-v1
+        url: http://supabase-identity-rest:3000/
+        routes:
+          - name: rest-v1-all
+            strip_path: true
+            paths: [/rest/v1/]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              replace:
+                headers:
+                  - "Authorization: $LUA_AUTH_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: meta
+        url: http://supabase-identity-meta:8080/
+        routes:
+          - name: meta-all
+            strip_path: true
+            paths: [/pg/]
+        plugins:
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin]
+      - name: dashboard
+        url: http://supabase-identity-studio:3000/
+        routes:
+          - name: dashboard-all
+            strip_path: true
+            paths: [/]
+        plugins:
+          - name: cors
+          - name: basic-auth
+            config:
+              hide_credentials: true
 ---
 apiVersion: v1
 kind: Service
