@@ -41,3 +41,42 @@ def test_gateway_reads_dedicated_broker_secret():
     assert env["AUTH_OIDC_SIGNING_KEY_PEM"]["valueFrom"]["secretKeyRef"] == {
         "name": "re8ch-auth-broker-client", "key": "AUTH_OIDC_SIGNING_KEY_PEM"
     }
+
+
+def test_dex_github_credentials_are_migrated_without_exposing_values():
+    path = ROOT / "clusters/re8ch/components/auth/migrate-dex-github-credentials.yaml"
+    documents = list(yaml.safe_load_all(path.read_text()))
+    by_kind = {document["kind"]: document for document in documents}
+
+    role = by_kind["Role"]
+    assert role["metadata"] == {"name": "migrate-dex-github-credentials", "namespace": "auth"}
+    assert role["rules"] == [
+        {
+            "apiGroups": [""],
+            "resources": ["secrets"],
+            "resourceNames": ["re8ch-auth-gateway-secrets"],
+            "verbs": ["get", "patch"],
+        },
+        {
+            "apiGroups": ["apps"],
+            "resources": ["deployments"],
+            "resourceNames": ["re8ch-auth-gateway"],
+            "verbs": ["get", "patch"],
+        },
+    ]
+
+    job = by_kind["Job"]
+    pod_spec = job["spec"]["template"]["spec"]
+    assert pod_spec["serviceAccountName"] == "migrate-dex-github-credentials"
+    assert pod_spec["volumes"][0]["secret"] == {
+        "secretName": "dex-github",
+        "items": [
+            {"key": "client-id", "path": "client-id"},
+            {"key": "client-secret", "path": "client-secret"},
+        ],
+    }
+    script = pod_spec["containers"][0]["args"][0]
+    assert "--server-side" in script
+    assert "GITHUB_OAUTH_CLIENT_ID=/source/client-id" in script
+    assert "GITHUB_OAUTH_CLIENT_SECRET=/source/client-secret" in script
+    assert "rollout restart deployment/re8ch-auth-gateway" in script

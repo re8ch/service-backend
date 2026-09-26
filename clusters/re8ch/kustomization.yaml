@@ -47,6 +47,7 @@ resources:
 - components/auth/dex/dex-ha-deployment.yaml
 - components/auth/dex/dex-service-deployment.yaml
 - components/auth/dex/dex-service-config-reconciler.yaml
+- components/auth/migrate-dex-github-credentials.yaml
 - components/auth/dex/grafana-client.yaml
 - components/auth/deployments/auth-postgrest.yaml
 - components/auth/deployments/re8ch-auth-gateway.yaml
