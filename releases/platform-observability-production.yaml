@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: spectrum-jade
+codename: telescope-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:df7bb4ebf2e96e6b0d62eda0261264d80260c7dac6581aaff9a1ed0898b6765c
+  digest: sha256:09b11e06d80a1843d1e1f5bde4049af076906079452286593c060b956099b4a4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
