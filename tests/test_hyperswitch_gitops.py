@@ -214,6 +214,19 @@ def test_public_routes_use_dedicated_tls_listeners():
         assert len(route["spec"]["parentRefs"]) == 6
         assert all(ref["sectionName"].endswith("-https") for ref in route["spec"]["parentRefs"])
 
+    api_route = next(
+        route
+        for route in http_routes
+        if route["spec"]["hostnames"] == ["pay-api.service.re8ch.com"]
+    )
+    assert api_route["spec"]["rules"] == [
+        {
+            "backendRefs": [
+                {"name": "hyperswitch-hyperswitch-server", "port": 80}
+            ]
+        }
+    ]
+
     assert all(route["kind"] != "Ingress" for route in routes)
 
 
