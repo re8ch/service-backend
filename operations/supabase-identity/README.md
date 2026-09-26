@@ -29,6 +29,8 @@ distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
    `psql -X -v ON_ERROR_STOP=1 -d postgres -f bootstrap.sql`. It creates only
    `re8ch_identity` and grants the existing Supabase roles access. Confirm
    the target is empty before first GoTrue startup.
+   Connect as `supabase_auth_admin` to `re8ch_identity` and run
+   `auth-schema.sql` to create GoTrue's empty `auth` schema under that role.
 3. Provision distinct Secret references for the new identity deployment.
    The GoTrue, PostgREST, Studio/Meta and optional Storage connection strings
    must all name `re8ch_identity`. Use the existing secret manager; never copy
