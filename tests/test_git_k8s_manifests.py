@@ -447,33 +447,33 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     }
 
 
-def test_public_edge_nodes_publish_verified_regions_and_stable_evidence_window():
+def test_public_edge_capacity_uses_fabric_inventory_without_creating_nodes():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/regional-routing/public-edge-node-metadata.yaml" in root["resources"]
-    assert "components/rook-ceph/storage-node-labels.yaml" not in root["resources"]
+    assert "components/regional-routing/public-edge-node-metadata.yaml" not in root["resources"]
+    assert "components/rook-ceph/storage-node-labels.yaml" in root["resources"]
+    assert not (ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml").exists()
+    regional = yaml.safe_load((ROOT / "clusters/re8ch/components/regional-routing/kustomization.yaml").read_text())
+    assert "public-edge-node-metadata.yaml" not in regional["resources"]
 
-    metadata = documents(
-        ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml"
+    release = next(
+        item for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
+        if item["kind"] == "HelmRelease"
     )
-    regions = {
-        item["metadata"]["name"]: item["metadata"]["labels"]["topology.kubernetes.io/region"]
-        for item in metadata
-        if item["metadata"]["name"] in {"restricted-node-6dc3f140f9", "overseas-la", "vm-20-12-ubuntu"}
+    assert release["spec"]["values"]["discovery"]["capacityInventory"] == {
+        "apiGroup": "networking.advfab.org",
+        "apiVersion": "v1alpha1",
+        "resource": "advancedfabrics",
+        "name": "advanced-fabric",
     }
-    assert regions == {
-        "restricted-node-6dc3f140f9": "cn-hunan",
-        "overseas-la": "us-ca",
-        "vm-20-12-ubuntu": "cn-guangzhou",
-    }
-    capacities = {
-        item["metadata"]["name"]: item["metadata"].get("annotations", {}).get(
-            "networking.re8ch.com/capacity-mbps"
-        )
-        for item in metadata
-    }
-    assert capacities["overseas-la"] == "1000"
-    assert capacities["restricted-node-6dc3f140f9"] == "200"
-    assert capacities["vm-20-12-ubuntu"] == "3"
+    fabric = next(
+        item for item in documents(ROOT / "platform/advanced-fabric/release.yaml")
+        if item["kind"] == "HelmRelease"
+    )["spec"]["values"]["advancedFabric"]
+    nodes = {node["name"]: node for node in fabric["nodes"]}
+    assert (nodes["overseas-la"]["uplinkMbps"], nodes["overseas-la"]["region"]) == (1000, "us-ca")
+    assert (nodes["restricted-node-6dc3f140f9"]["uplinkMbps"], nodes["restricted-node-6dc3f140f9"]["region"]) == (200, "cn-hunan")
+    assert nodes["vm-20-12-ubuntu"]["uplinkMbps"] == 3
+    assert not {"qwen-1", "qwen-2", "qwen-3"} & nodes.keys()
 
     release = next(
         item
