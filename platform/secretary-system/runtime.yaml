@@ -455,6 +455,8 @@ spec:
     - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}
   hostnames: [tools.re8ch.com]
   rules:
+    - matches: [{path: {type: Exact, value: /v1/observations}}]
+      backendRefs: [{name: secretary-api, port: 80}]
     - matches: [{path: {type: PathPrefix, value: /v1/channels/}}]
       backendRefs: [{name: secretary-api, port: 80}]
     - matches: [{path: {type: Exact, value: /v1/event-stream}}]
