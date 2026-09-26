@@ -287,6 +287,10 @@ modules:
       digest: sha256:80d9181566408cc9b2d837a7b78a16a9e90ed4d9631d1edbc85df81a5eed564f
     - codename: atoll-silver
       digest: sha256:f1a667368a08c95e353b99826fc410bd96f28da7eac7dcfd86171f114997cd80
+    - codename: canopy-silver
+      digest: sha256:097f8522c1e9cd25d905ecd7993ed2c4b06f1aa9227702f5d3ecb5223337d5be
+    - codename: delta-silver
+      digest: sha256:928399220bb3dc4633e435812f00d164cb5da9b0c673d84a562b04cee3559570
   platform/cloud-platform:
     releases:
     - codename: atoll
