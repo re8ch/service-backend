@@ -38,7 +38,6 @@ resources:
 - components/cluster-inventory/configmap.yaml
 - components/cilium/service-zone-wave-15.yaml
 - components/cilium/advfab-worker-node-ips.yaml
-- components/cilium/overseas-la-cilium-node.yaml
 - components/cilium/native-routing-rollout.yaml
 - components/farseer/public-web.yaml
 - components/cilium/r640-policy-update-budget.yaml
@@ -54,6 +53,8 @@ resources:
 - components/auth/services/re8ch-auth-gateway.yaml
 - components/auth/user-center.yaml
 - components/egress-fabric/identity-egress.yaml
+- components/egress-fabric/live-node-egress-labels.yaml
+- components/registry-authority/node-installer.yaml
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml
 - components/public-exposure/gateway-dns-authorities.yaml
