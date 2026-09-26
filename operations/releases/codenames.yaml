@@ -486,6 +486,8 @@ modules:
       digest: sha256:a8f3234c17e42cd4c7130d17a7027891373b87bbb0677be04e1264d097692064
     - codename: anchor-amber
       digest: sha256:5ac51760a46f4281fceb4cf346b5392ec1b6541fb6acd26ebf792146b9b9f1f7
+    - codename: beacon-amber
+      digest: sha256:51d4678f38717f522f985b7d7ff01722f6cf2b5fff607aae60d5e23fefd4f015
   platform/public-edge-manager:
     releases:
     - codename: bora
