@@ -35,10 +35,14 @@ distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
    The GoTrue, PostgREST, Studio/Meta and optional Storage connection strings
    must all name `re8ch_identity`. Use the existing secret manager; never copy
    or print a live password to build a DSN in a shell argument.
-4. Start GoTrue in isolation to initialize its schema, then apply the
-   `cloud-functions/sql/025_supabase_identity_core.sql` migration. Run its
-   importer preflight and transactional copy after freezing writes to the
-   legacy auth database.
+4. Start GoTrue in isolation to initialize its schema. Connect as
+   `supabase_auth_admin` and run `auth-reference-grants.sql`, then apply the
+   `cloud-functions/sql/025_supabase_identity_core.sql` migration as
+   `supabase_admin`. Run importer preflight and freeze writes to the legacy
+   auth database for final cutover. As `supabase_admin`, run `import-begin.sql`
+   immediately before the transactional importer, and `import-end.sql` after
+   reconciliation or on import failure. The temporary policies permit the
+   importer to count rows through RLS and are not needed at runtime.
 
 ## Public issuer gate
 
