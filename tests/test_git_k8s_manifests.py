@@ -41,6 +41,14 @@ def test_live_nodes_receive_mihomos_placement_and_registry_authority():
     assert pod_spec["tolerations"] == [{"operator": "Exists"}]
     installer = pod_spec["containers"][0]
     assert {item["name"]: item["value"] for item in installer["env"]}["RESTART_K3S"] == "false"
+    assert installer["image"] == "registry.re8ch.com/proxy-dockerhub/library/alpine:3.22"
+    assert installer["resources"]["requests"] == {"cpu": "5m", "memory": "8Mi"}
+    install_script = next(
+        item for item in registry if item["kind"] == "ConfigMap"
+    )["data"]["install.sh"]
+    assert "HTTP_PROXY=" not in install_script
+    assert "HTTPS_PROXY=" not in install_script
+    assert 'rm -f "$proxy_dropin"' in install_script
     assert any(volume["hostPath"]["path"] == "/" for volume in pod_spec["volumes"] if "hostPath" in volume)
 
 

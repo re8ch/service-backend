@@ -49,9 +49,6 @@ data:
     registry_file="$registry_dir/registries.yaml"
     hosts_file="$host/etc/hosts"
     prefix=/config/registries-prefix.yaml
-    proxy_url=http://127.0.0.1:17891
-    no_proxy=127.0.0.1,localhost,::1,ghcr.io,.ghcr.io,.re8ch.com,.zt.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16
-
     mkdir -p "$registry_dir"
     work=$(mktemp "$registry_dir/.registries.yaml.XXXXXX")
     trap 'rm -f "$work"' EXIT
@@ -88,36 +85,32 @@ data:
     cat "$hosts_work" >"$hosts_file"
     rm -f "$hosts_work"
 
-    # Some former servers retain a disabled k3s.service alongside the active
-    # agent unit. Selecting by unit-file existence can accidentally start a
-    # second local control plane and replace the agent CA. Prefer the unit that
-    # is active, then the one enabled for boot.
-    service=k3s-agent
-    if chroot "$host" systemctl is-active --quiet k3s-agent ||
-       chroot "$host" systemctl is-enabled --quiet k3s-agent; then
-      service=k3s-agent
-    elif chroot "$host" systemctl is-active --quiet k3s ||
-         chroot "$host" systemctl is-enabled --quiet k3s; then
-      service=k3s
-    else
-      printf 'no active or enabled k3s unit found\n' >&2
-      exit 1
-    fi
-    dropin="$host/etc/systemd/system/$service.service.d"
-    mkdir -p "$dropin"
-    cat >"$dropin/20-re8ch-registry-egress.conf" <<EOF
-    [Service]
-    Environment="HTTP_PROXY=$proxy_url"
-    Environment="HTTPS_PROXY=$proxy_url"
-    Environment="http_proxy=$proxy_url"
-    Environment="https_proxy=$proxy_url"
-    Environment="NO_PROXY=$no_proxy"
-    Environment="no_proxy=$no_proxy"
-    EOF
+    # K3s/containerd is infrastructure and must never depend on Mihomo or an
+    # airport being reachable. Image sources are mirrored through the internal
+    # Harbor origin above; remove the former node-local proxy dependency from
+    # both possible K3s units.
+    for service in k3s-agent k3s; do
+      proxy_dropin="$host/etc/systemd/system/$service.service.d/20-re8ch-registry-egress.conf"
+      if [ -e "$proxy_dropin" ]; then
+        rm -f "$proxy_dropin"
+        changed=true
+      fi
+    done
 
     chroot "$host" systemctl daemon-reload
-    printf 'service=%s changed=%s\n' "$service" "$changed"
+    printf 'registry-authority changed=%s\n' "$changed"
     if [ "${RESTART_K3S:-false}" = true ] && [ "$changed" = true ]; then
+      # Some former servers retain a disabled k3s.service alongside the active
+      # agent unit. Never start a second control plane while activating config.
+      service=
+      if chroot "$host" systemctl is-active --quiet k3s-agent; then
+        service=k3s-agent
+      elif chroot "$host" systemctl is-active --quiet k3s; then
+        service=k3s
+      else
+        printf 'no active k3s unit found\n' >&2
+        exit 1
+      fi
       chroot "$host" systemd-run --quiet --collect \
         --unit=re8ch-k3s-registry-restart --on-active=3s \
         /bin/systemctl restart "$service"
@@ -144,7 +137,7 @@ spec:
       tolerations: [{operator: Exists}]
       containers:
         - name: installer
-          image: docker.io/library/alpine:3.22
+          image: registry.re8ch.com/proxy-dockerhub/library/alpine:3.22
           imagePullPolicy: IfNotPresent
           command: [/bin/sh, -ec]
           args:
@@ -162,6 +155,9 @@ spec:
             periodSeconds: 5
           securityContext:
             privileged: true
+          resources:
+            requests: {cpu: 5m, memory: 8Mi}
+            limits: {cpu: 100m, memory: 32Mi}
           volumeMounts:
             - {name: host-root, mountPath: /host}
             - {name: installer, mountPath: /config, readOnly: true}
