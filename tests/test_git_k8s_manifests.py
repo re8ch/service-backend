@@ -12,10 +12,12 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
-def test_live_nodes_receive_mihomos_placement_and_registry_authority():
+def test_live_nodes_receive_optional_mihomos_placement():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/egress-fabric/live-node-egress-labels.yaml" in root["resources"]
-    assert "components/registry-authority/node-installer.yaml" in root["resources"]
+    # Harbor is infrastructure and K3s/containerd must reach it directly.
+    # Do not deploy a privileged host installer or couple K3s to Mihomo.
+    assert "components/registry-authority/node-installer.yaml" not in root["resources"]
 
     node_documents = documents(
         ROOT / "clusters/re8ch/components/egress-fabric/live-node-egress-labels.yaml"
@@ -32,24 +34,6 @@ def test_live_nodes_receive_mihomos_placement_and_registry_authority():
         assert labels["networking.re8ch.com/mihomo-node"] == "enabled"
         assert labels["networking.re8ch.com/geo"] in {"cn", "global"}
 
-    registry = documents(
-        ROOT / "clusters/re8ch/components/registry-authority/node-installer.yaml"
-    )
-    daemonset = next(item for item in registry if item["kind"] == "DaemonSet")
-    pod_spec = daemonset["spec"]["template"]["spec"]
-    assert daemonset["spec"]["updateStrategy"]["rollingUpdate"]["maxUnavailable"] == 1
-    assert pod_spec["tolerations"] == [{"operator": "Exists"}]
-    installer = pod_spec["containers"][0]
-    assert {item["name"]: item["value"] for item in installer["env"]}["RESTART_K3S"] == "false"
-    assert installer["image"] == "registry.re8ch.com/proxy-dockerhub/library/alpine:3.22"
-    assert installer["resources"]["requests"] == {"cpu": "5m", "memory": "8Mi"}
-    install_script = next(
-        item for item in registry if item["kind"] == "ConfigMap"
-    )["data"]["install.sh"]
-    assert "HTTP_PROXY=" not in install_script
-    assert "HTTPS_PROXY=" not in install_script
-    assert 'rm -f "$proxy_dropin"' in install_script
-    assert any(volume["hostPath"]["path"] == "/" for volume in pod_spec["volumes"] if "hostPath" in volume)
 
 
 def test_retired_kagent_namespace_is_not_referenced_by_active_gitops_resources():
