@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: bora-amber
+    delivery.re8ch.com/codename: chinook-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:3c5d1d04b5c64532f704cf852eaf42e5b9a625b455b8b41b2d37fbdca0e86d94
+    digest: sha256:b323adba8ddf988666cbe0ee3b61f55e0748b5d000c5ec9a7bcb83a16f1ff1f8
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: bora-amber
+    delivery.re8ch.com/codename: chinook-amber
 spec:
   interval: 1m
   retryInterval: 1m

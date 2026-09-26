@@ -96,6 +96,8 @@ modules:
       digest: sha256:889960036034eec3745107a4d16c88f2e8809cd42d3e2744f8617b5754338f9c
     - codename: bora-amber
       digest: sha256:3c5d1d04b5c64532f704cf852eaf42e5b9a625b455b8b41b2d37fbdca0e86d94
+    - codename: chinook-amber
+      digest: sha256:b323adba8ddf988666cbe0ee3b61f55e0748b5d000c5ec9a7bcb83a16f1ff1f8
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
