@@ -95,6 +95,12 @@ spec:
                 path: /spec/internalTrafficPolicy
                 value: Local
   values:
+    crds:
+      # This values-only rollout keeps chart 3.9.1 and CRDs unchanged. Its
+      # post-upgrade CLI hook cannot pull from reg.kyverno.io on restricted-node-6dc3f140f9 (EOF),
+      # leaving Helm and dependent policies blocked. Re-enable with a pinned
+      # internal CLI image before changing chart or CRD versions.
+      migration: {enabled: false}
     admissionController:
       replicas: 3
       podDisruptionBudget: {enabled: true, minAvailable: 2}
