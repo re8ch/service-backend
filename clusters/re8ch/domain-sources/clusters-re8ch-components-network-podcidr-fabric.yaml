@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: etesian-amber
+    delivery.re8ch.com/codename: mistral-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:1ddcea1ae5bbf56e08ee31bdc8a3ad91dd4c994d62409b3b04852c49fae41304
+    digest: sha256:aef4361717481369581a6557b360613b754a6c999718db2de50429357d3db19f
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: etesian-amber
+    delivery.re8ch.com/codename: mistral-amber
 spec:
   interval: 1m
   retryInterval: 1m
