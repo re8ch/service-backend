@@ -122,3 +122,51 @@ data:
         --unit=re8ch-k3s-registry-restart --on-active=3s \
         /bin/systemctl restart "$service"
     fi
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: k3s-registry-authority-installer
+  namespace: registry-authority
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1, maxSurge: 0}
+  selector:
+    matchLabels: {app.kubernetes.io/name: k3s-registry-authority-installer}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: k3s-registry-authority-installer}
+    spec:
+      hostNetwork: true
+      dnsPolicy: Default
+      priorityClassName: system-node-critical
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: installer
+          image: docker.io/library/alpine:3.22
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              /config/install.sh
+              touch /state/installed
+              exec sleep infinity
+          env:
+            # Installing the mirror configuration is safe to roll out to every
+            # node. K3s activation is performed separately, one node at a time,
+            # so a first deployment cannot restart the whole cluster together.
+            - {name: RESTART_K3S, value: "false"}
+          readinessProbe:
+            exec: {command: [/bin/sh, -ec, test -f /state/installed]}
+            periodSeconds: 5
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - {name: host-root, mountPath: /host}
+            - {name: installer, mountPath: /config, readOnly: true}
+            - {name: state, mountPath: /state}
+      volumes:
+        - {name: host-root, hostPath: {path: /, type: Directory}}
+        - {name: installer, configMap: {name: k3s-registry-authority-installer, defaultMode: 0555}}
+        - {name: state, emptyDir: {}}
