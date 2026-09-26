@@ -9,12 +9,14 @@ retarget the current Supabase stack by changing only `POSTGRES_DB`: GoTrue,
 PostgREST and Storage use separate secret-held DSNs, and Studio/Meta use
 `POSTGRES_DB`.
 
-`identity-stack.yaml` is the isolated candidate for GoTrue, PostgREST,
-Studio/Meta and Kong. It is deliberately not part of the live Kustomization.
+`identity-stack.yaml` is the isolated deployment for GoTrue, PostgREST,
+Studio/Meta and Kong. It is part of the cluster Kustomization but has no public route.
 It uses the new `supabase-identity` namespace and Secret, without touching the
 existing Supabase stack. Provision `supabase-identity-secrets` with distinct
 DSNs for `re8ch_identity` before adding this file to GitOps. The existing
 Secret must not be copied verbatim because its DSNs still name `postgres`.
+The `supabase-identity-secrets` Secret was provisioned in the cluster with
+distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
 
 ## Database and secret preparation
 
