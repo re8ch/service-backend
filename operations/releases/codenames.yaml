@@ -373,6 +373,8 @@ modules:
       digest: sha256:b521859eed947dab73ab25b17b3a57aba3fa04487a8eaa751b76a2d84fdd717e
     - codename: torch
       digest: sha256:395057b0af324200f4e362aace5950a4e5ce13b15e979c9a282eabfbc721713f
+    - codename: aurora-amber
+      digest: sha256:77ef524a28bb4ad3098af1645ab40ebe0d94b30df9d2b9c70c68afedaf541d26
   platform/apps/access-subscription:
     releases:
     - codename: aegis
@@ -450,6 +452,8 @@ modules:
       digest: sha256:c39a0cc83a4ae8815f64cd75d726aa7212a448b9daa05a484278ccd9c4e9be03
     - codename: trailhead-jade
       digest: sha256:6114e610cbbfa9212dd74e316eee57a30f0d12abe9321d7f1203c5e7eb2307ee
+    - codename: anchor-pearl
+      digest: sha256:c3f04105f7477f9f5728244aba3bcd26a6b1d9560ebe6fe814dfa144a9df1720
   platform/birfucate-metering:
     releases:
     - codename: cascade
