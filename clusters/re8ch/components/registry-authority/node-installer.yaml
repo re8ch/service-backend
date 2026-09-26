@@ -137,7 +137,9 @@ spec:
       tolerations: [{operator: Exists}]
       containers:
         - name: installer
-          image: registry.re8ch.com/proxy-dockerhub/library/alpine:3.22
+          # This pod installs the registry mirror; its image must be pullable
+          # before that mirror exists on a newly joined node.
+          image: docker.io/library/alpine:3.22
           imagePullPolicy: IfNotPresent
           command: [/bin/sh, -ec]
           args:
