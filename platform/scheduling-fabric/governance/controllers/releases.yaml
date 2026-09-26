@@ -115,6 +115,14 @@ spec:
     reportsController:
       replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
+      # Reporting is not on the admission path. Keep its cache on the roomy
+      # restricted-node-6dc3f140f9 control plane instead of adding pressure to A1.
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+      resources:
+        requests: {cpu: 100m, memory: 256Mi}
+        limits: {memory: 512Mi}
     features:
       policyReports: {enabled: true}
 ---
