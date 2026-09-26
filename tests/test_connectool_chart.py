@@ -22,18 +22,18 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert [item["metadata"]["name"] for item in groups] == ["tenant-public"]
     oidc = next(item for item in objects if item["kind"] == "MCPOIDCConfig" and item["metadata"]["name"] == "re8ch-tools-vmcp-issuer")
     vmcp = next(item for item in objects if item["kind"] == "VirtualMCPServer" and item["metadata"]["name"] == "re8ch-tools-vmcp")
-    dex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "dex-static-clients")
+    dex = [item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "dex-static-clients"]
     codex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "codex-marketplace")
     registration = json.loads(codex["data"]["re8ch-cloud-platform-tool.mcp.json"])
     server = registration["mcpServers"]["re8ch-cloud-platform-tool"]
-    assert oidc["spec"]["inline"]["issuer"] == "https://dex.service.re8ch.com"
+    assert oidc["spec"]["inline"]["issuer"] == "https://id-stalwart.tools.re8ch.com"
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
     assert vmcp["spec"]["replicas"] == 1
     assert vmcp["spec"]["sessionAffinity"] == "ClientIP"
     assert vmcp["spec"]["sessionStorage"] == {"provider": "memory"}
-    assert "public: true" in dex["data"]["clients.yaml"]
+    assert dex == []
 
 
 def test_skill_only_plugins_do_not_duplicate_mcp_registration():

@@ -34,7 +34,19 @@ metadata: {name: re8ch-user-center, namespace: auth}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: auth-https}]
   hostnames: [auth.re8ch.com]
-  rules: [{backendRefs: [{name: re8ch-user-center, port: 80}], filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Gateway, value: cilium}]}}]}]
+  rules:
+    - matches:
+        - {path: {type: Exact, value: /.well-known/openid-configuration}}
+        - {path: {type: Exact, value: /jwks}}
+        - {path: {type: Exact, value: /authorize}}
+        - {path: {type: Exact, value: /token}}
+        - {path: {type: Exact, value: /userinfo}}
+        - {path: {type: Exact, value: /start}}
+        - {path: {type: PathPrefix, value: /callback}}
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+      filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Identity-Plane, value: stalwart-broker}]}}]
+    - backendRefs: [{name: re8ch-user-center, port: 80}]
+      filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Gateway, value: cilium}]}}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

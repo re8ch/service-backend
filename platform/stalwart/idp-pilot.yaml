@@ -88,15 +88,18 @@ kind: ConfigMap
 metadata: {name: stalwart-idp-bootstrap-plan, namespace: mail-system}
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"github-dex":{"@type":"Oidc","description":"RE8CH GitHub via Dex","issuerUrl":"https://dex.service.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
-    {"@type":"update","object":"Authentication","value":{"directoryId":"#github-dex"}}
-    {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":false,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":"15m","idTokenExpiry":"15m","refreshTokenExpiry":"8h","refreshTokenRenewal":"1h"}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-idp","requireScopes":{"openid":true,"email":true,"profile":true,"groups":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
+    {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
+    {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":"15m","idTokenExpiry":"15m","refreshTokenExpiry":"8h","refreshTokenRenewal":"1h"}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"kubectl-pilot":{"clientId":"kubectl-stalwart-pilot","description":"Kubernetes RBAC Stalwart pilot","redirectUris":{"http://127.0.0.1:8000":true,"http://localhost:8000":true}}}}
+    {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"connectool-cloud":{"clientId":"re8ch-cloud-platform-tool","description":"ConnecTool cloud platform public PKCE client","redirectUris":{"http://127.0.0.1/callback":true,"http://localhost/callback":true}}}}
+    {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"connectool-admin":{"clientId":"re8ch-platform-admin","description":"ConnecTool platform admin public PKCE client","redirectUris":{"http://127.0.0.1/callback":true,"http://localhost/callback":true}}}}
+    {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"connectool-tenant":{"clientId":"re8ch-tenant","description":"ConnecTool tenant public PKCE client","redirectUris":{"http://127.0.0.1/callback":true,"http://localhost/callback":true}}}}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-idp-bootstrap-v1
+  name: stalwart-idp-bootstrap-v2
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
