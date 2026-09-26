@@ -23,6 +23,20 @@ metadata: {name: overseas-kl, labels: {networking.re8ch.com/firewall: none, netw
 apiVersion: v1
 kind: Node
 metadata:
+  name: overseas-la-2
+  annotations: {networking.re8ch.com/capacity-mbps: "1000"}
+  labels: {re8ch.com/cilium-migrate: "true", networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-exit: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/anytls-public-edge: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: us-ca, topology.kubernetes.io/zone: us-ca}
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: overseas-flk
+  annotations: {networking.re8ch.com/capacity-mbps: "400"}
+  labels: {re8ch.com/cilium-migrate: "true", networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-exit: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/anytls-public-edge: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: de-fsn, topology.kubernetes.io/zone: falkenstein}
+---
+apiVersion: v1
+kind: Node
+metadata:
   name: overseas-la
   annotations: {networking.re8ch.com/capacity-mbps: "1000"}
   labels: {re8ch.com/cilium-migrate: "true", networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/mihomo-exit: enabled, networking.re8ch.com/mihomo-node: enabled, networking.re8ch.com/geo: global, topology.kubernetes.io/region: us-ca, topology.kubernetes.io/zone: us-ca}
