@@ -176,6 +176,8 @@ domains:
   operations-ui:
     theme: beacons
     paths:
+      - operations/stalwart-github-intake/**
+      - tests/test_stalwart_github_intake.py
       - platform/incidentrelay/**
       - platform/headlamp/**
       - platform/stalwart/**
@@ -184,6 +186,7 @@ domains:
       - platform/headlamp
       - platform/stalwart
     tests:
+      - tests/test_stalwart_github_intake.py
       - tests/test_headlamp_birfucate_browser.py
       - tests/test_headlamp_plugin_catalog.py
       - tests/test_incidentrelay_gitops.py
