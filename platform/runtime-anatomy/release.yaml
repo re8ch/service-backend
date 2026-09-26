@@ -42,3 +42,5 @@ spec:
       enabled: true
     observer:
       enabled: true
+      nodeSelector:
+        anatomy.re8ch.com/observer-allowed: "true"
