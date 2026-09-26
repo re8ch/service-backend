@@ -285,6 +285,8 @@ modules:
       digest: sha256:2eecde823c2ece4e9e581a708ca39cf6e2188a49fea54e0e7fe3d8c498099ae2
     - codename: wetland-pearl
       digest: sha256:80d9181566408cc9b2d837a7b78a16a9e90ed4d9631d1edbc85df81a5eed564f
+    - codename: atoll-silver
+      digest: sha256:f1a667368a08c95e353b99826fc410bd96f28da7eac7dcfd86171f114997cd80
   platform/cloud-platform:
     releases:
     - codename: atoll
