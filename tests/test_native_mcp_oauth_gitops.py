@@ -6,11 +6,11 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_dex_rfc8414_route_is_part_of_flux_kustomization():
+def test_dex_rfc8414_route_is_retired_from_flux_kustomization():
     kustomization = yaml.safe_load(
         (ROOT / "platform/cloud-platform/kustomization.yaml").read_text()
     )
-    assert "dex-oauth-discovery.yaml" in kustomization["resources"]
+    assert "dex-oauth-discovery.yaml" not in kustomization["resources"]
 
 
 def test_dex_rfc8414_route_reuses_oidc_discovery():

@@ -23,7 +23,6 @@ resources:
 - secrets/hyperswitch-bootstrap-admin.sops.yaml
 - secrets/tenant-claim-internal-auth.sops.yaml
 - secrets/re8ch-auth-broker-client-auth.sops.yaml
-- secrets/re8ch-auth-broker-client-dex.sops.yaml
 - secrets/tenant-registry-supply-chain.sops.yaml
 - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
 - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
@@ -44,11 +43,6 @@ resources:
 - components/ai-operations/platform.yaml
 - components/ai-operations/sandbox-trials
 - components/tenancy/re8ch-managed-business-namespaces.yaml
-- components/auth/dex/dex-ha-deployment.yaml
-- components/auth/dex/dex-service-deployment.yaml
-- components/auth/dex/dex-service-config-reconciler.yaml
-- components/auth/migrate-dex-github-credentials.yaml
-- components/auth/dex/grafana-client.yaml
 - components/auth/deployments/auth-postgrest.yaml
 - components/auth/deployments/re8ch-auth-gateway.yaml
 - components/auth/services/re8ch-auth-gateway.yaml

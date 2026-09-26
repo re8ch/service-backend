@@ -3,4 +3,3 @@ kind: Kustomization
 resources:
   - release.yaml
   - cloud-route.yaml
-  - dex-client-reconciler.yaml
