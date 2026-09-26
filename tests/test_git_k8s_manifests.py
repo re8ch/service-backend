@@ -18,7 +18,24 @@ def test_auth_host_routes_prefixed_login_actions_to_the_broker():
         item for item in resources
         if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "re8ch-user-center"
     )
-    broker_rule = route["spec"]["rules"][0]
+    oauth_discovery_rule, broker_rule = route["spec"]["rules"][:2]
+    assert oauth_discovery_rule["matches"] == [
+        {"path": {"type": "Exact", "value": "/.well-known/oauth-authorization-server"}}
+    ]
+    assert oauth_discovery_rule["backendRefs"] == [
+        {"name": "re8ch-auth-gateway", "port": 8080}
+    ]
+    assert oauth_discovery_rule["filters"] == [
+        {
+            "type": "URLRewrite",
+            "urlRewrite": {
+                "path": {
+                    "type": "ReplaceFullPath",
+                    "replaceFullPath": "/.well-known/openid-configuration",
+                }
+            },
+        }
+    ]
     assert broker_rule["backendRefs"] == [{"name": "re8ch-auth-gateway", "port": 8080}]
     matches = {
         (item["path"]["type"], item["path"]["value"])
