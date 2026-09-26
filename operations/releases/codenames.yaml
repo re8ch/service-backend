@@ -442,6 +442,10 @@ modules:
       digest: sha256:c0ceb1b1fc9dd35ff470db244f33cc0c12dd425b8649b1be1a7900d595cbe154
     - codename: meridian-jade
       digest: sha256:9f962f7d7e04e2c9e9eb7486b0e37d638b85ec0fe45e2c5443aa6b4a960ad7e3
+    - codename: passage-jade
+      digest: sha256:c39a0cc83a4ae8815f64cd75d726aa7212a448b9daa05a484278ccd9c4e9be03
+    - codename: trailhead-jade
+      digest: sha256:6114e610cbbfa9212dd74e316eee57a30f0d12abe9321d7f1203c5e7eb2307ee
   platform/birfucate-metering:
     releases:
     - codename: cascade
