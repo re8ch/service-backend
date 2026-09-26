@@ -28,6 +28,7 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
     created = []
     target = None
     broker_secret = None
+    identity_secret = None
 
     def request(path, method="GET", body=None, content_type="application/json"):
         nonlocal target
@@ -41,6 +42,10 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
             if broker_secret is None:
                 raise urllib.error.HTTPError(path, 404, "missing", {}, None)
             return copy.deepcopy(broker_secret)
+        if method == "GET" and path.endswith("/supabase-identity-oidc"):
+            if identity_secret is None:
+                raise urllib.error.HTTPError(path, 404, "missing", {}, None)
+            return copy.deepcopy(identity_secret)
         created.append((method, path))
         if method == "PATCH" and path.endswith("/dex-config"):
             old["data"].update(body["data"])
@@ -50,7 +55,7 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
             target["data"].update(body["data"])
         return {}
 
-    scope = dict(base64=base64, yaml=yaml, time=time, urllib=urllib, request=request)
+    scope = dict(base64=base64, copy=copy, yaml=yaml, time=time, urllib=urllib, request=request)
     exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
     derived = yaml.safe_load(base64.b64decode(target["data"]["config.yaml"]))
     canonical = yaml.safe_load(base64.b64decode(old["data"]["config.yaml"]))
@@ -101,6 +106,19 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
     assert broker["config"]["clientID"] == "broker-client"
     assert broker["config"]["insecureEnableGroups"] is True
     assert any(path.endswith("/deployments/dex-service") for _, path in created)
+
+    identity_secret = {"data": {
+        "client-id": base64.b64encode(b"supabase-identity").decode(),
+        "client-secret": base64.b64encode(b"test-identity-secret").decode(),
+    }}
+    exec(compile(body, "dex-service-reconciler-test", "exec"), scope)
+    derived = yaml.safe_load(base64.b64decode(target["data"]["config.yaml"]))
+    identity_client = next(item for item in derived["staticClients"] if item["id"] == "supabase-identity")
+    assert identity_client["allowedConnectors"] == ["github-re8ch-identity"]
+    assert identity_client["redirectURIs"] == ["https://auth.re8ch.com/auth/v1/callback"]
+    restricted = next(item for item in derived["connectors"] if item.get("id") == "github-re8ch-identity")
+    assert restricted["config"]["orgs"] == [{"name": "re8ch"}]
+    assert restricted["config"]["clientSecret"] == "test-only-secret"
 
 
 def test_new_hostname_targets_only_parallel_dex_service():
