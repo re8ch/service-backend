@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: beacon-amber
+codename: compass-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:51d4678f38717f522f985b7d7ff01722f6cf2b5fff607aae60d5e23fefd4f015
+  digest: sha256:fd864971e27e7d65c2d98b7105505ad241f00ad3aff26be4a5f7faf9f3d549f8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
