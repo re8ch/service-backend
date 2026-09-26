@@ -794,3 +794,5 @@ modules:
       digest: sha256:df7bb4ebf2e96e6b0d62eda0261264d80260c7dac6581aaff9a1ed0898b6765c
     - codename: telescope-jade
       digest: sha256:09b11e06d80a1843d1e1f5bde4049af076906079452286593c060b956099b4a4
+    - codename: viewport-jade
+      digest: sha256:d8fe4229540ee1f46ba2811c73e1b4e38495784fc1aecd32be907617c7bcff3e
