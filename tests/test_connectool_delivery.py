@@ -154,12 +154,13 @@ def test_public_and_internal_mcp_clients_use_declared_frontends():
     rendered_routes = "\n".join(path.read_text() for path in route_files)
     # The privileged Tools publication is a singleton on restricted-node-6dc3f140f9 during the
     # A1/B1 fabric incident, so its public route can safely target vMCP
-    # directly. Multi-replica admin and tenant publications keep routers.
+    # directly. The singleton tenant publication also bypasses its router;
+    # only the multi-replica admin publication requires session routing here.
     assert "vmcp-re8ch-tools-vmcp" in rendered_routes
     assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
     assert "re8ch-tools-vmcp-session-router" in rendered_routes
     assert "re8ch-admin-vmcp-session-router" in rendered_routes
-    assert "backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]" in rendered_routes
+    assert "backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]" in rendered_routes
     toolhive_ingresses = "\n".join(
         (ROOT / path).read_text()
         for path in (

@@ -608,7 +608,10 @@ spec:
   hostnames: [tools.service.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /tenant}}]
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # tenant-vmcp currently has one publication replica. Route directly to
+      # the publication so the initial unauthenticated MCP probe always returns
+      # its OAuth challenge instead of alternating across router replicas.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
       # OAuth discovery is stateless and precedes MCP session creation. Send it
       # directly to the publication so an unhealthy session-router replica

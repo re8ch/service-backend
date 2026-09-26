@@ -207,9 +207,11 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
   rules:
     - matches: [{path: {type: PathPrefix, value: /tenant}}]
-      # ConnecTool authenticates the caller and exchanges the inbound Dex token
+      # ConnecTool authenticates the caller and exchanges the inbound OIDC token
       # for a short-lived, audience-bound backend identity token.
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # This publication has one VMCP replica, so session ownership does not
+      # require an additional router hop.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
       # Resource discovery does not carry an MCP session and must not depend on
       # session-router affinity or replica health.

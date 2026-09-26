@@ -293,12 +293,12 @@ def test_connectool_has_one_generic_tenant_publication():
         assert legacy not in serialized
 
 
-def test_tenant_public_route_splits_mcp_sessions_from_oauth_discovery():
+def test_single_replica_tenant_public_route_bypasses_session_router():
     docs = tenant_chart_documents()
     route = next(item for item in docs if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "tenant-mcp")
     backends = [rule["backendRefs"][0] for rule in route["spec"]["rules"]]
     assert backends == [
-        {"name": "tenant-vmcp-session-router", "port": 4483},
+        {"name": "vmcp-tenant-vmcp", "port": 4483},
         {"name": "vmcp-tenant-vmcp", "port": 4483},
     ]
     assert not any(item["kind"] == "ReferenceGrant" and item["metadata"]["name"] == "tenant-mcp-publicedge" for item in docs)
