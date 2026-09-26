@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/re8ch-business-namespaces
-    delivery.re8ch.com/codename: aegis
+    delivery.re8ch.com/codename: citadel
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-re8ch-business-namespaces
   ref:
-    digest: sha256:16e4a40b21a1c59d28575b3f79de4dc7ae889fb0bb39c8c2738e131a5bfc915a
+    digest: sha256:6e29bb79918d45307b948db63e8a4a937a341296ad7c8592d69cf40e53cc77fa
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/re8ch-business-namespaces
-    delivery.re8ch.com/codename: aegis
+    delivery.re8ch.com/codename: citadel
 spec:
   interval: 1m
   retryInterval: 1m
