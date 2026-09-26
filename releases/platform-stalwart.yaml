@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: signal
+codename: torch
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:b0a5b34bea850a3347d70b27d46fa7e57456fe9f3bd5297ec7acc5c8290286ab
+  digest: sha256:395057b0af324200f4e362aace5950a4e5ce13b15e979c9a282eabfbc721713f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
