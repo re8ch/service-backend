@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.6.0"}
+  ref: {tag: "0.6.1"}
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -61,6 +61,8 @@ spec:
           - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         topologySpreadConstraints: []
+        hostAliases:
+          - {ip: "192.0.2.213", hostnames: [dex.service.re8ch.com]}
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits: {cpu: 500m, memory: 256Mi}
