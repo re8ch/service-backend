@@ -43,7 +43,16 @@ def test_control_center_route_uses_service_port_not_container_port():
 
 def test_admin_bootstrap_uses_injected_service_coordinates():
     job = yaml.safe_load((ROOT / "platform/hyperswitch/bootstrap-admin-job.yaml").read_text())
-    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v11"
+    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v12"
+    seed = job["spec"]["template"]["spec"]["initContainers"][0]
+    assert seed["name"] == "seed-default-auth-method"
+    assert "hyperswitch_default" in seed["args"][0]
+    assert "ON CONFLICT (id) DO UPDATE" in seed["args"][0]
+    db_password = next(item for item in seed["env"] if item["name"] == "POSTGRES_PASSWORD")
+    assert db_password["valueFrom"]["secretKeyRef"] == {
+        "name": "hyperswitch-pigsty-credentials",
+        "key": "primaryPassword",
+    }
     command = job["spec"]["template"]["spec"]["containers"][0]["args"][0]
     assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_HOST" in command
     assert "HYPERSWITCH_HYPERSWITCH_SERVER_SERVICE_PORT" in command
@@ -307,11 +316,11 @@ def test_rendered_helm_values_namespace_and_job_admission():
         elif kind != "Namespace":
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
-            expected_revision = "-v11" if "bootstrap-admin" in resource["metadata"]["name"] else "-v4"
+            expected_revision = "-v12" if "bootstrap-admin" in resource["metadata"]["name"] else "-v4"
             assert resource["metadata"]["name"].endswith(expected_revision)
             pod = resource["spec"]["template"]["spec"]
             assert pod["securityContext"]["runAsNonRoot"] is True
             assert pod["securityContext"]["seccompProfile"]["type"] == "RuntimeDefault"
-            for container in pod["containers"]:
+            for container in pod.get("initContainers", []) + pod["containers"]:
                 assert container["securityContext"]["allowPrivilegeEscalation"] is False
                 assert "ALL" in container["securityContext"]["capabilities"]["drop"]
