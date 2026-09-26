@@ -1,4 +1,4 @@
-# Isolated candidate; not included in clusters/re8ch/kustomization.yaml until secret and database gates pass.
+# Isolated identity stack. No public HTTPRoute is declared here.
 ---
 apiVersion: v1
 kind: Namespace
