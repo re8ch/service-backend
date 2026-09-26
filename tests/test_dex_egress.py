@@ -17,10 +17,10 @@ def test_dex_egress_matches_each_issuer_runtime():
         environment = {item["name"]: item.get("value") for item in container["env"]}
 
         assert ".svc" in environment["NO_PROXY"]
-        assert "192.0.2.203/8" in environment["NO_PROXY"]
+        assert "10.0.0.0/8" in environment["NO_PROXY"]
         pod = deployment["spec"]["template"]["spec"]
         if deployment["metadata"]["name"] == "dex-service":
-            expected = "http://192.0.2.29:17893"
+            expected = "http://10.250.0.104:17893"
             assert environment["HTTP_PROXY"] == expected
             assert environment["HTTPS_PROXY"] == expected
             assert pod["hostNetwork"] is True
@@ -32,6 +32,7 @@ def test_dex_egress_matches_each_issuer_runtime():
             assert pod["dnsPolicy"] == "ClusterFirst"
 
 
-def test_dex_is_reconciled_by_the_cluster_kustomization():
+def test_dex_workloads_are_retired_from_the_cluster_kustomization():
     kustomization = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/auth/dex/dex-ha-deployment.yaml" in kustomization["resources"]
+    assert not any("components/auth/dex/" in resource for resource in kustomization["resources"])
+    assert "components/auth/migrate-dex-github-credentials.yaml" not in kustomization["resources"]
