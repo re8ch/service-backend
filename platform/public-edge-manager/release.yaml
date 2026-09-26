@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:68fe8becefa456ae652d567ed0e1219912298f96a143083a9b446f2b128d3f77}
+  ref: {digest: sha256:a0680378f3330cbc5bcbeb918a0d230750f127fbda86ffcdde763b9f02297df5}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -28,11 +28,11 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.10"
+      tag: "0.6.11"
       # Pin the amd64 manifest used by the current PublicEdge nodes. restricted-node-6dc3f140f9's
       # containerd cannot reliably hydrate the signed multi-arch index through
       # its GHCR blob path, while this immutable child manifest is verified.
-      digest: sha256:559b2c2d3a7eada65e7888c7a196ff495ae3708861c79be8fb5033391ee6bce5
+      digest: sha256:390b5b9d14f9161bc70b26ad456fd72a3e5e8955172ba1da919ed61059972c5a
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -136,22 +136,9 @@ spec:
       probeTimeoutSeconds: 2
       defaultCapacityMbps: 100
       minimumCapacityMbps: 100
-      # PublicEdge owns these stable attributes. Readiness is derived separately
-      # from live Node, network path and Gateway evidence. Guangzhou's 3 Mbps
-      # links intentionally remain below the 100 Mbps public-exit threshold.
-      nodeInventory:
-        restricted-node-6dc3f140f9: {capacityMbps: 200, region: cn-hunan}
-        overseas-la: {capacityMbps: 1000, region: us-ca}
-        overseas-kl: {capacityMbps: 1000, region: my-kul}
-        restricted-node-1eb0570f74: {capacityMbps: 200, region: cn-hunan}
-        restricted-node-296f36f2fb: {capacityMbps: 200, region: cn-hunan}
-        amdwsl-zt: {capacityMbps: 100, region: cn-hubei}
-        vm-20-12-ubuntu: {capacityMbps: 3, region: cn-guangzhou}
-        suxunji: {capacityMbps: 3, region: cn-shanghai}
-        muaya-lightweight: {capacityMbps: 3, region: cn-shanghai}
-        muaya-ecs: {capacityMbps: 3, region: cn-hangzhou}
-        zan: {capacityMbps: 3, region: cn-guangzhou}
-        domain-ex: {capacityMbps: 3, region: cn-shanghai}
+      # Shared cluster inventory is the sole source of membership, capacity and
+      # region; public IP and readiness are checked independently at runtime.
+      clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       maxNameservers: 3
       gatewayNamespace: kube-system
       gatewaySelector: networking.re8ch.com/public-edge-gateway=true
