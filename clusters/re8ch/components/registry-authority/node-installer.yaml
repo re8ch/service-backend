@@ -97,7 +97,8 @@ data:
       fi
     done
 
-    chroot "$host" systemctl daemon-reload
+    # This pod has its own PID namespace. Chrooting into the host filesystem
+    # cannot reach the host systemd bus; host activation is a separate rollout.
     printf 'registry-authority changed=%s\n' "$changed"
     if [ "${RESTART_K3S:-false}" = true ] && [ "$changed" = true ]; then
       # Some former servers retain a disabled k3s.service alongside the active
@@ -137,9 +138,9 @@ spec:
       tolerations: [{operator: Exists}]
       containers:
         - name: installer
-          # This pod installs the registry mirror; its image must be pullable
-          # before that mirror exists on a newly joined node.
-          image: docker.io/library/alpine:3.22
+          # Cilium initializes before this DaemonSet and leaves this digest in
+          # containerd. Reuse it so registry bootstrap does not need a mirror.
+          image: quay.io/cilium/cilium-ci@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
           imagePullPolicy: IfNotPresent
           command: [/bin/sh, -ec]
           args:
