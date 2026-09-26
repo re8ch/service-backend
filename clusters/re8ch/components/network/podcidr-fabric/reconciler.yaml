@@ -399,6 +399,7 @@ data:
       host vtysh <"${commands}"
       rm -f "${commands}"
       reconcile_wireguard_allowed_ips
+      reconcile_rr_interconnect_transit_sources
       reconcile_public_mesh_allowed_ips
       reconcile_r640_identity_transit_nat
       reconcile_control_plane_identity_routes
@@ -406,7 +407,16 @@ data:
       wait_for_bgp
       touch /run/podcidr-fabric-ready
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
-      while sleep 60; do host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || exit 1; done
+      while sleep 60; do
+        reconcile_rr_interconnect_transit_sources || {
+          rm -f /run/podcidr-fabric-ready
+          exit 1
+        }
+        host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || {
+          rm -f /run/podcidr-fabric-ready
+          exit 1
+        }
+      done
       exit 0
     fi
 
@@ -519,7 +529,6 @@ data:
     apply_fabric
     reconcile_routeros_boundary
     reconcile_wireguard_allowed_ips
-    reconcile_rr_interconnect_transit_sources
     reconcile_public_mesh_allowed_ips
     cleanup_retired_panel_api_dnat
     reconcile_r640_identity_transit_nat
@@ -529,10 +538,6 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
-      reconcile_rr_interconnect_transit_sources || {
-        rm -f /run/podcidr-fabric-ready
-        exit 1
-      }
       host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || {
         rm -f /run/podcidr-fabric-ready
         exit 1
@@ -561,7 +566,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: rr-interconnect-transit-sources-v1
+        networking.re8ch.com/config-revision: rr-interconnect-transit-sources-v2
     spec:
       hostPID: true
       hostNetwork: true
