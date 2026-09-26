@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: etesian-copper
+codename: mistral-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:53a56f3296d967183636a7fb61704cd1ef31c7cabdff0445697e3246f6559ad9
+  digest: sha256:ab9ddc320c25a7c6fc82b0c221b55fb3783e2585e5ea9e7c9bd50d09677b57f8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

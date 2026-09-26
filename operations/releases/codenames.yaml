@@ -315,6 +315,8 @@ modules:
       digest: sha256:af131eec7e7bf2ef0627a5657bd65a2df06088886b7b683321c513f31cf70bf9
     - codename: etesian-copper
       digest: sha256:53a56f3296d967183636a7fb61704cd1ef31c7cabdff0445697e3246f6559ad9
+    - codename: mistral-copper
+      digest: sha256:ab9ddc320c25a7c6fc82b0c221b55fb3783e2585e5ea9e7c9bd50d09677b57f8
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -576,6 +578,8 @@ modules:
       digest: sha256:f4c0fe3022eb4e8ff14ecdb7e2c63f95211ba899a7e03fc24cf9ba5ca3d7f062
     - codename: mistral-silver
       digest: sha256:351c2a4f62cd21336c0e0740b06213ccd7a5a01c4987427cc5575a77c2e61414
+    - codename: sirocco-silver
+      digest: sha256:4daa525b5954926e51569a42c13686abcda2166d85e5103bd6d2d068052ab1a3
   platform/adapter:
     releases:
     - codename: anchor
