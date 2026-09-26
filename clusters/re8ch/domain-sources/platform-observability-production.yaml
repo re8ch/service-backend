@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: spectrum-jade
+    delivery.re8ch.com/codename: telescope-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:df7bb4ebf2e96e6b0d62eda0261264d80260c7dac6581aaff9a1ed0898b6765c
+    digest: sha256:09b11e06d80a1843d1e1f5bde4049af076906079452286593c060b956099b4a4
   verify:
     provider: cosign
     matchOIDCIdentity:
