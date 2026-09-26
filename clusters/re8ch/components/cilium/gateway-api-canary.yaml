@@ -610,7 +610,10 @@ spec:
     - matches: [{path: {type: PathPrefix, value: /tenant}}]
       backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # OAuth discovery is stateless and precedes MCP session creation. Send it
+      # directly to the publication so an unhealthy session-router replica
+      # cannot make client login discovery alternate between 200 and 503.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

@@ -28,6 +28,24 @@ def test_auth_host_routes_prefixed_login_actions_to_the_broker():
     assert ("PathPrefix", "/callback") in matches
 
 
+def test_tenant_oauth_discovery_bypasses_the_mcp_session_router():
+    resources = documents(
+        ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml"
+    )
+    route = next(
+        item for item in resources
+        if item["kind"] == "HTTPRoute"
+        and item["metadata"]["name"] == "tools-service-tenant-mcp"
+    )
+    session_rule, discovery_rule = route["spec"]["rules"]
+    assert session_rule["backendRefs"] == [
+        {"name": "tenant-vmcp-session-router", "port": 4483}
+    ]
+    assert discovery_rule["backendRefs"] == [
+        {"name": "vmcp-tenant-vmcp", "port": 4483}
+    ]
+
+
 def test_live_nodes_receive_optional_mihomos_placement():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/egress-fabric/live-node-egress-labels.yaml" in root["resources"]
