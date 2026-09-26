@@ -167,6 +167,23 @@ data:
       [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
     }
 
+    reconcile_rr_interconnect_source_identity() {
+      [ -n "${route_server}" ] || return 0
+      interconnect_ip="$(printf '%s' "${route_server}" | jq -r .rrInterconnectIp)"
+      accelerated_ip="$(printf '%s' "${route_server}" | jq -r .acceleratedIp)"
+      accelerated_cidr="$(jq -r .acceleratedCIDR /config/inventory.json)"
+      host nft list table ip re8ch_fabric >/dev/null 2>&1 || host nft add table ip re8ch_fabric
+      host nft list chain ip re8ch_fabric postrouting >/dev/null 2>&1 ||
+        host nft 'add chain ip re8ch_fabric postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+      # FRR may select the opposite RR for a control-plane destination. Keep
+      # locally originated interconnect traffic on the node's declared /32 so
+      # the next WireGuard peer accepts it and can route the reply symmetrically.
+      rule="ip saddr ${interconnect_ip} ip daddr ${accelerated_cidr} oifname \"wg-wsl-lan\" snat to ${accelerated_ip}"
+      host nft list chain ip re8ch_fabric postrouting | grep -Fq "${rule}" ||
+        host nft add rule ip re8ch_fabric postrouting ip saddr "${interconnect_ip}/32" \
+          ip daddr "${accelerated_cidr}" oifname wg-wsl-lan snat to "${accelerated_ip}"
+    }
+
     reconcile_r640_identity_transit_nat() {
       [ "${NODE_NAME}" = restricted-node-1eb0570f74 ] || return 0
       host ip link show wg-pt-a1 >/dev/null 2>&1 || return 0
@@ -400,6 +417,7 @@ data:
       rm -f "${commands}"
       reconcile_wireguard_allowed_ips
       reconcile_rr_interconnect_transit_sources
+      reconcile_rr_interconnect_source_identity
       reconcile_public_mesh_allowed_ips
       reconcile_r640_identity_transit_nat
       reconcile_control_plane_identity_routes
@@ -409,6 +427,10 @@ data:
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
         reconcile_rr_interconnect_transit_sources || {
+          rm -f /run/podcidr-fabric-ready
+          exit 1
+        }
+        reconcile_rr_interconnect_source_identity || {
           rm -f /run/podcidr-fabric-ready
           exit 1
         }
@@ -566,7 +588,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: rr-interconnect-transit-sources-v2
+        networking.re8ch.com/config-revision: rr-interconnect-source-identity-v1
     spec:
       hostPID: true
       hostNetwork: true
