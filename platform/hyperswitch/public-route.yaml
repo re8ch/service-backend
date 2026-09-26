@@ -30,7 +30,4 @@ spec:
     - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: pay-api-https}
   hostnames: [pay-api.service.re8ch.com]
   rules:
-    - matches:
-        - path: {type: PathPrefix, value: /v1}
-      backendRefs: [{name: nuclio-payment-registry-api, port: 8080}]
     - backendRefs: [{name: hyperswitch-hyperswitch-server, port: 80}]
