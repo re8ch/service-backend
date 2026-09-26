@@ -87,6 +87,17 @@ def test_vmalert_uses_ha_alertmanager_notifier():
     assert selector["labelSelector"]["matchLabels"]["usage"] == "re8ch-platform-alerting"
 
 
+def test_production_scrape_and_alerting_have_two_distinct_control_plane_replicas():
+    resources = yaml_documents(OBSERVABILITY / "production" / "collectors.yaml")
+    for kind in ("VMAgent", "VMAlert"):
+        workload = next(doc for doc in resources if doc["kind"] == kind)
+        assert workload["spec"]["replicaCount"] == 2
+        affinity = workload["spec"]["affinity"]
+        assert affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+        preferred = affinity["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
+        assert [entry["preference"]["matchExpressions"][0]["values"] for entry in preferred] == [["restricted-node-6dc3f140f9"], ["restricted-node-296f36f2fb"]]
+
+
 def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
     logs = yaml_documents(OBSERVABILITY / "production" / "logs.yaml")
     vlsingle = next(doc for doc in logs if doc["kind"] == "VLSingle")
@@ -97,7 +108,7 @@ def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
     assert vlsingle["spec"]["retentionPeriod"] == "14d"
     assert vlsingle["spec"]["storage"]["storageClassName"] == "rbd-r640"
     assert vlagent["spec"]["k8sCollector"]["enabled"] is True
-    assert alertmanager["spec"]["replicaCount"] == 3
+    assert alertmanager["spec"]["replicaCount"] == 2
     assert alertmanager["spec"]["configNamespaceSelector"] == {}
 
 
