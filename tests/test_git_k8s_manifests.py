@@ -40,7 +40,7 @@ def test_live_nodes_receive_optional_mihomos_placement():
     ) + documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
     live_nodes = {
         "restricted-node-1eb0570f74", "amdwsl-zt", "restricted-node-296f36f2fb", "domain-ex", "muaya-ecs",
-        "muaya-lightweight", "overseas-kl", "overseas-la", "restricted-node-6dc3f140f9",
+        "muaya-lightweight", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk", "restricted-node-6dc3f140f9",
         "suxunji", "vm-20-12-ubuntu", "zan",
     }
     by_name = {item["metadata"]["name"]: item for item in node_documents}
