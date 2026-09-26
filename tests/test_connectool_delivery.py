@@ -14,7 +14,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert source["spec"]["ref"] == {"tag": "0.6.1"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
