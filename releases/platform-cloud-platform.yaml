@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: delta
+codename: grove
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:7cce4f50b55ea70b7545a46e102d2855810867a01dc2aa1f2651cfcf31cdca4a
+  digest: sha256:b0c2da0f10e749fd277732d0c31a554ab1a3c1218b6bffa7e5da688ce8159c35
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
