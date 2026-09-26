@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: riptide-indigo
+codename: springtide-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:c2a77e86bfac1203e83a5edbc48b984ea09107943f1b94069021eb0c42f8bdca
+  digest: sha256:77ba27dfb39ecc107e4aed901784688ea19c4f314092187c0910262dd518a12c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
