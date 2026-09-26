@@ -28,7 +28,7 @@ data:
   POSTGRES_DB: re8ch_identity
   PGRST_DB_SCHEMAS: api
   PGRST_DB_MAX_ROWS: '1000'
-  PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+  PGRST_DB_EXTRA_SEARCH_PATH: public
   SITE_URL: https://auth.re8ch.com
   API_EXTERNAL_URL: https://auth.re8ch.com/auth/v1
   SUPABASE_PUBLIC_URL: https://auth.re8ch.com
