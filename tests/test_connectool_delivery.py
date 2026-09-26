@@ -11,7 +11,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.6.0"}
+    assert source["spec"]["ref"] == {"tag": "0.6.1"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
         "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$",
@@ -120,6 +120,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     }
     assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
+    assert toolhive["placement"]["hostAliases"] == [{
+        "ip": "192.0.2.209",
+        "hostnames": ["dex.service.re8ch.com"],
+    }]
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
     assert tenant_admin["publication"] == "re8ch-admin-vmcp"
