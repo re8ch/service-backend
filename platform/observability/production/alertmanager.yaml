@@ -72,7 +72,7 @@ metadata:
     observability.re8ch.com/managed: "true"
     usage: re8ch-platform-alerting
 spec:
-  replicaCount: 3
+  replicaCount: 2
   configSecret: re8ch-alertmanager-base
   secrets:
     - incidentrelay-alertmanager-tokens
@@ -88,6 +88,15 @@ spec:
         nodeSelectorTerms:
           - matchExpressions:
               - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+        - weight: 80
+          preference:
+            matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb]}
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector: {matchLabels: {app.kubernetes.io/name: vmalertmanager}}
