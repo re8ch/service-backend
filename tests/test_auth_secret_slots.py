@@ -68,6 +68,7 @@ def test_dex_github_credentials_are_migrated_without_exposing_values():
     job = by_kind["Job"]
     pod_spec = job["spec"]["template"]["spec"]
     assert pod_spec["serviceAccountName"] == "migrate-dex-github-credentials"
+    assert "nodeSelector" not in pod_spec
     assert pod_spec["volumes"][0]["secret"] == {
         "secretName": "dex-github",
         "items": [
