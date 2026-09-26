@@ -43,7 +43,7 @@ def test_control_center_route_uses_service_port_not_container_port():
 
 def test_admin_bootstrap_uses_injected_service_coordinates():
     job = yaml.safe_load((ROOT / "platform/hyperswitch/bootstrap-admin-job.yaml").read_text())
-    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v12"
+    assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v13"
     seed = job["spec"]["template"]["spec"]["initContainers"][0]
     assert seed["name"] == "seed-default-auth-method"
     assert "hyperswitch_default" in seed["args"][0]
@@ -316,7 +316,7 @@ def test_rendered_helm_values_namespace_and_job_admission():
         elif kind != "Namespace":
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
-            expected_revision = "-v12" if "bootstrap-admin" in resource["metadata"]["name"] else "-v4"
+            expected_revision = "-v13" if "bootstrap-admin" in resource["metadata"]["name"] else "-v5"
             assert resource["metadata"]["name"].endswith(expected_revision)
             pod = resource["spec"]["template"]["spec"]
             assert pod["securityContext"]["runAsNonRoot"] is True

@@ -42,6 +42,7 @@ spec:
             - {name: LOCAL_CONTROLLER, value: "http://127.0.0.1:{{ .Values.nodeProxy.controllerPort }}/version"}
             - {name: PROBES_JSON, value: {{ dict "cn" .Values.telemetry.probes.cn "global" .Values.telemetry.probes.global | toJson | quote }}}
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 128Mi}}
           volumeMounts: [{name: code, mountPath: /opt/mihomos, readOnly: true}]
       volumes: [{name: code, configMap: {name: mihomos-status-agent}}]
 {{- end }}

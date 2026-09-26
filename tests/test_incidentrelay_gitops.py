@@ -112,7 +112,7 @@ def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():
     database_job = yaml.safe_load((PLATFORM / "database-bootstrap.yaml").read_text())
     admin_job = yaml.safe_load((PLATFORM / "bootstrap-admin.yaml").read_text())
     assert database_job["metadata"]["name"] == "incidentrelay-database-bootstrap-v7"
-    assert admin_job["metadata"]["name"] == "incidentrelay-bootstrap-admin-v2"
+    assert admin_job["metadata"]["name"] == "incidentrelay-bootstrap-admin-v3"
     for job in (database_job, admin_job):
         container = job["spec"]["template"]["spec"]["containers"][0]
         assert "@sha256:" in container["image"]

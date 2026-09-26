@@ -127,6 +127,15 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
         item for item in policies if item["metadata"]["name"] == "audit-privileged-workloads"
     )
     assert "request.object.spec.volumes || `[]`" in yaml.safe_dump(privileged)
+    privileged_exclusions = privileged["spec"]["rules"][0]["exclude"]["any"]
+    assert {
+        "resources": {
+            "namespaces": ["ai-operations", "egress-fabric"],
+            "selector": {
+                "matchLabels": {"policy.re8ch.com/privileged-approved": "true"}
+            }
+        }
+    } in privileged_exclusions
     resource_bounds = next(
         item for item in policies if item["metadata"]["name"] == "audit-workload-resource-bounds"
     )
@@ -137,6 +146,16 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
     assert "{{ contains(keys(element.resources.requests || `{}`), 'cpu') }}" in keys
     assert "{{ contains(keys(element.resources.limits || `{}`), 'memory') }}" in keys
     assert all(condition["value"] is False for condition in conditions)
+
+    mirror = next(
+        item for item in docs(ROOT / "platform/workspace-controller/r640-mirror.yaml")
+        if item["kind"] == "CronJob"
+    )
+    pod = mirror["spec"]["jobTemplate"]["spec"]["template"]
+    assert pod["metadata"]["labels"]["policy.re8ch.com/privileged-approved"] == "true"
+    for container in pod["spec"]["initContainers"] + pod["spec"]["containers"]:
+        assert set(container["resources"]["requests"]) == {"cpu", "memory"}
+        assert set(container["resources"]["limits"]) == {"cpu", "memory"}
 
     queues = docs(GOVERNANCE / "policies/kueue.yaml")
     local_queues = [item for item in queues if item["kind"] == "LocalQueue"]
