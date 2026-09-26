@@ -1,9 +1,9 @@
 global:
-  issuer: https://id-stalwart.tools.re8ch.com
+  issuer: https://auth.re8ch.com
   scopes: [openid, profile, email, groups, offline_access]
 dex:
-  # Stalwart is the authoritative issuer. Keep the chart's legacy Dex client
-  # contract disabled so a later reconciliation cannot recreate this binding.
+  # auth.re8ch.com is the unified public broker issuer. Keep the chart's legacy
+  # Dex client contract disabled so reconciliation cannot recreate that binding.
   contract: {enabled: false, namespace: dex, configMapName: connectool-dex-clients}
 distribution:
   updated: "2026-09-23"

@@ -32,7 +32,7 @@ spec:
   rollback: {cleanupOnFail: true}
   values:
     global:
-      issuer: https://id-stalwart.tools.re8ch.com
+      issuer: https://auth.re8ch.com
       scopes: [openid, profile, email, groups, offline_access]
     dex:
       contract: {enabled: false, namespace: dex, configMapName: connectool-dex-clients}
