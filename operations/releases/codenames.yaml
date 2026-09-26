@@ -291,6 +291,8 @@ modules:
       digest: sha256:097f8522c1e9cd25d905ecd7993ed2c4b06f1aa9227702f5d3ecb5223337d5be
     - codename: delta-silver
       digest: sha256:928399220bb3dc4633e435812f00d164cb5da9b0c673d84a562b04cee3559570
+    - codename: grove-silver
+      digest: sha256:161e590fc01accb4b00654603f2e634d16fc70feaf4345855eafa8e0b05d5381
   platform/cloud-platform:
     releases:
     - codename: atoll
