@@ -1,3 +1,5 @@
+import json
+import runpy
 from pathlib import Path
 
 import yaml
@@ -402,12 +404,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"] == {"digest": "sha256:68fe8becefa456ae652d567ed0e1219912298f96a143083a9b446f2b128d3f77"}
+    assert source["spec"]["ref"] == {"digest": "sha256:a0680378f3330cbc5bcbeb918a0d230750f127fbda86ffcdde763b9f02297df5"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.10",
-        "digest": "sha256:559b2c2d3a7eada65e7888c7a196ff495ae3708861c79be8fb5033391ee6bce5",
+        "tag": "0.6.11",
+        "digest": "sha256:390b5b9d14f9161bc70b26ad456fd72a3e5e8955172ba1da919ed61059972c5a",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -424,9 +426,10 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
     assert values["discovery"]["minimumCapacityMbps"] == 100
-    assert values["discovery"]["nodeInventory"]["overseas-la"] == {
-        "capacityMbps": 1000, "region": "us-ca",
+    assert values["discovery"]["clusterInventoryConfigMap"] == {
+        "namespace": "flux-system", "name": "cluster-node-inventory", "key": "nodes.json",
     }
+    assert "nodeInventory" not in values["discovery"]
     assert "capacityInventory" not in values["discovery"]
     assert "dependsOn" not in release["spec"]
     assert values["discovery"]["gatewayNamespace"] == "kube-system"
@@ -458,12 +461,32 @@ def test_public_edge_owns_capacity_inventory_without_creating_nodes():
         item for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
         if item["kind"] == "HelmRelease"
     )
-    nodes = release["spec"]["values"]["discovery"]["nodeInventory"]
+    inventory = next(
+        item for item in documents(ROOT / "clusters/re8ch/components/cluster-inventory/configmap.yaml")
+        if item["kind"] == "ConfigMap"
+    )
+    nodes = json.loads(inventory["data"]["nodes.json"])
     assert nodes["overseas-la"] == {"capacityMbps": 1000, "region": "us-ca"}
     assert nodes["restricted-node-6dc3f140f9"] == {"capacityMbps": 200, "region": "cn-hunan"}
     assert nodes["vm-20-12-ubuntu"] == {"capacityMbps": 3, "region": "cn-guangzhou"}
     assert not {"qwen-1", "qwen-2", "qwen-3"} & nodes.keys()
     assert "dependsOn" not in release["spec"]
+    fabric = next(
+        item for item in documents(ROOT / "platform/advanced-fabric/release.yaml")
+        if item["kind"] == "HelmRelease"
+    )
+    assert "nodes" not in fabric["spec"]["values"]["advancedFabric"]
+    assert fabric["spec"]["valuesFrom"] == [{
+        "kind": "ConfigMap", "name": "cluster-node-inventory", "valuesKey": "advanced-fabric-values.yaml",
+    }]
+    fabric_nodes = yaml.safe_load(inventory["data"]["advanced-fabric-values.yaml"])["advancedFabric"]["nodes"]
+    assert {item["name"]: (item["uplinkMbps"], item["region"]) for item in fabric_nodes} == {
+        name: (item["capacityMbps"], item["region"]) for name, item in nodes.items()
+    }
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/cluster-inventory/configmap.yaml" in root["resources"]
+    renderer = runpy.run_path(str(ROOT / "operations/network/scripts/render-cluster-node-inventory.py"))
+    assert (ROOT / "clusters/re8ch/components/cluster-inventory/configmap.yaml").read_text() == renderer["render"]()
 
     release = next(
         item

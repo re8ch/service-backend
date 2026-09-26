@@ -22,7 +22,8 @@ items:
         labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/nuclio: "true", node-role.kubernetes.io/pg-re8ch: "true", re8ch.com/toolhive-plane: primary, scheduling.re8ch.com/provider: onprem, scheduling.re8ch.com/environment: datacenter, scheduling.re8ch.com/reliability-class: anchor, scheduling.re8ch.com/failure-domain: restricted-node-6dc3f140f9, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true", storage.re8ch.com/object-client: "true"}
         taints: []
         parameters: {cpu: 80, memoryKi: 259312228, ephemeralStorageKi: 309043584, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
-        network: {region: cn-hunan, zone: hunan, controlRoute: public-primary, externalIPMode: mikrotik-proxy, networkLevel: 3}
+        network: {region: cn-hunan, zone: hunan, controlRoute: public-primary, externalIPMode: mikrotik-proxy, networkLevel: 3, uplinkMbps: 200}
+        fabric: {role: spine, class: A, failureDomain: r640-idc, provider: onprem, internalIP: 192.0.2.183, podCIDR: 192.0.2.18/24, acceleratedIP: 192.0.2.205, asn: 65001, legacyASN: 4200000128, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com, rclone.csi.veloxpack.io], profiles: [ceph-client, ceph-pilot, object-client, ceph-osd]}
       commands: {read: [hostname, uptime, systemctl-status], write: [systemctl-restart], rollback: [systemctl-restart]}
 
@@ -55,7 +56,8 @@ items:
         labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: a1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
         taints: []
         parameters: {cpu: 8, memoryKi: 12247672, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
-        network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4}
+        network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4, uplinkMbps: 200}
+        fabric: {role: spine, class: B, failureDomain: a1, provider: local-wsl, internalIP: 192.0.2.18, podCIDR: 192.0.2.109/24, acceleratedIP: 192.0.2.173, asn: 65101, legacyASN: 4200010147, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-pilot, ceph-osd]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -72,7 +74,8 @@ items:
         labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: b1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
         taints: []
         parameters: {cpu: 8, memoryKi: 12247680, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
-        network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4}
+        network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4, uplinkMbps: 200}
+        fabric: {role: spine, class: B, failureDomain: b1, provider: local-wsl, internalIP: 192.0.2.208, podCIDR: 192.0.2.26/24, acceleratedIP: 192.0.2.213, asn: 65102, legacyASN: 4200010125, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-pilot, ceph-osd]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -89,7 +92,8 @@ items:
         labels: {node-role.kubernetes.io/gpu: "true", re8ch.com/gpu-runtime: rocm-wsl, re8ch.com/gpu-vendor: amd, scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: opportunistic, scheduling.re8ch.com/failure-domain: amd-windows, storage.re8ch.com/ceph-client: "true"}
         taints: []
         parameters: {cpu: 8, memoryKi: 24610916, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04.1 LTS, kernelVersion: 192.0.2.27-microsoft-standard-WSL2}
-        network: {region: cn-hubei, zone: hubei, controlRoute: zt-primary, externalIPMode: none, networkLevel: 4}
+        network: {region: cn-hubei, zone: hubei, controlRoute: zt-primary, externalIPMode: none, networkLevel: 4, uplinkMbps: 100}
+        fabric: {role: spine, class: B, failureDomain: amdwsl, provider: local-wsl, internalIP: 192.0.2.249, podCIDR: 192.0.2.238/24, acceleratedIP: 192.0.2.93, asn: 65103, legacyASN: 4200010038, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -106,7 +110,8 @@ items:
         labels: {node-role.kubernetes.io/pg-re8ch: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: domain-ex-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 4, memoryKi: 3481048, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
-        network: {region: cn-shanghai, zone: shanghai, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
+        network: {region: cn-shanghai, zone: shanghai, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1, uplinkMbps: 3}
+        fabric: {role: leaf, class: C, failureDomain: tencent-sh-186, provider: tencent, internalIP: 192.0.2.172, podCIDR: 192.0.2.26/24, acceleratedIP: 192.0.2.31, asn: 4200000186, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -123,7 +128,8 @@ items:
         labels: {node-role.kubernetes.io/pg-re8ch: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: zan-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 4, memoryKi: 3481048, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
-        network: {region: cn-guangdong, zone: guangdong, controlRoute: public-primary, externalIPMode: static, networkLevel: 2}
+        network: {region: cn-guangzhou, zone: guangdong, controlRoute: public-primary, externalIPMode: static, networkLevel: 2, uplinkMbps: 3}
+        fabric: {role: leaf, class: C, failureDomain: tencent-gz-16, provider: tencent, internalIP: 192.0.2.79, podCIDR: 192.0.2.186/24, acceleratedIP: 192.0.2.63, asn: 4200000016, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -151,7 +157,8 @@ items:
         labels: {node-role.kubernetes.io/nuclio: "true", scheduling.re8ch.com/provider: aliyun, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: muaya-ecs-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only, storage.re8ch.com/local-path-policy: runtime-cache-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1646400, ephemeralStorageKi: 40901312, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
-        network: {region: cn-zhejiang, zone: zhejiang, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
+        network: {region: cn-hangzhou, zone: zhejiang, controlRoute: public-primary, externalIPMode: static, networkLevel: 1, uplinkMbps: 3}
+        fabric: {role: leaf, class: C, failureDomain: aliyun-hz-95, provider: aliyun, internalIP: 192.0.2.203, podCIDR: 192.0.2.99/24, acceleratedIP: 192.0.2.46, asn: 4200000095, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only, runtime-cache-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -178,7 +185,8 @@ items:
         labels: {node-role.kubernetes.io/nuclio: "true", scheduling.re8ch.com/provider: aliyun, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: muaya-lightweight-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1651808, ephemeralStorageKi: 40901312, osImage: Ubuntu 24.04.2 LTS, kernelVersion: 6.8.0-63-generic}
-        network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
+        network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1, uplinkMbps: 3}
+        fabric: {role: leaf, class: C, failureDomain: aliyun-sh-79, provider: aliyun, internalIP: 192.0.2.141, podCIDR: 192.0.2.172/24, acceleratedIP: 192.0.2.24, asn: 4200000079, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -212,7 +220,8 @@ items:
         labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: overseas, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-kl-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 1, memoryKi: 2015396, ephemeralStorageKi: 20529812, osImage: Ubuntu 24.04 LTS, kernelVersion: 6.8.0-31-generic}
-        network: {region: my-kul, zone: malaysia}
+        network: {region: my-kul, zone: malaysia, uplinkMbps: 1000}
+        fabric: {role: spine, class: A, failureDomain: overseas-kl, provider: overseas, internalIP: 192.0.2.50, podCIDR: 192.0.2.55/24, acceleratedIP: 192.0.2.42, asn: 65003, legacyASN: 4200000089, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -229,7 +238,8 @@ items:
         labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: overseas, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-la-vm, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 1, memoryKi: 2009924, ephemeralStorageKi: 20553408, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-27-generic}
-        network: {region: us-ca, zone: us-ca}
+        network: {region: us-ca, zone: us-ca, uplinkMbps: 1000}
+        fabric: {role: spine, class: A, failureDomain: overseas-la, provider: overseas, internalIP: 192.0.2.55, podCIDR: 192.0.2.15/24, acceleratedIP: 192.0.2.29, asn: 65002, legacyASN: 4200000104, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -246,7 +256,8 @@ items:
         labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: stable, scheduling.re8ch.com/failure-domain: suxunji-vm, storage.re8ch.com/ceph-client: "true"}
         taints: []
         parameters: {cpu: 4, memoryKi: 3481044, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
-        network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1}
+        network: {region: cn-shanghai, zone: shanghai, controlRoute: public-primary, externalIPMode: static, networkLevel: 1, uplinkMbps: 3}
+        fabric: {role: leaf, class: C, failureDomain: tencent-sh-77, provider: tencent, internalIP: 192.0.2.143, podCIDR: 192.0.2.122/24, acceleratedIP: 192.0.2.145, asn: 4200000077, monthlyTrafficLimitGiB: 300, publicAuthority: true, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -273,7 +284,8 @@ items:
         labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: tencent, scheduling.re8ch.com/environment: cloud, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: vm-20-12-ubuntu, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/disk-scope: ceph-client-only}
         taints: []
         parameters: {cpu: 2, memoryKi: 1978068, ephemeralStorageKi: 41168220, osImage: Ubuntu 22.04 LTS, kernelVersion: 5.15.0-106-generic}
-        network: {region: cn-unverified, zone: cn-unverified, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1}
+        network: {region: cn-guangzhou, zone: guangdong, controlRoute: zt-primary, externalIPMode: static, networkLevel: 1, uplinkMbps: 3}
+        fabric: {role: leaf, class: C, failureDomain: tencent-gz-73, provider: tencent, internalIP: 192.0.2.67, podCIDR: 192.0.2.224/24, acceleratedIP: 192.0.2.114, asn: 4200000073, monthlyTrafficLimitGiB: 300, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
