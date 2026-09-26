@@ -1,8 +1,8 @@
 # Supabase Auth identity migration
 
-The deployment target is a dedicated Pigsty PostgreSQL instance/cluster,
-published to Kubernetes as `pg-identity-primary.pigsty-external.svc.cluster.local`,
-with a database named `re8ch_identity`. The
+The deployment target is the existing `pg-re8ch` Pigsty cluster, using its
+primary Service `pg-re8ch-primary.pigsty-external.svc.cluster.local` and a
+separate database named `re8ch_identity`. The
 existing RE8CH `auth` database and the existing Supabase `postgres` database
 remain in service until their consumers are migrated and verified. Do not
 retarget the current Supabase stack by changing only `POSTGRES_DB`: GoTrue,
@@ -21,10 +21,9 @@ Secret must not be copied verbatim because its DSNs still name `postgres`.
 1. Observe Pigsty primary and backup/PITR health. Record schema-only and
    count-only inventories of both source databases. No credential values or
    password hashes may enter Git or logs.
-2. Provision `supabase_admin`, `supabase_auth_admin`,
+2. Reuse the existing `supabase_admin`, `supabase_auth_admin`,
    `supabase_storage_admin`, `authenticator`, `anon` and `authenticated`
-   roles on that instance through its Pigsty inventory and secret manager.
-   From an approved admin session on the **new identity instance**, run `bootstrap.sql` with
+   roles on `pg-re8ch`. From an approved admin session on its primary, run `bootstrap.sql` with
    `psql -X -v ON_ERROR_STOP=1 -d postgres -f bootstrap.sql`. It creates only
    `re8ch_identity` and grants the existing Supabase roles access. Confirm
    the target is empty before first GoTrue startup.

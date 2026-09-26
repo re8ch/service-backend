@@ -20,7 +20,7 @@ def test_identity_stack_is_separate_and_not_publicly_cut_over():
 
     config = next(doc for doc in docs if doc["kind"] == "ConfigMap" and doc["metadata"]["name"] == "supabase-identity-env")
     assert config["data"]["POSTGRES_DB"] == "re8ch_identity"
-    assert config["data"]["POSTGRES_HOST"] == "pg-identity-primary.pigsty-external.svc.cluster.local"
+    assert config["data"]["POSTGRES_HOST"] == "pg-re8ch-primary.pigsty-external.svc.cluster.local"
     assert config["data"]["PGRST_DB_SCHEMAS"] == "api"
     assert config["data"]["API_EXTERNAL_URL"] == "https://auth.re8ch.com/auth/v1"
 
