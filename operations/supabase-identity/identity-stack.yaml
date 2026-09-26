@@ -23,7 +23,7 @@ metadata:
   name: supabase-identity-env
   namespace: supabase-identity
 data:
-  POSTGRES_HOST: pg-re8ch-primary.pigsty-external.svc.cluster.local
+  POSTGRES_HOST: pg-identity-primary.pigsty-external.svc.cluster.local
   POSTGRES_PORT: '5432'
   POSTGRES_DB: re8ch_identity
   PGRST_DB_SCHEMAS: api
