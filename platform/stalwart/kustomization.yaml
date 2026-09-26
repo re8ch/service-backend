@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - stalwart.yaml
+  - idp-pilot.yaml
   - desired-mail-domain.yaml
   - bootstrap-plan.yaml
   - mailbox-provisioner.yaml

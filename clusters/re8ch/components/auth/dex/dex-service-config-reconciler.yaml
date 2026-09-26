@@ -76,6 +76,23 @@ data:
             }}}}}, 'application/merge-patch+json')
     config['issuer'] = 'https://dex.service.re8ch.com'
     github[0]['config']['redirectURI'] = 'https://dex.service.re8ch.com/callback'
+    # Stalwart's external OIDC directory uses its WebUI public PKCE client to
+    # federate the existing GitHub connector during the isolated IdP pilot.
+    stalwart_redirects = [
+        'https://id-stalwart.tools.re8ch.com/account/oauth/callback',
+        'https://id-stalwart.tools.re8ch.com/admin/oauth/callback',
+    ]
+    clients = config.setdefault('staticClients', [])
+    stalwart = next((item for item in clients if item.get('id') == 'stalwart-webui'), None)
+    if stalwart is None:
+        stalwart = {'id': 'stalwart-webui'}
+        clients.append(stalwart)
+    stalwart.update({
+        'name': 'RE8CH Stalwart IdP Pilot',
+        'public': True,
+        'redirectURIs': stalwart_redirects,
+    })
+    stalwart.pop('secret', None)
     # Keep the canonical public Dex separate. The broker has one confidential
     # client whose callback belongs to the service issuer only.
     try:
@@ -139,7 +156,7 @@ spec:
     metadata: {labels: {app: dex-service-config-reconciler}}
     spec:
       serviceAccountName: dex-service-config-reconciler
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       containers:
         - name: reconcile
           image: registry.re8ch.com/helm/connectool-ci-tools@sha256:b4769df9cbd6fc7c9e64b4a77a52752de8f5454a45fa0cd2ba2dded71d0c884d

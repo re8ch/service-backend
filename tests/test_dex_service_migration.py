@@ -69,6 +69,13 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
         "https://headlamp.re8ch.com/oidc-callback",
         "https://headlamp.service.re8ch.com/oidc-callback",
     ]
+    stalwart = next(item for item in derived["staticClients"] if item["id"] == "stalwart-webui")
+    assert stalwart["public"] is True
+    assert "secret" not in stalwart
+    assert stalwart["redirectURIs"] == [
+        "https://id-stalwart.tools.re8ch.com/account/oauth/callback",
+        "https://id-stalwart.tools.re8ch.com/admin/oauth/callback",
+    ]
     assert any(path.endswith("/deployments/dex-service") for _, path in created)
     assert any(path.endswith("/deployments/dex") for _, path in created)
     created.clear()
