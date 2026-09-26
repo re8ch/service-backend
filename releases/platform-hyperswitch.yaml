@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: anchor-amber
+codename: beacon-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:5ac51760a46f4281fceb4cf346b5392ec1b6541fb6acd26ebf792146b9b9f1f7
+  digest: sha256:51d4678f38717f522f985b7d7ff01722f6cf2b5fff607aae60d5e23fefd4f015
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
