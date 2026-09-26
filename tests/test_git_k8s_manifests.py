@@ -12,6 +12,22 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def test_auth_host_routes_prefixed_login_actions_to_the_broker():
+    resources = documents(ROOT / "clusters/re8ch/components/auth/user-center.yaml")
+    route = next(
+        item for item in resources
+        if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "re8ch-user-center"
+    )
+    broker_rule = route["spec"]["rules"][0]
+    assert broker_rule["backendRefs"] == [{"name": "re8ch-auth-gateway", "port": 8080}]
+    matches = {
+        (item["path"]["type"], item["path"]["value"])
+        for item in broker_rule["matches"]
+    }
+    assert ("PathPrefix", "/auth") in matches
+    assert ("PathPrefix", "/callback") in matches
+
+
 def test_live_nodes_receive_optional_mihomos_placement():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/egress-fabric/live-node-egress-labels.yaml" in root["resources"]

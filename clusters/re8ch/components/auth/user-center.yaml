@@ -43,6 +43,7 @@ spec:
         - {path: {type: Exact, value: /userinfo}}
         - {path: {type: Exact, value: /start}}
         - {path: {type: PathPrefix, value: /callback}}
+        - {path: {type: PathPrefix, value: /auth}}
       backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
       filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Identity-Plane, value: stalwart-broker}]}}]
     - backendRefs: [{name: re8ch-user-center, port: 80}]
