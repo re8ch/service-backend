@@ -122,7 +122,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["placement"]["hostAliases"] == [{
         "ip": "192.0.2.213",
-        "hostnames": ["dex.service.re8ch.com"],
+        "hostnames": ["id-stalwart.tools.re8ch.com", "auth.re8ch.com"],
     }]
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")

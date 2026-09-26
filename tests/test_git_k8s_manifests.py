@@ -362,9 +362,14 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
         for item in resources
         if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan"
     )["data"]["plan.ndjson"]
-    assert '"issuerUrl":"https://dex.service.re8ch.com"' in plan
+    assert '"issuerUrl":"https://auth.re8ch.com"' in plan
+    assert '"claimGroups":"groups"' in plan
+    assert '"anonymousClientRegistration":true' in plan
     assert '"signatureAlgorithm":"es256"' in plan
     assert '"clientId":"kubectl-stalwart-pilot"' in plan
+    assert '"clientId":"re8ch-cloud-platform-tool"' in plan
+    assert '"clientId":"re8ch-platform-admin"' in plan
+    assert '"clientId":"re8ch-tenant"' in plan
 
 
 def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
