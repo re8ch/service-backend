@@ -345,6 +345,10 @@ modules:
       digest: sha256:9e02a88dc6d25a8769ab28fed9263f921f7d47ba71cbc3b62f82f719fbf74697
     - codename: signal
       digest: sha256:b0a5b34bea850a3347d70b27d46fa7e57456fe9f3bd5297ec7acc5c8290286ab
+    - codename: starfire
+      digest: sha256:b521859eed947dab73ab25b17b3a57aba3fa04487a8eaa751b76a2d84fdd717e
+    - codename: torch
+      digest: sha256:395057b0af324200f4e362aace5950a4e5ce13b15e979c9a282eabfbc721713f
   platform/apps/access-subscription:
     releases:
     - codename: aegis
@@ -586,6 +590,8 @@ modules:
       digest: sha256:351c2a4f62cd21336c0e0740b06213ccd7a5a01c4987427cc5575a77c2e61414
     - codename: sirocco-silver
       digest: sha256:4daa525b5954926e51569a42c13686abcda2166d85e5103bd6d2d068052ab1a3
+    - codename: tramontane-silver
+      digest: sha256:6a2d6847d741202f5cd1f2361ad8fe4d40a99fbc1a8d47529b26fa20048daf68
   platform/adapter:
     releases:
     - codename: anchor
