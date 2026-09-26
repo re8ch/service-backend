@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: beacon-pearl
+codename: compass-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:57f9015fd30c6e643217d987b13a3286600f8c020ddee083ccf98c68e59169f3
+  digest: sha256:f8fae46e59dc91a2fb9eb778e716ba8829901d4e66dcf2e92a9381dbba8df46f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

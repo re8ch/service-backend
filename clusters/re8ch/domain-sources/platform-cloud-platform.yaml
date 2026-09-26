@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: delta
+    delivery.re8ch.com/codename: grove
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:7cce4f50b55ea70b7545a46e102d2855810867a01dc2aa1f2651cfcf31cdca4a
+    digest: sha256:b0c2da0f10e749fd277732d0c31a554ab1a3c1218b6bffa7e5da688ce8159c35
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: delta
+    delivery.re8ch.com/codename: grove
 spec:
   interval: 1m
   retryInterval: 1m
