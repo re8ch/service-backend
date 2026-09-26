@@ -28,7 +28,7 @@ def test_auth_host_routes_prefixed_login_actions_to_the_broker():
     assert ("PathPrefix", "/callback") in matches
 
 
-def test_tenant_oauth_discovery_bypasses_the_mcp_session_router():
+def test_single_replica_tenant_route_bypasses_the_mcp_session_router():
     resources = documents(
         ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml"
     )
@@ -39,7 +39,7 @@ def test_tenant_oauth_discovery_bypasses_the_mcp_session_router():
     )
     session_rule, discovery_rule = route["spec"]["rules"]
     assert session_rule["backendRefs"] == [
-        {"name": "tenant-vmcp-session-router", "port": 4483}
+        {"name": "vmcp-tenant-vmcp", "port": 4483}
     ]
     assert discovery_rule["backendRefs"] == [
         {"name": "vmcp-tenant-vmcp", "port": 4483}
