@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/network/podcidr-fabric
-codename: chinook-amber
+codename: etesian-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
-  digest: sha256:b323adba8ddf988666cbe0ee3b61f55e0748b5d000c5ec9a7bcb83a16f1ff1f8
+  digest: sha256:1ddcea1ae5bbf56e08ee31bdc8a3ad91dd4c994d62409b3b04852c49fae41304
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
