@@ -12,6 +12,38 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def test_live_nodes_receive_mihomos_placement_and_registry_authority():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/egress-fabric/live-node-egress-labels.yaml" in root["resources"]
+    assert "components/registry-authority/node-installer.yaml" in root["resources"]
+
+    node_documents = documents(
+        ROOT / "clusters/re8ch/components/egress-fabric/live-node-egress-labels.yaml"
+    ) + documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
+    live_nodes = {
+        "restricted-node-1eb0570f74", "amdwsl-zt", "restricted-node-296f36f2fb", "domain-ex", "muaya-ecs",
+        "muaya-lightweight", "overseas-kl", "overseas-la", "restricted-node-6dc3f140f9",
+        "suxunji", "vm-20-12-ubuntu", "zan",
+    }
+    by_name = {item["metadata"]["name"]: item for item in node_documents}
+    assert set(by_name) == live_nodes
+    for node in by_name.values():
+        labels = node["metadata"]["labels"]
+        assert labels["networking.re8ch.com/mihomo-node"] == "enabled"
+        assert labels["networking.re8ch.com/geo"] in {"cn", "global"}
+
+    registry = documents(
+        ROOT / "clusters/re8ch/components/registry-authority/node-installer.yaml"
+    )
+    daemonset = next(item for item in registry if item["kind"] == "DaemonSet")
+    pod_spec = daemonset["spec"]["template"]["spec"]
+    assert daemonset["spec"]["updateStrategy"]["rollingUpdate"]["maxUnavailable"] == 1
+    assert pod_spec["tolerations"] == [{"operator": "Exists"}]
+    installer = pod_spec["containers"][0]
+    assert {item["name"]: item["value"] for item in installer["env"]}["RESTART_K3S"] == "false"
+    assert any(volume["hostPath"]["path"] == "/" for volume in pod_spec["volumes"] if "hostPath" in volume)
+
+
 def test_retired_kagent_namespace_is_not_referenced_by_active_gitops_resources():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
