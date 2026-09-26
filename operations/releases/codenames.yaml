@@ -620,6 +620,8 @@ modules:
       digest: sha256:614a345398b382d44caff79fcfc6e3a6aeb60373426a4990e18eed18c7095419
     - codename: tundra
       digest: sha256:6131e5deacc2bdd6ea07e85c6bfc943241d51c3d4beccc2d3ccdb544f4fd1e73
+    - codename: wetland
+      digest: sha256:9622aa3ba20c01a15597b3e96566a9887da24e578992fc7c125eae2184b0076e
   platform/secretary-system:
     releases:
     - codename: aegis
