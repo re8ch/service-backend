@@ -4,7 +4,7 @@ metadata:
   # Jobs have immutable PodTemplates. Bump the generation whenever the
   # bootstrap contract changes so Flux creates a replacement instead of
   # attempting an impossible in-place patch.
-  name: hyperswitch-bootstrap-admin-v11
+  name: hyperswitch-bootstrap-admin-v12
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -32,6 +32,45 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values: [restricted-node-6dc3f140f9]
+      initContainers:
+        - name: seed-default-auth-method
+          image: docker.io/bitnamilegacy/postgresql:16.1.0-debian-11-r18
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          command: [/bin/bash, -ec]
+          args:
+            - |
+              until pg_isready -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 -U hyperswitch_migrator; do
+                sleep 5
+              done
+              export PGPASSWORD="$POSTGRES_PASSWORD"
+              psql -v ON_ERROR_STOP=1 \
+                -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 \
+                -U hyperswitch_migrator -d hyperswitch <<'SQL'
+              INSERT INTO user_authentication_methods
+                (id, auth_id, owner_id, owner_type, auth_type, private_config,
+                 public_config, allow_signup, created_at, last_modified_at, email_domain)
+              VALUES
+                ('hyperswitch_default', 'hyperswitch', 'hyperswitch', 'tenant',
+                 'password', NULL, NULL, TRUE, now(), now(), 'hyperswitch')
+              ON CONFLICT (id) DO UPDATE SET
+                auth_id = EXCLUDED.auth_id,
+                owner_id = EXCLUDED.owner_id,
+                owner_type = EXCLUDED.owner_type,
+                auth_type = EXCLUDED.auth_type,
+                allow_signup = EXCLUDED.allow_signup,
+                last_modified_at = now(),
+                email_domain = EXCLUDED.email_domain;
+              SQL
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hyperswitch-pigsty-credentials
+                  key: primaryPassword
       containers:
         - name: create-admin
           image: docker.io/curlimages/curl:8.11.1
