@@ -109,6 +109,7 @@ def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
     assert vlsingle["spec"]["storage"]["storageClassName"] == "rbd-r640"
     assert vlagent["spec"]["k8sCollector"]["enabled"] is True
     assert alertmanager["spec"]["replicaCount"] == 2
+    assert {"key": "node-role.kubernetes.io/control-plane", "operator": "Exists", "effect": "NoSchedule"} in alertmanager["spec"]["tolerations"]
     assert alertmanager["spec"]["configNamespaceSelector"] == {}
 
 
