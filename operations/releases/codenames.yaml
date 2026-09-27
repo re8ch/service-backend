@@ -383,6 +383,8 @@ modules:
       digest: sha256:a840da519ce71cacd537ac3330b73ddd9f3debe7dcf46ccf372cc09390251b9a
     - codename: lantern-amber
       digest: sha256:de95ecff29a08ea17ecc1ffb009eab2867eb1190a4b78f805b90e2a336536ae6
+    - codename: lighthouse-amber
+      digest: sha256:711e60ec60c26d410f3a63e72b0e7a93f87564765ec0204c8b25a9f4d0339af8
   platform/apps/access-subscription:
     releases:
     - codename: aegis
