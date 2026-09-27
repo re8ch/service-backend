@@ -95,6 +95,11 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: auth-origin-https}]
   hostnames: [auth-origin.re8ch.com]
   rules:
+    - matches: [{path: {type: PathPrefix, value: /auth/v1}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {hostname: auth.re8ch.com}
+      backendRefs: [{name: supabase-identity-auth, namespace: supabase-identity, port: 9999}]
     - matches: [{path: {type: PathPrefix, value: /}}]
       filters:
         - type: URLRewrite
