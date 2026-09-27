@@ -10,6 +10,12 @@ rules:
   - apiGroups: [""]
     resources: [secrets]
     verbs: [get, create, patch, update]
+  # Retire only the five mailbox password copies after Stalwart confirms the
+  # account and the previous successful credential reconciliation.
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [re8ch-image-admin-stalwart-credentials, re8ch-cloud-admin-stalwart-credentials, re8ch-observability-admin-stalwart-credentials, re8ch-ai-admin-stalwart-credentials, re8ch-business-admin-stalwart-credentials]
+    verbs: [delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -43,6 +49,10 @@ data:
     CONTEXT = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
     CLI = "/cli/usr/local/bin/stalwart-cli"
     ACCOUNTS_PATH = "/apis/governance.re8ch.com/v1alpha1/namespaces/git-workspaces/gitaccounts"
+    STALWART_ADMIN_MANAGED = {
+        "re8ch-image-admin", "re8ch-cloud-admin", "re8ch-observability-admin",
+        "re8ch-ai-admin", "re8ch-business-admin",
+    }
     recovery_user, separator, recovery_password = os.environ.pop("STALWART_RECOVERY_ADMIN").partition(":")
     if separator != ":" or not recovery_user or not recovery_password:
         raise RuntimeError("invalid recovery credential reference")
@@ -103,6 +113,17 @@ data:
         })
         return password
 
+    def retire_managed_password_copy(account):
+        name = secret_name(account)
+        path = "/api/v1/namespaces/mail-system/secrets/" + name
+        current = kube("GET", path)
+        if not current:
+            return
+        metadata = current.get("metadata") or {}
+        if (metadata.get("labels") or {}).get("app.kubernetes.io/managed-by") != "stalwart-mailbox-provisioner" or (metadata.get("annotations") or {}).get("governance.re8ch.com/git-account") != account["metadata"]["name"]:
+            raise RuntimeError("refusing to delete an unmanaged mailbox Secret")
+        kube("DELETE", path)
+
     def patch_status(account, phase, reason):
         name = account["metadata"]["name"]
         now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
@@ -155,6 +176,8 @@ data:
     group_ids = {row["name"]: row["id"] for row in group_rows if row.get("name") in group_projects}
     if set(group_ids) != set(group_projects):
         raise RuntimeError("Stalwart group reconciliation is incomplete")
+    account_rows = [json.loads(line) for line in cli("query", "Account", "--fields", "id,name", "--json").splitlines()]
+    existing_names = {row["name"] for row in account_rows}
 
     admin_email = "admin@phonaid.com"
     admin_account = {
@@ -186,12 +209,23 @@ data:
         }},
     }]
     pending = []
+    migrated = []
     for index, account in enumerate(accounts):
         try:
             email = account["spec"]["email"]
             local, separator, domain_name = email.partition("@")
             if separator != "@" or domain_name != "phonaid.com" or not local:
                 raise RuntimeError("invalid canonical mailbox address")
+            if account["metadata"]["name"] in STALWART_ADMIN_MANAGED:
+                previous = (account.get("status") or {}).get("mailbox") or {}
+                legacy_copy = kube("GET", "/api/v1/namespaces/mail-system/secrets/" + secret_name(account))
+                if local not in existing_names or (legacy_copy and (previous.get("phase") != "Ready" or previous.get("provider") != "stalwart")):
+                    patch_status(account, "Failed", "StalwartAdminCredentialReviewRequired")
+                    continue
+                # Leave the Stalwart account and its password untouched. Only
+                # the mail administrator may rotate its credential from now on.
+                migrated.append(account)
+                continue
             password = load_or_create_password(account, email)
             project = account["spec"].get("project")
             memberships = {
@@ -246,7 +280,14 @@ data:
             raise
         for account in pending:
             patch_status(account, "Ready", "PrincipalAndPasswordReady")
-    print(json.dumps({"accounts": len(accounts), "ready": len(pending), "admin": "ready"}))
+    for account in migrated:
+        try:
+            retire_managed_password_copy(account)
+            patch_status(account, "Ready", "StalwartAdminManaged")
+        except Exception:
+            patch_status(account, "Failed", "CredentialCopyRetirementFailed")
+            raise
+    print(json.dumps({"accounts": len(accounts), "ready": len(pending) + len(migrated), "admin": "ready", "stalwartManaged": len(migrated)}))
 ---
 apiVersion: batch/v1
 kind: CronJob
