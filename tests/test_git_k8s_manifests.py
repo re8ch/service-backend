@@ -422,6 +422,11 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert '"clientId":"re8ch-cloud-platform-tool"' in plan
     assert '"clientId":"re8ch-platform-admin"' in plan
     assert '"clientId":"re8ch-tenant"' in plan
+    bootstrap = next(item for item in resources if item["kind"] == "Job")
+    assert bootstrap["metadata"]["name"] == "stalwart-idp-bootstrap-v3"
+    bootstrap_container = bootstrap["spec"]["template"]["spec"]["containers"][0]
+    assert {item["name"]: item["value"] for item in bootstrap_container["env"]}["XDG_CACHE_HOME"] == "/cache"
+    assert {item["name"]: item["mountPath"] for item in bootstrap_container["volumeMounts"]}["cache"] == "/cache"
 
 
 def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
