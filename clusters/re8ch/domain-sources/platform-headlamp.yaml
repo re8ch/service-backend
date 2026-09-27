@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: torch-indigo
+    delivery.re8ch.com/codename: aurora-jade
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:f132578255dde55e84796ee5f492b083ebcf1af47e12d97a59e3f4241918ac51
+    digest: sha256:072566628947d063951e9b019834289e99201dafebc1bcd9779f7f69307f2bb3
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: torch-indigo
+    delivery.re8ch.com/codename: aurora-jade
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
