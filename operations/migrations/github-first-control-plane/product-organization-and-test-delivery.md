@@ -36,7 +36,7 @@ references. Runtime secrets and generated CDN copies belong in neither repo.
 | `re8ch-image` | `image-website`, `registry-website` | Image and registry product marketing; Harbor runtime remains separate |
 | `re8ch-cloud` | `cluster-website`, `cloud-functions` | Cluster product site and cloud function source |
 | `re8ch-observability` | `observable-website`, `grafana` | Observability product site and Grafana source |
-| `re8ch-ai` | `codex-admin-plugins`, `codex-cloud-tenant-plugins`, `tool-distribution`, `qwen-tenant-marketplace` | AI tools, plugins, and marketplace |
+| `re8ch-ai` | `codex-admin-plugins`, `codex-cloud-tenant-plugins`, `tool-distribution`, and the tenant marketplace repository | AI tools, plugins, and marketplace |
 | `re8ch-business` | `hyperswitch`, `user-hub` | Payments and business identity products |
 | `re8ch` | `service-backend`, shared control plane and enterprise brand assets | Aggregate GitOps and cross-organization coordination |
 
