@@ -658,6 +658,8 @@ modules:
       digest: sha256:af2de9ebf5a9ec40d5637220f4d54a29bafa51d407397149b81167c5c72dfb94
     - codename: etesian-umber
       digest: sha256:bea8ad4943174d482e7127aed3172a3535dc6d96c00188892cff18fa69ba2d8e
+    - codename: mistral-umber
+      digest: sha256:ad701408f1de8c57e1c733ee0e782e773ff7609048a1626077b326bc01503b69
   platform/adapter:
     releases:
     - codename: anchor
