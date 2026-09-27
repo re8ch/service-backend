@@ -185,6 +185,8 @@ modules:
       digest: sha256:072566628947d063951e9b019834289e99201dafebc1bcd9779f7f69307f2bb3
     - codename: flare-jade
       digest: sha256:e4d2354178e769324ffc6c9a8e051ecd286490d9ca65890b291837925b050cd9
+    - codename: lantern-jade
+      digest: sha256:1087e40d97b2e631ebad153ec8464504d3b18f346a5ae2304344c19c5a530710
   platform/among-clusters:
     releases:
     - codename: bora
