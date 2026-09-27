@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: aurora-amber
+    delivery.re8ch.com/codename: flare-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:77ef524a28bb4ad3098af1645ab40ebe0d94b30df9d2b9c70c68afedaf541d26
+    digest: sha256:a840da519ce71cacd537ac3330b73ddd9f3debe7dcf46ccf372cc09390251b9a
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: aurora-amber
+    delivery.re8ch.com/codename: flare-amber
 spec:
   interval: 1m
   retryInterval: 1m

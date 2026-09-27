@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: aurora-amber
+codename: flare-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:77ef524a28bb4ad3098af1645ab40ebe0d94b30df9d2b9c70c68afedaf541d26
+  digest: sha256:a840da519ce71cacd537ac3330b73ddd9f3debe7dcf46ccf372cc09390251b9a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
