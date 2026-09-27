@@ -357,6 +357,8 @@ modules:
       digest: sha256:16cc2243eaa3b4dc96ae71d450afa3da6730d982f36bb6b38d65e3f379a1ef0b
     - codename: carina
       digest: sha256:8a86009ad794d66f6722f928b9e2e1864747ad51de1406fb9cf7c3e49978b4ae
+    - codename: cygnus
+      digest: sha256:85e78b114c862a2e8b483adcaef303ef3be9ec3e45db94e3538efd9ac50ce3b3
   platform/workspace-controller:
     releases:
     - codename: andromeda
@@ -395,6 +397,8 @@ modules:
       digest: sha256:711e60ec60c26d410f3a63e72b0e7a93f87564765ec0204c8b25a9f4d0339af8
     - codename: signal-amber
       digest: sha256:26bde560d6a89fe5efcbd3ed7ddc54b7eb6e075b99c8591580b24970112d421e
+    - codename: starfire-amber
+      digest: sha256:201c73ace65fc695e3d14653df19de741c0fc3bbab38d8370606fcbac5208af8
   platform/apps/access-subscription:
     releases:
     - codename: aegis
