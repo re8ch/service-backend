@@ -45,6 +45,8 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert config["data"]["DISABLE_SIGNUP"] == "true"
     assert env["GOTRUE_EXTERNAL_GITHUB_ENABLED"]["value"] == "true"
     assert env["GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI"]["value"] == "https://db-rw.re8ch.com/auth/v1/callback"
+    assert env["HTTPS_PROXY"]["value"] == env["HTTP_PROXY"]["value"] == "http://192.0.2.29:17893"
+    assert ".svc" in env["NO_PROXY"]["value"]
     for name, key in (
         ("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", "GITHUB_OAUTH_CLIENT_ID"),
         ("GOTRUE_EXTERNAL_GITHUB_SECRET", "GITHUB_OAUTH_CLIENT_SECRET"),
