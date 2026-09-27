@@ -128,11 +128,11 @@
 	branch = master
 [submodule "platform/cluster-website"]
 	path = catalogs/platform/modules/cluster-website/source
-	url = https://github.com/re8ch/cluster-website.git
+	url = https://github.com/re8ch-cloud/cluster-website.git
 	branch = main
 [submodule "platform/codex-admin-plugins"]
 	path = catalogs/platform/modules/codex-admin-plugins/source
-	url = https://github.com/re8ch/codex-admin-plugins.git
+	url = https://github.com/re8ch-ai/codex-admin-plugins.git
 	branch = main
 [submodule "platform/headlamp-advanced-fabric"]
 	path = catalogs/platform/modules/headlamp-advanced-fabric/source
@@ -140,7 +140,7 @@
 	branch = main
 [submodule "platform/image-website"]
 	path = catalogs/platform/modules/image-website/source
-	url = https://github.com/re8ch/image-website.git
+	url = https://github.com/re8ch-image/image-website.git
 	branch = main
 [submodule "platform/mcp-registry"]
 	path = catalogs/platform/modules/mcp-registry/source
@@ -152,7 +152,7 @@
 	branch = main
 [submodule "platform/observable-website"]
 	path = catalogs/platform/modules/observable-website/source
-	url = https://github.com/re8ch/observable-website.git
+	url = https://github.com/re8ch-observability/observable-website.git
 	branch = main
 [submodule "platform/product-public-data"]
 	path = catalogs/platform/modules/product-public-data/source
@@ -164,7 +164,7 @@
 	branch = main
 [submodule "platform/registry-product-site"]
 	path = catalogs/platform/modules/registry-product-site/source
-	url = https://github.com/re8ch/registry-website.git
+	url = https://github.com/re8ch-image/registry-website.git
 	branch = main
 [submodule "platform/tool-distribution"]
 	path = catalogs/platform/modules/tool-distribution/source
@@ -223,5 +223,5 @@
 	url = https://github.com/among-clusters/headlamp-birfucate.git
 [submodule "platform/user-hub"]
 	path = catalogs/platform/modules/user-hub/source
-	url = https://github.com/re8ch/user-hub.git
+	url = https://github.com/re8ch-business/user-hub.git
 	branch = main

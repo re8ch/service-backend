@@ -230,7 +230,7 @@ spec:
               # applies TenantGrant authorization before executing any tool.
               - 'permit(principal, action, resource);'
     codex:
-      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch/codex-admin-plugins.git}
+      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch-ai/codex-admin-plugins.git}
       plugins:
         - {name: re8ch-cloud-platform-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: true, skills: [skills/cloud-platform/SKILL.md]}
         - {name: re8ch-cluster-infra-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/cluster-infra/SKILL.md]}
