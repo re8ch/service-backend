@@ -4,7 +4,7 @@ metadata: {name: user-hub, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: github, url: 'https://github.com/re8ch/user-hub.git', defaultBranch: main, owner: re8ch}
+  repository: {provider: github, url: 'https://github.com/re8ch-business/user-hub.git', defaultBranch: main, owner: re8ch-business}
   projectType: static-web-application
   writePolicy: github-pr
   knowledge: [README.md]

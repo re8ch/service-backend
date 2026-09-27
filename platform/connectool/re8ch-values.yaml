@@ -137,7 +137,7 @@ codex:
   marketplace:
     name: re8ch-admin-private
     displayName: RE8CH Admin Private
-    source: https://github.com/re8ch/codex-admin-plugins.git
+    source: https://github.com/re8ch-ai/codex-admin-plugins.git
   plugins:
     - name: re8ch-cloud-platform-tool
       publication: re8ch-tools-vmcp
