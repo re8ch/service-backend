@@ -690,7 +690,7 @@ metadata:
 spec:
   accountRef: cluster-website-maintain
   projectRef: cluster-website
-  repository: https://github.com/re8ch/cluster-website.git
+  repository: https://github.com/re8ch-cloud/cluster-website.git
   folder: catalogs/platform/modules/cluster-website/source
   branchPrefix: workspace/cluster-website-maintain/
 ---
@@ -714,7 +714,7 @@ metadata:
 spec:
   accountRef: codex-admin-plugins-maintain
   projectRef: codex-admin-plugins
-  repository: https://github.com/re8ch/codex-admin-plugins.git
+  repository: https://github.com/re8ch-ai/codex-admin-plugins.git
   folder: catalogs/platform/modules/codex-admin-plugins/source
   branchPrefix: workspace/codex-admin-plugins-maintain/
 ---
@@ -810,7 +810,7 @@ metadata:
 spec:
   accountRef: image-website-maintain
   projectRef: image-website
-  repository: https://github.com/re8ch/image-website.git
+  repository: https://github.com/re8ch-image/image-website.git
   folder: catalogs/platform/modules/image-website/source
   branchPrefix: workspace/image-website-maintain/
 ---
@@ -858,7 +858,7 @@ metadata:
 spec:
   accountRef: observable-website-maintain
   projectRef: observable-website
-  repository: https://github.com/re8ch/observable-website.git
+  repository: https://github.com/re8ch-observability/observable-website.git
   folder: catalogs/platform/modules/observable-website/source
   branchPrefix: workspace/observable-website-maintain/
 ---
@@ -930,7 +930,7 @@ metadata:
 spec:
   accountRef: registry-product-site-maintain
   projectRef: registry-product-site
-  repository: https://github.com/re8ch/registry-website.git
+  repository: https://github.com/re8ch-image/registry-website.git
   folder: catalogs/platform/modules/registry-product-site/source
   branchPrefix: workspace/registry-product-site-maintain/
 ---
@@ -1050,6 +1050,6 @@ metadata:
 spec:
   accountRef: user-hub-maintain
   projectRef: user-hub
-  repository: https://github.com/re8ch/user-hub.git
+  repository: https://github.com/re8ch-business/user-hub.git
   folder: catalogs/platform/modules/user-hub/source
   branchPrefix: workspace/user-hub-maintain/
