@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import re
+from datetime import datetime, timezone
 
 import pytest
 
@@ -12,6 +13,24 @@ SPEC = importlib.util.spec_from_file_location(
 )
 controller = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(controller)
+
+
+def test_pr_namespace_expiry_is_timezone_aware_and_stops_reconciliation(monkeypatch):
+    deadline = "2026-09-28T00:00:00Z"
+    spec = {"operation": "EnsurePresent", "expiresAt": deadline}
+    assert controller.namespace_expired(spec, datetime(2026, 9, 28, tzinfo=timezone.utc))
+    assert not controller.namespace_expired(spec, datetime(2026, 9, 27, tzinfo=timezone.utc))
+    assert not controller.namespace_expired({**spec, "operation": "EnsureAbsent"})
+    class ExpiryKube:
+        def __init__(self): self.patches = []
+        def list(self, plural): return [{"metadata": {"name": "acme"}, "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "acme-default", "allowedPrefixes": ["acme-"], "allowCreate": True}}}]
+        def patch(self, plural, name, value): self.patches.append((plural, name, value))
+    fake = ExpiryKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    monkeypatch.setattr(controller, "utcnow", lambda: datetime(2026, 9, 28, tzinfo=timezone.utc))
+    resource = {"metadata": {"name": "acme-pr", "uid": "uid-1"}, "spec": {"tenantRef": "acme", "namespaceName": "acme-pr", **spec}}
+    controller.reconcile_tenant_namespace(resource, {"acme": {"metadata": {"name": "acme", "uid": "tenant-uid"}, "spec": {"lifecycle": "Active"}}})
+    assert fake.patches == [("tenantnamespaces", "acme-pr", {"spec": {"operation": "EnsureAbsent"}})]
 
 
 class FakeKube:

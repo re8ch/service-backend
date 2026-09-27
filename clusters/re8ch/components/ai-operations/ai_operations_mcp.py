@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -750,7 +751,7 @@ TENANT_CLAIM_TOOLS = [
 ]
 TENANT_KUBERNETES_TOOLS = [
     {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
-    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy.", "inputSchema": schema({"namespace": {"type": "string"}}, ["namespace"])},
+    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.", "inputSchema": schema({"namespace": {"type": "string"}, "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 604800}}, ["namespace"])},
     {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
     {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
     {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
@@ -1065,7 +1066,10 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
         raise PermissionError("operator or admin role is required")
     if name == "tenant_namespace_create":
         namespace = valid_kubernetes_name(str(args["namespace"]))
-        return tenant_control_request("/v1/namespaces", tenant, {"namespaceName": namespace})
+        request = {"namespaceName": namespace}
+        if "ttlSeconds" in args:
+            request["ttlSeconds"] = args["ttlSeconds"]
+        return tenant_control_request("/v1/namespaces", tenant, request)
     if name == "tenant_namespace_delete":
         namespace = valid_kubernetes_name(str(args["namespace"]))
         preview = {"tenantRef": tenant, "namespace": namespace, "deleted": False}
@@ -1075,7 +1079,19 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
     namespace = valid_kubernetes_name(str(args.get("namespace") or context.get("defaultNamespace") or context["runtimeNamespaceRef"]))
     if "defaultNamespace" in context:
         owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
-        ready_namespaces = {item.get("spec", {}).get("namespaceName") for item in owned if item.get("spec", {}).get("operation") == "EnsurePresent" and item.get("status", {}).get("phase") == "Ready"}
+        ready_namespaces = set()
+        for item in owned:
+            spec = item.get("spec", {})
+            if spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
+                continue
+            expires_at = spec.get("expiresAt")
+            if expires_at:
+                try:
+                    if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+                        continue
+                except (TypeError, ValueError):
+                    continue
+            ready_namespaces.add(spec.get("namespaceName"))
         if namespace not in ready_namespaces:
             raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
