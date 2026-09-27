@@ -25,7 +25,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 101, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: cache, mountPath: /var/cache/nginx}
-            - {name: run, mountPath: /var/run}
+            - {name: run, mountPath: /var/run/nginx}
       volumes:
         - {name: cache, emptyDir: {}}
         - {name: run, emptyDir: {}}
