@@ -399,6 +399,8 @@ modules:
       digest: sha256:26bde560d6a89fe5efcbd3ed7ddc54b7eb6e075b99c8591580b24970112d421e
     - codename: starfire-amber
       digest: sha256:201c73ace65fc695e3d14653df19de741c0fc3bbab38d8370606fcbac5208af8
+    - codename: torch-amber
+      digest: sha256:b942519e66768f1369bee841b0bd019e444d552aaea87639b88fc44337a77705
   platform/apps/access-subscription:
     releases:
     - codename: aegis
