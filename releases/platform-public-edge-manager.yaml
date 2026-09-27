@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: etesian-umber
+codename: mistral-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:bea8ad4943174d482e7127aed3172a3535dc6d96c00188892cff18fa69ba2d8e
+  digest: sha256:ad701408f1de8c57e1c733ee0e782e773ff7609048a1626077b326bc01503b69
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
