@@ -17,9 +17,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
       - name: Copy pinned upstream release
         run: |
           docker buildx imagetools create \
             --tag ghcr.io/re8ch/supabase-auth:v2.196.0 \
+            --tag registry.re8ch.com/auth/supabase-auth:v2.196.0 \
             docker.io/supabase/gotrue@sha256:c0c25187a6b835e65a6f6e6c6b39d090e832d40e6de5186f2c038e0411944232
-          docker buildx imagetools inspect ghcr.io/re8ch/supabase-auth:v2.196.0
+          docker buildx imagetools inspect registry.re8ch.com/auth/supabase-auth:v2.196.0
