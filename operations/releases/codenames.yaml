@@ -350,6 +350,8 @@ modules:
       digest: sha256:53a56f3296d967183636a7fb61704cd1ef31c7cabdff0445697e3246f6559ad9
     - codename: mistral-copper
       digest: sha256:ab9ddc320c25a7c6fc82b0c221b55fb3783e2585e5ea9e7c9bd50d09677b57f8
+    - codename: sirocco-copper
+      digest: sha256:aee9bcafe64d6b3d6115027b407cc9a984b6699a5dfc021e570123f2c8425295
   platform/git-workspaces:
     releases:
     - codename: andromeda
