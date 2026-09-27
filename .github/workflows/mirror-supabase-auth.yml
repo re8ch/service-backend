@@ -25,8 +25,7 @@ jobs:
           password: ${{ secrets.HARBOR_PASSWORD }}
       - name: Copy pinned upstream release
         run: |
-          docker buildx imagetools create \
-            --tag ghcr.io/re8ch/supabase-auth:v2.196.0 \
-            --tag registry.re8ch.com/auth/supabase-auth:v2.196.0 \
-            docker.io/supabase/gotrue@sha256:c0c25187a6b835e65a6f6e6c6b39d090e832d40e6de5186f2c038e0411944232
+          docker pull --platform linux/amd64 docker.io/supabase/gotrue@sha256:7e813221b93fbf54b515036438550e483bfaf057b9db52fe9bc1ce91c47e817e
+          docker tag docker.io/supabase/gotrue@sha256:7e813221b93fbf54b515036438550e483bfaf057b9db52fe9bc1ce91c47e817e registry.re8ch.com/auth/supabase-auth:v2.196.0
+          docker push registry.re8ch.com/auth/supabase-auth:v2.196.0
           docker buildx imagetools inspect registry.re8ch.com/auth/supabase-auth:v2.196.0
