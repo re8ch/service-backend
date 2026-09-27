@@ -37,6 +37,12 @@ unrecognized GitHub identity must not create an account merely because its
 email is verified. The GitHub account's current primary email can differ from
 the RE8CH account email; the provider ID is the stable link.
 
+After importing legacy users, run `normalize-imported-user-tokens.sql` as
+`supabase_auth_admin`. Legacy rows can leave unused token strings and
+`email_change` as NULL; GoTrue v2.196.0 scans them into non-null Go strings
+when the account signs in. The migration converts only those NULL values to
+empty strings, preserving active token values and password hashes.
+
 Stalwart's OIDC Directory points to `auth.re8ch.com` and validates tokens;
 Stalwart does not initiate a GitHub login. Do not put Stalwart upstream of
 GoTrue for this browser login, because that reverses the dependency and cannot
