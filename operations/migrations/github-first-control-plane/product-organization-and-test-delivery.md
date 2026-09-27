@@ -1,8 +1,8 @@
 # Product organizations and tenant test delivery
 
-Status: proposed, 2026-09-28. This document records the target contract. It does
-not assert that repository transfers, DNS delegation, or cluster rollout have
-already happened.
+Status: target contract, 2026-09-28. The five destination organizations have
+been created in the Reachieve LLC enterprise. This document does not assert
+that repository transfers, DNS delegation, or cluster rollout have happened.
 
 ## Verified starting point
 
@@ -33,11 +33,11 @@ references. Runtime secrets and generated CDN copies belong in neither repo.
 
 | Destination organization | Product source to own | Role |
 | --- | --- | --- |
-| `re8ch-image` (proposed) | `image-website`, `registry-website` | Image and registry product marketing; Harbor runtime remains separate |
-| `re8ch-cloud` (proposed) | `cluster-website`, `cloud-functions` | Cluster product site and cloud function source |
-| `re8ch-observability` (proposed) | `observable-website`, `grafana` | Observability product site and Grafana source |
-| `re8ch-ai` (proposed) | `codex-admin-plugins`, `codex-cloud-tenant-plugins`, `tool-distribution`, `qwen-tenant-marketplace` | AI tools, plugins, and marketplace |
-| `re8ch-business` (proposed) | `hyperswitch`, `user-hub` | Payments and business identity products |
+| `re8ch-image` | `image-website`, `registry-website` | Image and registry product marketing; Harbor runtime remains separate |
+| `re8ch-cloud` | `cluster-website`, `cloud-functions` | Cluster product site and cloud function source |
+| `re8ch-observability` | `observable-website`, `grafana` | Observability product site and Grafana source |
+| `re8ch-ai` | `codex-admin-plugins`, `codex-cloud-tenant-plugins`, `tool-distribution`, `qwen-tenant-marketplace` | AI tools, plugins, and marketplace |
+| `re8ch-business` | `hyperswitch`, `user-hub` | Payments and business identity products |
 | `re8ch` | `service-backend`, shared control plane and enterprise brand assets | Aggregate GitOps and cross-organization coordination |
 
 Inspect repository dependencies, GitHub Apps, Actions variables, package scopes,
