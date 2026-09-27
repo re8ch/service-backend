@@ -85,3 +85,33 @@ metadata:
 spec:
   ingressClassName: external-dns-only
   rules: [{host: auth.re8ch.com, http: {paths: [{path: /, pathType: Prefix, backend: {service: {name: re8ch-user-center, port: {number: 80}}}}]}}]
+---
+# EdgeOne's HTTPS origin enters through this dedicated SNI and Host name.
+# Static assets stay on COS; only dynamic paths reach this route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: re8ch-auth-edgeone-origin, namespace: auth}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: auth-origin-https}]
+  hostnames: [auth-origin.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+---
+# DNS-only EdgeOne origin. Its target is the inventory-declared RouterOS/Cilium
+# public authority; no Cloudflare proxy or PublicEdge child-zone delegation.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: re8ch-user-center-origin-dns
+  namespace: auth
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: auth-origin.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules: [{host: auth-origin.re8ch.com, http: {paths: [{path: /, pathType: Prefix, backend: {service: {name: re8ch-user-center, port: {number: 80}}}}]}}]
