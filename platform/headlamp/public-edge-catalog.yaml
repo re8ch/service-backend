@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: public-edge-catalog
+  namespace: kube-system
+  annotations:
+    networking.re8ch.com/description: Read-only inventory of externally delivered sites shown in Headlamp Public Edge.
+data:
+  sites.json: |
+    {"sites": []}

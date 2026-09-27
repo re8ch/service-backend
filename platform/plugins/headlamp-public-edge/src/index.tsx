@@ -13,6 +13,20 @@ function condition(item:any, type:string) {
 
 const raw=(item:any)=>item?.jsonData || item || {};
 
+type ExternalSite = {
+  name:string; hostnames:string[]; provider:string; delivery:string;
+  origin:string; dnsMode:string; sourceOfTruth:string; notes?:string;
+};
+
+function externalSitesFrom(configMap:any):ExternalSite[] {
+  try {
+    const parsed=JSON.parse(configMap?.data?.['sites.json'] || '{"sites":[]}');
+    return Array.isArray(parsed.sites) ? parsed.sites.filter((site:any)=>
+      typeof site?.name==='string' && Array.isArray(site.hostnames) &&
+      site.hostnames.every((host:any)=>typeof host==='string')) : [];
+  } catch (_) { return []; }
+}
+
 function Dashboard() {
   const [edges, edgeError] = PublicEdge.useList({} as any);
   const [routes, routeError] = HTTPRoute.useList({} as any);
@@ -26,6 +40,8 @@ function Dashboard() {
   const endpointSlices = (slices || []).map(raw);
   const ingressObjects = (ingresses || []).map(raw);
   const recordsConfigMap = (configMaps || []).map(raw).find((x:any)=>x.metadata?.namespace==='regional-routing' && x.metadata?.name==='public-edge-manager-records');
+  const sitesConfigMap = (configMaps || []).map(raw).find((x:any)=>x.metadata?.namespace==='kube-system' && x.metadata?.name==='public-edge-catalog');
+  const externalSites=externalSitesFrom(sitesConfigMap);
   let records:any = {services:{},zones:[]};
   try { records=JSON.parse(recordsConfigMap?.data?.['records.json'] || '{"services":{},"zones":[]}'); } catch (_) { /* surfaced below */ }
   const authoritativeZones=(records.zones || []).map((zone:string)=>zone.replace(/\.$/,''));
@@ -108,6 +124,18 @@ function Dashboard() {
     </SectionBox>
     <SectionBox title={`Legacy published services (${routeRows.filter((x:any)=>!x.selfManaged).length})`}>
       {serviceTable(routeRows.filter((x:any)=>!x.selfManaged))}
+    </SectionBox>
+    <SectionBox title={`External CDN sites (${externalSites.length})`}>
+      <Table data={externalSites.flatMap(site=>site.hostnames.map(host=>({...site,host})))} columns={[
+        {header:'Hostname',accessorKey:'host'},
+        {header:'Site',accessorKey:'name'},
+        {header:'Provider',accessorKey:'provider'},
+        {header:'Delivery',accessorKey:'delivery'},
+        {header:'Origin',accessorKey:'origin'},
+        {header:'DNS mode',accessorKey:'dnsMode'},
+        {header:'Source of truth',accessorKey:'sourceOfTruth'},
+        {header:'Notes',accessorFn:(x:any)=>x.notes || '-'}
+      ] as any}/>
     </SectionBox>
     <Typography variant="caption" color="text.secondary">集群内 Ready 不证明公网 DNS 或 TLS 可达；请同时查看 PublicEdge public DNS authority 的外部监测。当前发现 {podByIp.size} 个可寻址 Pod。</Typography>
   </Box>;
