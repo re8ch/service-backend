@@ -391,6 +391,8 @@ modules:
       digest: sha256:de95ecff29a08ea17ecc1ffb009eab2867eb1190a4b78f805b90e2a336536ae6
     - codename: lighthouse-amber
       digest: sha256:711e60ec60c26d410f3a63e72b0e7a93f87564765ec0204c8b25a9f4d0339af8
+    - codename: signal-amber
+      digest: sha256:26bde560d6a89fe5efcbd3ed7ddc54b7eb6e075b99c8591580b24970112d421e
   platform/apps/access-subscription:
     releases:
     - codename: aegis
@@ -474,6 +476,8 @@ modules:
       digest: sha256:57f9015fd30c6e643217d987b13a3286600f8c020ddee083ccf98c68e59169f3
     - codename: compass-pearl
       digest: sha256:f8fae46e59dc91a2fb9eb778e716ba8829901d4e66dcf2e92a9381dbba8df46f
+    - codename: harbor-pearl
+      digest: sha256:5653eefab7a27da3721682f27837d5fe88e22096e475a074f72dbc56412253c0
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -662,6 +666,8 @@ modules:
       digest: sha256:bea8ad4943174d482e7127aed3172a3535dc6d96c00188892cff18fa69ba2d8e
     - codename: mistral-umber
       digest: sha256:ad701408f1de8c57e1c733ee0e782e773ff7609048a1626077b326bc01503b69
+    - codename: sirocco-umber
+      digest: sha256:fd15a86a42cda10d1fd860f707c136bea081e8855b984649870b5e9219594e53
   platform/adapter:
     releases:
     - codename: anchor
