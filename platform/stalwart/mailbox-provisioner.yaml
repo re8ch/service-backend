@@ -128,6 +128,11 @@ data:
         "garageband-shared": {"garageband-mcp", "garageband-mcp-site"},
         "ledger-shared": {"ledger", "ledger-dashboard", "ledger-site"},
         "phonaid-shared": {"phonaid-android", "phonaid-service", "phonaid-website"},
+        "re8ch-image-admins": {"re8ch-image"},
+        "re8ch-cloud-admins": {"re8ch-cloud"},
+        "re8ch-observability-admins": {"re8ch-observability"},
+        "re8ch-ai-admins": {"re8ch-ai"},
+        "re8ch-business-admins": {"re8ch-business"},
     }
     domain_rows = [json.loads(line) for line in cli("query", "Domain", "--fields", "id,name", "--json").splitlines()]
     domain = next((row for row in domain_rows if row.get("name") == "phonaid.com"), None)

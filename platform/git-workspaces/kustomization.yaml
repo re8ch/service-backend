@@ -7,4 +7,5 @@ resources:
   - evidence-rbac.yaml
   - controller.yaml
   - project-accounts.yaml
+  - product-organization-admin-accounts.yaml
   - repo-pilot-bot.yaml
