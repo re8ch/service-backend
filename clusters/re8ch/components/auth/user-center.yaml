@@ -105,7 +105,9 @@ spec:
     - matches: [{path: {type: PathPrefix, value: /auth/v1}}]
       filters:
         - type: URLRewrite
-          urlRewrite: {hostname: auth.re8ch.com}
+          urlRewrite:
+            hostname: auth.re8ch.com
+            path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
       backendRefs: [{name: supabase-identity-auth, namespace: supabase-identity, port: 9999}]
     - matches: [{path: {type: PathPrefix, value: /}}]
       filters:
