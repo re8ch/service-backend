@@ -180,6 +180,8 @@ modules:
       digest: sha256:7a52c32616f8fadbb48ca9e3962f6be85b0e8107239709891a51ec544dfd2254
     - codename: torch-indigo
       digest: sha256:f132578255dde55e84796ee5f492b083ebcf1af47e12d97a59e3f4241918ac51
+    - codename: aurora-jade
+      digest: sha256:072566628947d063951e9b019834289e99201dafebc1bcd9779f7f69307f2bb3
   platform/among-clusters:
     releases:
     - codename: bora
