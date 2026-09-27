@@ -72,6 +72,7 @@ revision_words:
 - pearl
 - silver
 - umber
+- violet
 modules:
   clusters/re8ch/components/re8ch-business-namespaces:
     releases:
