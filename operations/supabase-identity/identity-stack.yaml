@@ -556,9 +556,10 @@ spec:
       imagePullSecrets:
       - name: supabase-identity-harbor-pull
       # CoreDNS does not resolve the public IdP hostname in this namespace.
-      # Use the declared Cilium Gateway VIP so TLS and OIDC issuer remain public.
+      # GoTrue requires a public IP for custom OIDC SSRF validation, so use
+      # the inventory-declared RouterOS public authority and its DNAT path.
       hostAliases:
-      - ip: 192.0.2.209
+      - ip: 192.0.2.79
         hostnames: [id-stalwart.tools.re8ch.com]
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
