@@ -47,6 +47,8 @@ spec:
       # remains authoritative for service records; no per-service parent A is
       # needed. The chart's externalCDN field is its static-record opt-in.
       externalRecords:
+        _dnsauth.auth.re8ch.com.:
+          - {type: CNAME, value: auth.re8ch.com.eoacme0.com., externalCDN: true, provider: tencent-edgeone}
         aliyun.anycam.functions.re8ch.com.:
           - {type: CNAME, value: 1184182212873855.cn-hangzhou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
         aliyun-ap-northeast-1.anycam.functions.re8ch.com.:
