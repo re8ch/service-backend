@@ -162,7 +162,7 @@ spec:
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_SIGNING_KEY_PEM}
             - name: AUTH_OIDC_REDIRECT_URI
-              value: https://id-stalwart.tools.re8ch.com/account/oauth/callback
+              value: https://id.re8ch.com/account/oauth/callback
             - name: AUTHENTIK_OIDC_ISSUER
               value: https://auth.re8ch.com/application/o/re8ch-business/
             - name: AUTHENTIK_OIDC_SCOPES

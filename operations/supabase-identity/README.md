@@ -57,6 +57,12 @@ registry credentials through the cluster secret manager.
 
 ## Public issuer gate
 
+The Stalwart upstream IdP has the dedicated public hostname
+`https://id.re8ch.com`. After its DNS, TLS and discovery issuer are live,
+run `stalwart-provider-domain.sql` as `supabase_auth_admin` to update GoTrue's
+custom provider and clear its cached discovery metadata. Verify `/auth/v1/authorize`
+redirects to `id.re8ch.com` before retrying interactive sign-in.
+
 The approved new issuer is `https://db-rw.re8ch.com/auth/v1`; `auth.re8ch.com`
 hosts the static user-center frontend. The original GoTrue
 v2.189.0 contains the OAuth Server routes, but supports only `openid`,

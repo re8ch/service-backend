@@ -50,7 +50,7 @@ spec:
           args: [--config, /etc/stalwart/config.json]
           envFrom: [{secretRef: {name: stalwart-idp-recovery}}]
           env:
-            - {name: STALWART_PUBLIC_URL, value: "https://id-stalwart.tools.re8ch.com"}
+            - {name: STALWART_PUBLIC_URL, value: "https://id.re8ch.com"}
           ports: [{name: http, containerPort: 8080}]
           livenessProbe:
             httpGet: {path: /healthz/live, port: http}
@@ -166,14 +166,14 @@ metadata:
   namespace: mail-system
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: id-stalwart.tools.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: id.re8ch.com
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/ttl: "60"
     governance.re8ch.com/exposure: oidc-pilot-only
 spec:
-  hostnames: [id-stalwart.tools.re8ch.com]
+  hostnames: [id.re8ch.com]
   parentRefs:
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-wildcard-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: id-https}
   rules:
     - matches:
         - {path: {type: Exact, value: /}}
@@ -192,9 +192,33 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: {name: stalwart-idp-redirect, namespace: mail-system}
 spec:
-  hostnames: [id-stalwart.tools.re8ch.com]
+  hostnames: [id.re8ch.com]
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
   rules:
     - filters:
         - type: RequestRedirect
           requestRedirect: {scheme: https, statusCode: 308}
+---
+# Stalwart identity uses a dedicated parent-zone hostname. PublicEdge publishes
+# its exact A record to the inventory-declared RouterOS/Cilium public authority.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-idp-public-dns
+  namespace: mail-system
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: id.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: id.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: stalwart-idp, port: {number: 8080}}}
