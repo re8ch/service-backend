@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: lantern-amber
+codename: lighthouse-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:de95ecff29a08ea17ecc1ffb009eab2867eb1190a4b78f805b90e2a336536ae6
+  digest: sha256:711e60ec60c26d410f3a63e72b0e7a93f87564765ec0204c8b25a9f4d0339af8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
