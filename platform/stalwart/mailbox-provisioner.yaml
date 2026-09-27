@@ -248,7 +248,7 @@ data:
 
     list_plan = []
     for index, (group_name, projects) in enumerate(group_projects.items()):
-        list_name = group_name.removesuffix("-shared")
+        list_name = group_name.removesuffix("-shared") if group_name.endswith("-shared") else group_name + "-mailing-list"
         recipients = {
             account["spec"]["email"]: True for account in accounts
             if account["spec"].get("project") in projects
