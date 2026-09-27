@@ -7,4 +7,17 @@ metadata:
     networking.re8ch.com/description: Read-only inventory of externally delivered sites shown in Headlamp Public Edge.
 data:
   sites.json: |
-    {"sites": []}
+    {
+      "sites": [
+        {
+          "name": "RE8CH User Hub",
+          "hostnames": ["auth.re8ch.com"],
+          "provider": "Tencent EdgeOne",
+          "delivery": "staged; DNS cutover pending",
+          "origin": "auth-re8ch-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "PublicEdge delegated child zone",
+          "sourceOfTruth": "re8ch/user-hub public/",
+          "notes": "COS objects and EdgeOne acceleration domain exist; public DNS still routes to the cluster."
+        }
+      ]
+    }
