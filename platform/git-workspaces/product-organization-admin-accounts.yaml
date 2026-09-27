@@ -1,0 +1,56 @@
+# Dedicated mailbox identities for the five RE8CH product organizations.
+# These are Stalwart User accounts, not global mail administrators or GitHub grants.
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: re8ch-image-admin, namespace: git-workspaces}
+spec:
+  email: re8ch-image-admin@phonaid.com
+  displayName: RE8CH Image organization administrator
+  provider: github
+  project: re8ch-image
+  mailbox: stalwart
+  googleWorkspace: disabled
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: re8ch-cloud-admin, namespace: git-workspaces}
+spec:
+  email: re8ch-cloud-admin@phonaid.com
+  displayName: RE8CH Cloud organization administrator
+  provider: github
+  project: re8ch-cloud
+  mailbox: stalwart
+  googleWorkspace: disabled
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: re8ch-observability-admin, namespace: git-workspaces}
+spec:
+  email: re8ch-observability-admin@phonaid.com
+  displayName: RE8CH Observability organization administrator
+  provider: github
+  project: re8ch-observability
+  mailbox: stalwart
+  googleWorkspace: disabled
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: re8ch-ai-admin, namespace: git-workspaces}
+spec:
+  email: re8ch-ai-admin@phonaid.com
+  displayName: RE8CH AI organization administrator
+  provider: github
+  project: re8ch-ai
+  mailbox: stalwart
+  googleWorkspace: disabled
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: re8ch-business-admin, namespace: git-workspaces}
+spec:
+  email: re8ch-business-admin@phonaid.com
+  displayName: RE8CH Business organization administrator
+  provider: github
+  project: re8ch-business
+  mailbox: stalwart
+  googleWorkspace: disabled

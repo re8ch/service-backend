@@ -10,6 +10,7 @@ resources:
   - controlled-cluster-relay.yaml
   - oidc-admin-rbac.yaml
   - oidc-landing.yaml
+  - public-edge-catalog.yaml
 configMapGenerator:
   - name: headlamp-advanced-fabric-v0231
     namespace: headlamp
@@ -23,10 +24,10 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.4.5.bundle
-  - name: headlamp-public-edge-v022
+  - name: headlamp-public-edge-v023
     namespace: headlamp
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-public-edge-0.2.2.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-public-edge-0.2.3.bundle
   - name: headlamp-mihomos-cluster-v011
     namespace: headlamp
     files:

@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: harbor-jade
+codename: meridian-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:c0ceb1b1fc9dd35ff470db244f33cc0c12dd425b8649b1be1a7900d595cbe154
+  digest: sha256:076ca3339364596edff4abe538d7816af01b25f03b281c27ac9df3942c2e073b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

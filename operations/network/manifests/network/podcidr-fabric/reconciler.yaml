@@ -123,6 +123,35 @@ data:
       done
     }
 
+    reconcile_rr_interconnect_transit_sources() {
+      [ -n "${route_server}" ] || return 0
+      iface=wg-wsl-lan
+      host ip link show "${iface}" >/dev/null 2>&1 || {
+        echo "${NODE_NAME}: missing ${iface} for route-server transit" >&2
+        return 1
+      }
+      rr_peer="$(jq -r --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own) | .rrInterconnectIp' /config/inventory.json)"
+      peer_key="$(host wg show "${iface}" allowed-ips | awk -v peer="${rr_peer}/32" '
+        { for (i=2; i<=NF; i++) if ($i == peer) { print $1; exit } }
+      ')"
+      [ -n "${peer_key}" ] || {
+        echo "${NODE_NAME}: missing ${iface} peer for ${rr_peer}" >&2
+        return 1
+      }
+      allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '
+        $1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }
+      ')"
+      current="${allowed}"
+      # The RR interconnect carries fallback traffic from public nodes when a
+      # spoke's direct A1/B1 tunnel is unavailable. WireGuard validates the
+      # packet source after the spoke's declared SNAT to its accelerated /32.
+      # Permit only inventory-owned identities, never the entire /24.
+      for prefix in $(jq -r '.nodes[].acceleratedIp + "/32"' /config/inventory.json); do
+        case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+      done
+      [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
+    }
+
     reconcile_public_mesh_allowed_ips() {
       iface=wg-public-mesh
       host ip link show "${iface}" >/dev/null 2>&1 || return 0
@@ -406,6 +435,7 @@ data:
     apply_fabric
     reconcile_routeros_boundary
     reconcile_wireguard_allowed_ips
+    reconcile_rr_interconnect_transit_sources
     reconcile_public_mesh_allowed_ips
     reconcile_control_plane_identity_routes
     cleanup_cilium_direct_routes
@@ -413,6 +443,10 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      reconcile_rr_interconnect_transit_sources || {
+        rm -f /run/podcidr-fabric-ready
+        exit 1
+      }
       host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || {
         rm -f /run/podcidr-fabric-ready
         exit 1
@@ -441,7 +475,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: symmetric-transport-next-hop-v1
+        networking.re8ch.com/config-revision: rr-interconnect-transit-sources-v1
     spec:
       hostPID: true
       hostNetwork: true

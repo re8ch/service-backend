@@ -72,11 +72,16 @@ revision_words:
 - pearl
 - silver
 - umber
+- violet
 modules:
   clusters/re8ch/components/re8ch-business-namespaces:
     releases:
     - codename: aegis
       digest: sha256:16e4a40b21a1c59d28575b3f79de4dc7ae889fb0bb39c8c2738e131a5bfc915a
+    - codename: bastion
+      digest: sha256:5198ec096e2abe07e4730a39684f26b4af5abd8a0c37f39b24544e4936b67933
+    - codename: citadel
+      digest: sha256:6e29bb79918d45307b948db63e8a4a937a341296ad7c8592d69cf40e53cc77fa
   clusters/re8ch/components/network/podcidr-fabric:
     releases:
     - codename: bora
@@ -96,6 +101,12 @@ modules:
       digest: sha256:889960036034eec3745107a4d16c88f2e8809cd42d3e2744f8617b5754338f9c
     - codename: bora-amber
       digest: sha256:3c5d1d04b5c64532f704cf852eaf42e5b9a625b455b8b41b2d37fbdca0e86d94
+    - codename: chinook-amber
+      digest: sha256:b323adba8ddf988666cbe0ee3b61f55e0748b5d000c5ec9a7bcb83a16f1ff1f8
+    - codename: etesian-amber
+      digest: sha256:1ddcea1ae5bbf56e08ee31bdc8a3ad91dd4c994d62409b3b04852c49fae41304
+    - codename: mistral-amber
+      digest: sha256:aef4361717481369581a6557b360613b754a6c999718db2de50429357d3db19f
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
@@ -106,6 +117,8 @@ modules:
       digest: sha256:a8504fa2db3156ea01948f58946bad50f4e39a275517f32b049e6946bc893d77
     - codename: sentinel
       digest: sha256:7773cecd3a93ae1e7d3aa444c4e671d12138a54fc510ce258c86e3173cd2c9ab
+    - codename: shield
+      digest: sha256:795da23a7667b859f918e506ff88fdb2abd8a7938a527bc3097d935773f470e7
   platform/headlamp:
     releases:
     - codename: aurora
@@ -166,6 +179,12 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: starfire-indigo
       digest: sha256:7a52c32616f8fadbb48ca9e3962f6be85b0e8107239709891a51ec544dfd2254
+    - codename: torch-indigo
+      digest: sha256:f132578255dde55e84796ee5f492b083ebcf1af47e12d97a59e3f4241918ac51
+    - codename: aurora-jade
+      digest: sha256:072566628947d063951e9b019834289e99201dafebc1bcd9779f7f69307f2bb3
+    - codename: flare-jade
+      digest: sha256:e4d2354178e769324ffc6c9a8e051ecd286490d9ca65890b291837925b050cd9
   platform/among-clusters:
     releases:
     - codename: bora
@@ -271,12 +290,26 @@ modules:
       digest: sha256:2b23d37c5b6310bd9a11ab765d8e9e882b356fc5eb417f6acb2ce544bd6ec396
     - codename: tundra-pearl
       digest: sha256:2eecde823c2ece4e9e581a708ca39cf6e2188a49fea54e0e7fe3d8c498099ae2
+    - codename: wetland-pearl
+      digest: sha256:80d9181566408cc9b2d837a7b78a16a9e90ed4d9631d1edbc85df81a5eed564f
+    - codename: atoll-silver
+      digest: sha256:f1a667368a08c95e353b99826fc410bd96f28da7eac7dcfd86171f114997cd80
+    - codename: canopy-silver
+      digest: sha256:097f8522c1e9cd25d905ecd7993ed2c4b06f1aa9227702f5d3ecb5223337d5be
+    - codename: delta-silver
+      digest: sha256:928399220bb3dc4633e435812f00d164cb5da9b0c673d84a562b04cee3559570
+    - codename: grove-silver
+      digest: sha256:161e590fc01accb4b00654603f2e634d16fc70feaf4345855eafa8e0b05d5381
   platform/cloud-platform:
     releases:
     - codename: atoll
       digest: sha256:0241c7d79b94b15c0578acee47ee36af67c022c2cf546c71c12f8d5db993e0b8
     - codename: canopy
       digest: sha256:ccc1f26a9bf5ba1a4059fefacfe7b120ad43ecf467cf232b7e9862f2b904a5c1
+    - codename: delta
+      digest: sha256:7cce4f50b55ea70b7545a46e102d2855810867a01dc2aa1f2651cfcf31cdca4a
+    - codename: grove
+      digest: sha256:b0c2da0f10e749fd277732d0c31a554ab1a3c1218b6bffa7e5da688ce8159c35
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -323,10 +356,16 @@ modules:
       digest: sha256:c5d91bfe5bad45f5160b2bf6900befb2aea5bbd6e6dd3ab39b4c02ea185855ef
     - codename: aquila
       digest: sha256:16cc2243eaa3b4dc96ae71d450afa3da6730d982f36bb6b38d65e3f379a1ef0b
+    - codename: carina
+      digest: sha256:8a86009ad794d66f6722f928b9e2e1864747ad51de1406fb9cf7c3e49978b4ae
+    - codename: cygnus
+      digest: sha256:85e78b114c862a2e8b483adcaef303ef3be9ec3e45db94e3538efd9ac50ce3b3
   platform/workspace-controller:
     releases:
     - codename: andromeda
       digest: sha256:84ba4d3168b92f864acf0a5978f13b4893b5fdeae0817b1a5571c86e2c9e1190
+    - codename: aquila
+      digest: sha256:5fff79ec2be629c486d8d67f9b4e0c8a295d4ed4818d3cc0948d156fd612a672
   platform/agent-onboarding-runtime:
     releases:
     - codename: aegis
@@ -349,6 +388,24 @@ modules:
       digest: sha256:b521859eed947dab73ab25b17b3a57aba3fa04487a8eaa751b76a2d84fdd717e
     - codename: torch
       digest: sha256:395057b0af324200f4e362aace5950a4e5ce13b15e979c9a282eabfbc721713f
+    - codename: aurora-amber
+      digest: sha256:77ef524a28bb4ad3098af1645ab40ebe0d94b30df9d2b9c70c68afedaf541d26
+    - codename: flare-amber
+      digest: sha256:a840da519ce71cacd537ac3330b73ddd9f3debe7dcf46ccf372cc09390251b9a
+    - codename: lantern-amber
+      digest: sha256:de95ecff29a08ea17ecc1ffb009eab2867eb1190a4b78f805b90e2a336536ae6
+    - codename: lighthouse-amber
+      digest: sha256:711e60ec60c26d410f3a63e72b0e7a93f87564765ec0204c8b25a9f4d0339af8
+    - codename: signal-amber
+      digest: sha256:26bde560d6a89fe5efcbd3ed7ddc54b7eb6e075b99c8591580b24970112d421e
+    - codename: starfire-amber
+      digest: sha256:201c73ace65fc695e3d14653df19de741c0fc3bbab38d8370606fcbac5208af8
+    - codename: torch-amber
+      digest: sha256:b942519e66768f1369bee841b0bd019e444d552aaea87639b88fc44337a77705
+    - codename: aurora-copper
+      digest: sha256:def73e53a9c2adccd734f452e50d2487c744e3e8873bbc288b99cb32405017ab
+    - codename: flare-copper
+      digest: sha256:f2bae145c2fb72269ef6d04b9c5003d929c17ccc487db68a3f40ef5ba72d2fcf
   platform/apps/access-subscription:
     releases:
     - codename: aegis
@@ -420,6 +477,22 @@ modules:
       digest: sha256:ee12168b507cef187088c3779cfccff3d4728cbec430dd67ec6104c665c3a11a
     - codename: harbor-jade
       digest: sha256:c0ceb1b1fc9dd35ff470db244f33cc0c12dd425b8649b1be1a7900d595cbe154
+    - codename: meridian-jade
+      digest: sha256:9f962f7d7e04e2c9e9eb7486b0e37d638b85ec0fe45e2c5443aa6b4a960ad7e3
+    - codename: passage-jade
+      digest: sha256:c39a0cc83a4ae8815f64cd75d726aa7212a448b9daa05a484278ccd9c4e9be03
+    - codename: trailhead-jade
+      digest: sha256:6114e610cbbfa9212dd74e316eee57a30f0d12abe9321d7f1203c5e7eb2307ee
+    - codename: anchor-pearl
+      digest: sha256:c3f04105f7477f9f5728244aba3bcd26a6b1d9560ebe6fe814dfa144a9df1720
+    - codename: beacon-pearl
+      digest: sha256:57f9015fd30c6e643217d987b13a3286600f8c020ddee083ccf98c68e59169f3
+    - codename: compass-pearl
+      digest: sha256:f8fae46e59dc91a2fb9eb778e716ba8829901d4e66dcf2e92a9381dbba8df46f
+    - codename: harbor-pearl
+      digest: sha256:5653eefab7a27da3721682f27837d5fe88e22096e475a074f72dbc56412253c0
+    - codename: meridian-pearl
+      digest: sha256:076ca3339364596edff4abe538d7816af01b25f03b281c27ac9df3942c2e073b
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -472,6 +545,12 @@ modules:
       digest: sha256:8c193e6af6a713f779adcc3a926086e7f5b51430e2a6239df3da8683597bd6cb
     - codename: gulfstream-indigo
       digest: sha256:aee533598c644af2c6b77de37bc1b268e7eacaa4055e51cb9346185b98276ad6
+    - codename: riptide-indigo
+      digest: sha256:c2a77e86bfac1203e83a5edbc48b984ea09107943f1b94069021eb0c42f8bdca
+    - codename: springtide-indigo
+      digest: sha256:77ba27dfb39ecc107e4aed901784688ea19c4f314092187c0910262dd518a12c
+    - codename: tideway-indigo
+      digest: sha256:f725c0ef9cdf16f6bdc8a998461263812ca03fb51702e5d76b6c3b79725f5da0
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -494,6 +573,8 @@ modules:
       digest: sha256:51d4678f38717f522f985b7d7ff01722f6cf2b5fff607aae60d5e23fefd4f015
     - codename: compass-amber
       digest: sha256:fd864971e27e7d65c2d98b7105505ad241f00ad3aff26be4a5f7faf9f3d549f8
+    - codename: harbor-amber
+      digest: sha256:242f5ca9b9052c723e31e81d358a6e60bb5ff58ab3bfc3489ee1a0c96a4eade4
   platform/public-edge-manager:
     releases:
     - codename: bora
@@ -592,6 +673,22 @@ modules:
       digest: sha256:4daa525b5954926e51569a42c13686abcda2166d85e5103bd6d2d068052ab1a3
     - codename: tramontane-silver
       digest: sha256:6a2d6847d741202f5cd1f2361ad8fe4d40a99fbc1a8d47529b26fa20048daf68
+    - codename: zephyr-silver
+      digest: sha256:83dd41c3a7f29d08206472dfc049e3f1657e28127a34d9e5dfe71cb83b7cfcce
+    - codename: bora-umber
+      digest: sha256:f084f63a8a7a226a0ad2391eeea9da070231704933564fd89eaa6ba755358c26
+    - codename: chinook-umber
+      digest: sha256:af2de9ebf5a9ec40d5637220f4d54a29bafa51d407397149b81167c5c72dfb94
+    - codename: etesian-umber
+      digest: sha256:bea8ad4943174d482e7127aed3172a3535dc6d96c00188892cff18fa69ba2d8e
+    - codename: mistral-umber
+      digest: sha256:ad701408f1de8c57e1c733ee0e782e773ff7609048a1626077b326bc01503b69
+    - codename: sirocco-umber
+      digest: sha256:fd15a86a42cda10d1fd860f707c136bea081e8855b984649870b5e9219594e53
+    - codename: tramontane-umber
+      digest: sha256:dcb92eb80752276cd9f272b2c94cc7d65d05af2d637ef5c8c11156732b9985fc
+    - codename: zephyr-umber
+      digest: sha256:925b7de6a8f26583778056093f9768716f34b356e0abfd750a0f273d9a12ef59
   platform/adapter:
     releases:
     - codename: anchor
@@ -608,6 +705,12 @@ modules:
       digest: sha256:07adfd608968339e24232d8b6202c5437d39c4e7fee28d417cd09f4bdd0a9525
     - codename: grove
       digest: sha256:bfdf7734057b7df29c7b32bfaab6063e35ef077df88753fae28f8665b3acdef9
+    - codename: reef
+      digest: sha256:614a345398b382d44caff79fcfc6e3a6aeb60373426a4990e18eed18c7095419
+    - codename: tundra
+      digest: sha256:6131e5deacc2bdd6ea07e85c6bfc943241d51c3d4beccc2d3ccdb544f4fd1e73
+    - codename: wetland
+      digest: sha256:9622aa3ba20c01a15597b3e96566a9887da24e578992fc7c125eae2184b0076e
   platform/secretary-system:
     releases:
     - codename: aegis
@@ -616,6 +719,8 @@ modules:
       digest: sha256:12c32278b5b5e94930d17acf8d6b6c6c910f254ba849f6039fd46d83ff8c9926
     - codename: citadel
       digest: sha256:844ed56f754af0e886b0db579ade202af89e67be2d9fa834df82932e8f777f4d
+    - codename: sentinel
+      digest: sha256:9e2ac83db8670177f855789387f6917eb9c03da58b0a4d41c0addb69d97bd6b0
   platform/external-projects:
     releases:
     - codename: anchor
@@ -678,6 +783,8 @@ modules:
       digest: sha256:a38ce117ad2df875de1267fc5c0ead1c8ac319b4cf788ccea1cb6cd024bd1e95
     - codename: viewport
       digest: sha256:9c0bc9fc07dc9f1a0d4f7d7d0432a9157b9d0ec4e91e4260bdca2b6b45cf50c4
+    - codename: zenith
+      digest: sha256:a7cd29ec0c2a0f2e1c0d9454d16b434e28dad08082023e720092f1842967eb1e
   platform/observability/production:
     releases:
     - codename: aperture
@@ -744,3 +851,7 @@ modules:
       digest: sha256:21f26d308184012aecaa1a928c7c04e2ad8367c48ca774f5d123a6b07f2faff3
     - codename: spectrum-jade
       digest: sha256:df7bb4ebf2e96e6b0d62eda0261264d80260c7dac6581aaff9a1ed0898b6765c
+    - codename: telescope-jade
+      digest: sha256:09b11e06d80a1843d1e1f5bde4049af076906079452286593c060b956099b4a4
+    - codename: viewport-jade
+      digest: sha256:d8fe4229540ee1f46ba2811c73e1b4e38495784fc1aecd32be907617c7bcff3e

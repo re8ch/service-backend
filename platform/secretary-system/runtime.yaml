@@ -175,7 +175,7 @@ spec:
 ---
 apiVersion: batch/v1
 kind: Job
-metadata: {name: secretary-register-v0-3-2, namespace: re8ch-secretary}
+metadata: {name: secretary-register-v0-3-3, namespace: re8ch-secretary}
 spec:
   backoffLimit: 8
   template:
@@ -199,6 +199,7 @@ spec:
                       if attempt == 59: raise
                       time.sleep(2)
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 128Mi}}
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperswitch-superposition-schema-v0-112-0-v4
+  name: hyperswitch-superposition-schema-v0-112-0-v5
   namespace: payments
   labels:
     app.kubernetes.io/name: hyperswitch
@@ -28,7 +28,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-6dc3f140f9]
+                    values: [r640]
       containers:
         - name: apply-schema
           image: docker.io/bitnamilegacy/postgresql:16.1.0-debian-11-r18
@@ -37,6 +37,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: [ALL]
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
           command: [/bin/bash, -ec]
           args:
             - |

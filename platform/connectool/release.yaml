@@ -5,12 +5,12 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.6.0"}
+  ref: {tag: "0.6.1"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -32,10 +32,10 @@ spec:
   rollback: {cleanupOnFail: true}
   values:
     global:
-      issuer: https://dex.service.re8ch.com
+      issuer: https://auth.re8ch.com
       scopes: [openid, profile, email, groups, offline_access]
     dex:
-      contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}
+      contract: {enabled: false, namespace: dex, configMapName: connectool-dex-clients}
     distribution:
       updated: "2026-09-23"
       channels:
@@ -61,6 +61,8 @@ spec:
           - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         topologySpreadConstraints: []
+        hostAliases:
+          - {ip: "192.0.2.213", hostnames: [id.re8ch.com, auth.re8ch.com]}
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits: {cpu: 500m, memory: 256Mi}
@@ -228,7 +230,7 @@ spec:
               # applies TenantGrant authorization before executing any tool.
               - 'permit(principal, action, resource);'
     codex:
-      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch/codex-admin-plugins.git}
+      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch-ai/codex-admin-plugins.git}
       plugins:
         - {name: re8ch-cloud-platform-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: true, skills: [skills/cloud-platform/SKILL.md]}
         - {name: re8ch-cluster-infra-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/cluster-infra/SKILL.md]}

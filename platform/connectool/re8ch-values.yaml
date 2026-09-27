@@ -1,8 +1,10 @@
 global:
-  issuer: https://dex.service.re8ch.com
+  issuer: https://auth.re8ch.com
   scopes: [openid, profile, email, groups, offline_access]
 dex:
-  contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}
+  # auth.re8ch.com is the unified public broker issuer. Keep the chart's legacy
+  # Dex client contract disabled so reconciliation cannot recreate that binding.
+  contract: {enabled: false, namespace: dex, configMapName: connectool-dex-clients}
 distribution:
   updated: "2026-09-23"
   channels:
@@ -28,6 +30,8 @@ toolhive:
       - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     topologySpreadConstraints: []
+    hostAliases:
+      - {ip: "192.0.2.213", hostnames: [id.re8ch.com, auth.re8ch.com]}
     resources:
       requests: {cpu: 50m, memory: 64Mi}
       limits: {cpu: 500m, memory: 256Mi}
@@ -133,7 +137,7 @@ codex:
   marketplace:
     name: re8ch-admin-private
     displayName: RE8CH Admin Private
-    source: https://github.com/re8ch/codex-admin-plugins.git
+    source: https://github.com/re8ch-ai/codex-admin-plugins.git
   plugins:
     - name: re8ch-cloud-platform-tool
       publication: re8ch-tools-vmcp

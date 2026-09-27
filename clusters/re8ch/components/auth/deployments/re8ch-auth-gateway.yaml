@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:auth-broker-20260923-648dbe0@sha256:a929e65b41eb4877f51978368bfaf1d9f0aad5a74411973851d3067fad194e62
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:auth-public-pkce-df8dcfe@sha256:3dbe5accbbc06196ac20d4c2dc240ed9c56928b70cc1baf3baadcde0175a1677
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -144,6 +144,8 @@ spec:
             - name: GITHUB_OAUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: GITHUB_OAUTH_CLIENT_SECRET, optional: true}
+            - name: GITHUB_ALLOWED_ORGS
+              value: re8ch
             - name: APPLE_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_ID, optional: true}
@@ -151,16 +153,16 @@ spec:
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_SECRET, optional: true}
             - name: AUTH_OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_CLIENT_ID}
-            - name: AUTH_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_CLIENT_SECRET}
+              value: stalwart-idp
+            - name: AUTH_OIDC_PUBLIC_CLIENT_IDS
+              value: re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant
+            - name: AUTH_OIDC_ISSUER
+              value: https://auth.re8ch.com
             - name: AUTH_OIDC_SIGNING_KEY_PEM
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_SIGNING_KEY_PEM}
             - name: AUTH_OIDC_REDIRECT_URI
-              value: https://dex.service.re8ch.com/callback
+              value: https://id.re8ch.com/account/oauth/callback
             - name: AUTHENTIK_OIDC_ISSUER
               value: https://auth.re8ch.com/application/o/re8ch-business/
             - name: AUTHENTIK_OIDC_SCOPES
@@ -176,22 +178,6 @@ spec:
                 secretKeyRef:
                   name: re8ch-auth-gateway-secrets
                   key: AUTHENTIK_OIDC_CLIENT_SECRET
-                  optional: true
-            - name: DEX_OIDC_ISSUER
-              value: https://dex.service.re8ch.com
-            - name: DEX_OIDC_SCOPES
-              value: openid email profile groups
-            - name: DEX_OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: re8ch-auth-gateway-secrets
-                  key: DEX_OIDC_CLIENT_ID
-                  optional: true
-            - name: DEX_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: re8ch-auth-gateway-secrets
-                  key: DEX_OIDC_CLIENT_SECRET
                   optional: true
             - name: AUTH_GATEWAY_COOKIE_SECRET
               valueFrom:

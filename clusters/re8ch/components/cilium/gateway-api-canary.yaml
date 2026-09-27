@@ -146,6 +146,7 @@ spec:
     - {name: admin-https, hostname: admin.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: hooks-https, hostname: hooks.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: mail-https, hostname: mail.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: id-https, hostname: id.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - name: tools-wildcard-https
       hostname: "*.tools.re8ch.com"
       protocol: HTTPS
@@ -217,6 +218,7 @@ spec:
     - {name: litellm-https, hostname: litellm.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: supabase-https, hostname: supabase.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: auth-https, hostname: auth.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: auth-origin-https, hostname: auth-origin.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: codex-https, hostname: codex.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: decision-https, hostname: decision.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: feishu-agent-https, hostname: feishu-agent.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
@@ -453,29 +455,6 @@ spec:
             pathType: Prefix
             backend: {service: {name: litellm, port: {number: 4000}}}
 ---
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: supabase-public
-  namespace: supabase-pg-re8ch
-  labels: {public.re8ch.com/external-dns: enabled}
-  annotations:
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-spec:
-  parentRefs:
-    - name: re8ch-gateway-canary
-      namespace: kube-system
-      sectionName: http
-    - name: re8ch-gateway-canary
-      namespace: kube-system
-      sectionName: supabase-https
-  hostnames: [supabase.re8ch.com]
-  rules:
-    - backendRefs:
-        - name: supabase-api-kong
-          port: 8000
----
 # Delegated service-zone wave 1. Each route shares the single wildcard TLS
 # listener; PublicEdge publishes its A only after an HTTPS readiness probe.
 apiVersion: gateway.networking.k8s.io/v1
@@ -608,9 +587,15 @@ spec:
   hostnames: [tools.service.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /tenant}}]
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # tenant-vmcp currently has one publication replica. Route directly to
+      # the publication so the initial unauthenticated MCP probe always returns
+      # its OAuth challenge instead of alternating across router replicas.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # OAuth discovery is stateless and precedes MCP session creation. Send it
+      # directly to the publication so an unhealthy session-router replica
+      # cannot make client login discovery alternate between 200 and 503.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

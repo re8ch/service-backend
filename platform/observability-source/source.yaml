@@ -7,7 +7,13 @@ spec:
   interval: 1m
   path: ./
   prune: false
-  wait: true
+  # Gate production on the installed operators. A transient upstream chart
+  # index failure must remain visible on its HelmRepository without making
+  # already healthy operators unavailable to dependent Kustomizations.
+  healthChecks:
+  - {apiVersion: helm.toolkit.fluxcd.io/v2, kind: HelmRelease, name: re8ch-kube-state-metrics, namespace: observability-system}
+  - {apiVersion: helm.toolkit.fluxcd.io/v2, kind: HelmRelease, name: re8ch-opentelemetry-operator, namespace: observability-system}
+  - {apiVersion: helm.toolkit.fluxcd.io/v2, kind: HelmRelease, name: victoria-metrics-operator, namespace: observability-system}
   timeout: 10m
   sourceRef:
     kind: OCIRepository

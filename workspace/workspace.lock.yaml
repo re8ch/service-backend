@@ -103,19 +103,19 @@ modules:
     commit: b23a0185ca251ec7148f2b64c55301b9bee8e084
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/cluster-website.git
+    repository: https://github.com/re8ch-cloud/cluster-website.git
   codex-admin-plugins:
     commit: 57941c59bf0473441e9e771e908da5c25c962170
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/codex-admin-plugins.git
+    repository: https://github.com/re8ch-ai/codex-admin-plugins.git
   compocv:
     commit: bc4c867a44047b0fd0e016d47d2798b6570b6b7b
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/compocv.git
   connectool:
-    commit: b95f978a6b10cc6d4a655a1d6743b2a2fc9fd936
+    commit: 6aa723de93296602861a646c2ad9b7ef2e7a6a5b
     defaultBranch: main
     dependencies: []
     repository: https://github.com/among-clusters/connectool.git
@@ -156,7 +156,7 @@ modules:
     commit: 2b178d3664e6a0d63f8bf886dcad79ae8c18470a
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/image-website.git
+    repository: https://github.com/re8ch-image/image-website.git
   jjklive:
     commit: 232dabf876406a0d47bf22ebb7388d39cf39e6c2
     defaultBranch: main
@@ -207,7 +207,7 @@ modules:
     commit: 78ddb592dff46e62307e46ca3b0fca8d5071550d
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/observable-website.git
+    repository: https://github.com/re8ch-observability/observable-website.git
   phonaid-android:
     commit: 26f58f18b66fb0e51a65af3a33ef92ab16607012
     defaultBranch: main
@@ -277,7 +277,7 @@ modules:
     commit: 80cc8e0fd1f0b4d85a70e930e0d35a2505ff935b
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/registry-website.git
+    repository: https://github.com/re8ch-image/registry-website.git
   space-mining-stage:
     commit: 34d3befceffe587fcbd926d00e88bdf733447392
     defaultBranch: main
@@ -297,7 +297,7 @@ modules:
     commit: 6b9d3c6cc5f9d614e460c89aaf48b1b071cc6e31
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/user-hub.git
+    repository: https://github.com/re8ch-business/user-hub.git
   z-anatomy-models:
     commit: 7ff6c89d1fdbbe527ea705e9c3688052b981126f
     defaultBranch: master

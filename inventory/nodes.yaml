@@ -225,6 +225,38 @@ items:
         storage: {csiDrivers: [rook-ceph.cephfs.csi.ceph.com, rook-ceph.rbd.csi.ceph.com], profiles: [ceph-client, ceph-client-only]}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
+  - metadata: {name: overseas-la-2}
+    spec:
+      transport: ssh
+      address: dmit-2
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [egress]
+        services: [k3s-agent, overseas-egress]
+        labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: dmit, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-la-2-vm}
+        taints: [{key: dedicated, value: overseas-edge, effect: NoSchedule}]
+        parameters: {cpu: 1, memoryKi: 2009928, ephemeralStorageKi: 20553408, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-27-generic}
+        network: {region: us-ca, zone: us-ca, uplinkMbps: 1000, controlRoute: zt-primary, externalIPMode: static}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
+  - metadata: {name: overseas-flk}
+    spec:
+      transport: ssh
+      address: hetzner
+      credentialRef: node-ssh
+      capabilities: [k3s-worker, public-edge]
+      cluster:
+        membership: active
+        roles: [egress]
+        services: [k3s-agent, overseas-egress]
+        labels: {node-role.kubernetes.io/egress: "true", scheduling.re8ch.com/provider: hetzner, scheduling.re8ch.com/environment: cross-border, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: overseas-flk-vm}
+        taints: [{key: dedicated, value: overseas-edge, effect: NoSchedule}]
+        parameters: {cpu: 2, memoryKi: 3906284, ephemeralStorageKi: 39020108, osImage: Ubuntu 26.04.1 LTS, kernelVersion: 7.0.0-30-generic}
+        network: {region: de-fsn, zone: falkenstein, uplinkMbps: 400, controlRoute: zt-primary, externalIPMode: static}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
   - metadata: {name: overseas-la}
     spec:
       transport: ssh

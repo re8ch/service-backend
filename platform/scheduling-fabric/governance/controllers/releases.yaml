@@ -95,9 +95,21 @@ spec:
                 path: /spec/internalTrafficPolicy
                 value: Local
   values:
+    crds:
+      # This values-only rollout keeps chart 3.9.1 and CRDs unchanged. Its
+      # post-upgrade CLI hook cannot pull from reg.kyverno.io on restricted-node-6dc3f140f9 (EOF),
+      # leaving Helm and dependent policies blocked. Re-enable with a pinned
+      # internal CLI image before changing chart or CRD versions.
+      migration: {enabled: false}
     admissionController:
       replicas: 3
       podDisruptionBudget: {enabled: true, minAvailable: 2}
+      # The API-server-facing Service uses internalTrafficPolicy: Local.
+      # Put one webhook endpoint on each Ready control-plane node.
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       topologySpreadConstraints:
         - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/component: admission-controller}}}
     backgroundController:
@@ -109,6 +121,14 @@ spec:
     reportsController:
       replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
+      # Reporting is not on the admission path. Keep its cache on the roomy
+      # restricted-node-6dc3f140f9 control plane instead of adding pressure to A1.
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+      resources:
+        requests: {cpu: 100m, memory: 256Mi}
+        limits: {memory: 512Mi}
     features:
       policyReports: {enabled: true}
 ---

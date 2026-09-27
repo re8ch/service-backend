@@ -164,6 +164,12 @@ spec:
           - resources:
               namespaceSelector:
                 matchLabels: {scheduling.re8ch.com/control-plane-allowed: "true"}
+          # Platform agents may require host integration, but approval is
+          # attached to the Pod template instead of exempting a namespace.
+          - resources:
+              namespaces: [ai-operations, egress-fabric]
+              selector:
+                matchLabels: {policy.re8ch.com/privileged-approved: "true"}
       validate:
         message: Tenant workloads may not use privileged containers or hostPath volumes.
         deny:

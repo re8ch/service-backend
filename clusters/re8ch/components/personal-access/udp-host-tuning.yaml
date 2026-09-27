@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: personal-access-udp-host-tuning
+        policy.re8ch.com/privileged-approved: "true"
     spec:
       hostNetwork: true
       nodeSelector:

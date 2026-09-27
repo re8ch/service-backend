@@ -311,7 +311,7 @@
     "id": "cluster-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/cluster-website.git",
+    "repository": "https://github.com/re8ch-cloud/cluster-website.git",
     "source": "catalogs/platform/modules/cluster-website/source"
   },
   {
@@ -320,12 +320,12 @@
     "id": "codex-admin-plugins",
     "ownership": "owned",
     "projectType": "codex-plugin-bundle",
-    "repository": "https://github.com/re8ch/codex-admin-plugins.git",
+    "repository": "https://github.com/re8ch-ai/codex-admin-plugins.git",
     "source": "catalogs/platform/modules/codex-admin-plugins/source"
   },
   {
     "catalog": "platform",
-    "commit": "b95f978a6b10cc6d4a655a1d6743b2a2fc9fd936",
+    "commit": "6aa723de93296602861a646c2ad9b7ef2e7a6a5b",
     "id": "connectool",
     "ownership": "owned",
     "projectType": "ai-tool-distribution",
@@ -356,7 +356,7 @@
     "id": "image-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/image-website.git",
+    "repository": "https://github.com/re8ch-image/image-website.git",
     "source": "catalogs/platform/modules/image-website/source"
   },
   {
@@ -383,7 +383,7 @@
     "id": "observable-website",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/observable-website.git",
+    "repository": "https://github.com/re8ch-observability/observable-website.git",
     "source": "catalogs/platform/modules/observable-website/source"
   },
   {
@@ -410,7 +410,7 @@
     "id": "registry-product-site",
     "ownership": "owned",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/registry-website.git",
+    "repository": "https://github.com/re8ch-image/registry-website.git",
     "source": "catalogs/platform/modules/registry-product-site/source"
   },
   {
@@ -437,7 +437,7 @@
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",
-    "repository": "https://github.com/re8ch/user-hub.git",
+    "repository": "https://github.com/re8ch-business/user-hub.git",
     "source": "catalogs/platform/modules/user-hub/source"
   },
   {

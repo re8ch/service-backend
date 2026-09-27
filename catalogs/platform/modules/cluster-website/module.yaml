@@ -4,7 +4,7 @@ metadata: {name: cluster-website, catalog: platform}
 spec:
   ownership: owned
   lifecycle: active
-  repository: {provider: github, url: 'https://github.com/re8ch/cluster-website.git', defaultBranch: main, owner: re8ch}
+  repository: {provider: github, url: 'https://github.com/re8ch-cloud/cluster-website.git', defaultBranch: main, owner: re8ch-cloud}
   projectType: web
   writePolicy: github-pr
   knowledge: [README.md]

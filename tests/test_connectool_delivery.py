@@ -11,10 +11,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.6.0"}
+    assert source["spec"]["ref"] == {"tag": "0.6.1"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
@@ -120,6 +120,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     }
     assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
+    assert toolhive["placement"]["hostAliases"] == [{
+        "ip": "192.0.2.213",
+        "hostnames": ["id.re8ch.com", "auth.re8ch.com"],
+    }]
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
     assert tenant_admin["publication"] == "re8ch-admin-vmcp"
@@ -150,12 +154,13 @@ def test_public_and_internal_mcp_clients_use_declared_frontends():
     rendered_routes = "\n".join(path.read_text() for path in route_files)
     # The privileged Tools publication is a singleton on restricted-node-6dc3f140f9 during the
     # A1/B1 fabric incident, so its public route can safely target vMCP
-    # directly. Multi-replica admin and tenant publications keep routers.
+    # directly. The singleton tenant publication also bypasses its router;
+    # only the multi-replica admin publication requires session routing here.
     assert "vmcp-re8ch-tools-vmcp" in rendered_routes
     assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
     assert "re8ch-tools-vmcp-session-router" in rendered_routes
     assert "re8ch-admin-vmcp-session-router" in rendered_routes
-    assert "backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]" in rendered_routes
+    assert "backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]" in rendered_routes
     toolhive_ingresses = "\n".join(
         (ROOT / path).read_text()
         for path in (

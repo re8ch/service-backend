@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,7 @@ PROFILE = os.getenv("RE8CH_TOOL_PROFILE", "cloud").lower()
 AUDIENCE = os.getenv("RE8CH_TOOL_AUDIENCE", f"re8ch-{PROFILE}-tool")
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.getenv("LISTEN_PORT", "19443"))
-DEX_USERINFO_URL = os.getenv("DEX_USERINFO_URL", "https://dex.service.re8ch.com/userinfo")
+DEX_USERINFO_URL = os.getenv("DEX_USERINFO_URL", "https://auth.re8ch.com/userinfo")
 REGISTRY_PATH = Path(os.getenv("DEVICE_REGISTRY_PATH", "/var/lib/re8ch-ai-operations/devices.db"))
 NODE_INVENTORY_PATH = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-ai-operations/nodes.json"))
 KUBECONFIG_DIR = Path(os.getenv("KUBECONFIG_DIR", "/etc/re8ch-ai-operations/kubeconfigs"))
@@ -85,12 +86,12 @@ SESSIONS: dict[str, subprocess.Popen[bytes]] = {}
 SESSION_LOCK = threading.Lock()
 INSTALL_STATES: dict[str, tuple[str, int, str]] = {}
 INSTALL_STATE_LOCK = threading.Lock()
-DEX_AUTH_URL = os.getenv("DEX_AUTH_URL", "https://dex.service.re8ch.com/auth")
-DEX_TOKEN_URL = os.getenv("DEX_TOKEN_URL", "https://dex.service.re8ch.com/token")
+DEX_AUTH_URL = os.getenv("DEX_AUTH_URL", "https://auth.re8ch.com/authorize")
+DEX_TOKEN_URL = os.getenv("DEX_TOKEN_URL", "https://auth.re8ch.com/token")
 INSTALL_CLIENT_ID = os.getenv("INSTALL_CLIENT_ID", "re8ch-marketplace-installer")
 INSTALL_REDIRECT_URI = os.getenv("INSTALL_REDIRECT_URI", "https://marketplace.re8ch.com/install/callback")
 INSTALL_STATE_HMAC_KEY = os.getenv("INSTALL_STATE_HMAC_KEY", "")
-MARKETPLACE_SOURCE = os.getenv("MARKETPLACE_SOURCE", "https://github.com/re8ch/codex-admin-plugins.git")
+MARKETPLACE_SOURCE = os.getenv("MARKETPLACE_SOURCE", "https://github.com/re8ch-ai/codex-admin-plugins.git")
 CAPSULE_SIGNING_KEY = os.getenv("CAPSULE_SIGNING_KEY", "")
 CAPSULE_POLICY_REVISION = int(os.getenv("CAPSULE_POLICY_REVISION", "1"))
 CAPSULE_POLICY_PATH = Path(os.getenv("CAPSULE_POLICY_PATH", "/etc/re8ch-ai-operations/capsule-policy.json"))
@@ -437,7 +438,7 @@ def dex_identity(token: str) -> dict[str, Any] | None:
     tenant = data.get("tenant") or data.get("tenantRef")
     return {
         "subject": subject,
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "email": data.get("email"),
         "email_verified": data.get("email_verified") is True,
         "groups": groups,
@@ -463,7 +464,7 @@ def mint_vmcp_identity_token(identity: dict[str, Any]) -> tuple[str, int]:
         "iss": "re8ch-vmcp-token-exchange",
         "aud": AUDIENCE,
         "sub": str(identity.get("subject") or ""),
-        "upstream_iss": str(identity.get("issuer") or "https://dex.service.re8ch.com"),
+        "upstream_iss": str(identity.get("issuer") or "https://auth.re8ch.com"),
         "groups": sorted({str(group) for group in identity.get("groups") or []}),
         "iat": issued_at,
         "exp": issued_at + expires_in,
@@ -500,7 +501,7 @@ def vmcp_exchange_identity(token: str) -> dict[str, Any] | None:
             return None
         return {
             "subject": payload["sub"],
-            "issuer": payload.get("upstream_iss") or "https://dex.service.re8ch.com",
+            "issuer": payload.get("upstream_iss") or "https://auth.re8ch.com",
             "groups": groups,
             "auth_type": "dex",
         }
@@ -750,7 +751,7 @@ TENANT_CLAIM_TOOLS = [
 ]
 TENANT_KUBERNETES_TOOLS = [
     {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
-    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy.", "inputSchema": schema({"namespace": {"type": "string"}}, ["namespace"])},
+    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.", "inputSchema": schema({"namespace": {"type": "string"}, "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 604800}}, ["namespace"])},
     {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
     {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
     {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
@@ -985,7 +986,7 @@ def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
 def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
     groups = {str(group) for group in identity.get("groups") or []}
     subject = str(identity.get("subject") or "").strip()
-    issuer = str(identity.get("issuer") or "https://dex.service.re8ch.com").rstrip("/")
+    issuer = str(identity.get("issuer") or "https://auth.re8ch.com").rstrip("/")
     if TENANT_CONTROL_URL and subject:
         default_group = next((group.removeprefix("re8ch:default-tenant:") for group in groups if group.startswith("re8ch:default-tenant:")), "")
         payload = json.dumps({
@@ -1065,7 +1066,10 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
         raise PermissionError("operator or admin role is required")
     if name == "tenant_namespace_create":
         namespace = valid_kubernetes_name(str(args["namespace"]))
-        return tenant_control_request("/v1/namespaces", tenant, {"namespaceName": namespace})
+        request = {"namespaceName": namespace}
+        if "ttlSeconds" in args:
+            request["ttlSeconds"] = args["ttlSeconds"]
+        return tenant_control_request("/v1/namespaces", tenant, request)
     if name == "tenant_namespace_delete":
         namespace = valid_kubernetes_name(str(args["namespace"]))
         preview = {"tenantRef": tenant, "namespace": namespace, "deleted": False}
@@ -1075,7 +1079,19 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
     namespace = valid_kubernetes_name(str(args.get("namespace") or context.get("defaultNamespace") or context["runtimeNamespaceRef"]))
     if "defaultNamespace" in context:
         owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
-        ready_namespaces = {item.get("spec", {}).get("namespaceName") for item in owned if item.get("spec", {}).get("operation") == "EnsurePresent" and item.get("status", {}).get("phase") == "Ready"}
+        ready_namespaces = set()
+        for item in owned:
+            spec = item.get("spec", {})
+            if spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
+                continue
+            expires_at = spec.get("expiresAt")
+            if expires_at:
+                try:
+                    if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+                        continue
+                except (TypeError, ValueError):
+                    continue
+            ready_namespaces.add(spec.get("namespaceName"))
         if namespace not in ready_namespaces:
             raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
@@ -1162,7 +1178,7 @@ def readiness() -> tuple[bool, dict[str, str]]:
         checks["stateStore"] = "ok"
     except Exception:
         checks["stateStore"] = "failed"
-    targets = {"dex": "https://dex.service.re8ch.com/.well-known/openid-configuration"}
+    targets = {"auth": "https://auth.re8ch.com/.well-known/openid-configuration"}
     if TENANT_CONTROL_URL:
         targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
     if PROFILE == "tenant": targets["supplyChain"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
@@ -2265,7 +2281,7 @@ class Handler(BaseHTTPRequestHandler):
             self.marketplace_callback(urllib.parse.parse_qs(parsed.query)); return
         if "/.well-known/oauth-protected-resource" in self.path:
             origin = os.getenv("PUBLIC_MCP_URL", f"https://{PROFILE}.tools.re8ch.com/mcp")
-            self.send_json(200, {"resource": origin, "authorization_servers": ["https://dex.service.re8ch.com"], "bearer_methods_supported": ["header"], "scopes_supported": ["openid", "profile", "email", "groups", "offline_access"]}); return
+            self.send_json(200, {"resource": origin, "authorization_servers": ["https://auth.re8ch.com"], "bearer_methods_supported": ["header"], "scopes_supported": ["openid", "profile", "email", "groups", "offline_access"]}); return
         if parsed.path.endswith("/mcp"):
             self.send_json(405, {"error": "method_not_allowed", "allowed": ["POST"]}, {"Allow": "POST"}); return
         self.send_json(404, {"error": "not_found"})
@@ -2323,7 +2339,7 @@ class Handler(BaseHTTPRequestHandler):
                 "PUBLIC_RESOURCE_METADATA_URL",
                 os.getenv("PUBLIC_ORIGIN", f"https://{PROFILE}.tools.re8ch.com") + "/.well-known/oauth-protected-resource/mcp",
             )
-            self.send_json(401, {"error": "invalid_token"}, {"WWW-Authenticate": f'Bearer realm="https://dex.service.re8ch.com", resource_metadata="{metadata}"'}); return
+            self.send_json(401, {"error": "invalid_token"}, {"WWW-Authenticate": f'Bearer realm="https://auth.re8ch.com", resource_metadata="{metadata}"'}); return
         if not allowed(identity):
             self.send_json(403, {"error": "forbidden"}); return
         try:

@@ -98,6 +98,7 @@ spec:
           ports: [{name: mixed, containerPort: {{ $.Values.nodeProxy.port }}}, {name: controller, containerPort: {{ $.Values.nodeProxy.controllerPort }}}]
           readinessProbe: {httpGet: {path: /version, port: controller}, periodSeconds: 5}
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 250m, memory: 256Mi}}
           volumeMounts:
             - {name: config, mountPath: /etc/mihomo/config.yaml, subPath: {{ $geo }}.yaml, readOnly: true}
             - {name: cn-rules, mountPath: /etc/mihomo/rules, readOnly: true}
@@ -135,6 +136,7 @@ spec:
           args: ['sed "s|0.0.0.0|${HOST_IP}|" /base/exit.yaml > /work/config.yaml']
           env: [{name: HOST_IP, valueFrom: {fieldRef: {fieldPath: status.hostIP}}}]
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 5m, memory: 8Mi}, limits: {cpu: 50m, memory: 32Mi}}
           volumeMounts: [{name: config, mountPath: /base, readOnly: true}, {name: work, mountPath: /work}]
       containers:
         - name: mihomo
@@ -144,6 +146,7 @@ spec:
           ports: [{name: socks, containerPort: {{ $.Values.exits.port }}}]
           readinessProbe: {tcpSocket: {port: socks}, periodSeconds: 5}
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 250m, memory: 256Mi}}
           volumeMounts: [{name: work, mountPath: /etc/mihomo}]
       volumes: [{name: config, configMap: {name: mihomos-node-configs}}, {name: work, emptyDir: {}}]
 ---

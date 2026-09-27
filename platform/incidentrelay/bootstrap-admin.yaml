@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: incidentrelay-bootstrap-admin-v2
+  name: incidentrelay-bootstrap-admin-v3
   namespace: incidentrelay
   labels:
     app.kubernetes.io/name: incidentrelay
@@ -23,7 +23,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: NotIn
-                    values: [restricted-node-6dc3f140f9]
+                    values: [r640]
       securityContext:
         seccompProfile: {type: RuntimeDefault}
       containers:
@@ -33,6 +33,7 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
           command: [/bin/sh, -ec]
           args:
             - |

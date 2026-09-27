@@ -49,9 +49,6 @@ data:
     registry_file="$registry_dir/registries.yaml"
     hosts_file="$host/etc/hosts"
     prefix=/config/registries-prefix.yaml
-    proxy_url=http://127.0.0.1:17891
-    no_proxy=127.0.0.1,localhost,::1,ghcr.io,.ghcr.io,.re8ch.com,.zt.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.183/8,192.0.2.57/16,192.0.2.205/16,192.0.2.81/10,192.0.2.33/12,192.0.2.136/16
-
     mkdir -p "$registry_dir"
     work=$(mktemp "$registry_dir/.registries.yaml.XXXXXX")
     trap 'rm -f "$work"' EXIT
@@ -88,37 +85,87 @@ data:
     cat "$hosts_work" >"$hosts_file"
     rm -f "$hosts_work"
 
-    # Some former servers retain a disabled k3s.service alongside the active
-    # agent unit. Selecting by unit-file existence can accidentally start a
-    # second local control plane and replace the agent CA. Prefer the unit that
-    # is active, then the one enabled for boot.
-    service=k3s-agent
-    if chroot "$host" systemctl is-active --quiet k3s-agent ||
-       chroot "$host" systemctl is-enabled --quiet k3s-agent; then
-      service=k3s-agent
-    elif chroot "$host" systemctl is-active --quiet k3s ||
-         chroot "$host" systemctl is-enabled --quiet k3s; then
-      service=k3s
-    else
-      printf 'no active or enabled k3s unit found\n' >&2
-      exit 1
-    fi
-    dropin="$host/etc/systemd/system/$service.service.d"
-    mkdir -p "$dropin"
-    cat >"$dropin/20-re8ch-registry-egress.conf" <<EOF
-    [Service]
-    Environment="HTTP_PROXY=$proxy_url"
-    Environment="HTTPS_PROXY=$proxy_url"
-    Environment="http_proxy=$proxy_url"
-    Environment="https_proxy=$proxy_url"
-    Environment="NO_PROXY=$no_proxy"
-    Environment="no_proxy=$no_proxy"
-    EOF
+    # K3s/containerd is infrastructure and must never depend on Mihomo or an
+    # airport being reachable. Image sources are mirrored through the internal
+    # Harbor origin above; remove the former node-local proxy dependency from
+    # both possible K3s units.
+    for service in k3s-agent k3s; do
+      proxy_dropin="$host/etc/systemd/system/$service.service.d/20-re8ch-registry-egress.conf"
+      if [ -e "$proxy_dropin" ]; then
+        rm -f "$proxy_dropin"
+        changed=true
+      fi
+    done
 
-    chroot "$host" systemctl daemon-reload
-    printf 'service=%s changed=%s\n' "$service" "$changed"
+    # This pod has its own PID namespace. Chrooting into the host filesystem
+    # cannot reach the host systemd bus; host activation is a separate rollout.
+    printf 'registry-authority changed=%s\n' "$changed"
     if [ "${RESTART_K3S:-false}" = true ] && [ "$changed" = true ]; then
+      # Some former servers retain a disabled k3s.service alongside the active
+      # agent unit. Never start a second control plane while activating config.
+      service=
+      if chroot "$host" systemctl is-active --quiet k3s-agent; then
+        service=k3s-agent
+      elif chroot "$host" systemctl is-active --quiet k3s; then
+        service=k3s
+      else
+        printf 'no active k3s unit found\n' >&2
+        exit 1
+      fi
       chroot "$host" systemd-run --quiet --collect \
         --unit=re8ch-k3s-registry-restart --on-active=3s \
         /bin/systemctl restart "$service"
     fi
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: k3s-registry-authority-installer
+  namespace: registry-authority
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1, maxSurge: 0}
+  selector:
+    matchLabels: {app.kubernetes.io/name: k3s-registry-authority-installer}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: k3s-registry-authority-installer}
+    spec:
+      hostNetwork: true
+      dnsPolicy: Default
+      priorityClassName: system-node-critical
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: installer
+          # Cilium initializes before this DaemonSet and leaves this digest in
+          # containerd. Reuse it so registry bootstrap does not need a mirror.
+          image: quay.io/cilium/cilium-ci@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              /config/install.sh
+              touch /state/installed
+              exec sleep infinity
+          env:
+            # Installing the mirror configuration is safe to roll out to every
+            # node. K3s activation is performed separately, one node at a time,
+            # so a first deployment cannot restart the whole cluster together.
+            - {name: RESTART_K3S, value: "false"}
+          readinessProbe:
+            exec: {command: [/bin/sh, -ec, test -f /state/installed]}
+            periodSeconds: 5
+          securityContext:
+            privileged: true
+          resources:
+            requests: {cpu: 5m, memory: 8Mi}
+            limits: {cpu: 100m, memory: 32Mi}
+          volumeMounts:
+            - {name: host-root, mountPath: /host}
+            - {name: installer, mountPath: /config, readOnly: true}
+            - {name: state, mountPath: /state}
+      volumes:
+        - {name: host-root, hostPath: {path: /, type: Directory}}
+        - {name: installer, configMap: {name: k3s-registry-authority-installer, defaultMode: 0555}}
+        - {name: state, emptyDir: {}}
