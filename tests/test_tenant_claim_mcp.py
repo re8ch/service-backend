@@ -100,6 +100,22 @@ def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatc
     assert calls == [("/v1/namespaces", "re8ch", {"namespaceName": "re8ch-demo"}, None)]
 
 
+def test_tenant_namespace_ttl_is_forwarded_and_expired_namespace_is_denied(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default", "runtimeNamespaceRef": "re8ch-default"})
+    calls = []
+    def request(path, tenant, payload=None, method=None, caller="tenant"):
+        calls.append((path, tenant, payload))
+        if payload:
+            return {"status": "accepted"}
+        return {"items": [{"spec": {"tenantRef": "re8ch", "namespaceName": "re8ch-test-demo-pr-1", "operation": "EnsurePresent", "expiresAt": "2020-01-01T00:00:00Z"}, "status": {"phase": "Ready"}}]}
+    monkeypatch.setattr(module, "tenant_control_request", request)
+    module.call_tool("tenant_namespace_create", {"namespace": "re8ch-test-demo-pr-1", "ttlSeconds": 3600}, {"subject": "agent"})
+    assert calls[0] == ("/v1/namespaces", "re8ch", {"namespaceName": "re8ch-test-demo-pr-1", "ttlSeconds": 3600})
+    with __import__("pytest").raises(PermissionError, match="Ready namespace"):
+        module.call_tool("tenant_kubernetes_apply", {"namespace": "re8ch-test-demo-pr-1", "object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo"}}, "apply": False}, {"subject": "agent"})
+
+
 def test_explicit_workload_namespace_must_be_ready_and_owned(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default", "runtimeNamespaceRef": "re8ch-default"})

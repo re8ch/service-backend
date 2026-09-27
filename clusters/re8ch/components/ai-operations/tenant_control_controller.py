@@ -295,6 +295,16 @@ def tenant_namespace_name(tenant_ref, namespace):
     return f"{tenant_ref}-{hashlib.sha256(namespace.encode()).hexdigest()[:16]}"
 
 
+def namespace_expired(spec, current_time=None):
+    expires_at = spec.get("expiresAt")
+    if not expires_at or spec.get("operation") != "EnsurePresent":
+        return False
+    deadline = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    if deadline.tzinfo is None:
+        raise ValueError("namespace expiry must include a timezone")
+    return deadline <= (current_time or utcnow())
+
+
 def tenant_groups(tenant_ref):
     groups = []
     for binding in kube().list("tenantidentitybindings"):
@@ -343,6 +353,11 @@ def reconcile_tenant_namespace(resource, tenants):
         raise PermissionError("tenant is not active")
     validate_tenant_namespace(tenant_ref, namespace, spec["operation"])
     operation_id = "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24]
+    if namespace_expired(spec):
+        if namespace == namespace_policy(tenant_ref)["defaultNamespace"]:
+            raise PermissionError("the tenant default namespace cannot expire")
+        kube().patch("tenantnamespaces", meta["name"], {"spec": {"operation": "EnsureAbsent"}})
+        return
     if spec["operation"] == "EnsureAbsent":
         kube().delete("namespaces", namespace, api="api/v1")
         try:
@@ -800,17 +815,31 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/v1/namespaces":
                 namespace = str(body["namespaceName"])
                 policy = validate_tenant_namespace(tenant, namespace, "EnsurePresent")
+                ttl = body.get("ttlSeconds")
+                if ttl is not None and (type(ttl) is not int or not 300 <= ttl <= 604800):
+                    raise ValueError("ttlSeconds must be an integer from 300 to 604800")
+                if ttl is not None and namespace == policy["defaultNamespace"]:
+                    raise PermissionError("the tenant default namespace cannot expire")
                 active = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("operation") == "EnsurePresent"]
                 if namespace not in {item["spec"]["namespaceName"] for item in active} and len(active) >= policy["maxNamespaces"]:
                     raise PermissionError("tenant namespace quota exceeded")
                 name = tenant_namespace_name(tenant, namespace)
                 desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantNamespace", "metadata": {"name": name, "labels": {"tenancy.re8ch.com/tenant": tenant}}, "spec": {"tenantRef": tenant, "namespaceName": namespace, "operation": "EnsurePresent"}}
+                if ttl is not None:
+                    desired["spec"]["expiresAt"] = iso(utcnow() + timedelta(seconds=ttl))
                 try:
                     value = kube().create("tenantnamespaces", desired)
                 except urllib.error.HTTPError as exc:
                     if exc.code != 409:
                         raise
-                    value = kube().patch("tenantnamespaces", name, {"spec": {"operation": "EnsurePresent"}})
+                    current = kube().get("tenantnamespaces", name)
+                    if current.get("spec", {}).get("operation") != "EnsurePresent" or namespace_expired(current.get("spec", {})):
+                        self.send_json(409, {"error": "namespace is deleting or expired"})
+                        return
+                    update = {"operation": "EnsurePresent"}
+                    if ttl is not None:
+                        update["expiresAt"] = desired["spec"]["expiresAt"]
+                    value = kube().patch("tenantnamespaces", name, {"spec": update})
                 self.send_json(202, value)
                 return
             if path in {"/v1/services/plan", "/v1/services"}:
