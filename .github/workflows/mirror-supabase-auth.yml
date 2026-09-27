@@ -1,0 +1,25 @@
+name: Mirror Supabase Auth for identity migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy pinned upstream release
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/re8ch/supabase-auth:v2.196.0 \
+            docker.io/supabase/gotrue@sha256:c0c25187a6b835e65a6f6e6c6b39d090e832d40e6de5186f2c038e0411944232
+          docker buildx imagetools inspect ghcr.io/re8ch/supabase-auth:v2.196.0
