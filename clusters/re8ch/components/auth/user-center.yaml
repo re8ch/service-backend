@@ -10,7 +10,7 @@ spec:
       imagePullSecrets: [{name: ghcr-re8ch}]
       containers:
         - name: web
-          image: ghcr.io/re8ch/user-hub@sha256:e6ed2ba8ab55bf7e6455e135a6933f3c3ed4d1c06497bfcb5b9b6c06cc427632
+          image: ghcr.io/re8ch/user-hub@sha256:7ac0adae24c0017d6ba281fbf70a577f3481037c94778c1040cac8a8847aa7c8
           ports: [{name: http, containerPort: 8080}]
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
@@ -73,7 +73,7 @@ metadata:
     external-dns.alpha.kubernetes.io/hostname: auth.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     networking.re8ch.com/provider: public-edge-manager
 spec:
   ingressClassName: external-dns-only
