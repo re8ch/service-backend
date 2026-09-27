@@ -355,6 +355,8 @@ modules:
       digest: sha256:c5d91bfe5bad45f5160b2bf6900befb2aea5bbd6e6dd3ab39b4c02ea185855ef
     - codename: aquila
       digest: sha256:16cc2243eaa3b4dc96ae71d450afa3da6730d982f36bb6b38d65e3f379a1ef0b
+    - codename: carina
+      digest: sha256:8a86009ad794d66f6722f928b9e2e1864747ad51de1406fb9cf7c3e49978b4ae
   platform/workspace-controller:
     releases:
     - codename: andromeda
@@ -478,6 +480,8 @@ modules:
       digest: sha256:f8fae46e59dc91a2fb9eb778e716ba8829901d4e66dcf2e92a9381dbba8df46f
     - codename: harbor-pearl
       digest: sha256:5653eefab7a27da3721682f27837d5fe88e22096e475a074f72dbc56412253c0
+    - codename: meridian-pearl
+      digest: sha256:076ca3339364596edff4abe538d7816af01b25f03b281c27ac9df3942c2e073b
   platform/birfucate-metering:
     releases:
     - codename: cascade
