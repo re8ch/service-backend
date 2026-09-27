@@ -656,6 +656,8 @@ modules:
       digest: sha256:f084f63a8a7a226a0ad2391eeea9da070231704933564fd89eaa6ba755358c26
     - codename: chinook-umber
       digest: sha256:af2de9ebf5a9ec40d5637220f4d54a29bafa51d407397149b81167c5c72dfb94
+    - codename: etesian-umber
+      digest: sha256:bea8ad4943174d482e7127aed3172a3535dc6d96c00188892cff18fa69ba2d8e
   platform/adapter:
     releases:
     - codename: anchor
