@@ -101,7 +101,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-idp-bootstrap-v2
+  name: stalwart-idp-bootstrap-v3
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
@@ -139,6 +139,7 @@ spec:
               "${cli}" apply --file /plan/plan.ndjson --dry-run
               "${cli}" apply --file /plan/plan.ndjson --json
           envFrom: [{secretRef: {name: stalwart-idp-recovery}}]
+          env: [{name: XDG_CACHE_HOME, value: /cache}]
           resources:
             requests: {cpu: 25m, memory: 48Mi}
             limits: {cpu: 500m, memory: 256Mi}
@@ -149,8 +150,10 @@ spec:
           volumeMounts:
             - {name: plan, mountPath: /plan, readOnly: true}
             - {name: cli, mountPath: /cli, readOnly: true}
+            - {name: cache, mountPath: /cache}
       volumes:
         - {name: plan, configMap: {name: stalwart-idp-bootstrap-plan}}
+        - {name: cache, emptyDir: {}}
         - name: cli
           image:
             reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
