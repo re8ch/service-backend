@@ -21,6 +21,14 @@ an alerted degraded state; zero keeps the last known good delegation.
 first-level records through their client migration windows until every new
 hostname passes an external route and certificate check.
 
+`test.re8ch.com` is the delegated authority for ephemeral tenant previews.
+The zone declaration contains no wildcard or application A record. Publish a
+preview hostname only after the tenant route broker proves namespace and
+Service ownership, dedicated Gateway listener attachment, TLS, and internal
+health. PublicEdge's existing authority readiness gates control parent NS
+publication; verify the parent delegation and UDP/TCP 53 answers from outside
+the cluster before accepting preview traffic.
+
 A local Pod `/healthz` only proves process health. The discovery controller
 probes each public IP directly and changes only derived eligibility, NS
 delegation and glue; it does not alter routers. The external monitor remains
