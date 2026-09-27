@@ -538,7 +538,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     }
     assert values["dns"]["zones"] == [
         "auth.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.",
-        "service.re8ch.com.", "functions.re8ch.com."
+        "service.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."
     ]
     assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
