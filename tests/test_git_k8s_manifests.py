@@ -704,6 +704,26 @@ def test_stalwart_provisioner_models_shared_groups_and_distribution_lists():
     assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
 
 
+def test_product_admin_mailbox_secret_retirement_is_name_scoped():
+    import ast
+
+    accounts = documents(ROOT / "platform/git-workspaces/product-organization-admin-accounts.yaml")
+    names = {account["metadata"]["name"] for account in accounts}
+    assert len(names) == 5
+    resources = documents(ROOT / "platform/stalwart/mailbox-provisioner.yaml")
+    role = next(item for item in resources if item["kind"] == "Role")
+    delete_rules = [rule for rule in role["rules"] if "delete" in rule["verbs"]]
+    assert len(delete_rules) == 1
+    assert set(delete_rules[0]["resourceNames"]) == {name + "-stalwart-credentials" for name in names}
+    script = next(item for item in resources if item["kind"] == "ConfigMap")["data"]["provision.py"]
+    tree = ast.parse(script)
+    managed = next(ast.literal_eval(node.value) for node in tree.body if isinstance(node, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == "STALWART_ADMIN_MANAGED" for target in node.targets))
+    assert managed == names
+    assert "StalwartAdminCredentialReviewRequired" in script
+    assert "refusing to delete an unmanaged mailbox Secret" in script
+
+
 def test_stalwart_cloudflare_token_is_mirrored_without_committing_credential_material():
     resources = documents(ROOT / "platform/stalwart/cloudflare-token-sync.yaml")
     config = next(item for item in resources if item["kind"] == "ConfigMap")
