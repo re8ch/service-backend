@@ -467,7 +467,8 @@ def test_stalwart_public_route_only_exposes_collaboration_paths():
 def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
     resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
     route = next(item for item in resources if item["metadata"]["name"] == "stalwart-admin-public")
-    assert route["spec"]["hostnames"] == ["stalwart-admin.tools.re8ch.com"]
+    assert route["spec"]["hostnames"] == ["stalwart-admin.service.re8ch.com"]
+    assert route["spec"]["parentRefs"][0]["sectionName"] == "service-wildcard-https"
     paths = {
         match["path"]["value"]
         for rule in route["spec"]["rules"]
@@ -494,10 +495,10 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
         "probePath": "/.well-known/jmap",
         "acceptedStatuses": [200, 307],
     }
-    admin = services["stalwart-admin.tools.re8ch.com."]
+    admin = services["stalwart-admin.service.re8ch.com."]
     assert admin == {
         "service": "stalwart-admin",
-        "class": "web",
+        "class": "service-pilot",
         "probePath": "/admin",
         "acceptedStatuses": [200, 302],
     }
