@@ -1,0 +1,44 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: supabase-identity-studio-public
+  namespace: supabase-identity
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: supabase-https}
+  hostnames: [supabase.re8ch.com]
+  rules:
+    - backendRefs: [{name: supabase-identity-kong, port: 8000}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: supabase-identity-studio-http-redirect
+  namespace: supabase-identity
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
+  hostnames: [supabase.re8ch.com]
+  rules: [{filters: [{type: RequestRedirect, requestRedirect: {scheme: https, statusCode: 308}}]}]
+---
+# PublicEdge is the DNS authority; the existing Gateway VIP is not a public IP.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: supabase-identity-studio-dns
+  namespace: supabase-identity
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: supabase.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.79
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: supabase.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: supabase-identity-kong, port: {number: 8000}}}
