@@ -654,6 +654,8 @@ modules:
       digest: sha256:83dd41c3a7f29d08206472dfc049e3f1657e28127a34d9e5dfe71cb83b7cfcce
     - codename: bora-umber
       digest: sha256:f084f63a8a7a226a0ad2391eeea9da070231704933564fd89eaa6ba755358c26
+    - codename: chinook-umber
+      digest: sha256:af2de9ebf5a9ec40d5637220f4d54a29bafa51d407397149b81167c5c72dfb94
   platform/adapter:
     releases:
     - codename: anchor
