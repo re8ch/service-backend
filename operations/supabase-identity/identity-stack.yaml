@@ -553,6 +553,13 @@ spec:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: auth
     spec:
+      imagePullSecrets:
+      - name: supabase-identity-harbor-pull
+      # CoreDNS does not resolve the public IdP hostname in this namespace.
+      # Use the declared Cilium Gateway VIP so TLS and OIDC issuer remain public.
+      hostAliases:
+      - ip: 192.0.2.213
+        hostnames: [id-stalwart.tools.re8ch.com]
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
@@ -562,7 +569,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: auth
-        image: mjhsdd6xkcym4k.xuanyuan.run/supabase/gotrue:v2.189.0
+        image: registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:1ac1f43d16100d8c89ad39462e3e1d9e25fb121ccdd6748f2766b34cd0edf1c2
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:

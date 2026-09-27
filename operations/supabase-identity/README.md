@@ -17,6 +17,9 @@ DSNs for `re8ch_identity` before adding this file to GitOps. The existing
 Secret must not be copied verbatim because its DSNs still name `postgres`.
 The `supabase-identity-secrets` Secret was provisioned in the cluster with
 distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
+The Auth image is pinned to the verified Harbor mirror of Supabase Auth v2.196.0;
+the namespace has a `supabase-identity-harbor-pull` image pull Secret. Rotate its
+registry credentials through the cluster secret manager.
 
 ## Database and secret preparation
 
@@ -46,7 +49,7 @@ distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
 
 ## Public issuer gate
 
-The approved new issuer is `https://auth.re8ch.com/auth/v1`. Current GoTrue
+The approved new issuer is `https://auth.re8ch.com/auth/v1`. The original GoTrue
 v2.189.0 contains the OAuth Server routes, but supports only `openid`,
 `profile`, `email` and `phone` scopes. The current ConnecTool clients request
 `groups` and `offline_access`; the candidate therefore keeps the OAuth server

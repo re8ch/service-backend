@@ -30,7 +30,11 @@ def test_identity_stack_is_separate_and_not_publicly_cut_over():
         "supabase-identity-studio", "supabase-identity-kong",
     }
     auth = next(doc for doc in deployments if doc["metadata"]["name"] == "supabase-identity-auth")
-    env = {item["name"]: item for item in auth["spec"]["template"]["spec"]["containers"][0]["env"]}
+    pod = auth["spec"]["template"]["spec"]
+    assert pod["imagePullSecrets"] == [{"name": "supabase-identity-harbor-pull"}]
+    assert pod["hostAliases"] == [{"ip": "192.0.2.213", "hostnames": ["id-stalwart.tools.re8ch.com"]}]
+    assert pod["containers"][0]["image"].startswith("registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:")
+    env = {item["name"]: item for item in pod["containers"][0]["env"]}
     assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "false"
     assert env["GOTRUE_JWT_KEYS"]["valueFrom"]["secretKeyRef"]["name"] == "supabase-identity-secrets"
 
