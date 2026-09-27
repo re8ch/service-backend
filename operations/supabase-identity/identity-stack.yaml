@@ -585,6 +585,14 @@ spec:
           value: 0.0.0.0
         - name: GOTRUE_API_PORT
           value: '9999'
+        # restricted-node-6dc3f140f9 cannot reach GitHub directly; use the established identity
+        # egress proxy for OAuth code exchange and profile requests.
+        - name: HTTPS_PROXY
+          value: http://192.0.2.147:17893
+        - name: HTTP_PROXY
+          value: http://192.0.2.147:17893
+        - name: NO_PROXY
+          value: localhost,127.0.0.1,::1,.svc,.cluster.local,id.re8ch.com,192.0.2.183/8,192.0.2.33/12,192.0.2.136/16
         - name: GOTRUE_DB_DRIVER
           value: postgres
         - name: GOTRUE_DB_DATABASE_URL
