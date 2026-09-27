@@ -106,8 +106,9 @@ spec:
           urlRewrite: {hostname: auth.re8ch.com}
       backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
 ---
-# DNS-only EdgeOne origin. Its target is the inventory-declared RouterOS/Cilium
-# public authority; no Cloudflare proxy or PublicEdge child-zone delegation.
+# EdgeOne's HTTPS origin uses a parent-zone Cloudflare proxy to reach the
+# inventory-declared RouterOS/Cilium authority. This avoids the child-zone
+# DNS dependency and the observed direct EdgeOne-to-VIP TLS handshake failure.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -118,7 +119,7 @@ metadata:
     external-dns.alpha.kubernetes.io/hostname: auth-origin.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.138
     external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     networking.re8ch.com/provider: public-edge-manager
 spec:
   ingressClassName: external-dns-only
