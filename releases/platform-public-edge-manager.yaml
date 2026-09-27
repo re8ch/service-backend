@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: bora-umber
+codename: chinook-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:f084f63a8a7a226a0ad2391eeea9da070231704933564fd89eaa6ba755358c26
+  digest: sha256:af2de9ebf5a9ec40d5637220f4d54a29bafa51d407397149b81167c5c72dfb94
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
