@@ -146,7 +146,9 @@ spec:
       ingressLabel: networking.re8ch.com/public-edge-ready
       serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot, service-overseas]
       parentZone: re8ch.com
-      childZones: [auth.re8ch.com, api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com]
+      # Keep auth's authoritative zone for rollback, but stop recreating its
+      # parent NS delegation before replacing that delegation with EdgeOne CNAME.
+      childZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com]
       cloudflareSecretRef: {namespace: qianwen-ops, name: cloudflare-pg-dns-controller-secret, key: CF_API_TOKEN}
     services:
       # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
