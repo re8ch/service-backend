@@ -198,3 +198,27 @@ spec:
     - filters:
         - type: RequestRedirect
           requestRedirect: {scheme: https, statusCode: 308}
+---
+# The tools child zone is not delegated by the parent. Publish this exact
+# hostname in the parent zone so GoTrue's Stalwart login redirect resolves.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-idp-public-dns
+  namespace: mail-system
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: id-stalwart.tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: id-stalwart.tools.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: stalwart-idp, port: {number: 8080}}}
