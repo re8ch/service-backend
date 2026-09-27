@@ -4,20 +4,650 @@ metadata:
   name: public-edge-catalog
   namespace: kube-system
   annotations:
-    networking.re8ch.com/description: Read-only inventory of externally delivered sites shown in Headlamp Public Edge.
+    networking.re8ch.com/description: Read-only inventory of externally delivered
+      sites shown in Headlamp Public Edge.
 data:
   sites.json: |
     {
       "sites": [
         {
-          "name": "RE8CH User Hub",
-          "hostnames": ["auth.re8ch.com"],
+          "name": "_dnsauth.jz.ynzs.com",
+          "hostnames": [
+            "_dnsauth.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "_dnsauth.static.ynzs.com",
+          "hostnames": [
+            "_dnsauth.static.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "_dnsauth.test.jz.ynzs.com",
+          "hostnames": [
+            "_dnsauth.test.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "_dnsauth.ynzs.com",
+          "hostnames": [
+            "_dnsauth.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "animationcomposer.ynzs.com",
+          "hostnames": [
+            "animationcomposer.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "api.cardcat.ynzs.com",
+          "hostnames": [
+            "api.cardcat.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "api.jz.ynzs.com",
+          "hostnames": [
+            "api.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "cardcat.ynzs.com",
+          "hostnames": [
+            "cardcat.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "cardcatdemo.ynzs.com",
+          "hostnames": [
+            "cardcatdemo.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "db-ro.cardcat.ynzs.com",
+          "hostnames": [
+            "db-ro.cardcat.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "db-rw.cardcat.ynzs.com",
+          "hostnames": [
+            "db-rw.cardcat.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "dbgui.ynzs.com",
+          "hostnames": [
+            "dbgui.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "headlamp.cardcat.ynzs.com",
+          "hostnames": [
+            "headlamp.cardcat.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "jz.ynzs.com",
+          "hostnames": [
+            "jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "jz.ynzs.com",
+          "hostnames": [
+            "jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "mgr-ro.jz.ynzs.com",
+          "hostnames": [
+            "mgr-ro.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "mgr-rw.jz.ynzs.com",
+          "hostnames": [
+            "mgr-rw.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "n3k5b3dogang.jz.ynzs.com",
+          "hostnames": [
+            "n3k5b3dogang.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "nuc-1.ynzs.com",
+          "hostnames": [
+            "nuc-1.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "nuc-2.ynzs.com",
+          "hostnames": [
+            "nuc-2.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "nuc-3.ynzs.com",
+          "hostnames": [
+            "nuc-3.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "openmaic-courseware-cardcat.ynzs.com",
+          "hostnames": [
+            "openmaic-courseware-cardcat.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "pg-1.ynzs.com",
+          "hostnames": [
+            "pg-1.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "pg-2.ynzs.com",
+          "hostnames": [
+            "pg-2.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "pg-3.ynzs.com",
+          "hostnames": [
+            "pg-3.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "qwenmac.ynzs.com",
+          "hostnames": [
+            "qwenmac.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "registry.ynzs.com",
+          "hostnames": [
+            "registry.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "static.ynzs.com",
+          "hostnames": [
+            "static.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "test.jz.ynzs.com",
+          "hostnames": [
+            "test.jz.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "transfer.ynzs.com",
+          "hostnames": [
+            "transfer.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "video-generator-1c4tyxvtzghbfgjlpbyf.ynzs.com",
+          "hostnames": [
+            "video-generator-1c4tyxvtzghbfgjlpbyf.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "A/AAAA",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "www.ynzs.com",
+          "hostnames": [
+            "www.ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "CDN proxied",
+          "origin": "-",
+          "dnsMode": "CNAME",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "MX",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "MX",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "MX",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "ynzs.com",
+          "hostnames": [
+            "ynzs.com"
+          ],
+          "provider": "Aliyun ESA",
+          "delivery": "DNS only",
+          "origin": "-",
+          "dnsMode": "TXT",
+          "sourceOfTruth": "aliyun esa/ynzs.com"
+        },
+        {
+          "name": "analytics.re8ch.com",
+          "hostnames": [
+            "analytics.re8ch.com"
+          ],
           "provider": "Tencent EdgeOne",
-          "delivery": "active",
+          "delivery": "online",
+          "origin": "analytics-1301339749.cos.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "anycam-model.re8ch.com",
+          "hostnames": [
+            "anycam-model.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "anycamstorage-1301339749.cos.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "api.re8ch.com",
+          "hostnames": [
+            "api.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "og-3qgknt4moqmo",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "auth.re8ch.com",
+          "hostnames": [
+            "auth.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
           "origin": "auth-re8ch-1301339749.cos-website.ap-guangzhou.myqcloud.com",
-          "dnsMode": "Cloudflare parent CNAME to EdgeOne",
-          "sourceOfTruth": "re8ch/user-hub public/",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com",
           "notes": "Static assets use COS and EdgeOne; dynamic auth paths use the EdgeOne rule and Cloudflare-proxied Cilium origin. The old cluster routes remain for rollback."
+        },
+        {
+          "name": "cn.anycam.re8ch.com",
+          "hostnames": [
+            "cn.anycam.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "anycamwebsite-1301339749.cos-website.ap-shanghai.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.anysiteonearth.re8ch.com",
+          "hostnames": [
+            "cn.anysiteonearth.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "anysiteonearth-1301339749.cos-website.ap-chongqing.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.cluster.re8ch.com",
+          "hostnames": [
+            "cn.cluster.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "clusterwebsite-1301339749.cos-website.ap-chengdu.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.compocv.re8ch.com",
+          "hostnames": [
+            "cn.compocv.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "compocv-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.image.re8ch.com",
+          "hostnames": [
+            "cn.image.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "registryimage-1301339749.cos-website.ap-shanghai.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.ledger.re8ch.com",
+          "hostnames": [
+            "cn.ledger.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "ledgerofficial-1301339749.cos-website.ap-chengdu.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.observable.re8ch.com",
+          "hostnames": [
+            "cn.observable.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "observablewebsite-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.phonaid.re8ch.com",
+          "hostnames": [
+            "cn.phonaid.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "phonaid-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.showcasedata.re8ch.com",
+          "hostnames": [
+            "cn.showcasedata.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "showcasedata-1301339749.cos.ap-shanghai.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "cn.spacemining.re8ch.com",
+          "hostnames": [
+            "cn.spacemining.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "spacemining-site-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "db-ro.re8ch.com",
+          "hostnames": [
+            "db-ro.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "og-3qcaouvog2ix",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "farseer.re8ch.com",
+          "hostnames": [
+            "farseer.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "farseer-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "userdata.re8ch.com",
+          "hostnames": [
+            "userdata.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "re8chuserdata-1301339749.cos.ap-hongkong.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "www.re8ch.com",
+          "hostnames": [
+            "www.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "re8ch-1301339749.cos-website.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
+        },
+        {
+          "name": "zh-brand-assets.re8ch.com",
+          "hostnames": [
+            "zh-brand-assets.re8ch.com"
+          ],
+          "provider": "Tencent EdgeOne",
+          "delivery": "online",
+          "origin": "brandassets-1301339749.cos.ap-guangzhou.myqcloud.com",
+          "dnsMode": "EdgeOne acceleration domain",
+          "sourceOfTruth": "tccli teo/re8ch.com"
         }
       ]
     }
