@@ -30,8 +30,8 @@ data:
   PGRST_DB_MAX_ROWS: '1000'
   PGRST_DB_EXTRA_SEARCH_PATH: public
   SITE_URL: https://auth.re8ch.com
-  API_EXTERNAL_URL: https://auth.re8ch.com/auth/v1
-  SUPABASE_PUBLIC_URL: https://auth.re8ch.com
+  API_EXTERNAL_URL: https://db-rw.re8ch.com/auth/v1
+  SUPABASE_PUBLIC_URL: https://db-rw.re8ch.com
   STUDIO_DEFAULT_ORGANIZATION: RE8CH
   STUDIO_DEFAULT_PROJECT: re8ch_identity
   DISABLE_SIGNUP: 'true'
@@ -552,6 +552,8 @@ spec:
       labels:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: auth
+      annotations:
+        networking.re8ch.com/auth-external-url-revision: db-rw-20260927
     spec:
       imagePullSecrets:
       - name: supabase-identity-harbor-pull

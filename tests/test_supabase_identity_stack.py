@@ -8,7 +8,7 @@ ROOT = Path(__file__).parents[1]
 STACK = ROOT / "operations/supabase-identity/identity-stack.yaml"
 
 
-def test_identity_stack_is_separate_and_not_publicly_cut_over():
+def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     docs = [doc for doc in yaml.safe_load_all(STACK.read_text()) if doc]
     assert all(
         doc["metadata"].get("namespace") == "supabase-identity"
@@ -23,7 +23,8 @@ def test_identity_stack_is_separate_and_not_publicly_cut_over():
     assert config["data"]["POSTGRES_DB"] == "re8ch_identity"
     assert config["data"]["POSTGRES_HOST"] == "pg-re8ch-primary.pigsty-external.svc.cluster.local"
     assert config["data"]["PGRST_DB_SCHEMAS"] == "api"
-    assert config["data"]["API_EXTERNAL_URL"] == "https://auth.re8ch.com/auth/v1"
+    assert config["data"]["API_EXTERNAL_URL"] == "https://db-rw.re8ch.com/auth/v1"
+    assert config["data"]["SITE_URL"] == "https://auth.re8ch.com"
 
     deployments = [doc for doc in docs if doc["kind"] == "Deployment"]
     assert {doc["metadata"]["name"] for doc in deployments} == {

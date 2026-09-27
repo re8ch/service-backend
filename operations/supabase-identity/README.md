@@ -49,7 +49,8 @@ registry credentials through the cluster secret manager.
 
 ## Public issuer gate
 
-The approved new issuer is `https://auth.re8ch.com/auth/v1`. The original GoTrue
+The approved new issuer is `https://db-rw.re8ch.com/auth/v1`; `auth.re8ch.com`
+hosts the static user-center frontend. The original GoTrue
 v2.189.0 contains the OAuth Server routes, but supports only `openid`,
 `profile`, `email` and `phone` scopes. The current ConnecTool clients request
 `groups` and `offline_access`; the candidate therefore keeps the OAuth server
