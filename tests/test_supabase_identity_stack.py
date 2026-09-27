@@ -41,6 +41,17 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     env = {item["name"]: item for item in pod["containers"][0]["env"]}
     assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "false"
     assert env["GOTRUE_JWT_KEYS"]["valueFrom"]["secretKeyRef"]["name"] == "supabase-identity-secrets"
+    assert env["GOTRUE_DISABLE_SIGNUP"]["valueFrom"]["configMapKeyRef"]["key"] == "DISABLE_SIGNUP"
+    assert config["data"]["DISABLE_SIGNUP"] == "true"
+    assert env["GOTRUE_EXTERNAL_GITHUB_ENABLED"]["value"] == "true"
+    assert env["GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI"]["value"] == "https://db-rw.re8ch.com/auth/v1/callback"
+    for name, key in (
+        ("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", "GITHUB_OAUTH_CLIENT_ID"),
+        ("GOTRUE_EXTERNAL_GITHUB_SECRET", "GITHUB_OAUTH_CLIENT_SECRET"),
+    ):
+        assert env[name]["valueFrom"]["secretKeyRef"] == {
+            "name": "supabase-identity-secrets", "key": key,
+        }
 
     kong = next(doc for doc in docs if doc["kind"] == "ConfigMap" and doc["metadata"]["name"] == "supabase-identity-kong-config")
     services = yaml.safe_load(kong["data"]["kong.yml"])["services"]

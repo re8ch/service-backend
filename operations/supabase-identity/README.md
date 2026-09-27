@@ -22,6 +22,25 @@ DSNs for `re8ch_identity` before adding this file to GitOps. The existing
 Secret must not be copied verbatim because its DSNs still name `postgres`.
 The `supabase-identity-secrets` Secret was provisioned in the cluster with
 distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
+
+## GitHub login
+
+GoTrue uses the existing RE8CH GitHub OAuth app directly. The app must have
+`https://db-rw.re8ch.com/auth/v1/callback` as an exact callback URL, alongside
+the existing auth-gateway callback. Copy its `GITHUB_OAUTH_CLIENT_ID` and
+`GITHUB_OAUTH_CLIENT_SECRET` keys from the `auth/re8ch-auth-gateway-secrets`
+Secret into `supabase-identity/supabase-identity-secrets` through the cluster
+secret manager before deploying the GoTrue GitHub provider. Never write their
+values to Git. Keep `DISABLE_SIGNUP=true`: the imported GitHub provider ID
+`61690719` already belongs to the imported `harry@re8ch.com` user, and an
+unrecognized GitHub identity must not create an account merely because its
+email is verified. The GitHub account's current primary email can differ from
+the RE8CH account email; the provider ID is the stable link.
+
+Stalwart's OIDC Directory points to `auth.re8ch.com` and validates tokens;
+Stalwart does not initiate a GitHub login. Do not put Stalwart upstream of
+GoTrue for this browser login, because that reverses the dependency and cannot
+authenticate the GitHub account.
 The Auth image is pinned to the verified Harbor mirror of Supabase Auth v2.196.0;
 the namespace has a `supabase-identity-harbor-pull` image pull Secret. Rotate its
 registry credentials through the cluster secret manager.
