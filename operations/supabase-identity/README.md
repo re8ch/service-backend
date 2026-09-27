@@ -13,7 +13,9 @@ PostgREST and Storage use separate secret-held DSNs, and Studio/Meta use
 Studio/Meta and Kong. `studio-public-route.yaml` exposes its Kong dashboard at
 `https://supabase.re8ch.com`, protected by the dashboard Basic Auth credentials
 in `supabase-identity-secrets`. The legacy Supabase stack remains reachable at
-`supabase.service.re8ch.com`.
+`supabase.service.re8ch.com`. Its DNS record points directly to the
+inventory-declared public Gateway to avoid Cloudflare browser filtering on
+the admin login; the Gateway terminates HTTPS before Kong.
 It uses the new `supabase-identity` namespace and Secret, without touching the
 existing Supabase stack. Provision `supabase-identity-secrets` with distinct
 DSNs for `re8ch_identity` before adding this file to GitOps. The existing
