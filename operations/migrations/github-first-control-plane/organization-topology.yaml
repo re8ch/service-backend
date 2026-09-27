@@ -3,7 +3,7 @@ kind: OrganizationTopology
 metadata:
   enterprise: re8ch
   enterpriseDisplayName: Reachieve LLC
-  observedAt: "2026-09-12"
+  observedAt: "2026-09-28"
 spec:
   principle: Git for Everything in Collaboration, Kubernetes for Runtime, Flux for Convergence, Headlamp for Inspection
   githubRole: universal-coordination-event-bus
@@ -38,9 +38,52 @@ spec:
         - {source: re8ch/headlamp-public-edge, target: public-edge/headlamp-public-edge, state: pilot-complete}
         - {source: re8ch/mihomos-cluster, target: public-edge/mihomos-cluster, state: transferred}
         - {source: re8ch/headlamp-mihomos-cluster, target: public-edge/headlamp-mihomos-cluster, state: pilot-complete}
+    - login: re8ch-image
+      displayName: RE8CH Image
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/image-website, target: re8ch-image/image-website, state: transferred}
+        - {source: re8ch/registry-website, target: re8ch-image/registry-website, state: transferred}
+    - login: re8ch-cloud
+      displayName: RE8CH Cloud
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/cluster-website, target: re8ch-cloud/cluster-website, state: transferred}
+        - {source: re8ch/cloud-functions, target: re8ch-cloud/cloud-functions, state: pending-source-access-cutover}
+    - login: re8ch-observability
+      displayName: RE8CH Observability
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/observable-website, target: re8ch-observability/observable-website, state: transferred}
+        - {source: re8ch/grafana, target: re8ch-observability/grafana, state: transferred}
+    - login: re8ch-ai
+      displayName: RE8CH AI
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/codex-admin-plugins, target: re8ch-ai/codex-admin-plugins, state: transferred}
+        - {source: re8ch/codex-cloud-tenant-plugins, target: re8ch-ai/codex-cloud-tenant-plugins, state: transferred}
+        - {source: re8ch/qwen-tenant-marketplace, target: re8ch-ai/qwen-tenant-marketplace, state: transferred}
+        - {source: re8ch/tool-distribution, target: re8ch-ai/tool-distribution, state: pending-pages-url-cutover}
+    - login: re8ch-business
+      displayName: RE8CH Business
+      state: created-in-enterprise
+      repositories:
+        - {source: re8ch/hyperswitch, target: re8ch-business/hyperswitch, state: transferred}
+        - {source: re8ch/user-hub, target: re8ch-business/user-hub, state: transferred}
+  productRepositoryConvention:
+    appliesTo: active-product-organizations
+    repositories: [product-prd, product-assets]
+    visibility: private
+    prdCadence: owner-initiated-reviewed-pr
+    scheduledPrdCreation: false
+    verifiedPairs: 25
+  duplicateOrganizationCandidates:
+    - {empty: jjk-live-app, populated: jjklive, action: retain-pending-link-audit}
+    - {empty: lizhang-accounting, populated: lizhang-ledger, action: retain-pending-link-audit}
+    - {empty: motor-muscle-lab, populated: motor-muscle-sim, action: retain-pending-link-audit}
   retainedAuthorities:
-    - {repository: re8ch/service-backend, role: aggregate-gitops-authority, until: github-provider-cutover}
-    - {repository: re8ch/cloud-functions, role: platform-runtime-controller, until: post-cutover-boundary-review}
+    - {repository: re8ch/service-backend, role: aggregate-gitops-authority}
+    - {repository: re8ch/cloud-functions, role: platform-runtime-controller, until: source-access-cutover}
   eventProjection:
     accepts: [alert, drift, deployment-failure, security-event, capacity-anomaly, customer-incident]
     emits: [issue, pull-request, check, deployment, discussion]
