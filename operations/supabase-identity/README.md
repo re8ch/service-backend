@@ -36,7 +36,7 @@ registry credentials through the cluster secret manager.
    `auth-schema.sql` to create GoTrue's empty `auth` schema under that role.
 3. Provision distinct Secret references for the new identity deployment.
    The GoTrue, PostgREST, Studio/Meta and optional Storage connection strings
-   must all name `re8ch_identity`. Use the existing secret manager; never copy
+   must all name `re8ch_identity`. Set the GoTrue DSN `options=-csearch_path%3Dpublic%2Cauth` so its migration ledger resolves in `public` and its user/provider tables resolve in `auth`. Use the existing secret manager; never copy
    or print a live password to build a DSN in a shell argument.
 4. Start GoTrue in isolation to initialize its schema. Connect as
    `supabase_auth_admin` and run `auth-reference-grants.sql`, then apply the
