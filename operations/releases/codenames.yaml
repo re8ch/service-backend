@@ -403,6 +403,8 @@ modules:
       digest: sha256:b942519e66768f1369bee841b0bd019e444d552aaea87639b88fc44337a77705
     - codename: aurora-copper
       digest: sha256:def73e53a9c2adccd734f452e50d2487c744e3e8873bbc288b99cb32405017ab
+    - codename: flare-copper
+      digest: sha256:f2bae145c2fb72269ef6d04b9c5003d929c17ccc487db68a3f40ef5ba72d2fcf
   platform/apps/access-subscription:
     releases:
     - codename: aegis
@@ -684,6 +686,8 @@ modules:
       digest: sha256:fd15a86a42cda10d1fd860f707c136bea081e8855b984649870b5e9219594e53
     - codename: tramontane-umber
       digest: sha256:dcb92eb80752276cd9f272b2c94cc7d65d05af2d637ef5c8c11156732b9985fc
+    - codename: zephyr-umber
+      digest: sha256:925b7de6a8f26583778056093f9768716f34b356e0abfd750a0f273d9a12ef59
   platform/adapter:
     releases:
     - codename: anchor
