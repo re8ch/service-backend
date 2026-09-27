@@ -96,6 +96,9 @@ spec:
   hostnames: [auth-origin.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {hostname: auth.re8ch.com}
       backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
 ---
 # DNS-only EdgeOne origin. Its target is the inventory-declared RouterOS/Cilium
