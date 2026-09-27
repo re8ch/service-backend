@@ -200,6 +200,7 @@ data:
           - name: basic-auth
             config:
               hide_credentials: true
+              realm: RE8CH Identity Studio
 ---
 apiVersion: v1
 kind: Service
