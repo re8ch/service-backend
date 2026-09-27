@@ -14,17 +14,20 @@ jobs:
     steps:
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
           registry: registry.re8ch.com
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Ensure dedicated PublicEdge project
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: |
+          if ! curl -fsS -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" 'https://registry.re8ch.com/api/v2.0/projects?name=public-edge' | jq -e 'length > 0' >/dev/null; then
+            curl -fsS -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" -X POST 'https://registry.re8ch.com/api/v2.0/projects' -H 'Content-Type: application/json' -d '{"project_name":"public-edge","public":true,"metadata":{"public":"true","enable_content_trust":"false","prevent_vul":"false","severity":"none","auto_scan":"false"}}' >/dev/null
+          fi
       - name: Copy pinned amd64 release
         run: |
           docker pull --platform linux/amd64 ghcr.io/public-edge/public-edge-manager@sha256:cc1f32d0020fc8e033d6d19620dcfbba202482feeee09772970e6f3b23284a6c
-          docker tag ghcr.io/public-edge/public-edge-manager@sha256:cc1f32d0020fc8e033d6d19620dcfbba202482feeee09772970e6f3b23284a6c registry.re8ch.com/functions-shared/public-edge-manager:v0.6.13
-          docker push registry.re8ch.com/functions-shared/public-edge-manager:v0.6.13
-          docker manifest inspect registry.re8ch.com/functions-shared/public-edge-manager:v0.6.13
+          docker tag ghcr.io/public-edge/public-edge-manager@sha256:cc1f32d0020fc8e033d6d19620dcfbba202482feeee09772970e6f3b23284a6c registry.re8ch.com/public-edge/public-edge-manager:v0.6.13
+          docker push registry.re8ch.com/public-edge/public-edge-manager:v0.6.13
+          docker manifest inspect registry.re8ch.com/public-edge/public-edge-manager:v0.6.13
