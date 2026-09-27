@@ -92,7 +92,7 @@ data:
   plan.ndjson: |
     {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-idp","requireScopes":{"openid":true,"email":true,"profile":true,"groups":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
-    {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":"15m","idTokenExpiry":"15m","refreshTokenExpiry":"8h","refreshTokenRenewal":"1h"}}
+    {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":900000,"idTokenExpiry":900000,"refreshTokenExpiry":28800000,"refreshTokenRenewal":3600000}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"kubectl-pilot":{"clientId":"kubectl-stalwart-pilot","description":"Kubernetes RBAC Stalwart pilot","redirectUris":{"http://127.0.0.1:8000":true,"http://localhost:8000":true}}}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"connectool-cloud":{"clientId":"re8ch-cloud-platform-tool","description":"ConnecTool cloud platform public PKCE client","redirectUris":{"http://127.0.0.1/callback":true,"http://localhost/callback":true}}}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"connectool-admin":{"clientId":"re8ch-platform-admin","description":"ConnecTool platform admin public PKCE client","redirectUris":{"http://127.0.0.1/callback":true,"http://localhost/callback":true}}}}
@@ -101,7 +101,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-idp-bootstrap-v3
+  name: stalwart-idp-bootstrap-v4
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
