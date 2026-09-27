@@ -405,6 +405,7 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert stateful_set["spec"]["replicas"] == 1
     assert stateful_set["spec"]["volumeClaimTemplates"][0]["metadata"]["name"] == "data"
     container = stateful_set["spec"]["template"]["spec"]["containers"][0]
+    assert container["securityContext"]["capabilities"]["add"] == ["NET_BIND_SERVICE"]
     assert {item["name"]: item["value"] for item in container["env"]}["STALWART_PUBLIC_URL"] == (
         "https://id-stalwart.tools.re8ch.com"
     )
