@@ -36,7 +36,7 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert pod["imagePullSecrets"] == [{"name": "supabase-identity-harbor-pull"}]
     network = json.loads((ROOT / "operations/network/manifests/network/public-mesh/inventory.json").read_text())
     public_ip = next(node["publicIp"] for node in network["nodes"] if node["name"] == "restricted-node-6dc3f140f9")
-    assert pod["hostAliases"] == [{"ip": public_ip, "hostnames": ["id-stalwart.tools.re8ch.com"]}]
+    assert pod["hostAliases"] == [{"ip": public_ip, "hostnames": ["id.re8ch.com"]}]
     assert pod["containers"][0]["image"].startswith("registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:")
     env = {item["name"]: item for item in pod["containers"][0]["env"]}
     assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "false"

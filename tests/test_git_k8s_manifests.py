@@ -407,7 +407,7 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     container = stateful_set["spec"]["template"]["spec"]["containers"][0]
     assert container["securityContext"]["capabilities"]["add"] == ["NET_BIND_SERVICE"]
     assert {item["name"]: item["value"] for item in container["env"]}["STALWART_PUBLIC_URL"] == (
-        "https://id-stalwart.tools.re8ch.com"
+        "https://id.re8ch.com"
     )
     plan = next(
         item
@@ -433,7 +433,11 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
 def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
     resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
     route = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public")
-    assert route["spec"]["hostnames"] == ["id-stalwart.tools.re8ch.com"]
+    assert route["spec"]["hostnames"] == ["id.re8ch.com"]
+    assert route["spec"]["parentRefs"][0]["sectionName"] == "id-https"
+    dns = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public-dns")
+    assert dns["spec"]["rules"][0]["host"] == "id.re8ch.com"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
     paths = {
         match["path"]["value"]
         for rule in route["spec"]["rules"]

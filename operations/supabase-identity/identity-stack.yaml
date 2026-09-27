@@ -563,7 +563,7 @@ spec:
       # the inventory-declared RouterOS public authority and its DNAT path.
       hostAliases:
       - ip: 192.0.2.138
-        hostnames: [id-stalwart.tools.re8ch.com]
+        hostnames: [id.re8ch.com]
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
