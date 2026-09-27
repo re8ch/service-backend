@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
 - identity-stack.yaml
 - public-auth-route.yaml
+- db-rw-auth-route.yaml
