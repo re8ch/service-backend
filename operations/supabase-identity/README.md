@@ -51,6 +51,9 @@ registry credentials through the cluster secret manager.
    immediately before the transactional importer, and `import-end.sql` after
    reconciliation or on import failure. The temporary policies permit the
    importer to count rows through RLS and are not needed at runtime.
+   The reference grants include read-only RLS policies for Studio's
+   `supabase_admin` role, so its user and identity views show imported GoTrue
+   rows without granting browser clients direct table access.
 
 ## Public issuer gate
 
