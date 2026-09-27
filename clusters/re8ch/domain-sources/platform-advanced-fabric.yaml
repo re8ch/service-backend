@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: mistral-copper
+    delivery.re8ch.com/codename: sirocco-copper
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
   ref:
-    digest: sha256:ab9ddc320c25a7c6fc82b0c221b55fb3783e2585e5ea9e7c9bd50d09677b57f8
+    digest: sha256:aee9bcafe64d6b3d6115027b407cc9a984b6699a5dfc021e570123f2c8425295
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: mistral-copper
+    delivery.re8ch.com/codename: sirocco-copper
 spec:
   interval: 1m
   retryInterval: 1m
