@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: sirocco-copper
+codename: tramontane-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:aee9bcafe64d6b3d6115027b407cc9a984b6699a5dfc021e570123f2c8425295
+  digest: sha256:47f0341e9dcd262123ce88ff60e67b8fb4f1c37b124416dc3e7f05a1681c46d9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
