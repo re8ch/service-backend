@@ -650,6 +650,8 @@ modules:
       digest: sha256:4daa525b5954926e51569a42c13686abcda2166d85e5103bd6d2d068052ab1a3
     - codename: tramontane-silver
       digest: sha256:6a2d6847d741202f5cd1f2361ad8fe4d40a99fbc1a8d47529b26fa20048daf68
+    - codename: zephyr-silver
+      digest: sha256:83dd41c3a7f29d08206472dfc049e3f1657e28127a34d9e5dfe71cb83b7cfcce
   platform/adapter:
     releases:
     - codename: anchor
