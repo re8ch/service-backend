@@ -39,3 +39,13 @@ def test_functions_zone_is_delegation_ready_and_access_stays_on_subaccess():
     personal_access = (ROOT / "clusters/re8ch/components/personal-access/data-plane.yaml").read_text()
     assert "external-dns.alpha.kubernetes.io/hostname: access.re8ch.com" in personal_access
     assert "sub.access.re8ch.com" in personal_access
+
+
+def test_tenant_preview_zone_has_authority_without_ungated_hosts():
+    documents = list(yaml.safe_load_all((ROOT / "platform/public-edge-manager/release.yaml").read_text()))
+    release = next(item for item in documents if item.get("kind") == "HelmRelease")
+    values = release["spec"]["values"]
+    assert "test.re8ch.com." in values["dns"]["zones"]
+    assert "test.re8ch.com" in values["discovery"]["childZones"]
+    assert not any(name.endswith(".test.re8ch.com.") for name in values["services"])
+    assert not any(name.endswith(".test.re8ch.com.") for name in values["dns"]["externalRecords"])
