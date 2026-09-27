@@ -102,3 +102,60 @@ cannot read or mutate another namespace, route, DNS name, or Secret.
 Organization transfers and the runtime test lane are independent rollouts.
 The former changes collaboration ownership; the latter changes cluster and
 public delivery authority. Each needs its own reviewable PR and validation.
+
+## RE8CH Auth launch gate for tenant plugins
+
+Userhub is the interactive client of the new Supabase GoTrue identity stack at
+`auth.re8ch.com`. Stalwart at `id.re8ch.com` is an upstream OIDC provider; it
+does not by itself issue Kubernetes, Tenant plugin, or GitHub write grants.
+Keep the existing Dex-protected plugin path in service until its replacement
+passes the checks below. The identity stack runbook currently says its GoTrue
+OAuth Server is disabled for ConnecTool because the client `groups`, refresh
+token, and resource-audience contracts are unfinished.
+
+1. **Link the person.** A successful Userhub login establishes a stable GoTrue
+   `sub`. Require a verified mailbox and an explicit link from that `sub` to
+   the approved tenant membership. Preserve the upstream provider's immutable
+   subject during linking; email address equality, domain suffix, or a GitHub
+   organization role alone never creates a membership or an administrator
+   grant. Revocation and email changes must be reflected in the binding.
+2. **Issue plugin identity.** Register each plugin client with exact redirect
+   URIs, PKCE, refresh-token rotation, issuer, JWKS and resource audience.
+   A reviewed access-token hook must add current tenant role and group claims
+   from the membership authority. Each plugin verifies signature, issuer,
+   audience, expiry and tenant selection on every request. The existing
+   TenantIdentityBinding resolver maps the verified issuer/subject or group to
+   one active tenant and role; the requested tenant is only a selector. Never
+   feed browser supplied email or group strings to that resolver.
+3. **Enforce resource writes.** The tenant plugin may request only grants
+   present in that tenant's Consumable catalog and native namespace policy.
+   Workload, Service, ConfigMap and Secret writes use a namespace-scoped
+   identity and Kubernetes RBAC. Keep Gateway, HTTPRoute, PublicEdge, DNS and
+   production routes under the reviewed broker/GitOps path. A denied Secret
+   read or cross-tenant operation must remain denied even to a user who can
+   edit another resource in their own namespace.
+4. **Authorize GitHub separately.** A Userhub session is not a GitHub API
+   credential. Install a reviewed GitHub App in each destination organization
+   and grant only selected repositories and required permissions. For a
+   person-initiated repository write, verify that person's linked GitHub
+   identity and current repository access before requesting a short-lived,
+   repository-scoped user-to-server token. For CI, use an installation token
+   bound to its repository and the verified GitHub Actions OIDC run. Do not
+   put a PAT, installation token or broad GitHub write capability in a
+   browser, plugin manifest, PR comment or Kubernetes Secret readable by the
+   tenant workload. Record actor, tenant, repository, operation and PR in the
+   audit event; write desired state through a reviewed pull request.
+5. **Prove isolation before publication.** With two real test accounts and
+   two tenant bindings, exercise sign-in, refresh, revocation, wrong audience,
+   expired token, changed email, removed GitHub membership, selected-repo
+   denial, cross-tenant namespace/Secret denial, and PR-environment expiry.
+   Test both a static frontend and backend Workload through the dedicated
+   `test.re8ch.com` route. Keep the official hostname on the main-branch
+   GitOps path. Roll back by revoking the new client and test route first;
+   preserve Dex and the previous production route until the matrix passes.
+
+Launch evidence is a linked set of signed PRs and green Actions for the token
+hook/client configuration, membership synchronization, GitHub App installation
+and repository selection, tenant broker/RBAC, and PublicEdge test-zone delivery.
+Record external DNS, TLS, issuer/JWKS, internal workload, CDN and negative
+authorization probes before switching any plugin issuer or official hostname.
