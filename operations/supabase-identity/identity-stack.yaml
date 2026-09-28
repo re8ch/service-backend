@@ -52,7 +52,7 @@ data:
   SMTP_USER: ''
   SMTP_PASS: ''
   SMTP_SENDER_NAME: RE8CH Supabase
-  ADDITIONAL_REDIRECT_URLS: ''
+  ADDITIONAL_REDIRECT_URLS: https://api.re8ch.com/auth/v2/callback
   MAILER_URLPATHS_INVITE: /auth/v1/verify
   MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
   MAILER_URLPATHS_RECOVERY: /auth/v1/verify
@@ -687,6 +687,32 @@ spec:
               key: GITHUB_OAUTH_CLIENT_SECRET
         - name: GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI
           value: https://db-rw.re8ch.com/auth/v1/callback
+        # Prevent email-similarity account linking across providers. Imported
+        # provider subjects and explicit manual linking remain authoritative.
+        - name: GOTRUE_EXPERIMENTAL_PROVIDER_LINKING_DOMAINS
+          value: github=github,google=google,apple=apple
+        - name: GOTRUE_SECURITY_MANUAL_LINKING_ENABLED
+          value: 'true'
+        - name: GOTRUE_EXTERNAL_GOOGLE_ENABLED
+          value: 'true'
+        - name: GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: GOOGLE_OIDC_CLIENT_ID}
+        - name: GOTRUE_EXTERNAL_GOOGLE_SECRET
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: GOOGLE_OIDC_CLIENT_SECRET}
+        - name: GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI
+          value: https://api.re8ch.com/auth/callback/google
+        - name: GOTRUE_EXTERNAL_APPLE_ENABLED
+          value: 'true'
+        - name: GOTRUE_EXTERNAL_APPLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: APPLE_OIDC_CLIENT_ID}
+        - name: GOTRUE_EXTERNAL_APPLE_SECRET
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: APPLE_OIDC_CLIENT_SECRET}
+        - name: GOTRUE_EXTERNAL_APPLE_REDIRECT_URI
+          value: https://api.re8ch.com/auth/callback/apple
         - name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED
           valueFrom:
             configMapKeyRef:
