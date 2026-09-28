@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-violet
+    delivery.re8ch.com/codename: chinook-violet
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:37ca8a18d5021c28f48fe35b7b6198556fa0ce08a5c9606e629606fb38d7e534
+    digest: sha256:17603fa658b6cd85009819908ec992366ae31d8919437e3ef161724c616a2b21
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-violet
+    delivery.re8ch.com/codename: chinook-violet
 spec:
   interval: 1m
   retryInterval: 1m

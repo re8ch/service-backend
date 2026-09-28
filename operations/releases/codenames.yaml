@@ -761,6 +761,8 @@ modules:
       digest: sha256:925b7de6a8f26583778056093f9768716f34b356e0abfd750a0f273d9a12ef59
     - codename: bora-violet
       digest: sha256:37ca8a18d5021c28f48fe35b7b6198556fa0ce08a5c9606e629606fb38d7e534
+    - codename: chinook-violet
+      digest: sha256:17603fa658b6cd85009819908ec992366ae31d8919437e3ef161724c616a2b21
   platform/adapter:
     releases:
     - codename: anchor
