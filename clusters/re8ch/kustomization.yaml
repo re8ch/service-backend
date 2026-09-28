@@ -50,6 +50,7 @@ resources:
 - ../../operations/supabase-identity
 - components/egress-fabric/identity-egress.yaml
 - components/egress-fabric/live-node-egress-labels.yaml
+- components/egress-fabric/mihomo-node-labeler
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml
 - components/public-exposure/gateway-dns-authorities.yaml
