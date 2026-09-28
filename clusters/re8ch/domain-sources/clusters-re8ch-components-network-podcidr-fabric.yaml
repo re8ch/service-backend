@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: sirocco-amber
+    delivery.re8ch.com/codename: tramontane-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:0732aec0cdaa1b1ab453bb60ad18c419ba5b98ea3a70dcbb732ecb7c008979ac
+    digest: sha256:9f2bf9ed27b708bb80b3b4a800f02c8ec90dbccfa28436f17b1c82d4c10ae7dc
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: sirocco-amber
+    delivery.re8ch.com/codename: tramontane-amber
 spec:
   interval: 1m
   retryInterval: 1m
