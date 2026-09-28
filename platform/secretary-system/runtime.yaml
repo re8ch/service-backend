@@ -380,7 +380,7 @@ spec:
             - {name: SECRETARY_NOTIFY_TO, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient}}}
             - {name: SECRETARY_NOTIFY_RECIPIENT_ID, valueFrom: {secretKeyRef: {name: secretary-email, key: recipient-id}}}
             - name: SECRETARY_PUBLIC_PROBES_JSON
-              value: '[{"name":"harbor","url":"https://registry.re8ch.com/api/v2.0/health","severity":"high","failure_threshold":3},{"name":"stalwart-jmap","url":"https://collab.tools.re8ch.com/.well-known/jmap","severity":"high","failure_threshold":3}]'
+              value: '[{"name":"harbor","url":"https://registry.re8ch.com/api/v2.0/health","severity":"high","failure_threshold":3},{"name":"stalwart-jmap","url":"https://id.re8ch.com/.well-known/jmap","severity":"high","failure_threshold":3}]'
           resources: {requests: {cpu: 20m, memory: 64Mi}, limits: {cpu: 200m, memory: 192Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
 ---
