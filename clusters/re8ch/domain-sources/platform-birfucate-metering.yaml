@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: confluence-pearl
+    delivery.re8ch.com/codename: riptide-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:d47de19685b28572201b52fa73b8b8cc12af73c728052561a7c6f5836f55b116
+    digest: sha256:601f1c4dbb5436d48dc3344cf4b17a959181dff66dc75569c0a61ee56c0c0cc0
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: confluence-pearl
+    delivery.re8ch.com/codename: riptide-pearl
 spec:
   interval: 1m
   retryInterval: 1m
