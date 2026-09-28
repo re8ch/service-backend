@@ -3,11 +3,11 @@
   "kind": "MCPCollection",
   "metadata": {"name": "tenant-canary", "version": "1.0.0"},
   "spec": {
-    "endpoint": "https://tools.re8ch.com/tenant/mcp",
+    "endpoint": "https://tools.service.re8ch.com/tenant/mcp",
     "oauth": {
-      "resource": "https://tools.re8ch.com/tenant/mcp",
+      "resource": "https://tools.service.re8ch.com/tenant/mcp",
       "tokenAudience": "re8ch-tenant",
-      "protectedResourceMetadata": "https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
+      "protectedResourceMetadata": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
       "tokenEnv": "TENANT_CANARY_TOKEN",
       "pkce": "S256"
     },
