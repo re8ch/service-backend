@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:stalwart-scope-1598aa4@sha256:d4c5af537c83aa4e007b2f1e2d818d80ce53fb8862b98d7ac46baebc340c5be8
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-v2-a7437b0@sha256:f0a9f44206a183ae0fbf18bfd194ce16faaa4c2f1d93c6e76c49a1cce03b44d8
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -79,6 +79,12 @@ spec:
               value: https://api.re8ch.com/auth
             - name: PUBLIC_API_BASE_URL
               value: https://api.re8ch.com/auth
+            - name: IDENTITY_AUTH_URL
+              value: https://db-rw.re8ch.com/auth/v1
+            - name: IDENTITY_RO_URL
+              value: https://db-ro.re8ch.com/identity/rest/v1
+            - name: IDENTITY_V2_RETURN_ORIGINS
+              value: https://auth.re8ch.com,https://re8ch.com,https://api.re8ch.com
             - name: MGR_RPC_RW_BASE_URL
               value: http://192.0.2.158:3000
             - name: MGR_RPC_RO_BASE_URL
