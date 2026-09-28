@@ -18,33 +18,47 @@ class PolicyAgentTest(unittest.TestCase):
             "weightChangeThresholdPercent": 20,
             "decisionTable": 15300,
             "gateways": [
-                {"name": "a1", "address": "192.0.2.18", "staticWeight": 100, "capacityMbps": 1000},
-                {"name": "b1", "address": "192.0.2.208", "staticWeight": 100, "capacityMbps": 1000},
+                {"name": "a1", "address": "10.181.22.147", "staticWeight": 100, "capacityMbps": 1000},
+                {"name": "b1", "address": "10.181.22.125", "staticWeight": 100, "capacityMbps": 1000},
             ],
-            "targets": [{"name": "edge", "address": "192.0.2.225", "staticPreference": {"a1": 100, "b1": 100}}],
+            "targets": [{"name": "edge", "address": "10.250.0.50", "staticPreference": {"a1": 100, "b1": 100}}],
         }
 
     def test_gateway_nexthop_prefers_local_tunnel(self):
-        gateway = {"address": "192.0.2.18", "interface": "wg-pt-a1"}
+        gateway = {"address": "10.181.22.147", "interface": "wg-pt-a1"}
         with patch.object(AGENT, "interface_exists", return_value=True):
             self.assertEqual(AGENT.gateway_nexthop(gateway), ["dev", "wg-pt-a1"])
 
     def test_gateway_nexthop_workers_use_zt_gateway(self):
-        gateway = {"address": "192.0.2.18", "interface": "wg-pt-a1"}
+        gateway = {"address": "10.181.22.147", "interface": "wg-pt-a1"}
         with patch.object(AGENT, "interface_exists", return_value=False):
-            self.assertEqual(AGENT.gateway_nexthop(gateway), ["via", "192.0.2.18"])
+            self.assertEqual(AGENT.gateway_nexthop(gateway), ["via", "10.181.22.147"])
+
+    def test_gateway_leaves_r640_to_direct_bgp_route(self):
+        self.config["targets"].append({"name": "r640", "address": "10.250.0.128", "directRouteOnGateway": True})
+        with patch.object(AGENT, "local_addresses", return_value={"10.181.22.147"}), patch.object(AGENT, "apply_route") as apply:
+            filtered = AGENT.use_direct_gateway_routes(self.config)
+        self.assertEqual([target["name"] for target in filtered["targets"]], ["edge"])
+        apply.assert_called_once_with(self.config, self.config["targets"][1], {}, dry_run=False)
+
+    def test_worker_keeps_r640_gateway_selection(self):
+        self.config["targets"].append({"name": "r640", "address": "10.250.0.128", "directRouteOnGateway": True})
+        with patch.object(AGENT, "local_addresses", return_value={"10.250.0.105"}), patch.object(AGENT, "apply_route") as apply:
+            filtered = AGENT.use_direct_gateway_routes(self.config)
+        self.assertEqual(filtered, self.config)
+        apply.assert_not_called()
 
     def test_ensure_rule_keeps_matching_live_rule(self):
-        current = unittest.mock.MagicMock(stdout="11530: from all to 192.0.2.106/24 lookup 15300\n")
+        current = unittest.mock.MagicMock(stdout="11530: from all to 10.250.0.0/24 lookup 15300\n")
         with patch.object(AGENT, "run", return_value=current) as run:
-            AGENT.ensure_rule(11530, ["to", "192.0.2.106/24", "lookup", "15300"], ["to 192.0.2.106/24", "lookup 15300"])
+            AGENT.ensure_rule(11530, ["to", "10.250.0.0/24", "lookup", "15300"], ["to 10.250.0.0/24", "lookup 15300"])
         run.assert_called_once_with("ip", "rule", "show", "priority", "11530", check=False)
 
     def test_ensure_rule_restores_missing_live_rule(self):
         missing = unittest.mock.MagicMock(stdout="")
         with patch.object(AGENT, "run", side_effect=[missing, unittest.mock.MagicMock(), unittest.mock.MagicMock()]) as run:
-            AGENT.ensure_rule(11530, ["to", "192.0.2.106/24", "lookup", "15300"], ["to 192.0.2.106/24", "lookup 15300"])
-        self.assertEqual(run.call_args_list[-1].args, ("ip", "rule", "add", "priority", "11530", "to", "192.0.2.106/24", "lookup", "15300"))
+            AGENT.ensure_rule(11530, ["to", "10.250.0.0/24", "lookup", "15300"], ["to 10.250.0.0/24", "lookup 15300"])
+        self.assertEqual(run.call_args_list[-1].args, ("ip", "rule", "add", "priority", "11530", "to", "10.250.0.0/24", "lookup", "15300"))
 
     def test_reconcile_selected_routes_reinstalls_last_decision(self):
         state = {"edge": {"weights": {"a1": 1}, "lastChange": 900}}
@@ -58,7 +72,7 @@ class PolicyAgentTest(unittest.TestCase):
             "b1": {"lossPercent": 100, "rttMs": None},
         }
         with patch.object(AGENT, "probe", side_effect=lambda target, gateway, source, *args: measurements[gateway["name"]]), patch.object(AGENT, "apply_route") as apply:
-            state = AGENT.iteration(self.config, "192.0.2.93", {"edge": {"weights": {"a1": 1, "b1": 1}, "lastChange": 990}}, 1000)
+            state = AGENT.iteration(self.config, "10.250.0.38", {"edge": {"weights": {"a1": 1, "b1": 1}, "lastChange": 990}}, 1000)
         self.assertEqual(state["edge"]["weights"], {"a1": 1})
         apply.assert_called_once()
 
@@ -69,13 +83,13 @@ class PolicyAgentTest(unittest.TestCase):
         }
         previous = {"edge": {"weights": {"a1": 1, "b1": 1}, "lastChange": 990}}
         with patch.object(AGENT, "probe", side_effect=lambda target, gateway, source, *args: measurements[gateway["name"]]), patch.object(AGENT, "apply_route") as apply:
-            state = AGENT.iteration(self.config, "192.0.2.93", previous, 1000)
+            state = AGENT.iteration(self.config, "10.250.0.38", previous, 1000)
         self.assertEqual(state["edge"]["weights"], {"a1": 1, "b1": 1})
         apply.assert_not_called()
 
     def test_bfd_withdrawal_prunes_selected_gateway(self):
         state = {"edge": {"weights": {"a1": 1, "b1": 1}, "lastChange": 900}}
-        with patch.object(AGENT, "interface_exists", return_value=False), patch.object(AGENT, "bgp_gateways", return_value={"192.0.2.18"}), patch.object(AGENT, "apply_route") as apply:
+        with patch.object(AGENT, "interface_exists", return_value=False), patch.object(AGENT, "bgp_gateways", return_value={"10.181.22.147"}), patch.object(AGENT, "apply_route") as apply:
             result = AGENT.prune_with_bgp(self.config, state, 1000)
         self.assertEqual(result["edge"]["weights"], {"a1": 1})
         self.assertIn("BGP/BFD", result["edge"]["reason"])

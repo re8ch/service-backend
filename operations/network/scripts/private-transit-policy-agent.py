@@ -270,6 +270,22 @@ def apply_route(config, target, selected, dry_run=False):
         run(*command)
 
 
+def use_direct_gateway_routes(config, dry_run=False):
+    """Leave direct RR-to-R640 BGP paths outside the gateway decision table.
+
+    If A1 sends R640 traffic to B1 while B1 sends it back to A1, the
+    destination-wide policy rule takes precedence over both direct BGP paths.
+    Workers still use the weighted gateway decision table for this target.
+    """
+    addresses = local_addresses()
+    if not any(gateway["address"] in addresses for gateway in config["gateways"]):
+        return config
+    excluded = [target for target in config["targets"] if target.get("directRouteOnGateway")]
+    for target in excluded:
+        apply_route(config, target, {}, dry_run=dry_run)
+    return {**config, "targets": [target for target in config["targets"] if target not in excluded]}
+
+
 def reconcile_selected_routes(config, state, dry_run=False):
     """Restore selected routes after boot-time network managers flush tables."""
     for target in config["targets"]:
@@ -327,6 +343,7 @@ def main():
     args = parser.parse_args()
     config = load(args.config)
     source = args.source or discover_source(config)
+    config = use_direct_gateway_routes(config, dry_run=args.dry_run)
     ensure_policy(config, dry_run=args.dry_run)
     local_gateway_name = start_telemetry_server(config) if not args.dry_run else None
     state_path = Path(args.state)

@@ -27,7 +27,7 @@
     {"name": "overseas-kl", "address": "192.0.2.42", "region": "kuala-lumpur", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "muaya-ecs", "address": "192.0.2.46", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "overseas-la", "address": "192.0.2.29", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "restricted-node-6dc3f140f9", "address": "192.0.2.205", "region": "r640-lan", "staticPreference": {"a1": 100, "b1": 100}},
+    {"name": "restricted-node-6dc3f140f9", "address": "192.0.2.205", "region": "r640-lan", "directRouteOnGateway": true, "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "domain-ex", "address": "192.0.2.31", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "qwen-2", "address": "192.0.2.5", "staticPreference": {"a1": 100, "b1": 100}},
     {"name": "qwen-3", "address": "192.0.2.16", "staticPreference": {"a1": 100, "b1": 100}}
