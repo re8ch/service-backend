@@ -44,7 +44,7 @@ spec:
       enabled: true
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:b1afc95e32a189493e58b7d739bc720a5f9a37f98b4916b5a02bd1cd853be9de
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:9d27f3f2a2ec58ac5ed060693f612dd19f668fc1e808bed83da1f03d941e1c87
       tenantReadinessPath: /readyz
       state:
         storageClassName: rbd-r640
