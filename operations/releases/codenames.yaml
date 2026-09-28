@@ -763,6 +763,8 @@ modules:
       digest: sha256:37ca8a18d5021c28f48fe35b7b6198556fa0ce08a5c9606e629606fb38d7e534
     - codename: chinook-violet
       digest: sha256:17603fa658b6cd85009819908ec992366ae31d8919437e3ef161724c616a2b21
+    - codename: etesian-violet
+      digest: sha256:8bc190d86c4f8e18cf08f2d63a4f1bc126eb2ce2e4c0c324ffa7ed8f081cd148
   platform/adapter:
     releases:
     - codename: anchor
