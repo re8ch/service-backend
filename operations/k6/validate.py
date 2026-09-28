@@ -59,7 +59,11 @@ def validate_catalog(catalog):
 
 def validate_schedules(catalog, k8s_path, workflow_path):
     jobs = [doc for doc in yaml.safe_load_all(repo_path(k8s_path).read_text()) if doc and doc.get("kind") == "CronJob"]
-    actual = {job["metadata"]["name"].removeprefix("k6-contracts-"): job for job in jobs}
+    assert {job["metadata"]["name"] for job in jobs} == {"k6-contracts", "k6-contracts-fast"}, "preserve original CronJob identity when prune is disabled"
+    actual = {
+        ("standard" if job["metadata"]["name"] == "k6-contracts" else job["metadata"]["name"].removeprefix("k6-contracts-")): job
+        for job in jobs
+    }
     assert set(actual) == set(catalog["cadences"]), "one internal CronJob required per cadence"
     for cadence, job in actual.items():
         assert job["spec"]["schedule"] == catalog["cadences"][cadence]["internalCron"], "internal schedule drift"
