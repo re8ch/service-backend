@@ -11,16 +11,16 @@ def test_all_control_planes_share_dual_issuer_authentication():
     assert auth['apiVersion'] == 'apiserver.config.k8s.io/v1'
     assert auth['kind'] == 'AuthenticationConfiguration'
     assert [item['issuer']['url'] for item in auth['jwt']] == [
-        'https://id-stalwart.tools.re8ch.com', 'https://id.re8ch.com'
+        'https://id-stalwart.tools.re8ch.com', 'https://db-rw.re8ch.com/auth/v1'
     ]
     stalwart = auth['jwt'][0]
     assert stalwart['issuer']['audiences'] == ['kubectl-stalwart-pilot']
     assert stalwart['claimMappings'] == {
         'username': {'claim': 'email', 'prefix': 'oidc:'}
     }
-    headlamp_stalwart = auth['jwt'][1]
-    assert headlamp_stalwart['issuer']['audiences'] == ['headlamp']
-    assert headlamp_stalwart['claimMappings'] == {
+    headlamp_supabase = auth['jwt'][1]
+    assert headlamp_supabase['issuer']['audiences'] == ['ed4e0331-7522-59f8-8a72-2d558844dc24']
+    assert headlamp_supabase['claimMappings'] == {
         'username': {'claim': 'email', 'prefix': 'oidc:'}
     }
     for node in ('restricted-node-6dc3f140f9', 'a1-wsl2', 'b1-wsl2'):
@@ -30,11 +30,13 @@ def test_all_control_planes_share_dual_issuer_authentication():
         assert not any(flag.startswith('oidc-') for flag in flags)
 
 
-def test_headlamp_uses_api_trusted_stalwart_issuer_and_service_callback():
+def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     deployment = yaml.safe_load((ROOT.parents[3] / 'platform/headlamp/deployment.yaml').read_text())
     pod = deployment['spec']['template']['spec']
     container = next(item for item in pod['containers'] if item['name'] == 'headlamp')
-    assert '-oidc-idp-issuer-url=https://id.re8ch.com' in container['args']
+    assert '-oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1' in container['args']
+    assert '-oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24' in container['args']
+    assert '-oidc-scopes=profile,email,offline_access' in container['args']
     assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
-    assert aliases['id.re8ch.com'] == '192.0.2.209'
+    assert aliases['db-rw.re8ch.com'] == '192.0.2.209'

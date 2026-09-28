@@ -8,7 +8,7 @@ metadata:
     re8ch.com/access-level: cluster-admin
     re8ch.com/principal-type: human-oidc-user
   annotations:
-    re8ch.com/identity-source: stalwart-idp
+    re8ch.com/identity-source: supabase-identity
     re8ch.com/equivalent-principal: oidc:admin@re8ch.com
     re8ch.com/identity-evidence: "Live Supabase and RE8CH Auth records identify harry@re8ch.com as the administrator; admin@re8ch.com has no account record"
 roleRef:
@@ -16,7 +16,7 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
 subjects:
-  # Stalwart currently emits an email claim without groups.
+  # Supabase ID tokens include email when Headlamp requests the email scope.
   - apiGroup: rbac.authorization.k8s.io
     kind: User
     name: oidc:harry@re8ch.com

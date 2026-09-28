@@ -9,7 +9,7 @@ jwt:
       # The pilot therefore reuses the existing named-user RBAC binding.
       username: {claim: email, prefix: 'oidc:'}
   - issuer:
-      url: https://id.re8ch.com
-      audiences: [headlamp]
+      url: https://db-rw.re8ch.com/auth/v1
+      audiences: [ed4e0331-7522-59f8-8a72-2d558844dc24]
     claimMappings:
       username: {claim: email, prefix: 'oidc:'}
