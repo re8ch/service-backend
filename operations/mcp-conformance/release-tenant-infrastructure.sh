@@ -53,8 +53,29 @@ trap 'rm -f "$metadata"' EXIT
 
 : "${HARBOR_USERNAME:?HARBOR_USERNAME is required for registry publication}"
 : "${HARBOR_PASSWORD:?HARBOR_PASSWORD is required for registry publication}"
-echo "Logging in to image registry ${TENANT_IMAGE_REPOSITORY%%/*}"
-printf '%s' "$HARBOR_PASSWORD" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+echo "Configuring image registry authentication for ${TENANT_IMAGE_REPOSITORY%%/*}"
+if [[ "${TENANT_IMAGE_INLINE_AUTH:-}" == "1" ]]; then
+  : "${DOCKER_CONFIG:?DOCKER_CONFIG is required for inline release auth}"
+  python3 - "$DOCKER_CONFIG/config.json" "${TENANT_IMAGE_REPOSITORY%%/*}" <<'PY'
+import base64
+import json
+import os
+import sys
+
+path, registry = sys.argv[1:]
+with open(path, encoding="utf-8") as stream:
+    config = json.load(stream)
+credential = f"{os.environ['HARBOR_USERNAME']}:{os.environ['HARBOR_PASSWORD']}".encode()
+config.setdefault("auths", {})[registry] = {
+    "auth": base64.b64encode(credential).decode("ascii")
+}
+with open(path, "w", encoding="utf-8") as stream:
+    json.dump(config, stream)
+os.chmod(path, 0o600)
+PY
+else
+  printf '%s' "$HARBOR_PASSWORD" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+fi
 
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 push_attempt=1
