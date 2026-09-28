@@ -5,3 +5,4 @@ resources:
 - public-auth-route.yaml
 - db-rw-auth-route.yaml
 - studio-public-route.yaml
+- oauth-clients-headlamp.yaml
