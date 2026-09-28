@@ -114,3 +114,40 @@ The cutover deliberately invalidates old sessions. Preserve the legacy auth
 database and reviewed old route declarations for rollback. Any production
 Studio schema edit must be recorded as SQL and followed by a reviewed schema
 migration PR.
+
+## Identity REST and Realtime
+
+The identity data routes add `https://db-rw.re8ch.com/identity/rest/v1`,
+`https://db-ro.re8ch.com/identity/rest/v1`, and
+`wss://db-rw.re8ch.com/realtime/v1/websocket`. They leave existing `/auth`
+and `/auth/v1` routes intact. The read-only PostgREST deployment uses
+`pg-re8ch-replicas`, so writes fail at PostgreSQL even if a future `api`
+function is accidentally exposed. Read-after-write flows must use the writer
+or the result of the write, since a replica can lag.
+
+Before merging the Realtime manifests, check pgBackRest status, confirm
+`wal_level=logical`, and provision these additional keys in the existing
+`supabase-identity-secrets` using the cluster secret manager:
+
+- `PGRST_RO_DB_URI`: same restricted PostgREST credentials and database as
+  `PGRST_DB_URI`, with host `pg-re8ch-replicas.pigsty-external.svc.cluster.local`.
+- `JWT_PUBLIC_JWKS`: only public EC signing JWKs from `GOTRUE_JWT_KEYS`.
+- `JWT_VERIFICATION_JWKS`: those public EC keys plus the existing internal
+  HS256 verification JWK, for PostgREST compatibility during key migration.
+
+Never publish either key set as a static file: the verification set contains a
+symmetric key. Keep the keys aligned with GoTrue when rotating signers. As
+`postgres` against `re8ch_identity`, apply `realtime-bootstrap.sql` before
+starting Realtime. The deployment pins the upstream Realtime image digest and
+seeds tenant `supabase-identity-realtime`; its Service name must match that
+tenant because Realtime derives the tenant from the upstream Host header.
+After the service has created `realtime.messages`, apply
+`identity-realtime-events.sql` to install the private user channel policy and
+profile/authorization invalidation triggers. Clients subscribe to private
+`identity:user:<GoTrue UUID>` and refetch from REST after `identity_changed`.
+The event is advisory; API authorization always checks the database.
+
+Verify the WebSocket upgrade from the public edge and from the User Center
+environment, another user's topic denial, the read-only route rejecting writes,
+and the absence of long-lived replication slot lag. On Realtime failure, remove
+its new HTTPRoute and triggers while keeping GoTrue and REST available.

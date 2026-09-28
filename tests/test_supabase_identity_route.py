@@ -34,3 +34,15 @@ def test_db_rw_auth_path_is_more_specific_than_existing_postgrest_fallback():
     postgrest = list(yaml.safe_load_all((ROOT / "clusters/re8ch/components/observable/postgrest-ha.yaml").read_text()))
     fallback = next(item for item in postgrest if item and item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "observable-postgrest-rw")
     assert fallback["spec"]["rules"][-1]["matches"][0]["path"] == {"type": "PathPrefix", "value": "/"}
+
+
+def test_identity_data_routes_keep_ro_and_rw_separate():
+    routes = list(yaml.safe_load_all((ROOT / "operations/supabase-identity/identity-data-routes.yaml").read_text()))
+    by_host = {route["spec"]["hostnames"][0]: route for route in routes}
+    ro = by_host["db-ro.re8ch.com"]["spec"]["rules"][0]
+    rw = by_host["db-rw.re8ch.com"]["spec"]["rules"]
+    assert ro["backendRefs"] == [{"name": "supabase-identity-rest-ro", "port": 3000}]
+    assert ro["matches"][0]["path"]["value"] == "/identity/rest/v1"
+    assert rw[0]["backendRefs"] == [{"name": "supabase-identity-rest", "port": 3000}]
+    assert rw[1]["matches"][0]["path"]["value"] == "/realtime/v1"
+    assert rw[1]["backendRefs"] == [{"name": "supabase-identity-kong", "port": 8000}]
