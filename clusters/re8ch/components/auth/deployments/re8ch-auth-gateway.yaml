@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:stalwart-bulwark-1edde56@sha256:b2576b9e561213ba90597d363377e990e35ebbd845cb1fb648c60a94d2c9cc1a
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:stalwart-scope-1598aa4@sha256:d4c5af537c83aa4e007b2f1e2d818d80ce53fb8862b98d7ac46baebc340c5be8
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
