@@ -505,6 +505,8 @@ modules:
       digest: sha256:5653eefab7a27da3721682f27837d5fe88e22096e475a074f72dbc56412253c0
     - codename: meridian-pearl
       digest: sha256:076ca3339364596edff4abe538d7816af01b25f03b281c27ac9df3942c2e073b
+    - codename: passage-pearl
+      digest: sha256:24540f65a6c02cd66f908406932677a8f2ea87cd63a7cbca83d3f7eb2a39a7e9
   platform/birfucate-metering:
     releases:
     - codename: cascade
