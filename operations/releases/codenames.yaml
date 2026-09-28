@@ -426,6 +426,8 @@ modules:
       digest: sha256:721066a28e9469a1844c3f2fb790eb5329e4e7cb4ec7e7cb66906683082c3922
     - codename: lighthouse-copper
       digest: sha256:c50d309b52c8dcff6d9b4b9d3878bbb8dea9d5711a07bb9c4fc7f564dd1c53b7
+    - codename: signal-copper
+      digest: sha256:8d5bb91218df81543d76f0616049bda44a7cf63288a3a2d54b785b27267aa9a2
   platform/apps/access-subscription:
     releases:
     - codename: aegis
