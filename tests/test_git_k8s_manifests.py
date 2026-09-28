@@ -82,8 +82,10 @@ def test_live_nodes_receive_optional_mihomos_placement():
     assert set(by_name) == live_nodes
     for node in by_name.values():
         labels = node["metadata"]["labels"]
-        assert labels["networking.re8ch.com/mihomo-node"] == "enabled"
-        assert labels["networking.re8ch.com/geo"] in {"cn", "global"}
+        assert "topology.kubernetes.io/region" in labels
+        assert "networking.re8ch.com/mihomo-node" not in labels
+        assert "networking.re8ch.com/geo" not in labels
+        assert "networking.re8ch.com/mihomo-exit" not in labels
 
 
 
