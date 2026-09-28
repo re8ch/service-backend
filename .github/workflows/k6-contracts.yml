@@ -1,16 +1,25 @@
 name: k6 functional contracts
 on:
   schedule:
-    - cron: "17,47 * * * *"
+    - cron: "2/5 * * * *"
+    - cron: "18,48 * * * *"
   workflow_dispatch:
+    inputs:
+      cadence:
+        description: Functional check cadence
+        type: choice
+        options: [fast, standard, all]
+        default: all
 permissions: {contents: read}
 concurrency:
-  group: k6-contracts-${{ github.ref }}
-  cancel-in-progress: true
+  group: k6-contracts-${{ github.event.schedule || inputs.cadence || github.ref }}
+  cancel-in-progress: false
 jobs:
   contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      PROBE_CADENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.cadence || (github.event.schedule == '2/5 * * * *' && 'fast' || 'standard') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate versioned probe contracts
@@ -19,6 +28,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/k6"
           docker run --rm --user "$(id -u):$(id -g)" \
+            --env PROBE_VANTAGE=external --env PROBE_CADENCE="$PROBE_CADENCE" \
             --volume "$PWD/clusters/re8ch/components/synthetic-monitoring:/work:ro" \
             --volume "$RUNNER_TEMP/k6:/results" \
             --workdir /work \
