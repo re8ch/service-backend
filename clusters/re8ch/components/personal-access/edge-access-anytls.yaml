@@ -16,7 +16,8 @@ data:
         users:
     __ANYTLS_USERS__
         certificate: /etc/mihomo/tls/tls.crt
-        private-key: /etc/mihomo/tls/tls.key
+        private-key:
+          /etc/mihomo/tls/tls.key
         proxy: NODE-SMART-EGRESS
     rules: ["MATCH,NODE-SMART-EGRESS"]
 ---
