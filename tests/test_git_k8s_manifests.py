@@ -420,11 +420,14 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert '"signatureAlgorithm":"es256"' in plan
     assert '"accessTokenExpiry":900000' in plan
     assert '"clientId":"kubectl-stalwart-pilot"' in plan
+    assert '"clientId":"headlamp"' in plan
+    assert '"clientId":"storage-collaborator"' in plan
+    assert '"https://headlamp.service.re8ch.com/oidc-callback":true' in plan
     assert '"clientId":"re8ch-cloud-platform-tool"' in plan
     assert '"clientId":"re8ch-platform-admin"' in plan
     assert '"clientId":"re8ch-tenant"' in plan
     bootstrap = next(item for item in resources if item["kind"] == "Job")
-    assert bootstrap["metadata"]["name"] == "stalwart-idp-bootstrap-v4"
+    assert bootstrap["metadata"]["name"] == "stalwart-idp-bootstrap-v5"
     bootstrap_container = bootstrap["spec"]["template"]["spec"]["containers"][0]
     assert {item["name"]: item["value"] for item in bootstrap_container["env"]}["XDG_CACHE_HOME"] == "/cache"
     assert {item["name"]: item["mountPath"] for item in bootstrap_container["volumeMounts"]}["cache"] == "/cache"

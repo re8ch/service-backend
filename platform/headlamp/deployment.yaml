@@ -24,12 +24,11 @@ spec:
     spec:
       serviceAccountName: headlamp
       priorityClassName: system-cluster-critical
-      # Keep token and key requests for the configured Dex service issuer on the
-      # in-cluster Cilium Gateway, avoiding public-edge hairpin routing.
+      # Resolve the Stalwart issuer through the in-cluster Cilium Gateway.
       hostAliases:
         - ip: "192.0.2.213"
           hostnames:
-            - dex.service.re8ch.com
+            - id.re8ch.com
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       affinity:
@@ -230,18 +229,7 @@ spec:
           args:
             - |
               umask 077
-              while IFS= read -r line; do
-                printf '%s\n' "$line"
-                if [ "$line" = "          client-id: headlamp" ]; then
-                  printf '          client-%s: "%s"\n' secret "$OIDC_CLIENT_SECRET"
-                fi
-              done < /template/qwen.kubeconfig.template > /work/qwen.kubeconfig
-          env:
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: headlamp-oidc
-                  key: client-secret
+              cp /template/qwen.kubeconfig.template /work/qwen.kubeconfig
           volumeMounts:
             - name: qwen-kubeconfig-template
               mountPath: /template
@@ -254,18 +242,7 @@ spec:
           args:
             - |
               umask 077
-              while IFS= read -r line; do
-                printf '%s\n' "$line"
-                if [ "$line" = "          client-id: headlamp" ]; then
-                  printf '          client-%s: "%s"\n' secret "$OIDC_CLIENT_SECRET"
-                fi
-              done < /template/artc.kubeconfig.template > /work/artc.kubeconfig
-          env:
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: headlamp-oidc
-                  key: client-secret
+              cp /template/artc.kubeconfig.template /work/artc.kubeconfig
           volumeMounts:
             - name: artc-kubeconfig-template
               mountPath: /template
@@ -282,17 +259,14 @@ spec:
             - -enable-dynamic-clusters
             - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
             - -oidc-client-id=headlamp
-            - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
-            # Use the service-domain issuer managed alongside the Headlamp
-            # route. The browser callback and Dex discovery metadata must agree
-            # on this issuer throughout the login flow.
-            - -oidc-idp-issuer-url=https://dex.service.re8ch.com
+            - -oidc-idp-issuer-url=https://id.re8ch.com
             # Headlamp v0.42 represents an unset in-cluster OIDC CA as a
             # non-nil empty string. Point it at the valid system trust bundle.
             - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
             - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
             # Headlamp adds openid itself when building the authorization URL.
-            - -oidc-scopes=profile,email,groups,offline_access
+            - -oidc-scopes=offline_access
+            - -oidc-use-pkce
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:
@@ -305,11 +279,6 @@ spec:
               value: "6443"
             - name: KUBERNETES_SERVICE_PORT_HTTPS
               value: "6443"
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: headlamp-oidc
-                  key: client-secret
           ports:
             - name: http
               containerPort: 4466
