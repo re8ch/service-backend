@@ -7,7 +7,6 @@ resources:
   - workloads.yaml
   - regional-policy-workloads.yaml
   - node-egress-labels.yaml
-  - mihomo-node-labeler.yaml
   - network-policy.yaml
   - mobile-policy-api.yaml
   - identity-egress.yaml
@@ -24,9 +23,5 @@ configMapGenerator:
     namespace: egress-fabric
     files:
       - cn-ip-rules.yaml=geodb/cn-ip-rules.yaml
-  - name: mihomo-node-labeler-code
-    namespace: egress-fabric
-    files:
-      - mihomo_node_labels.py=controller/mihomo_node_labels.py
 generatorOptions:
   disableNameSuffixHash: true
