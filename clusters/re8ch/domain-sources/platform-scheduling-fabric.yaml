@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: grove-silver
+    delivery.re8ch.com/codename: reef-silver
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:161e590fc01accb4b00654603f2e634d16fc70feaf4345855eafa8e0b05d5381
+    digest: sha256:9b8d8704103ad5c64bd14508e41078cb7e65d62aa8425ffeb4298955289a2f27
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: grove-silver
+    delivery.re8ch.com/codename: reef-silver
 spec:
   interval: 1m
   retryInterval: 1m
