@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: zephyr-umber
+codename: bora-violet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:925b7de6a8f26583778056093f9768716f34b356e0abfd750a0f273d9a12ef59
+  digest: sha256:37ca8a18d5021c28f48fe35b7b6198556fa0ce08a5c9606e629606fb38d7e534
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

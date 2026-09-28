@@ -731,6 +731,8 @@ modules:
       digest: sha256:dcb92eb80752276cd9f272b2c94cc7d65d05af2d637ef5c8c11156732b9985fc
     - codename: zephyr-umber
       digest: sha256:925b7de6a8f26583778056093f9768716f34b356e0abfd750a0f273d9a12ef59
+    - codename: bora-violet
+      digest: sha256:37ca8a18d5021c28f48fe35b7b6198556fa0ce08a5c9606e629606fb38d7e534
   platform/adapter:
     releases:
     - codename: anchor
