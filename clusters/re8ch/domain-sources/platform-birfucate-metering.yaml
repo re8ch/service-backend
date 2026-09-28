@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: springtide-pearl
+    delivery.re8ch.com/codename: tideway-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:fbfa4d179ca10c9af45ce9b03168abc03fb6ad7636a8833f40b7c765a33f36f0
+    digest: sha256:d5d5da7de6ca9ce5433f409f8762d0e2f0008b05f293b7a9e6b84a10134ba0d4
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: springtide-pearl
+    delivery.re8ch.com/codename: tideway-pearl
 spec:
   interval: 1m
   retryInterval: 1m
