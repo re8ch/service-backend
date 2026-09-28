@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:42a9942f805b7e7d6ed36e1cf13fb9f757a592a069bdf8572515f21464880148}
+  ref: {digest: sha256:451e5b7c85d667c5d75842292e580ab80acafb0011e5ff454fe85a18c7fe9579}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -28,9 +28,9 @@ spec:
   values:
     image:
       repository: registry.re8ch.com/public-edge/public-edge-manager
-      tag: "v0.6.13"
+      tag: "v0.6.14"
       # Mirror of the pinned upstream release, pulled by digest on restricted-node-6dc3f140f9.
-      digest: sha256:249f0bd86d8b0ff683b5df09cf61a5294ea70fddd3d9afe913ab78d9dab209e0
+      digest: sha256:d6d75792dea89758ec0c642f64700143266dba960780ae36acc9c82ec97c993e
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
