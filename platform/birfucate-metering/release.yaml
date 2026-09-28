@@ -24,6 +24,9 @@ spec:
       retries: 3
   upgrade:
     crds: CreateReplace
+    # An old tenant runtime can remain NotReady when its retired auth dependency
+    # disappears. Apply the replacement image before evaluating Pod readiness.
+    disableWait: true
     # Tenant identity deletion is intentionally gated by an explicit revoke.
     # Automatic cleanup can otherwise turn a transient timeout into an auth
     # outage by trying to delete newly-created, active bindings.
