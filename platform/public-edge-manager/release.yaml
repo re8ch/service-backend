@@ -192,13 +192,9 @@ spec:
       mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
       id.re8ch.com.: {service: stalwart-idp, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       hooks.re8ch.com.: {service: hooks, class: web, probePath: /hook/, acceptedStatuses: [400, 404]}
-    readinessGates:
-      db-rw:
-        configMap: {namespace: kube-system, name: pg-re8ch-role-authority, dataKey: authority.json}
-        requiredFields: {authority: patroni}
-        addressPath: [leader, address]
-        endpointSlice: {namespace: pigsty-external, name: pg-re8ch-primary}
-        requireSingleReadyAddress: true
+    # PublicEdge status already supplies edge transport readiness. The legacy
+    # db-rw gate performs two Kubernetes API reads during each DNS query and
+    # can exceed recursive resolver timeouts even while Supabase is healthy.
     workload:
       httpPort: 18080
       tolerations:
