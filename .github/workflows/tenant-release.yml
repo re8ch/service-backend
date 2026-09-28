@@ -32,21 +32,18 @@ jobs:
           # The runner's personal Docker config uses a locked macOS Keychain.
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
+          umask 077
           printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker buildx create --name "tenant-release-${GITHUB_RUN_ID}" --driver docker-container --use
           echo "TENANT_IMAGE_BUILDER=tenant-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: registry.re8ch.com
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          TENANT_IMAGE_INLINE_AUTH: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-release-${{ github.sha }}
