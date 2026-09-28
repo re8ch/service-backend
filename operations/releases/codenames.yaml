@@ -107,6 +107,8 @@ modules:
       digest: sha256:1ddcea1ae5bbf56e08ee31bdc8a3ad91dd4c994d62409b3b04852c49fae41304
     - codename: mistral-amber
       digest: sha256:aef4361717481369581a6557b360613b754a6c999718db2de50429357d3db19f
+    - codename: sirocco-amber
+      digest: sha256:0732aec0cdaa1b1ab453bb60ad18c419ba5b98ea3a70dcbb732ecb7c008979ac
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
