@@ -60,8 +60,12 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     services = yaml.safe_load(kong["data"]["kong.yml"])["services"]
     assert {service["name"] for service in services} == {
         "auth-v1-open", "auth-v1-open-callback", "auth-v1-open-authorize",
-        "auth-v1", "rest-v1", "meta", "dashboard",
+        "auth-v1", "rest-v1", "realtime-v1-ws", "meta", "dashboard",
     }
+    realtime = next(service for service in services if service["name"] == "realtime-v1-ws")
+    assert realtime["protocol"] == "ws"
+    assert realtime["url"] == "http://supabase-identity-realtime:4000/socket"
+    assert {plugin["name"] for plugin in realtime["plugins"]} >= {"key-auth", "acl"}
     assert next(service for service in services if service["name"] == "dashboard")["url"] == "http://supabase-identity-studio:3000/"
 
     clients = list(yaml.safe_load_all((ROOT / "operations/supabase-identity/oauth-clients-headlamp.yaml").read_text()))

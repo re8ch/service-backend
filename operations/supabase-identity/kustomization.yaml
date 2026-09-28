@@ -6,3 +6,6 @@ resources:
 - db-rw-auth-route.yaml
 - studio-public-route.yaml
 - oauth-clients-headlamp.yaml
+- realtime-stack.yaml
+- identity-data-routes.yaml
+- identity-rest-ro.yaml
