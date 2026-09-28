@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: confluence-pearl
+codename: riptide-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:d47de19685b28572201b52fa73b8b8cc12af73c728052561a7c6f5836f55b116
+  digest: sha256:601f1c4dbb5436d48dc3344cf4b17a959181dff66dc75569c0a61ee56c0c0cc0
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

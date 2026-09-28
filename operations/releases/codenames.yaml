@@ -585,6 +585,12 @@ modules:
       digest: sha256:7ccda4e10004c24317cd6bc76b3fc5b76a4be1f20858365e7f19c79472556eb1
     - codename: confluence-pearl
       digest: sha256:d47de19685b28572201b52fa73b8b8cc12af73c728052561a7c6f5836f55b116
+    - codename: eddy-pearl
+      digest: sha256:596403bfe6f4e13f123a3afdca8291ed4edb60dea2d687a5610d1dfc49555612
+    - codename: gulfstream-pearl
+      digest: sha256:591dc17e4c7991a22d1721641396c7b9975c510001f5880cf21441333ab40efb
+    - codename: riptide-pearl
+      digest: sha256:601f1c4dbb5436d48dc3344cf4b17a959181dff66dc75569c0a61ee56c0c0cc0
   platform/hyperswitch:
     releases:
     - codename: anchor
