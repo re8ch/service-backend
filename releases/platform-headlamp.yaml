@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: lighthouse-jade
+codename: signal-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:1ce37590a80ce4830b606bd92eb848d1836c91e9a8cf2db4e886b0d20d68b298
+  digest: sha256:c9a49c4f47cd899d8d75b0947b4113ce961339905f54b7d805ad64b05877059d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
