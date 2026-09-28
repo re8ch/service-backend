@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:auth-public-pkce-df8dcfe@sha256:3dbe5accbbc06196ac20d4c2dc240ed9c56928b70cc1baf3baadcde0175a1677
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:oauth-token-errors-b4d5f40@sha256:0ee3549cc375ec1adac2407b532cf17c0655739f5e30e6dbb2bebff76df16b26
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
