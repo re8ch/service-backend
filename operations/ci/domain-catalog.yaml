@@ -126,6 +126,7 @@ domains:
     tests:
       - tests/test_observability.py
       - tests/test_k6_contracts.py
+      - tests/test_k6_summary.py
 
   tenant-runtime:
     theme: habitats
