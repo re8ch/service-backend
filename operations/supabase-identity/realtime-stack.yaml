@@ -25,7 +25,7 @@ spec:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: realtime
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       tolerations:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
@@ -39,9 +39,9 @@ spec:
             - {name: DB_HOST, value: pg-re8ch-primary.pigsty-external.svc.cluster.local}
             - {name: DB_PORT, value: '5432'}
             - {name: DB_NAME, value: re8ch_identity}
-            - {name: DB_USER, value: postgres}
+            - {name: DB_USER, value: supabase_realtime}
             - name: DB_PASSWORD
-              valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_PASSWORD}}
+              valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: REALTIME_DB_PASSWORD}}
             - {name: DB_AFTER_CONNECT_QUERY, value: 'SET search_path TO _realtime'}
             - name: DB_ENC_KEY
               valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: REALTIME_DB_ENC_KEY}}
