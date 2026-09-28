@@ -32,7 +32,7 @@ jobs:
           # The runner's personal Docker config uses a locked macOS Keychain.
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
-          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker buildx create --name "tenant-release-${GITHUB_RUN_ID}" --driver docker-container --use
           echo "TENANT_IMAGE_BUILDER=tenant-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
