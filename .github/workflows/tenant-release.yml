@@ -26,15 +26,14 @@ jobs:
     # trusted runner reaches Harbor directly while GitHub still owns the run.
     runs-on: [self-hosted, macOS, ARM64, macmini-a1]
     environment: production
-    env:
-      # The runner's personal Docker config uses a locked macOS Keychain.
-      # Keep release credentials in this job's temporary Docker config.
-      DOCKER_CONFIG: ${{ runner.temp }}/tenant-release-docker
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: |
+          # The runner's personal Docker config uses a locked macOS Keychain.
+          export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker buildx create --name "tenant-release-${GITHUB_RUN_ID}" --driver docker-container --use
           echo "TENANT_IMAGE_BUILDER=tenant-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
