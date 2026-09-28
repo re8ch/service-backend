@@ -239,6 +239,7 @@ items:
         taints: [{key: dedicated, value: overseas-edge, effect: NoSchedule}]
         parameters: {cpu: 1, memoryKi: 2009928, ephemeralStorageKi: 20553408, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-27-generic}
         network: {region: us-ca, zone: us-ca, uplinkMbps: 1000, controlRoute: zt-primary, externalIPMode: static}
+        fabric: {role: spine, class: A, failureDomain: overseas-la-2, provider: dmit, internalIP: 192.0.2.47, podCIDR: 192.0.2.203/24, acceleratedIP: 192.0.2.148, asn: 65006, legacyASN: 4200000220, monthlyTrafficLimitGiB: 1024, publicAuthority: true, inventoryComplete: true}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
   - metadata: {name: overseas-flk}
@@ -255,6 +256,7 @@ items:
         taints: [{key: dedicated, value: overseas-edge, effect: NoSchedule}]
         parameters: {cpu: 2, memoryKi: 3906284, ephemeralStorageKi: 39020108, osImage: Ubuntu 26.04.1 LTS, kernelVersion: 7.0.0-30-generic}
         network: {region: de-fsn, zone: falkenstein, uplinkMbps: 400, controlRoute: zt-primary, externalIPMode: static}
+        fabric: {role: spine, class: A, failureDomain: overseas-flk, provider: hetzner, internalIP: 192.0.2.39, podCIDR: 192.0.2.165/24, acceleratedIP: 192.0.2.48, asn: 65005, legacyASN: 4200000105, monthlyTrafficLimitGiB: 20480, publicAuthority: true, inventoryComplete: true}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
   - metadata: {name: overseas-la}
