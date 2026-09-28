@@ -1,0 +1,10 @@
+{
+  "revisions": [
+    {
+      "number": 1,
+      "contractSha256": "3c0a309fa3ff0114344ea42ffa0be54fd8d7aab2a9face071e3b90782cb8a553",
+      "previousSha256": null,
+      "reason": "Initial read-only authentication and Cloud MCP contract probes"
+    }
+  ]
+}
