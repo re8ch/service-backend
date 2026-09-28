@@ -920,31 +920,30 @@ def tenant_catalog_for_profile() -> list[dict[str, Any]]:
     return service_catalog()
 
 
-def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
-    """Materialize bounded, tenant-scoped MCP resources; samples remain outside Kubernetes/MCP."""
+def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
+    """List authorized resource descriptors without fetching their contents."""
     tenant = authenticated_tenant(identity)
-    store = tenant_service_store()
-    records: list[tuple[str, str, Any]] = [
-        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", {"services": tenant_catalog_for_profile(), "pricingIncluded": False}),
+    records = [
+        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(), "pricingIncluded": False}),
     ]
     if PROFILE == "admin":
         records.extend([
-            ("re8ch://admin/tenants", "Tenants", {"tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}),
-            ("re8ch://admin/byoc/registrations", "BYOC registrations", {"registrations": store.registrations()}),
-            ("re8ch://admin/byoc/connections", "BYOC connections", {"connections": store.connections()}),
+            ("re8ch://admin/tenants", "Tenants", lambda: {"tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}),
+            ("re8ch://admin/byoc/registrations", "BYOC registrations", lambda: {"registrations": tenant_service_store().registrations()}),
+            ("re8ch://admin/byoc/connections", "BYOC connections", lambda: {"connections": tenant_service_store().connections()}),
         ])
     else:
         records.extend([
-            (f"re8ch://tenant/{tenant}/instances", "Service instances", {"instances": store.list(tenant)}),
-            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", {"bindings": store.bindings(tenant)}),
-            (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", store.usage_summary(tenant, None)),
-            (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", tenant_control_request("/v1/claims", tenant)),
-            (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", tenant_claim_usage_summary(tenant)),
-            (f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities()),
-            (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
-            (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", {"connections": store.connections(tenant)}),
+            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": tenant_service_store().list(tenant)}),
+            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": tenant_service_store().bindings(tenant)}),
+            (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", lambda: tenant_service_store().usage_summary(tenant, None)),
+            (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", lambda: tenant_control_request("/v1/claims", tenant)),
+            (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", lambda: tenant_claim_usage_summary(tenant)),
+            (f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities),
+            (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", lambda: {"registrations": tenant_service_store().registrations(tenant)}),
+            (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", lambda: {"connections": tenant_service_store().connections(tenant)}),
         ])
-    return [{"uri": uri, "name": name, "mimeType": "application/json", "value": value} for uri, name, value in records]
+    return [{"uri": uri, "name": name, "mimeType": "application/json", "get_value": get_value} for uri, name, get_value in records]
 
 
 def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, Any]:
@@ -961,7 +960,7 @@ def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, An
         offset = int(cursor or "0")
     except ValueError as exc:
         raise ValueError("invalid resource cursor") from exc
-    records = mcp_resources(identity)
+    records = mcp_resource_definitions(identity)
     if offset < 0 or offset > len(records):
         raise ValueError("invalid resource cursor")
     page = records[offset:offset + page_size]
@@ -981,10 +980,10 @@ def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
         if isinstance(value, dict) and isinstance(value.get("blob"), (bytes, bytearray)):
             return {"contents": [{"uri": uri, "mimeType": value.get("mimeType", "application/octet-stream"), "blob": base64.b64encode(value["blob"]).decode()}]}
         return {"contents": [{"uri": uri, "mimeType": "application/json", "text": json.dumps(value, ensure_ascii=False, separators=(",", ":"))}]}
-    match = next((item for item in mcp_resources(identity) if item["uri"] == uri), None)
+    match = next((item for item in mcp_resource_definitions(identity) if item["uri"] == uri), None)
     if not match:
         raise PermissionError("resource is not visible to the authenticated tenant")
-    return {"contents": [{"uri": uri, "mimeType": match["mimeType"], "text": json.dumps(match["value"], ensure_ascii=False, separators=(",", ":"))}]}
+    return {"contents": [{"uri": uri, "mimeType": match["mimeType"], "text": json.dumps(match["get_value"](), ensure_ascii=False, separators=(",", ":"))}]}
 
 
 def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
