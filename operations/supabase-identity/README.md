@@ -114,3 +114,66 @@ The cutover deliberately invalidates old sessions. Preserve the legacy auth
 database and reviewed old route declarations for rollback. Any production
 Studio schema edit must be recorded as SQL and followed by a reviewed schema
 migration PR.
+
+## Identity REST and Realtime
+
+The identity data routes add `https://db-rw.re8ch.com/identity/rest/v1`,
+`https://db-ro.re8ch.com/identity/rest/v1`, and
+`wss://db-rw.re8ch.com/realtime/v1/websocket`. They leave existing `/auth`
+and `/auth/v1` routes intact. The read-only PostgREST deployment uses
+the dedicated `identity_ro_authenticator` login role with
+`default_transaction_read_only=on`. It currently connects to the primary:
+the declared replica endpoints do not contain `re8ch_identity`, and the
+primary reports no active streaming replicas. The database rejects writes on
+this connection even if an API function exposes a write endpoint. Migrate the
+connection to a verified replica only after replication and database presence
+have been checked. The read-only session cannot issue `LISTEN`; its PostgREST
+notification channel is disabled and schema changes require a deployment
+restart to reload the cache.
+
+Before merging the Realtime manifests, check pgBackRest status, confirm
+`wal_level=logical`, and provision these additional keys in the existing
+`supabase-identity-secrets` using the cluster secret manager:
+
+- `PGRST_RO_DB_URI`: dedicated `identity_ro_authenticator` credentials for
+  `re8ch_identity` on `pg-re8ch-primary.pigsty-external.svc.cluster.local`.
+  Grant `anon`, `authenticated`, and `service_role` to this `NOINHERIT` login
+  role, and set `default_transaction_read_only=on` before exposing the route.
+- `REALTIME_DB_PASSWORD`: password for dedicated `supabase_realtime` login
+  role with replication privilege and ownership of `_realtime`.
+- `JWT_PUBLIC_JWKS`: only public EC signing JWKs from `GOTRUE_JWT_KEYS`.
+- `JWT_VERIFICATION_JWKS`: those public EC keys plus the existing internal
+  HS256 verification JWK, for PostgREST compatibility during key migration.
+
+Never publish either key set as a static file: the verification set contains a
+symmetric key. Keep the keys aligned with GoTrue when rotating signers. As
+`postgres` against `re8ch_identity`, apply `realtime-bootstrap.sql` before
+starting Realtime. The deployment pins the upstream Realtime image digest and
+seeds tenant `supabase-identity-realtime`; its Service name must match that
+tenant because Realtime derives the tenant from the upstream Host header.
+After the service has created `realtime.messages`, apply
+`identity-realtime-events.sql` to install the private user channel policy and
+profile/authorization invalidation triggers. Clients subscribe to private
+`identity:user:<GoTrue UUID>` and refetch from REST after `identity_changed`.
+The event is advisory; API authorization always checks the database.
+
+## Google and Apple bridge
+
+GoTrue uses the existing Google and Apple OAuth clients, with their already
+registered provider callback URLs at `api.re8ch.com/auth/callback/{provider}`.
+The API gateway dispatches a callback with a matching legacy signed state to
+the legacy handler and proxies a GoTrue state to `/auth/v1/callback`. This
+preserves old clients while permitting GoTrue PKCE login. Copy the provider
+client IDs and secrets from `auth/re8ch-auth-gateway-secrets` to the identity
+Secret through the cluster secret manager; never put values in Git. Apple’s
+client-secret JWT must be renewed before expiry. Keep `DISABLE_SIGNUP=true`.
+Separate provider linking domains prevent automatic linking by matching email;
+the imported provider subject or explicit account binding decides the user.
+`/auth/v2/callback` is the exact allowlisted post-login destination for the
+stateless API facade. Enable browser login only after its callback proxy and
+identity mapping checks pass.
+
+Verify the WebSocket upgrade from the public edge and from the User Center
+environment, another user's topic denial, the read-only route rejecting writes,
+and the absence of long-lived replication slot lag. On Realtime failure, remove
+its new HTTPRoute and triggers while keeping GoTrue and REST available.

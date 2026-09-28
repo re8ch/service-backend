@@ -12,10 +12,10 @@ metadata:
   namespace: supabase-identity
 spec:
   hard:
-    requests.cpu: 500m
-    limits.cpu: 1250m
-    requests.memory: 1024Mi
-    limits.memory: 4096Mi
+    requests.cpu: 700m
+    limits.cpu: 2000m
+    requests.memory: 1536Mi
+    limits.memory: 5120Mi
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -52,7 +52,7 @@ data:
   SMTP_USER: ''
   SMTP_PASS: ''
   SMTP_SENDER_NAME: RE8CH Supabase
-  ADDITIONAL_REDIRECT_URLS: ''
+  ADDITIONAL_REDIRECT_URLS: https://api.re8ch.com/auth/v2/callback
   MAILER_URLPATHS_INVITE: /auth/v1/verify
   MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
   MAILER_URLPATHS_RECOVERY: /auth/v1/verify
@@ -176,6 +176,30 @@ data:
               replace:
                 headers:
                   - "Authorization: $LUA_AUTH_EXPR"
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow: [admin, anon]
+      - name: realtime-v1-ws
+        url: http://supabase-identity-realtime:4000/socket
+        protocol: ws
+        routes:
+          - name: realtime-v1-ws
+            strip_path: true
+            paths: [/realtime/v1/]
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: request-transformer
+            config:
+              add:
+                headers:
+                  - "x-api-key:$LUA_RT_WS_EXPR"
+              replace:
+                querystring:
+                  - "apikey:$LUA_RT_WS_EXPR"
           - name: acl
             config:
               hide_groups_header: true
@@ -389,6 +413,8 @@ spec:
       app.kubernetes.io/component: kong
   template:
     metadata:
+      annotations:
+        re8ch.com/kong-config-revision: identity-realtime-v1
       labels:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: kong
@@ -661,6 +687,32 @@ spec:
               key: GITHUB_OAUTH_CLIENT_SECRET
         - name: GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI
           value: https://db-rw.re8ch.com/auth/v1/callback
+        # Prevent email-similarity account linking across providers. Imported
+        # provider subjects and explicit manual linking remain authoritative.
+        - name: GOTRUE_EXPERIMENTAL_PROVIDER_LINKING_DOMAINS
+          value: github=github,google=google,apple=apple
+        - name: GOTRUE_SECURITY_MANUAL_LINKING_ENABLED
+          value: 'true'
+        - name: GOTRUE_EXTERNAL_GOOGLE_ENABLED
+          value: 'true'
+        - name: GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: GOOGLE_OIDC_CLIENT_ID}
+        - name: GOTRUE_EXTERNAL_GOOGLE_SECRET
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: GOOGLE_OIDC_CLIENT_SECRET}
+        - name: GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI
+          value: https://api.re8ch.com/auth/callback/google
+        - name: GOTRUE_EXTERNAL_APPLE_ENABLED
+          value: 'true'
+        - name: GOTRUE_EXTERNAL_APPLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: APPLE_OIDC_CLIENT_ID}
+        - name: GOTRUE_EXTERNAL_APPLE_SECRET
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: APPLE_OIDC_CLIENT_SECRET}
+        - name: GOTRUE_EXTERNAL_APPLE_REDIRECT_URI
+          value: https://api.re8ch.com/auth/callback/apple
         - name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -751,7 +803,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: supabase-identity-secrets
-              key: JWT_SECRET
+              key: JWT_VERIFICATION_JWKS
         - name: PGRST_DB_USE_LEGACY_GUCS
           value: 'false'
         - name: PGRST_APP_SETTINGS_JWT_SECRET

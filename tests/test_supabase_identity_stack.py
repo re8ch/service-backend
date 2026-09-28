@@ -46,6 +46,15 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert config["data"]["DISABLE_SIGNUP"] == "true"
     assert env["GOTRUE_EXTERNAL_GITHUB_ENABLED"]["value"] == "true"
     assert env["GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI"]["value"] == "https://db-rw.re8ch.com/auth/v1/callback"
+    assert env["GOTRUE_EXPERIMENTAL_PROVIDER_LINKING_DOMAINS"]["value"] == "github=github,google=google,apple=apple"
+    assert env["GOTRUE_SECURITY_MANUAL_LINKING_ENABLED"]["value"] == "true"
+    assert config["data"]["ADDITIONAL_REDIRECT_URLS"] == "https://api.re8ch.com/auth/v2/callback"
+    for provider in ("GOOGLE", "APPLE"):
+        assert env[f"GOTRUE_EXTERNAL_{provider}_ENABLED"]["value"] == "true"
+        assert env[f"GOTRUE_EXTERNAL_{provider}_REDIRECT_URI"]["value"] == f"https://api.re8ch.com/auth/callback/{provider.lower()}"
+        for suffix in ("CLIENT_ID", "SECRET"):
+            key = f"{provider}_OIDC_CLIENT_ID" if suffix == "CLIENT_ID" else f"{provider}_OIDC_CLIENT_SECRET"
+            assert env[f"GOTRUE_EXTERNAL_{provider}_{suffix}"]["valueFrom"]["secretKeyRef"]["key"] == key
     assert env["HTTPS_PROXY"]["value"] == env["HTTP_PROXY"]["value"] == "http://192.0.2.147:17893"
     assert ".svc" in env["NO_PROXY"]["value"]
     for name, key in (
@@ -60,8 +69,12 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     services = yaml.safe_load(kong["data"]["kong.yml"])["services"]
     assert {service["name"] for service in services} == {
         "auth-v1-open", "auth-v1-open-callback", "auth-v1-open-authorize",
-        "auth-v1", "rest-v1", "meta", "dashboard",
+        "auth-v1", "rest-v1", "realtime-v1-ws", "meta", "dashboard",
     }
+    realtime = next(service for service in services if service["name"] == "realtime-v1-ws")
+    assert realtime["protocol"] == "ws"
+    assert realtime["url"] == "http://supabase-identity-realtime:4000/socket"
+    assert {plugin["name"] for plugin in realtime["plugins"]} >= {"key-auth", "acl"}
     assert next(service for service in services if service["name"] == "dashboard")["url"] == "http://supabase-identity-studio:3000/"
 
     clients = list(yaml.safe_load_all((ROOT / "operations/supabase-identity/oauth-clients-headlamp.yaml").read_text()))
