@@ -10,13 +10,11 @@ data:
     rule-providers:
       cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
     proxies:
-{{- range .Values.exits.globalCandidates }}
-      - {name: {{ .name | quote }}, type: socks5, server: {{ .address | quote }}, port: {{ $.Values.exits.port }}}
-{{- end }}
+      - {name: GLOBAL-FABRIC, type: socks5, server: mihomos-global-exit.{{ .Release.Namespace }}.svc.cluster.local, port: {{ .Values.exits.port }}}
     proxy-groups:
       - name: GLOBAL
         type: fallback
-        proxies: [{{ range $index, $candidate := .Values.exits.globalCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name | quote }}{{ end }}]
+        proxies: [GLOBAL-FABRIC]
         url: "https://www.gstatic.com/generate_204"
         interval: 30
         lazy: false
@@ -24,7 +22,7 @@ data:
       # endpoint instead of assuming that a generic Google probe proves it.
       - name: GITHUB
         type: fallback
-        proxies: [{{ range $index, $candidate := .Values.exits.globalCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name | quote }}{{ end }}]
+        proxies: [GLOBAL-FABRIC]
         url: "https://github.com/login/oauth/access_token"
         interval: 30
         lazy: false
@@ -48,13 +46,11 @@ data:
     rule-providers:
       cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
     proxies:
-{{- range .Values.exits.cnCandidates }}
-      - {name: {{ .name | quote }}, type: socks5, server: {{ .address | quote }}, port: {{ $.Values.exits.port }}}
-{{- end }}
+      - {name: CN-FABRIC, type: socks5, server: mihomos-cn-exit.{{ .Release.Namespace }}.svc.cluster.local, port: {{ .Values.exits.port }}}
     proxy-groups:
       - name: CN
         type: fallback
-        proxies: [{{ range $index, $candidate := .Values.exits.cnCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name | quote }}{{ end }}]
+        proxies: [CN-FABRIC]
         url: "https://connectivitycheck.gstatic.com/generate_204"
         interval: 30
         lazy: false

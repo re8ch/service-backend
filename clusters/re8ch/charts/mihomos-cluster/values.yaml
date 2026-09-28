@@ -16,16 +16,8 @@ exits:
   globalLabel: networking.re8ch.com/mihomo-exit
   cnLabel: networking.re8ch.com/mihomo-exit-cn
   port: 1080
-  # Keep every advertised exit as an independently health-checked Mihomo
-  # proxy. A single headless-Service hostname hides endpoint health from
-  # Mihomo and makes DNS selection look like random connection failures.
-  globalCandidates:
-    - {name: global-la, address: 192.0.2.110}
-    - {name: global-kl, address: 192.0.2.245}
-  cnCandidates:
-    - {name: cn-r640, address: 192.0.2.178}
-    - {name: cn-a1, address: 192.0.2.176}
-    - {name: cn-b1, address: 192.0.2.4}
+  # Ready exit Pods are discovered through the headless Services. The node
+  # proxy configuration no longer pins a historical list of node addresses.
 
 telemetry:
   enabled: true
