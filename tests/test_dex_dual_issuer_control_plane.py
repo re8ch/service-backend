@@ -6,19 +6,12 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1] / 'clusters/re8ch/components/ops'
 
 
-def test_all_control_planes_share_dual_issuer_authentication():
+def test_all_control_planes_share_supabase_authentication():
     auth = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())
     assert auth['apiVersion'] == 'apiserver.config.k8s.io/v1'
     assert auth['kind'] == 'AuthenticationConfiguration'
-    assert [item['issuer']['url'] for item in auth['jwt']] == [
-        'https://id-stalwart.tools.re8ch.com', 'https://db-rw.re8ch.com/auth/v1'
-    ]
-    stalwart = auth['jwt'][0]
-    assert stalwart['issuer']['audiences'] == ['kubectl-stalwart-pilot']
-    assert stalwart['claimMappings'] == {
-        'username': {'claim': 'email', 'prefix': 'oidc:'}
-    }
-    headlamp_supabase = auth['jwt'][1]
+    assert [item['issuer']['url'] for item in auth['jwt']] == ['https://db-rw.re8ch.com/auth/v1']
+    headlamp_supabase = auth['jwt'][0]
     assert headlamp_supabase['issuer']['audiences'] == ['ed4e0331-7522-59f8-8a72-2d558844dc24']
     assert headlamp_supabase['claimMappings'] == {
         'username': {'claim': 'email', 'prefix': 'oidc:'}
