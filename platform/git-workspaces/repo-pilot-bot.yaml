@@ -17,7 +17,7 @@ spec:
   mailbox: stalwart
   googleWorkspace: disabled
   collaboration:
-    endpoint: https://collab.tools.re8ch.com
+    endpoint: https://id.re8ch.com
     protocols: [email, calendar, contacts, webdav]
     credentialSecretRef: {namespace: mail-system, name: repo-pilot-bot-app-password}
 ---

@@ -74,6 +74,8 @@ spec:
           imagePullPolicy: IfNotPresent
           args: [--config, /etc/stalwart/config.json]
           envFrom: [{secretRef: {name: stalwart-recovery-admin}}]
+          env:
+            - {name: STALWART_PUBLIC_URL, value: "https://id.re8ch.com"}
           ports:
             - {name: smtp, containerPort: 25}
             - {name: smtps, containerPort: 465}
@@ -107,6 +109,7 @@ spec:
             - {name: tmp, mountPath: /tmp}
             - {name: cloudflare-token, mountPath: /var/run/stalwart-secrets/cloudflare, readOnly: true}
             - {name: cloudflare-re8ch-token, mountPath: /var/run/stalwart-secrets/cloudflare-re8ch, readOnly: true}
+            - {name: oidc-keys, mountPath: /var/run/stalwart-idp, readOnly: true}
       volumes:
         - {name: config, configMap: {name: stalwart-config}}
         - {name: tmp, emptyDir: {}}
@@ -123,6 +126,8 @@ spec:
             secretName: stalwart-cloudflare-dns-token
             optional: true
             items: [{key: CF_API_TOKEN, path: token}]
+        - name: oidc-keys
+          secret: {secretName: stalwart-idp-oidc-keys}
   volumeClaimTemplates:
     - metadata: {name: data}
       spec:

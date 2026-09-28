@@ -433,7 +433,31 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert {item["name"]: item["mountPath"] for item in bootstrap_container["volumeMounts"]}["cache"] == "/cache"
 
 
-def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
+def test_stalwart_unified_identity_bootstraps_existing_mail_store():
+    resources = documents(ROOT / "platform/stalwart/unified-identity.yaml")
+    plan = next(item for item in resources if item["kind"] == "ConfigMap")
+    job = next(item for item in resources if item["kind"] == "Job")
+    rows = [json.loads(line) for line in plan["data"]["plan.ndjson"].splitlines()]
+    directory = next(row for row in rows if row["object"] == "Directory")
+    assert directory["value"]["re8ch-enterprise-sso"]["issuerUrl"] == "https://auth.re8ch.com"
+    assert directory["value"]["re8ch-enterprise-sso"]["claimUsername"] == "email"
+    assert next(row for row in rows if row["object"] == "Authentication")["value"]["directoryId"] == "#re8ch-enterprise-sso"
+    assert next(row for row in rows if row["object"] == "OidcProvider")["value"]["signatureKey"]["filePath"] == "/var/run/stalwart-idp/signing-private.pem"
+    clients = [row for row in rows if row["object"] == "OAuthClient"]
+    assert {next(iter(row["value"].values()))["clientId"] for row in clients} >= {"headlamp", "bulwark-webmail", "kubectl-stalwart-pilot"}
+    webmail = next(next(iter(row["value"].values())) for row in clients if "webmail" in row["value"])
+    assert "https://mail.re8ch.com/en/auth/callback" in webmail["redirectUris"]
+    assert "https://mail.re8ch.com/zh/auth/callback" in webmail["redirectUris"]
+    container = job["spec"]["template"]["spec"]["containers"][0]
+    assert "http://stalwart.mail-system.svc.cluster.local:8080" in container["args"][0]
+    assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]
+    server = next(item for item in documents(ROOT / "platform/stalwart/stalwart.yaml") if item["kind"] == "StatefulSet")
+    server_container = server["spec"]["template"]["spec"]["containers"][0]
+    assert {item["name"]: item["value"] for item in server_container["env"]}["STALWART_PUBLIC_URL"] == "https://id.re8ch.com"
+    assert "stalwart-idp-oidc-keys" in [volume.get("secret", {}).get("secretName") for volume in server["spec"]["template"]["spec"]["volumes"]]
+
+
+def test_stalwart_idp_public_route_serves_oidc_and_jmap_from_mail_instance():
     resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
     route = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public")
     assert route["spec"]["hostnames"] == ["id.re8ch.com"]
@@ -446,25 +470,19 @@ def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
         for rule in route["spec"]["rules"]
         for match in rule.get("matches", [])
     }
-    assert paths == {"/", "/.well-known", "/auth", "/login", "/account", "/api/discover"}
+    assert paths == {"/", "/.well-known", "/auth", "/login", "/account", "/jmap", "/dav", "/api/auth", "/api/discover"}
     assert "/api" not in paths
+    assert all(rule["backendRefs"] == [{"name": "stalwart", "port": 8080}] for rule in route["spec"]["rules"] if "backendRefs" in rule)
+    assert dns["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"] == "stalwart"
 
 
-def test_stalwart_public_route_only_exposes_collaboration_paths():
+def test_stalwart_collab_alias_remains_available_during_migration():
     resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
     route = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public")
     assert route["spec"]["hostnames"] == ["collab.tools.re8ch.com"]
-    paths = {
-        match["path"]["value"]
-        for rule in route["spec"]["rules"]
-        for match in rule.get("matches", [])
-    }
-    assert {"/", "/jmap", "/dav", "/.well-known", "/account", "/auth"} == paths
-    assert "/api" not in paths
-    root = next(rule for rule in route["spec"]["rules"] if rule.get("matches", [{}])[0].get("path", {}).get("value") == "/")
-    assert root["filters"][0]["requestRedirect"]["path"]["replaceFullPath"] == "/account"
-    backend = next(rule for rule in route["spec"]["rules"] if "backendRefs" in rule)
-    assert backend["backendRefs"][0]["port"] == 8080
+    assert next(rule for rule in route["spec"]["rules"] if "backendRefs" in rule)["backendRefs"] == [{"name": "stalwart", "port": 8080}]
+    dns = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public-dns")
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.79"
 
 
 def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
@@ -483,7 +501,7 @@ def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
     )
 
 
-def test_stalwart_collaboration_is_registered_with_public_edge_manager():
+def test_stalwart_unified_identity_is_registered_with_public_edge_manager():
     release = next(
         item
         for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
@@ -491,13 +509,8 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     )
     values = release["spec"]["values"]
     services = values["services"]
-    collab = services["collab.tools.re8ch.com."]
-    assert collab == {
-        "service": "collab",
-        "class": "web",
-        "probePath": "/.well-known/jmap",
-        "acceptedStatuses": [200, 307],
-    }
+    assert services["collab.tools.re8ch.com."]["service"] == "collab"
+    assert services["id.re8ch.com."]["service"] == "stalwart"
     admin = services["stalwart-admin.service.re8ch.com."]
     assert admin == {
         "service": "stalwart-admin",
@@ -666,7 +679,10 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     assert pod["automountServiceAccountToken"] is False
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
-    assert env["JMAP_SERVER_URL"] == "https://collab.tools.re8ch.com"
+    assert env["JMAP_SERVER_URL"] == "https://id.re8ch.com"
+    assert env["OAUTH_ISSUER_URL"] == "https://id.re8ch.com"
+    assert env["OAUTH_ENABLED"] == env["OAUTH_ONLY"] == "true"
+    assert env["OAUTH_CLIENT_ID"] == "bulwark-webmail"
     assert env["ALLOW_CUSTOM_JMAP_ENDPOINT"] == "false"
     assert env["SETTINGS_SYNC_ENABLED"] == "false"
     assert env["BULWARK_TELEMETRY"] == "off"

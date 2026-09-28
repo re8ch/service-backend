@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - stalwart.yaml
   - idp-pilot.yaml
+  - unified-identity.yaml
   - desired-mail-domain.yaml
   - bootstrap-plan.yaml
   - mailbox-provisioner.yaml

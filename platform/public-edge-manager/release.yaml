@@ -190,7 +190,7 @@ spec:
       dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
       collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
       mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
-      id.re8ch.com.: {service: stalwart-idp, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
+      id.re8ch.com.: {service: stalwart, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       hooks.re8ch.com.: {service: hooks, class: web, probePath: /hook/, acceptedStatuses: [400, 404]}
     # PublicEdge status already supplies edge transport readiness. The legacy
     # db-rw gate performs two Kubernetes API reads during each DNS query and

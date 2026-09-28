@@ -27,7 +27,11 @@ spec:
           env:
             - {name: HOSTNAME, value: 0.0.0.0}
             - {name: PORT, value: "3000"}
-            - {name: JMAP_SERVER_URL, value: https://collab.tools.re8ch.com}
+            - {name: JMAP_SERVER_URL, value: https://id.re8ch.com}
+            - {name: OAUTH_ENABLED, value: "true"}
+            - {name: OAUTH_ONLY, value: "true"}
+            - {name: OAUTH_CLIENT_ID, value: bulwark-webmail}
+            - {name: OAUTH_ISSUER_URL, value: https://id.re8ch.com}
             - {name: APP_NAME, value: RE8CH Mail}
             - {name: APP_SHORT_NAME, value: Mail}
             - {name: LOGIN_COMPANY_NAME, value: RE8CH}
