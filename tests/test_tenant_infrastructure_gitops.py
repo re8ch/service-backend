@@ -141,7 +141,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     docs = tenant_chart_documents()
     admin_tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.") and item["metadata"]["name"] == "admin")
     assert admin_tenant["spec"]["lifecycle"] == "Active"
-    admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
+    admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service-auth")
     assert admin_binding["spec"] == {
         "tenantRef": "admin",
         "issuer": "https://auth.re8ch.com",
@@ -149,7 +149,10 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
         "role": "admin",
         "revoked": False,
     }
-    user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins")
+    retired_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
+    assert retired_binding["spec"]["issuer"] == "https://dex.service.re8ch.com"
+    assert retired_binding["spec"]["revoked"] is True
+    user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins-auth")
     assert user_binding["spec"] == {
         "tenantRef": "admin",
         "issuer": "https://auth.re8ch.com",
