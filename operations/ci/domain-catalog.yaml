@@ -125,6 +125,7 @@ domains:
       - clusters/re8ch/components/synthetic-monitoring
     tests:
       - tests/test_observability.py
+      - tests/test_k6_contracts.py
 
   tenant-runtime:
     theme: habitats
