@@ -438,6 +438,8 @@ modules:
       digest: sha256:78340914381172f540053ad45a50a98bc223a33ad11b914f40e205b7567aff4a
     - codename: torch-copper
       digest: sha256:1a5fb753739b1e24cc52846f086b8180f331068fd4ca95a6fa1ee221ed40e56c
+    - codename: aurora-indigo
+      digest: sha256:461081c6e85742bb51341de9f0dfb171be84951b160247adfa74f31427ec33db
   platform/apps/access-subscription:
     releases:
     - codename: aegis
