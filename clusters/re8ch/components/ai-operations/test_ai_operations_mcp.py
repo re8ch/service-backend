@@ -86,6 +86,18 @@ class RegistryTests(unittest.TestCase):
         body = json.loads(m.resources_read(identity, uri)["contents"][0]["text"])
         self.assertEqual(body["kind"], "GrafanaCapabilityList")
 
+    def test_resource_list_does_not_fetch_resource_contents(self):
+        m = load("tenant")
+        m.authenticated_tenant = lambda _identity: "acme"
+        def unexpected_fetch(*_args, **_kwargs):
+            self.fail("resources/list must not fetch resource contents")
+        m.tenant_service_store = unexpected_fetch
+        m.tenant_control_request = unexpected_fetch
+        m.tenant_claim_usage_summary = unexpected_fetch
+        m.grafana_capabilities = unexpected_fetch
+        listed = m.resources_list({"subject": "user-1"}, None)
+        self.assertIn("re8ch://tenant/acme/claims", {item["uri"] for item in listed["resources"]})
+
     def test_grafana_query_requires_tenant_scope_and_rejects_sql_writes(self):
         m = load("tenant")
         gx = importlib.import_module("grafana_exploration")
