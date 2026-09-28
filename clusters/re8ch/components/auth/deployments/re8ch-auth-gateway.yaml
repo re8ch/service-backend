@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:stalwart-webui-5dd741b@sha256:91ba71ea28a9d0dadd4119b8fb9e31335543d9967153290404e19e2167fa038a
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:stalwart-bulwark-1edde56@sha256:b2576b9e561213ba90597d363377e990e35ebbd845cb1fb648c60a94d2c9cc1a
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -157,7 +157,9 @@ spec:
             - name: AUTH_OIDC_PUBLIC_CLIENT_IDS
               value: re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant
             - name: AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS
-              value: https://id.re8ch.com/account/oauth/callback,https://id.re8ch.com/admin/oauth/callback,https://stalwart-admin.service.re8ch.com/admin/oauth/callback
+              value: >-
+                https://id.re8ch.com/account/oauth/callback,https://id.re8ch.com/admin/oauth/callback,https://stalwart-admin.service.re8ch.com/admin/oauth/callback,
+                https://mail.re8ch.com/ar/auth/callback,https://mail.re8ch.com/ca/auth/callback,https://mail.re8ch.com/cs/auth/callback,https://mail.re8ch.com/da/auth/callback,https://mail.re8ch.com/de/auth/callback,https://mail.re8ch.com/en/auth/callback,https://mail.re8ch.com/es/auth/callback,https://mail.re8ch.com/fa/auth/callback,https://mail.re8ch.com/fr/auth/callback,https://mail.re8ch.com/he/auth/callback,https://mail.re8ch.com/hu/auth/callback,https://mail.re8ch.com/it/auth/callback,https://mail.re8ch.com/ja/auth/callback,https://mail.re8ch.com/ko/auth/callback,https://mail.re8ch.com/lv/auth/callback,https://mail.re8ch.com/mn/auth/callback,https://mail.re8ch.com/nb/auth/callback,https://mail.re8ch.com/nl/auth/callback,https://mail.re8ch.com/pl/auth/callback,https://mail.re8ch.com/pt/auth/callback,https://mail.re8ch.com/ro/auth/callback,https://mail.re8ch.com/ru/auth/callback,https://mail.re8ch.com/sk/auth/callback,https://mail.re8ch.com/tr/auth/callback,https://mail.re8ch.com/uk/auth/callback,https://mail.re8ch.com/zh/auth/callback,https://mail.re8ch.com/zh-TW/auth/callback
             - name: AUTH_OIDC_ISSUER
               value: https://auth.re8ch.com
             - name: AUTH_OIDC_SIGNING_KEY_PEM

@@ -448,6 +448,10 @@ def test_stalwart_unified_identity_bootstraps_existing_mail_store():
     webmail = next(next(iter(row["value"].values())) for row in clients if "webmail" in row["value"])
     assert "https://mail.re8ch.com/en/auth/callback" in webmail["redirectUris"]
     assert "https://mail.re8ch.com/zh/auth/callback" in webmail["redirectUris"]
+    gateway = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
+    gateway_env = {entry["name"]: entry.get("value") for entry in gateway["spec"]["template"]["spec"]["containers"][0]["env"]}
+    broker_callbacks = {value.strip() for value in gateway_env["AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS"].split(",")}
+    assert set(webmail["redirectUris"]) <= broker_callbacks
     container = job["spec"]["template"]["spec"]["containers"][0]
     assert "http://stalwart.mail-system.svc.cluster.local:8080" in container["args"][0]
     assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]
@@ -680,9 +684,9 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
     assert env["JMAP_SERVER_URL"] == "https://id.re8ch.com"
-    assert env["OAUTH_ISSUER_URL"] == "https://id.re8ch.com"
+    assert env["OAUTH_ISSUER_URL"] == "https://auth.re8ch.com"
     assert env["OAUTH_ENABLED"] == env["OAUTH_ONLY"] == "true"
-    assert env["OAUTH_CLIENT_ID"] == "bulwark-webmail"
+    assert env["OAUTH_CLIENT_ID"] == "stalwart-webui"
     assert env["ALLOW_CUSTOM_JMAP_ENDPOINT"] == "false"
     assert env["SETTINGS_SYNC_ENABLED"] == "false"
     assert env["BULWARK_TELEMETRY"] == "off"
