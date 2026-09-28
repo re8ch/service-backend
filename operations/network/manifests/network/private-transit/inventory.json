@@ -23,7 +23,9 @@
     {"id": 89, "name": "overseas-kl", "ztIp": "192.0.2.50", "publicIp": "192.0.2.27", "podCIDR": "192.0.2.55/24", "asn": 4200000089, "region": "kuala-lumpur"},
     {"id": 95, "name": "harbor-registry", "ztIp": "192.0.2.203", "publicIp": "192.0.2.210", "asn": 4200000095, "region": "hangzhou"},
     {"id": 104, "name": "overseas-la", "ztIp": "192.0.2.55", "publicIp": "192.0.2.91", "podCIDR": "192.0.2.15/24", "asn": 4200000104, "region": "los-angeles"},
+    {"id": 105, "name": "overseas-flk", "ztIp": "192.0.2.61", "publicIp": "192.0.2.101", "podCIDR": "192.0.2.254/24", "asn": 4200000105, "region": "overseas"},
     {"id": 128, "name": "restricted-node-6dc3f140f9", "ztIp": "192.0.2.183", "publicIp": "192.0.2.79", "podCIDR": "192.0.2.18/24", "asn": 4200000128, "region": "r640-lan"},
-    {"id": 186, "name": "pg-re8ch-replica-186", "ztIp": "192.0.2.172", "publicIp": "192.0.2.72", "asn": 4200000186, "region": "unknown"}
+    {"id": 186, "name": "pg-re8ch-replica-186", "ztIp": "192.0.2.172", "publicIp": "192.0.2.72", "asn": 4200000186, "region": "unknown"},
+    {"id": 220, "name": "overseas-la-2", "ztIp": "192.0.2.25", "publicIp": "192.0.2.38", "podCIDR": "192.0.2.184/24", "asn": 4200000220, "region": "los-angeles"}
   ]
 }
