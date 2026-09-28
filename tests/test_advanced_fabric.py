@@ -155,11 +155,14 @@ class AdvancedFabricTests(unittest.TestCase):
         terms = daemonset["spec"]["template"]["spec"]["affinity"]["nodeAffinity"][
             "requiredDuringSchedulingIgnoredDuringExecution"
         ]["nodeSelectorTerms"]
-        assert any(term["matchExpressions"][0] == {
-            "key": "kubernetes.io/hostname",
-            "operator": "In",
-            "values": ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
-        } for term in terms)
+        assert any(
+            expression["key"] == "kubernetes.io/hostname"
+            and expression["operator"] == "In"
+            and set(expression["values"]) == {
+                "restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "overseas-flk", "overseas-la-2"
+            }
+            for term in terms for expression in term["matchExpressions"]
+        )
 
     def test_release_pins_dns_helm_test_to_healthy_peer(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"
