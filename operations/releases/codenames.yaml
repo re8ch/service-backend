@@ -569,6 +569,12 @@ modules:
       digest: sha256:eefe17e179bf8624379f82d44853456a8e5c372cfc4f48396e13f6d9e9f8cc32
     - codename: gulfstream-jade
       digest: sha256:595e7ccfaa89b5e6330c4ac1d76d47af9260fde8ca6b0b2228e3b98f4850be5f
+    - codename: riptide-jade
+      digest: sha256:d44c601d01ee427307f6a0a4b07903db844f2ec8d5b3f8e82d137cffffeacb79
+    - codename: springtide-jade
+      digest: sha256:2699de726bbfdf4aec65d014da0347a243ace301208faff3e9d99a4f52d1b19a
+    - codename: tideway-jade
+      digest: sha256:850ae79785466b99d375cb0ba96d47ccf86704ff1173c98588bb8630bca4b691
   platform/hyperswitch:
     releases:
     - codename: anchor
