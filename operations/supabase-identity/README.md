@@ -157,6 +157,22 @@ profile/authorization invalidation triggers. Clients subscribe to private
 `identity:user:<GoTrue UUID>` and refetch from REST after `identity_changed`.
 The event is advisory; API authorization always checks the database.
 
+## Google and Apple bridge
+
+GoTrue uses the existing Google and Apple OAuth clients, with their already
+registered provider callback URLs at `api.re8ch.com/auth/callback/{provider}`.
+The API gateway dispatches a callback with a matching legacy signed state to
+the legacy handler and proxies a GoTrue state to `/auth/v1/callback`. This
+preserves old clients while permitting GoTrue PKCE login. Copy the provider
+client IDs and secrets from `auth/re8ch-auth-gateway-secrets` to the identity
+Secret through the cluster secret manager; never put values in Git. Apple’s
+client-secret JWT must be renewed before expiry. Keep `DISABLE_SIGNUP=true`.
+Separate provider linking domains prevent automatic linking by matching email;
+the imported provider subject or explicit account binding decides the user.
+`/auth/v2/callback` is the exact allowlisted post-login destination for the
+stateless API facade. Enable browser login only after its callback proxy and
+identity mapping checks pass.
+
 Verify the WebSocket upgrade from the public edge and from the User Center
 environment, another user's topic denial, the read-only route rejecting writes,
 and the absence of long-lived replication slot lag. On Realtime failure, remove
