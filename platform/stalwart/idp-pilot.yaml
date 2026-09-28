@@ -90,7 +90,7 @@ kind: ConfigMap
 metadata: {name: stalwart-idp-bootstrap-plan, namespace: mail-system}
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-idp","requireScopes":{"openid":true,"email":true,"profile":true,"groups":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true,"profile":true,"groups":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
     {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":900000,"idTokenExpiry":900000,"refreshTokenExpiry":28800000,"refreshTokenRenewal":3600000}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"kubectl-pilot":{"clientId":"kubectl-stalwart-pilot","description":"Kubernetes RBAC Stalwart pilot","redirectUris":{"http://127.0.0.1:8000":true,"http://localhost:8000":true}}}}
