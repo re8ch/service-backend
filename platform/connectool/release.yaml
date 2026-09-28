@@ -30,6 +30,26 @@ spec:
     disableTakeOwnership: false
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  # The trusted issuer is pinned to the Cilium Gateway VIP inside these pods.
+  # ToolHive otherwise rejects OIDC discovery at that private address.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: re8ch-tools-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: re8ch-admin-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: tenant-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
   values:
     global:
       issuer: https://auth.re8ch.com
