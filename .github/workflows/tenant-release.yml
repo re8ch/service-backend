@@ -26,8 +26,17 @@ jobs:
     # trusted runner reaches Harbor directly while GitHub still owns the run.
     runs-on: [self-hosted, macOS, ARM64, macmini-a1]
     environment: production
+    env:
+      # The runner's personal Docker config uses a locked macOS Keychain.
+      # Keep release credentials in this job's temporary Docker config.
+      DOCKER_CONFIG: ${{ runner.temp }}/tenant-release-docker
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: |
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          docker buildx create --name "tenant-release-${GITHUB_RUN_ID}" --driver docker-container --use
+          echo "TENANT_IMAGE_BUILDER=tenant-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -39,7 +48,6 @@ jobs:
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-          TENANT_IMAGE_BUILDER: re8ch-direct
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-release-${{ github.sha }}
@@ -47,6 +55,8 @@ jobs:
             tenant-infrastructure.image
             tenant-infrastructure.spdx.json
           if-no-files-found: error
+      - if: always()
+        run: docker buildx rm "tenant-release-${GITHUB_RUN_ID}" || true
   canary:
     needs: release
     runs-on: ubuntu-latest
