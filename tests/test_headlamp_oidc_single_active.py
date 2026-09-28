@@ -19,7 +19,7 @@ def test_headlamp_hpa_cannot_override_single_active_deployment():
     assert hpa["spec"]["minReplicas"] == hpa["spec"]["maxReplicas"] == 1
 
 
-def test_headlamp_direct_api_context_uses_stalwart_issuer():
+def test_headlamp_direct_api_context_uses_supabase_issuer():
     deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
     container = next(
         item for item in deployment["spec"]["template"]["spec"]["containers"]
@@ -27,6 +27,6 @@ def test_headlamp_direct_api_context_uses_stalwart_issuer():
     )
 
     assert "-in-cluster" in container["args"]
-    assert "-oidc-idp-issuer-url=https://id.re8ch.com" in container["args"]
+    assert "-oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1" in container["args"]
     assert "-oidc-use-pkce" in container["args"]
     assert not any(arg.startswith("-oidc-client-secret=") for arg in container["args"])
