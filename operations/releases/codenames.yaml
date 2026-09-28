@@ -187,6 +187,8 @@ modules:
       digest: sha256:e4d2354178e769324ffc6c9a8e051ecd286490d9ca65890b291837925b050cd9
     - codename: lantern-jade
       digest: sha256:1087e40d97b2e631ebad153ec8464504d3b18f346a5ae2304344c19c5a530710
+    - codename: lighthouse-jade
+      digest: sha256:1ce37590a80ce4830b606bd92eb848d1836c91e9a8cf2db4e886b0d20d68b298
   platform/among-clusters:
     releases:
     - codename: bora
@@ -412,6 +414,8 @@ modules:
       digest: sha256:def73e53a9c2adccd734f452e50d2487c744e3e8873bbc288b99cb32405017ab
     - codename: flare-copper
       digest: sha256:f2bae145c2fb72269ef6d04b9c5003d929c17ccc487db68a3f40ef5ba72d2fcf
+    - codename: lantern-copper
+      digest: sha256:721066a28e9469a1844c3f2fb790eb5329e4e7cb4ec7e7cb66906683082c3922
   platform/apps/access-subscription:
     releases:
     - codename: aegis

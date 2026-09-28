@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: lantern-jade
+    delivery.re8ch.com/codename: lighthouse-jade
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:1087e40d97b2e631ebad153ec8464504d3b18f346a5ae2304344c19c5a530710
+    digest: sha256:1ce37590a80ce4830b606bd92eb848d1836c91e9a8cf2db4e886b0d20d68b298
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: lantern-jade
+    delivery.re8ch.com/codename: lighthouse-jade
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
