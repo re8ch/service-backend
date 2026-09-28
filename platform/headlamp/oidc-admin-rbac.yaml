@@ -10,7 +10,7 @@ metadata:
   annotations:
     re8ch.com/identity-source: stalwart-idp
     re8ch.com/equivalent-principal: oidc:admin@re8ch.com
-    re8ch.com/identity-evidence: "Named administrator identities retained for the Stalwart OIDC issuer"
+    re8ch.com/identity-evidence: "Live Supabase and RE8CH Auth records identify harry@re8ch.com as the administrator; admin@re8ch.com has no account record"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -19,7 +19,4 @@ subjects:
   # Stalwart currently emits an email claim without groups.
   - apiGroup: rbac.authorization.k8s.io
     kind: User
-    name: oidc:hliu74@apple.com
-  - apiGroup: rbac.authorization.k8s.io
-    kind: User
-    name: oidc:admin@re8ch.com
+    name: oidc:harry@re8ch.com
