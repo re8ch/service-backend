@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: signal-jade
+    delivery.re8ch.com/codename: starfire-jade
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:c9a49c4f47cd899d8d75b0947b4113ce961339905f54b7d805ad64b05877059d
+    digest: sha256:6e93992c2552a45d701262d3c2b6b2ec90980d49c33ff73db3b0e6f07eae44cd
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: signal-jade
+    delivery.re8ch.com/codename: starfire-jade
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
