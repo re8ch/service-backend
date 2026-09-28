@@ -17,9 +17,9 @@ import StorageCollaboratorKit
     do {
       status = "Signing in with RE8CH…"
       let result = try await oidc.signIn()
-      token = result.accessToken
+      token = result.idToken
       let defaults=UserDefaults(suiteName:"group.com.re8ch.storagecollaborator")
-      defaults?.set(result.accessToken,forKey:"deviceToken")
+      defaults?.set(result.idToken,forKey:"deviceToken")
       defaults?.set(result.refreshToken,forKey:"refreshToken")
       defaults?.set(Date().addingTimeInterval(TimeInterval(result.expiresIn ?? 3600)).timeIntervalSince1970,forKey:"tokenExpiresAt")
       await connect()
