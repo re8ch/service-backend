@@ -14,6 +14,8 @@ spec:
           - muaya-lightweight
           - muaya-ecs
           - zan
+          - overseas-flk
+          - overseas-la-2
   defaults:
     # AdvFab node identities are /32s on loopback, so Cilium cannot infer a
     # direct-routing device after K3s adopts 10.250.0.x as its InternalIP.
