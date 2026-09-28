@@ -7,9 +7,7 @@ metadata:
     storage.re8ch.com/ceph-pilot: "true"
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
-    networking.re8ch.com/mihomo-node: enabled
     networking.re8ch.com/mihomo-exit-cn: enabled
-    networking.re8ch.com/geo: cn
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
 ---
@@ -23,8 +21,6 @@ metadata:
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-control: enabled
-    networking.re8ch.com/mihomo-node: enabled
-    networking.re8ch.com/geo: cn
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
 ---
@@ -38,7 +34,5 @@ metadata:
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-control: enabled
-    networking.re8ch.com/mihomo-node: enabled
-    networking.re8ch.com/geo: cn
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
