@@ -67,6 +67,7 @@ domains:
       - platform/among-clusters
       - platform/public-edge-manager
       - clusters/re8ch/components/egress-fabric
+      - clusters/re8ch/components/egress-fabric/mihomo-node-labeler
       - clusters/re8ch/components/multicloud-functions-dns/anycam
       - clusters/re8ch/components/multicloud-functions-dns/base
       - clusters/re8ch/components/multicloud-functions-dns/ledger

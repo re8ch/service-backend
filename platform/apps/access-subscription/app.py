@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import mimetypes
 import os
+import socket
 import ssl
 import time
 import urllib.error
@@ -15,7 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote
 
-from core import (DEFAULT_NODES, authorization, canonical_subject, clash_meta_import_url, issue_token, mihomo_config, proxy_password,
+from core import (DEFAULT_NODES, Node, Publication, RuntimeTarget, authorization, canonical_subject, clash_meta_import_url, issue_token, mihomo_config, proxy_password,
                   public_node, shadowrocket_config, shadowrocket_import_url, SHADOWROCKET_PROFILE_REVISION, subscription_body,
                   subscription_headers, v2box_subscription_body, v2box_subscription_import_url, verify_token)
 
@@ -53,6 +55,65 @@ def kube_request(method: str, path: str, body: dict | None = None, content_type:
     context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
     with urllib.request.urlopen(request, context=context, timeout=5) as response:
         return json.load(response) if response.length != 0 else {}
+
+
+def edge_access_nodes(nodes: list[dict], pods: list[dict], probe) -> tuple[Node, ...]:
+    ready_pods = {
+        pod.get("spec", {}).get("nodeName")
+        for pod in pods
+        if pod.get("metadata", {}).get("labels", {}).get("app.kubernetes.io/name") == "edge-access-anytls"
+        and any(item.get("type") == "Ready" and item.get("status") == "True"
+                for item in pod.get("status", {}).get("conditions", []))
+    }
+    discovered = []
+    for node in nodes:
+        metadata = node.get("metadata", {})
+        name = metadata.get("name", "")
+        if name not in ready_pods or metadata.get("labels", {}).get("networking.re8ch.com/edge-access-anytls") != "enabled":
+            continue
+        if not any(item.get("type") == "Ready" and item.get("status") == "True"
+                   for item in node.get("status", {}).get("conditions", [])):
+            continue
+        addresses = [item.get("address", "") for item in node.get("status", {}).get("addresses", [])
+                     if item.get("type") == "ExternalIP"]
+        public_ip = next((ip for ip in addresses if _global_ipv4(ip)), "")
+        if not public_ip or not probe(public_ip):
+            continue
+        capacity = int(metadata.get("annotations", {}).get("networking.re8ch.com/capacity-mbps", "0"))
+        if capacity < 100:
+            continue
+        region = metadata.get("labels", {}).get("topology.kubernetes.io/region", "global")
+        discovered.append(Node(f"edge-access-{name}", f"🌐 EdgeAccess · {name}",
+                               Publication("anytls", public_ip, 24443, "access.re8ch.com"),
+                               RuntimeTarget("edge-access-anytls", "edge-access-anytls", region, capacity)))
+    return tuple(sorted(discovered, key=lambda node: node.node_id))
+
+
+def _global_ipv4(value: str) -> bool:
+    try:
+        address = ipaddress.ip_address(value)
+        return address.version == 4 and address.is_global
+    except ValueError:
+        return False
+
+
+def _edge_tls_ready(address: str) -> bool:
+    try:
+        with socket.create_connection((address, 24443), timeout=2) as connection:
+            with ssl.create_default_context().wrap_socket(connection, server_hostname="access.re8ch.com"):
+                return True
+    except (OSError, ssl.SSLError):
+        return False
+
+
+def subscription_nodes() -> tuple[Node, ...]:
+    try:
+        nodes = kube_request("GET", "/api/v1/nodes").get("items", [])
+        pods = kube_request("GET", f"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector=app.kubernetes.io%2Fname%3Dedge-access-anytls").get("items", [])
+        return DEFAULT_NODES + edge_access_nodes(nodes, pods, _edge_tls_ready)
+    except (OSError, ValueError, KeyError) as exc:
+        print(json.dumps({"level": "warning", "event": "edge-access-discovery-failed", "error": type(exc).__name__}), flush=True)
+        return DEFAULT_NODES
 
 
 def configmap(name: str) -> tuple[dict, dict]:
@@ -193,17 +254,18 @@ class Handler(BaseHTTPRequestHandler):
                 now = int(time.time())
                 update_devices(lambda devices: devices[payload["jti"]].update({"lastSubscriptionAt": now}))
                 password = proxy_password(HMAC_SECRET, payload["jti"])
+                nodes = subscription_nodes()
                 stats = usage_state().get(payload["jti"], {})
                 headers = subscription_headers(int(stats.get("upload", 0)), int(stats.get("download", 0)))
                 if suffix == "/mihomo.yaml":
-                    return self.send(200, mihomo_config(password, token, BASE_URL), "text/yaml; charset=utf-8", headers)
+                    return self.send(200, mihomo_config(password, token, BASE_URL, nodes), "text/yaml; charset=utf-8", headers)
                 if suffix == "/shadowrocket.conf":
                     headers["Content-Disposition"] = 'attachment; filename="shadowrocket.conf"'
-                    return self.send(200, shadowrocket_config(password, token, BASE_URL), "text/plain; charset=utf-8", headers)
+                    return self.send(200, shadowrocket_config(password, token, BASE_URL, nodes), "text/plain; charset=utf-8", headers)
                 if suffix == "/v2box.txt":
                     headers["Content-Disposition"] = 'attachment; filename="re8ch-v2box.txt"'
-                    return self.send(200, v2box_subscription_body(password), "text/plain; charset=utf-8", headers)
-                return self.send(200, subscription_body(password), "text/plain; charset=utf-8", headers)
+                    return self.send(200, v2box_subscription_body(password, nodes), "text/plain; charset=utf-8", headers)
+                return self.send(200, subscription_body(password, nodes), "text/plain; charset=utf-8", headers)
             if path.startswith("/r/"):
                 _token, file_path = checked_rule(self.path)
                 raw = file_path.read_bytes()
@@ -221,7 +283,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/status":
                 cache = auth_state()
                 manifest = json.loads((RULES_ROOT / "current" / "manifest.json").read_text()) if (RULES_ROOT / "current" / "manifest.json").exists() else {}
-                return self.json(200, {"profile": "access re8ch com", "quota": "300 GB soft", "nodes": [public_node(n) for n in DEFAULT_NODES],
+                return self.json(200, {"profile": "access re8ch com", "quota": "300 GB soft", "nodes": [public_node(n) for n in subscription_nodes()],
                                        "rulesVersion": manifest.get("version"), "authorizationLastSuccess": cache.get("lastSuccess")})
             if path == "/api/admin/users":
                 if not member.get("admin"):

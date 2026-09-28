@@ -114,10 +114,14 @@ SERVICE_RULESETS = (
 )
 
 
+def publication_enabled(node: Node) -> bool:
+    return node.node_id in ACTIVE_PUBLICATION_IDS or node.node_id.startswith("edge-access-")
+
+
 def published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]:
     return tuple(
         node for node in nodes
-        if node.node_id in ACTIVE_PUBLICATION_IDS
+        if publication_enabled(node)
         and node.runtime.healthy
         and node.runtime.qualified_mbps >= 100
     )
@@ -126,7 +130,7 @@ def published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]
 def public_node(node: Node) -> dict:
     # Runtime Service/listener names are control-plane details.  Status clients
     # receive only publication data plus non-sensitive qualification signals.
-    enabled = node.node_id in ACTIVE_PUBLICATION_IDS
+    enabled = publication_enabled(node)
     return {
         "id": node.node_id,
         "name": node.name,

@@ -11,6 +11,19 @@ kind: Role
 metadata: {name: access-subscription}
 rules:
   - {apiGroups: [""], resources: [configmaps], verbs: [get, update]}
+  - {apiGroups: [""], resources: [pods], verbs: [list]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: access-subscription-nodes}
+rules:
+  - {apiGroups: [""], resources: [nodes], verbs: [list]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: access-subscription-nodes}
+subjects: [{kind: ServiceAccount, name: access-subscription, namespace: egress-fabric}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: access-subscription-nodes}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -19,6 +32,7 @@ rules:
   - {apiGroups: [""], resources: [configmaps], verbs: [get, update]}
   - {apiGroups: [""], resources: [secrets], verbs: [get, patch]}
   - {apiGroups: [apps], resources: [deployments], verbs: [get, patch]}
+  - {apiGroups: [apps], resources: [daemonsets], resourceNames: [edge-access-anytls], verbs: [get, patch]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -51,7 +65,7 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: access-subscription, app.kubernetes.io/component: portal}
-      annotations: {access.re8ch.com/code-revision: "20260905-cn-cloud-direct-1"}
+      annotations: {access.re8ch.com/code-revision: "20260928-edge-access-discovery-1"}
     spec:
       serviceAccountName: access-subscription
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
@@ -95,7 +109,7 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: access-controller, app.kubernetes.io/component: authorization}
-      annotations: {access.re8ch.com/code-revision: "20260829-credential-recovery-1"}
+      annotations: {access.re8ch.com/code-revision: "20260928-edge-access-users-1"}
     spec:
       serviceAccountName: access-controller
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}

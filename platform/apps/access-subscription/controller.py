@@ -20,6 +20,7 @@ STATE_NAME = os.getenv("STATE_CONFIGMAP", "access-subscription-devices")
 AUTH_NAME = os.getenv("AUTH_CONFIGMAP", "access-members-cache")
 USERS_SECRET = os.getenv("USERS_SECRET", "personal-access-users")
 DEPLOYMENTS = tuple(filter(None, os.getenv("ACCESS_DEPLOYMENTS", "personal-access-us-ca,personal-access-my-kul,personal-access-us-la,personal-access-cn-loudi").split(",")))
+DAEMONSETS = tuple(filter(None, os.getenv("ACCESS_DAEMONSETS", "edge-access-anytls").split(",")))
 ALIASES = json.loads(os.getenv("IDENTITY_ALIASES_JSON", "{}"))
 APP_ID = os.getenv("GITHUB_APP_ID", "")
 INSTALLATION_ID = os.getenv("GITHUB_INSTALLATION_ID", "")
@@ -196,13 +197,15 @@ def reconcile() -> None:
     if old_revision != revision:
         patch = {"metadata": {"annotations": {"access.re8ch.com/users-revision": revision}}, "stringData": {"users.yaml": users_yaml}}
         kube_request("PATCH", f"/api/v1/namespaces/{NAMESPACE}/secrets/{USERS_SECRET}", patch, "application/merge-patch+json")
-    for deployment in DEPLOYMENTS:
-        current = kube_request("GET", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{deployment}")
-        if has_users_revision(current, revision):
-            continue
-        kube_request("PATCH", f"/apis/apps/v1/namespaces/{NAMESPACE}/deployments/{deployment}",
-                     {"spec": {"template": {"metadata": {"annotations": {"access.re8ch.com/users-revision": revision}}}}},
-                     "application/merge-patch+json")
+    for resource, names in (("deployments", DEPLOYMENTS), ("daemonsets", DAEMONSETS)):
+        for name in names:
+            path = f"/apis/apps/v1/namespaces/{NAMESPACE}/{resource}/{name}"
+            current = kube_request("GET", path)
+            if has_users_revision(current, revision):
+                continue
+            kube_request("PATCH", path,
+                         {"spec": {"template": {"metadata": {"annotations": {"access.re8ch.com/users-revision": revision}}}}},
+                         "application/merge-patch+json")
 
 
 if __name__ == "__main__":
