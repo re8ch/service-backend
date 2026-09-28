@@ -73,7 +73,7 @@ def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
     )
     assert admin_audience_projection == {
         "name": "re8ch-tenant-admins-as-operators",
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "group": "re8ch:tenant-admins",
         "role": "operator",
     }
@@ -84,7 +84,7 @@ def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
     )
     assert audience_binding == {
         "name": "re8ch-github-k8s-admins-as-operators",
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "group": "re8ch:k8s-admins",
         "role": "operator",
     }

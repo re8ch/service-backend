@@ -144,7 +144,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
     assert admin_binding["spec"] == {
         "tenantRef": "admin",
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "group": "re8ch:tenant-admins",
         "role": "admin",
         "revoked": False,
@@ -152,7 +152,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins")
     assert user_binding["spec"] == {
         "tenantRef": "admin",
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "group": "re8ch:k8s-admins",
         "role": "admin",
         "revoked": False,
