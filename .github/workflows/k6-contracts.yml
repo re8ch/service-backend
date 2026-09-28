@@ -1,0 +1,46 @@
+name: k6 functional contracts
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+permissions: {contents: read}
+concurrency:
+  group: k6-contracts-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate versioned probe contracts
+        run: python operations/k6/validate.py
+      - name: Probe public functional contracts
+        run: |
+          mkdir -p "$RUNNER_TEMP/k6"
+          docker run --rm --user "$(id -u):$(id -g)" \
+            --volume "$PWD/clusters/re8ch/components/synthetic-monitoring:/work:ro" \
+            --volume "$RUNNER_TEMP/k6:/results" \
+            --workdir /work \
+            grafana/k6:1.3.0@sha256:3ddc8b1a33a2c3d8edc6e99b6a762ae36cba08788463458f5e6a7703e14eb77d \
+            run --summary-export /results/summary.json smoke.js
+      - name: Publish probe result
+        if: always()
+        run: |
+          if [[ -f "$RUNNER_TEMP/k6/summary.json" ]]; then
+            python -m json.tool "$RUNNER_TEMP/k6/summary.json" > "$RUNNER_TEMP/k6/summary.pretty.json"
+            echo '### k6 functional contracts' >> "$GITHUB_STEP_SUMMARY"
+            python - "$RUNNER_TEMP/k6/summary.json" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, sys
+          metrics = json.load(open(sys.argv[1]))['metrics']
+          for name in ('contract_failures', 'http_req_duration', 'http_reqs'):
+              print(f"- {name}: {metrics.get(name, {}).get('values', {})}")
+          PY
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: k6-contract-summary
+          path: "${{ runner.temp }}/k6/summary.json"
+          if-no-files-found: warn
+          retention-days: 30

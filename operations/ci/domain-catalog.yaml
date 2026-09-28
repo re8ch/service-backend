@@ -115,11 +115,14 @@ domains:
     paths:
       - platform/observability-source/**
       - platform/observability/**
+      - clusters/re8ch/components/synthetic-monitoring/**
+      - operations/k6/**
     roots:
       - platform/observability-source
       - platform/observability/bootstrap
       - platform/observability/opencost-recovery
       - platform/observability/production
+      - clusters/re8ch/components/synthetic-monitoring
     tests:
       - tests/test_observability.py
 

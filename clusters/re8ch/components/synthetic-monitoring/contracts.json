@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "probes": [
+    {
+      "id": "auth-discovery",
+      "url": "https://auth.re8ch.com/.well-known/openid-configuration",
+      "status": 200,
+      "jsonField": "issuer",
+      "equals": "https://auth.re8ch.com"
+    },
+    {
+      "id": "cloud-mcp-auth-challenge",
+      "url": "https://tools.service.re8ch.com/cloud/mcp",
+      "accept": "application/json, text/event-stream",
+      "status": 401,
+      "header": "Www-Authenticate",
+      "contains": "Bearer"
+    }
+  ]
+}
