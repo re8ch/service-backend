@@ -47,6 +47,8 @@ spec:
               valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: REALTIME_DB_ENC_KEY}}
             - name: API_JWT_SECRET
               valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: JWT_SECRET}}
+            - name: METRICS_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: JWT_SECRET}}
             - name: API_JWT_JWKS
               valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: JWT_PUBLIC_JWKS}}
             - name: SECRET_KEY_BASE
