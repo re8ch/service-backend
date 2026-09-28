@@ -104,11 +104,23 @@ def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
         "issuer": "https://dex.service.re8ch.com",
         "subjectHash": "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6",
         "role": "operator",
+        "revoked": True,
+    }
+    public_woomou = next(
+        item
+        for item in re8ch["identityBindings"]
+        if item["name"] == "re8ch-auth-woomou-subject-operator"
+    )
+    assert public_woomou == {
+        "name": "re8ch-auth-woomou-subject-operator",
+        "issuer": "https://auth.re8ch.com",
+        "subjectHash": "sha256:c1f31ccaf6518e235725fdb1e46a6a8b79721e055eaf0b6f1b5bd3549bae7e92",
+        "role": "operator",
     }
     application_bindings = [
         item
         for item in re8ch["identityBindings"]
-        if item not in (woomou, audience_binding, admin_audience_projection)
+        if item not in (woomou, public_woomou, audience_binding, admin_audience_projection)
         and not item.get("revoked", False)
     ]
     assert all(
