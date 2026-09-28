@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: starfire-copper
+codename: torch-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:78340914381172f540053ad45a50a98bc223a33ad11b914f40e205b7567aff4a
+  digest: sha256:1a5fb753739b1e24cc52846f086b8180f331068fd4ca95a6fa1ee221ed40e56c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: starfire-copper
+    delivery.re8ch.com/codename: torch-copper
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:78340914381172f540053ad45a50a98bc223a33ad11b914f40e205b7567aff4a
+    digest: sha256:1a5fb753739b1e24cc52846f086b8180f331068fd4ca95a6fa1ee221ed40e56c
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: starfire-copper
+    delivery.re8ch.com/codename: torch-copper
 spec:
   interval: 1m
   retryInterval: 1m
