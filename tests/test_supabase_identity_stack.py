@@ -39,7 +39,8 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert pod["hostAliases"] == [{"ip": public_ip, "hostnames": ["id.re8ch.com"]}]
     assert pod["containers"][0]["image"].startswith("registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:")
     env = {item["name"]: item for item in pod["containers"][0]["env"]}
-    assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "false"
+    assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "true"
+    assert env["GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH"]["value"] == "/"
     assert env["GOTRUE_JWT_KEYS"]["valueFrom"]["secretKeyRef"]["name"] == "supabase-identity-secrets"
     assert env["GOTRUE_DISABLE_SIGNUP"]["valueFrom"]["configMapKeyRef"]["key"] == "DISABLE_SIGNUP"
     assert config["data"]["DISABLE_SIGNUP"] == "true"
@@ -62,3 +63,9 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
         "auth-v1", "rest-v1", "meta", "dashboard",
     }
     assert next(service for service in services if service["name"] == "dashboard")["url"] == "http://supabase-identity-studio:3000/"
+
+    clients = list(yaml.safe_load_all((ROOT / "operations/supabase-identity/oauth-clients-headlamp.yaml").read_text()))
+    sql = clients[0]["data"]["clients.sql"]
+    assert "https://headlamp.service.re8ch.com/oidc-callback" in sql
+    assert "'public'" in sql and "'none'" in sql
+    assert clients[1]["kind"] == "Job"

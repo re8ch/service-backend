@@ -89,22 +89,23 @@ custom provider and clear its cached discovery metadata. Verify `/auth/v1/author
 redirects to `id.re8ch.com` before retrying interactive sign-in.
 
 The approved new issuer is `https://db-rw.re8ch.com/auth/v1`; `auth.re8ch.com`
-hosts the static user-center frontend. The original GoTrue
-v2.189.0 contains the OAuth Server routes, but supports only `openid`,
-`profile`, `email` and `phone` scopes. The current ConnecTool clients request
-`groups` and `offline_access`; the candidate therefore keeps the OAuth server
-disabled. A newer reviewed GoTrue build must support refresh tokens, clients
-must request supported scopes, and a reviewed access-token hook plus a live
-GitHub team synchronization path must restore the `groups` claim and exact
-resource audiences before tool cutover. Do not infer platform administrator
+hosts the static User Hub and its OAuth consent screen at `/`. GoTrue v2.196.0
+supports `openid`, `profile`, `email`, `phone` and `offline_access` scopes.
+The OAuth server is enabled for the explicitly registered Headlamp public PKCE
+client. Its fixed client ID is `ed4e0331-7522-59f8-8a72-2d558844dc24`.
+The `supabase-oauth-clients-headlamp-v1` Job declares its exact callback URL.
+Before changing Headlamp's issuer, verify the Job completed and the authorize
+endpoint redirects to User Hub with an `authorization_id`.
+
+ConnecTool clients still require `groups` and exact resource audiences. A
+reviewed access-token hook and live GitHub team synchronization must restore
+these claims before their cutover. Do not infer platform administrator
 membership from an organization `admin` role.
 
-Enable OAuth Server only on the isolated deployment after these contracts
-exist, configure asymmetric signing keys, and assert the OIDC discovery
-`issuer`, JWKS, PKCE, refresh token and userinfo behavior before modifying the
-public route. Register Stalwart and the three ConnecTool public clients with
-their reviewed callback URIs. Verify GitHub organization membership remains
-an access condition for those clients.
+Keep Stalwart and ConnecTool on their existing issuers until their token
+audience and group contracts are validated. Stalwart's external OIDC directory
+can consume Supabase access tokens, but its mailbox email aliases do not by
+themselves authenticate another Supabase identity.
 
 Switch HTTPRoute and all client issuer declarations only after migrated user
 password login, organization RLS and the entire OAuth client matrix pass.

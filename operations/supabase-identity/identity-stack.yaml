@@ -682,7 +682,9 @@ spec:
               name: supabase-identity-env
               key: ENABLE_PHONE_AUTOCONFIRM
         - name: GOTRUE_OAUTH_SERVER_ENABLED
-          value: 'false'
+          value: 'true'
+        - name: GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH
+          value: '/'
         - name: GOTRUE_JWT_KEYS
           valueFrom:
             secretKeyRef:
