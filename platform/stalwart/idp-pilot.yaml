@@ -187,8 +187,11 @@ spec:
         - {path: {type: PathPrefix, value: /auth}}
         - {path: {type: Exact, value: /login}}
         - {path: {type: PathPrefix, value: /account}}
+        - {path: {type: PathPrefix, value: /jmap}}
+        - {path: {type: PathPrefix, value: /dav}}
+        - {path: {type: PathPrefix, value: /api/auth}}
         - {path: {type: PathPrefix, value: /api/discover}}
-      backendRefs: [{name: stalwart-idp, port: 8080}]
+      backendRefs: [{name: stalwart, port: 8080}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -223,4 +226,4 @@ spec:
         paths:
           - path: /
             pathType: Prefix
-            backend: {service: {name: stalwart-idp, port: {number: 8080}}}
+            backend: {service: {name: stalwart, port: {number: 8080}}}
