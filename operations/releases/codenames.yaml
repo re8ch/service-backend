@@ -189,6 +189,8 @@ modules:
       digest: sha256:1087e40d97b2e631ebad153ec8464504d3b18f346a5ae2304344c19c5a530710
     - codename: lighthouse-jade
       digest: sha256:1ce37590a80ce4830b606bd92eb848d1836c91e9a8cf2db4e886b0d20d68b298
+    - codename: signal-jade
+      digest: sha256:c9a49c4f47cd899d8d75b0947b4113ce961339905f54b7d805ad64b05877059d
   platform/among-clusters:
     releases:
     - codename: bora
