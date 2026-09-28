@@ -21,7 +21,7 @@ jobs:
           password: ${{ secrets.HARBOR_PASSWORD }}
       - name: Sign and verify the reviewed image digest
         env:
-          IMAGE: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:91ba71ea28a9d0dadd4119b8fb9e31335543d9967153290404e19e2167fa038a
+          IMAGE: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:b2576b9e561213ba90597d363377e990e35ebbd845cb1fb648c60a94d2c9cc1a
           IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/auth-gateway-sign.yml@refs/heads/main
           ISSUER: https://token.actions.githubusercontent.com
         run: |
