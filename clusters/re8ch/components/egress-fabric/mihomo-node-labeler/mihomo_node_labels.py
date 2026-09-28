@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enable Mihomos consumers on active inventory nodes and public global exits."""
+"""Enable Mihomos consumers on Ready Kubernetes nodes and public global exits."""
 
 import ipaddress
 import json
@@ -43,32 +43,46 @@ def public_ipv4(node):
 
 def desired_labels(node, inventory):
     name = node.get("metadata", {}).get("name", "")
-    record = inventory.get(name)
-    if not record:
+    conditions = node.get("status", {}).get("conditions", [])
+    if not any(item.get("type") == "Ready" and item.get("status") == "True"
+               for item in conditions):
         return {}
-    region = record.get("region", "")
-    if not region:
+    labels = node.get("metadata", {}).get("labels", {})
+    region = labels.get("topology.kubernetes.io/region", "")
+    if not region or region.endswith("unverified"):
+        region = inventory.get(name, {}).get("region", "")
+    if not region or region.endswith("unverified"):
         return {}
-    labels = {"networking.re8ch.com/mihomo-node": "enabled",
-              "networking.re8ch.com/geo": "cn" if region.startswith("cn-") else "global"}
-    if labels["networking.re8ch.com/geo"] == "global" and public_ipv4(node):
-        labels["networking.re8ch.com/mihomo-exit"] = "enabled"
-    return labels
+    desired = {"networking.re8ch.com/mihomo-node": "enabled",
+               "networking.re8ch.com/geo": "cn" if region.startswith("cn-") else "global"}
+    if desired["networking.re8ch.com/geo"] == "global" and public_ipv4(node):
+        desired["networking.re8ch.com/mihomo-exit"] = "enabled"
+    return desired
 
 
 def reconcile():
-    inventory = json.loads(api(INVENTORY_PATH)["data"]["nodes.json"])
     nodes = api("/api/v1/nodes").get("items", [])
+    try:
+        inventory = json.loads(api(INVENTORY_PATH)["data"]["nodes.json"])
+    except (KeyError, ValueError, urllib.error.HTTPError, urllib.error.URLError) as exc:
+        print(json.dumps({"level": "warning", "event": "mihomo-inventory-facts-unavailable",
+                          "error": type(exc).__name__}), flush=True)
+        inventory = {}
     patched = []
     for node in nodes:
         name = node.get("metadata", {}).get("name", "")
         desired = desired_labels(node, inventory)
         current = node.get("metadata", {}).get("labels", {})
-        changed = {key: value for key, value in desired.items() if current.get(key) != value}
+        managed = ("networking.re8ch.com/mihomo-node", "networking.re8ch.com/geo",
+                   "networking.re8ch.com/mihomo-exit")
+        changed = {key: desired.get(key) for key in managed
+                   if (key in desired and current.get(key) != desired[key])
+                   or (key not in desired and key in current)}
         if changed:
             api(f"/api/v1/nodes/{name}", "PATCH", {"metadata": {"labels": changed}})
             patched.append(name)
-    print(json.dumps({"inventoryNodes": len(inventory), "patched": patched}), flush=True)
+    print(json.dumps({"observedNodes": len(nodes), "inventoryFacts": len(inventory),
+                      "patched": patched}), flush=True)
 
 
 if __name__ == "__main__":

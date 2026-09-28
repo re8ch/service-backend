@@ -134,10 +134,12 @@ spec:
       replicas: 2
       intervalSeconds: 15
       probeTimeoutSeconds: 2
-      defaultCapacityMbps: 100
+      # Unknown uplinks do not meet the public-edge minimum until measured.
+      defaultCapacityMbps: 1
       minimumCapacityMbps: 100
-      # Shared cluster inventory is the sole source of membership, capacity and
-      # region; public IP and readiness are checked independently at runtime.
+      # Shared inventory supplies capacity and region facts where present.
+      # Every live Node is considered; unlisted nodes can qualify with measured
+      # capacity annotations and the same public IP/path/listener probes.
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       maxNameservers: 3
       gatewayNamespace: kube-system
