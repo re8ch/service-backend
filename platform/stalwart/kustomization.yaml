@@ -6,6 +6,7 @@ resources:
   - desired-mail-domain.yaml
   - bootstrap-plan.yaml
   - mailbox-provisioner.yaml
+  - harry-admin-alias.yaml
   - cloudflare-token-sync.yaml
   - public-mail.yaml
   - public-collaboration.yaml
