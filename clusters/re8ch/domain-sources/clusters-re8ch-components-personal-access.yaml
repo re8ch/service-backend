@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/personal-access
-    delivery.re8ch.com/codename: shield
+    delivery.re8ch.com/codename: ward
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
   ref:
-    digest: sha256:795da23a7667b859f918e506ff88fdb2abd8a7938a527bc3097d935773f470e7
+    digest: sha256:caa180f8727b6588010a1fdd803913cd636ea9f0d8ba87429320634d6c824d6e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/personal-access
-    delivery.re8ch.com/codename: shield
+    delivery.re8ch.com/codename: ward
 spec:
   interval: 1m
   retryInterval: 1m
