@@ -121,16 +121,26 @@ The identity data routes add `https://db-rw.re8ch.com/identity/rest/v1`,
 `https://db-ro.re8ch.com/identity/rest/v1`, and
 `wss://db-rw.re8ch.com/realtime/v1/websocket`. They leave existing `/auth`
 and `/auth/v1` routes intact. The read-only PostgREST deployment uses
-`pg-re8ch-replicas`, so writes fail at PostgreSQL even if a future `api`
-function is accidentally exposed. Read-after-write flows must use the writer
-or the result of the write, since a replica can lag.
+the dedicated `identity_ro_authenticator` login role with
+`default_transaction_read_only=on`. It currently connects to the primary:
+the declared replica endpoints do not contain `re8ch_identity`, and the
+primary reports no active streaming replicas. The database rejects writes on
+this connection even if an API function exposes a write endpoint. Migrate the
+connection to a verified replica only after replication and database presence
+have been checked. The read-only session cannot issue `LISTEN`; its PostgREST
+notification channel is disabled and schema changes require a deployment
+restart to reload the cache.
 
 Before merging the Realtime manifests, check pgBackRest status, confirm
 `wal_level=logical`, and provision these additional keys in the existing
 `supabase-identity-secrets` using the cluster secret manager:
 
-- `PGRST_RO_DB_URI`: same restricted PostgREST credentials and database as
-  `PGRST_DB_URI`, with host `pg-re8ch-replicas.pigsty-external.svc.cluster.local`.
+- `PGRST_RO_DB_URI`: dedicated `identity_ro_authenticator` credentials for
+  `re8ch_identity` on `pg-re8ch-primary.pigsty-external.svc.cluster.local`.
+  Grant `anon`, `authenticated`, and `service_role` to this `NOINHERIT` login
+  role, and set `default_transaction_read_only=on` before exposing the route.
+- `REALTIME_DB_PASSWORD`: password for dedicated `supabase_realtime` login
+  role with replication privilege and ownership of `_realtime`.
 - `JWT_PUBLIC_JWKS`: only public EC signing JWKs from `GOTRUE_JWT_KEYS`.
 - `JWT_VERIFICATION_JWKS`: those public EC keys plus the existing internal
   HS256 verification JWK, for PostgREST compatibility during key migration.
