@@ -69,21 +69,27 @@ def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
     admin_audience_projection = next(
         item
         for item in re8ch["identityBindings"]
-        if item["name"] == "re8ch-tenant-admins-as-operators"
+        if item["name"] == "re8ch-tenant-admins-as-operators-auth"
     )
     assert admin_audience_projection == {
-        "name": "re8ch-tenant-admins-as-operators",
+        "name": "re8ch-tenant-admins-as-operators-auth",
         "issuer": "https://auth.re8ch.com",
         "group": "re8ch:tenant-admins",
         "role": "operator",
     }
+    retired_projection = next(
+        item for item in re8ch["identityBindings"]
+        if item["name"] == "re8ch-tenant-admins-as-operators"
+    )
+    assert retired_projection["issuer"] == "https://dex.service.re8ch.com"
+    assert retired_projection["revoked"] is True
     audience_binding = next(
         item
         for item in re8ch["identityBindings"]
-        if item["name"] == "re8ch-github-k8s-admins-as-operators"
+        if item["name"] == "re8ch-github-k8s-admins-as-operators-auth"
     )
     assert audience_binding == {
-        "name": "re8ch-github-k8s-admins-as-operators",
+        "name": "re8ch-github-k8s-admins-as-operators-auth",
         "issuer": "https://auth.re8ch.com",
         "group": "re8ch:k8s-admins",
         "role": "operator",
@@ -103,6 +109,7 @@ def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
         item
         for item in re8ch["identityBindings"]
         if item not in (woomou, audience_binding, admin_audience_projection)
+        and not item.get("revoked", False)
     ]
     assert all(
         item["issuer"] == "https://api.re8ch.com/auth"

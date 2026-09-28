@@ -70,8 +70,10 @@ spec:
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
           identityBindings:
-            - {name: admin-github-k8s-admins, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
-            - {name: admin-vmcp-service, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+            - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin, revoked: true}
+            - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin, revoked: true}
+            - {name: admin-github-k8s-admins-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
+            - {name: admin-vmcp-service-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
           grants: []
           nativeAccess: false
         - name: artchais
@@ -125,8 +127,10 @@ spec:
           identityBindings:
             # The same GitHub identity is deliberately projected differently by
             # audience: ordinary re8ch operator here, protected admin above.
-            - {name: re8ch-tenant-admins-as-operators, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: operator}
-            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: operator}
+            - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: operator, revoked: true}
+            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: operator, revoked: true}
+            - {name: re8ch-tenant-admins-as-operators-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: operator}
+            - {name: re8ch-github-k8s-admins-as-operators-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: operator}
             # Dex wraps the upstream GitHub numeric ID in its connector-scoped
             # stable `sub`. Hash the actual Dex userinfo `sub`, including the
             # issuer prefix used by the tenant authorizer. This remains an
