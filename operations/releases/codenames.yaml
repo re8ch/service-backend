@@ -436,6 +436,8 @@ modules:
       digest: sha256:8d5bb91218df81543d76f0616049bda44a7cf63288a3a2d54b785b27267aa9a2
     - codename: starfire-copper
       digest: sha256:78340914381172f540053ad45a50a98bc223a33ad11b914f40e205b7567aff4a
+    - codename: torch-copper
+      digest: sha256:1a5fb753739b1e24cc52846f086b8180f331068fd4ca95a6fa1ee221ed40e56c
   platform/apps/access-subscription:
     releases:
     - codename: aegis
