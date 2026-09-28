@@ -265,7 +265,7 @@ spec:
             - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
             - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
             # Headlamp adds openid itself when building the authorization URL.
-            - -oidc-scopes=profile,email,offline_access
+            - -oidc-scopes=offline_access
             - -oidc-use-pkce
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins

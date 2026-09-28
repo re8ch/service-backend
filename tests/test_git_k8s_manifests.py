@@ -421,6 +421,7 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert '"accessTokenExpiry":900000' in plan
     assert '"clientId":"kubectl-stalwart-pilot"' in plan
     assert '"clientId":"headlamp"' in plan
+    assert '"clientId":"storage-collaborator"' in plan
     assert '"https://headlamp.service.re8ch.com/oidc-callback":true' in plan
     assert '"clientId":"re8ch-cloud-platform-tool"' in plan
     assert '"clientId":"re8ch-platform-admin"' in plan

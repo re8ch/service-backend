@@ -17,8 +17,7 @@ final class OIDCLogin: NSObject, ASWebAuthenticationPresentationContextProviding
     }
   }
 
-  static let issuer = URL(string: "https://dex.service.re8ch.com")!
-  static let transportBase = URL(string: "https://dex.service.re8ch.com:8443")!
+  static let issuer = URL(string: "https://id.re8ch.com")!
   static let clientID = "storage-collaborator"
   static let redirectURI = "com.re8ch.storagecollaborator:/oauth/callback"
   private var session: ASWebAuthenticationSession?
@@ -26,12 +25,12 @@ final class OIDCLogin: NSObject, ASWebAuthenticationPresentationContextProviding
   func signIn() async throws -> TokenResponse {
     let verifier = Self.randomURLSafe(count: 48)
     let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-    var parts = URLComponents(url: Self.transportBase.appendingPathComponent("auth"), resolvingAgainstBaseURL: false)!
+    var parts = URLComponents(url: Self.issuer.appendingPathComponent("login"), resolvingAgainstBaseURL: false)!
     parts.queryItems = [
       .init(name: "client_id", value: Self.clientID),
       .init(name: "redirect_uri", value: Self.redirectURI),
       .init(name: "response_type", value: "code"),
-      .init(name: "scope", value: "openid profile email groups offline_access"),
+      .init(name: "scope", value: "openid offline_access"),
       .init(name: "code_challenge", value: challenge),
       .init(name: "code_challenge_method", value: "S256"),
     ]
@@ -49,7 +48,7 @@ final class OIDCLogin: NSObject, ASWebAuthenticationPresentationContextProviding
     guard let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else {
       throw URLError(.badServerResponse)
     }
-    var request = URLRequest(url: Self.transportBase.appendingPathComponent("token"))
+    var request = URLRequest(url: Self.issuer.appendingPathComponent("auth/token"))
     request.httpMethod = "POST"
     request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
     let form = ["grant_type": "authorization_code", "code": code, "redirect_uri": Self.redirectURI, "client_id": Self.clientID, "code_verifier": verifier]
