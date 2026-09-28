@@ -2,12 +2,14 @@
 
 The Flux HelmRelease in `release.yaml` is the active GitOps declaration. It
 contains service catalog and model parameters only. The controller derives
-eligible edge and authority nodes from membership and uplink data projected
-from `inventory/nodes.yaml`, Node ExternalIP, fresh
+eligible edge and authority nodes from all live Kubernetes Nodes. It uses
+uplink and region facts projected from `inventory/nodes.yaml` when available,
+then Node capacity annotations and topology labels for unlisted nodes. A
+global Node ExternalIP, fresh
 NetworkPathAssessment evidence, the labelled canonical Gateway, and direct
 public listener probes. `inventory/nodes.yaml` is shared with AdvancedFabric;
-the release does not keep its own capacity or region list. Unlisted nodes are
-ineligible, but a listed node is not automatically Ready. No fixed edge address
+the release does not keep its own capacity or region list. Unknown uplink
+capacity is ineligible; listed nodes are not automatically Ready. No fixed edge address
 is accepted.
 
 Two controller replicas use a Kubernetes Lease for discovery and Cloudflare
