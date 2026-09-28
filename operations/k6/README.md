@@ -27,6 +27,21 @@ Jobs for inspection. A failed external k6 threshold fails the workflow. A failed
 internal Job is visible in Kubernetes Job status and logs; alert routing can
 consume that status through cluster telemetry.
 
+## Where to see results
+
+- **Public checks:** GitHub Actions → `k6 functional contracts` shows each run.
+  The run summary lists every contract, pass/fail count, and HTTP p95. Download
+  `k6-contract-summary` for the full JSON result (retained for 30 days). PR
+  checks also appear in `control-plane-ci` as `k6-contracts`.
+- **Internal checks:** Headlamp's standard CronJobs, Jobs, and Pod logs in the
+  `synthetic-monitoring` namespace show execution and the k6 threshold result.
+  The existing `k6-contracts` CronJob is the standard cadence; the fast cadence
+  is `k6-contracts-fast`.
+- **Grafana:** these CronJobs do not currently remote-write k6 metrics or
+  provision a k6 dashboard. Grafana is the right place for aggregate trends
+  after the result exporter and alert rule are added; it is not the current
+  source of individual run results.
+
 ## Reusable dataset
 
 `clusters/re8ch/components/synthetic-monitoring/contracts.json` is the
