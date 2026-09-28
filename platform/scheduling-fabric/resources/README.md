@@ -36,6 +36,17 @@ below 80% CPU and lower request occupancy. A closed window adds the owned
 ordinary Pods on either scheduler without evicting running Pods. Penrose and
 the node exporter tolerate this exact taint so they can restore observation.
 
+Nodes with at most 4 GiB host RAM use a stricter window. It closes when CPU
+utilisation exceeds 75%, available RAM falls below 25% or 512 MiB, CPU or RAM
+requests reach 70% of allocatable, or 15 of the 20 allowed Pod slots are
+occupied. It reopens only below 60% CPU utilisation and request occupancy,
+above 35% or 768 MiB available RAM, and below 12 occupied Pod slots. A
+container without CPU or RAM requests is charged 100m CPU and 128 MiB RAM for
+this window. Missing allocatable capacity also closes the window. The
+`worker-small` reservation profile declares a 20-Pod kubelet ceiling; operators
+must separately apply that profile to hosts because Penrose does not change
+kubelet settings.
+
 `scheduling.re8ch.com/capacity-window` is `open`, `closed` or `unknown` on the
 Node; `capacity-reasons` gives bounded evidence in Headlamp. PlacementClass
 and Kueue require `open`. Missing telemetry, including the first sample on a
