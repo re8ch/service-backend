@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: supabase-oauth-clients-headlamp-v1
+  name: supabase-oauth-clients-headlamp-v2
   namespace: supabase-identity
 data:
   clients.sql: |
@@ -11,7 +11,7 @@ data:
       token_endpoint_auth_method, redirect_uris, grant_types,
       client_name, client_uri
     ) values (
-      'ed4e0331-7522-59f8-8a72-2d558844dc24', null, 'manual', 'public',
+      'ed4e0331-7522-59f8-8a72-2d558844dc24', '', 'manual', 'public',
       'none', 'https://headlamp.service.re8ch.com/oidc-callback',
       'authorization_code,refresh_token', 'Headlamp Kubernetes console',
       'https://headlamp.service.re8ch.com'
@@ -31,6 +31,7 @@ data:
       if not exists (
         select 1 from auth.oauth_clients
         where id = 'ed4e0331-7522-59f8-8a72-2d558844dc24'
+          and client_secret_hash = ''
           and client_type = 'public' and token_endpoint_auth_method = 'none'
           and deleted_at is null
       ) then
@@ -42,7 +43,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: supabase-oauth-clients-headlamp-v1
+  name: supabase-oauth-clients-headlamp-v2
   namespace: supabase-identity
 spec:
   backoffLimit: 4
@@ -52,7 +53,7 @@ spec:
       restartPolicy: Never
       automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -80,4 +81,4 @@ spec:
       volumes:
         - name: sql
           configMap:
-            name: supabase-oauth-clients-headlamp-v1
+            name: supabase-oauth-clients-headlamp-v2

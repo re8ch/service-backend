@@ -93,7 +93,8 @@ hosts the static User Hub and its OAuth consent screen at `/`. GoTrue v2.196.0
 supports `openid`, `profile`, `email`, `phone` and `offline_access` scopes.
 The OAuth server is enabled for the explicitly registered Headlamp public PKCE
 client. Its fixed client ID is `ed4e0331-7522-59f8-8a72-2d558844dc24`.
-The `supabase-oauth-clients-headlamp-v1` Job declares its exact callback URL.
+The `supabase-oauth-clients-headlamp-v2` Job declares its exact callback URL
+and uses an empty client-secret hash for GoTrue's public-client row scanner.
 Before changing Headlamp's issuer, verify the Job completed and the authorize
 endpoint redirects to User Hub with an `authorization_id`.
 
