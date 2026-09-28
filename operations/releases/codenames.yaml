@@ -595,6 +595,8 @@ modules:
       digest: sha256:601f1c4dbb5436d48dc3344cf4b17a959181dff66dc75569c0a61ee56c0c0cc0
     - codename: springtide-pearl
       digest: sha256:fbfa4d179ca10c9af45ce9b03168abc03fb6ad7636a8833f40b7c765a33f36f0
+    - codename: tideway-pearl
+      digest: sha256:d5d5da7de6ca9ce5433f409f8762d0e2f0008b05f293b7a9e6b84a10134ba0d4
   platform/hyperswitch:
     releases:
     - codename: anchor
