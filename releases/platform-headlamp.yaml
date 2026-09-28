@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: signal-jade
+codename: starfire-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:c9a49c4f47cd899d8d75b0947b4113ce961339905f54b7d805ad64b05877059d
+  digest: sha256:6e93992c2552a45d701262d3c2b6b2ec90980d49c33ff73db3b0e6f07eae44cd
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
