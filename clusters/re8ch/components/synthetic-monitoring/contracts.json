@@ -1,8 +1,23 @@
 {
-  "version": 1,
+  "version": 2,
+  "cadences": {
+    "fast": {
+      "periodSeconds": 300,
+      "externalCron": "2/5 * * * *",
+      "internalCron": "4/5 * * * *"
+    },
+    "standard": {
+      "periodSeconds": 1800,
+      "externalCron": "18,48 * * * *",
+      "internalCron": "20,50 * * * *"
+    }
+  },
   "probes": [
     {
       "id": "auth-discovery",
+      "owner": "platform/identity-access",
+      "vantage": "external",
+      "cadence": "standard",
       "url": "https://auth.re8ch.com/.well-known/openid-configuration",
       "status": 200,
       "jsonField": "issuer",
@@ -10,11 +25,60 @@
     },
     {
       "id": "cloud-mcp-auth-challenge",
+      "owner": "platform/cloud-platform",
+      "vantage": "external",
+      "cadence": "fast",
       "url": "https://tools.service.re8ch.com/cloud/mcp",
       "accept": "application/json, text/event-stream",
       "status": 401,
       "header": "Www-Authenticate",
       "contains": "Bearer"
+    },
+    {
+      "id": "id-discovery",
+      "owner": "platform/identity-access",
+      "vantage": "external",
+      "cadence": "standard",
+      "url": "https://id.re8ch.com/.well-known/openid-configuration",
+      "status": 200,
+      "jsonField": "issuer",
+      "equals": "https://id.re8ch.com"
+    },
+    {
+      "id": "registry-auth-challenge",
+      "owner": "platform/registry",
+      "vantage": "external",
+      "cadence": "fast",
+      "url": "https://registry.re8ch.com/v2/",
+      "status": 401,
+      "header": "Www-Authenticate",
+      "contains": "Bearer"
+    },
+    {
+      "id": "grafana-health",
+      "owner": "platform/observability",
+      "vantage": "external",
+      "cadence": "standard",
+      "url": "https://grafana.service.re8ch.com/grafana/api/health",
+      "status": 200,
+      "jsonField": "database",
+      "equals": "ok"
+    },
+    {
+      "id": "cloud-platform-internal-health",
+      "owner": "platform/cloud-platform",
+      "vantage": "internal",
+      "cadence": "fast",
+      "url": "http://re8ch-cloud-platform.ai-operations.svc.cluster.local:19443/healthz",
+      "status": 200
+    },
+    {
+      "id": "auth-gateway-internal-health",
+      "owner": "platform/identity-access",
+      "vantage": "internal",
+      "cadence": "standard",
+      "url": "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/healthz",
+      "status": 200
     }
   ]
 }

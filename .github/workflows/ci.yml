@@ -63,6 +63,7 @@ jobs:
       - name: Probe public functional contracts
         run: |
           docker run --rm \
+            --env PROBE_VANTAGE=external --env PROBE_CADENCE=all \
             --volume "$PWD/clusters/re8ch/components/synthetic-monitoring:/work:ro" \
             --workdir /work \
             grafana/k6:1.3.0@sha256:3ddc8b1a33a2c3d8edc6e99b6a762ae36cba08788463458f5e6a7703e14eb77d \
