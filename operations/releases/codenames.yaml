@@ -575,6 +575,8 @@ modules:
       digest: sha256:2699de726bbfdf4aec65d014da0347a243ace301208faff3e9d99a4f52d1b19a
     - codename: tideway-jade
       digest: sha256:850ae79785466b99d375cb0ba96d47ccf86704ff1173c98588bb8630bca4b691
+    - codename: cascade-pearl
+      digest: sha256:7ccda4e10004c24317cd6bc76b3fc5b76a4be1f20858365e7f19c79472556eb1
   platform/hyperswitch:
     releases:
     - codename: anchor
