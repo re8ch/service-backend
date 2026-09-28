@@ -412,7 +412,7 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     plan = next(
         item
         for item in resources
-        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan"
+        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan-v6"
     )["data"]["plan.ndjson"]
     assert '"issuerUrl":"https://auth.re8ch.com"' in plan
     assert '"claimGroups":"groups"' in plan
@@ -427,7 +427,7 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert '"clientId":"re8ch-platform-admin"' in plan
     assert '"clientId":"re8ch-tenant"' in plan
     bootstrap = next(item for item in resources if item["kind"] == "Job")
-    assert bootstrap["metadata"]["name"] == "stalwart-idp-bootstrap-v5"
+    assert bootstrap["metadata"]["name"] == "stalwart-idp-bootstrap-v6"
     bootstrap_container = bootstrap["spec"]["template"]["spec"]["containers"][0]
     assert {item["name"]: item["value"] for item in bootstrap_container["env"]}["XDG_CACHE_HOME"] == "/cache"
     assert {item["name"]: item["mountPath"] for item in bootstrap_container["volumeMounts"]}["cache"] == "/cache"

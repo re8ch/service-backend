@@ -2,11 +2,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: stalwart-unified-identity-bootstrap-plan
+  name: stalwart-unified-identity-bootstrap-plan-v2
   namespace: mail-system
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true,"profile":true,"groups":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true,"profile":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
     {"@type":"update","object":"Http","value":{"usePermissiveCors":true}}
     {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":900000,"idTokenExpiry":900000,"refreshTokenExpiry":28800000,"refreshTokenRenewal":3600000}}
@@ -21,7 +21,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-unified-identity-bootstrap-v1
+  name: stalwart-unified-identity-bootstrap-v2
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
@@ -95,7 +95,7 @@ spec:
       volumes:
       - name: plan
         configMap:
-          name: stalwart-unified-identity-bootstrap-plan
+          name: stalwart-unified-identity-bootstrap-plan-v2
       - name: cache
         emptyDir: {}
       - name: cli
