@@ -563,6 +563,8 @@ modules:
       digest: sha256:eebc9d345f9fc208e4cc79d6a2119121a193760845889644a3ad2ef52ff54db1
     - codename: eddy-jade
       digest: sha256:eefe17e179bf8624379f82d44853456a8e5c372cfc4f48396e13f6d9e9f8cc32
+    - codename: gulfstream-jade
+      digest: sha256:595e7ccfaa89b5e6330c4ac1d76d47af9260fde8ca6b0b2228e3b98f4850be5f
   platform/hyperswitch:
     releases:
     - codename: anchor

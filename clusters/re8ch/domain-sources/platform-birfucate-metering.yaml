@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: eddy-jade
+    delivery.re8ch.com/codename: gulfstream-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:eefe17e179bf8624379f82d44853456a8e5c372cfc4f48396e13f6d9e9f8cc32
+    digest: sha256:595e7ccfaa89b5e6330c4ac1d76d47af9260fde8ca6b0b2228e3b98f4850be5f
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: eddy-jade
+    delivery.re8ch.com/codename: gulfstream-jade
 spec:
   interval: 1m
   retryInterval: 1m
