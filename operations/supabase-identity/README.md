@@ -177,3 +177,18 @@ Verify the WebSocket upgrade from the public edge and from the User Center
 environment, another user's topic denial, the read-only route rejecting writes,
 and the absence of long-lived replication slot lag. On Realtime failure, remove
 its new HTTPRoute and triggers while keeping GoTrue and REST available.
+
+## Auth gateway image signing
+
+The `auth` Harbor project uses Cosign signatures held in the cluster Registry
+workflow. Do not use an interactive Sigstore device login for an auth gateway
+release. Build and push the immutable image digest, then run a short-lived
+Cosign Job on restricted-node-6dc3f140f9 in the `auth` namespace. Mount
+`auth/re8ch-auth-gateway-cosign-signing-key` for `cosign.key`,
+`cosign.password`, and `cosign.pub`; mount `auth/harbor-auth-admin` as the
+container's Docker config. Sign the digest with the private key and
+`--tlog-upload=false`, then verify the exact digest with the public key. Keep
+the private key and registry credential inside their Kubernetes Secrets; do
+not copy them to a workstation, command line, log, or Git. Remove the temporary
+Jobs after verification. The resulting signature must be visible as a Harbor
+OCI referrer before the signed GitOps image-pin PR is merged.
