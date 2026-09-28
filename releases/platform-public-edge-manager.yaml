@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: etesian-violet
+codename: mistral-violet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:8bc190d86c4f8e18cf08f2d63a4f1bc126eb2ce2e4c0c324ffa7ed8f081cd148
+  digest: sha256:65f815cfdbe5c44dab989762ec34fb94ee548436a0f10adc1a43e62e2e4dc476
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
