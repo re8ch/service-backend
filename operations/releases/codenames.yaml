@@ -420,6 +420,8 @@ modules:
       digest: sha256:f2bae145c2fb72269ef6d04b9c5003d929c17ccc487db68a3f40ef5ba72d2fcf
     - codename: lantern-copper
       digest: sha256:721066a28e9469a1844c3f2fb790eb5329e4e7cb4ec7e7cb66906683082c3922
+    - codename: lighthouse-copper
+      digest: sha256:c50d309b52c8dcff6d9b4b9d3878bbb8dea9d5711a07bb9c4fc7f564dd1c53b7
   platform/apps/access-subscription:
     releases:
     - codename: aegis
