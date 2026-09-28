@@ -707,8 +707,10 @@ def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_
     assert '\"email\": email, \"username\": email, \"password\": password' in script
     assert '\"@type\": \"User\"' in script
     assert '\"phase\": phase, \"provider\": \"stalwart\"' in script
-    assert '\"name\": \"stalwart-admin-credentials\"' in script
-    assert '\"roles\": {\"@type\": \"Admin\"}' in script
+    assert 'row.get("name") == "harry" and row.get("domainId") == re8ch_domain["id"]' in script
+    assert 'alias.get("name") == "admin" and alias.get("domainId") == re8ch_domain["id"]' in script
+    assert 'cli("update", "Account", harry[0]["id"]' in script
+    assert '"stalwart-admin-credentials"' not in script
     assert "print(password)" not in script
     container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
     assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]
@@ -722,7 +724,7 @@ def test_stalwart_provisioner_models_shared_groups_and_distribution_lists():
     assert '"@type": "Group"' in script
     assert '"object": "MailingList"' in script
     assert '"name": "maintainers"' in script
-    assert '"name": "postmaster"' in script
+    assert 'admin@phonaid.com' not in script
     cronjob = next(item for item in resources if item["kind"] == "CronJob")
     pod_spec = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]
     assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
