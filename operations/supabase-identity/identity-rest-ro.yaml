@@ -42,6 +42,7 @@ spec:
             - {name: PGRST_DB_MAX_ROWS, value: '1000'}
             - {name: PGRST_DB_EXTRA_SEARCH_PATH, value: public}
             - {name: PGRST_DB_USE_LEGACY_GUCS, value: 'false'}
+            - {name: PGRST_DB_CHANNEL_ENABLED, value: 'false'}
             - name: PGRST_JWT_SECRET
               valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: JWT_VERIFICATION_JWKS}}
           readinessProbe:

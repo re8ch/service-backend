@@ -413,6 +413,8 @@ spec:
       app.kubernetes.io/component: kong
   template:
     metadata:
+      annotations:
+        re8ch.com/kong-config-revision: identity-realtime-v1
       labels:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: kong
