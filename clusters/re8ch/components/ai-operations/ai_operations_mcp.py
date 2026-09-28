@@ -68,6 +68,10 @@ TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-opera
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
 SUPPLY_CHAIN_REQUIRED = os.getenv("HARBOR_SUPPLY_CHAIN_REQUIRED", "false").lower() == "true"
 TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
+AUTH_DISCOVERY_URL = os.getenv(
+    "AUTH_DISCOVERY_URL",
+    "https://auth.re8ch.com/.well-known/openid-configuration",
+)
 ARTCHAIS_TENANT_REF = os.getenv("ARTCHAIS_TENANT_REF", "artchais")
 TENANT_CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 
@@ -1178,7 +1182,7 @@ def readiness() -> tuple[bool, dict[str, str]]:
         checks["stateStore"] = "ok"
     except Exception:
         checks["stateStore"] = "failed"
-    targets = {"auth": "https://auth.re8ch.com/.well-known/openid-configuration"}
+    targets = {"auth": AUTH_DISCOVERY_URL}
     if TENANT_CONTROL_URL:
         targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
     if PROFILE == "tenant": targets["supplyChain"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
