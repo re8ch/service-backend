@@ -179,35 +179,26 @@ data:
     account_rows = [json.loads(line) for line in cli("query", "Account", "--fields", "id,name", "--json").splitlines()]
     existing_names = {row["name"] for row in account_rows}
 
-    admin_email = "admin@phonaid.com"
-    admin_account = {
-        "metadata": {"name": "stalwart-admin"},
-        "spec": {
-            "email": admin_email,
-            "displayName": "Stalwart Administrator",
-            "collaboration": {"credentialSecretRef": {
-                "name": "stalwart-admin-credentials", "namespace": "mail-system"
-            }},
-        },
-    }
-    admin_password = load_or_create_password(admin_account, admin_email)
-    plan = [{
-        "@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
-        "value": {"account-admin": {
-            "@type": "User", "name": "admin", "domainId": domain["id"],
-            "description": "Stalwart Administrator",
-            "credentials": {"0": {"@type": "Password", "secret": admin_password}},
-            "roles": {"@type": "Admin"}, "permissions": {"@type": "Inherit"},
-            "memberGroupIds": {}, "quotas": {},
-            "aliases": {
-                "0": {"name": "postmaster", "domainId": domain["id"], "enabled": True},
-                "1": {"name": "abuse", "domainId": domain["id"], "enabled": True},
-                "2": {"name": "dmarc", "domainId": domain["id"], "enabled": True},
-                "3": {"name": "tls-reports", "domainId": domain["id"], "enabled": True},
-            },
-            "encryptionAtRest": {"@type": "Disabled"},
-        }},
-    }]
+    # Harry is the SSO-backed mailbox owner and the canonical administrator.
+    # Match both name and domain so a legacy homonym cannot gain Admin rights.
+    re8ch_domain = next((row for row in domain_rows if row.get("name") == "re8ch.com"), None)
+    if not re8ch_domain:
+        raise RuntimeError("re8ch.com domain is not provisioned")
+    harry_rows = [json.loads(line) for line in cli(
+        "query", "Account", "--fields", "id,name,domainId,roles,aliases", "--json"
+    ).splitlines() if line.strip()]
+    harry = [row for row in harry_rows if row.get("name") == "harry" and row.get("domainId") == re8ch_domain["id"]]
+    if len(harry) != 1 or not any(
+        alias.get("name") == "admin" and alias.get("domainId") == re8ch_domain["id"] and alias.get("enabled")
+        for alias in (harry[0].get("aliases") or {}).values()
+    ):
+        raise RuntimeError("canonical Harry account or admin@re8ch.com alias is missing")
+    if harry[0].get("roles") != {"@type": "Admin"}:
+        cli("update", "Account", harry[0]["id"], "--json", '{"roles":{"@type":"Admin"}}')
+
+    # The operator is harry@re8ch.com. admin@re8ch.com is its Stalwart alias.
+    # Do not recreate the retired phonaid administrator on hourly runs.
+    plan = []
     pending = []
     migrated = []
     for index, account in enumerate(accounts):
@@ -287,7 +278,7 @@ data:
         except Exception:
             patch_status(account, "Failed", "CredentialCopyRetirementFailed")
             raise
-    print(json.dumps({"accounts": len(accounts), "ready": len(pending) + len(migrated), "admin": "ready", "stalwartManaged": len(migrated)}))
+    print(json.dumps({"accounts": len(accounts), "ready": len(pending) + len(migrated), "stalwartManaged": len(migrated)}))
 ---
 apiVersion: batch/v1
 kind: CronJob
