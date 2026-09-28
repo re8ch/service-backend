@@ -121,6 +121,8 @@ modules:
       digest: sha256:7773cecd3a93ae1e7d3aa444c4e671d12138a54fc510ce258c86e3173cd2c9ab
     - codename: shield
       digest: sha256:795da23a7667b859f918e506ff88fdb2abd8a7938a527bc3097d935773f470e7
+    - codename: ward
+      digest: sha256:caa180f8727b6588010a1fdd803913cd636ea9f0d8ba87429320634d6c824d6e
   platform/headlamp:
     releases:
     - codename: aurora
@@ -428,6 +430,10 @@ modules:
     releases:
     - codename: aegis
       digest: sha256:3365c567600c7b774470d73f8b576bdef85853640aaa33e294a0f1a06a62e072
+    - codename: bastion
+      digest: sha256:da7e9a5bf466deb39a0d6ffb83b5c10448bcbf8838a6b7531a1422bdc2b3cd5f
+    - codename: citadel
+      digest: sha256:08fd3743845e436225f403020a16872d5f480a9a4f8c969c1d48ad7b219242af
   platform/connectool:
     releases:
     - codename: anchor
