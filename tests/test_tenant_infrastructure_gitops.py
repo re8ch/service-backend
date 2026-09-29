@@ -80,8 +80,13 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp",
     }
+    tenant_env = {item["name"]: item.get("value") for item in deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
+    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
+    native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
+    native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
+    assert native_paths == {"/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp"}
     tenant_affinity = deployments["tenant-api"]["spec"]["template"]["spec"]["affinity"]["podAffinity"]
     assert tenant_affinity["requiredDuringSchedulingIgnoredDuringExecution"][0]["labelSelector"]["matchLabels"] == {"app": "admin-api"}
 
