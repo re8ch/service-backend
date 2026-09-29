@@ -48,6 +48,9 @@ spec:
       provider:
         enabled: true
         image: registry.re8ch.com/image/re8ch-ai-operations@sha256:fec420ae534f45d74fd1a9335fa12ccf03df2f8d31e4530d50c6cf627efdd752
+        databaseBindings:
+          - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
+          - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
       tenantReadinessPath: /readyz
       state:
         storageClassName: rbd-r640

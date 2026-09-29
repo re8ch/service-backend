@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 
 import yaml
 
@@ -492,3 +493,22 @@ def test_grafana_org_sync_can_reach_grafana_and_metrics_auth_selects_only_tenant
     assert auth["spec"]["userNamespaceSelector"]["matchLabels"] == {"kubernetes.io/metadata.name": "credential-broker"}
     assert auth["spec"]["userSelector"]["matchLabels"] == {"observability.re8ch.com/tenant-metrics-user": "true"}
     assert "@sha256:" in auth["spec"]["image"]["tag"]
+
+
+def test_database_metrics_bindings_limit_provider_reads_to_pinned_re8ch_credentials():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    bindings = release["spec"]["values"]["tenantPlatform"]["provider"]["databaseBindings"]
+    assert {item["database"] for item in bindings} == {"anysite", "secretary"}
+    assert all(item["tenantRef"] == "re8ch" and item["namespace"].startswith("re8ch-") for item in bindings)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as values:
+        json.dump(release["spec"]["values"], values)
+        values.flush()
+        docs = [item for item in yaml.safe_load_all(subprocess.run(
+            ["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name],
+            check=True, capture_output=True, text=True).stdout) if item]
+    roles = [item for item in docs if item["kind"] == "Role" and item["metadata"]["name"].startswith("tenant-provider-database-metrics-")]
+    assert {(item["metadata"]["namespace"], item["rules"][0]["resourceNames"][0]) for item in roles} == {
+        (item["namespace"], item["secretName"]) for item in bindings}
+    provider = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-provider-reconciler")
+    env = {item["name"]: item for item in provider["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert json.loads(env["GRAFANA_DATABASE_BINDINGS_JSON"]["value"]) == bindings
