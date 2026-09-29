@@ -1,4 +1,5 @@
 import importlib.util
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -90,6 +91,32 @@ def test_usage_outbox_is_deduplicated_and_unpriced(tmp_path):
     assert summary["eventCount"] == 1
     assert summary["totals"]["instance_hours:hour"] == 1
     assert summary["pricingApplied"] is False
+
+
+def test_received_usage_is_durable_idempotent_and_tenant_scoped(tmp_path):
+    db = tmp_path / "services.db"
+    store = tenant_infrastructure.ServiceStore(db)
+    event = {
+        "eventId": "ue_" + "a" * 32, "tenantRef": "re8ch", "resourceRef": "claim://re8ch/volume-1",
+        "serviceClass": "storage.volume.v1", "meter": "occupancy.ceph-volume-capacity",
+        "quantity": 600, "unit": "GiB-second", "periodStart": "2026-09-01T00:00:00Z",
+        "periodEnd": "2026-09-01T00:01:00Z", "regionRef": "loudi",
+        "sourceOperationId": "birfucate:test", "observedAt": "2026-09-01T00:01:00Z",
+        "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False,
+    }
+    assert store.receive_usage(event)["idempotentReplay"] is False
+    assert store.receive_usage(event)["idempotentReplay"] is True
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        assert all(result["idempotentReplay"] for result in pool.map(store.receive_usage, [event] * 16))
+    reopened = tenant_infrastructure.ServiceStore(db)
+    assert reopened.usage_summary("re8ch")["totals"]["occupancy.ceph-volume-capacity:GiB-second"] == 600
+    assert reopened.usage_summary("artchais")["eventCount"] == 0
+    assert reopened.usage_events("re8ch")["events"] == [event]
+    assert reopened.usage_events("artchais")["events"] == []
+    with pytest.raises(tenant_infrastructure.ServiceError, match="different content"):
+        reopened.receive_usage({**event, "quantity": 601})
+    with pytest.raises(tenant_infrastructure.ServiceError, match="priced or posted"):
+        reopened.receive_usage({**event, "eventId": "ue_" + "b" * 32, "pricingApplied": True})
 
 
 def test_credentials_and_public_bucket_are_rejected():

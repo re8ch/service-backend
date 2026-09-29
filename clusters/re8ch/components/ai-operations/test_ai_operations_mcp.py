@@ -4,6 +4,12 @@ import tempfile
 import unittest
 import json
 import sys
+import threading
+import urllib.error
+import urllib.request
+from urllib.request import urlopen as real_urlopen
+from http.server import ThreadingHTTPServer
+from unittest.mock import patch
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,6 +30,56 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_usage_receiver_authenticates_deduplicates_and_isolates(self):
+        m = load("tenant")
+        m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "usage.db"
+        m._TENANT_SERVICE_STORE = None
+        m.authenticated_usage_collector = lambda header: header == "Bearer test-projected-token"
+        server = ThreadingHTTPServer(("127.0.0.1", 0), m.Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        event = {
+            "eventId": "ue_" + "c" * 32, "tenantRef": "re8ch", "resourceRef": "claim://re8ch/test",
+            "serviceClass": "compute.workload.v1", "meter": "occupancy.cpu", "quantity": 60,
+            "unit": "core-second", "periodStart": "2026-09-01T00:00:00Z",
+            "periodEnd": "2026-09-01T00:01:00Z", "regionRef": "loudi",
+            "sourceOperationId": "birfucate:test", "observedAt": "2026-09-01T00:01:00Z",
+            "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False,
+        }
+        def post(value, token):
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{server.server_port}/internal/usage-events",
+                data=json.dumps(value).encode(), headers={"Authorization": token, "Content-Type": "application/json"}, method="POST",
+            )
+            with real_urlopen(request, timeout=2) as response:
+                return response.status, json.load(response)
+        try:
+            with self.assertRaises(urllib.error.HTTPError) as denied:
+                post(event, "Bearer wrong")
+            self.assertEqual(denied.exception.code, 401)
+            self.assertEqual(post(event, "Bearer test-projected-token")[0], 201)
+            status, replay = post(event, "Bearer test-projected-token")
+            self.assertEqual(status, 200)
+            self.assertTrue(replay["idempotentReplay"])
+            collector_path = Path(__file__).parents[2] / "charts/birfucate-metering/files/collector.py"
+            collector_spec = importlib.util.spec_from_file_location("usage_collector_test", collector_path)
+            collector = importlib.util.module_from_spec(collector_spec)
+            collector_spec.loader.exec_module(collector)
+            token_path = m.TENANT_SERVICE_DB.parent / "projected-token"
+            token_path.write_text("test-projected-token")
+            collector.USAGE_TOKEN_PATH = token_path
+            outbox = collector.Outbox(m.TENANT_SERVICE_DB.parent / "outbox.db")
+            outbox.put(event)
+            with patch.object(collector.urllib.request, "urlopen", real_urlopen):
+                collector.deliver({"usageSink": {"enabled": True, "url": f"http://127.0.0.1:{server.server_port}/internal/usage-events"}}, outbox)
+            self.assertEqual(outbox.pending(), [])
+            self.assertEqual(m.tenant_service_store().usage_summary("re8ch")["eventCount"], 1)
+            self.assertEqual(m.tenant_service_store().usage_summary("artchais")["eventCount"], 0)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
     def test_tenant_profile_includes_artchais_grant_tools_and_denies_secret_admin_commands(self):
         m = load("tenant")
         self.assertTrue({
@@ -236,7 +292,10 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("tenant_create", names)
         self.assertIn("byoc_cluster_register", names)
         registry.authenticated_tenant = lambda _identity: "acme"
-        registry.tenant_control_request = lambda *_args, **_kwargs: {"items": []}
+        registry.tenant_control_request = lambda path, *_args, **_kwargs: {"items": [
+            {"consumableRef": service_class, "roleRef": "operator"}
+            for service_class in ("registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1")
+        ] if path == "/v1/grants" else []}
         registry.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
         identity = {"tenant": "acme", "groups": []}
         listed = registry.resources_list(identity, None)

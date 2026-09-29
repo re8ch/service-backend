@@ -15,6 +15,17 @@ kind: ServiceAccount
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
 automountServiceAccountToken: false
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: tenant-usage-token-reviewer}
+rules: [{apiGroups: [authentication.k8s.io], resources: [tokenreviews], verbs: [create]}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: tenant-usage-token-reviewer}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: tenant-usage-token-reviewer}
+subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: admin-api, namespace: tenant-infrastructure}
@@ -127,6 +138,7 @@ spec:
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_REQUIRED, value: {{ .Values.tenantPlatform.supplyChain.required | quote }}}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
+            - {name: TENANT_USAGE_CLIENT, value: 'system:serviceaccount:{{ .Release.Namespace }}:{{ include "birfucate-metering.fullname" . }}'}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
           ports: [{name: http, containerPort: 19448}]
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2, timeoutSeconds: 3}
@@ -169,6 +181,11 @@ metadata: {name: tenant-api-credential-read, namespace: credential-broker}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-api-credential-read}
 subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
 ---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-api}, ports: [{name: http, port: 80, targetPort: http}]}
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: admin-api, namespace: tenant-infrastructure}
@@ -190,6 +207,10 @@ spec:
   ingress:
     - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}
     - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19448}]}
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Release.Namespace }}}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
+      ports: [{protocol: TCP, port: 19448}]
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig

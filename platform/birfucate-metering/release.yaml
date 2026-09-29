@@ -186,8 +186,9 @@ spec:
       enabled: false
     usageSink:
       enabled: false
+      allowedTenants: [re8ch]
     pricing:
-      enabled: true
+      enabled: false
       currency: CNY
       rateCardRef: re8ch-showback-2026-09
     serviceMonitor:
