@@ -129,9 +129,9 @@ spec:
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant/mcp"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
             - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: AUTH_DISCOVERY_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/.well-known/openid-configuration"}
             - {name: DEX_USERINFO_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/userinfo"}
@@ -181,6 +181,8 @@ spec:
       filters:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /mcp}}
+      backendRefs: [{name: tenant-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-native/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

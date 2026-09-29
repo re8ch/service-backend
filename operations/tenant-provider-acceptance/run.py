@@ -103,9 +103,19 @@ def preflight(harbor_url, grafana_url, identity_url, mcp_url):
         status, _, data = request(url, headers=headers)
         require(accepts(status, data or {}), f"{label} failed (HTTP {status})")
         print(f"PASS {label}")
-    status, _, _ = request(mcp_url, method="POST", payload={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+    status, challenge_headers, _ = request(mcp_url, method="POST", payload={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
                            headers={"Accept": "application/json, text/event-stream"})
     require(status == 401, f"Tenant MCP auth challenge failed (HTTP {status})")
+    if native:
+        metadata_url = f"{mcp.scheme}://{mcp.netloc}/.well-known/oauth-protected-resource{mcp.path}"
+        challenge = challenge_headers.get("www-authenticate") or challenge_headers.get("WWW-Authenticate") or ""
+        require('realm="https://db-rw.re8ch.com/auth/v1"' in challenge and f'resource_metadata="{metadata_url}"' in challenge,
+                "native tenant MCP advertises an incorrect OAuth challenge")
+        metadata_status, _, metadata = request(metadata_url)
+        require(metadata_status == 200 and metadata.get("resource") == mcp_url and
+                metadata.get("authorization_servers") == ["https://db-rw.re8ch.com/auth/v1"],
+                "native tenant MCP advertises an incorrect protected resource")
+        print("PASS native tenant Supabase OAuth discovery")
     print("PASS Tenant MCP auth challenge")
 
 
