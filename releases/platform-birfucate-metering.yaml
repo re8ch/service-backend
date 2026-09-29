@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: tideway-pearl
+codename: cascade-silver
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:d5d5da7de6ca9ce5433f409f8762d0e2f0008b05f293b7a9e6b84a10134ba0d4
+  digest: sha256:3bc3d6ab3e8e1d87cbea28b27172028230806b6e3f3e7ca2ccd9c9954bbc3170
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
