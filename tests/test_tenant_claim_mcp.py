@@ -46,6 +46,40 @@ def test_native_apply_forces_resolved_namespace(monkeypatch):
     value = module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {}}, "apply": False}, {"subject": "agent"})
     assert value["namespace"] == "tenant-acme"
     assert value["object"]["metadata"]["namespace"] == "tenant-acme"
+    labels = value["object"]["spec"]["template"]["metadata"]["labels"]
+    assert labels["tenant"] == "acme"
+    assert labels["birfucate.re8ch.com/metered"] == "true"
+    assert labels["resource_ref"] == value["object"]["metadata"]["labels"]["resource_ref"]
+
+
+def test_native_pvc_is_metered_without_claim_ownership(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    obj = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "1Gi"}}}}
+    value = module.call_tool("tenant_kubernetes_apply", {"object": obj, "apply": False}, {"subject": "agent"})
+    assert value["object"]["metadata"]["labels"]["birfucate.re8ch.com/metered"] == "true"
+    assert "labels" not in obj["metadata"]
+
+
+def test_claim_usage_summary_reports_accepted_events(monkeypatch, tmp_path):
+    module = load(monkeypatch)
+    module.TENANT_SERVICE_DB = tmp_path / "usage.db"
+    module._TENANT_SERVICE_STORE = None
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": [{
+        "metadata": {"name": "data", "uid": "claim-uid-1"},
+        "spec": {"capability": "storage.volume.v1", "parameters": {"sizeGiB": 1}},
+        "status": {"phase": "Ready"},
+    }]})
+    event = {"eventId": "ue_" + "d" * 32, "tenantRef": "re8ch", "resourceRef": "claim-uid-1",
+             "serviceClass": "storage.volume.v1", "meter": "occupancy.ceph-volume-capacity", "quantity": 60,
+             "unit": "GiB-second", "periodStart": "2026-09-01T00:00:00Z", "periodEnd": "2026-09-01T00:01:00Z",
+             "regionRef": "loudi", "sourceOperationId": "birfucate:test", "observedAt": "2026-09-01T00:01:00Z",
+             "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False}
+    module.tenant_service_store().receive_usage(event)
+    result = module.tenant_claim_usage_summary("re8ch")
+    assert result["claims"][0]["requested"] == {"storageGiB": 1}
+    assert result["claims"][0]["usage"]["totals"] == {"occupancy.ceph-volume-capacity:GiB-second": 60.0}
+    assert result["usageState"] == "accepted-events"
 
 
 def test_native_apply_rejects_cross_tenant_namespace(monkeypatch):

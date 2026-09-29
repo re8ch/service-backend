@@ -116,9 +116,7 @@ usageSink:
   enabled: false
   url: http://tenant-infrastructure.tenant-infrastructure.svc.cluster.local/internal/usage-events
   timeoutSeconds: 10
-  # Authentication is injected only by an out-of-band Secret.
-  existingSecret: ""
-  tokenKey: token
+  allowedTenants: []
 
 outbox:
   enabled: true
@@ -147,49 +145,54 @@ meters:
       resourceType: model-spend
       purpose: model-inference
       unit: USD
+      valueKind: rate
       costFromQuantity: true
       currency: USD
       tenantLabel: team_alias
       resourceLabel: requested_model
-      query: sum by (team_alias, requested_model) (increase(litellm_spend_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, requested_model) (rate(litellm_spend_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-input-tokens
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: model-token
       purpose: model-inference
       unit: token
+      valueKind: rate
       tenantLabel: team_alias
       resourceLabel: requested_model
-      query: sum by (team_alias, requested_model) (increase(litellm_input_tokens_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, requested_model) (rate(litellm_input_tokens_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-output-tokens
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: model-token
       purpose: model-inference
       unit: token
+      valueKind: rate
       tenantLabel: team_alias
       resourceLabel: requested_model
-      query: sum by (team_alias, requested_model) (increase(litellm_output_tokens_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, requested_model) (rate(litellm_output_tokens_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-tool-spend
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: tool-spend
       purpose: tenant-tool-call
       unit: USD
+      valueKind: rate
       costFromQuantity: true
       currency: USD
       tenantLabel: team_alias
       resourceLabel: mcp_server_name
-      query: sum by (team_alias, mcp_server_name) (increase(litellm_mcp_tool_call_spend_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, mcp_server_name) (rate(litellm_mcp_tool_call_spend_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-tool-calls
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: tool-call
       purpose: tenant-tool-call
       unit: call
+      valueKind: rate
       tenantLabel: team_alias
       resourceLabel: mcp_server_name
-      query: sum by (team_alias, mcp_server_name) (increase(litellm_mcp_tool_calls_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, mcp_server_name) (rate(litellm_mcp_tool_calls_total{team_alias!=""}[5m]))
   occupancy:
     - name: sandbox-cpu-request
       domain: sandbox
@@ -237,6 +240,24 @@ meters:
       tenantLabel: label_tenant
       resourceLabel: label_resource_ref
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: tenant-workload-cpu-used
+      domain: compute
+      resourceType: cpu-used
+      purpose: workload-runtime
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]) * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"})
+    - name: tenant-workload-memory-used
+      domain: compute
+      resourceType: memory-used
+      purpose: workload-runtime
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (container_memory_working_set_bytes{container!="",image!=""} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: tenant-claim-ephemeral-storage-request
       domain: compute
       resourceType: ephemeral-storage
@@ -258,7 +279,25 @@ meters:
       valueKind: gauge
       tenantLabel: label_tenant
       resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) ((kube_persistentvolumeclaim_resource_requests_storage_bytes * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) * on (namespace, persistentvolumeclaim) group_left() (kube_persistentvolumeclaim_status_phase{phase="Bound"} == 1)) / 1073741824
+    - name: ceph-volume-requested
+      domain: ceph
+      resourceType: storage-request
+      purpose: requested-capacity
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
       query: sum by (label_tenant, label_resource_ref) (kube_persistentvolumeclaim_resource_requests_storage_bytes * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: ceph-volume-used
+      domain: ceph
+      resourceType: storage-used
+      purpose: occupied-capacity
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes) * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: pigsty-database-storage
       domain: pigsty
       resourceType: database-storage

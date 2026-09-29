@@ -12,6 +12,7 @@ import os
 import re
 import secrets
 import shlex
+import ssl
 import sqlite3
 import subprocess
 import threading
@@ -74,6 +75,30 @@ AUTH_DISCOVERY_URL = os.getenv(
 )
 ARTCHAIS_TENANT_REF = os.getenv("ARTCHAIS_TENANT_REF", "artchais")
 TENANT_CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
+TENANT_USAGE_CLIENT = os.getenv("TENANT_USAGE_CLIENT", "")
+TENANT_USAGE_AUDIENCE = "re8ch-usage"
+
+
+def authenticated_usage_collector(authorization: str) -> bool:
+    """Verify a projected Birfucate service account token with Kubernetes."""
+    if not TENANT_USAGE_CLIENT or not authorization.startswith("Bearer "):
+        return False
+    token = authorization[7:]
+    if not token or len(token) > 16384:
+        return False
+    host = os.getenv("KUBERNETES_SERVICE_HOST", "")
+    if not host:
+        return False
+    service_token = Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
+    ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    request = urllib.request.Request(
+        f"https://{host}:{os.getenv('KUBERNETES_SERVICE_PORT', '443')}/apis/authentication.k8s.io/v1/tokenreviews",
+        data=json.dumps({"apiVersion": "authentication.k8s.io/v1", "kind": "TokenReview", "spec": {"token": token, "audiences": [TENANT_USAGE_AUDIENCE]}}).encode(),
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + service_token}, method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=3, context=ssl.create_default_context(cafile=ca)) as response:
+        status = json.load(response).get("status", {})
+    return bool(status.get("authenticated") and status.get("user", {}).get("username") == TENANT_USAGE_CLIENT and TENANT_USAGE_AUDIENCE in status.get("audiences", []))
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -711,6 +736,7 @@ TENANT_INFRA_TOOLS = [
     {"name": "service_binding_list", "description": "List bindings owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}})},
     {"name": "service_binding_revoke", "description": "Revoke a tenant binding and its opaque credential reference.", "inputSchema": schema({"binding_ref": {"type": "string"}}, ["binding_ref"])},
     {"name": "usage_summary_get", "description": "Return unpriced usage totals for the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}})},
+    {"name": "usage_events_list", "description": "List accepted unpriced UsageEvents for the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 500}})},
     {"name": "operation_get", "description": "Read an immutable tenant operation record.", "inputSchema": schema({"operation_id": {"type": "string"}}, ["operation_id"])},
 ]
 
@@ -742,7 +768,7 @@ GRAFANA_TENANT_TOOLS = [
 ]
 
 TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
-TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "operation_get"}
+TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "usage_events_list", "operation_get"}
 TENANT_CLAIM_TOOLS = [
     {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
     {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
@@ -1081,6 +1107,27 @@ def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> No
             raise PermissionError("privileged containers are denied")
 
 
+def label_native_metered_object(obj: dict[str, Any], tenant: str, namespace: str) -> dict[str, Any]:
+    """Attach stable tenant/resource identity to native workload and PVC requests."""
+    value = json.loads(json.dumps(obj))
+    kind = value["kind"]
+    if kind not in {"PersistentVolumeClaim", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}:
+        return value
+    name = str(value.get("metadata", {}).get("name") or "")
+    if not name:
+        raise PermissionError("metered native resources require metadata.name")
+    resource_ref = hashlib.sha256(f"{tenant}/{namespace}/{kind}/{name}".encode()).hexdigest()[:32]
+    labels = {"tenant": tenant, "resource_ref": resource_ref, "tenancy.re8ch.com/tenant": tenant, "birfucate.re8ch.com/metered": "true"}
+    value.setdefault("metadata", {}).setdefault("labels", {}).update(labels)
+    if kind != "PersistentVolumeClaim":
+        if kind == "CronJob":
+            template = value.setdefault("spec", {}).setdefault("jobTemplate", {}).setdefault("spec", {}).setdefault("template", {})
+        else:
+            template = value.setdefault("spec", {}).setdefault("template", {})
+        template.setdefault("metadata", {}).setdefault("labels", {}).update(labels)
+    return value
+
+
 def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> dict[str, Any]:
     context = authenticated_tenant_context(identity)
     role = context["role"]
@@ -1137,7 +1184,7 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
             raise PermissionError("object kind is not in the tenant workload allowlist")
         metadata = obj.get("metadata") or {}
         validate_tenant_kubernetes_object(obj, namespace)
-        obj = {**obj, "metadata": {**metadata, "namespace": namespace}}
+        obj = label_native_metered_object({**obj, "metadata": {**metadata, "namespace": namespace}}, tenant, namespace)
         preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "applied": False, "object": obj}
         if not args.get("apply"):
             return preview
@@ -1198,6 +1245,7 @@ def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> di
     result = tenant_control_request("/v1/claims" + ("/" + urllib.parse.quote(claim_name, safe="") if claim_name else ""), tenant)
     values = [result] if claim_name else result.get("items", [])
     rows = []
+    store = tenant_service_store()
     for value in values:
         spec, status = value.get("spec", {}), value.get("status", {})
         params = spec.get("parameters", {})
@@ -1206,8 +1254,12 @@ def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> di
             row["requested"] = {"storageGiB": params.get("sizeGiB")}
         else:
             row["requested"] = {"pods": params.get("replicas", params.get("parallelism", 1)), **params.get("resources", {}), "publicEndpoints": 1 if params.get("exposure", {}).get("enabled") else 0}
+        if row["claimUid"]:
+            usage = store.usage_summary(tenant, row["claimUid"])
+            row["usage"] = {"totals": usage["totals"], "eventCount": usage["eventCount"]}
+            row["usageState"] = "observed" if usage["eventCount"] else "pending-observation"
         rows.append(row)
-    return {"tenantRef": tenant, "claims": rows, "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate", "usageState": "requested-capacity; UsageEvent aggregation is asynchronous"}
+    return {"tenantRef": tenant, "claims": rows, "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate", "usageState": "accepted-events" if any(row.get("usage", {}).get("eventCount") for row in rows) else "pending-observation"}
 
 
 def readiness() -> tuple[bool, dict[str, str]]:
@@ -2149,6 +2201,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return store.revoke_binding(tenant, args["binding_ref"])
         if name == "usage_summary_get":
             return store.usage_summary(tenant, args.get("resource_ref"))
+        if name == "usage_events_list":
+            return store.usage_events(tenant, args.get("resource_ref"), args.get("limit", 100))
         if name == "operation_get":
             return store.operation(tenant, args["operation_id"])
 
@@ -2343,6 +2397,25 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         request_path = urllib.parse.urlparse(self.path).path
+        if request_path == "/internal/usage-events":
+            try:
+                authenticated = PROFILE == "tenant" and authenticated_usage_collector(self.headers.get("Authorization", ""))
+            except (OSError, urllib.error.URLError, ValueError):
+                self.send_json(503, {"error": "usage authentication unavailable"}); return
+            if not authenticated:
+                self.send_json(401, {"error": "unauthorized"}); return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 < length <= 65536:
+                    raise ValueError("invalid event size")
+                event = json.loads(self.rfile.read(length))
+                result = tenant_service_store().receive_usage(event)
+                self.send_json(200 if result["idempotentReplay"] else 201, result)
+            except ServiceError as exc:
+                self.send_json(409 if "different content" in str(exc) else 400, {"error": str(exc)})
+            except (ValueError, json.JSONDecodeError):
+                self.send_json(400, {"error": "invalid UsageEvent"})
+            return
         if request_path == "/oauth/token":
             if PROFILE != "tenant":
                 self.send_json(404, {"error": "not_found"}); return

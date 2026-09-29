@@ -50,6 +50,23 @@ def test_chart_lints_and_renders_restricted_workload():
     assert not any("secrets" in rule["resources"] for rule in role["rules"])
 
 
+def test_usage_sink_renders_projected_identity_and_private_receiver():
+    rendered = subprocess.run(
+        ["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--set", "tenantPlatform.enabled=true", "--set", "usageSink.enabled=true"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    docs = [item for item in yaml.safe_load_all(rendered) if item]
+    collector = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "birfucate-metering")
+    projected = next(item for item in collector["spec"]["template"]["spec"]["volumes"] if item["name"] == "usage-token")
+    assert projected["projected"]["sources"][0]["serviceAccountToken"]["audience"] == "re8ch-usage"
+    tenant_api = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-api")
+    env = {item["name"]: item["value"] for item in tenant_api["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
+    assert env["TENANT_USAGE_CLIENT"] == "system:serviceaccount:observability-ai:birfucate-metering"
+    assert any(item["kind"] == "Service" and item["metadata"]["name"] == "tenant-infrastructure" for item in docs)
+    role = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-usage-token-reviewer")
+    assert role["rules"] == [{"apiGroups": ["authentication.k8s.io"], "resources": ["tokenreviews"], "verbs": ["create"]}]
+
+
 def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["opencost"]["enabled"] is True
@@ -60,9 +77,26 @@ def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     names = {item["name"] for family in values["meters"].values() for item in family}
     assert domains == {"compute", "ceph", "pigsty", "networks", "ai-gateway", "sandbox"}
     assert {"tenant-claim-cpu-request", "tenant-claim-memory-request", "tenant-claim-ephemeral-storage-request"} <= names
+    assert {"tenant-workload-cpu-used", "tenant-workload-memory-used", "ceph-volume-requested", "ceph-volume-capacity", "ceph-volume-used"} <= names
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
     assert {"ai-gateway-provider-spend", "ai-gateway-tool-spend", "ai-gateway-tool-calls"} <= names
     assert {"sandbox-cpu-request", "sandbox-memory-request"} <= names
+
+
+def test_usage_outbox_can_limit_events_to_managed_tenant(tmp_path, monkeypatch):
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "opencost": {"enabled": False}, "usageSink": {"allowedTenants": ["re8ch"]},
+        "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
+        "meters": {"occupancy": [{"name": "cpu", "domain": "compute", "unit": "core-second", "query": "cpu"}]},
+    }
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_args: [
+        {"metric": {"tenant": "re8ch", "resource_ref": "work-a"}, "value": [0, "1"]},
+        {"metric": {"tenant": "artchais", "resource_ref": "work-b"}, "value": [0, "2"]},
+    ])
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 100, 160)
+    assert [event["tenantRef"] for _, event in outbox.pending()] == ["re8ch"]
 
 
 def test_crds_use_status_subresources_cel_and_selectable_fields():
