@@ -82,6 +82,11 @@ def test_supabase_membership_controls_tenant_role_and_revocation(monkeypatch):
     assert controller.resolve_supabase_membership("valid-token", "tenant-ci") == {
         "tenantRef": "tenant-ci", "role": "operator", "defaultNamespace": "tenant-ci-default", "runtimeNamespaceRef": "tenant-ci-default",
     }
+    rows.append({"tenant_ref": "personal-example", "tenant_role": "admin"})
+    assert controller.resolve_supabase_membership("valid-token", "")["tenantRef"] == "tenant-ci"
+    rows.append({"tenant_ref": "another-team", "tenant_role": "viewer"})
+    with pytest.raises(PermissionError, match="select an active tenant"):
+        controller.resolve_supabase_membership("valid-token", "")
     rows.clear()
     with pytest.raises(PermissionError, match="not an active member"):
         controller.resolve_supabase_membership("valid-token", "tenant-ci")
@@ -100,7 +105,8 @@ def test_tenant_runtime_passes_token_only_to_internal_authorizer(monkeypatch):
     def authorizer(request, timeout):
         assert request.full_url == "http://tenant-control-controller/v1/resolve-supabase"
         assert request.get_header("X-tenant-service-token") == "internal-service-token"
-        assert json.loads(request.data) == {"tenantRef": "tenant-ci", "accessToken": "verified-user-token"}
+        assert json.loads(request.data) in ({"tenantRef": "tenant-ci", "accessToken": "verified-user-token"},
+                                            {"tenantRef": "", "accessToken": "verified-user-token"})
         assert timeout == 8
         return Response(b'{"tenantRef":"tenant-ci","role":"operator","defaultNamespace":"tenant-ci-default","runtimeNamespaceRef":"tenant-ci-default"}')
 
@@ -109,8 +115,7 @@ def test_tenant_runtime_passes_token_only_to_internal_authorizer(monkeypatch):
     result = mcp.authenticated_tenant_context(identity)
     assert result == {"tenantRef": "tenant-ci", "role": "operator", "defaultNamespace": "tenant-ci-default", "runtimeNamespaceRef": "tenant-ci-default"}
     assert "verified-user-token" not in json.dumps(result)
-    with pytest.raises(PermissionError, match="select an active tenant"):
-        mcp.authenticated_tenant_context({**identity, "requested_tenant": ""})
+    assert mcp.authenticated_tenant_context({**identity, "requested_tenant": ""})["tenantRef"] == "tenant-ci"
 
 
 def test_internal_supabase_resolver_requires_tenant_service_identity(monkeypatch):

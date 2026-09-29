@@ -251,7 +251,7 @@ def resolve_supabase_membership(access_token, requested_tenant):
     """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
     if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
         raise PermissionError("Supabase access token is required")
-    if not isinstance(requested_tenant, str) or not TENANT_NAME_RE.fullmatch(requested_tenant) or requested_tenant == "admin":
+    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant == "admin":
         raise PermissionError("select an ordinary tenant")
     request = urllib.request.Request(
         IDENTITY_REST_URL + "/rpc/my_tenant_runtime_memberships",
@@ -269,6 +269,17 @@ def resolve_supabase_membership(access_token, requested_tenant):
         raise RuntimeError("Supabase membership lookup failed") from exc
     if not isinstance(memberships, list):
         raise RuntimeError("Supabase membership response is invalid")
+    if not requested_tenant:
+        ordinary = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
+                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref") != "admin"
+                           and row.get("tenant_role") in ROLE_ORDER and not row.get("tenant_ref").startswith("personal-")})
+        personal = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
+                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref").startswith("personal-")
+                           and row.get("tenant_role") in ROLE_ORDER})
+        choices = ordinary or personal
+        if len(choices) != 1:
+            raise PermissionError("select an active tenant")
+        requested_tenant = choices[0]
     roles = [row.get("tenant_role") for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
     if len(roles) != 1 or roles[0] not in ROLE_ORDER:
         raise PermissionError("identity is not an active member of the selected tenant")
