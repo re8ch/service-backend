@@ -160,6 +160,7 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         if not allowed_tenants or event["tenantRef"] in allowed_tenants:
             outbox.put(event)
     prom = config["prometheus"]
+    query_base_url = prom.get("queryBaseURL") or prom["baseURL"]
     tenant_label = config["tenantLabels"]["tenant"]
     resource_label = config["tenantLabels"]["resource"]
     tenant_resources: set[tuple[str, str, str]] = set()
@@ -174,7 +175,7 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         except urllib.error.URLError:
             set_metric("birfucate_dependency_up", {"dependency": "opencost"}, 0)
     for meter in config["meters"].get("occupancy", []):
-        values = vector(prometheus_query(prom["baseURL"], meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
+        values = vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
         for (tenant, resource), gauge in values.items():
             quantity = gauge * interval
             resource_type = str(meter.get("resourceType", meter["domain"]))
@@ -188,7 +189,7 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
             queue(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose}, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("usage", []):
-        values = vector(prometheus_query(prom["baseURL"], meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
+        values = vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
         for (tenant, resource), observed in values.items():
             quantity = observed * interval if meter.get("valueKind") == "rate" else observed
             resource_type = str(meter.get("resourceType", meter["domain"]))
@@ -205,9 +206,9 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
             queue(usage_event(tenant, resource, meter["domain"], "usage." + meter["name"], quantity, meter["unit"], start, end, {"resourceType": resource_type, "purpose": purpose}, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("bifurcation", []):
-        counts = vector(prometheus_query(prom["baseURL"], meter["countQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
-        intensities = vector(prometheus_query(prom["baseURL"], meter["intensityQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
-        fanouts = vector(prometheus_query(prom["baseURL"], meter["fanoutQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
+        counts = vector(prometheus_query(query_base_url, meter["countQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
+        intensities = vector(prometheus_query(query_base_url, meter["intensityQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
+        fanouts = vector(prometheus_query(query_base_url, meter["fanoutQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
         for (tenant, resource), rate in counts.items():
             occurrences = rate * interval
             intensity = intensities.get((tenant, resource), 0.0)
