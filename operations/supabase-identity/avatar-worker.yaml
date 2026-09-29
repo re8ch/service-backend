@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-avatar-worker
+  namespace: supabase-identity
+  labels: {app: identity-avatar-worker}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: identity-avatar-worker}
+  template:
+    metadata:
+      labels: {app: identity-avatar-worker}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      imagePullSecrets:
+      - name: supabase-identity-harbor-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+      - name: worker
+        image: registry.re8ch.com/auth/identity-avatar-worker:20260929@sha256:f31e20ca87506c14276036abb7459ea34cda67458033655ad2fb92d55b19fef4
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests: {cpu: 500m, memory: 2Gi}
+          limits: {cpu: '2', memory: 4Gi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
+        env:
+        - name: IDENTITY_RW_URL
+          value: https://db-rw.re8ch.com/identity/rest/v1
+        - name: IDENTITY_AVATAR_COS_BUCKET
+          value: re8ch-avatars-1301339749
+        - name: IDENTITY_AVATAR_COS_REGION
+          value: ap-guangzhou
+        - name: AVATAR_CPU_THREADS
+          value: '2'
+        - name: HF_HOME
+          value: /tmp/hf
+        - name: IDENTITY_PGRST_JWT_SECRET
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: JWT_SECRET}
+        - name: IDENTITY_AVATAR_COS_SECRET_ID
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: AVATAR_COS_SECRET_ID}
+        - name: IDENTITY_AVATAR_COS_SECRET_KEY
+          valueFrom:
+            secretKeyRef: {name: supabase-identity-secrets, key: AVATAR_COS_SECRET_KEY}
+        volumeMounts:
+        - {name: temp, mountPath: /tmp}
+      volumes:
+      - name: temp
+        emptyDir: {sizeLimit: 256Mi}

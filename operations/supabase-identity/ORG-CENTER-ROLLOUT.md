@@ -9,9 +9,11 @@ permission changes invalidate clients' cached identity state.
 
 ## Data model
 
-- `core.organizations` contains the hidden `admin` root. Every enterprise and
-  personal organization has `parent_ref = 'admin'`. The root never appears in
-  generic `/auth/v2/me` organization claims.
+- `core.organizations` contains the hidden `admin` root. Enterprise
+  organizations default to that parent. A Personal organization is independent
+  until its owner explicitly joins an enterprise; it is never made a child of
+  `admin` merely because the owner is an Admin member. The root never appears
+  in generic `/auth/v2/me` organization claims.
 - Every GoTrue user gets exactly one `personal-<user UUID>` organization and an
   owner membership. The signup trigger and migration backfill cover new and
   existing users.
@@ -58,3 +60,30 @@ need a reviewed workflow before completion can be offered in the UI.
    regular users cannot call admin RPCs or see the root in `/auth/v2/me`.
 5. Publish User Hub after the SQL and API checks pass. Keep existing login and
    consent flows available during the rollout.
+
+## Identity profile, verified email, sessions, and avatars
+
+Apply `031_identity_profile_devices.sql` through `037_identity_avatar_jobs.sql`
+from the reviewed Cloud Functions repository in numeric order after `030`.
+Existing six accounts receive verified contact rows as an explicit legacy
+backfill; later OAuth email assertions do not create contact rows. The GoTrue
+send-email hook permits OTP only for a verified contact or a pending explicit
+email change. Configure the same Standard Webhooks secret in
+`supabase-identity-secrets/SEND_EMAIL_HOOK_SECRET` and
+`re8ch-auth-gateway-secrets/IDENTITY_SEND_EMAIL_HOOK_SECRET` before enabling the
+hook. Copy the identity JWT HMAC key to
+`re8ch-auth-gateway-secrets/IDENTITY_PGRST_JWT_SECRET`. The internal
+`identity_service` role can call only the reviewed hook and avatar RPCs.
+
+The dedicated `re8ch-avatars-1301339749` COS bucket is public-read. The
+avatar worker and gateway receive the bucket write key through namespace-local
+Secrets. The worker runs pinned Segmind Tiny-SD on R640 CPU; signup enqueues a
+job and generated avatars replace the letter placeholder asynchronously.
+Google and Apple avatar choices use their linked provider image when one is
+available. Uploads pass through the authenticated gateway, which validates and
+re-encodes the JPEG before writing COS and committing the object key.
+
+Rollout order: database functions; gateway image and secrets; worker image and
+secrets; GoTrue email configuration; EdgeOne User Hub CSP response header; User
+Hub static files. Verify current and future account contact projections,
+email OTP, device registration, and avatar retrieval after each layer.

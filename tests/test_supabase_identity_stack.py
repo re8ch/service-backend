@@ -43,7 +43,13 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert env["GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH"]["value"] == "/"
     assert env["GOTRUE_JWT_KEYS"]["valueFrom"]["secretKeyRef"]["name"] == "supabase-identity-secrets"
     assert env["GOTRUE_DISABLE_SIGNUP"]["valueFrom"]["configMapKeyRef"]["key"] == "DISABLE_SIGNUP"
-    assert config["data"]["DISABLE_SIGNUP"] == "true"
+    assert config["data"]["DISABLE_SIGNUP"] == "false"
+    assert config["data"]["ENABLE_EMAIL_SIGNUP"] == "true"
+    assert env["GOTRUE_HOOK_SEND_EMAIL_ENABLED"]["value"] == "true"
+    assert env["GOTRUE_HOOK_SEND_EMAIL_URI"]["value"] == "https://api.re8ch.com/auth/v2/send-email-hook"
+    assert env["GOTRUE_HOOK_SEND_EMAIL_SECRETS"]["valueFrom"]["secretKeyRef"] == {
+        "name": "supabase-identity-secrets", "key": "SEND_EMAIL_HOOK_SECRET",
+    }
     assert env["GOTRUE_EXTERNAL_GITHUB_ENABLED"]["value"] == "true"
     assert env["GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI"]["value"] == "https://db-rw.re8ch.com/auth/v1/callback"
     assert env["GOTRUE_EXPERIMENTAL_PROVIDER_LINKING_DOMAINS"]["value"] == "github=github,google=google,apple=apple"
@@ -82,3 +88,10 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert "https://headlamp.service.re8ch.com/oidc-callback" in sql
     assert "'public'" in sql and "'none'" in sql
     assert clients[1]["kind"] == "Job"
+
+    worker = yaml.safe_load((ROOT / "operations/supabase-identity/avatar-worker.yaml").read_text())
+    assert worker["kind"] == "Deployment"
+    assert worker["metadata"]["namespace"] == "supabase-identity"
+    assert worker["spec"]["template"]["spec"]["containers"][0]["image"].startswith(
+        "registry.re8ch.com/auth/identity-avatar-worker:20260929@sha256:"
+    )
