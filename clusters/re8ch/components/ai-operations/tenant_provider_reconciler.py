@@ -190,7 +190,10 @@ def auto_grafana_name(tenant: str, namespace: str) -> str:
 
 def auto_metrics_id(tenant: str, namespace: str, kind: str) -> str:
     digest = hashlib.sha256(f"{tenant}:{namespace}".encode()).hexdigest()[:20]
-    return f"tenant-{digest}-{kind}"
+    uid = f"tenant-{digest}-{kind}"
+    if len(uid) > 40:
+        raise ValueError("Grafana datasource UID exceeds the 40-character limit")
+    return uid
 
 
 def auto_org(client: GrafanaAdmin, tenant: str, namespace: str, *, create: bool) -> dict[str, Any] | None:
@@ -305,7 +308,7 @@ def ensure_auto_grafana_scope(kube, instance: dict[str, Any], client: GrafanaAdm
         revoke_grafana(instance, client)
         raise PermissionError("Grafana tenant organization identity has changed")
     sources = [(kind, None) for kind in ("app", "kube")]
-    sources += [("db-" + hashlib.sha256(db.encode()).hexdigest()[:12], db) for db in databases]
+    sources += [("db-" + hashlib.sha256(db.encode()).hexdigest()[:8], db) for db in databases]
     expected_uids = {auto_metrics_id(tenant, namespace, kind) for kind, _ in sources}
     existing = client.request("GET", "/api/datasources", org_id=org_id)
     extras = {item.get("uid") for item in existing} - expected_uids
