@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import importlib.util
 import json
 import sys
@@ -495,6 +496,12 @@ def test_database_metrics_require_pinned_secret_and_tenant_namespace(monkeypatch
 
 
 def test_database_vmuser_is_forced_to_one_database_and_pigsty_job():
+    kind = "db-" + hashlib.sha256(b"orders").hexdigest()[:8]
+    db_uid = provider.auto_metrics_id("acme", "acme", kind)
+    assert len(db_uid) <= 40
+    with pytest.raises(ValueError, match="40-character limit"):
+        provider.auto_metrics_id("acme", "acme", "db-" + "a" * 12)
+
     class PendingKube:
         def __init__(self): self.created = None
         def get(self, plural, name, namespace=None, api=None):
@@ -505,7 +512,7 @@ def test_database_vmuser_is_forced_to_one_database_and_pigsty_job():
 
     kube = PendingKube()
     with pytest.raises(RuntimeError, match="still being generated"):
-        provider.auto_vmuser(kube, "acme", "acme", "db-123456789abc", "orders")
+        provider.auto_vmuser(kube, "acme", "acme", kind, "orders")
     assert kube.created["metadata"]["labels"]["observability.re8ch.com/database"] == "orders"
     url = kube.created["spec"]["targetRefs"][0]["static"]["url"]
     assert "extra_label=datname%3Dorders" in url
