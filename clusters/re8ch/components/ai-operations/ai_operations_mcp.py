@@ -1074,7 +1074,7 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
     if identity.get("auth_type") == "supabase" and PROFILE == "tenant":
         selected = str(identity.get("requested_tenant") or "")
         token = identity.get("_supabase_access_token")
-        if not selected or not token or not TENANT_CONTROL_URL or not TENANT_CLAIM_SERVICE_TOKEN:
+        if not token or not TENANT_CONTROL_URL or not TENANT_CLAIM_SERVICE_TOKEN:
             raise PermissionError("select an active tenant")
         request = urllib.request.Request(
             TENANT_CONTROL_URL + "/v1/resolve-supabase",
@@ -1088,7 +1088,11 @@ def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
             raise PermissionError("identity is not an active member of the selected tenant") from exc
         except (urllib.error.URLError, ValueError) as exc:
             raise RuntimeError("tenant authorizer is unavailable") from exc
-        if resolved.get("tenantRef") != selected or resolved.get("role") not in {"viewer", "operator", "admin"} or not resolved.get("defaultNamespace"):
+        tenant_ref = resolved.get("tenantRef")
+        if (not isinstance(tenant_ref, str) or not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", tenant_ref)
+                or tenant_ref == "admin" or (selected and tenant_ref != selected)
+                or resolved.get("role") not in {"viewer", "operator", "admin"}
+                or not resolved.get("defaultNamespace")):
             raise RuntimeError("tenant authorizer returned an invalid context")
         return resolved
     groups = {str(group) for group in identity.get("groups") or []}
