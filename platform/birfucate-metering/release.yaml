@@ -177,6 +177,7 @@ spec:
           grants:
             - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+            - {name: tenant-ci-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
             - {name: tenant-ci-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
     # Keep the first production reconciliation equivalent to the validated
