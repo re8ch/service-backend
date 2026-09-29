@@ -10,7 +10,7 @@ import re
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -168,6 +168,7 @@ class ServiceStore:
             CREATE TABLE IF NOT EXISTS usage_outbox(event_id TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, event_json TEXT NOT NULL, delivered_at TEXT, created_at TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS received_usage(event_id TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, event_json TEXT NOT NULL, received_at TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS received_usage_tenant_resource ON received_usage(tenant_ref, resource_ref);
+            CREATE INDEX IF NOT EXISTS received_usage_tenant_received ON received_usage(tenant_ref, received_at);
             CREATE TABLE IF NOT EXISTS tenants(tenant_ref TEXT PRIMARY KEY, display_name TEXT NOT NULL, visibility TEXT NOT NULL, state TEXT NOT NULL, identity_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT);
             CREATE TABLE IF NOT EXISTS grants(grant_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, consumable_ref TEXT NOT NULL, role_ref TEXT NOT NULL, visibility TEXT NOT NULL, constraints_json TEXT NOT NULL, access_ref TEXT NOT NULL, created_at TEXT NOT NULL, revoked_at TEXT, UNIQUE(tenant_ref,consumable_ref,role_ref));
             CREATE TABLE IF NOT EXISTS cluster_registrations(registration_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, cluster_uid TEXT NOT NULL, region_ref TEXT NOT NULL, issuer TEXT NOT NULL, public_key_hash TEXT NOT NULL, capabilities_json TEXT NOT NULL, state TEXT NOT NULL, enrollment_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(tenant_ref,cluster_uid));
@@ -486,3 +487,27 @@ class ServiceStore:
         with self.connect() as db:
             rows = db.execute(sql + " ORDER BY received_at DESC,event_id DESC LIMIT ?", [*args, limit]).fetchall()
         return {"tenantRef": tenant, "resourceRef": resource_ref, "events": [json.loads(row[0]) for row in rows]}
+
+    def billing_usage(self, tenant: str, start: datetime, end: datetime) -> dict[str, Any]:
+        """Summarize accepted, unpriced events for a tenant and receipt window."""
+        if start.tzinfo is None or end.tzinfo is None or not start < end or end - start > timedelta(days=31):
+            raise ServiceError("billing window must be between 0 and 31 days")
+        lower = start.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+        upper = end.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+        with self.connect() as db:
+            rows = db.execute("""
+                SELECT json_extract(event_json, '$.serviceClass'), resource_ref,
+                       json_extract(event_json, '$.meter'), json_extract(event_json, '$.unit'),
+                       SUM(CAST(json_extract(event_json, '$.quantity') AS REAL)),
+                       MIN(json_extract(event_json, '$.periodStart')),
+                       MAX(json_extract(event_json, '$.periodEnd')), COUNT(*)
+                  FROM received_usage
+                 WHERE tenant_ref=? AND received_at>=? AND received_at<?
+                 GROUP BY 1,2,3,4 ORDER BY 1,2,3,4
+            """, (tenant, lower, upper)).fetchall()
+        return {"tenantRef": tenant, "windowStart": lower, "windowEnd": upper,
+                "pricingApplied": False, "accountingPosted": False,
+                "items": [{"serviceClass": service, "resourceRef": resource, "meter": meter,
+                           "unit": unit, "quantity": quantity, "periodStart": period_start,
+                           "periodEnd": period_end, "eventCount": count}
+                          for service, resource, meter, unit, quantity, period_start, period_end, count in rows]}
