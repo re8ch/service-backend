@@ -40,6 +40,7 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert pod["containers"][0]["image"].startswith("registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:")
     env = {item["name"]: item for item in pod["containers"][0]["env"]}
     assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "true"
+    assert env["GOTRUE_OAUTH_SERVER_ALLOW_DYNAMIC_REGISTRATION"]["value"] == "true"
     assert env["GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH"]["value"] == "/"
     assert env["GOTRUE_JWT_KEYS"]["valueFrom"]["secretKeyRef"]["name"] == "supabase-identity-secrets"
     assert env["GOTRUE_DISABLE_SIGNUP"]["valueFrom"]["configMapKeyRef"]["key"] == "DISABLE_SIGNUP"
