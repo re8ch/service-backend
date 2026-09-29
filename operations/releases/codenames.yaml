@@ -73,6 +73,9 @@ revision_words:
 - silver
 - umber
 - violet
+- bronze
+- coral
+- onyx
 modules:
   clusters/re8ch/components/re8ch-business-namespaces:
     releases:
