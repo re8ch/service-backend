@@ -746,6 +746,10 @@ spec:
               key: ENABLE_PHONE_AUTOCONFIRM
         - name: GOTRUE_OAUTH_SERVER_ENABLED
           value: 'true'
+        # Native MCP clients use ephemeral loopback callbacks. GoTrue requires
+        # an exact redirect URI, so each client registers its current callback.
+        - name: GOTRUE_OAUTH_SERVER_ALLOW_DYNAMIC_REGISTRATION
+          value: 'true'
         - name: GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH
           value: '/'
         - name: GOTRUE_JWT_KEYS
