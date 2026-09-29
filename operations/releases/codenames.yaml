@@ -539,6 +539,8 @@ modules:
       digest: sha256:5a1f7595f951ac8f69d71e439d675d757b3234814586e94bbde537b268cfddeb
     - codename: anchor-silver
       digest: sha256:00fe425a63b3d742f6b64fa007994b44c9a29c3077a6d2c2ea10dd06f04f1a97
+    - codename: beacon-silver
+      digest: sha256:1f609bd1f433ba8dce4a0ceafeca2b12eb6ad3fa308bb61dd037f8cd7f5e4c92
   platform/birfucate-metering:
     releases:
     - codename: cascade

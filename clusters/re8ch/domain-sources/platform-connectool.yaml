@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: anchor-silver
+    delivery.re8ch.com/codename: beacon-silver
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:00fe425a63b3d742f6b64fa007994b44c9a29c3077a6d2c2ea10dd06f04f1a97
+    digest: sha256:1f609bd1f433ba8dce4a0ceafeca2b12eb6ad3fa308bb61dd037f8cd7f5e4c92
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: anchor-silver
+    delivery.re8ch.com/codename: beacon-silver
 spec:
   interval: 1m
   retryInterval: 1m
