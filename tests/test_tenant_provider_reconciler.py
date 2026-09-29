@@ -455,6 +455,63 @@ def test_grafana_auto_scope_creates_two_native_scoped_vmusers_and_datasources(mo
         provider.ensure_auto_grafana_scope(kube, value, grafana)
 
 
+def test_database_metrics_require_pinned_secret_and_tenant_namespace(monkeypatch):
+    entry = {"tenantRef": "acme", "database": "orders", "namespace": "acme-orders",
+             "secretName": "orders-db-credentials", "secretUID": "11111111-1111-4111-8111-111111111111"}
+    monkeypatch.setenv("GRAFANA_DATABASE_BINDINGS_JSON", json.dumps([entry]))
+
+    class OwnershipKube:
+        namespace_owner = "acme"
+        uid = entry["secretUID"]
+        database = "orders"
+
+        def get(self, plural, name, namespace=None, api=None):
+            if plural == "namespaces":
+                assert name == entry["namespace"] and api == "api/v1"
+                return {"metadata": {"labels": {"tenancy.re8ch.com/tenant": self.namespace_owner}}}
+            assert (plural, name, namespace, api) == ("secrets", entry["secretName"], entry["namespace"], "api/v1")
+            return {"metadata": {"uid": self.uid, "labels": {"re8ch.com/database": "orders",
+                     "re8ch.com/secret-purpose": "postgres-credentials"}},
+                    "data": {"PGDATABASE": base64.b64encode(self.database.encode()).decode()}}
+
+    kube = OwnershipKube()
+    assert provider.database_bindings(kube, "acme") == ["orders"]
+    assert provider.database_bindings(kube, "other") == []
+    kube.uid = "22222222-2222-4222-8222-222222222222"
+    with pytest.raises(PermissionError, match="ownership"):
+        provider.database_bindings(kube, "acme")
+    kube.uid = entry["secretUID"]
+    kube.namespace_owner = "other"
+    with pytest.raises(PermissionError, match="outside the tenant"):
+        provider.database_bindings(kube, "acme")
+    kube.namespace_owner = "acme"
+    kube.database = "other"
+    with pytest.raises(PermissionError, match="ownership"):
+        provider.database_bindings(kube, "acme")
+    kube.database = "orders"
+    monkeypatch.setenv("GRAFANA_DATABASE_BINDINGS_JSON", json.dumps([entry, entry]))
+    with pytest.raises(PermissionError, match="ambiguous"):
+        provider.database_bindings(kube, "acme")
+
+
+def test_database_vmuser_is_forced_to_one_database_and_pigsty_job():
+    class PendingKube:
+        def __init__(self): self.created = None
+        def get(self, plural, name, namespace=None, api=None):
+            raise urllib.error.HTTPError("https://kubernetes.invalid", 404, "not found", {}, None)
+        def create(self, plural, value, namespace=None, api=None):
+            self.created = value
+            return value
+
+    kube = PendingKube()
+    with pytest.raises(RuntimeError, match="still being generated"):
+        provider.auto_vmuser(kube, "acme", "acme", "db-123456789abc", "orders")
+    assert kube.created["metadata"]["labels"]["observability.re8ch.com/database"] == "orders"
+    url = kube.created["spec"]["targetRefs"][0]["static"]["url"]
+    assert "extra_label=datname%3Dorders" in url
+    assert "extra_label=job%3Dpigsty-pg-re8ch-exporters" in url
+
+
 def test_grafana_reconcile_rejects_unscoped_datasource_in_tenant_org(monkeypatch):
     class UnsafeGrafana(FakeGrafana):
         def request(self, method, path, payload=None, org_id=None):

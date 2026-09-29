@@ -25,6 +25,7 @@ tenantPlatform:
   provider:
     enabled: false
     image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+    databaseBindings: []
   tenantReadinessPath: /readyz
   placement:
     nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]

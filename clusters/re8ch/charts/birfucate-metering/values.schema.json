@@ -15,7 +15,11 @@
         "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
         "provider": {
           "type": "object", "additionalProperties": false, "required": ["enabled", "image"],
-          "properties": {"enabled": {"type": "boolean"}, "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"}}
+          "properties": {"enabled": {"type": "boolean"}, "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
+            "databaseBindings": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+              "required": ["tenantRef", "database", "namespace", "secretName", "secretUID"],
+              "properties": {"tenantRef": {"type": "string"}, "database": {"type": "string"}, "namespace": {"type": "string"}, "secretName": {"type": "string"}, "secretUID": {"type": "string", "format": "uuid"}}}}
+          }
         },
         "tenantReadinessPath": {"enum": ["/readyz", "/livez"]},
         "placement": {

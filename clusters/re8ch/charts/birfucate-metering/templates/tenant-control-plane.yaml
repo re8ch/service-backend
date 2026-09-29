@@ -137,6 +137,9 @@ metadata: {name: tenant-provider-reconciler}
 rules:
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances, tenants, tenantgrants], verbs: [get, list]}
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances/status], verbs: [get, patch]}
+{{- if .Values.tenantPlatform.provider.databaseBindings }}
+  - {apiGroups: [""], resources: [namespaces], resourceNames: [{{- range $i, $binding := .Values.tenantPlatform.provider.databaseBindings }}{{ if $i }}, {{ end }}{{ $binding.namespace }}{{- end }}], verbs: [get]}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -144,6 +147,20 @@ metadata: {name: tenant-provider-reconciler}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: tenant-provider-reconciler}
 subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
 ---
+{{- range .Values.tenantPlatform.provider.databaseBindings }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-provider-database-metrics-{{ .database | replace "_" "-" }}, namespace: {{ .namespace }}}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [{{ .secretName }}], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-database-metrics-{{ .database | replace "_" "-" }}, namespace: {{ .namespace }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-database-metrics-{{ .database | replace "_" "-" }}}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+{{- end }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: tenant-provider-harbor-read, namespace: ai-operations}
@@ -208,6 +225,7 @@ spec:
           env:
             - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
             - {name: IDENTITY_SERVICE_KEY, valueFrom: {secretKeyRef: {name: tenant-provider-identity, key: service-role-key}}}
+            - {name: GRAFANA_DATABASE_BINDINGS_JSON, value: {{ .Values.tenantPlatform.provider.databaseBindings | toJson | quote }}}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
 {{- end }}

@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import time
 import urllib.error
@@ -204,12 +205,54 @@ def auto_org(client: GrafanaAdmin, tenant: str, namespace: str, *, create: bool)
     return org
 
 
-def auto_vmuser(kube, tenant: str, namespace: str, kind: str) -> tuple[str, str]:
+def database_bindings(kube, tenant: str) -> list[str]:
+    """Accept only operator-pinned credentials in a namespace owned by this tenant."""
+    entries = json.loads(os.getenv("GRAFANA_DATABASE_BINDINGS_JSON", "[]"))
+    if not isinstance(entries, list):
+        raise PermissionError("database metrics bindings must be a list")
+    seen = set()
+    databases = []
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {"tenantRef", "database", "namespace", "secretName", "secretUID"}:
+            raise PermissionError("database metrics binding has invalid fields")
+        db, owner, ns, name, uid = (entry[key] for key in ("database", "tenantRef", "namespace", "secretName", "secretUID"))
+        if (not all(isinstance(value, str) for value in (db, owner, ns, name, uid))
+                or not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", db)
+                or not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", ns)
+                or not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", name)
+                or not re.fullmatch(r"[0-9a-f-]{36}", uid) or db in seen):
+            raise PermissionError("database metrics binding is ambiguous or invalid")
+        seen.add(db)
+        if owner != tenant:
+            continue
+        namespace = kube.get("namespaces", ns, api="api/v1")
+        if (namespace.get("metadata", {}).get("labels") or {}).get("tenancy.re8ch.com/tenant") != tenant:
+            raise PermissionError("database credential namespace is outside the tenant")
+        credential = kube.get("secrets", name, ns, "api/v1")
+        meta = credential.get("metadata") or {}
+        if (meta.get("uid") != uid or (meta.get("labels") or {}).get("re8ch.com/database") != db
+                or (meta.get("labels") or {}).get("re8ch.com/secret-purpose") != "postgres-credentials"
+                or base64.b64decode((credential.get("data") or {}).get("PGDATABASE", "")).decode() != db):
+            raise PermissionError("database credential ownership or identity has changed")
+        databases.append(db)
+    return sorted(databases)
+
+
+def auto_vmuser(kube, tenant: str, namespace: str, kind: str, database: str | None = None) -> tuple[str, str]:
     name = auto_metrics_id(tenant, namespace, kind)
-    filters = [("namespace", namespace)] if kind == "app" else [("exported_namespace", namespace), ("job", "re8ch-kube-state-metrics")]
+    if database:
+        filters = [("datname", database), ("job", "pigsty-pg-re8ch-exporters")]
+    elif kind == "app":
+        filters = [("namespace", namespace)]
+    elif kind == "kube":
+        filters = [("exported_namespace", namespace), ("job", "re8ch-kube-state-metrics")]
+    else:
+        raise PermissionError("unsupported metrics scope")
     url = METRICS_VMSELECT_URL + "?" + urllib.parse.urlencode([("extra_label", f"{key}={value}") for key, value in filters])
     labels = {"observability.re8ch.com/tenant-metrics-user": "true", "tenancy.re8ch.com/tenant": tenant,
-              "observability.re8ch.com/runtime-namespace": namespace, "observability.re8ch.com/metric-kind": kind}
+              "observability.re8ch.com/runtime-namespace": namespace, "observability.re8ch.com/metric-kind": "db" if database else kind}
+    if database:
+        labels["observability.re8ch.com/database"] = database
     spec = {"username": name, "generatePassword": True, "targetRefs": [{"static": {"url": url}, "paths": METRICS_PATHS}]}
     value = {"apiVersion": "operator.victoriametrics.com/v1beta1", "kind": "VMUser",
              "metadata": {"name": name, "namespace": "credential-broker", "labels": labels}, "spec": spec}
@@ -250,27 +293,39 @@ def ensure_auto_grafana_scope(kube, instance: dict[str, Any], client: GrafanaAdm
     parameters = instance["spec"]["parameters"]
     if set(parameters["datasourceRefs"]) != {"app", "kube"} or parameters["folderRefs"]:
         raise PermissionError("Grafana auto provisioning requires app and kube metrics without external folders")
+    try:
+        databases = database_bindings(kube, tenant)
+    except Exception:
+        revoke_grafana(instance, client)
+        raise
     org = auto_org(client, tenant, namespace, create=True)
     org_id = int(org["id"])
     prior_org = ((instance.get("status") or {}).get("access") or {}).get("organizationId")
     if prior_org and int(prior_org) != org_id:
         revoke_grafana(instance, client)
         raise PermissionError("Grafana tenant organization identity has changed")
-    expected_uids = {auto_metrics_id(tenant, namespace, kind) for kind in ("app", "kube")}
+    sources = [(kind, None) for kind in ("app", "kube")]
+    sources += [("db-" + hashlib.sha256(db.encode()).hexdigest()[:12], db) for db in databases]
+    expected_uids = {auto_metrics_id(tenant, namespace, kind) for kind, _ in sources}
     existing = client.request("GET", "/api/datasources", org_id=org_id)
-    if {item.get("uid") for item in existing} - expected_uids:
+    extras = {item.get("uid") for item in existing} - expected_uids
+    if extras:
         revoke_grafana(instance, client)
-        raise PermissionError("Grafana tenant organization has an undeclared datasource")
+        managed_prefix = auto_metrics_id(tenant, namespace, "db-")
+        if any(not isinstance(uid, str) or not uid.startswith(managed_prefix) for uid in extras):
+            raise PermissionError("Grafana tenant organization has an undeclared datasource")
+        for uid in extras:
+            client.request("DELETE", "/api/datasources/uid/" + uid, org_id=org_id)
     bindings = {}
-    for kind in ("app", "kube"):
+    for kind, database in sources:
         uid = auto_metrics_id(tenant, namespace, kind)
         try:
-            username, password = auto_vmuser(kube, tenant, namespace, kind)
+            username, password = auto_vmuser(kube, tenant, namespace, kind, database)
         except PermissionError:
             revoke_grafana(instance, client)
             raise
         credential_hash = hashlib.sha256(password.encode()).hexdigest()
-        desired = {"uid": uid, "name": f"Tenant {tenant} {namespace} {kind}", "type": "prometheus", "access": "proxy",
+        desired = {"uid": uid, "name": f"Tenant {tenant} {namespace} {database or kind}", "type": "prometheus", "access": "proxy",
                    "url": METRICS_AUTH_URL, "basicAuth": True, "basicAuthUser": username,
                    "secureJsonData": {"basicAuthPassword": password},
                    "jsonData": {"httpMethod": "POST", "re8chCredentialHash": credential_hash}}
