@@ -627,6 +627,8 @@ modules:
       digest: sha256:dfddc7aeb73b251702349bbbb8decdd5e0aec94d3871b949757f1acaf66ebad8
     - codename: eddy-silver
       digest: sha256:01097156d957846b49521ce599a7eaf41b28b50f36fb476f691b95ce74e68917
+    - codename: gulfstream-silver
+      digest: sha256:0f34145c26c7b903dd8519f3c8985f3661b6e6416e904caebf57634a73818eee
   platform/hyperswitch:
     releases:
     - codename: anchor
