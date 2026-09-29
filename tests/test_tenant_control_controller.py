@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import json
 from pathlib import Path
 import re
 from datetime import datetime, timezone
@@ -51,6 +53,55 @@ def group_binding(tenant, group, role):
 
 def tenant(name, lifecycle="Active"):
     return {"metadata": {"name": name}, "spec": {"lifecycle": lifecycle}}
+
+
+def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeypatch):
+    class ProviderKube:
+        def __init__(self):
+            self.created = None
+            self.status = None
+        def list(self, plural, namespace=None):
+            if plural == "tenantserviceinstances": return []
+            assert plural == "tenantgrants"
+            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
+        def create(self, plural, value, namespace):
+            self.created = (plural, value, namespace)
+            return value
+        def patch_status(self, plural, name, status, namespace):
+            self.status = status
+    fake = ProviderKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
+    monkeypatch.setattr(controller, "runtime_namespace", lambda _tenant: "acme")
+    monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
+    body = {"name": "registry", "spec": {"serviceClass": "registry.harbor.v1", "planRef": "build-push", "parameters": {"quotaGiB": 10, "identityUserRef": "11111111-1111-4111-8111-111111111111"}}, "idempotencyKey": "create-12345"}
+    class Request:
+        path = "/v1/services"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "acme", "X-Tenant-Service-Token": "test-token", "Content-Length": str(len(json.dumps(body).encode()))}
+        rfile = io.BytesIO(json.dumps(body).encode())
+        def send_json(self, status, value): self.response = (status, value)
+    request = Request()
+    controller.Handler.do_POST(request)
+    assert request.response[0] == 202
+    assert request.response[1]["state"] == "Provisioning"
+    assert fake.created[0] == "tenantserviceinstances"
+    assert fake.created[2] == "acme"
+    assert fake.created[1]["spec"] == {"tenantRef": "acme", "serviceClass": "registry.harbor.v1", "plan": "build-push", "lifecycle": "Requested", "parameters": {"project": "acme", "quotaGiB": 10, "robotDurationDays": 90, "identityUserRef": "11111111-1111-4111-8111-111111111111"}}
+    assert fake.status["phase"] == "Pending"
+
+
+def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
+    class Grants:
+        def list(self, plural):
+            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
+    monkeypatch.setattr(controller, "KUBE", Grants())
+    monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
+    with pytest.raises(PermissionError, match="outside the authenticated tenant"):
+        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"project": "other", "quotaGiB": 10, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
+    with pytest.raises(PermissionError, match="outside the TenantGrant"):
+        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 21, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
+    with pytest.raises(PermissionError, match="operator TenantGrant"):
+        controller.provider_service_spec("acme", "grafana", {"serviceClass": "observability.grafana.v1", "planRef": "viewer"})
 
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
@@ -125,6 +176,9 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     role = next(item for item in resources if item["kind"] == "Role")
     assert "namespaces" not in str(role["rules"])
     assert "clusterroles" not in str(role["rules"])
+    metrics = next(item for item in resources if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "tenant-metrics-scrape")
+    assert metrics["spec"]["podSelector"] == {"matchLabels": {"observability.re8ch.com/scrape": "true"}}
+    assert metrics["spec"]["ingress"] == [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]
 
 
 def test_groups_spanning_tenants_are_denied(monkeypatch):

@@ -22,6 +22,9 @@ browserAPI:
 tenantPlatform:
   enabled: false
   image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+  provider:
+    enabled: false
+    image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
   tenantReadinessPath: /readyz
   placement:
     nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
@@ -93,6 +96,7 @@ tenantPlatform:
       grants:
         - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
         - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+        - {name: tenant-ci-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
       nativeAccess: true
 
 prometheus:

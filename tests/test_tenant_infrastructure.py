@@ -109,3 +109,15 @@ def test_ai_gateway_token_budget_is_control_data_not_a_credential():
         "parameters": {"models": ["gpt-5"], "tokenBudget": 100000, "concurrency": 2},
     }
     assert tenant_infrastructure.validate_spec(spec)["parameters"]["tokenBudget"] == 100000
+
+
+def test_grafana_request_derives_organization_from_tenant():
+    value = {
+        "serviceClass": "observability.grafana.v1", "planRef": "viewer", "regionRef": "loudi",
+        "parameters": {"datasourceRefs": ["tenant-metrics"], "folderRefs": [],
+                       "humanLogin": "acme-admin", "identityUserRef": "11111111-1111-4111-8111-111111111111"},
+    }
+    assert tenant_infrastructure.validate_spec(value)["parameters"] == value["parameters"]
+    value["parameters"]["organizationRef"] = "platform"
+    with pytest.raises(tenant_infrastructure.ServiceError, match="unknown parameters"):
+        tenant_infrastructure.validate_spec(value)

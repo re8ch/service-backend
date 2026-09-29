@@ -8,6 +8,7 @@ COPY clusters/re8ch/components/ai-operations/harbor_integration.py /app/harbor_i
 COPY clusters/re8ch/components/ai-operations/harbor_supply_chain.py /app/harbor_supply_chain.py
 COPY clusters/re8ch/components/ai-operations/tenant_infrastructure.py /app/tenant_infrastructure.py
 COPY clusters/re8ch/components/ai-operations/tenant_control_controller.py /app/tenant_control_controller.py
+COPY clusters/re8ch/components/ai-operations/tenant_provider_reconciler.py /app/tenant_provider_reconciler.py
 COPY clusters/re8ch/components/ai-operations/tenant_claims.py /app/tenant_claims.py
 COPY operations/tenant-broker/contracts.py /app/tenant_claim_contracts.py
 RUN addgroup -S re8ch && adduser -S -G re8ch -h /var/lib/re8ch-ai-operations re8ch \

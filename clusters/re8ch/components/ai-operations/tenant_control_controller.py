@@ -17,6 +17,7 @@ import socket
 import sys
 import threading
 import time
+import uuid
 import logging
 import re
 import urllib.error
@@ -342,6 +343,7 @@ def tenant_namespace_resources(tenant, namespace):
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "subjects": subjects, "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-native-owner"}},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-resource-provisioner", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-control-controller", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "tenant-resource-provisioner"}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-default-deny-cross-tenant", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"tenancy.re8ch.com/tenant": tenant_ref}}}]}]}},
+        {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-metrics-scrape", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {"matchLabels": {"observability.re8ch.com/scrape": "true"}}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]}},
     ]
 
 
@@ -415,6 +417,75 @@ def active_grant(tenant_ref, capability):
     if len(matches) != 1:
         raise PermissionError("exactly one active TenantGrant is required")
     return matches[0]
+
+
+PROVIDER_SERVICE_CLASSES = {"registry.harbor.v1", "observability.grafana.v1"}
+
+
+def active_provider_grant(tenant_ref, service_class):
+    """Service access needs an explicit class grant, never a broad tenant grant."""
+    now = utcnow()
+    matches = []
+    for grant in kube().list("tenantgrants"):
+        spec = grant.get("spec", {})
+        if spec.get("tenantRef") != tenant_ref or spec.get("consumableRef") != service_class or spec.get("lifecycle") != "Active":
+            continue
+        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
+            continue
+        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
+            continue
+        matches.append(grant)
+    if len(matches) != 1 or matches[0].get("spec", {}).get("roleRef") not in {"operator", "admin"}:
+        raise PermissionError("exactly one active operator TenantGrant is required for the service class")
+    return matches[0]
+
+
+def provider_service_spec(tenant_ref, name, request):
+    if not TENANT_NAME_RE.fullmatch(name) or len(name) > 63:
+        raise PermissionError("service instance name is invalid")
+    service_class = request.get("serviceClass")
+    if service_class not in PROVIDER_SERVICE_CLASSES:
+        raise PermissionError("provider service class is not published")
+    grant = active_provider_grant(tenant_ref, service_class)
+    if request.get("desiredState", "Ready") != "Ready":
+        raise PermissionError("new provider service instances must request Ready")
+    parameters = request.get("parameters") or {}
+    if not isinstance(parameters, dict):
+        raise PermissionError("service parameters must be an object")
+    if service_class == "registry.harbor.v1":
+        if request.get("planRef") not in {"pull", "build-push", "project-admin"}:
+            raise PermissionError("Harbor plan is not published")
+        if set(parameters) - {"project", "quotaGiB", "robotDurationDays", "identityUserRef"}:
+            raise PermissionError("Harbor parameters are not published")
+        try:
+            identity_user = str(uuid.UUID(str(parameters["identityUserRef"])))
+        except (KeyError, ValueError, AttributeError):
+            raise PermissionError("identityUserRef must identify a Supabase user") from None
+        project = harbor_project(tenant_ref)
+        if parameters.get("project", project) != project:
+            raise PermissionError("Harbor project is outside the authenticated tenant")
+        quota = parameters.get("quotaGiB")
+        duration = parameters.get("robotDurationDays", 90)
+        maximum = int((grant.get("spec", {}).get("constraints") or {}).get("maxRegistryGiB", 1024))
+        if type(quota) is not int or not 1 <= quota <= maximum or type(duration) is not int or not 1 <= duration <= 365:
+            raise PermissionError("Harbor quota or robot duration is outside the TenantGrant")
+        return {"project": project, "quotaGiB": quota, "robotDurationDays": duration, "identityUserRef": identity_user}
+    if request.get("planRef") not in {"viewer", "editor"}:
+        raise PermissionError("Grafana plan is not published")
+    if set(parameters) - {"datasourceRefs", "folderRefs", "humanLogin", "identityUserRef"}:
+        raise PermissionError("Grafana parameters are not published")
+    try:
+        identity_user = str(uuid.UUID(str(parameters["identityUserRef"])))
+    except (KeyError, ValueError, AttributeError):
+        raise PermissionError("identityUserRef must identify a Supabase user") from None
+    login = parameters.get("humanLogin")
+    if not isinstance(login, str) or not re.fullmatch(rf"{re.escape(tenant_ref)}-[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", login) or len(login) > 63:
+        raise PermissionError("Grafana human login must be tenant-prefixed")
+    for key in ("datasourceRefs", "folderRefs"):
+        values = parameters.get(key, [])
+        if not isinstance(values, list) or len(values) > 32 or any(not isinstance(value, str) or not re.fullmatch(r"[a-zA-Z0-9_.-]{1,128}", value) for value in values):
+            raise PermissionError("Grafana references must be bounded identifiers")
+    return {"datasourceRefs": sorted(set(parameters.get("datasourceRefs", []))), "folderRefs": sorted(set(parameters.get("folderRefs", []))), "humanLogin": login, "identityUserRef": identity_user}
 
 
 def among_clusters_spec(tenant_ref, name, spec):
@@ -748,7 +819,7 @@ class Handler(BaseHTTPRequestHandler):
                 if suffix == "catalog":
                     among_clusters_spec(tenant, "catalog", {"serviceClass": "network.among-clusters.v1", "planRef": "private", "parameters": {"sourceClusterRef": "artc", "destinationClusterRefs": ["re8ch"], "serviceRefs": ["network.egress.mihomo"]}})
                     self.send_json(200, {"serviceClass": "network.among-clusters.v1", "plans": ["private", "metered-egress"], "serviceRefs": ["network.egress.mihomo"]}); return
-                values = [item for item in kube().list("tenantserviceinstances", namespace) if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("serviceClass") == "network.among-clusters.v1"]
+                values = [item for item in kube().list("tenantserviceinstances", namespace) if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("serviceClass") in PROVIDER_SERVICE_CLASSES | {"network.among-clusters.v1"}]
                 if suffix:
                     value = next((item for item in values if item.get("metadata", {}).get("name") == suffix), None)
                     if not value:
@@ -845,8 +916,14 @@ class Handler(BaseHTTPRequestHandler):
             if path in {"/v1/services/plan", "/v1/services"}:
                 request = body.get("spec") or {}
                 name = str(body.get("name") or "")
-                parameters = among_clusters_spec(tenant, name, request)
-                intent = {"adapter": "among-clusters-access", "accessUnit": "AuthenticatedClusterLink", "bindings": ["link:authenticated", "grant:service-import"], "resourceRef": f"service://{tenant}/{name}", "tenantRef": tenant, "credentialMaterialReturned": False}
+                service_class = request.get("serviceClass")
+                if service_class in PROVIDER_SERVICE_CLASSES:
+                    parameters = provider_service_spec(tenant, name, request)
+                    adapter, access_unit = ("harbor-project-rbac", "ProjectMembershipRobot") if service_class == "registry.harbor.v1" else ("grafana-access", "OrganizationFolderDatasourceGrant")
+                    intent = {"adapter": adapter, "accessUnit": access_unit, "resourceRef": f"service://{tenant}/{name}", "tenantRef": tenant, "credentialMaterialReturned": False}
+                else:
+                    parameters = among_clusters_spec(tenant, name, request)
+                    intent = {"adapter": "among-clusters-access", "accessUnit": "AuthenticatedClusterLink", "bindings": ["link:authenticated", "grant:service-import"], "resourceRef": f"service://{tenant}/{name}", "tenantRef": tenant, "credentialMaterialReturned": False}
                 if path.endswith("/plan"):
                     self.send_json(200, {"decision": "preview", "tenantRef": tenant, "resourceRef": intent["resourceRef"], "requestHash": "sha256:" + hashlib.sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest(), "intent": intent, "credentialMaterialReturned": False})
                     return
@@ -854,11 +931,15 @@ class Handler(BaseHTTPRequestHandler):
                 if not 8 <= len(key) <= 128:
                     raise PermissionError("idempotencyKey must contain 8 to 128 characters")
                 namespace = runtime_namespace(tenant)
+                if service_class in PROVIDER_SERVICE_CLASSES:
+                    existing = [item for item in kube().list("tenantserviceinstances", namespace) if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("serviceClass") == service_class and item.get("metadata", {}).get("name") != name and item.get("status", {}).get("phase") != "Deleted"]
+                    if existing:
+                        raise PermissionError("one active provider service instance per tenant and class is allowed")
                 desired_state = request.get("desiredState", "Ready")
                 lifecycle = {"Ready": "Requested", "Suspended": "Suspended", "Deleted": "Deleting"}.get(desired_state)
                 if not lifecycle:
                     raise PermissionError("invalid desired state")
-                desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantServiceInstance", "metadata": {"name": name, "namespace": namespace, "labels": {"tenancy.re8ch.com/tenant": tenant}, "annotations": {"tenancy.re8ch.com/idempotency-key": key}}, "spec": {"tenantRef": tenant, "serviceClass": "network.among-clusters.v1", "plan": request["planRef"], "lifecycle": lifecycle, "parameters": parameters}}
+                desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantServiceInstance", "metadata": {"name": name, "namespace": namespace, "labels": {"tenancy.re8ch.com/tenant": tenant}, "annotations": {"tenancy.re8ch.com/idempotency-key": key}}, "spec": {"tenantRef": tenant, "serviceClass": service_class, "plan": request["planRef"], "lifecycle": lifecycle, "parameters": parameters}}
                 try:
                     value = kube().create("tenantserviceinstances", desired, namespace)
                 except urllib.error.HTTPError as exc:
@@ -867,8 +948,10 @@ class Handler(BaseHTTPRequestHandler):
                     value = kube().get("tenantserviceinstances", name, namespace)
                     if value.get("spec", {}).get("tenantRef") != tenant or value.get("metadata", {}).get("annotations", {}).get("tenancy.re8ch.com/idempotency-key") != key:
                         raise PermissionError("service name is already bound to another idempotency key")
-                    if value.get("spec", {}).get("parameters") != parameters or value.get("spec", {}).get("plan") != request["planRef"]:
+                    if value.get("spec", {}).get("serviceClass") != service_class or value.get("spec", {}).get("parameters") != parameters or value.get("spec", {}).get("plan") != request["planRef"]:
                         raise PermissionError("idempotency key cannot be reused for a different service")
+                if service_class in PROVIDER_SERVICE_CLASSES and not value.get("status", {}).get("phase"):
+                    kube().patch_status("tenantserviceinstances", name, {"observedGeneration": 0, "phase": "Pending", "conditions": [condition("Ready", False, "AwaitingProviderReconcile")]}, namespace)
                 self.send_json(202, {"operationId": "op_" + hashlib.sha256((tenant + name + key).encode()).hexdigest()[:24], "tenantRef": tenant, "resourceRef": intent["resourceRef"], "state": "Provisioning", "intent": intent, "credentialMaterialReturned": False})
                 return
             if path.startswith("/v1/services/") and path.endswith("/lifecycle"):
@@ -882,10 +965,14 @@ class Handler(BaseHTTPRequestHandler):
                     raise PermissionError("invalid desired state")
                 namespace = runtime_namespace(tenant)
                 current = kube().get("tenantserviceinstances", name, namespace)
-                if current.get("spec", {}).get("tenantRef") != tenant or current.get("spec", {}).get("serviceClass") != "network.among-clusters.v1":
+                if current.get("spec", {}).get("tenantRef") != tenant or current.get("spec", {}).get("serviceClass") not in PROVIDER_SERVICE_CLASSES | {"network.among-clusters.v1"}:
                     raise PermissionError("service instance is outside the authenticated tenant")
                 request = {"serviceClass": current["spec"]["serviceClass"], "planRef": current["spec"]["plan"], "parameters": current["spec"].get("parameters") or {}}
-                among_clusters_spec(tenant, name, request)
+                if request["serviceClass"] in PROVIDER_SERVICE_CLASSES:
+                    if lifecycle == "Requested":
+                        provider_service_spec(tenant, name, request)
+                else:
+                    among_clusters_spec(tenant, name, request)
                 value = kube().patch("tenantserviceinstances", name, {"metadata": {"annotations": {"tenancy.re8ch.com/last-operation-key": key}}, "spec": {"lifecycle": lifecycle}}, namespace)
                 self.send_json(202, {"operationId": "op_" + hashlib.sha256((tenant + name + key).encode()).hexdigest()[:24], "tenantRef": tenant, "resourceRef": f"service://{tenant}/{name}", "state": "Provisioning" if lifecycle == "Requested" else lifecycle, "credentialMaterialReturned": False})
                 return

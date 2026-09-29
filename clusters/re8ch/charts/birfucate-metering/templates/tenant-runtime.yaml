@@ -119,6 +119,7 @@ spec:
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: AUTH_DISCOVERY_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/.well-known/openid-configuration"}
@@ -146,6 +147,28 @@ kind: Service
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
 spec: {selector: {app: tenant-api}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-credential-redemption, namespace: tenant-infrastructure}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /credentials/redeem}}]
+      backendRefs: [{name: tenant-api, port: 80}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-api-credential-read, namespace: credential-broker}
+rules:
+  - {apiGroups: [""], resources: [secrets], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-api-credential-read, namespace: credential-broker}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-api-credential-read}
+subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: admin-api, namespace: tenant-infrastructure}
@@ -164,7 +187,9 @@ metadata: {name: tenant-api, namespace: tenant-infrastructure}
 spec:
   podSelector: {matchLabels: {app: tenant-api}}
   policyTypes: [Ingress]
-  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}]
+  ingress:
+    - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}
+    - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19448}]}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig

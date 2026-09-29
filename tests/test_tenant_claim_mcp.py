@@ -29,6 +29,17 @@ def test_tenant_profile_includes_claim_api(monkeypatch):
     assert {"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"} <= {tool["name"] for tool in module.tools()}
 
 
+def test_human_credential_requires_ready_matching_instance(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args: {"items": [{"spec": {"serviceClass": "registry.harbor.v1", "lifecycle": "Requested"}, "status": {"phase": "Ready", "humanCredentialRef": "credential://harbor/acme/" + "a" * 32}}]})
+    module.require_ready_human_credential("acme", "credential://harbor/acme/" + "a" * 32)
+    import pytest
+    with pytest.raises(PermissionError, match="ready"):
+        module.require_ready_human_credential("acme", "credential://harbor/acme/" + "b" * 32)
+    with pytest.raises(PermissionError, match="cross-tenant"):
+        module.require_ready_human_credential("other", "credential://harbor/acme/" + "a" * 32)
+
+
 def test_native_apply_forces_resolved_namespace(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
@@ -79,6 +90,23 @@ def test_amongclusters_service_requests_use_grant_enforcing_controller(monkeypat
     module.call_tool("service_instance_create", {"name": "mihomos", "spec": spec, "idempotency_key": "create-001"}, {"subject": "agent"})
     assert calls[1][0][0] == "/v1/services"
     assert calls[1][0][2]["idempotencyKey"] == "create-001"
+
+
+def test_harbor_and_grafana_service_requests_use_controller_not_local_store(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator"})
+    class NoLocalStore:
+        def plan(self, *_args): raise AssertionError("local intent store must not plan provider services")
+        def mutate(self, *_args): raise AssertionError("local intent store must not create provider services")
+    monkeypatch.setattr(module, "tenant_service_store", NoLocalStore)
+    calls = []
+    monkeypatch.setattr(module, "tenant_control_request", lambda *args, **kwargs: calls.append(args) or {"decision": "preview"})
+    for service_class in ("registry.harbor.v1", "observability.grafana.v1"):
+        spec = {"serviceClass": service_class, "planRef": "pull" if service_class.startswith("registry") else "viewer", "parameters": {}}
+        module.call_tool("service_instance_plan", {"name": "access", "spec": spec}, {"subject": "agent"})
+        module.call_tool("service_instance_create", {"name": "access", "spec": spec, "idempotency_key": "create-12345"}, {"subject": "agent"})
+    assert [call[0] for call in calls] == ["/v1/services/plan", "/v1/services", "/v1/services/plan", "/v1/services"]
 
 
 def test_artchais_catalog_hides_amongclusters_when_controller_denies_grant(monkeypatch):

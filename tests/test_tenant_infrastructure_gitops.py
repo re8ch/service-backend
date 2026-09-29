@@ -11,14 +11,29 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
-def tenant_chart_documents():
+def tenant_chart_documents(provider_enabled=False):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
+    command = ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"]
+    if provider_enabled:
+        command.extend(["--set", "tenantPlatform.provider.enabled=true", "--set-string", "tenantPlatform.provider.image=registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64])
     rendered = subprocess.run(
-        ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"],
+        command,
         check=True, capture_output=True, text=True,
     ).stdout
     return [item for item in yaml.safe_load_all(rendered) if item]
+
+
+def test_provider_worker_requires_explicit_signed_image_rollout():
+    assert not any(item.get("metadata", {}).get("name") == "tenant-provider-reconciler" for item in tenant_chart_documents())
+    docs = tenant_chart_documents(provider_enabled=True)
+    worker = next(item for item in docs if item.get("kind") == "Deployment" and item["metadata"]["name"] == "tenant-provider-reconciler")
+    container = worker["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64
+    assert container["env"][1]["valueFrom"]["secretKeyRef"] == {"name": "tenant-provider-identity", "key": "service-role-key"}
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.provider.enabled=true"], capture_output=True, text=True)
+    assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
 
 
 def test_contract_schemas_are_valid_json_and_have_stable_ids():
@@ -280,8 +295,18 @@ def test_artchais_github_team_bindings_have_explicit_roles():
         ("Artchais:tenant-operators", "operator"),
         ("Artchais:tenant-viewers", "viewer"),
     }
-    grants = [item for item in docs if item["kind"] == "TenantGrant"]
+    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "artchais"]
     assert {item["spec"]["consumableRef"] for item in grants} == {"compute.workload.v1", "storage.volume.v1"}
+
+
+def test_tenant_ci_can_request_harbor_from_its_declared_catalog_project():
+    docs = tenant_chart_documents()
+    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "tenant-ci"]
+    assert "registry.harbor.v1" in {item["spec"]["consumableRef"] for item in grants}
+    catalogs = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text())
+                if item and item.get("kind") == "ConfigMap" and item.get("metadata", {}).get("name") == "harbor-tenant-catalog"]
+    assert len(catalogs) == 2
+    assert all("tenant-ci" in json.loads(item["data"]["harbor-tenants.json"])["tenants"] for item in catalogs)
 
 
 def test_connectool_has_one_generic_tenant_publication():
@@ -442,3 +467,18 @@ def test_native_tenant_owner_is_reconciled_and_does_not_own_platform_boundaries(
         rule.get("resourceNames") == ["tenant-resource-provisioner"] and rule["verbs"] == ["bind"]
         for rule in cluster_role["rules"] if "clusterroles" in rule.get("resources", [])
     )
+
+
+def test_grafana_org_sync_can_reach_grafana_and_metrics_auth_selects_only_tenant_users():
+    grafana = documents(ROOT / "platform/observability/production/grafana.yaml")
+    cron = next(item for item in grafana if item["kind"] == "CronJob" and item["metadata"]["name"] == "re8ch-grafana-org-sync")
+    pod_labels = cron["spec"]["jobTemplate"]["spec"]["template"]["metadata"]["labels"]
+    policy = next(item for item in grafana if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "re8ch-grafana")
+    assert {"podSelector": {"matchLabels": pod_labels}} in policy["spec"]["ingress"][0]["from"]
+
+    auth = documents(ROOT / "platform/observability/production/tenant-metrics-auth.yaml")[0]
+    assert auth["kind"] == "VMAuth" and auth["metadata"]["name"] == "tenant-metrics"
+    assert auth["spec"]["selectAllByDefault"] is False
+    assert auth["spec"]["userNamespaceSelector"]["matchLabels"] == {"kubernetes.io/metadata.name": "credential-broker"}
+    assert auth["spec"]["userSelector"]["matchLabels"] == {"observability.re8ch.com/tenant-metrics-user": "true"}
+    assert "@sha256:" in auth["spec"]["image"]["tag"]

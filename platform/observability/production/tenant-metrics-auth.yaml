@@ -1,0 +1,27 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAuth
+metadata:
+  name: tenant-metrics
+  namespace: observability-system
+  labels:
+    app.kubernetes.io/part-of: re8ch-observability
+spec:
+  image:
+    repository: registry.re8ch.com/library/re8ch-vmauth
+    tag: v1.142.0@sha256:d1afe40a8e466e84566ddc151b57d208f6f64df5ea71fa9f173c41d1319aabf8
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  selectAllByDefault: false
+  userNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: credential-broker
+  userSelector:
+    matchLabels:
+      observability.re8ch.com/tenant-metrics-user: "true"
+  nodeSelector:
+    kubernetes.io/hostname: r640
+  tolerations:
+    - operator: Exists
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 128Mi}

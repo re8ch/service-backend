@@ -69,6 +69,50 @@ def test_credential_reference_rejects_cross_tenant():
     reference = "credential://harbor/qwen/" + "a" * 32
     with pytest.raises(PermissionError, match="cross-tenant"):
         store.get(reference, "ledger")
+    with pytest.raises(PermissionError, match="cross-tenant"):
+        store.get("credential://grafana/qwen/" + "a" * 32, "ledger")
+
+
+def test_harbor_project_quota_uses_native_quota_api():
+    calls = []
+    def opener(request, timeout):
+        calls.append((request.method, request.full_url, json.loads(request.data) if request.data else None))
+        if request.method == "GET":
+            return Response([{"id": 9, "hard": {"storage": 1024**3}}])
+        return Response({})
+    client = harbor.HarborClient("https://registry.example", "admin", "pw", opener)
+    assert client.ensure_project_quota(7, 10) is True
+    assert calls[0][:2] == ("GET", "https://registry.example/api/v2.0/quotas?reference=project&reference_id=7")
+    assert calls[1] == ("PUT", "https://registry.example/api/v2.0/quotas/9", {"hard": {"storage": 10 * 1024**3}})
+
+
+def test_robot_suspend_uses_full_native_robot_update_without_secret():
+    calls = []
+    def opener(request, timeout):
+        calls.append((request.method, json.loads(request.data) if request.data else None))
+        if request.method == "GET":
+            return Response({"id": 7, "name": "robot$acme+ci", "level": "project", "disable": False, "permissions": [{"kind": "project", "namespace": "acme", "access": [{"resource": "repository", "action": "pull"}]}], "secret": "never-copy"})
+        return Response({})
+    client = harbor.HarborClient("https://registry.example", "admin", "pw", opener)
+    client.disable_robot(7, True)
+    assert calls[1][0] == "PUT"
+    assert calls[1][1]["disable"] is True
+    assert calls[1][1]["permissions"][0]["namespace"] == "acme"
+    assert "secret" not in calls[1][1]
+
+
+def test_project_role_reconciles_existing_member_without_duplicate():
+    calls = []
+    def opener(request, timeout):
+        calls.append((request.method, request.full_url, json.loads(request.data) if request.data else None))
+        if request.method == "GET":
+            return Response([{"id": 5, "role_id": 1, "entity_name": "acme"}])
+        return Response({})
+    client = harbor.HarborClient("https://registry.example", "admin", "pw", opener)
+    assert client.ensure_project_role("acme", "acme", 1) is False
+    assert len(calls) == 1
+    assert client.ensure_project_role("acme", "acme", 3)
+    assert calls[2] == ("PUT", "https://registry.example/api/v2.0/projects/acme/members/5", {"role_id": 3})
 
 
 def test_redemption_is_short_lived_and_single_use():
