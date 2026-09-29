@@ -123,7 +123,7 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
     )
 
 
-def test_tools_legacy_dns_writer_is_retired_after_service_zone_publication():
+def test_tools_dns_writer_remains_active_for_legacy_mcp_clients():
     platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
     route = next(
         item
@@ -155,7 +155,7 @@ def test_tools_legacy_dns_writer_is_retired_after_service_zone_publication():
         if item["kind"] == "Ingress" and item["metadata"]["name"] == "connectool-tools-re8ch-com"
     )
     assert authority["metadata"]["labels"] == {
-        "networking.re8ch.com/dns-authority": "migrated-to-service-zone"
+        "networking.re8ch.com/dns-authority": "public-edge"
     }
     assert authority["metadata"]["annotations"]["networking.re8ch.com/provider"] == (
         "public-edge-manager"
