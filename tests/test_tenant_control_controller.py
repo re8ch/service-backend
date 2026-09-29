@@ -3,6 +3,7 @@ import io
 import json
 from pathlib import Path
 import re
+import urllib.error
 from datetime import datetime, timezone
 
 import pytest
@@ -15,6 +16,46 @@ SPEC = importlib.util.spec_from_file_location(
 )
 controller = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(controller)
+
+
+def test_volume_observation_distinguishes_request_allocation_and_retention(monkeypatch):
+    claim = {"metadata": {"name": "data", "uid": "claim-uid"}, "status": {}, "spec": {"capability": "storage.volume.v1", "tenantRef": "acme"}}
+
+    class VolumeKube:
+        pvc = {"spec": {}, "status": {"phase": "Pending"}}
+        pv = {"metadata": {"resourceVersion": "1", "labels": {}}, "spec": {"claimRef": {"namespace": "acme", "name": "trc-data", "uid": "pvc-uid"}}}
+        patches = []
+
+        def get(self, plural, name, namespace=None, api=None):
+            if plural == "persistentvolumes":
+                assert (name, api) == ("pvc-123", "api/v1")
+                return self.pv
+            assert (plural, name, namespace, api) == ("persistentvolumeclaims", "trc-data", "acme", "api/v1")
+            if self.pvc is None:
+                raise urllib.error.HTTPError("", 404, "missing", {}, None)
+            return self.pvc
+
+        def patch(self, plural, name, body, api=None):
+            self.patches.append((plural, name, body, api))
+
+    fake = VolumeKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    assert controller.volume_observation(claim, "acme")["state"] == "Pending"
+    fake.pvc = {"metadata": {"uid": "pvc-uid"}, "spec": {"volumeName": "pvc-123"}, "status": {"phase": "Bound", "capacity": {"storage": "10Gi"}}}
+    assert controller.volume_observation(claim, "acme") == {"state": "Bound", "capacity": "10Gi", "persistentVolume": "pvc-123"}
+    assert fake.patches == [("persistentvolumes", "pvc-123", {"metadata": {"resourceVersion": "1", "labels": {"birfucate.re8ch.com/metered": "true", "tenant": "acme", "resource_ref": "claim-uid", "tenancy.re8ch.com/claim-uid": "claim-uid"}}}, "api/v1")]
+    assert controller.volume_observation(claim, "acme", released=True)["state"] == "Retained"
+    fake.pv["metadata"]["labels"]["tenant"] = "other"
+    with pytest.raises(PermissionError, match="conflicting tenant attribution"):
+        controller.volume_observation(claim, "acme")
+    fake.pv["metadata"]["labels"] = {}
+    fake.pv["spec"]["claimRef"]["uid"] = "foreign-pvc"
+    with pytest.raises(PermissionError, match="claimRef"):
+        controller.volume_observation(claim, "acme")
+    fake.pv["spec"]["claimRef"]["uid"] = "pvc-uid"
+    claim["status"]["volumeAllocation"] = controller.volume_observation(claim, "acme")
+    fake.pvc = None
+    assert controller.volume_observation(claim, "acme", released=True) == {"state": "Unknown", "capacity": None, "persistentVolume": "pvc-123"}
 
 
 def test_pr_namespace_expiry_is_timezone_aware_and_stops_reconciliation(monkeypatch):
