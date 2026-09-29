@@ -2452,7 +2452,9 @@ class Handler(BaseHTTPRequestHandler):
             self.marketplace_callback(urllib.parse.parse_qs(parsed.query)); return
         if "/.well-known/oauth-protected-resource" in self.path:
             origin = os.getenv("PUBLIC_MCP_URL", f"https://{PROFILE}.tools.re8ch.com/mcp")
-            self.send_json(200, {"resource": origin, "authorization_servers": ["https://auth.re8ch.com"], "bearer_methods_supported": ["header"], "scopes_supported": ["openid", "profile", "email", "groups", "offline_access"]}); return
+            issuer = SUPABASE_ISSUER if PROFILE == "tenant" else "https://auth.re8ch.com"
+            scopes = ["openid", "profile", "email", "offline_access"] if PROFILE == "tenant" else ["openid", "profile", "email", "groups", "offline_access"]
+            self.send_json(200, {"resource": origin, "authorization_servers": [issuer], "bearer_methods_supported": ["header"], "scopes_supported": scopes}); return
         if parsed.path.endswith("/mcp"):
             self.send_json(405, {"error": "method_not_allowed", "allowed": ["POST"]}, {"Allow": "POST"}); return
         self.send_json(404, {"error": "not_found"})
@@ -2532,7 +2534,8 @@ class Handler(BaseHTTPRequestHandler):
                 "PUBLIC_RESOURCE_METADATA_URL",
                 os.getenv("PUBLIC_ORIGIN", f"https://{PROFILE}.tools.re8ch.com") + "/.well-known/oauth-protected-resource/mcp",
             )
-            self.send_json(401, {"error": "invalid_token"}, {"WWW-Authenticate": f'Bearer realm="https://auth.re8ch.com", resource_metadata="{metadata}"'}); return
+            issuer = SUPABASE_ISSUER if PROFILE == "tenant" else "https://auth.re8ch.com"
+            self.send_json(401, {"error": "invalid_token"}, {"WWW-Authenticate": f'Bearer realm="{issuer}", resource_metadata="{metadata}"'}); return
         if not allowed(identity):
             self.send_json(403, {"error": "forbidden"}); return
         try:
