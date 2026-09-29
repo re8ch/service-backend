@@ -226,6 +226,16 @@ spec:
           podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
       ports: [{protocol: TCP, port: 19448}]
 ---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: tenant-api-gateway, namespace: tenant-infrastructure}
+spec:
+  endpointSelector: {matchLabels: {app: tenant-api}}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports: [{port: "19448", protocol: TCP}]
+---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
 metadata: {name: admin-vmcp-backend-auth, namespace: toolhive-system}
