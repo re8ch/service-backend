@@ -40,6 +40,24 @@ def test_identity_config_rejects_private_fields(monkeypatch):
         acceptance.require_identity_config("https://identity", "user-jwt", "acme", "observability.grafana.v1", "test", "Ready")
 
 
+def test_mcp_resolves_toolhive_published_tool_name():
+    client = object.__new__(acceptance.MCP)
+    client.tool_names = None
+    calls = []
+
+    def call(method, params):
+        calls.append((method, params))
+        if method == "tools/list":
+            return {"tools": [{"name": "tenant-api-backend_tenant_capabilities_list"}]}
+        return {"structuredContent": {"tenantRef": "tenant-ci"}}
+
+    client.call = call
+    assert client.tool("tenant_capabilities_list", {}) == {"tenantRef": "tenant-ci"}
+    assert calls[-1] == ("tools/call", {"name": "tenant-api-backend_tenant_capabilities_list", "arguments": {}})
+    with pytest.raises(acceptance.AcceptanceError, match="not published"):
+        client.tool("missing_tool", {})
+
+
 def test_grafana_web_login_uses_a_session_cookie():
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -100,12 +118,12 @@ def test_authoritative_route_check_rejects_one_unhealthy_nameserver(monkeypatch)
         if argv[:2] == ["dig", "+short"]:
             if argv[2:] == ["NS", "service.re8ch.com"]:
                 return SimpleNamespace(returncode=0, stdout="ns-good.\nns-bad.\n")
-            address = "192.0.2.146" if argv[2] == "@ns-good" else "192.0.2.111"
+            address = "179.253.231.159" if argv[2] == "@ns-good" else "179.255.126.104"
             return SimpleNamespace(returncode=0, stdout=address + "\n")
         assert argv[0] == "curl"
-        healthy = any("192.0.2.146" in value for value in argv)
+        healthy = any("179.253.231.159" in value for value in argv)
         return SimpleNamespace(returncode=0 if healthy else 7, stdout="401" if healthy else "000")
 
     monkeypatch.setattr(acceptance.subprocess, "run", fake_run)
-    with pytest.raises(acceptance.AcceptanceError, match="ns-bad directs tools.service.re8ch.com to unavailable 192.0.2.111"):
+    with pytest.raises(acceptance.AcceptanceError, match="ns-bad directs tools.service.re8ch.com to unavailable 179.255.126.104"):
         acceptance.authoritative_route_preflight("tools.service.re8ch.com", "/tenant/mcp", 401)
