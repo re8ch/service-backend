@@ -621,6 +621,8 @@ modules:
       digest: sha256:fbfa4d179ca10c9af45ce9b03168abc03fb6ad7636a8833f40b7c765a33f36f0
     - codename: tideway-pearl
       digest: sha256:d5d5da7de6ca9ce5433f409f8762d0e2f0008b05f293b7a9e6b84a10134ba0d4
+    - codename: cascade-silver
+      digest: sha256:3bc3d6ab3e8e1d87cbea28b27172028230806b6e3f3e7ca2ccd9c9954bbc3170
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -933,3 +935,5 @@ modules:
       digest: sha256:09b11e06d80a1843d1e1f5bde4049af076906079452286593c060b956099b4a4
     - codename: viewport-jade
       digest: sha256:d8fe4229540ee1f46ba2811c73e1b4e38495784fc1aecd32be907617c7bcff3e
+    - codename: zenith-jade
+      digest: sha256:e470ffe880dde34fd9bdbe5a33e61ce0a89944abb407edcecd2aa83dac3bf87c
