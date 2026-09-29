@@ -102,6 +102,7 @@ tenantPlatform:
 
 prometheus:
   baseURL: http://vmsingle-opencost.observability-system.svc.cluster.local:8428
+  queryBaseURL: http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus
   writePath: /api/v1/import/prometheus
   timeoutSeconds: 15
 

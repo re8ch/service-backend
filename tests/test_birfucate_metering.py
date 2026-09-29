@@ -71,6 +71,7 @@ def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["opencost"]["enabled"] is True
     assert values["prometheus"]["baseURL"] == "http://vmsingle-opencost.observability-system.svc.cluster.local:8428"
+    assert values["prometheus"]["queryBaseURL"] == "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus"
     assert values["prometheus"]["writePath"] == "/api/v1/import/prometheus"
     assert values["vmServiceScrape"]["enabled"] is False
     domains = {item["domain"] for family in values["meters"].values() for item in family}
@@ -138,7 +139,7 @@ def test_crds_use_status_subresources_cel_and_selectable_fields():
 
 def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, monkeypatch):
     config = {
-        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "prometheus": {"baseURL": "http://metrics", "queryBaseURL": "http://query", "timeoutSeconds": 1},
         "opencost": {"enabled": False},
         "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
         "meters": {
@@ -152,7 +153,10 @@ def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, mon
         "intensity": [{"metric": {"tenant": "qwen", "resource_ref": "service://qwen/vol"}, "value": [0, "12"]}],
         "fanout": [{"metric": {"tenant": "qwen", "resource_ref": "service://qwen/vol"}, "value": [0, "2"]}],
     }
-    monkeypatch.setattr(collector, "prometheus_query", lambda base, query, timeout: data[query])
+    def query(base, expression, timeout):
+        assert base == "http://query"
+        return data[expression]
+    monkeypatch.setattr(collector, "prometheus_query", query)
     collector.METRICS.clear()
     outbox = collector.Outbox(tmp_path / "outbox.db")
     collector.collect_once(config, outbox, 100, 110)
