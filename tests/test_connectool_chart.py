@@ -117,7 +117,7 @@ def test_connectool_renders_admin_and_tenant_publications():
             "scheduling.re8ch.com/pool-service-core-local": "true",
             "scheduling.re8ch.com/network-serving": "true",
         }
-    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
+    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "2981225a-da08-5aaa-9e84-8fd151696113"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
 
 

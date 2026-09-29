@@ -570,9 +570,19 @@ def exchange_vmcp_subject_token(form: dict[str, list[str]]) -> dict[str, Any]:
         raise ValueError("unsupported_subject_token_type")
     if (form.get("audience") or [""])[0] != AUDIENCE:
         raise PermissionError("invalid_target")
-    identity = dex_identity((form.get("subject_token") or [""])[0])
+    subject_token = (form.get("subject_token") or [""])[0]
+    identity = supabase_identity(subject_token) if PROFILE == "tenant" else dex_identity(subject_token)
     if not identity:
         raise PermissionError("invalid_subject_token")
+    if PROFILE == "tenant":
+        # Preserve the user JWT so PostgREST can apply that user's RLS on every
+        # tenant operation. The backend validates it again with GoTrue.
+        return {
+            "access_token": subject_token,
+            "issued_token_type": access_token_type,
+            "token_type": "Bearer",
+            "expires_in": max(1, min(int(json.loads(_b64url_decode(subject_token.split(".")[1]))["exp"]) - int(time.time()), 600)),
+        }
     access_token, expires_in = mint_vmcp_identity_token(identity)
     return {
         "access_token": access_token,
@@ -2401,9 +2411,12 @@ class Handler(BaseHTTPRequestHandler):
         token = header[7:]
         if SERVICE_API_TOKEN and hmac.compare_digest(token, SERVICE_API_TOKEN):
             return {"subject": "service:litellm", "groups": sorted(PROFILE_GROUPS.get(PROFILE, set())), "auth_type": "service"}
-        if token.startswith("r8x_"):
+        if token.startswith("r8x_") and PROFILE != "tenant":
             return vmcp_exchange_identity(token)
-        identity = registry().authenticate(token) if token.startswith("r8d_") else (supabase_identity(token) or dex_identity(token))
+        if PROFILE == "tenant":
+            identity = supabase_identity(token)
+        else:
+            identity = registry().authenticate(token) if token.startswith("r8d_") else (supabase_identity(token) or dex_identity(token))
         if identity and PROFILE == "tenant":
             selected = self.headers.get("X-RE8CH-Tenant", "")
             if selected:

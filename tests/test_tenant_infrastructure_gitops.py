@@ -317,7 +317,7 @@ def test_connectool_has_one_generic_tenant_publication():
     release = documents(ROOT / "platform/connectool/release.yaml")[1]
     publications = release["spec"]["values"]["toolhive"]["publications"]
     tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
-    assert tenant["clientId"] == "re8ch-tenant"
+    assert tenant["clientId"] == "2981225a-da08-5aaa-9e84-8fd151696113"
     assert tenant["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
     assert tenant["workloads"] == [{"name": "tenant-api-backend"}]
     serialized = json.dumps(publications)
