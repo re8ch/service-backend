@@ -45,6 +45,11 @@ spec:
               - op: add
                 path: /spec/inline/jwksAllowPrivateIP
                 value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: re8ch-operate-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
           - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: tenant-vmcp-issuer}
             patch: |-
               - op: replace
@@ -184,12 +189,36 @@ spec:
           allowSingleReplicaWhenCapacityLimited: true
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
-            - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
           outgoingAuth:
             source: inline
             default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
             backends:
               ops-observe-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
+          operational:
+            failureHandling:
+              partialFailureMode: best_effort
+              healthCheckInterval: 30s
+              healthCheckTimeout: 10s
+              unhealthyThreshold: 3
+              circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}
+          authorization:
+            groupClaim: groups
+            policies:
+              - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+              - 'permit(principal in THVGroup::"re8ch:qwen-operators", action, resource);'
+        - name: re8ch-operate-vmcp
+          clientId: re8ch-cloud-platform-tool
+          resourceUrl: https://operate.tools.re8ch.com/mcp
+          group: platform-operate-public
+          createGroup: false
+          replicas: 1
+          allowSingleReplicaWhenCapacityLimited: true
+          workloads:
+            - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
+          outgoingAuth:
+            source: inline
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
+            backends:
               ops-operate-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
           operational:
             failureHandling:
@@ -266,6 +295,7 @@ spec:
         - {name: re8ch-cloud-platform-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: true, skills: [skills/cloud-platform/SKILL.md]}
         - {name: re8ch-cluster-infra-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/cluster-infra/SKILL.md]}
         - {name: re8ch-agent-orchestra-collab, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/agent-orchestra/SKILL.md]}
+        - {name: re8ch-platform-operate, publication: re8ch-operate-vmcp, category: Productivity, mcpOwner: true, skills: [skills/platform-operate/SKILL.md]}
         - {name: re8ch-platform-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: true, skills: []}
         - {name: re8ch-tenant-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: false, skills: [skills/tenant-admin/SKILL.md]}
         - {name: re8ch-tenant, publication: tenant-vmcp, category: Productivity, mcpOwner: true, skills: []}

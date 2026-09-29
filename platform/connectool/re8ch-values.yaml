@@ -78,12 +78,31 @@ toolhive:
       allowSingleReplicaWhenCapacityLimited: true
       workloads:
         - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
-        - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
       outgoingAuth:
         source: inline
         default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
         backends:
           ops-observe-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
+      operational:
+        failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
+      authorization:
+        groupClaim: groups
+        policies:
+          - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+          - 'permit(principal in THVGroup::"re8ch:qwen-operators", action, resource);'
+    - name: re8ch-operate-vmcp
+      clientId: re8ch-cloud-platform-tool
+      resourceUrl: https://operate.tools.re8ch.com/mcp
+      group: platform-operate-public
+      createGroup: false
+      replicas: 1
+      allowSingleReplicaWhenCapacityLimited: true
+      workloads:
+        - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
+      outgoingAuth:
+        source: inline
+        default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
+        backends:
           ops-operate-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
       operational:
         failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
@@ -154,6 +173,11 @@ codex:
       category: Productivity
       mcpOwner: false
       skills: [skills/agent-orchestra/SKILL.md]
+    - name: re8ch-platform-operate
+      publication: re8ch-operate-vmcp
+      category: Productivity
+      mcpOwner: true
+      skills: [skills/platform-operate/SKILL.md]
     - name: re8ch-platform-admin
       publication: re8ch-admin-vmcp
       category: Productivity

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: operate-tools-public-dns
+  namespace: toolhive-system
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: operate.tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: operate.tools.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: re8ch-operate-vmcp-session-router, port: {number: 4483}}}
