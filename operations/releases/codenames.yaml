@@ -674,6 +674,8 @@ modules:
       digest: sha256:077c6317ef15b66d0266032be07ce86b596014970015832094fa65e58aeeb7f5
     - codename: cascade-bronze
       digest: sha256:ebeb4f0f4d0a0dae9475abb046a3d81bf9a1135e45bf8808c8ce2b600c10c3cc
+    - codename: confluence-bronze
+      digest: sha256:ab08470c7b4aba740b43909d9a2e8b091085f68d4f2eba3d19581f2bfd49ead3
   platform/hyperswitch:
     releases:
     - codename: anchor
