@@ -113,9 +113,48 @@ def test_artchais_catalog_hides_amongclusters_when_controller_denies_grant(monke
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
     monkeypatch.setattr(module, "tenant_service_store", lambda: object())
-    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: (_ for _ in ()).throw(PermissionError("grant revoked")))
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": []})
     value = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
     assert "network.among-clusters.v1" not in {item["serviceClass"] for item in value["services"]}
+
+
+def test_service_catalog_and_mutations_require_class_grant_and_operator(monkeypatch):
+    module = load(monkeypatch)
+    role = {"value": "operator"}
+    grants = {"items": [{"consumableRef": "storage.volume.v1", "roleRef": "operator"}]}
+    calls = []
+    class Store:
+        def plan(self, *args): calls.append(("plan", args)); return {"decision": "preview"}
+        def mutate(self, *args): calls.append(("mutate", args)); return {"state": "Provisioning"}
+        def get(self, *_args): return {"name": "disk", "service_class": "storage.volume.v1", "spec": {"serviceClass": "storage.volume.v1"}}
+        def create_binding(self, *args): calls.append(("bind", args)); return {"bindingRef": "binding://acme/one"}
+    monkeypatch.setattr(module, "tenant_service_store", Store)
+    monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": role["value"]})
+    monkeypatch.setattr(module, "tenant_control_request", lambda path, tenant, *_args, **_kwargs: grants if path == "/v1/grants" else {"items": []})
+    import pytest
+    spec = {"serviceClass": "storage.volume.v1", "planRef": "shared", "regionRef": "loudi", "parameters": {"sizeGiB": 1}}
+    listed = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
+    assert {item["serviceClass"] for item in listed["services"]} == {"storage.volume.v1"}
+    assert module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"}) == {"decision": "preview"}
+    grants["items"] = []
+    with pytest.raises(PermissionError, match="active service class TenantGrant"):
+        module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
+    assert [name for name, _ in calls] == ["plan"]
+    grants["items"] = [{"consumableRef": "storage.volume.v1", "roleRef": "viewer"}]
+    with pytest.raises(PermissionError, match="active service class TenantGrant"):
+        module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"})
+    grants["items"] = [{"consumableRef": "storage.volume.v1", "roleRef": "operator"}]
+    role["value"] = "viewer"
+    with pytest.raises(PermissionError, match="operator TenantGrant role"):
+        module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
+    role["value"] = "operator"
+    module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
+    grants["items"] = []
+    with pytest.raises(PermissionError, match="active service class TenantGrant"):
+        module.call_tool("service_binding_create", {"resource_ref": "service://acme/disk", "binding_type": "access", "parameters": {}}, {"subject": "agent"})
+    module.call_tool("service_instance_delete", {"resource_ref": "service://acme/disk", "idempotency_key": "delete-12345"}, {"subject": "agent"})
+    assert [name for name, _ in calls] == ["plan", "mutate", "mutate"]
 
 
 def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatch):

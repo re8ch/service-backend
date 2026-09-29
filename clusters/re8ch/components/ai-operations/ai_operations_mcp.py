@@ -918,15 +918,36 @@ def tenant_service_store() -> ServiceStore:
     return _TENANT_SERVICE_STORE
 
 
-def tenant_catalog_for_profile() -> list[dict[str, Any]]:
-    return service_catalog()
+def tenant_service_grants(tenant: str) -> dict[str, str]:
+    grants: dict[str, str] = {}
+    for item in tenant_control_request("/v1/grants", tenant).get("items", []):
+        service_class = item.get("consumableRef")
+        role = item.get("roleRef")
+        if service_class and role in {"viewer", "operator", "admin"}:
+            if service_class in grants:
+                raise PermissionError("exactly one active TenantGrant is required per service class")
+            grants[service_class] = role
+    return grants
+
+
+def require_tenant_service_grant(tenant: str, service_class: str, *, mutate: bool = False) -> None:
+    if service_class not in {item["serviceClass"] for item in service_catalog()}:
+        raise PermissionError("service class is not published")
+    role = tenant_service_grants(tenant).get(service_class)
+    if role is None or (mutate and role not in {"operator", "admin"}):
+        raise PermissionError("an active service class TenantGrant is required")
+
+
+def tenant_catalog_for_profile(tenant: str) -> list[dict[str, Any]]:
+    grants = tenant_service_grants(tenant)
+    return [item for item in service_catalog() if item["serviceClass"] in grants]
 
 
 def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
     """List authorized resource descriptors without fetching their contents."""
     tenant = authenticated_tenant(identity)
     records = [
-        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(), "pricingIncluded": False}),
+        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(tenant), "pricingIncluded": False}),
     ]
     if PROFILE == "admin":
         records.extend([
@@ -2057,8 +2078,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 raise PermissionError("cross-tenant connection revoke is forbidden")
             return store.revoke_connection(target, args["connection_ref"], bool(args.get("offline")))
         if name == "service_catalog_list":
-            services = tenant_catalog_for_profile()
-            if tenant == "artchais":
+            services = tenant_catalog_for_profile(tenant)
+            if tenant == "artchais" and any(item["serviceClass"] == "network.among-clusters.v1" for item in services):
                 try:
                     tenant_control_request("/v1/services/catalog", tenant)
                 except PermissionError:
@@ -2069,12 +2090,16 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
+            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
+            authenticated_tenant_operator(identity)
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
             if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
+            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
+            authenticated_tenant_operator(identity)
             return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
         if name == "service_instance_get":
             if args["resource_ref"].startswith(f"service://{tenant}/"):
@@ -2088,6 +2113,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             controlled = tenant_control_request("/v1/services", tenant).get("items", [])
             return {"tenantRef": tenant, "instances": store.list(tenant) + controlled}
         if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
+            authenticated_tenant_operator(identity)
             if args["resource_ref"].startswith(f"service://{tenant}/"):
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
                 try:
@@ -2102,6 +2128,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 except ValueError:
                     pass
             current = store.get(tenant, args["resource_ref"])
+            if name in {"service_instance_update", "service_instance_resume"}:
+                require_tenant_service_grant(tenant, current["service_class"], mutate=True)
             spec = dict(args.get("spec") or current["spec"])
             if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
                 raise ServiceError("serviceClass is immutable")
@@ -2110,10 +2138,14 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 spec["desiredState"] = desired
             return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
         if name == "service_binding_create":
+            current = store.get(tenant, args["resource_ref"])
+            require_tenant_service_grant(tenant, current["service_class"], mutate=True)
+            authenticated_tenant_operator(identity)
             return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
         if name == "service_binding_list":
             return {"tenantRef": tenant, "bindings": store.bindings(tenant, args.get("resource_ref"))}
         if name == "service_binding_revoke":
+            authenticated_tenant_operator(identity)
             return store.revoke_binding(tenant, args["binding_ref"])
         if name == "usage_summary_get":
             return store.usage_summary(tenant, args.get("resource_ref"))

@@ -121,6 +121,35 @@ def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatc
     with pytest.raises(PermissionError, match="currently publishes"):
         controller.provider_service_spec("acme", "grafana", request)
 
+def test_service_grants_endpoint_is_tenant_scoped_and_excludes_expired_grants(monkeypatch):
+    now = datetime(2026, 9, 29, tzinfo=timezone.utc)
+    values = [
+        {"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}},
+        {"spec": {"tenantRef": "other", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}},
+        {"spec": {"tenantRef": "acme", "consumableRef": "sandbox.runtime.v1", "roleRef": "operator", "lifecycle": "Revoked"}},
+        {"spec": {"tenantRef": "acme", "consumableRef": "network.tenant.v1", "roleRef": "operator", "lifecycle": "Active", "expiresAt": now.isoformat()}},
+        {"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1", "roleRef": "viewer", "lifecycle": "Active", "notBefore": "2026-10-01T00:00:00Z"}},
+    ]
+    class GrantsKube:
+        def list(self, plural):
+            assert plural == "tenantgrants"
+            return values
+    monkeypatch.setattr(controller, "KUBE", GrantsKube())
+    monkeypatch.setattr(controller, "utcnow", lambda: now)
+    monkeypatch.setattr(controller, "runtime_namespace", lambda tenant_ref: "tenant-" + tenant_ref)
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
+    class Request:
+        path = "/v1/grants"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "acme", "X-Tenant-Service-Token": "test-token"}
+        def send_json(self, status, value):
+            self.response = (status, value)
+    request = Request()
+    controller.Handler.do_GET(request)
+    assert request.response == (200, {"items": [{"consumableRef": "registry.harbor.v1", "roleRef": "operator"}]})
+    request.headers = {**request.headers, "X-Tenant-Service-Token": "wrong"}
+    controller.Handler.do_GET(request)
+    assert request.response[0] == 404
+
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))

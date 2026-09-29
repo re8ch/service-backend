@@ -490,6 +490,21 @@ def provider_service_spec(tenant_ref, name, request):
         raise PermissionError("Grafana currently publishes app and kube metrics for the tenant runtime namespace")
     return {"datasourceRefs": sorted(set(parameters.get("datasourceRefs", []))), "folderRefs": sorted(set(parameters.get("folderRefs", []))), "humanLogin": login, "identityUserRef": identity_user}
 
+def active_service_grants(tenant_ref):
+    """Return only currently effective, class-specific grants for tenant services."""
+    now = utcnow()
+    grants = []
+    for grant in kube().list("tenantgrants"):
+        spec = grant.get("spec", {})
+        if spec.get("tenantRef") != tenant_ref or spec.get("lifecycle") != "Active":
+            continue
+        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
+            continue
+        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
+            continue
+        grants.append({"consumableRef": spec.get("consumableRef"), "roleRef": spec.get("roleRef")})
+    return grants
+
 
 def among_clusters_spec(tenant_ref, name, spec):
     """Validate the one tenant-safe AmongClusters product we publish today.
@@ -814,6 +829,14 @@ class Handler(BaseHTTPRequestHandler):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
+        if caller == "tenant" and path == "/v1/grants" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            try:
+                tenant = self.headers["X-Tenant-Ref"]
+                runtime_namespace(tenant)
+                self.send_json(200, {"items": active_service_grants(tenant)}); return
+            except Exception as exc:
+                LOG.exception("tenant grant read failed: %s", exc)
+                self.send_json(503, {"error": "tenant grants are unavailable"}); return
         if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             try:
                 tenant = self.headers["X-Tenant-Ref"]
