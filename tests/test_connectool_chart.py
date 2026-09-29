@@ -107,6 +107,7 @@ def test_connectool_renders_admin_and_tenant_publications():
     tenant = vmcps["tenant-vmcp"]
     assert {name: item["spec"]["replicas"] for name, item in vmcps.items()} == {
         "re8ch-tools-vmcp": 1,
+        "re8ch-operate-vmcp": 1,
         "re8ch-admin-vmcp": 1,
         "tenant-vmcp": 1,
     }
@@ -125,7 +126,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     objects = render()
     pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
     assert pdbs == {
-        "re8ch-tools-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
+        "re8ch-tools-vmcp-session-router", "re8ch-operate-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
     }
     policies = [item for item in objects if item["kind"] == "MutatingAdmissionPolicy"]
     assert len(policies) == 2
@@ -149,6 +150,7 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
     }
     assert set(routers) == {
         "re8ch-tools-vmcp-session-router",
+        "re8ch-operate-vmcp-session-router",
         "re8ch-admin-vmcp-session-router",
         "tenant-vmcp-session-router",
     }

@@ -6,7 +6,12 @@ spec: {description: "Admin tools aggregated only through the ConnecTool vMCP."}
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPGroup
 metadata: {name: platform-tools-public, namespace: toolhive-system}
-spec: {description: "Observe and operate tools aggregated only through the ConnecTool vMCP."}
+spec: {description: "Observe tools aggregated only through the ConnecTool vMCP."}
+---
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPGroup
+metadata: {name: platform-operate-public, namespace: toolhive-system}
+spec: {description: "Controlled operation tools aggregated only through the ConnecTool vMCP."}
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPToolConfig
@@ -189,7 +194,7 @@ metadata:
   labels: {re8ch.com/risk: controlled-write, re8ch.com/publication-stage: vmcp-internal}
   annotations: {re8ch.com/reconcile-generation: r640-fallback-2026-09-24}
 spec:
-  groupRef: {name: platform-tools-public}
+  groupRef: {name: platform-operate-public}
   image: docker.1ms.run/library/python:3.12-alpine
   replicas: 1
   backendReplicas: 1
