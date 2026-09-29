@@ -135,6 +135,7 @@ spec:
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: AUTH_DISCOVERY_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/.well-known/openid-configuration"}
             - {name: DEX_USERINFO_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/userinfo"}
+            - {name: SUPABASE_USER_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/user"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_REQUIRED, value: {{ .Values.tenantPlatform.supplyChain.required | quote }}}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}

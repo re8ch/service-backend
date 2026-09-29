@@ -3,6 +3,7 @@
 import shutil
 import subprocess
 import tempfile
+import yaml
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "operations/supabase-identity/tenant-provider-config.sql"
+RUNTIME_MEMBERSHIPS = ROOT / "operations/supabase-identity/tenant-runtime-memberships.yaml"
 ALICE = "11111111-1111-4111-8111-111111111111"
 BOB = "22222222-2222-4222-8222-222222222222"
 
@@ -77,3 +79,34 @@ def test_user_only_sees_own_config_and_instance_cannot_rebind(postgres):
     error = postgres(upsert(BOB, "stolen-registry", "instance-1"), expect_failure=True)
     assert "service instance is bound to another identity" in error
     assert postgres("select identity_user_id from core.tenant_service_configs where instance_uid = 'instance-1'") == ALICE
+
+
+def test_runtime_memberships_follow_live_organization_roles(postgres):
+    postgres("""
+        create role supabase_admin superuser;
+        create role service_role; create role authenticated; create role anon;
+        create schema auth; create schema core; create schema api;
+        create table auth.users (id uuid primary key, deleted_at timestamptz);
+        create table core.organizations (tenant_ref text primary key, status text);
+        create table core.organization_members (tenant_ref text, user_id uuid, status text, role text);
+        create function api.current_user_id() returns uuid language sql stable as
+            $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+        insert into auth.users values
+            ('11111111-1111-4111-8111-111111111111', null),
+            ('22222222-2222-4222-8222-222222222222', null);
+        insert into core.organizations values ('acme', 'active'), ('closed', 'archived');
+        insert into core.organization_members values
+            ('acme', '11111111-1111-4111-8111-111111111111', 'active', 'member'),
+            ('acme', '22222222-2222-4222-8222-222222222222', 'active', 'viewer'),
+            ('closed', '11111111-1111-4111-8111-111111111111', 'active', 'owner');
+    """)
+    manifest = list(yaml.safe_load_all(RUNTIME_MEMBERSHIPS.read_text()))
+    postgres(manifest[0]["data"]["migration.sql"])
+    query = "select tenant_ref || ':' || tenant_role from api.my_tenant_runtime_memberships()"
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == "acme:operator"
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{BOB}'; {query}") == "acme:viewer"
+    postgres(f"update core.organization_members set role = 'admin' where user_id = '{ALICE}' and tenant_ref = 'acme'")
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == "acme:admin"
+    postgres(f"update core.organization_members set status = 'revoked' where user_id = '{ALICE}' and tenant_ref = 'acme'")
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == ""
+    assert "permission denied" in postgres(f"set role anon; set request.jwt.claim.sub = '{ALICE}'; {query}", expect_failure=True)
