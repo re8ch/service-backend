@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-v2-568ffff@sha256:326b99a573d1b6817b31576cccc4b3beeed60e797af930f8acfbb7ed7b586ef6
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-center-20260929@sha256:ce92b01ed0f45baa5b8fd9a115b5aedd5cd013a702359dabdd524b235ef37a26
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -83,6 +83,24 @@ spec:
               value: https://db-rw.re8ch.com/auth/v1
             - name: IDENTITY_RO_URL
               value: https://db-ro.re8ch.com/identity/rest/v1
+            - name: IDENTITY_RW_URL
+              value: https://db-rw.re8ch.com/identity/rest/v1
+            - name: IDENTITY_AVATAR_COS_BUCKET
+              value: re8ch-avatars-1301339749
+            - name: IDENTITY_AVATAR_COS_REGION
+              value: ap-guangzhou
+            - name: IDENTITY_PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_PGRST_JWT_SECRET}
+            - name: IDENTITY_SEND_EMAIL_HOOK_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_EMAIL_HOOK_SECRET}
+            - name: IDENTITY_AVATAR_COS_SECRET_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_AVATAR_COS_SECRET_ID}
+            - name: IDENTITY_AVATAR_COS_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_AVATAR_COS_SECRET_KEY}
             - name: IDENTITY_V2_RETURN_ORIGINS
               value: https://auth.re8ch.com,https://re8ch.com,https://api.re8ch.com
             - name: MGR_RPC_RW_BASE_URL

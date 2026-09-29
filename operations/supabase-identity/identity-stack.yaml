@@ -39,11 +39,11 @@ data:
   SUPABASE_PUBLIC_URL: https://db-rw.re8ch.com
   STUDIO_DEFAULT_ORGANIZATION: RE8CH
   STUDIO_DEFAULT_PROJECT: re8ch_identity
-  DISABLE_SIGNUP: 'true'
+  DISABLE_SIGNUP: 'false'
   JWT_EXPIRY: '3600'
-  ENABLE_EMAIL_SIGNUP: 'false'
+  ENABLE_EMAIL_SIGNUP: 'true'
   ENABLE_ANONYMOUS_USERS: 'false'
-  ENABLE_EMAIL_AUTOCONFIRM: 'true'
+  ENABLE_EMAIL_AUTOCONFIRM: 'false'
   ENABLE_PHONE_SIGNUP: 'false'
   ENABLE_PHONE_AUTOCONFIRM: 'false'
   SMTP_ADMIN_EMAIL: ops@re8ch.com
@@ -673,6 +673,17 @@ spec:
             configMapKeyRef:
               name: supabase-identity-env
               key: ENABLE_EMAIL_SIGNUP
+        - name: GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED
+          value: 'false'
+        - name: GOTRUE_HOOK_SEND_EMAIL_ENABLED
+          value: 'true'
+        - name: GOTRUE_HOOK_SEND_EMAIL_URI
+          value: https://api.re8ch.com/auth/v2/send-email-hook
+        - name: GOTRUE_HOOK_SEND_EMAIL_SECRETS
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: SEND_EMAIL_HOOK_SECRET
         - name: GOTRUE_EXTERNAL_GITHUB_ENABLED
           value: 'true'
         - name: GOTRUE_EXTERNAL_GITHUB_CLIENT_ID
