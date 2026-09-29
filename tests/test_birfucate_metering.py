@@ -83,6 +83,27 @@ def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     assert {"sandbox-cpu-request", "sandbox-memory-request"} <= names
 
 
+def test_namespace_meter_uses_controller_ownership_and_excludes_individually_metered_pods(tmp_path, monkeypatch):
+    values = yaml.safe_load((CHART / "values.yaml").read_text())
+    ksm = next(item for item in yaml.safe_load_all((ROOT / "platform/observability/bootstrap/kube-state-metrics.yaml").read_text()) if item["kind"] == "HelmRelease")
+    allowlist = ksm["spec"]["values"]["metricLabelsAllowlist"]
+    assert "namespaces=[tenancy.re8ch.com/tenant]" in allowlist
+    assert any("birfucate.re8ch.com/metered" in item for item in allowlist if item.startswith("pods="))
+    meters = [item for item in values["meters"]["occupancy"] if item["name"].startswith("tenant-namespace-")]
+    assert {item["name"] for item in meters} == {"tenant-namespace-cpu-request", "tenant-namespace-memory-request"}
+    assert all('kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}' in item["query"] for item in meters)
+    assert all('unless on (namespace, pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}' in item["query"] for item in meters)
+    config = {"prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1}, "opencost": {"enabled": False},
+              "tenantLabels": values["tenantLabels"], "meters": {"occupancy": meters}}
+    monkeypatch.setattr(collector, "prometheus_query", lambda _base, query, _timeout: [{"metric": {
+        "label_tenancy_re8ch_com_tenant": "re8ch", "namespace": "re8ch-default"}, "value": [0, "2"]}] if 'resource="cpu"' in query else [])
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 100, 160)
+    event = outbox.pending()[0][1]
+    assert (event["tenantRef"], event["resourceRef"], event["serviceClass"]) == ("re8ch", "re8ch-default", "compute.workload.v1")
+    assert (event["quantity"], event["unit"], event["pricingApplied"]) == (120, "core-second", False)
+
+
 def test_usage_outbox_can_limit_events_to_managed_tenant(tmp_path, monkeypatch):
     config = {
         "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},

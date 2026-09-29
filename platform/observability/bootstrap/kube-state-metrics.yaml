@@ -60,9 +60,10 @@ spec:
       - volumeattachments
     metricLabelsAllowlist:
       - nodes=[topology.kubernetes.io/region,topology.kubernetes.io/zone,node-role.kubernetes.io/control-plane,pigsty.cc/workload]
-      - pods=[app.kubernetes.io/name,app.kubernetes.io/component,app.kubernetes.io/instance,observability.re8ch.com/tier]
+      - namespaces=[tenancy.re8ch.com/tenant]
+      - pods=[app.kubernetes.io/name,app.kubernetes.io/component,app.kubernetes.io/instance,observability.re8ch.com/tier,tenant,resource_ref,re8ch.com/tenant,birfucate.re8ch.com/resource,birfucate.re8ch.com/metered,opensandbox.re8ch.com/workload]
       - services=[app.kubernetes.io/name,app.kubernetes.io/component,observability.re8ch.com/tier,observability.re8ch.com/scrape]
-      - persistentvolumeclaims=[app.kubernetes.io/name,app.kubernetes.io/component]
+      - persistentvolumeclaims=[app.kubernetes.io/name,app.kubernetes.io/component,tenant,resource_ref,birfucate.re8ch.com/metered]
     metricAnnotationsAllowList:
       - services=[observability.re8ch.com/owner,observability.re8ch.com/runbook,observability.re8ch.com/metrics-doc,observability.re8ch.com/slo]
     resources:
