@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: springtide-umber
+codename: tideway-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:d31acbe9611c23ee71892f66a32758fbc55a9c1e85487c3e1419a05d8c9270d2
+  digest: sha256:9579405808886ed1acfa0515d650c9a52325f41abf7d71301fc7dc1b482e6f8e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
