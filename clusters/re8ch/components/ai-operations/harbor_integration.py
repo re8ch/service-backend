@@ -149,19 +149,41 @@ class HarborClient:
     def reset_user_password(self, user_id: int, password: str) -> None:
         self.request("PUT", f"/users/{user_id}/password", {"new_password": password})
 
-    def create_project(self, project: str) -> dict[str, Any]:
-        return self.request("POST", "/projects", {"project_name": project, "public": False, "metadata": {"public": "false", "auto_scan": "true"}})
+    def create_project(self, project: str, quota_gib: int | None = None) -> dict[str, Any]:
+        payload = {"project_name": project, "public": False, "metadata": {"public": "false", "auto_scan": "true"}}
+        if quota_gib is not None:
+            payload["storage_limit"] = quota_gib * 1024**3
+        return self.request("POST", "/projects", payload)
+
+    def ensure_project_quota(self, project_id: int, quota_gib: int) -> bool:
+        quotas = self.request("GET", f"/quotas?reference=project&reference_id={project_id}")
+        if not isinstance(quotas, list) or len(quotas) != 1:
+            raise HarborError(502, "Harbor project quota is unavailable")
+        quota = quotas[0]
+        desired = quota_gib * 1024**3
+        if (quota.get("hard") or {}).get("storage") == desired:
+            return False
+        self.request("PUT", f"/quotas/{int(quota['id'])}", {"hard": {"storage": desired}})
+        return True
 
     def project_members(self, project: str) -> list[dict[str, Any]]:
         return self.paged(f"/projects/{self.quote(project)}/members")
 
-    def ensure_project_admin(self, project: str, username: str) -> bool:
+    def ensure_project_role(self, project: str, username: str, role_id: int) -> bool:
+        if role_id not in {1, 2, 3}:
+            raise ValueError("unsupported Harbor project role")
         for member in self.project_members(project):
-            entity = member.get("entity") or {}
-            if entity.get("entity_name") == username and member.get("role_id") == 1:
-                return False
-        self.request("POST", f"/projects/{self.quote(project)}/members", {"role_id": 1, "member_user": {"username": username}})
+            entity_name = member.get("entity_name") or (member.get("entity") or {}).get("entity_name")
+            if entity_name == username:
+                if member.get("role_id") == role_id:
+                    return False
+                self.request("PUT", f"/projects/{self.quote(project)}/members/{int(member['id'])}", {"role_id": role_id})
+                return True
+        self.request("POST", f"/projects/{self.quote(project)}/members", {"role_id": role_id, "member_user": {"username": username}})
         return True
+
+    def ensure_project_admin(self, project: str, username: str) -> bool:
+        return self.ensure_project_role(project, username, 1)
 
     def remove_project_member(self, project: str, member_id: int) -> None:
         self.request("DELETE", f"/projects/{self.quote(project)}/members/{member_id}")
@@ -182,7 +204,13 @@ class HarborClient:
         return sanitized(response), token
 
     def disable_robot(self, robot_id: int, disabled: bool = True) -> None:
-        self.request("PUT", f"/robots/{robot_id}", {"disable": disabled})
+        robot = self.request("GET", f"/robots/{robot_id}")
+        if bool(robot.get("disable")) == disabled:
+            return
+        allowed = {"id", "name", "description", "level", "duration", "editable", "disable", "expires_at", "permissions", "creator_type", "creator_ref", "creation_time", "update_time"}
+        payload = {key: value for key, value in robot.items() if key in allowed}
+        payload["disable"] = disabled
+        self.request("PUT", f"/robots/{robot_id}", payload)
 
     def scan_artifact(self, project: str, repository: str, reference: str) -> None:
         self.request("POST", f"/projects/{self.quote(project)}/repositories/{self.quote(repository)}/artifacts/{self.quote(reference)}/scan")
@@ -215,6 +243,13 @@ class KubernetesCredentialStore:
             raise PermissionError("invalid Harbor credential reference")
         return match.group(1), match.group(2)
 
+    @staticmethod
+    def parse_provider_reference(reference: str) -> tuple[str, str, str]:
+        match = re.fullmatch(r"credential://(harbor|grafana)/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})", reference)
+        if not match:
+            raise PermissionError("invalid provider credential reference")
+        return match.group(1), match.group(2), match.group(3)
+
     def put(self, tenant: str, project: str, kind: str, material: dict[str, str]) -> str:
         if not NAME_RE.fullmatch(tenant) or not NAME_RE.fullmatch(project) or kind not in {"human", "robot", "dockerconfig"}:
             raise ValueError("invalid credential metadata")
@@ -227,20 +262,21 @@ class KubernetesCredentialStore:
         return f"credential://harbor/{tenant}/{credential_id}"
 
     def get(self, reference: str, tenant: str) -> dict[str, str]:
-        ref_tenant, credential_id = self.parse_reference(reference)
+        provider, ref_tenant, credential_id = self.parse_provider_reference(reference)
         if not hmac.compare_digest(ref_tenant, tenant):
             raise PermissionError("cross-tenant credential reference denied")
-        proc = subprocess.run(self.prefix + ["--namespace", self.namespace, "get", "secret", f"harbor-{credential_id}", "-o", "json"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=30)
+        proc = subprocess.run(self.prefix + ["--namespace", self.namespace, "get", "secret", f"{provider}-{credential_id}", "-o", "json"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=30)
         if proc.returncode:
             raise KeyError("credential reference not found")
         secret = json.loads(proc.stdout)
         labels = secret.get("metadata", {}).get("labels", {})
-        if labels.get("credentials.re8ch.com/tenant") != tenant:
-            raise PermissionError("credential tenant label mismatch")
+        if labels.get("credentials.re8ch.com/tenant") != tenant or labels.get("credentials.re8ch.com/provider") != provider:
+            raise PermissionError("credential tenant or provider label mismatch")
         return {key: base64.b64decode(value).decode() for key, value in (secret.get("data") or {}).items()}
 
     def inject_dockerconfig(self, reference: str, tenant: str, namespace: str, name: str,
                             registry: str) -> dict[str, str]:
+        self.parse_reference(reference)
         if namespace != tenant or not NAME_RE.fullmatch(name):
             raise PermissionError("credential injection is limited to the tenant namespace")
         material = self.get(reference, tenant)

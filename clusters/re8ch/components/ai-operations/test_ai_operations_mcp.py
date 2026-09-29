@@ -5,6 +5,7 @@ import unittest
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -102,10 +103,14 @@ class RegistryTests(unittest.TestCase):
         m = load("tenant")
         gx = importlib.import_module("grafana_exploration")
         base = {"timeRange": {"from": 1_000, "to": 2_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}}]}
-        gx.validate_query_spec(base, "qwen", {"metrics": "prometheus"})
-        bad = json.loads(json.dumps(base)); bad["queries"][0]["model"]["expr"] = "up"
-        with self.assertRaises(gx.ExplorationError):
-            gx.validate_query_spec(bad, "qwen", {"metrics": "prometheus"})
+        with patch.dict(os.environ, {"GRAFANA_TENANT_BINDINGS_JSON": json.dumps({"qwen": {"orgId": 4, "tenantLabel": "qianwen", "tokenEnv": "TEST_GRAFANA_TOKEN"}})}):
+            gx.validate_query_spec(base, "qwen", {"metrics": "prometheus"})
+            bad = json.loads(json.dumps(base)); bad["queries"][0]["model"]["expr"] = "up"
+            with self.assertRaises(gx.ExplorationError):
+                gx.validate_query_spec(bad, "qwen", {"metrics": "prometheus"})
+        with patch.dict(os.environ, {"GRAFANA_TENANT_BINDINGS_JSON": ""}):
+            with self.assertRaises(gx.ExplorationError):
+                gx.tenant_config("qwen")
         with self.assertRaises(gx.ExplorationError):
             gx.validate_sql("DELETE FROM events")
         with self.assertRaises(gx.ExplorationError):
@@ -121,11 +126,12 @@ class RegistryTests(unittest.TestCase):
                 return {"results": {"A": {"frames": []}}}
         client = Client()
         spec = {"timeRange": {"from": 1_000, "to": 61_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}, "maxDataPoints": 1000}]}
-        gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
-        self.assertEqual(client.body["queries"][0]["intervalMs"], 15_000)
-        spec["queries"][0]["intervalMs"] = 1000
-        with self.assertRaises(gx.ExplorationError):
+        with patch.dict(os.environ, {"GRAFANA_TENANT_BINDINGS_JSON": json.dumps({"qwen": {"orgId": 4, "tenantLabel": "qianwen", "tokenEnv": "TEST_GRAFANA_TOKEN"}})}):
             gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
+            self.assertEqual(client.body["queries"][0]["intervalMs"], 15_000)
+            spec["queries"][0]["intervalMs"] = 1000
+            with self.assertRaises(gx.ExplorationError):
+                gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
 
     def test_grafana_indicators_and_correlations_are_deterministic(self):
         load("tenant")

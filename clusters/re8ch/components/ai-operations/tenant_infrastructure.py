@@ -52,15 +52,15 @@ CATALOG: dict[str, dict[str, Any]] = {
     },
     "registry.harbor.v1": {
         "plans": ["pull", "build-push", "project-admin"], "regions": ["global", "loudi"],
-        "parameters": {"project", "quotaGiB", "retentionDays", "robotDurationDays", "scanPolicy"},
+        "parameters": {"project", "quotaGiB", "robotDurationDays", "identityUserRef"},
         "meters": {"artifact_storage": "GiB-hour", "pull_bytes": "byte", "push_bytes": "byte", "scans": "scan"},
         "adapter": "harbor-project-rbac", "accessUnit": "ProjectMembershipRobot", "bindings": ["project:membership", "access:broker-reference"],
     },
     "observability.grafana.v1": {
         "plans": ["viewer", "editor"], "regions": ["global", "loudi"],
-        "parameters": {"organizationRef", "folderRefs", "datasourceRefs", "retentionClass"},
+        "parameters": {"folderRefs", "datasourceRefs", "humanLogin", "identityUserRef"},
         "meters": {"active_series": "series-hour", "samples": "sample", "logs": "byte", "retained_data": "GiB-hour", "queries": "query"},
-        "adapter": "grafana-access", "accessUnit": "OrganizationFolderDatasourceGrant", "bindings": ["oidc:team", "grafana:folder-grant", "grafana:datasource-grant"],
+        "adapter": "grafana-access", "accessUnit": "OrganizationFolderDatasourceGrant", "bindings": ["identity:user", "grafana:organization-member", "grafana:datasource-scope"],
     },
     "ai.model-gateway.v1": {
         "plans": ["standard", "budgeted"], "regions": ["global", "cn"],
@@ -139,8 +139,8 @@ def validate_spec(spec: dict[str, Any], *, previous: dict[str, Any] | None = Non
         if not parameters.get("project") or int(parameters.get("quotaGiB", 0)) < 1 or not 0 < int(parameters.get("robotDurationDays", 0)) <= 365:
             raise ServiceError("Harbor requires project, positive quotaGiB and bounded robotDurationDays")
     if service_class == "observability.grafana.v1":
-        if not parameters.get("datasourceRefs") or not (parameters.get("organizationRef") or parameters.get("folderRefs")):
-            raise ServiceError("Grafana requires datasourceRefs and an organizationRef or folderRefs")
+        if not parameters.get("datasourceRefs") or not parameters.get("humanLogin") or not parameters.get("identityUserRef"):
+            raise ServiceError("Grafana requires datasourceRefs, humanLogin and identityUserRef")
     if service_class == "network.among-clusters.v1" and not parameters.get("destinationClusterRefs"):
         raise ServiceError("AmongClusters requires destinationClusterRefs")
     return {**spec, "desiredState": spec.get("desiredState", "Ready"), "parameters": parameters, "labels": spec.get("labels") or {}}

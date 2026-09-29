@@ -123,6 +123,94 @@ kind: Service
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
 spec: {trafficDistribution: PreferSameNode, selector: {app: tenant-control-controller}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
+{{- if .Values.tenantPlatform.provider.enabled }}
+{{- if not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" .Values.tenantPlatform.provider.image) }}
+{{- fail "tenantPlatform.provider.image must be pinned to a verified sha256 digest" }}
+{{- end }}
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: tenant-provider-reconciler, namespace: tenant-infrastructure}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: tenant-provider-reconciler}
+rules:
+  - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances, tenants, tenantgrants], verbs: [get, list]}
+  - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances/status], verbs: [get, patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: tenant-provider-reconciler}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: tenant-provider-reconciler}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-provider-harbor-read, namespace: ai-operations}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [cluster-infra-harbor], verbs: [get]}
+  - {apiGroups: [""], resources: [configmaps], resourceNames: [harbor-tenant-catalog], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-harbor-read, namespace: ai-operations}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-harbor-read}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-provider-grafana-read, namespace: observability-system}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [re8ch-grafana-admin], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-grafana-read, namespace: observability-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-grafana-read}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-provider-credential-write, namespace: credential-broker}
+rules:
+  - {apiGroups: [""], resources: [secrets], verbs: [get, create]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-credential-write, namespace: credential-broker}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-credential-write}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: tenant-provider-reconciler, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: tenant-provider-reconciler}}
+  template:
+    metadata: {labels: {app: tenant-provider-reconciler, saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: tenant-provider-reconciler
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      tolerations: {{- toYaml .Values.tenantPlatform.tolerations | nindent 8 }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: {{ .Values.tenantPlatform.placement.nodeNames | toJson }}}
+      containers:
+        - name: reconciler
+          image: {{ .Values.tenantPlatform.provider.image | quote }}
+          command: [python, /app/tenant_provider_reconciler.py]
+          env:
+            - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
+            - {name: IDENTITY_SERVICE_KEY, valueFrom: {secretKeyRef: {name: tenant-provider-identity, key: service-role-key}}}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+{{- end }}
+---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}

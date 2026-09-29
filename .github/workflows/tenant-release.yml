@@ -44,6 +44,7 @@ jobs:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
           TENANT_IMAGE_INLINE_AUTH: "1"
+          SIGSTORE_CERTIFICATE_IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/tenant-release.yml@${{ github.ref }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-release-${{ github.sha }}

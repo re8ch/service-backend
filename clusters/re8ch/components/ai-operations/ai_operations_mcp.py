@@ -61,7 +61,7 @@ ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 VMCP_TOKEN_EXCHANGE_TTL = int(os.getenv("VMCP_TOKEN_EXCHANGE_TTL_SECONDS", "300"))
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
-GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com")
+GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
@@ -674,6 +674,7 @@ TENANT_TOOLS = [
 ]
 
 HARBOR_TENANT_TOOLS = [
+    {"name": "tenant_human_access_issue", "description": "Issue a short-lived one-time browser link for a tenant-owned Harbor or Grafana human credential reference.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
     {"name": "harbor_project_get", "description": "Read the authenticated tenant's Harbor project metadata and quota summary.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
     {"name": "harbor_repository_list", "description": "List repositories in the authenticated tenant's Harbor project.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
     {"name": "harbor_artifact_list", "description": "List artifacts, tags and scan summaries in a tenant repository.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}}, ["credential_ref", "repository"])},
@@ -808,7 +809,8 @@ def tools() -> list[dict[str, Any]]:
     if PROFILE == "tenant":
         base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
         byoc = [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
-        return base + HARBOR_TENANT_TOOLS + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + TENANT_KUBERNETES_TOOLS + ARTCHAIS_CLUSTER_TOOLS
+        harbor_tools = [tool for tool in HARBOR_TENANT_TOOLS if TENANT_CONTROL_URL or tool["name"] != "tenant_human_access_issue"]
+        return base + harbor_tools + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + TENANT_KUBERNETES_TOOLS + ARTCHAIS_CLUSTER_TOOLS
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS}.get(PROFILE, [])
 
 
@@ -1155,6 +1157,20 @@ def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | Non
         if exc.code in {401, 403}:
             raise PermissionError(detail) from None
         raise ValueError(detail) from None
+
+
+def require_ready_human_credential(tenant: str, reference: str) -> None:
+    provider, ref_tenant, _ = credential_store().parse_provider_reference(reference)
+    if ref_tenant != tenant:
+        raise PermissionError("cross-tenant credential reference denied")
+    service_class = {"harbor": "registry.harbor.v1", "grafana": "observability.grafana.v1"}[provider]
+    instances = tenant_control_request("/v1/services", tenant).get("items", [])
+    if not any(item.get("spec", {}).get("serviceClass") == service_class
+               and item.get("spec", {}).get("lifecycle") == "Requested"
+               and item.get("status", {}).get("phase") == "Ready"
+               and item.get("status", {}).get("humanCredentialRef") == reference
+               for item in instances):
+        raise PermissionError("human credential has no ready tenant service instance")
 
 
 def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> dict[str, Any]:
@@ -1972,6 +1988,10 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
 
     if PROFILE == "tenant" and name in {tool["name"] for tool in HARBOR_TENANT_TOOLS}:
         tenant = authenticated_tenant(identity)
+        if name == "tenant_human_access_issue":
+            require_ready_human_credential(tenant, args["credential_ref"])
+            credential_store().get(args["credential_ref"], tenant)
+            return {"tenantRef": tenant, "credential": redemption_registry().issue(args["credential_ref"], tenant), "credentialMaterialReturned": False}
         if name.startswith("harbor_build_"):
             if name == "harbor_build_get": return supply_chain_client().get_build(tenant, args["operation_id"])
             if name == "harbor_build_list": return supply_chain_client().list_builds(tenant)
@@ -2045,13 +2065,13 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                     services = [item for item in services if item["serviceClass"] != "network.among-clusters.v1"]
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
-            if args["spec"].get("serviceClass") == "network.among-clusters.v1":
+            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
-            if args["spec"].get("serviceClass") == "network.among-clusters.v1":
+            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
@@ -2072,11 +2092,11 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
                 try:
                     current = tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
-                    if current.get("spec", {}).get("serviceClass") == "network.among-clusters.v1":
+                    if current.get("spec", {}).get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                         if authenticated_tenant_operator(identity) != tenant:
                             raise PermissionError("tenant context changed during authorization")
                         if name == "service_instance_update":
-                            raise ServiceError("AmongClusters tenant service parameters are immutable")
+                            raise ServiceError("provider-backed tenant service parameters are immutable")
                         desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}[name]
                         return tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe="") + "/lifecycle", tenant, {"desiredState": desired, "idempotencyKey": args["idempotency_key"]})
                 except ValueError:
@@ -2311,8 +2331,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not consumed:
                     self.send_json(410, {"error": "expired_or_consumed"}, {"Cache-Control": "no-store"}); return
                 reference, tenant = consumed
+                require_ready_human_credential(tenant, reference)
                 material = credential_store().get(reference, tenant)
-                self.send_json(200, {"tenant": tenant, "registry": HARBOR_URL, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
+                provider, _, _ = credential_store().parse_provider_reference(reference)
+                service_url = HARBOR_URL if provider == "harbor" else GRAFANA_URL
+                self.send_json(200, {"tenant": tenant, "provider": provider, "serviceUrl": service_url, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
             except Exception:
                 self.send_json(400, {"error": "invalid_redemption"}, {"Cache-Control": "no-store"}); return
         if request_path == "/credentials/adopt":
