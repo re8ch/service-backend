@@ -485,6 +485,9 @@ def provider_service_spec(tenant_ref, name, request):
         values = parameters.get(key, [])
         if not isinstance(values, list) or len(values) > 32 or any(not isinstance(value, str) or not re.fullmatch(r"[a-zA-Z0-9_.-]{1,128}", value) for value in values):
             raise PermissionError("Grafana references must be bounded identifiers")
+    if (not os.getenv("GRAFANA_TENANT_BINDINGS_JSON")
+            and (set(parameters.get("datasourceRefs", [])) != {"app", "kube"} or parameters.get("folderRefs"))):
+        raise PermissionError("Grafana currently publishes app and kube metrics for the tenant runtime namespace")
     return {"datasourceRefs": sorted(set(parameters.get("datasourceRefs", []))), "folderRefs": sorted(set(parameters.get("folderRefs", []))), "humanLogin": login, "identityUserRef": identity_user}
 
 
