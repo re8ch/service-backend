@@ -180,13 +180,12 @@ spec:
             - {name: tenant-ci-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
             - {name: tenant-ci-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
-    # Keep the first production reconciliation equivalent to the validated
-    # canary: no stateful allocation while Ceph is degraded and no downstream
-    # delivery until the tenant usage sink is promoted.
+    # Keep downstream provisioning gated while Ceph is degraded. Raw, unpriced
+    # usage is delivered only for the re8ch tenant.
     outbox:
       enabled: false
     usageSink:
-      enabled: false
+      enabled: true
       allowedTenants: [re8ch]
     pricing:
       enabled: false
