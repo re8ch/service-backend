@@ -44,10 +44,10 @@ spec:
       enabled: true
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:1260d0a11f602e57da17faf6c03e31cbe86c1a9a5bc023c865a64f52cc3ae835
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:af48a6972b824937abc97f7490e375a1cd1261e7c924d5aade85057e3a880279
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:1260d0a11f602e57da17faf6c03e31cbe86c1a9a5bc023c865a64f52cc3ae835
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:af48a6972b824937abc97f7490e375a1cd1261e7c924d5aade85057e3a880279
         databaseBindings:
           - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
           - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
