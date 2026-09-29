@@ -101,6 +101,7 @@ class MCP:
         self.headers = {"Authorization": f"Bearer {token}", "X-RE8CH-Tenant": tenant, "Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
         self.session = None
         self.next_id = 0
+        self.tool_names = None
         self.call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "re8ch-tenant-provider-acceptance", "version": "1"}})
         self.call("notifications/initialized", {}, notification=True)
 
@@ -132,7 +133,12 @@ class MCP:
         return result.get("result")
 
     def tool(self, name, arguments):
-        result = self.call("tools/call", {"name": name, "arguments": arguments})
+        if self.tool_names is None:
+            listed = self.call("tools/list", {})
+            self.tool_names = {item["name"] for item in listed.get("tools", [])}
+        actual = name if name in self.tool_names else f"tenant-api-backend_{name}"
+        require(actual in self.tool_names, f"{name} is not published by tenant vMCP")
+        result = self.call("tools/call", {"name": actual, "arguments": arguments})
         require(isinstance(result, dict) and not result.get("isError"), f"{name} failed")
         if isinstance(result.get("structuredContent"), dict):
             return result["structuredContent"]
