@@ -230,6 +230,9 @@ def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     tenant = release["spec"]["values"]["tenantPlatform"]
     assert tenant["tenantReadinessPath"] == "/readyz"
     assert tenant["supplyChain"] == {"required": False}
+    assert tenant["provider"]["enabled"] is True
+    assert tenant["provider"]["image"] == tenant["image"]
+    assert tenant["image"].startswith("registry.re8ch.com/image/re8ch-ai-operations@sha256:")
     artchais = next(item for item in tenant["tenants"] if item["name"] == "artchais")
     subject_binding = next(
         item for item in artchais["identityBindings"]
