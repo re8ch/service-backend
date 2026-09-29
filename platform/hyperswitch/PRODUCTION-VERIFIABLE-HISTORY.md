@@ -11,10 +11,11 @@ remains sandbox until every gate has evidence and a reviewed GitOps PR.
    consumes only verified terminal events from that outbox.
 2. Every accepted event receives one stable `event_id`, a canonical versioned
    JSON representation and a SHA-256 digest inside the same PostgreSQL
-   transaction as the payment projection. Include source, merchant scope,
-   source event ID, payment ID, attempt ID, event type, occurred/received times,
-   verification result and raw body digest. Retries must return the existing
-   event without changing its bytes or sequence number.
+   transaction as the payment projection. The public bytes include source,
+   hashed merchant/source identifiers, payment ID, attempt ID, event type,
+   occurred/received times, verification result, allowlisted payment facts and
+   digests of the full normalized and raw provider payloads. Retries must
+   return the existing event without changing its bytes or sequence number.
 3. An independent worker reads a dedicated PostgreSQL audit outbox in sequence
    order and writes each canonical event under a never-reused key to immudb
    using a verified write. It persists the immudb transaction ID and verified
@@ -24,31 +25,34 @@ remains sandbox until every gate has evidence and a reviewed GitOps PR.
    PostgreSQL event and audit outbox entry committed.
 4. Each verified immudb event is promptly anchored on Base mainnet (chain ID
    8453), funded with native ETH. Test on Base Sepolia (chain ID 84532) first.
-   An Ethereum mainnet checkpoint worker periodically closes contiguous event
-   ranges only after every member is independently readable from immudb and
+   An Ethereum mainnet checkpoint worker periodically closes ordered lists of
+   committed events only after every member is independently readable from immudb and
    its Base anchor has reached the required finality. It computes a
-   domain-separated Merkle tree over the ordered canonical event digests,
+   domain-separated Merkle tree over the exact canonical event bytes,
    records tree version, leaf count, range and root, and makes the batch
    immutable. This root is anchored on Ethereum mainnet (chain ID 1).
 5. Each anchor receipt records chain ID, contract or transaction data format,
    transaction hash, block number/hash and finality policy. A reorganization
-   moves a batch back to pending; it never rewrites its root. No API may call a
-   event or batch "anchored" before the corresponding chain finality is
-   confirmed by an independent RPC source. A Base anchor is marked final only
-   after its batch is derived from finalized Ethereum data.
+   invalidates the claimed receipt and raises an alert; the immutable root is
+   never rewritten. The API reports receipt claims, while the verifier checks
+   chain finality using an independently chosen RPC. A Base anchor is treated
+   as final only when its block is at or below Base's finalized head, derived
+   from finalized Ethereum input data.
    The EVM signing wallet is a separate restricted service. Its encrypted
    wallet key is released only to this service at runtime. Never log or export
    the key.
 
 ## Public verification contract
 
-`GET /v1/verification/transactions/{payment_id}` returns event IDs and statuses.
+`GET /v1/verification/transactions/{payment_id}` returns event IDs and sequences.
 `GET /v1/verification/events/{event_id}` returns the canonical event bytes,
 SHA-256 digest, immudb transaction ID and consistency proof, Base event anchor,
 Merkle leaf index, siblings and root, batch range, and Ethereum checkpoint
-receipt. Unanchored events are clearly
-marked pending. The UI performs the same verification locally from the returned
-bytes; it does not trust a server-supplied `verified` flag.
+receipt. Unanchored events are clearly marked pending. The browser recomputes
+the record hash and Merkle proof and queries both chains through visitor-chosen
+RPC endpoints. A downloadable immudb proof can be checked offline with an
+independently obtained signing public key. The API's receipt status is a claim,
+not a trusted `verified` flag.
 
 The public representation must contain no card data, connector credentials,
 webhook headers, payer identity or unredacted provider payload. If raw provider
@@ -74,7 +78,8 @@ inclusion, chain ID and finality using its own trusted chain RPC endpoint.
   image. The operator keeps an offline copy for recovery and rotates it using
   a documented re-encryption procedure. No cloud KMS is required. PostgreSQL/immudb
   backups, recovery drill, TOTP and least-privilege roles are proven.
-- The immudb worker catches up from genesis without gaps; the public verifier
+- The immudb worker includes every committed event from genesis; PostgreSQL
+  identity numbers may have gaps after aborted transactions. The public verifier
   rejects changed bytes, reordered leaves, omitted events, incorrect proofs,
   mismatched roots and a reorged anchor.
 - A low-value real transaction and refund have end-to-end evidence, including
