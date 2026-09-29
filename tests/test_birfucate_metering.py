@@ -92,7 +92,8 @@ def test_namespace_meter_uses_controller_ownership_and_excludes_individually_met
     meters = [item for item in values["meters"]["occupancy"] if item["name"].startswith("tenant-namespace-")]
     assert {item["name"] for item in meters} == {"tenant-namespace-cpu-request", "tenant-namespace-memory-request"}
     assert all('kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}' in item["query"] for item in meters)
-    assert all('unless on (namespace, pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}' in item["query"] for item in meters)
+    assert all('unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}' in item["query"] for item in meters)
+    assert all('label_replace(' in item["query"] and '"namespace", "$1", "exported_namespace"' in item["query"] for item in meters)
     config = {"prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1}, "opencost": {"enabled": False},
               "tenantLabels": values["tenantLabels"], "meters": {"occupancy": meters}}
     monkeypatch.setattr(collector, "prometheus_query", lambda _base, query, _timeout: [{"metric": {

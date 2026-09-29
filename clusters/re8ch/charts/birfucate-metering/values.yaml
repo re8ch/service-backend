@@ -206,7 +206,7 @@ meters:
       valueKind: gauge
       tenantLabel: label_tenancy_re8ch_com_tenant
       resourceLabel: namespace
-      query: (sum by (namespace) (max by (namespace, pod, container) (kube_pod_container_resource_requests{resource="cpu"}) unless on (namespace, pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (namespace) group_left(label_tenancy_re8ch_com_tenant) max by (namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}))
+      query: label_replace((sum by (exported_namespace) (max by (exported_namespace, exported_pod, exported_container) (kube_pod_container_resource_requests{resource="cpu"}) unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (exported_namespace) group_left(label_tenancy_re8ch_com_tenant) max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""})), "namespace", "$1", "exported_namespace", "(.+)")
     - name: tenant-namespace-memory-request
       domain: compute
       serviceClass: compute.workload.v1
@@ -216,7 +216,7 @@ meters:
       valueKind: gauge
       tenantLabel: label_tenancy_re8ch_com_tenant
       resourceLabel: namespace
-      query: (sum by (namespace) (max by (namespace, pod, container) (kube_pod_container_resource_requests{resource="memory"}) unless on (namespace, pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (namespace) group_left(label_tenancy_re8ch_com_tenant) max by (namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""})) / 1073741824
+      query: label_replace((sum by (exported_namespace) (max by (exported_namespace, exported_pod, exported_container) (kube_pod_container_resource_requests{resource="memory"}) unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (exported_namespace) group_left(label_tenancy_re8ch_com_tenant) max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""})), "namespace", "$1", "exported_namespace", "(.+)") / 1073741824
     - name: sandbox-cpu-request
       domain: sandbox
       serviceClass: sandbox.runtime.v1
