@@ -641,6 +641,8 @@ modules:
       digest: sha256:fd1049ec9fe3880ead44ccf3940b47e5aabca10432b841ef675abcb9f493d052
     - codename: eddy-umber
       digest: sha256:e554b968919ed06ea2b0b80a10df747fdd9eaee33d4f74f3b94a32d6bc0777da
+    - codename: gulfstream-umber
+      digest: sha256:b3ee44a3d291b939f9bd6e2ca98b6bfb17f8223522fc3104a2acdcf3dd32a8f7
   platform/hyperswitch:
     releases:
     - codename: anchor
