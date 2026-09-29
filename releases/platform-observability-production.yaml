@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: viewport-jade
+codename: zenith-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:d8fe4229540ee1f46ba2811c73e1b4e38495784fc1aecd32be907617c7bcff3e
+  digest: sha256:e470ffe880dde34fd9bdbe5a33e61ce0a89944abb407edcecd2aa83dac3bf87c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
