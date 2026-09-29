@@ -659,6 +659,8 @@ modules:
       digest: sha256:f9b4af2e65e94089b1c86747cadd78087165b26488f3ca81fa955e234db48a1f
     - codename: gulfstream-violet
       digest: sha256:ee380841c9ee4dead5e0d75145905b11fcb411996dfe77728c58984fe0cbfa8b
+    - codename: riptide-violet
+      digest: sha256:5583bc098fe351521b29758f8e5e1c46c4ca50adbe8bd173dc85af88e4d5e8a2
   platform/hyperswitch:
     releases:
     - codename: anchor
