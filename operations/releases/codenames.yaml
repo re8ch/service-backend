@@ -655,6 +655,8 @@ modules:
       digest: sha256:ccd0715e4627af1a0fa7afc6fa023204f011fa415950719aa045663c87b7475d
     - codename: confluence-violet
       digest: sha256:4a27833038a924d15a24a8669cedf16f6489882215321736a818460ebaff40ad
+    - codename: eddy-violet
+      digest: sha256:f9b4af2e65e94089b1c86747cadd78087165b26488f3ca81fa955e234db48a1f
   platform/hyperswitch:
     releases:
     - codename: anchor
