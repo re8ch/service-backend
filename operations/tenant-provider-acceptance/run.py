@@ -110,13 +110,17 @@ def preflight(harbor_url, grafana_url, identity_url, mcp_url):
 
 
 class MCP:
-    def __init__(self, url, token, tenant):
+    def __init__(self, url, token, tenant, *, protocol_version="2025-06-18", client_name="re8ch-tenant-provider-acceptance"):
         self.url = url
-        self.headers = {"Authorization": f"Bearer {token}", "X-RE8CH-Tenant": tenant, "Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
+        self.headers = {"Authorization": f"Bearer {token}", "Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
+        if tenant:
+            self.headers["X-RE8CH-Tenant"] = tenant
         self.session = None
+        self.protocol_version = None
         self.next_id = 0
         self.tool_names = None
-        self.call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "re8ch-tenant-provider-acceptance", "version": "1"}})
+        initialized = self.call("initialize", {"protocolVersion": protocol_version, "capabilities": {}, "clientInfo": {"name": client_name, "version": "1"}})
+        self.protocol_version = initialized.get("protocolVersion")
         self.call("notifications/initialized", {}, notification=True)
 
     def call(self, method, params, notification=False, timeout=30):
@@ -127,6 +131,8 @@ class MCP:
         headers = dict(self.headers)
         if self.session:
             headers["Mcp-Session-Id"] = self.session
+        if self.protocol_version:
+            headers["MCP-Protocol-Version"] = self.protocol_version
         body = json.dumps(payload, separators=(",", ":")).encode()
         req = urllib.request.Request(self.url, data=body, method="POST", headers=headers)
         try:

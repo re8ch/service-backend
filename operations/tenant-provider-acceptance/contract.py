@@ -117,6 +117,10 @@ def run_contract(url, token, tenant, publication_only=False):
         result = mcp.tool("tenant_capabilities_list", {})
         require(isinstance(result, dict), "ToolHive capability result is invalid")
         print("PASS ToolHive tenant publication")
+        codex = MCP(url, token, None, protocol_version="2025-11-25", client_name="codex")
+        listing = codex.call("tools/list", {})
+        inspect_tools(listing.get("tools") if isinstance(listing, dict) else None)
+        print("PASS Codex-style tenant MCP handshake without tenant header")
         return
     for name in ("tenant_capabilities_list", "service_catalog_list", "service_instance_list"):
         result = mcp.tool(name, {})
