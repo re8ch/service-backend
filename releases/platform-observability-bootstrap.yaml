@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/bootstrap
-codename: aperture-amber
+codename: focus-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-bootstrap
-  digest: sha256:088ea7adbcb327190f9f8d997320fe5856ef5b8b8356abcd326a18ef3ad98195
+  digest: sha256:c5ba5d7ea31c9ea9f0fa3d7c2b0acab20c8100e29722c79b16a0b8e1110a7fd6
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
