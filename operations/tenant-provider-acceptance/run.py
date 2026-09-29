@@ -48,9 +48,18 @@ def authoritative_route_preflight(hostname, path, expected_status, *, accept="ap
     require(shutil.which("dig") and shutil.which("curl"), "dig and curl are required for authoritative route checks")
 
     def dig(*arguments):
-        result = subprocess.run(["dig", "+short", *arguments], capture_output=True, text=True, timeout=10)
-        require(result.returncode == 0, f"DNS query failed for {hostname}")
-        return [line.strip().rstrip(".") for line in result.stdout.splitlines() if line.strip()]
+        for attempt in range(3):
+            try:
+                result = subprocess.run(["dig", "+short", *arguments], capture_output=True, text=True, timeout=8)
+            except subprocess.TimeoutExpired:
+                result = None
+            if result and result.returncode == 0:
+                answers = [line.strip().rstrip(".") for line in result.stdout.splitlines() if line.strip()]
+                if answers:
+                    return answers
+            if attempt < 2:
+                time.sleep(1)
+        raise AcceptanceError(f"DNS query failed for {hostname} after 3 attempts")
 
     zone = ".".join(hostname.split(".")[-3:])
     nameservers = dig("NS", zone)
@@ -79,20 +88,25 @@ def authoritative_route_preflight(hostname, path, expected_status, *, accept="ap
 def preflight(harbor_url, grafana_url, identity_url, mcp_url):
     mcp = urllib.parse.urlparse(mcp_url)
     grafana = urllib.parse.urlparse(grafana_url)
-    authoritative_route_preflight(mcp.hostname, mcp.path, 401, accept="application/json, text/event-stream")
+    native = mcp.path.endswith("/tenant-native/mcp")
+    authoritative_route_preflight(mcp.hostname, mcp.path, 405 if native else 401,
+                                  accept="application/json, text/event-stream")
     authoritative_route_preflight(grafana.hostname, grafana.path + "/api/health", 200)
     checks = [
         ("Harbor db_auth", harbor_url + "/api/v2.0/systeminfo", lambda status, data: status == 200 and data.get("auth_mode") == "db_auth"),
         ("Harbor registry challenge", harbor_url + "/v2/", lambda status, _data: status == 401),
         ("Grafana database", grafana_url + "/api/health", lambda status, data: status == 200 and data.get("database") == "ok"),
         ("Supabase identity PostgREST", identity_url + "/", lambda status, data: status == 200 and data.get("swagger") == "2.0"),
-        ("Tenant MCP auth challenge", mcp_url, lambda status, _data: status == 401),
     ]
     for label, url, accepts in checks:
         headers = {"Accept": "application/json, text/event-stream"} if label == "Tenant MCP auth challenge" else None
         status, _, data = request(url, headers=headers)
         require(accepts(status, data or {}), f"{label} failed (HTTP {status})")
         print(f"PASS {label}")
+    status, _, _ = request(mcp_url, method="POST", payload={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+                           headers={"Accept": "application/json, text/event-stream"})
+    require(status == 401, f"Tenant MCP auth challenge failed (HTTP {status})")
+    print("PASS Tenant MCP auth challenge")
 
 
 class MCP:
@@ -105,7 +119,7 @@ class MCP:
         self.call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "re8ch-tenant-provider-acceptance", "version": "1"}})
         self.call("notifications/initialized", {}, notification=True)
 
-    def call(self, method, params, notification=False):
+    def call(self, method, params, notification=False, timeout=30):
         self.next_id += 1
         payload = {"jsonrpc": "2.0", "method": method, "params": params}
         if not notification:
@@ -116,11 +130,13 @@ class MCP:
         body = json.dumps(payload, separators=(",", ":")).encode()
         req = urllib.request.Request(self.url, data=body, method="POST", headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
                 self.session = response.headers.get("Mcp-Session-Id", self.session)
                 raw = response.read().decode()
         except urllib.error.HTTPError as exc:
             raise AcceptanceError(f"tenant MCP {method} returned HTTP {exc.code}") from None
+        except urllib.error.URLError as exc:
+            raise AcceptanceError(f"tenant MCP {method} endpoint unavailable") from exc
         if notification:
             return None
         if raw.startswith("data:") or "\ndata:" in raw:
@@ -151,7 +167,7 @@ class MCP:
         raise AcceptanceError(f"{name} returned no structured result")
 
 
-def await_phase(mcp, resource_ref, expected, timeout=180):
+def await_phase(mcp, resource_ref, expected, timeout=600):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         value = mcp.tool("service_instance_get", {"resource_ref": resource_ref})
@@ -273,12 +289,13 @@ def full_acceptance(args):
     env = {key: os.getenv(key, "") for key in needed}
     require(all(env.values()), "missing live acceptance inputs: " + ", ".join(key for key in needed if not env[key]))
     tenant, identity_user = env["TENANT_REF"], env["IDENTITY_USER_REF"]
-    preflight(args.harbor_url, args.grafana_url, args.identity_url, args.mcp_url)
+    if not args.skip_preflight:
+        preflight(args.harbor_url, args.grafana_url, args.identity_url, args.mcp_url)
     status, _, members = request(args.identity_url + "/rpc/resolve_tenant_service_user", method="POST", payload={"p_tenant_ref": tenant, "p_user_id": identity_user}, headers={"Authorization": "Bearer " + env["IDENTITY_SERVICE_KEY"]})
     require(status == 200 and isinstance(members, list) and len(members) == 1 and members[0].get("user_id") == identity_user, "Supabase active tenant member RPC failed")
     print("PASS Supabase tenant member binding")
     mcp = MCP(args.mcp_url, env["TENANT_ACCESS_TOKEN"], tenant)
-    suffix = secrets.token_hex(4)
+    suffix = args.resume_suffix or secrets.token_hex(4)
     services = [
         ("harbor", "registry.harbor.v1", "build-push", {"project": env["HARBOR_PROJECT"], "quotaGiB": 1, "identityUserRef": identity_user}),
         ("grafana", "observability.grafana.v1", "viewer", {"datasourceRefs": [env["GRAFANA_DATASOURCE_UID"]], "folderRefs": [], "humanLogin": f"{tenant}-acceptance-{suffix}", "identityUserRef": identity_user}),
@@ -286,10 +303,14 @@ def full_acceptance(args):
     for provider, service_class, plan, parameters in services:
         name = f"acceptance-{provider}-{suffix}"
         spec = {"serviceClass": service_class, "planRef": plan, "parameters": parameters}
-        mcp.tool("service_instance_plan", {"name": name, "spec": spec})
-        created = mcp.tool("service_instance_create", {"name": name, "spec": spec, "idempotency_key": f"acceptance-{suffix}-{provider}"})
-        reference = created.get("resourceRef") or f"service://{tenant}/{name}"
-        print(f"CREATED {provider} {reference}")
+        if args.resume_provider == provider:
+            reference = f"service://{tenant}/{name}"
+            print(f"RESUMED {provider} {reference}")
+        else:
+            mcp.tool("service_instance_plan", {"name": name, "spec": spec})
+            created = mcp.tool("service_instance_create", {"name": name, "spec": spec, "idempotency_key": f"acceptance-{suffix}-{provider}"})
+            reference = created.get("resourceRef") or f"service://{tenant}/{name}"
+            print(f"CREATED {provider} {reference}")
         value = await_phase(mcp, reference, "Ready")
         require_identity_config(args.identity_url, env["IDENTITY_USER_TOKEN"], tenant, service_class, name, "Ready")
         print(f"PASS {provider} Supabase user config")
@@ -345,12 +366,17 @@ def full_acceptance(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight", action="store_true", help="read-only public endpoint checks")
+    parser.add_argument("--resume-suffix", default="", help="resume a previous test suffix")
+    parser.add_argument("--resume-provider", choices=("harbor", "grafana"), default="")
+    parser.add_argument("--skip-preflight", action="store_true", help="resume a prior run whose preflight passed")
     parser.add_argument("--harbor-url", default="https://registry.re8ch.com")
     parser.add_argument("--grafana-url", default="https://grafana.service.re8ch.com/grafana")
     parser.add_argument("--identity-url", default="https://db-rw.re8ch.com/identity/rest/v1")
-    parser.add_argument("--mcp-url", default="https://tools.service.re8ch.com/tenant/mcp")
+    parser.add_argument("--mcp-url", default="https://tools.service.re8ch.com/tenant-native/mcp")
     args = parser.parse_args()
     try:
+        require(not args.resume_provider or args.resume_suffix, "--resume-provider requires --resume-suffix")
+        require(not args.skip_preflight or args.resume_provider, "--skip-preflight requires a resumed provider")
         if args.preflight:
             preflight(args.harbor_url, args.grafana_url, args.identity_url, args.mcp_url)
         else:
