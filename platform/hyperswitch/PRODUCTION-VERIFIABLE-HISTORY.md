@@ -69,6 +69,11 @@ inclusion, chain ID and finality using its own trusted chain RPC endpoint.
 
 ## Production gates
 
+- Inventory every live payment entry point and reconcile WeChat, Alipay and
+  Stripe provider IDs against the canonical PostgreSQL event stream. Direct
+  Hyperswitch API calls and legacy product payment paths must either ingest
+  verified events or be explicitly excluded from the production scope; do not
+  describe a partial registry as a complete transaction history.
 - Production merchant approval and connector credentials, webhook verification,
   refund, replay, duplicate delivery and reconciliation tests are complete.
 - The pinned Superposition v0.112.0 PROD path calls AWS KMS. For this deployment,
