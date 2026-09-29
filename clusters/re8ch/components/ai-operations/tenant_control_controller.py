@@ -49,6 +49,7 @@ LEASE_NAME = "tenant-control-controller"
 IMAGE_POLICY_URL = os.getenv("IMAGE_POLICY_URL", "").rstrip("/")
 IMAGE_POLICY_TOKEN = os.getenv("IMAGE_POLICY_TOKEN", os.getenv("HARBOR_SUPPLY_CHAIN_TOKEN", ""))
 CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
+IDENTITY_REST_URL = os.getenv("IDENTITY_REST_URL", "http://supabase-identity-rest.supabase-identity.svc:3000").rstrip("/")
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
 LOG = logging.getLogger("tenant-control-controller")
@@ -244,6 +245,37 @@ def resolve(issuer, subject_hash, groups=None, caller="tenant", requested_tenant
         "defaultNamespace": default_namespace,
         "runtimeNamespaceRef": default_namespace,
     }
+
+
+def resolve_supabase_membership(access_token, requested_tenant):
+    """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
+    if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
+        raise PermissionError("Supabase access token is required")
+    if not isinstance(requested_tenant, str) or not TENANT_NAME_RE.fullmatch(requested_tenant) or requested_tenant == "admin":
+        raise PermissionError("select an ordinary tenant")
+    request = urllib.request.Request(
+        IDENTITY_REST_URL + "/rpc/my_tenant_runtime_memberships",
+        data=b"{}", method="POST",
+        headers={"Authorization": "Bearer " + access_token, "Content-Type": "application/json", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            memberships = json.load(response)
+    except urllib.error.HTTPError as exc:
+        if exc.code in {401, 403}:
+            raise PermissionError("Supabase membership is not authorized") from None
+        raise RuntimeError("Supabase membership lookup failed") from None
+    except (urllib.error.URLError, ValueError) as exc:
+        raise RuntimeError("Supabase membership lookup failed") from exc
+    if not isinstance(memberships, list):
+        raise RuntimeError("Supabase membership response is invalid")
+    roles = [row.get("tenant_role") for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
+    if len(roles) != 1 or roles[0] not in ROLE_ORDER:
+        raise PermissionError("identity is not an active member of the selected tenant")
+    tenant = tenant_definition(requested_tenant)
+    policy = tenant.get("spec", {}).get("namespacePolicy", {})
+    namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or requested_tenant
+    return {"tenantRef": requested_tenant, "role": roles[0], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
 
 
 def utcnow():
@@ -947,6 +979,9 @@ class Handler(BaseHTTPRequestHandler):
                 default_tenant = str(body.get("defaultTenant") or "")
                 if any(value and not TENANT_NAME_RE.fullmatch(value) for value in (requested_tenant, default_tenant)): raise ValueError()
                 self.send_json(200, resolve(issuer, subject_hash, groups, caller=caller, requested_tenant=requested_tenant, default_tenant=default_tenant))
+                return
+            if path == "/v1/resolve-supabase":
+                self.send_json(200, resolve_supabase_membership(body.get("accessToken"), body.get("tenantRef")))
                 return
             tenant = self.headers["X-Tenant-Ref"]
             namespace = runtime_namespace(tenant)

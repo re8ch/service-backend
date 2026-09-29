@@ -112,6 +112,7 @@ spec:
           env:
             - {name: LISTEN_PORT, value: "19447"}
             - {name: IMAGE_POLICY_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
+            - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
             - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
             - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
           ports: [{name: http, containerPort: 19447}]

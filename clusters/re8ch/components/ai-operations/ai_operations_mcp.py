@@ -51,6 +51,8 @@ AUDIENCE = os.getenv("RE8CH_TOOL_AUDIENCE", f"re8ch-{PROFILE}-tool")
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.getenv("LISTEN_PORT", "19443"))
 DEX_USERINFO_URL = os.getenv("DEX_USERINFO_URL", "https://auth.re8ch.com/userinfo")
+SUPABASE_ISSUER = "https://db-rw.re8ch.com/auth/v1"
+SUPABASE_USER_URL = os.getenv("SUPABASE_USER_URL", "http://supabase-identity-auth.supabase-identity.svc:9999/user")
 REGISTRY_PATH = Path(os.getenv("DEVICE_REGISTRY_PATH", "/var/lib/re8ch-ai-operations/devices.db"))
 NODE_INVENTORY_PATH = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-ai-operations/nodes.json"))
 KUBECONFIG_DIR = Path(os.getenv("KUBECONFIG_DIR", "/etc/re8ch-ai-operations/kubeconfigs"))
@@ -476,6 +478,27 @@ def dex_identity(token: str) -> dict[str, Any] | None:
     }
 
 
+def supabase_identity(token: str) -> dict[str, Any] | None:
+    """Validate a GoTrue token with GoTrue before trusting its subject."""
+    if len(token) > 16384:
+        return None
+    try:
+        encoded = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        if claims.get("iss") != SUPABASE_ISSUER or claims.get("aud") != "authenticated":
+            return None
+        request = urllib.request.Request(SUPABASE_USER_URL, headers={"Authorization": "Bearer " + token, "Accept": "application/json"})
+        with urllib.request.urlopen(request, timeout=5) as response:
+            user = json.load(response)
+    except (IndexError, ValueError, TypeError, urllib.error.URLError):
+        return None
+    subject = str(user.get("id") or "") if isinstance(user, dict) else ""
+    if not subject or subject != claims.get("sub") or user.get("is_anonymous") is True:
+        return None
+    return {"subject": subject, "issuer": SUPABASE_ISSUER, "email": user.get("email"),
+            "groups": [], "auth_type": "supabase", "_supabase_access_token": token}
+
+
 def _b64url_encode(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).rstrip(b"=").decode()
 
@@ -564,6 +587,8 @@ def allowed(identity: dict[str, Any]) -> bool:
         return True
     if PROFILE == "admin":
         return "re8ch:tenant-admins" in set(identity.get("groups", []))
+    if PROFILE == "tenant" and identity.get("auth_type") == "supabase" and identity.get("subject"):
+        return True
     if ALLOW_AUTHENTICATED_DEX and identity.get("auth_type") in {"dex", "device"} and identity.get("subject"):
         return True
     return bool(set(identity.get("groups", [])) & PROFILE_GROUPS.get(PROFILE, set()))
@@ -1036,6 +1061,26 @@ def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
 
 
 def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
+    if identity.get("auth_type") == "supabase" and PROFILE == "tenant":
+        selected = str(identity.get("requested_tenant") or "")
+        token = identity.get("_supabase_access_token")
+        if not selected or not token or not TENANT_CONTROL_URL or not TENANT_CLAIM_SERVICE_TOKEN:
+            raise PermissionError("select an active tenant")
+        request = urllib.request.Request(
+            TENANT_CONTROL_URL + "/v1/resolve-supabase",
+            data=json.dumps({"tenantRef": selected, "accessToken": token}).encode(), method="POST",
+            headers={"Content-Type": "application/json", "X-Tenant-Caller": "tenant", "X-Tenant-Service-Token": TENANT_CLAIM_SERVICE_TOKEN},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=8) as response:
+                resolved = json.load(response)
+        except urllib.error.HTTPError as exc:
+            raise PermissionError("identity is not an active member of the selected tenant") from exc
+        except (urllib.error.URLError, ValueError) as exc:
+            raise RuntimeError("tenant authorizer is unavailable") from exc
+        if resolved.get("tenantRef") != selected or resolved.get("role") not in {"viewer", "operator", "admin"} or not resolved.get("defaultNamespace"):
+            raise RuntimeError("tenant authorizer returned an invalid context")
+        return resolved
     groups = {str(group) for group in identity.get("groups") or []}
     subject = str(identity.get("subject") or "").strip()
     issuer = str(identity.get("issuer") or "https://auth.re8ch.com").rstrip("/")
@@ -2358,7 +2403,7 @@ class Handler(BaseHTTPRequestHandler):
             return {"subject": "service:litellm", "groups": sorted(PROFILE_GROUPS.get(PROFILE, set())), "auth_type": "service"}
         if token.startswith("r8x_"):
             return vmcp_exchange_identity(token)
-        identity = registry().authenticate(token) if token.startswith("r8d_") else dex_identity(token)
+        identity = registry().authenticate(token) if token.startswith("r8d_") else (supabase_identity(token) or dex_identity(token))
         if identity and PROFILE == "tenant":
             selected = self.headers.get("X-RE8CH-Tenant", "")
             if selected:
