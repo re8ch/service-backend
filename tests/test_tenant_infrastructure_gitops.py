@@ -475,6 +475,13 @@ def test_grafana_org_sync_can_reach_grafana_and_metrics_auth_selects_only_tenant
     pod_labels = cron["spec"]["jobTemplate"]["spec"]["template"]["metadata"]["labels"]
     policy = next(item for item in grafana if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "re8ch-grafana")
     assert {"podSelector": {"matchLabels": pod_labels}} in policy["spec"]["ingress"][0]["from"]
+    assert {"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "tenant-infrastructure"}},
+            "podSelector": {"matchLabels": {"app": "tenant-provider-reconciler"}}} in policy["spec"]["ingress"][0]["from"]
+
+    provider_role = next(item for item in tenant_chart_documents(provider_enabled=True)
+                         if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-provider-credential-write")
+    assert {"apiGroups": ["operator.victoriametrics.com"], "resources": ["vmusers"],
+            "verbs": ["get", "create", "delete"]} in provider_role["rules"]
 
     auth = documents(ROOT / "platform/observability/production/tenant-metrics-auth.yaml")[0]
     assert auth["kind"] == "VMAuth" and auth["metadata"]["name"] == "tenant-metrics"

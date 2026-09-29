@@ -32,6 +32,13 @@ class FakeIdentity:
 identity = FakeIdentity()
 
 
+@pytest.fixture(autouse=True)
+def legacy_grafana_environment(monkeypatch):
+    # Existing contract cases exercise administrator-provided Grafana bindings.
+    # Auto provisioning cases explicitly remove this override.
+    monkeypatch.setenv("GRAFANA_TENANT_BINDINGS_JSON", "{}")
+
+
 def test_identity_store_resolves_membership_and_records_only_opaque_config():
     requests = []
 
@@ -355,6 +362,97 @@ def test_grafana_reconcile_uses_tenant_org_and_managed_human_account(monkeypatch
     assert kube.status["access"]["organizationId"] == 4
     assert kube.status["access"]["humanCredentialRef"].startswith("credential://grafana/acme/")
     assert "password" not in json.dumps(kube.status)
+
+
+def test_grafana_auto_scope_creates_two_native_scoped_vmusers_and_datasources(monkeypatch):
+    monkeypatch.delenv("GRAFANA_TENANT_BINDINGS_JSON")
+    monkeypatch.setattr(provider.control, "runtime_namespace", lambda tenant: "acme" if tenant == "acme" else None)
+
+    class AutoKube(FakeKube):
+        def __init__(self):
+            super().__init__("observability.grafana.v1")
+            self.vmusers = {}
+
+        def get(self, plural, name, namespace=None, api=None):
+            if plural == "vmusers":
+                if name not in self.vmusers:
+                    raise urllib.error.HTTPError("https://kubernetes.invalid", 404, "not found", {}, None)
+                return self.vmusers[name]
+            return super().get(plural, name, namespace, api)
+
+        def create(self, plural, value, namespace=None, api=None):
+            if plural != "vmusers":
+                return super().create(plural, value, namespace, api)
+            assert namespace == "credential-broker" and api == provider.VMUSER_API
+            assert value["spec"]["generatePassword"] is True
+            name = value["metadata"]["name"]
+            created = {**value, "metadata": {**value["metadata"], "uid": "uid-" + name}}
+            self.vmusers[name] = created
+            self.secrets[(namespace, "vmuser-" + name)] = {
+                "metadata": {"ownerReferences": [{"uid": created["metadata"]["uid"], "kind": "VMUser"}]},
+                "data": {"username": base64.b64encode(name.encode()).decode(),
+                         "password": base64.b64encode(("password-" + name).encode()).decode()},
+            }
+            return created
+
+    class AutoGrafana:
+        def __init__(self):
+            self.org = None
+            self.datasources = {}
+            self.members = [{"userId": 8, "role": "Viewer"}]
+
+        def user(self, login):
+            return {"id": 8, "email": "admin@acme.example"}
+
+        def request(self, method, path, payload=None, org_id=None, *, missing_ok=False):
+            if path.startswith("/api/orgs/name/") and method == "GET":
+                return self.org
+            if path == "/api/orgs" and method == "POST":
+                self.org = {"id": 17, "name": payload["name"]}
+                return self.org
+            if path == "/api/datasources" and method == "GET":
+                return list(self.datasources.values())
+            if path == "/api/orgs/17/users" and method == "GET":
+                return list(self.members)
+            if path == "/api/orgs/17/users/8" and method == "DELETE":
+                self.members = []
+                return {}
+            if path.startswith("/api/datasources/uid/") and method == "GET":
+                return self.datasources.get(path.rsplit("/", 1)[-1])
+            if path.startswith("/api/datasources/proxy/uid/") and method == "GET":
+                return {"status": "success", "data": {"result": []}}
+            if path == "/api/datasources" and method == "POST":
+                assert org_id == 17 and payload["url"] == provider.METRICS_AUTH_URL
+                assert payload["basicAuth"] is True and payload["secureJsonData"]["basicAuthPassword"]
+                self.datasources[payload["uid"]] = {**payload, "id": len(self.datasources) + 1,
+                    "orgId": org_id, "secureJsonFields": {"basicAuthPassword": True}}
+                return {}
+            raise AssertionError((method, path))
+
+    kube, grafana = AutoKube(), AutoGrafana()
+    value = instance("observability.grafana.v1", {"datasourceRefs": ["app", "kube"], "folderRefs": [],
+        "humanLogin": "acme-admin", "identityUserRef": IDENTITY_USER}, "viewer")
+    org_id, bindings = provider.ensure_auto_grafana_scope(kube, value, grafana)
+    assert org_id == 17 and len(bindings) == 2
+    assert set(grafana.datasources) == set(bindings)
+    assert len(kube.vmusers) == 2
+    urls = {name.rsplit("-", 1)[-1]: vmuser["spec"]["targetRefs"][0]["static"]["url"]
+            for name, vmuser in kube.vmusers.items()}
+    assert "extra_label=namespace%3Dacme" in urls["app"]
+    assert "extra_label=exported_namespace%3Dacme" in urls["kube"]
+    assert "extra_label=job%3Dre8ch-kube-state-metrics" in urls["kube"]
+    assert all(v["metadata"]["labels"]["observability.re8ch.com/tenant-metrics-user"] == "true"
+               for v in kube.vmusers.values())
+    # Reconcile is idempotent; no new credentials or datasource writes are needed.
+    assert provider.ensure_auto_grafana_scope(kube, value, grafana)[0] == 17
+    value["status"] = {"access": {"organizationId": 17}}
+    kube.vmusers[provider.auto_metrics_id("acme", "acme", "app")]["spec"]["targetRefs"][0]["static"]["url"] = "http://unscoped.invalid"
+    with pytest.raises(PermissionError, match="VMUser tenant scope"):
+        provider.ensure_auto_grafana_scope(kube, value, grafana)
+    assert grafana.members == []
+    value["metadata"]["namespace"] = "other"
+    with pytest.raises(PermissionError, match="outside the active tenant"):
+        provider.ensure_auto_grafana_scope(kube, value, grafana)
 
 
 def test_grafana_reconcile_rejects_unscoped_datasource_in_tenant_org(monkeypatch):

@@ -23,6 +23,11 @@ from harbor_integration import HarborClient, desired_tenant
 LOG = logging.getLogger("tenant-provider-reconciler")
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
 GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana")
+GRAFANA_ADMIN_URL = os.getenv("GRAFANA_ADMIN_URL", "http://re8ch-grafana.observability-system.svc.cluster.local:3000")
+METRICS_AUTH_URL = "http://vmauth-tenant-metrics.observability-system.svc.cluster.local:8427"
+METRICS_VMSELECT_URL = "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus/"
+VMUSER_API = "apis/operator.victoriametrics.com/v1beta1"
+METRICS_PATHS = [r"/api/v1/(query|query_range|labels|label/[^/]+/values|series|metadata|status/buildinfo)"]
 IDENTITY_REST_URL = os.getenv("IDENTITY_REST_URL", "http://supabase-identity-rest.supabase-identity.svc:3000")
 
 
@@ -175,7 +180,119 @@ def harbor_client(kube) -> HarborClient:
 
 
 def grafana_client(kube) -> GrafanaAdmin:
-    return GrafanaAdmin(GRAFANA_URL, secret_value(kube, "observability-system", "re8ch-grafana-admin", "user"), secret_value(kube, "observability-system", "re8ch-grafana-admin", "password"))
+    return GrafanaAdmin(GRAFANA_ADMIN_URL, secret_value(kube, "observability-system", "re8ch-grafana-admin", "user"), secret_value(kube, "observability-system", "re8ch-grafana-admin", "password"))
+
+
+def auto_grafana_name(tenant: str, namespace: str) -> str:
+    return f"Tenant {tenant} {namespace}"
+
+
+def auto_metrics_id(tenant: str, namespace: str, kind: str) -> str:
+    digest = hashlib.sha256(f"{tenant}:{namespace}".encode()).hexdigest()[:20]
+    return f"tenant-{digest}-{kind}"
+
+
+def auto_org(client: GrafanaAdmin, tenant: str, namespace: str, *, create: bool) -> dict[str, Any] | None:
+    name = auto_grafana_name(tenant, namespace)
+    path = "/api/orgs/name/" + urllib.parse.quote(name, safe="")
+    org = client.request("GET", path, missing_ok=True)
+    if org is None and create:
+        client.request("POST", "/api/orgs", {"name": name})
+        org = client.request("GET", path)
+    if org and (org.get("name") != name or int(org.get("id") or 0) <= 1):
+        raise PermissionError("Grafana organization identity is unsafe")
+    return org
+
+
+def auto_vmuser(kube, tenant: str, namespace: str, kind: str) -> tuple[str, str]:
+    name = auto_metrics_id(tenant, namespace, kind)
+    filters = [("namespace", namespace)] if kind == "app" else [("exported_namespace", namespace), ("job", "re8ch-kube-state-metrics")]
+    url = METRICS_VMSELECT_URL + "?" + urllib.parse.urlencode([("extra_label", f"{key}={value}") for key, value in filters])
+    labels = {"observability.re8ch.com/tenant-metrics-user": "true", "tenancy.re8ch.com/tenant": tenant,
+              "observability.re8ch.com/runtime-namespace": namespace, "observability.re8ch.com/metric-kind": kind}
+    spec = {"username": name, "generatePassword": True, "targetRefs": [{"static": {"url": url}, "paths": METRICS_PATHS}]}
+    value = {"apiVersion": "operator.victoriametrics.com/v1beta1", "kind": "VMUser",
+             "metadata": {"name": name, "namespace": "credential-broker", "labels": labels}, "spec": spec}
+    try:
+        existing = kube.get("vmusers", name, "credential-broker", VMUSER_API)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        try:
+            existing = kube.create("vmusers", value, "credential-broker", VMUSER_API)
+        except urllib.error.HTTPError as conflict:
+            if conflict.code != 409:
+                raise
+            existing = kube.get("vmusers", name, "credential-broker", VMUSER_API)
+    if (existing.get("metadata", {}).get("labels") or {}) != labels or existing.get("spec") != spec:
+        raise PermissionError("VMUser tenant scope or ownership differs from the declaration")
+    try:
+        credential = kube.get("secrets", "vmuser-" + name, "credential-broker", "api/v1")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise RuntimeError("VMUser credential is still being generated") from None
+        raise
+    owners = credential.get("metadata", {}).get("ownerReferences") or []
+    if not any(owner.get("uid") == existing.get("metadata", {}).get("uid") and owner.get("kind") == "VMUser" for owner in owners):
+        raise PermissionError("VMUser credential owner does not match")
+    data = credential.get("data") or {}
+    username = base64.b64decode(data.get("username", "")).decode()
+    password = base64.b64decode(data.get("password", "")).decode()
+    if username != name or not password:
+        raise RuntimeError("VMUser generated credential is invalid")
+    return username, password
+
+
+def ensure_auto_grafana_scope(kube, instance: dict[str, Any], client: GrafanaAdmin) -> tuple[int, dict[str, dict[str, str]]]:
+    tenant, namespace = instance["spec"]["tenantRef"], instance["metadata"]["namespace"]
+    if control.runtime_namespace(tenant) != namespace:
+        raise PermissionError("Grafana metrics namespace is outside the active tenant")
+    parameters = instance["spec"]["parameters"]
+    if set(parameters["datasourceRefs"]) != {"app", "kube"} or parameters["folderRefs"]:
+        raise PermissionError("Grafana auto provisioning requires app and kube metrics without external folders")
+    org = auto_org(client, tenant, namespace, create=True)
+    org_id = int(org["id"])
+    prior_org = ((instance.get("status") or {}).get("access") or {}).get("organizationId")
+    if prior_org and int(prior_org) != org_id:
+        revoke_grafana(instance, client)
+        raise PermissionError("Grafana tenant organization identity has changed")
+    expected_uids = {auto_metrics_id(tenant, namespace, kind) for kind in ("app", "kube")}
+    existing = client.request("GET", "/api/datasources", org_id=org_id)
+    if {item.get("uid") for item in existing} - expected_uids:
+        revoke_grafana(instance, client)
+        raise PermissionError("Grafana tenant organization has an undeclared datasource")
+    bindings = {}
+    for kind in ("app", "kube"):
+        uid = auto_metrics_id(tenant, namespace, kind)
+        try:
+            username, password = auto_vmuser(kube, tenant, namespace, kind)
+        except PermissionError:
+            revoke_grafana(instance, client)
+            raise
+        credential_hash = hashlib.sha256(password.encode()).hexdigest()
+        desired = {"uid": uid, "name": f"Tenant {tenant} {namespace} {kind}", "type": "prometheus", "access": "proxy",
+                   "url": METRICS_AUTH_URL, "basicAuth": True, "basicAuthUser": username,
+                   "secureJsonData": {"basicAuthPassword": password},
+                   "jsonData": {"httpMethod": "POST", "re8chCredentialHash": credential_hash}}
+        datasource = client.request("GET", "/api/datasources/uid/" + uid, org_id=org_id, missing_ok=True)
+        if datasource is None:
+            client.request("POST", "/api/datasources", desired, org_id=org_id)
+        elif (datasource.get("orgId") != org_id or datasource.get("uid") != uid
+              or datasource.get("type") != "prometheus" or datasource.get("access") != "proxy"
+              or datasource.get("url") != METRICS_AUTH_URL or not datasource.get("basicAuth")
+              or datasource.get("basicAuthUser") != username):
+            revoke_grafana(instance, client)
+            raise PermissionError("Grafana datasource tenant boundary has drifted")
+        elif (datasource.get("jsonData") or {}).get("re8chCredentialHash") != credential_hash:
+            client.request("PUT", f"/api/datasources/uid/{uid}", desired, org_id=org_id)
+        bindings[uid] = {"url": METRICS_AUTH_URL, "basicAuthUser": username}
+    # A generated VMUser Secret may precede VMAuth's config reload. Check the
+    # same Grafana proxy path a browser or HTTP API user will use before Ready.
+    for uid in bindings:
+        response = client.request("GET", f"/api/datasources/proxy/uid/{uid}/api/v1/query?query=up", org_id=org_id)
+        if response.get("status") != "success":
+            raise RuntimeError("Grafana tenant datasource is not queryable yet")
+    return org_id, bindings
 
 
 def previously_managed_account(kube, instance: dict[str, Any], login: str) -> bool:
@@ -274,8 +391,13 @@ def revoke_harbor(kube, instance: dict[str, Any], client: HarborClient) -> list[
 
 def reconcile_grafana(kube, instance: dict[str, Any], client: GrafanaAdmin, identity_email: str) -> dict[str, Any]:
     tenant = instance["spec"]["tenantRef"]
-    config = tenant_config(tenant)
-    org_id = int(config["orgId"])
+    auto = not os.getenv("GRAFANA_TENANT_BINDINGS_JSON")
+    if auto:
+        org_id, bindings = ensure_auto_grafana_scope(kube, instance, client)
+    else:
+        config = tenant_config(tenant)
+        org_id = int(config["orgId"])
+        bindings = config.get("datasourceBindings") or {}
     if org_id == 1:
         raise PermissionError("Main Org cannot be assigned to a tenant")
     organization = client.request("GET", f"/api/orgs/{org_id}")
@@ -284,8 +406,7 @@ def reconcile_grafana(kube, instance: dict[str, Any], client: GrafanaAdmin, iden
     parameters = instance["spec"]["parameters"]
     datasources = client.request("GET", "/api/datasources", org_id=org_id)
     visible = {item.get("uid") for item in datasources}
-    requested = set(parameters["datasourceRefs"])
-    bindings = config.get("datasourceBindings") or {}
+    requested = set(bindings) if auto else set(parameters["datasourceRefs"])
     # Grafana viewers can query every datasource in their Org, regardless of
     # datasourceRefs on the service instance. Attest the entire Org before
     # granting membership, including the server-side vmauth identity.
@@ -325,7 +446,16 @@ def reconcile_grafana(kube, instance: dict[str, Any], client: GrafanaAdmin, iden
 
 def revoke_grafana(instance: dict[str, Any], client: GrafanaAdmin) -> None:
     tenant = instance["spec"]["tenantRef"]
-    org_id = int(((instance.get("status") or {}).get("access") or {}).get("organizationId") or tenant_config(tenant)["orgId"])
+    prior_org = ((instance.get("status") or {}).get("access") or {}).get("organizationId")
+    if prior_org:
+        org_id = int(prior_org)
+    elif os.getenv("GRAFANA_TENANT_BINDINGS_JSON"):
+        org_id = int(tenant_config(tenant)["orgId"])
+    else:
+        org = auto_org(client, tenant, instance["metadata"]["namespace"], create=False)
+        if not org:
+            return
+        org_id = int(org["id"])
     if org_id == 1:
         raise PermissionError("Main Org cannot be assigned to a tenant")
     login = instance["spec"]["parameters"]["humanLogin"]

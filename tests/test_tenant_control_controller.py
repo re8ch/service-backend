@@ -104,6 +104,24 @@ def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypat
         controller.provider_service_spec("acme", "grafana", {"serviceClass": "observability.grafana.v1", "planRef": "viewer"})
 
 
+def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatch):
+    class Grants:
+        def list(self, plural):
+            assert plural == "tenantgrants"
+            return [{"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1",
+                              "roleRef": "operator", "lifecycle": "Active"}}]
+    monkeypatch.setattr(controller, "KUBE", Grants())
+    monkeypatch.delenv("GRAFANA_TENANT_BINDINGS_JSON", raising=False)
+    request = {"serviceClass": "observability.grafana.v1", "planRef": "viewer", "parameters": {
+        "datasourceRefs": ["kube", "app"], "folderRefs": [], "humanLogin": "acme-admin",
+        "identityUserRef": "11111111-1111-4111-8111-111111111111"}}
+    result = controller.provider_service_spec("acme", "grafana", request)
+    assert result["datasourceRefs"] == ["app", "kube"]
+    request["parameters"]["datasourceRefs"] = ["platform"]
+    with pytest.raises(PermissionError, match="currently publishes"):
+        controller.provider_service_spec("acme", "grafana", request)
+
+
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
     assert controller.resolve("https://dex.service.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "defaultNamespace": "acme", "runtimeNamespaceRef": "acme"}
