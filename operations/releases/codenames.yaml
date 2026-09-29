@@ -623,6 +623,8 @@ modules:
       digest: sha256:d5d5da7de6ca9ce5433f409f8762d0e2f0008b05f293b7a9e6b84a10134ba0d4
     - codename: cascade-silver
       digest: sha256:3bc3d6ab3e8e1d87cbea28b27172028230806b6e3f3e7ca2ccd9c9954bbc3170
+    - codename: confluence-silver
+      digest: sha256:dfddc7aeb73b251702349bbbb8decdd5e0aec94d3871b949757f1acaf66ebad8
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -937,3 +939,5 @@ modules:
       digest: sha256:d8fe4229540ee1f46ba2811c73e1b4e38495784fc1aecd32be907617c7bcff3e
     - codename: zenith-jade
       digest: sha256:e470ffe880dde34fd9bdbe5a33e61ce0a89944abb407edcecd2aa83dac3bf87c
+    - codename: aperture-pearl
+      digest: sha256:859a6eabebbd15eac7697663596f915e1de1040262b533f4e58995d931679fdb
