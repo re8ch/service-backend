@@ -30,6 +30,47 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_billing_http_requires_supabase_tenant_membership_and_allows_auth_center(self):
+        m = load("tenant")
+        m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "billing.db"
+        m._TENANT_SERVICE_STORE = None
+        event = {
+            "eventId": "ue_" + "d" * 32, "tenantRef": "re8ch", "resourceRef": "re8ch-anysite",
+            "serviceClass": "compute.workload.v1", "meter": "occupancy.cpu", "quantity": 45,
+            "unit": "core-second", "periodStart": "2026-09-29T00:00:00Z",
+            "periodEnd": "2026-09-29T00:01:00Z", "regionRef": "loudi",
+            "sourceOperationId": "birfucate:test", "observedAt": "2026-09-29T00:01:00Z",
+            "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False,
+        }
+        m.tenant_service_store().receive_usage(event)
+        m.supabase_identity = lambda token: {"auth_type": "supabase", "subject": "user-1", "_supabase_access_token": token} if token == "valid-token" else None
+        m.authenticated_tenant_context = lambda identity: {"tenantRef": "re8ch"} if identity.get("requested_tenant") == "re8ch" else (_ for _ in ()).throw(PermissionError())
+        server = ThreadingHTTPServer(("127.0.0.1", 0), m.Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        url = f"http://127.0.0.1:{server.server_port}/billing/usage"
+        try:
+            preflight = urllib.request.Request(url, method="OPTIONS", headers={"Origin": "https://auth.re8ch.com"})
+            with real_urlopen(preflight, timeout=2) as response:
+                self.assertEqual(response.status, 204)
+                self.assertEqual(response.headers["Access-Control-Allow-Origin"], "https://auth.re8ch.com")
+            headers = {"Origin": "https://auth.re8ch.com", "Authorization": "Bearer valid-token", "X-RE8CH-Tenant": "re8ch"}
+            with real_urlopen(urllib.request.Request(url, headers=headers), timeout=2) as response:
+                result = json.load(response)
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+            self.assertEqual(result["tenantRef"], "re8ch")
+            self.assertEqual(result["items"][0]["quantity"], 45)
+            self.assertFalse(result["pricingApplied"])
+            for denied_headers, expected in [({**headers, "X-RE8CH-Tenant": "other"}, 403),
+                                             ({**headers, "Authorization": "Bearer wrong"}, 401)]:
+                with self.assertRaises(urllib.error.HTTPError) as denied:
+                    real_urlopen(urllib.request.Request(url, headers=denied_headers), timeout=2)
+                self.assertEqual(denied.exception.code, expected)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
     def test_usage_receiver_authenticates_deduplicates_and_isolates(self):
         m = load("tenant")
         m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "usage.db"

@@ -185,6 +185,19 @@ spec:
     - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-native/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
 ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-billing-read, namespace: tenant-infrastructure}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /tenant-native/billing/usage}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /billing/usage}}
+      backendRefs: [{name: tenant-api, port: 80}]
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: tenant-api-credential-read, namespace: credential-broker}

@@ -1,5 +1,6 @@
 import importlib.util
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -113,6 +114,16 @@ def test_received_usage_is_durable_idempotent_and_tenant_scoped(tmp_path):
     assert reopened.usage_summary("artchais")["eventCount"] == 0
     assert reopened.usage_events("re8ch")["events"] == [event]
     assert reopened.usage_events("artchais")["events"] == []
+    now = datetime.now(timezone.utc)
+    billing = reopened.billing_usage("re8ch", now - timedelta(minutes=1), now + timedelta(minutes=1))
+    assert billing["pricingApplied"] is False and billing["accountingPosted"] is False
+    assert billing["items"] == [{"serviceClass": "storage.volume.v1", "resourceRef": "claim://re8ch/volume-1",
+                                 "meter": "occupancy.ceph-volume-capacity", "unit": "GiB-second",
+                                 "quantity": 600.0, "periodStart": "2026-09-01T00:00:00Z",
+                                 "periodEnd": "2026-09-01T00:01:00Z", "eventCount": 1}]
+    assert reopened.billing_usage("artchais", now - timedelta(minutes=1), now + timedelta(minutes=1))["items"] == []
+    with pytest.raises(tenant_infrastructure.ServiceError, match="31 days"):
+        reopened.billing_usage("re8ch", now - timedelta(days=32), now)
     with pytest.raises(tenant_infrastructure.ServiceError, match="different content"):
         reopened.receive_usage({**event, "quantity": 601})
     with pytest.raises(tenant_infrastructure.ServiceError, match="priced or posted"):

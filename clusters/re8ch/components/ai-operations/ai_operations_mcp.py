@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -2320,6 +2320,22 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header(key, value)
         self.end_headers(); self.wfile.write(raw)
 
+    def billing_headers(self) -> dict[str, str]:
+        headers = {"Cache-Control": "no-store", "Vary": "Origin"}
+        if self.headers.get("Origin") == "https://auth.re8ch.com":
+            headers["Access-Control-Allow-Origin"] = "https://auth.re8ch.com"
+        return headers
+
+    def do_OPTIONS(self) -> None:
+        if PROFILE != "tenant" or urllib.parse.urlparse(self.path).path != "/billing/usage" or self.headers.get("Origin") != "https://auth.re8ch.com":
+            self.send_json(403, {"error": "forbidden"}); return
+        self.send_response(204)
+        for key, value in {**self.billing_headers(), "Access-Control-Allow-Methods": "GET, OPTIONS",
+                           "Access-Control-Allow-Headers": "Authorization, X-RE8CH-Tenant",
+                           "Access-Control-Max-Age": "600"}.items():
+            self.send_header(key, value)
+        self.end_headers()
+
     def redirect(self, location: str) -> None:
         self.send_response(302)
         self.send_header("Location", location)
@@ -2431,6 +2447,29 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
+        if PROFILE == "tenant" and parsed.path == "/billing/usage":
+            headers = self.billing_headers()
+            selected = self.headers.get("X-RE8CH-Tenant", "")
+            if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", selected) or selected == "admin":
+                self.send_json(400, {"error": "select an organization"}, headers); return
+            identity = self.identity()
+            if not identity or identity.get("auth_type") != "supabase":
+                self.send_json(401, {"error": "unauthorized"}, headers); return
+            try:
+                tenant = authenticated_tenant(identity)
+                params = urllib.parse.parse_qs(parsed.query)
+                now = datetime.now(timezone.utc)
+                start = datetime.fromisoformat(params["from"][0].replace("Z", "+00:00")) if "from" in params else now - timedelta(days=1)
+                end = datetime.fromisoformat(params["to"][0].replace("Z", "+00:00")) if "to" in params else now
+                result = tenant_service_store().billing_usage(tenant, start, end)
+                self.send_json(200, result, headers)
+            except PermissionError:
+                self.send_json(403, {"error": "organization access denied"}, headers)
+            except (ValueError, KeyError, ServiceError):
+                self.send_json(400, {"error": "invalid billing window"}, headers)
+            except RuntimeError:
+                self.send_json(503, {"error": "tenant authorizer unavailable"}, headers)
+            return
         if parsed.path == "/livez":
             self.send_json(200, {"status": "ok", "profile": PROFILE}); return
         if parsed.path in {"/readyz", "/healthz"}:
