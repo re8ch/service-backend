@@ -637,6 +637,8 @@ modules:
       digest: sha256:4cb14279b7f83543b0d05c5c82a10cfb53d77d2a8c5cce4d6521f27951e23297
     - codename: cascade-umber
       digest: sha256:d61f94cddfdd075d2d67ced6a1ec0393503c1a32635f0ac1a37fc7c1be41b4a4
+    - codename: confluence-umber
+      digest: sha256:fd1049ec9fe3880ead44ccf3940b47e5aabca10432b841ef675abcb9f493d052
   platform/hyperswitch:
     releases:
     - codename: anchor
