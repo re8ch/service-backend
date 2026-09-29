@@ -394,25 +394,25 @@ class RegistryTests(unittest.TestCase):
 
     def test_vmcp_token_exchange_validates_subject_token_and_target(self):
         tenant = load("tenant")
-        tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
-        tenant.dex_identity = lambda token: {
-            "subject": "dex-subject-1",
-            "issuer": "https://auth.re8ch.com",
-            "groups": ["Artchais"],
-            "auth_type": "dex",
-        } if token == "incoming-dex-token" else None
+        import base64
+        import json
+        import time
+        claims = {"exp": int(time.time()) + 300}
+        subject_token = "header." + base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode() + ".signature"
+        tenant.supabase_identity = lambda token: {"subject": "supabase-user", "auth_type": "supabase"} if token == subject_token else None
         form = {
             "grant_type": ["urn:ietf:params:oauth:grant-type:token-exchange"],
             "subject_token_type": ["urn:ietf:params:oauth:token-type:access_token"],
-            "subject_token": ["incoming-dex-token"],
+            "subject_token": [subject_token],
             "audience": ["aud-tenant"],
         }
         exchanged = tenant.exchange_vmcp_subject_token(form)
         self.assertEqual(exchanged["token_type"], "Bearer")
-        self.assertEqual(
-            tenant.vmcp_exchange_identity(exchanged["access_token"])["subject"],
-            "dex-subject-1",
-        )
+        self.assertEqual(exchanged["access_token"], subject_token)
+        form["subject_token"] = ["incoming-dex-token"]
+        with self.assertRaises(PermissionError):
+            tenant.exchange_vmcp_subject_token(form)
+        form["subject_token"] = [subject_token]
         form["audience"] = ["wrong-audience"]
         with self.assertRaises(PermissionError):
             tenant.exchange_vmcp_subject_token(form)

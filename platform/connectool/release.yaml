@@ -47,9 +47,20 @@ spec:
                 value: true
           - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: tenant-vmcp-issuer}
             patch: |-
+              - op: replace
+                path: /spec/inline/issuer
+                value: https://db-rw.re8ch.com/auth/v1
               - op: add
                 path: /spec/inline/jwksAllowPrivateIP
                 value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: VirtualMCPServer, name: tenant-vmcp}
+            patch: |-
+              - op: replace
+                path: /spec/incomingAuth/oidcConfigRef/audience
+                value: authenticated
+              - op: replace
+                path: /spec/incomingAuth/oidcConfigRef/scopes
+                value: [openid, profile, email, offline_access]
   values:
     global:
       issuer: https://auth.re8ch.com
@@ -220,7 +231,7 @@ spec:
             policies:
               - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
         - name: tenant-vmcp
-          clientId: re8ch-tenant
+          clientId: 2981225a-da08-5aaa-9e84-8fd151696113
           resourceUrl: https://tools.service.re8ch.com/tenant/mcp
           group: tenant-public
           createGroup: true
