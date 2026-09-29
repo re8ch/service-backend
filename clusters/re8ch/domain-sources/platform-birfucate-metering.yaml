@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-violet
+    delivery.re8ch.com/codename: cascade-bronze
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:077c6317ef15b66d0266032be07ce86b596014970015832094fa65e58aeeb7f5
+    digest: sha256:ebeb4f0f4d0a0dae9475abb046a3d81bf9a1135e45bf8808c8ce2b600c10c3cc
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-violet
+    delivery.re8ch.com/codename: cascade-bronze
 spec:
   interval: 1m
   retryInterval: 1m
