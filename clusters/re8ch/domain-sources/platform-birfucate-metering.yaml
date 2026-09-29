@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: springtide-umber
+    delivery.re8ch.com/codename: tideway-umber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:d31acbe9611c23ee71892f66a32758fbc55a9c1e85487c3e1419a05d8c9270d2
+    digest: sha256:9579405808886ed1acfa0515d650c9a52325f41abf7d71301fc7dc1b482e6f8e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: springtide-umber
+    delivery.re8ch.com/codename: tideway-umber
 spec:
   interval: 1m
   retryInterval: 1m
