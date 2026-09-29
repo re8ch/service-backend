@@ -696,6 +696,43 @@ def release_claim(claim, namespace):
             kube().delete("httproutes", name, namespace, "apis/gateway.networking.k8s.io/v1")
 
 
+def volume_observation(claim, namespace, released=False):
+    """Report Kubernetes allocation without equating claim release to data deletion."""
+    name = resource_name(claim["metadata"]["name"])
+    try:
+        pvc = kube().get("persistentvolumeclaims", name, namespace, "api/v1")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        # A Retain PV can survive its PVC. Absence of the PVC is not proof of
+        # backend reclamation, so never report its capacity as freed here.
+        return {"state": "Unknown" if released else "Pending", "capacity": None,
+                "persistentVolume": claim.get("status", {}).get("volumeAllocation", {}).get("persistentVolume")}
+    phase = pvc.get("status", {}).get("phase")
+    bound = phase == "Bound" and bool(pvc.get("spec", {}).get("volumeName"))
+    if bound:
+        pv_name = pvc["spec"]["volumeName"]
+        pv = kube().get("persistentvolumes", pv_name, api="api/v1")
+        claim_ref = pv.get("spec", {}).get("claimRef", {})
+        pvc_uid = pvc.get("metadata", {}).get("uid")
+        if not pvc_uid or (claim_ref.get("namespace"), claim_ref.get("name"), claim_ref.get("uid")) != (namespace, name, pvc_uid):
+            raise PermissionError("bound volume claimRef does not match the tenant PVC")
+        required = {"birfucate.re8ch.com/metered": "true", "tenant": claim["spec"]["tenantRef"],
+                    "resource_ref": claim["metadata"]["uid"],
+                    "tenancy.re8ch.com/claim-uid": claim["metadata"]["uid"]}
+        labels = pv.get("metadata", {}).get("labels", {})
+        if any(key in labels and labels[key] != value for key, value in required.items()):
+            raise PermissionError("bound volume already has conflicting tenant attribution")
+        missing = {key: value for key, value in required.items() if labels.get(key) != value}
+        if missing:
+            kube().patch("persistentvolumes", pv_name,
+                         {"metadata": {"resourceVersion": pv["metadata"]["resourceVersion"], "labels": missing}},
+                         api="api/v1")
+    return {"state": "Retained" if released and bound else "Bound" if bound else "Pending",
+            "capacity": pvc.get("status", {}).get("capacity", {}).get("storage") if bound else None,
+            "persistentVolume": pvc.get("spec", {}).get("volumeName") if bound else None}
+
+
 def reconcile_claim(claim):
     meta, spec = claim["metadata"], claim["spec"]
     namespace = meta["namespace"]
@@ -712,6 +749,8 @@ def reconcile_claim(claim):
         release_claim(claim, namespace)
         status = {**existing, "observedGeneration": meta.get("generation", 1), "phase": "Released", "expiresAt": expires_at, **binding_status(claim, namespace), "conditions": [condition("Ready", False, "ClaimReleased")]}
         status["endpoint"] = None
+        if spec["capability"] == "storage.volume.v1":
+            status["volumeAllocation"] = volume_observation(claim, namespace, released=True)
         kube().patch_status("tenantresourceclaims", meta["name"], status, namespace)
         return
     grant = active_grant(spec["tenantRef"], spec["capability"])
@@ -731,6 +770,8 @@ def reconcile_claim(claim):
     expiring = datetime.fromisoformat(expires_at.replace("Z", "+00:00")) - utcnow() <= timedelta(seconds=min(300, max(60, spec["ttlSeconds"] // 10)))
     phase = "Expiring" if ready and expiring else "Ready" if ready else "Provisioning"
     status = {**existing, "observedGeneration": meta.get("generation", 1), "phase": phase, "expiresAt": expires_at, "runtimeNamespaceRef": namespace, "imagePolicy": image_policy, **binding_status(claim, namespace), "conditions": [condition("Ready", ready, "ClaimExpiring" if ready and expiring else "ChildrenReady" if ready else "ChildrenProvisioning")]}
+    if spec["capability"] == "storage.volume.v1":
+        status["volumeAllocation"] = volume_observation(claim, namespace)
     if spec["capability"] == "compute.workload.v1" and not spec["parameters"].get("exposure", {}).get("enabled"):
         status["endpoint"] = None
     kube().patch_status("tenantresourceclaims", meta["name"], status, namespace)
