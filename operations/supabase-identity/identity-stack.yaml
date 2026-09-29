@@ -12,10 +12,10 @@ metadata:
   namespace: supabase-identity
 spec:
   hard:
-    requests.cpu: 700m
-    limits.cpu: 2000m
-    requests.memory: 1536Mi
-    limits.memory: 5120Mi
+    requests.cpu: 1500m
+    limits.cpu: 5000m
+    requests.memory: 4096Mi
+    limits.memory: 12288Mi
 ---
 apiVersion: v1
 kind: ConfigMap
