@@ -1,0 +1,30 @@
+name: tenant provider live contracts
+on:
+  schedule:
+    - cron: "27 1 * * *"
+    - cron: "41 1 * * 0"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Tenant CI depth
+        type: choice
+        options: [contract, full]
+        default: contract
+permissions: {contents: read}
+concurrency:
+  group: tenant-provider-live-contracts
+  cancel-in-progress: false
+jobs:
+  tenant-ci:
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1, trusted-audit]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install schema validator
+        run: python3 -m pip install 'jsonschema>=4.23,<5'
+      - name: Check public provider routes and auth challenge
+        run: python3 operations/tenant-provider-acceptance/run.py --preflight --mcp-url https://tools.service.re8ch.com/tenant-native/mcp
+      - name: Check tenant provider API
+        env:
+          TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.schedule == '41 1 * * 0' && 'full' || 'contract') }}
+        run: python3 operations/tenant-provider-acceptance/live.py --mode "$TEST_MODE"

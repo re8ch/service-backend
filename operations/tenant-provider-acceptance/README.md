@@ -1,5 +1,34 @@
 # Live tenant provider acceptance
 
+The reusable tenant CI has two modes. `python live.py --mode contract`
+discovers the published MCP tools, validates every input JSON Schema, checks
+the required provider lifecycle tools, exercises safe reads, and generates
+invalid inputs from required fields on read-only methods. This follows
+Schemathesis's schema-driven boundary-testing approach for an MCP surface,
+which is not an OpenAPI HTTP API. `python live.py --mode full` runs the
+existing real Harbor/Grafana create, native login, CLI, suspend, resume,
+delete, and replacement lifecycle test.
+
+The [tenant provider live contracts workflow](../../.github/workflows/tenant-provider-contracts.yml)
+checks public routes daily, runs contract mode daily, and runs full mode weekly on the trusted Macmini runner;
+both modes can also be dispatched manually. The wrapper reads the dedicated
+test identity and Supabase keys from their existing Kubernetes Secrets over
+the authorized R640 SSH path. It keeps the credentials in process memory and
+does not print or pass them as command-line arguments. CI requires that runner
+to have `ssh r640` and a working Docker daemon. A failed live test must remain
+visible as a failed workflow; investigate any `CREATED` resource reference
+before another full run.
+
+Contract mode exercises both public MCP entries: native tenant MCP for schema
+generation and invalid-input checks, then ToolHive for publication and a real
+tenant capability call. Full mode uses the native MCP endpoint for lifecycle
+calls. If a full run times out after creating a resource, resume it with
+`python live.py --mode full --resume-suffix <suffix> --resume-provider harbor`
+(or `grafana`). The phase wait allows 10 minutes because provider reconciliation
+can exceed three minutes. `--skip-preflight` is available only on a resumed
+run whose public preflight passed earlier; use it to finish and revoke an
+already-created instance while DNS diagnostics proceed.
+
 Run `python operations/tenant-provider-acceptance/run.py --preflight` without
 credentials. It checks Harbor's configured auth mode and registry challenge,
 Grafana's database health, identity PostgREST, and the tenant MCP auth
