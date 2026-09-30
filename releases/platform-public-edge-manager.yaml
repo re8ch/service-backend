@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-bronze
+codename: etesian-bronze
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:d7799850e6f25f380217adad24adde4f3032c3c1124bcc9f44143d4d0c2f30ca
+  digest: sha256:ee70908596cfe6105284903be3d49a19f21a5bfbc518172039032778c32f6ee7
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
