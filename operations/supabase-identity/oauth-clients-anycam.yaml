@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-oauth-clients-anycam-v1
+  namespace: supabase-identity
+data:
+  clients.sql: |
+    begin;
+    insert into auth.oauth_clients (
+      id, client_secret_hash, registration_type, client_type,
+      token_endpoint_auth_method, redirect_uris, grant_types,
+      client_name, client_uri
+    ) values
+      ('99dfaad5-0948-43af-bf07-195d94b59171', '', 'manual', 'public',
+       'none', 'com.phonaid.anycam:/oauth/callback',
+       'authorization_code,refresh_token', 'Anycam Android',
+       'https://anycam.re8ch.com'),
+      ('6e0eb2e4-2d9a-409c-bc32-34d931e0f95e', '', 'manual', 'public',
+       'none', 'com.phonaid.anycam.ios:/oauth/callback',
+       'authorization_code,refresh_token', 'Anycam iOS',
+       'https://anycam.re8ch.com')
+    on conflict (id) do update set
+      client_secret_hash = excluded.client_secret_hash,
+      registration_type = excluded.registration_type,
+      client_type = excluded.client_type,
+      token_endpoint_auth_method = excluded.token_endpoint_auth_method,
+      redirect_uris = excluded.redirect_uris,
+      grant_types = excluded.grant_types,
+      client_name = excluded.client_name,
+      client_uri = excluded.client_uri,
+      deleted_at = null,
+      updated_at = now();
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-oauth-clients-anycam-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      containers:
+        - name: register
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args:
+            - psql -X -v ON_ERROR_STOP=1 "$GOTRUE_DB_DATABASE_URL" -f /sql/clients.sql
+          env:
+            - name: GOTRUE_DB_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-identity-secrets
+                  key: GOTRUE_DB_DATABASE_URL
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - name: sql
+          configMap:
+            name: supabase-oauth-clients-anycam-v1
