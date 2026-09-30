@@ -720,6 +720,8 @@ modules:
       digest: sha256:1d4afe355d8c5b738b371f5773f6067f55cd8358003d2a0285a7377cf62c96c2
     - codename: passage-amber
       digest: sha256:547d74bdf0b7988cfcc560257ca3efc72be13d851b59887a84f5c371a57f73fc
+    - codename: trailhead-amber
+      digest: sha256:2c898604d1e30f994f64a6b6f858e4c208f36bcca401e7a1a7210eb82daac95e
   platform/public-edge-manager:
     releases:
     - codename: bora
