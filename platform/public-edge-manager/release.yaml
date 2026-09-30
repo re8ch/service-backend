@@ -23,6 +23,7 @@ spec:
   upgrade:
     cleanupOnFail: true
     disableTakeOwnership: false
+    timeout: 15m
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
   values:
