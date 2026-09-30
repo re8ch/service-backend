@@ -440,6 +440,10 @@ spec:
       toPorts:
         - ports:
             - {port: "8081", protocol: TCP}
+    - fromEntities: [kube-apiserver]
+      toPorts:
+        - ports:
+            - {port: "8081", protocol: TCP}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -474,23 +478,11 @@ spec:
     - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: headlamp-https}
   hostnames: [headlamp.re8ch.com]
   rules:
-    - matches: [{path: {type: Exact, value: /secretary-api/v1/event-stream}}]
+    - matches: [{path: {type: PathPrefix, value: /secretary-api/}}]
       filters:
-        - type: URLRewrite
-          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/event-stream}}
-      backendRefs: [{name: secretary-api, port: 80}]
-    - matches: [{path: {type: Exact, value: /secretary-api/v1/delivery-summary}}]
-      filters:
-        - type: URLRewrite
-          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/delivery-summary}}
-      backendRefs: [{name: secretary-api, port: 80}]
-    - matches: [{path: {type: Exact, value: /secretary-api/v1/topology}}]
-      filters:
-        - type: URLRewrite
-          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/topology}}
-      backendRefs: [{name: secretary-api, port: 80}]
-    - matches: [{path: {type: Exact, value: /secretary-api/v1/discrepancies}}]
-      filters:
-        - type: URLRewrite
-          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /v1/headlamp/discrepancies}}
-      backendRefs: [{name: secretary-api, port: 80}]
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            hostname: headlamp.service.re8ch.com
+            statusCode: 302
+            path: {type: ReplaceFullPath, replaceFullPath: /}

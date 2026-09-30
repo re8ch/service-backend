@@ -6,7 +6,9 @@ append-only Secretary event stream plus the declared and observed interaction
 topology. Configuration readiness is derived only from
 Deployment `secretKeyRef` metadata, so Secret objects and values are never requested
 or rendered. Event access inherits the existing authenticated Headlamp administrator
-session; the plugin does not ask for or persist another token.
+session via Headlamp's Kubernetes API proxy; the plugin does not ask for or
+persist another token. Reads use the currently selected cluster and require
+permission to GET `services/proxy` for `re8ch-secretary/secretary-api`.
 
 Declared routes and observed routes remain visibly separate, with discrepancies
 and evidence-adoption state shown without exposing direct channel identities.

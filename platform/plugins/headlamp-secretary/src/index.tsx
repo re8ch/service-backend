@@ -1,4 +1,5 @@
 import { K8s, registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
+import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { SectionBox, StatusLabel, Table } from '@kinvolk/headlamp-plugin/lib/components/common';
 import { makeCustomResourceClass } from '@kinvolk/headlamp-plugin/lib/lib/k8s/crd';
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material';
@@ -6,9 +7,10 @@ import React from 'react';
 
 const NS = 're8ch-secretary';
 const OBS_NS = 'observability-system';
-const STREAM_URL = '/secretary-api/v1/event-stream';
-const TOPOLOGY_URL = '/secretary-api/v1/topology';
-const DISCREPANCIES_URL = '/secretary-api/v1/discrepancies';
+const SECRETARY_PROXY = '/api/v1/namespaces/re8ch-secretary/services/http:secretary-api:80/proxy/v1/headlamp';
+const STREAM_URL = `${SECRETARY_PROXY}/event-stream`;
+const TOPOLOGY_URL = `${SECRETARY_PROXY}/topology`;
+const DISCREPANCIES_URL = `${SECRETARY_PROXY}/discrepancies`;
 const SECRET_KEYS: Record<string, string[]> = {
   'secretary-runtime': ['webhook-secret', 'query-token', 'bluebubbles-webhook-token', 'voice-webhook-token', 'identity-bindings-json', 'neo4j-uri', 'neo4j-user', 'neo4j-password', 'litellm-api-key'],
   'secretary-email': ['email', 'username', 'password', 'tls-fingerprint-sha256', 'recipient', 'recipient-id'],
@@ -60,9 +62,7 @@ function Dashboard() {
     setLoading(true); setStreamError('');
     try {
       const after = reset ? 0 : cursor;
-      const response = await fetch(`${STREAM_URL}?after_seq=${after}&limit=200${reset?'&latest=true':''}`, {credentials:'same-origin'});
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const data: any = await request(`${STREAM_URL}?after_seq=${after}&limit=200${reset?'&latest=true':''}`, {method:'GET'});
       setItems(current=>reset ? data.items : [...current, ...data.items]);
       setCursor(data.next_after_seq || after);
     } catch (error) { setStreamError(`事件流读取失败：${String(error)}`); }
@@ -72,13 +72,12 @@ function Dashboard() {
   const loadTopology = React.useCallback(async () => {
     setTopologyError('');
     try {
-      const [topologyResponse, discrepancyResponse] = await Promise.all([
-        fetch(TOPOLOGY_URL, {credentials:'same-origin'}),
-        fetch(DISCREPANCIES_URL, {credentials:'same-origin'}),
+      const [topologyData, discrepancyData]: any[] = await Promise.all([
+        request(TOPOLOGY_URL, {method:'GET'}),
+        request(DISCREPANCIES_URL, {method:'GET'}),
       ]);
-      if (!topologyResponse.ok || !discrepancyResponse.ok) throw new Error(`HTTP ${topologyResponse.status}/${discrepancyResponse.status}`);
-      setTopology(await topologyResponse.json());
-      setDiscrepancies((await discrepancyResponse.json()).items || []);
+      setTopology(topologyData);
+      setDiscrepancies(discrepancyData.items || []);
     } catch (error) { setTopologyError(`交互拓扑读取失败：${String(error)}`); }
   }, []);
 

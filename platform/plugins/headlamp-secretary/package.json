@@ -1,6 +1,6 @@
 {
   "name": "@re8ch/headlamp-secretary",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Headlamp operations console for RE8CH Secretary",
   "scripts": {
     "build": "headlamp-plugin build",

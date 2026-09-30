@@ -17,7 +17,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     expected = {
         "headlamp-public-edge-v023": "re8ch-headlamp-public-edge-0.2.3.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
-        "headlamp-secretary-v030": "re8ch-headlamp-secretary-0.3.0.bundle",
+        "headlamp-secretary-v031": "re8ch-headlamp-secretary-0.3.1.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
     }
     for configmap, filename in expected.items():
@@ -47,6 +47,20 @@ def test_plugin_runtime_is_pod_local_and_complete():
     } <= init_names
     plugins = next(volume for volume in pod["volumes"] if volume["name"] == "plugins")
     assert plugins == {"name": "plugins", "emptyDir": {}}
+
+
+def test_secretary_reads_through_selected_cluster_and_retired_public_route():
+    source = (ROOT / "platform/plugins/headlamp-secretary/src/index.tsx").read_text()
+    assert "@kinvolk/headlamp-plugin/lib/ApiProxy" in source
+    assert "/api/v1/namespaces/re8ch-secretary/services/http:secretary-api:80/proxy/v1/headlamp" in source
+    assert "fetch(TOPOLOGY_URL" not in source
+    assert "fetch(DISCREPANCIES_URL" not in source
+    assert "fetch(`${STREAM_URL}" not in source
+    runtime = list(yaml.safe_load_all((ROOT / "platform/secretary-system/runtime.yaml").read_text()))
+    route = next(item for item in runtime if item and item.get("kind") == "HTTPRoute"
+                 and item["metadata"]["name"] == "secretary-headlamp-read")
+    assert all(not rule.get("backendRefs") for rule in route["spec"]["rules"])
+    assert all(rule["filters"][0]["type"] == "RequestRedirect" for rule in route["spec"]["rules"])
 
 
 def test_runtime_anatomy_plugin_uses_declarative_actions_and_scope_contract():
