@@ -141,7 +141,8 @@ spec:
       # Every live Node is considered; unlisted nodes can qualify with measured
       # capacity annotations and the same public IP/path/listener probes.
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
-      maxNameservers: 3
+      # Keep only the verified LA-2 and Falkenstein authorities while restricted-node-6dc3f140f9 public 53 is unreachable overseas.
+      maxNameservers: 2
       gatewayNamespace: kube-system
       gatewaySelector: networking.re8ch.com/public-edge-gateway=true
       authorityLabel: networking.re8ch.com/public-edge-authority-ready
