@@ -73,6 +73,8 @@ def test_observer_can_see_workspace_status_but_not_mutating_sync():
 
 
 def test_user_token_must_target_cloud_platform_client(monkeypatch):
+    requests = []
+
     class Userinfo:
         def __enter__(self):
             return self
@@ -83,7 +85,11 @@ def test_user_token_must_target_cloud_platform_client(monkeypatch):
         def read(self):
             return b'{"sub":"admin","groups":["re8ch:k8s-admins"]}'
 
-    monkeypatch.setattr(server.urllib.request, "urlopen", lambda *_args, **_kwargs: Userinfo())
+    def userinfo(request, **_kwargs):
+        requests.append(request)
+        return Userinfo()
+
+    monkeypatch.setattr(server.urllib.request, "urlopen", userinfo)
 
     def token(audience):
         payload = base64.urlsafe_b64encode(json.dumps({"aud": audience}).encode()).decode().rstrip("=")
@@ -92,6 +98,7 @@ def test_user_token_must_target_cloud_platform_client(monkeypatch):
     assert server.authenticate("Bearer " + token("another-client")) is None
     identity = server.authenticate("Bearer " + token(server.OAUTH_AUDIENCE))
     assert identity.subject == "admin"
+    assert requests[-1].get_header("User-agent") == "RE8CH-Cloud-Platform/1.0"
     assert server.WRITE_TOOLS <= {tool["name"] for tool in server.tool_list(identity)}
 
 
