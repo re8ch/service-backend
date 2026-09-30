@@ -95,6 +95,24 @@ spec:
             - name: IDENTITY_SEND_EMAIL_HOOK_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_EMAIL_HOOK_SECRET}
+            - name: IDENTITY_SEND_SMS_HOOK_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_SMS_HOOK_SECRET}
+            - name: TENCENT_SECRET_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SECRET_ID}
+            - name: TENCENT_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SECRET_KEY}
+            - name: TENCENT_SMS_SDK_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SMS_SDK_APP_ID}
+            - name: TENCENT_SMS_SIGN_NAME
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SMS_SIGN_NAME}
+            - name: TENCENT_SMS_TEMPLATE_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SMS_TEMPLATE_ID}
             - name: IDENTITY_AVATAR_COS_SECRET_ID
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_AVATAR_COS_SECRET_ID}
