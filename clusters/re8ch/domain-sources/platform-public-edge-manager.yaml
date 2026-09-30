@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: chinook-coral
+    delivery.re8ch.com/codename: etesian-coral
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:ab12524d655d12a4397a354aa734674a5cbcc44336e7644dfc43e247901490da
+    digest: sha256:f2b482ac8fb32021a60479f0737f27f790f0854547493be4c671a914027fee30
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: chinook-coral
+    delivery.re8ch.com/codename: etesian-coral
 spec:
   interval: 1m
   retryInterval: 1m
