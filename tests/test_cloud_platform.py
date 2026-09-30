@@ -99,10 +99,10 @@ def test_secret_values_are_never_returned():
     assert "eA==" not in json.dumps(result)
 
 
-def test_ssh_rejects_undeclared_command():
+def test_ssh_rejects_empty_command():
     service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]), OperationRunner(), kubeconfig="x", ssh_config="y")
-    with pytest.raises(OperationError, match="bash"):
-        service.node_ssh_exec("restricted-node-6dc3f140f9", ["bash", "-c", "id"])
+    with pytest.raises(OperationError, match="argv must not be empty"):
+        service.node_ssh_exec("restricted-node-6dc3f140f9", [])
 
 
 def test_apply_rejects_inline_secret_material():
