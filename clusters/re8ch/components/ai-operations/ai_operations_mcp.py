@@ -2469,6 +2469,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(400, {"error": "invalid billing window"}, headers)
             except RuntimeError:
                 self.send_json(503, {"error": "tenant authorizer unavailable"}, headers)
+            except sqlite3.Error:
+                self.send_json(503, {"error": "usage ledger unavailable"}, headers)
             return
         if parsed.path == "/livez":
             self.send_json(200, {"status": "ok", "profile": PROFILE}); return
