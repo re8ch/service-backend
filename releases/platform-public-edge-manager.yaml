@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: mistral-bronze
+codename: sirocco-bronze
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:4b3aceac3bc0154d8ca2f87b67bb64dee3f78a0ba3384d884058852170ddf68b
+  digest: sha256:8f7abe87884eb1ee7d5c65713783b43b9c74bf989729b72f6de02696a1b8cad2
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
