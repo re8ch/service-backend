@@ -20,10 +20,13 @@ def test_cloud_platform_uses_the_owned_core_service_plane():
         "operator": "In",
         "values": ["core"],
     }]
-    anti_affinity = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+    anti_affinity = affinity["podAntiAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
     assert anti_affinity == [{
-        "labelSelector": {"matchLabels": {"app": "re8ch-cloud-platform"}},
-        "topologyKey": "kubernetes.io/hostname",
+        "weight": 100,
+        "podAffinityTerm": {
+            "labelSelector": {"matchLabels": {"app": "re8ch-cloud-platform"}},
+            "topologyKey": "kubernetes.io/hostname",
+        },
     }]
 
 

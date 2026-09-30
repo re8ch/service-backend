@@ -18,9 +18,11 @@ spec:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
-              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
           image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:fc610be62bf6ac0db92f7f99d9e63f6d598f0d785e8c532f1a8d4707e87a9dce
