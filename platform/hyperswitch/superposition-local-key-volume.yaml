@@ -1,0 +1,36 @@
+# The 32-byte key is created directly on R640 and backed up outside Git.
+# Binding it through a PVC keeps the Pod compliant with the payments namespace's
+# Baseline Pod Security policy, which rejects direct hostPath volumes.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hyperswitch-superposition-local-key-r640
+spec:
+  capacity:
+    storage: 1Mi
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-r640
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [r640]
+  hostPath:
+    path: /var/lib/re8ch/hyperswitch-local-key
+    type: Directory
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hyperswitch-superposition-local-key
+  namespace: payments
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: manual-r640
+  volumeName: hyperswitch-superposition-local-key-r640
+  resources:
+    requests:
+      storage: 1Mi
