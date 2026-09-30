@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: zephyr-bronze
+codename: bora-coral
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:69bb6c89eb168eaa1e0a15ebf64aadeb7377e96e680ff9fad4af6a040b2fc1a5
+  digest: sha256:9e2221595783e8b5f546b511107f3b415597ca68623d5f440f1510a8cd510781
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
