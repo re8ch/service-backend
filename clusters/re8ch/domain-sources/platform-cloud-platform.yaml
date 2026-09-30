@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: tundra
+    delivery.re8ch.com/codename: wetland
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:517e42087bf8a9773591d57f94f166f5046731f11bf6317e06746c4e456ca491
+    digest: sha256:b696c72cd8b768b017156d5cbf0b5c871b47382c92733ed40af43a925b4e3bbe
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: tundra
+    delivery.re8ch.com/codename: wetland
 spec:
   interval: 1m
   retryInterval: 1m
