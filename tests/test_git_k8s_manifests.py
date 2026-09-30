@@ -552,6 +552,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
+    assert release["spec"]["upgrade"]["timeout"] == "15m"
     assert source["spec"]["ref"] == {"digest": "sha256:2db703930ff023888170faba65e8b1d2dd1fe8546497ad198c275c070f56ba75"}
     values = release["spec"]["values"]
     assert values["image"] == {
