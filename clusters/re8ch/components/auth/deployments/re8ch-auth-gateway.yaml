@@ -188,6 +188,12 @@ spec:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: GITHUB_OAUTH_CLIENT_SECRET, optional: true}
             - name: GITHUB_ALLOWED_ORGS
               value: re8ch
+            - name: WECHAT_WEB_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: WECHAT_WEB_APP_ID}
+            - name: WECHAT_WEB_APP_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: WECHAT_WEB_APP_SECRET}
             - name: APPLE_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_ID, optional: true}
