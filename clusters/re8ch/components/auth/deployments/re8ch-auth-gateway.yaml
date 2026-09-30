@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-center-20260929@sha256:ce92b01ed0f45baa5b8fd9a115b5aedd5cd013a702359dabdd524b235ef37a26
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:durable-groups-20260930@sha256:a4e995d65b282e48bea84d3b0c86206e9fe2045ff98cf444ec825f87f2961165
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -82,9 +82,9 @@ spec:
             - name: IDENTITY_AUTH_URL
               value: https://db-rw.re8ch.com/auth/v1
             - name: IDENTITY_RO_URL
-              value: https://db-ro.re8ch.com/identity/rest/v1
+              value: http://192.0.2.107:3000
             - name: IDENTITY_RW_URL
-              value: https://db-rw.re8ch.com/identity/rest/v1
+              value: http://192.0.2.93:3000
             - name: IDENTITY_AVATAR_COS_BUCKET
               value: re8ch-avatars-1301339749
             - name: IDENTITY_AVATAR_COS_REGION
@@ -95,6 +95,24 @@ spec:
             - name: IDENTITY_SEND_EMAIL_HOOK_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_EMAIL_HOOK_SECRET}
+            - name: IDENTITY_SEND_SMS_HOOK_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_SMS_HOOK_SECRET}
+            - name: TENCENT_SECRET_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SECRET_ID}
+            - name: TENCENT_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SECRET_KEY}
+            - name: TENCENT_SMS_SDK_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SMS_SDK_APP_ID}
+            - name: TENCENT_SMS_SIGN_NAME
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SMS_SIGN_NAME}
+            - name: TENCENT_SMS_TEMPLATE_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TENCENT_SMS_TEMPLATE_ID}
             - name: IDENTITY_AVATAR_COS_SECRET_ID
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_AVATAR_COS_SECRET_ID}
@@ -134,13 +152,13 @@ spec:
             - name: AUTH_SMTP_TLS_MODE
               value: ssl
             - name: AUTH_SMTP_TIMEOUT
-              value: 15s
+              value: 4s
             - name: AUTH_SMTP_USERNAME
-              value: image@re8ch.com
+              value: business@re8ch.com
             - name: AUTH_SMTP_FROM
-              value: image@re8ch.com
+              value: business@re8ch.com
             - name: AUTH_SMTP_FROM_NAME
-              value: RE8CH Image Registry
+              value: RE8CH Business
             - name: AUTH_GATEWAY_DEFAULT_RETURN_URL
               value: https://auth.re8ch.com
             - name: AUTH_ACCOUNT_ORIGINS

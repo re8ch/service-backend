@@ -103,11 +103,15 @@ class CloudPlatform:
         return self.runner.run(self._ssh_argv(name, ["hostname"]), target=name, timeout=15)
 
     def node_ssh_exec(self, name: str, argv: list[str], timeout: int = 30) -> dict[str, Any]:
-        target = self.inventory.get(name)
-        allowed = set(target["spec"].get("commands", {}).get("read", [])) | set(target["spec"].get("commands", {}).get("write", []))
-        if not argv or argv[0] not in allowed:
-            raise OperationError("COMMAND_NOT_DECLARED", argv[0] if argv else "empty")
+        self.inventory.get(name)
+        if not argv:
+            raise OperationError("INVALID_ARGUMENT", "argv must not be empty")
         return self.runner.run(self._ssh_argv(name, argv), target=name, timeout=timeout)
+
+    def kubectl_exec(self, argv: list[str], *, stdin: str | None = None, timeout: int = 30) -> dict[str, Any]:
+        if not argv:
+            raise OperationError("INVALID_ARGUMENT", "argv must not be empty")
+        return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", timeout=timeout, stdin=stdin)
 
     def kube_simple(self, resource: str, *, namespace: str | None = None, name: str | None = None,
                     labels: str | None = None, fields: str | None = None) -> dict[str, Any]:

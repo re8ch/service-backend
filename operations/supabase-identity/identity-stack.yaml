@@ -44,7 +44,7 @@ data:
   ENABLE_EMAIL_SIGNUP: 'true'
   ENABLE_ANONYMOUS_USERS: 'false'
   ENABLE_EMAIL_AUTOCONFIRM: 'false'
-  ENABLE_PHONE_SIGNUP: 'false'
+  ENABLE_PHONE_SIGNUP: 'true'
   ENABLE_PHONE_AUTOCONFIRM: 'false'
   SMTP_ADMIN_EMAIL: ops@re8ch.com
   SMTP_HOST: localhost
@@ -304,6 +304,7 @@ metadata:
   name: supabase-identity-rest
   namespace: supabase-identity
 spec:
+  clusterIP: 192.0.2.93
   selector:
     app.kubernetes.io/component: rest
   ports:
@@ -684,6 +685,15 @@ spec:
             secretKeyRef:
               name: supabase-identity-secrets
               key: SEND_EMAIL_HOOK_SECRET
+        - name: GOTRUE_HOOK_SEND_SMS_ENABLED
+          value: 'true'
+        - name: GOTRUE_HOOK_SEND_SMS_URI
+          value: https://api.re8ch.com/auth/v2/send-sms-hook
+        - name: GOTRUE_HOOK_SEND_SMS_SECRETS
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: SEND_SMS_HOOK_SECRET
         - name: GOTRUE_EXTERNAL_GITHUB_ENABLED
           value: 'true'
         - name: GOTRUE_EXTERNAL_GITHUB_CLIENT_ID

@@ -9,6 +9,7 @@ resources:
 - oauth-clients-headlamp.yaml
 - oauth-clients-tenant-mcp.yaml
 - tenant-runtime-memberships.yaml
+- identity-broker-groups.yaml
 - realtime-stack.yaml
 - identity-data-routes.yaml
 - identity-rest-ro.yaml
