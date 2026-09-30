@@ -87,7 +87,11 @@ spec:
                       - name: harbor-hyperswitch-admin
                     containers:
                       - name: superposition
-                        image: registry.re8ch.com/hyperswitch/superposition@sha256:cedca5587ded9007697faa2379d2c5b65342dacf55115c980162794167b58ccc
+                        # restricted-node-6dc3f140f9 has this verified Harbor manifest preloaded into
+                        # containerd; its pod cannot use the slow external blob
+                        # redirect path during a live rollout.
+                        image: registry.re8ch.com/hyperswitch/superposition:re8ch-45fa7d15222dce436f7851e1bb32a30f550966db
+                        imagePullPolicy: Never
                         env:
                           - name: DB_PASSWORD
                             valueFrom:
@@ -113,6 +117,10 @@ spec:
                 strategy:
                   type: RollingUpdate
                   rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
+                template:
+                  spec:
+                    nodeSelector:
+                      kubernetes.io/hostname: restricted-node-6dc3f140f9
           # Inventory the Redis owner without changing its Pod template. This
           # records placement governance now and avoids a needless StatefulSet
           # restart before its durable worker destination is reviewed.
