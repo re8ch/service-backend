@@ -4,6 +4,7 @@ metadata:
   name: supabase-identity-rest-ro
   namespace: supabase-identity
 spec:
+  clusterIP: 192.0.2.107
   selector:
     app.kubernetes.io/component: rest-ro
   ports:
