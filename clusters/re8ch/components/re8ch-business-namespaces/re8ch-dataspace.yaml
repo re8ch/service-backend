@@ -33,6 +33,7 @@ spec:
             secretKeyRef:
               key: device-token
               name: dataspace-gateway
+              optional: true
         - name: DATASPACE_POSTGREST_RO_URL
           value: https://db-ro.re8ch.com/dataspace
         - name: DATASPACE_POSTGREST_RW_URL
@@ -82,7 +83,7 @@ spec:
           name: files
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         storage.re8ch.com/ceph-client: 'true'
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -148,7 +149,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: 'false'
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: '60'
   labels:
     kustomize.toolkit.fluxcd.io/name: service-backend
