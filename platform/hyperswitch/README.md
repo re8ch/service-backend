@@ -33,14 +33,14 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   organization before creating `liuhualin@wattman.cn`. Control Center has TOTP
   enabled; complete enrollment on the first login and then rotate the bootstrap
   password. The enrollment seed is intentionally never written to Job logs.
-- The chart remains sandbox-only. Real Stripe, PayPal, WeChat or Alipay connector
-  credentials are added separately after webhook and reconciliation testing.
+- The live profile uses production Router and Superposition settings. Payment
+  connector credentials remain merchant managed in Control Center.
 
 ## Initial deployment profile
 
 - Chart: `hyperswitch-stack` 0.2.26
 - Namespace: `payments`
-- Environment: sandbox
+- Environment: production
 - Public chart ingress, web demo, monitoring bundle, card vault, analytics
   pipeline, and UCS: disabled; Cilium Gateway API owns public exposure
 - Control Center: enabled at `https://pay.service.re8ch.com`; email login disabled,
@@ -59,20 +59,26 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   read-only/PostgREST roles; the bundled PostgreSQL chart is disabled
 - Superposition: enabled, internal only; schema migration and fallback seed are
   intentionally supplied as reviewed artifacts rather than downloaded at boot
+- Superposition image: the production-capable `re8ch-business/superposition`
+  build is mirrored into the existing private Harbor project and pinned by
+  digest. The `harbor-hyperswitch-admin` pull secret remains outside Git.
+- Superposition production secrets: `DB_PASSWORD` and `SUPERPOSITION_TOKEN` are
+  `local:v1` ciphertext in `payments/hyperswitch-superposition-prod-secrets`.
+  The 32-byte AES key stays on restricted-node-6dc3f140f9 at
+  `/var/lib/re8ch/hyperswitch-local-key/key` and is mounted read-only through
+  `hyperswitch-superposition-local-key-r640`. Back up and protect this key
+  separately; losing it prevents Superposition from decrypting its credentials.
 
 Stripe and PayPal should initially use hosted/redirect checkout, so raw card
 data never enters RE8CH services. The existing Nuclio WeChat and Alipay code can
 remain active until equivalent connectors pass replay and reconciliation tests.
 
-## China connector sandbox profile
+## China connector live profile
 
-- `alipaycn` uses Alipay's developer sandbox gateway. Configure an enterprise
-  sandbox application with its App ID, RSA2 application private key and Alipay
-  public key in Control Center; do not commit those values.
-- `wechatpaycn` uses the API v3 endpoint because API v3 does not provide an
-  equivalent general-purpose merchant sandbox. Until an approved merchant is
-  available, request/response signatures, AES-256-GCM notification decryption,
-  replay rejection and payment/refund event mapping are verified with signed
-  fixtures. The first network smoke test must use a dedicated low-value order.
+- `alipaycn` uses Alipay's production gateway. Keep its merchant App ID, RSA2
+  application private key and Alipay public key in Control Center.
+- `wechatpaycn` uses the API v3 endpoint. Verify merchant signatures,
+  notification decryption, replay rejection and reconciliation against a
+  dedicated low-value order before routing live traffic to it.
 - Provider notifications terminate at `pay-api.service.re8ch.com`; fulfillment remains
   a separate idempotent consumer and is never executed directly by a connector.
