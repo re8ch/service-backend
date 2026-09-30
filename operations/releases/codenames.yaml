@@ -858,6 +858,8 @@ modules:
       digest: sha256:ee70908596cfe6105284903be3d49a19f21a5bfbc518172039032778c32f6ee7
     - codename: mistral-bronze
       digest: sha256:4b3aceac3bc0154d8ca2f87b67bb64dee3f78a0ba3384d884058852170ddf68b
+    - codename: sirocco-bronze
+      digest: sha256:8f7abe87884eb1ee7d5c65713783b43b9c74bf989729b72f6de02696a1b8cad2
   platform/adapter:
     releases:
     - codename: anchor
