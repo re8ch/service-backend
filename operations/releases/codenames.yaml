@@ -838,6 +838,8 @@ modules:
       digest: sha256:65f815cfdbe5c44dab989762ec34fb94ee548436a0f10adc1a43e62e2e4dc476
     - codename: sirocco-violet
       digest: sha256:0901530d3a8d34ac2c81f630a2ef3ba2d1219c2ef8924f94fbe9788c1e0e9ba3
+    - codename: tramontane-violet
+      digest: sha256:0308b06bf5fb992e53aa1edd8c02cc784285db1bacaba93bd21a098252f46f92
   platform/adapter:
     releases:
     - codename: anchor
