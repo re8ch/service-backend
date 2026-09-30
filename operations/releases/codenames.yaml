@@ -337,6 +337,8 @@ modules:
       digest: sha256:0e34c7bf12588a93b1a06e71b4583d2b0fcbe53a0050182418a9b6dde5941970
     - codename: tundra
       digest: sha256:517e42087bf8a9773591d57f94f166f5046731f11bf6317e06746c4e456ca491
+    - codename: wetland
+      digest: sha256:b696c72cd8b768b017156d5cbf0b5c871b47382c92733ed40af43a925b4e3bbe
   platform/advanced-fabric:
     releases:
     - codename: bora
