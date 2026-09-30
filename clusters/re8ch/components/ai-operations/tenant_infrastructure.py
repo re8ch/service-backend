@@ -495,6 +495,9 @@ class ServiceStore:
         lower = start.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
         upper = end.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
         with self.connect() as db:
+            # The runtime has a read-only root filesystem. GROUP BY may spill
+            # to SQLite's default temporary directory as the ledger grows.
+            db.execute("PRAGMA temp_store=MEMORY")
             rows = db.execute("""
                 SELECT json_extract(event_json, '$.serviceClass'), resource_ref,
                        json_extract(event_json, '$.meter'), json_extract(event_json, '$.unit'),
