@@ -12,6 +12,57 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def test_auth_host_routes_prefixed_login_actions_to_the_broker():
+    resources = documents(ROOT / "clusters/re8ch/components/auth/user-center.yaml")
+    route = next(
+        item for item in resources
+        if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "re8ch-user-center"
+    )
+    oauth_discovery_rule, broker_rule = route["spec"]["rules"][:2]
+    assert oauth_discovery_rule["matches"] == [
+        {"path": {"type": "Exact", "value": "/.well-known/oauth-authorization-server"}}
+    ]
+    assert oauth_discovery_rule["backendRefs"] == [
+        {"name": "re8ch-auth-gateway", "port": 8080}
+    ]
+    assert oauth_discovery_rule["filters"] == [
+        {
+            "type": "URLRewrite",
+            "urlRewrite": {
+                "path": {
+                    "type": "ReplaceFullPath",
+                    "replaceFullPath": "/.well-known/openid-configuration",
+                }
+            },
+        }
+    ]
+    assert broker_rule["backendRefs"] == [{"name": "re8ch-auth-gateway", "port": 8080}]
+    matches = {
+        (item["path"]["type"], item["path"]["value"])
+        for item in broker_rule["matches"]
+    }
+    assert ("PathPrefix", "/auth") in matches
+    assert ("PathPrefix", "/callback") in matches
+
+
+def test_single_replica_tenant_route_bypasses_the_mcp_session_router():
+    resources = documents(
+        ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml"
+    )
+    route = next(
+        item for item in resources
+        if item["kind"] == "HTTPRoute"
+        and item["metadata"]["name"] == "tools-service-tenant-mcp"
+    )
+    session_rule, discovery_rule = route["spec"]["rules"]
+    assert session_rule["backendRefs"] == [
+        {"name": "vmcp-tenant-vmcp", "port": 4483}
+    ]
+    assert discovery_rule["backendRefs"] == [
+        {"name": "vmcp-tenant-vmcp", "port": 4483}
+    ]
+
+
 def test_live_nodes_receive_optional_mihomos_placement():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/egress-fabric/live-node-egress-labels.yaml" in root["resources"]
@@ -24,15 +75,17 @@ def test_live_nodes_receive_optional_mihomos_placement():
     ) + documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
     live_nodes = {
         "restricted-node-1eb0570f74", "amdwsl-zt", "restricted-node-296f36f2fb", "domain-ex", "muaya-ecs",
-        "muaya-lightweight", "overseas-kl", "overseas-la", "restricted-node-6dc3f140f9",
+        "muaya-lightweight", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk", "restricted-node-6dc3f140f9",
         "suxunji", "vm-20-12-ubuntu", "zan",
     }
     by_name = {item["metadata"]["name"]: item for item in node_documents}
     assert set(by_name) == live_nodes
     for node in by_name.values():
         labels = node["metadata"]["labels"]
-        assert labels["networking.re8ch.com/mihomo-node"] == "enabled"
-        assert labels["networking.re8ch.com/geo"] in {"cn", "global"}
+        assert "topology.kubernetes.io/region" in labels
+        assert "networking.re8ch.com/mihomo-node" not in labels
+        assert "networking.re8ch.com/geo" not in labels
+        assert "networking.re8ch.com/mihomo-exit" not in labels
 
 
 
@@ -70,7 +123,7 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
     )
 
 
-def test_tools_legacy_dns_writer_is_retired_after_service_zone_publication():
+def test_tools_dns_writer_remains_active_for_legacy_mcp_clients():
     platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
     route = next(
         item
@@ -102,7 +155,7 @@ def test_tools_legacy_dns_writer_is_retired_after_service_zone_publication():
         if item["kind"] == "Ingress" and item["metadata"]["name"] == "connectool-tools-re8ch-com"
     )
     assert authority["metadata"]["labels"] == {
-        "networking.re8ch.com/dns-authority": "migrated-to-service-zone"
+        "networking.re8ch.com/dns-authority": "public-edge"
     }
     assert authority["metadata"]["annotations"]["networking.re8ch.com/provider"] == (
         "public-edge-manager"
@@ -121,6 +174,7 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     publications = release["spec"]["values"]["toolhive"]["publications"]
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
+        "re8ch-operate-vmcp": 1,
         "re8ch-admin-vmcp": 1,
         "tenant-vmcp": 1,
     }
@@ -354,53 +408,95 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     assert stateful_set["spec"]["replicas"] == 1
     assert stateful_set["spec"]["volumeClaimTemplates"][0]["metadata"]["name"] == "data"
     container = stateful_set["spec"]["template"]["spec"]["containers"][0]
+    assert container["securityContext"]["capabilities"]["add"] == ["NET_BIND_SERVICE"]
     assert {item["name"]: item["value"] for item in container["env"]}["STALWART_PUBLIC_URL"] == (
-        "https://id-stalwart.tools.re8ch.com"
+        "https://id.re8ch.com"
     )
     plan = next(
         item
         for item in resources
-        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan"
+        if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan-v6"
     )["data"]["plan.ndjson"]
-    assert '"issuerUrl":"https://dex.service.re8ch.com"' in plan
+    assert '"issuerUrl":"https://auth.re8ch.com"' in plan
+    assert '"claimGroups":"groups"' in plan
+    assert '"anonymousClientRegistration":true' in plan
     assert '"signatureAlgorithm":"es256"' in plan
+    assert '"accessTokenExpiry":900000' in plan
     assert '"clientId":"kubectl-stalwart-pilot"' in plan
+    assert '"clientId":"headlamp"' in plan
+    assert '"clientId":"storage-collaborator"' in plan
+    assert '"https://headlamp.service.re8ch.com/oidc-callback":true' in plan
+    assert '"clientId":"re8ch-cloud-platform-tool"' in plan
+    assert '"clientId":"re8ch-platform-admin"' in plan
+    assert '"clientId":"re8ch-tenant"' in plan
+    bootstrap = next(item for item in resources if item["kind"] == "Job")
+    assert bootstrap["metadata"]["name"] == "stalwart-idp-bootstrap-v6"
+    bootstrap_container = bootstrap["spec"]["template"]["spec"]["containers"][0]
+    assert {item["name"]: item["value"] for item in bootstrap_container["env"]}["XDG_CACHE_HOME"] == "/cache"
+    assert {item["name"]: item["mountPath"] for item in bootstrap_container["volumeMounts"]}["cache"] == "/cache"
 
 
-def test_stalwart_idp_public_route_exposes_only_login_and_oidc_paths():
+def test_stalwart_unified_identity_bootstraps_existing_mail_store():
+    resources = documents(ROOT / "platform/stalwart/unified-identity.yaml")
+    plan = next(item for item in resources if item["kind"] == "ConfigMap")
+    job = next(item for item in resources if item["kind"] == "Job")
+    rows = [json.loads(line) for line in plan["data"]["plan.ndjson"].splitlines()]
+    directory = next(row for row in rows if row["object"] == "Directory")
+    assert directory["value"]["re8ch-enterprise-sso"]["issuerUrl"] == "https://auth.re8ch.com"
+    assert directory["value"]["re8ch-enterprise-sso"]["claimUsername"] == "email"
+    assert next(row for row in rows if row["object"] == "Authentication")["value"]["directoryId"] == "#re8ch-enterprise-sso"
+    assert next(row for row in rows if row["object"] == "OidcProvider")["value"]["signatureKey"]["filePath"] == "/var/run/stalwart-idp/signing-private.pem"
+    clients = [row for row in rows if row["object"] == "OAuthClient"]
+    assert {next(iter(row["value"].values()))["clientId"] for row in clients} >= {"headlamp", "bulwark-webmail", "kubectl-stalwart-pilot"}
+    webmail = next(next(iter(row["value"].values())) for row in clients if "webmail" in row["value"])
+    assert "https://mail.re8ch.com/en/auth/callback" in webmail["redirectUris"]
+    assert "https://mail.re8ch.com/zh/auth/callback" in webmail["redirectUris"]
+    gateway = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
+    gateway_env = {entry["name"]: entry.get("value") for entry in gateway["spec"]["template"]["spec"]["containers"][0]["env"]}
+    broker_callbacks = {value.strip() for value in gateway_env["AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS"].split(",")}
+    assert set(webmail["redirectUris"]) <= broker_callbacks
+    container = job["spec"]["template"]["spec"]["containers"][0]
+    assert "http://stalwart.mail-system.svc.cluster.local:8080" in container["args"][0]
+    assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]
+    server = next(item for item in documents(ROOT / "platform/stalwart/stalwart.yaml") if item["kind"] == "StatefulSet")
+    server_container = server["spec"]["template"]["spec"]["containers"][0]
+    assert {item["name"]: item["value"] for item in server_container["env"]}["STALWART_PUBLIC_URL"] == "https://id.re8ch.com"
+    assert "stalwart-idp-oidc-keys" in [volume.get("secret", {}).get("secretName") for volume in server["spec"]["template"]["spec"]["volumes"]]
+
+
+def test_stalwart_idp_public_route_serves_oidc_and_jmap_from_mail_instance():
     resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
     route = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public")
-    assert route["spec"]["hostnames"] == ["id-stalwart.tools.re8ch.com"]
+    assert route["spec"]["hostnames"] == ["id.re8ch.com"]
+    assert route["spec"]["parentRefs"][0]["sectionName"] == "id-https"
+    dns = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public-dns")
+    assert dns["spec"]["rules"][0]["host"] == "id.re8ch.com"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
     paths = {
         match["path"]["value"]
         for rule in route["spec"]["rules"]
         for match in rule.get("matches", [])
     }
-    assert paths == {"/", "/.well-known", "/auth", "/login", "/account", "/api/discover"}
+    assert paths == {"/", "/.well-known", "/auth", "/login", "/account", "/jmap", "/dav", "/api/auth", "/api/discover"}
     assert "/api" not in paths
+    assert all(rule["backendRefs"] == [{"name": "stalwart", "port": 8080}] for rule in route["spec"]["rules"] if "backendRefs" in rule)
+    assert dns["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"] == "stalwart"
 
 
-def test_stalwart_public_route_only_exposes_collaboration_paths():
+def test_stalwart_collab_alias_remains_available_during_migration():
     resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
     route = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public")
     assert route["spec"]["hostnames"] == ["collab.tools.re8ch.com"]
-    paths = {
-        match["path"]["value"]
-        for rule in route["spec"]["rules"]
-        for match in rule.get("matches", [])
-    }
-    assert {"/", "/jmap", "/dav", "/.well-known", "/account", "/auth"} == paths
-    assert "/api" not in paths
-    root = next(rule for rule in route["spec"]["rules"] if rule.get("matches", [{}])[0].get("path", {}).get("value") == "/")
-    assert root["filters"][0]["requestRedirect"]["path"]["replaceFullPath"] == "/account"
-    backend = next(rule for rule in route["spec"]["rules"] if "backendRefs" in rule)
-    assert backend["backendRefs"][0]["port"] == 8080
+    assert next(rule for rule in route["spec"]["rules"] if "backendRefs" in rule)["backendRefs"] == [{"name": "stalwart", "port": 8080}]
+    dns = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public-dns")
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
 
 
 def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
     resources = documents(ROOT / "platform/stalwart/public-collaboration.yaml")
     route = next(item for item in resources if item["metadata"]["name"] == "stalwart-admin-public")
-    assert route["spec"]["hostnames"] == ["stalwart-admin.tools.re8ch.com"]
+    assert route["spec"]["hostnames"] == ["stalwart-admin.service.re8ch.com"]
+    assert route["spec"]["parentRefs"][0]["sectionName"] == "service-wildcard-https"
     paths = {
         match["path"]["value"]
         for rule in route["spec"]["rules"]
@@ -412,7 +508,7 @@ def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
     )
 
 
-def test_stalwart_collaboration_is_registered_with_public_edge_manager():
+def test_stalwart_unified_identity_is_registered_with_public_edge_manager():
     release = next(
         item
         for item in documents(ROOT / "platform/public-edge-manager/release.yaml")
@@ -420,17 +516,12 @@ def test_stalwart_collaboration_is_registered_with_public_edge_manager():
     )
     values = release["spec"]["values"]
     services = values["services"]
-    collab = services["collab.tools.re8ch.com."]
-    assert collab == {
-        "service": "collab",
-        "class": "web",
-        "probePath": "/.well-known/jmap",
-        "acceptedStatuses": [200, 307],
-    }
-    admin = services["stalwart-admin.tools.re8ch.com."]
+    assert services["collab.tools.re8ch.com."]["service"] == "collab"
+    assert services["id.re8ch.com."]["service"] == "stalwart"
+    admin = services["stalwart-admin.service.re8ch.com."]
     assert admin == {
         "service": "stalwart-admin",
-        "class": "web",
+        "class": "service-pilot",
         "probePath": "/admin",
         "acceptedStatuses": [200, 302],
     }
@@ -461,17 +552,17 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
-    assert source["spec"]["ref"] == {"digest": "sha256:a0680378f3330cbc5bcbeb918a0d230750f127fbda86ffcdde763b9f02297df5"}
+    assert source["spec"]["ref"] == {"digest": "sha256:451e5b7c85d667c5d75842292e580ab80acafb0011e5ff454fe85a18c7fe9579"}
     values = release["spec"]["values"]
     assert values["image"] == {
-        "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.11",
-        "digest": "sha256:390b5b9d14f9161bc70b26ad456fd72a3e5e8955172ba1da919ed61059972c5a",
+        "repository": "registry.re8ch.com/public-edge/public-edge-manager",
+        "tag": "v0.6.14",
+        "digest": "sha256:d6d75792dea89758ec0c642f64700143266dba960780ae36acc9c82ec97c993e",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
         "auth.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.",
-        "service.re8ch.com.", "functions.re8ch.com."
+        "service.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."
     ]
     assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
@@ -595,7 +686,10 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     assert pod["automountServiceAccountToken"] is False
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
-    assert env["JMAP_SERVER_URL"] == "https://collab.tools.re8ch.com"
+    assert env["JMAP_SERVER_URL"] == "https://id.re8ch.com"
+    assert env["OAUTH_ISSUER_URL"] == "https://auth.re8ch.com"
+    assert env["OAUTH_ENABLED"] == env["OAUTH_ONLY"] == "true"
+    assert env["OAUTH_CLIENT_ID"] == "stalwart-webui"
     assert env["ALLOW_CUSTOM_JMAP_ENDPOINT"] == "false"
     assert env["SETTINGS_SYNC_ENABLED"] == "false"
     assert env["BULWARK_TELEMETRY"] == "off"
@@ -616,8 +710,10 @@ def test_stalwart_mailbox_provisioner_creates_complete_accounts_without_logging_
     assert '\"email\": email, \"username\": email, \"password\": password' in script
     assert '\"@type\": \"User\"' in script
     assert '\"phase\": phase, \"provider\": \"stalwart\"' in script
-    assert '\"name\": \"stalwart-admin-credentials\"' in script
-    assert '\"roles\": {\"@type\": \"Admin\"}' in script
+    assert 'row.get("name") == "harry" and row.get("domainId") == re8ch_domain["id"]' in script
+    assert 'alias.get("name") == "admin" and alias.get("domainId") == re8ch_domain["id"]' in script
+    assert 'cli("update", "Account", harry[0]["id"]' in script
+    assert '"stalwart-admin-credentials"' not in script
     assert "print(password)" not in script
     container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
     assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]
@@ -631,10 +727,30 @@ def test_stalwart_provisioner_models_shared_groups_and_distribution_lists():
     assert '"@type": "Group"' in script
     assert '"object": "MailingList"' in script
     assert '"name": "maintainers"' in script
-    assert '"name": "postmaster"' in script
+    assert 'admin@phonaid.com' not in script
     cronjob = next(item for item in resources if item["kind"] == "CronJob")
     pod_spec = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]
     assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+
+
+def test_product_admin_mailbox_secret_retirement_is_name_scoped():
+    import ast
+
+    accounts = documents(ROOT / "platform/git-workspaces/product-organization-admin-accounts.yaml")
+    names = {account["metadata"]["name"] for account in accounts}
+    assert len(names) == 5
+    resources = documents(ROOT / "platform/stalwart/mailbox-provisioner.yaml")
+    role = next(item for item in resources if item["kind"] == "Role")
+    delete_rules = [rule for rule in role["rules"] if "delete" in rule["verbs"]]
+    assert len(delete_rules) == 1
+    assert set(delete_rules[0]["resourceNames"]) == {name + "-stalwart-credentials" for name in names}
+    script = next(item for item in resources if item["kind"] == "ConfigMap")["data"]["provision.py"]
+    tree = ast.parse(script)
+    managed = next(ast.literal_eval(node.value) for node in tree.body if isinstance(node, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == "STALWART_ADMIN_MANAGED" for target in node.targets))
+    assert managed == names
+    assert "StalwartAdminCredentialReviewRequired" in script
+    assert "refusing to delete an unmanaged mailbox Secret" in script
 
 
 def test_stalwart_cloudflare_token_is_mirrored_without_committing_credential_material():

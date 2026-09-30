@@ -2,12 +2,14 @@
 
 The Flux HelmRelease in `release.yaml` is the active GitOps declaration. It
 contains service catalog and model parameters only. The controller derives
-eligible edge and authority nodes from membership and uplink data projected
-from `inventory/nodes.yaml`, Node ExternalIP, fresh
+eligible edge and authority nodes from all live Kubernetes Nodes. It uses
+uplink and region facts projected from `inventory/nodes.yaml` when available,
+then Node capacity annotations and topology labels for unlisted nodes. A
+global Node ExternalIP, fresh
 NetworkPathAssessment evidence, the labelled canonical Gateway, and direct
 public listener probes. `inventory/nodes.yaml` is shared with AdvancedFabric;
-the release does not keep its own capacity or region list. Unlisted nodes are
-ineligible, but a listed node is not automatically Ready. No fixed edge address
+the release does not keep its own capacity or region list. Unknown uplink
+capacity is ineligible; listed nodes are not automatically Ready. No fixed edge address
 is accepted.
 
 Two controller replicas use a Kubernetes Lease for discovery and Cloudflare
@@ -20,6 +22,14 @@ an alerted degraded state; zero keeps the last known good delegation.
 `service.re8ch.com` and `functions.re8ch.com` are delegated child zones. Keep
 first-level records through their client migration windows until every new
 hostname passes an external route and certificate check.
+
+`test.re8ch.com` is the delegated authority for ephemeral tenant previews.
+The zone declaration contains no wildcard or application A record. Publish a
+preview hostname only after the tenant route broker proves namespace and
+Service ownership, dedicated Gateway listener attachment, TLS, and internal
+health. PublicEdge's existing authority readiness gates control parent NS
+publication; verify the parent delegation and UDP/TCP 53 answers from outside
+the cluster before accepting preview traffic.
 
 A local Pod `/healthz` only proves process health. The discovery controller
 probes each public IP directly and changes only derived eligibility, NS

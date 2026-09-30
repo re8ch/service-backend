@@ -72,7 +72,7 @@ spec:
   group: {{ $binding.group | quote }}
 {{- end }}
   role: {{ $binding.role }}
-  revoked: false
+  revoked: {{ default false $binding.revoked }}
 {{- end }}
 ---
 {{- range $grant := $tenant.grants }}

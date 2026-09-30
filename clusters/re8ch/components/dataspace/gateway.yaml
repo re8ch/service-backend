@@ -22,7 +22,7 @@ spec:
     metadata: {labels: {app: dataspace-gateway}}
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         storage.re8ch.com/ceph-client: "true"
       securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
       containers:
@@ -32,7 +32,7 @@ spec:
           ports: [{name: http, containerPort: 8080}]
           env:
             - {name: DATASPACE_STORAGE_ROOT, value: /data}
-            - {name: DATASPACE_OIDC_ISSUER, value: "https://dex.service.re8ch.com"}
+            - {name: DATASPACE_OIDC_ISSUER, value: "https://id.re8ch.com"}
             - {name: DATASPACE_OIDC_AUDIENCE, value: "storage-collaborator"}
             - name: DATASPACE_DEVICE_TOKEN
               valueFrom: {secretKeyRef: {name: dataspace-gateway, key: device-token}}
@@ -62,7 +62,7 @@ metadata:
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: storage.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:

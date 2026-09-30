@@ -29,6 +29,30 @@ spec:
         - {path: {type: PathPrefix, value: /auth}}
       backendRefs: [{name: stalwart, port: 8080}]
 ---
+# Keep the legacy collaboration alias on the inventory-declared R640 edge
+# while existing clients move to the canonical id.re8ch.com JMAP endpoint.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stalwart-collaboration-public-dns
+  namespace: mail-system
+  labels: {networking.re8ch.com/dns-authority: public-edge}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: collab.tools.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/provider: public-edge-manager
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: collab.tools.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: stalwart, port: {number: 8080}}}
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: {name: stalwart-collaboration-redirect, namespace: mail-system}
@@ -45,16 +69,12 @@ kind: HTTPRoute
 metadata:
   name: stalwart-admin-public
   namespace: mail-system
-  labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: stalwart-admin.tools.re8ch.com
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/ttl: "60"
     governance.re8ch.com/exposure: stalwart-admin-authentication-required
 spec:
-  hostnames: [stalwart-admin.tools.re8ch.com]
+  hostnames: [stalwart-admin.service.re8ch.com]
   parentRefs:
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-wildcard-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}
   rules:
     - matches:
         - {path: {type: Exact, value: /}}
@@ -76,7 +96,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: {name: stalwart-admin-redirect, namespace: mail-system}
 spec:
-  hostnames: [stalwart-admin.tools.re8ch.com]
+  hostnames: [stalwart-admin.service.re8ch.com]
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}]
   rules:
     - filters:

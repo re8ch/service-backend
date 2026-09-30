@@ -158,6 +158,21 @@ class ScoreTests(unittest.TestCase):
         state, _ = controller.capacity_window(node, {"memoryTotal": 1024, "memoryAvailable": 1024, "cpuRatio": 0})
         self.assertEqual(state, "unknown")
 
+    def test_small_node_closes_on_cpu_memory_or_concurrency(self):
+        gib = 1024 ** 3
+        node = {"status": {"conditions": [{"type": "Ready", "status": "True"}],
+                           "allocatable": {"cpu": "2", "memory": "2Gi", "ephemeral-storage": "30Gi", "pods": "110"}}}
+        sample = {"mounts": {("/", "/dev/sda", "ext4"): {"size": 100*gib, "available": 40*gib,
+                  "readonly": 0, "deviceError": 0}}, "memoryTotal": 2*gib,
+                  "memoryAvailable": gib, "cpuRatio": 0.2}
+        self.assertEqual(controller.capacity_window(node, sample, {"pods": 15})[0], "closed")
+        self.assertEqual(controller.capacity_window(node, sample, {"cpu": 1.4})[0], "closed")
+        sample["cpuRatio"] = 0.76
+        self.assertIn("cpu-saturated", controller.capacity_window(node, sample)[1])
+        sample["cpuRatio"] = 0.2
+        sample["memoryAvailable"] = 500 * 1024**2
+        self.assertIn("memory-low", controller.capacity_window(node, sample)[1])
+
     @patch.object(controller, "metric_rows")
     def test_cpu_uses_node_exporter_even_without_trimaran(self, rows):
         def answer(query):

@@ -1,0 +1,29 @@
+name: Sign Stalwart WebUI auth gateway image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Sign and verify the reviewed image digest
+        env:
+          IMAGE: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:d4c5af537c83aa4e007b2f1e2d818d80ce53fb8862b98d7ac46baebc340c5be8
+          IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/auth-gateway-sign.yml@refs/heads/main
+          ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          cosign sign --yes "$IMAGE"
+          cosign verify --certificate-identity "$IDENTITY" --certificate-oidc-issuer "$ISSUER" "$IMAGE"

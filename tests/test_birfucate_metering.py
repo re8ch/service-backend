@@ -50,19 +50,76 @@ def test_chart_lints_and_renders_restricted_workload():
     assert not any("secrets" in rule["resources"] for rule in role["rules"])
 
 
+def test_usage_sink_renders_projected_identity_and_private_receiver():
+    rendered = subprocess.run(
+        ["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--set", "tenantPlatform.enabled=true", "--set", "usageSink.enabled=true"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    docs = [item for item in yaml.safe_load_all(rendered) if item]
+    collector = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "birfucate-metering")
+    projected = next(item for item in collector["spec"]["template"]["spec"]["volumes"] if item["name"] == "usage-token")
+    assert projected["projected"]["sources"][0]["serviceAccountToken"]["audience"] == "re8ch-usage"
+    tenant_api = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-api")
+    env = {item["name"]: item["value"] for item in tenant_api["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
+    assert env["TENANT_USAGE_CLIENT"] == "system:serviceaccount:observability-ai:birfucate-metering"
+    assert any(item["kind"] == "Service" and item["metadata"]["name"] == "tenant-infrastructure" for item in docs)
+    role = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-usage-token-reviewer")
+    assert role["rules"] == [{"apiGroups": ["authentication.k8s.io"], "resources": ["tokenreviews"], "verbs": ["create"]}]
+
+
 def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["opencost"]["enabled"] is True
     assert values["prometheus"]["baseURL"] == "http://vmsingle-opencost.observability-system.svc.cluster.local:8428"
+    assert values["prometheus"]["queryBaseURL"] == "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus"
     assert values["prometheus"]["writePath"] == "/api/v1/import/prometheus"
     assert values["vmServiceScrape"]["enabled"] is False
     domains = {item["domain"] for family in values["meters"].values() for item in family}
     names = {item["name"] for family in values["meters"].values() for item in family}
     assert domains == {"compute", "ceph", "pigsty", "networks", "ai-gateway", "sandbox"}
     assert {"tenant-claim-cpu-request", "tenant-claim-memory-request", "tenant-claim-ephemeral-storage-request"} <= names
+    assert {"tenant-workload-cpu-used", "tenant-workload-memory-used", "ceph-volume-requested", "ceph-volume-capacity", "ceph-volume-used"} <= names
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
     assert {"ai-gateway-provider-spend", "ai-gateway-tool-spend", "ai-gateway-tool-calls"} <= names
     assert {"sandbox-cpu-request", "sandbox-memory-request"} <= names
+
+
+def test_namespace_meter_uses_controller_ownership_and_excludes_individually_metered_pods(tmp_path, monkeypatch):
+    values = yaml.safe_load((CHART / "values.yaml").read_text())
+    ksm = next(item for item in yaml.safe_load_all((ROOT / "platform/observability/bootstrap/kube-state-metrics.yaml").read_text()) if item["kind"] == "HelmRelease")
+    allowlist = ksm["spec"]["values"]["metricLabelsAllowlist"]
+    assert "namespaces=[tenancy.re8ch.com/tenant]" in allowlist
+    assert any("birfucate.re8ch.com/metered" in item for item in allowlist if item.startswith("pods="))
+    meters = [item for item in values["meters"]["occupancy"] if item["name"].startswith("tenant-namespace-")]
+    assert {item["name"] for item in meters} == {"tenant-namespace-cpu-request", "tenant-namespace-memory-request"}
+    assert all('kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}' in item["query"] for item in meters)
+    assert all('unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}' in item["query"] for item in meters)
+    assert all('label_replace(' in item["query"] and '"namespace", "$1", "exported_namespace"' in item["query"] for item in meters)
+    config = {"prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1}, "opencost": {"enabled": False},
+              "tenantLabels": values["tenantLabels"], "meters": {"occupancy": meters}}
+    monkeypatch.setattr(collector, "prometheus_query", lambda _base, query, _timeout: [{"metric": {
+        "label_tenancy_re8ch_com_tenant": "re8ch", "namespace": "re8ch-default"}, "value": [0, "2"]}] if 'resource="cpu"' in query else [])
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 100, 160)
+    event = outbox.pending()[0][1]
+    assert (event["tenantRef"], event["resourceRef"], event["serviceClass"]) == ("re8ch", "re8ch-default", "compute.workload.v1")
+    assert (event["quantity"], event["unit"], event["pricingApplied"]) == (120, "core-second", False)
+
+
+def test_usage_outbox_can_limit_events_to_managed_tenant(tmp_path, monkeypatch):
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "opencost": {"enabled": False}, "usageSink": {"allowedTenants": ["re8ch"]},
+        "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
+        "meters": {"occupancy": [{"name": "cpu", "domain": "compute", "unit": "core-second", "query": "cpu"}]},
+    }
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_args: [
+        {"metric": {"tenant": "re8ch", "resource_ref": "work-a"}, "value": [0, "1"]},
+        {"metric": {"tenant": "artchais", "resource_ref": "work-b"}, "value": [0, "2"]},
+    ])
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 100, 160)
+    assert [event["tenantRef"] for _, event in outbox.pending()] == ["re8ch"]
 
 
 def test_crds_use_status_subresources_cel_and_selectable_fields():
@@ -82,7 +139,7 @@ def test_crds_use_status_subresources_cel_and_selectable_fields():
 
 def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, monkeypatch):
     config = {
-        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "prometheus": {"baseURL": "http://metrics", "queryBaseURL": "http://query", "timeoutSeconds": 1},
         "opencost": {"enabled": False},
         "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
         "meters": {
@@ -96,7 +153,10 @@ def test_bifurcation_formula_preserves_occurrence_intensity_fanout(tmp_path, mon
         "intensity": [{"metric": {"tenant": "qwen", "resource_ref": "service://qwen/vol"}, "value": [0, "12"]}],
         "fanout": [{"metric": {"tenant": "qwen", "resource_ref": "service://qwen/vol"}, "value": [0, "2"]}],
     }
-    monkeypatch.setattr(collector, "prometheus_query", lambda base, query, timeout: data[query])
+    def query(base, expression, timeout):
+        assert base == "http://query"
+        return data[expression]
+    monkeypatch.setattr(collector, "prometheus_query", query)
     collector.METRICS.clear()
     outbox = collector.Outbox(tmp_path / "outbox.db")
     collector.collect_once(config, outbox, 100, 110)

@@ -6,17 +6,16 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_global_exit_candidates_exclude_removed_edge_and_prefer_la() -> None:
+def test_mihomos_consumers_discover_ready_exit_services() -> None:
     values = yaml.safe_load(
         (ROOT / "clusters/re8ch/charts/mihomos-cluster/values.yaml").read_text()
     )
-    candidates = values["exits"]["globalCandidates"]
-
-    assert candidates == [
-        {"name": "global-la", "address": "192.0.2.110"},
-        {"name": "global-kl", "address": "192.0.2.245"},
-    ]
-    assert all(candidate["address"] != "192.0.2.79" for candidate in candidates)
+    template = (ROOT / "clusters/re8ch/charts/mihomos-cluster/templates/dataplane.yaml").read_text()
+    assert "globalCandidates" not in values["exits"]
+    assert "cnCandidates" not in values["exits"]
+    assert "mihomos-global-exit.{{ .Release.Namespace }}.svc.cluster.local" in template
+    assert "mihomos-cn-exit.{{ .Release.Namespace }}.svc.cluster.local" in template
+    assert "192.0.2.110" not in template
 
 
 def test_personal_access_no_longer_publishes_removed_edge() -> None:

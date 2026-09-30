@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: starfire-indigo
+codename: starfire-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:7a52c32616f8fadbb48ca9e3962f6be85b0e8107239709891a51ec544dfd2254
+  digest: sha256:6e93992c2552a45d701262d3c2b6b2ec90980d49c33ff73db3b0e6f07eae44cd
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

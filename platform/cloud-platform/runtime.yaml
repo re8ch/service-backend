@@ -3,7 +3,7 @@ kind: Deployment
 metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 spec:
   replicas: 2
-  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 1}}
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 2, maxSurge: 1}}
   selector: {matchLabels: {app: re8ch-cloud-platform}}
   template:
     metadata: {labels: {app: re8ch-cloud-platform}}
@@ -18,22 +18,27 @@ spec:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
-              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector: {matchLabels: {app: re8ch-cloud-platform}}
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:b9c9755165049a55dad9ff96213d21683db0b379a0396100c9407db58e961975
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:43c9fd89c2b2cc14d16da9a4ce6d433e142560cc3e3589a38fcd0f285e1b46d5
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
             - {name: SSH_CONFIG, value: /etc/re8ch-platform/ssh/ssh-config}
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
+            - {name: OAUTH_AUDIENCE, value: re8ch-cloud-platform-tool}
+            - {name: PUBLIC_MCP_URL, value: "https://operate.tools.re8ch.com/cloud/mcp"}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
           readinessProbe: {httpGet: {path: /readyz, port: mcp}, initialDelaySeconds: 2, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /healthz, port: mcp}, initialDelaySeconds: 5, periodSeconds: 10}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
           volumeMounts:
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
             - {name: ssh-projected, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
@@ -53,6 +58,21 @@ apiVersion: v1
 kind: Service
 metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 spec: {selector: {app: re8ch-cloud-platform}, ports: [{name: mcp, port: 19443, targetPort: mcp}]}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: re8ch-cloud-platform-admin, namespace: ai-operations}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-wildcard-https}]
+  hostnames: [operate.tools.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /cloud/mcp}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /mcp}}
+      backendRefs: [{name: re8ch-cloud-platform, port: 19443}]
+    - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/cloud/mcp}}]
+      backendRefs: [{name: re8ch-cloud-platform, port: 19443}]
 ---
 apiVersion: v1
 kind: ServiceAccount

@@ -21,10 +21,13 @@ spec:
     spec:
       ttlSecondsAfterFinished: 3600
       template:
-        metadata: {labels: {app: workspace-mirror-sync}}
+        metadata:
+          labels:
+            app: workspace-mirror-sync
+            policy.re8ch.com/privileged-approved: "true"
         spec:
           restartPolicy: Never
-          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          nodeSelector: {kubernetes.io/hostname: r640}
           serviceAccountName: workspace-controller
           securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
           initContainers:
@@ -32,6 +35,7 @@ spec:
               image: registry.re8ch.com/functions-shared/re8ch-workspace-controller@sha256:a2e4088bc1d313e5f2680f75499d1337252bb8a13bf9827446a077870c2682d9
               command: [sh, -c, "chown 65532:65532 /var/lib/re8ch/workspace-mirrors /var/lib/re8ch/agent-workspaces"]
               securityContext: {runAsUser: 0, allowPrivilegeEscalation: false, capabilities: {drop: [ALL], add: [CHOWN]}}
+              resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 128Mi}}
               volumeMounts:
                 - {name: mirrors, mountPath: /var/lib/re8ch/workspace-mirrors}
                 - {name: worktrees, mountPath: /var/lib/re8ch/agent-workspaces}
@@ -41,6 +45,7 @@ spec:
               args: [--lock, /config/workspace.lock.yaml, --mirrors, /var/lib/re8ch/workspace-mirrors, --worktrees, /var/lib/re8ch/agent-workspaces, --memory-root, /srv/service-backend/catalogs, sync]
               env: [{name: GIT_SSH_COMMAND, value: "ssh -F /credentials/ssh-config -o BatchMode=yes"}]
               securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, capabilities: {drop: [ALL]}}
+              resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
               volumeMounts:
                 - {name: mirrors, mountPath: /var/lib/re8ch/workspace-mirrors}
                 - {name: worktrees, mountPath: /var/lib/re8ch/agent-workspaces}

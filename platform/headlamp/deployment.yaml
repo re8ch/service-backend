@@ -24,12 +24,11 @@ spec:
     spec:
       serviceAccountName: headlamp
       priorityClassName: system-cluster-critical
-      # Keep token and key requests for the configured Dex service issuer on the
-      # in-cluster Cilium Gateway, avoiding public-edge hairpin routing.
+      # Resolve the Supabase issuer through the in-cluster Cilium Gateway.
       hostAliases:
         - ip: "192.0.2.213"
           hostnames:
-            - dex.service.re8ch.com
+            - db-rw.re8ch.com
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       affinity:
@@ -167,10 +166,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/public-edge-0.2.2
+              target=/headlamp/plugins/public-edge-0.2.3
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '957717e998a59983254c75b76bd43dd9a8829213e9d44a0d24506264152a0149  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '4385d4f2460e726a4668cedfb5ef8b14bcae7d2c21827a186da902ec7f662b23  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -230,18 +229,7 @@ spec:
           args:
             - |
               umask 077
-              while IFS= read -r line; do
-                printf '%s\n' "$line"
-                if [ "$line" = "          client-id: headlamp" ]; then
-                  printf '          client-%s: "%s"\n' secret "$OIDC_CLIENT_SECRET"
-                fi
-              done < /template/qwen.kubeconfig.template > /work/qwen.kubeconfig
-          env:
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: headlamp-oidc
-                  key: client-secret
+              cp /template/qwen.kubeconfig.template /work/qwen.kubeconfig
           volumeMounts:
             - name: qwen-kubeconfig-template
               mountPath: /template
@@ -254,18 +242,7 @@ spec:
           args:
             - |
               umask 077
-              while IFS= read -r line; do
-                printf '%s\n' "$line"
-                if [ "$line" = "          client-id: headlamp" ]; then
-                  printf '          client-%s: "%s"\n' secret "$OIDC_CLIENT_SECRET"
-                fi
-              done < /template/artc.kubeconfig.template > /work/artc.kubeconfig
-          env:
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: headlamp-oidc
-                  key: client-secret
+              cp /template/artc.kubeconfig.template /work/artc.kubeconfig
           volumeMounts:
             - name: artc-kubeconfig-template
               mountPath: /template
@@ -281,18 +258,15 @@ spec:
             - -in-cluster-context-name=re8ch-k3s
             - -enable-dynamic-clusters
             - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
-            - -oidc-client-id=headlamp
-            - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
-            # Use the service-domain issuer managed alongside the Headlamp
-            # route. The browser callback and Dex discovery metadata must agree
-            # on this issuer throughout the login flow.
-            - -oidc-idp-issuer-url=https://dex.service.re8ch.com
+            - -oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24
+            - -oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1
             # Headlamp v0.42 represents an unset in-cluster OIDC CA as a
             # non-nil empty string. Point it at the valid system trust bundle.
             - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
             - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
             # Headlamp adds openid itself when building the authorization URL.
-            - -oidc-scopes=profile,email,groups,offline_access
+            - -oidc-scopes=profile,email,offline_access
+            - -oidc-use-pkce
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:
@@ -305,11 +279,6 @@ spec:
               value: "6443"
             - name: KUBERNETES_SERVICE_PORT_HTTPS
               value: "6443"
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: headlamp-oidc
-                  key: client-secret
           ports:
             - name: http
               containerPort: 4466
@@ -372,7 +341,7 @@ spec:
             name: headlamp-among-clusters-v0324
         - name: public-edge-plugin
           configMap:
-            name: headlamp-public-edge-v022
+            name: headlamp-public-edge-v023
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v011

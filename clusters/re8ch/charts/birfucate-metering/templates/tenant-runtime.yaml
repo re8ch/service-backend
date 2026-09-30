@@ -15,6 +15,17 @@ kind: ServiceAccount
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
 automountServiceAccountToken: false
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: tenant-usage-token-reviewer}
+rules: [{apiGroups: [authentication.k8s.io], resources: [tokenreviews], verbs: [create]}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: tenant-usage-token-reviewer}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: tenant-usage-token-reviewer}
+subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: admin-api, namespace: tenant-infrastructure}
@@ -61,6 +72,8 @@ spec:
             - {name: PUBLIC_MCP_URL, value: "https://admin.re8ch.com:8443/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: AUTH_DISCOVERY_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/.well-known/openid-configuration"}
+            - {name: DEX_USERINFO_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/userinfo"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/admin-devices.db}
           envFrom:
@@ -116,12 +129,17 @@ spec:
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant/mcp"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
+            - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
+            - {name: AUTH_DISCOVERY_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/.well-known/openid-configuration"}
+            - {name: DEX_USERINFO_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/userinfo"}
+            - {name: SUPABASE_USER_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/user"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_REQUIRED, value: {{ .Values.tenantPlatform.supplyChain.required | quote }}}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
+            - {name: TENANT_USAGE_CLIENT, value: 'system:serviceaccount:{{ .Release.Namespace }}:{{ include "birfucate-metering.fullname" . }}'}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
           ports: [{name: http, containerPort: 19448}]
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2, timeoutSeconds: 3}
@@ -142,6 +160,61 @@ kind: Service
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
 spec: {selector: {app: tenant-api}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-credential-redemption, namespace: tenant-infrastructure}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /credentials/redeem}}]
+      backendRefs: [{name: tenant-api, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-native-mcp, namespace: tenant-infrastructure}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /tenant-native/mcp}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /mcp}}
+      backendRefs: [{name: tenant-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-native/mcp}}]
+      backendRefs: [{name: tenant-api, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tenant-billing-read, namespace: tenant-infrastructure}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /tenant-native/billing/usage}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /billing/usage}}
+      backendRefs: [{name: tenant-api, port: 80}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-api-credential-read, namespace: credential-broker}
+rules:
+  - {apiGroups: [""], resources: [secrets], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-api-credential-read, namespace: credential-broker}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-api-credential-read}
+subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: tenant-infrastructure, namespace: tenant-infrastructure}
+spec: {selector: {app: tenant-api}, ports: [{name: http, port: 80, targetPort: http}]}
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: admin-api, namespace: tenant-infrastructure}
@@ -160,7 +233,23 @@ metadata: {name: tenant-api, namespace: tenant-infrastructure}
 spec:
   podSelector: {matchLabels: {app: tenant-api}}
   policyTypes: [Ingress]
-  ingress: [{from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}]
+  ingress:
+    - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}
+    - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19448}]}
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Release.Namespace }}}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
+      ports: [{protocol: TCP, port: 19448}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: tenant-api-gateway, namespace: tenant-infrastructure}
+spec:
+  endpointSelector: {matchLabels: {app: tenant-api}}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports: [{port: "19448", protocol: TCP}]
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPExternalAuthConfig
@@ -207,9 +296,13 @@ spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: tools-https}]
   rules:
     - matches: [{path: {type: PathPrefix, value: /tenant}}]
-      # ConnecTool authenticates the caller and exchanges the inbound Dex token
+      # ConnecTool authenticates the caller and exchanges the inbound OIDC token
       # for a short-lived, audience-bound backend identity token.
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # This publication has one VMCP replica, so session ownership does not
+      # require an additional router hop.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
     - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
-      backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]
+      # Resource discovery does not carry an MCP session and must not depend on
+      # session-router affinity or replica health.
+      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
 {{- end }}

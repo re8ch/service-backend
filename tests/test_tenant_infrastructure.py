@@ -1,4 +1,6 @@
 import importlib.util
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -92,6 +94,42 @@ def test_usage_outbox_is_deduplicated_and_unpriced(tmp_path):
     assert summary["pricingApplied"] is False
 
 
+def test_received_usage_is_durable_idempotent_and_tenant_scoped(tmp_path):
+    db = tmp_path / "services.db"
+    store = tenant_infrastructure.ServiceStore(db)
+    event = {
+        "eventId": "ue_" + "a" * 32, "tenantRef": "re8ch", "resourceRef": "claim://re8ch/volume-1",
+        "serviceClass": "storage.volume.v1", "meter": "occupancy.ceph-volume-capacity",
+        "quantity": 600, "unit": "GiB-second", "periodStart": "2026-09-01T00:00:00Z",
+        "periodEnd": "2026-09-01T00:01:00Z", "regionRef": "loudi",
+        "sourceOperationId": "birfucate:test", "observedAt": "2026-09-01T00:01:00Z",
+        "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False,
+    }
+    assert store.receive_usage(event)["idempotentReplay"] is False
+    assert store.receive_usage(event)["idempotentReplay"] is True
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        assert all(result["idempotentReplay"] for result in pool.map(store.receive_usage, [event] * 16))
+    reopened = tenant_infrastructure.ServiceStore(db)
+    assert reopened.usage_summary("re8ch")["totals"]["occupancy.ceph-volume-capacity:GiB-second"] == 600
+    assert reopened.usage_summary("artchais")["eventCount"] == 0
+    assert reopened.usage_events("re8ch")["events"] == [event]
+    assert reopened.usage_events("artchais")["events"] == []
+    now = datetime.now(timezone.utc)
+    billing = reopened.billing_usage("re8ch", now - timedelta(minutes=1), now + timedelta(minutes=1))
+    assert billing["pricingApplied"] is False and billing["accountingPosted"] is False
+    assert billing["items"] == [{"serviceClass": "storage.volume.v1", "resourceRef": "claim://re8ch/volume-1",
+                                 "meter": "occupancy.ceph-volume-capacity", "unit": "GiB-second",
+                                 "quantity": 600.0, "periodStart": "2026-09-01T00:00:00Z",
+                                 "periodEnd": "2026-09-01T00:01:00Z", "eventCount": 1}]
+    assert reopened.billing_usage("artchais", now - timedelta(minutes=1), now + timedelta(minutes=1))["items"] == []
+    with pytest.raises(tenant_infrastructure.ServiceError, match="31 days"):
+        reopened.billing_usage("re8ch", now - timedelta(days=32), now)
+    with pytest.raises(tenant_infrastructure.ServiceError, match="different content"):
+        reopened.receive_usage({**event, "quantity": 601})
+    with pytest.raises(tenant_infrastructure.ServiceError, match="priced or posted"):
+        reopened.receive_usage({**event, "eventId": "ue_" + "b" * 32, "pricingApplied": True})
+
+
 def test_credentials_and_public_bucket_are_rejected():
     value = database_spec(apiToken="bad")
     with pytest.raises(tenant_infrastructure.ServiceError, match="credential material"):
@@ -109,3 +147,15 @@ def test_ai_gateway_token_budget_is_control_data_not_a_credential():
         "parameters": {"models": ["gpt-5"], "tokenBudget": 100000, "concurrency": 2},
     }
     assert tenant_infrastructure.validate_spec(spec)["parameters"]["tokenBudget"] == 100000
+
+
+def test_grafana_request_derives_organization_from_tenant():
+    value = {
+        "serviceClass": "observability.grafana.v1", "planRef": "viewer", "regionRef": "loudi",
+        "parameters": {"datasourceRefs": ["tenant-metrics"], "folderRefs": [],
+                       "humanLogin": "acme-admin", "identityUserRef": "11111111-1111-4111-8111-111111111111"},
+    }
+    assert tenant_infrastructure.validate_spec(value)["parameters"] == value["parameters"]
+    value["parameters"]["organizationRef"] = "platform"
+    with pytest.raises(tenant_infrastructure.ServiceError, match="unknown parameters"):
+        tenant_infrastructure.validate_spec(value)

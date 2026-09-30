@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/opencost-recovery
-codename: viewport
+codename: zenith
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
-  digest: sha256:9c0bc9fc07dc9f1a0d4f7d7d0432a9157b9d0ec4e91e4260bdca2b6b45cf50c4
+  digest: sha256:a7cd29ec0c2a0f2e1c0d9454d16b434e28dad08082023e720092f1842967eb1e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

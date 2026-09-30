@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:auth-broker-20260923-648dbe0@sha256:a929e65b41eb4877f51978368bfaf1d9f0aad5a74411973851d3067fad194e62
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:identity-center-20260929@sha256:ce92b01ed0f45baa5b8fd9a115b5aedd5cd013a702359dabdd524b235ef37a26
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -79,6 +79,30 @@ spec:
               value: https://api.re8ch.com/auth
             - name: PUBLIC_API_BASE_URL
               value: https://api.re8ch.com/auth
+            - name: IDENTITY_AUTH_URL
+              value: https://db-rw.re8ch.com/auth/v1
+            - name: IDENTITY_RO_URL
+              value: https://db-ro.re8ch.com/identity/rest/v1
+            - name: IDENTITY_RW_URL
+              value: https://db-rw.re8ch.com/identity/rest/v1
+            - name: IDENTITY_AVATAR_COS_BUCKET
+              value: re8ch-avatars-1301339749
+            - name: IDENTITY_AVATAR_COS_REGION
+              value: ap-guangzhou
+            - name: IDENTITY_PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_PGRST_JWT_SECRET}
+            - name: IDENTITY_SEND_EMAIL_HOOK_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_EMAIL_HOOK_SECRET}
+            - name: IDENTITY_AVATAR_COS_SECRET_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_AVATAR_COS_SECRET_ID}
+            - name: IDENTITY_AVATAR_COS_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_AVATAR_COS_SECRET_KEY}
+            - name: IDENTITY_V2_RETURN_ORIGINS
+              value: https://auth.re8ch.com,https://re8ch.com,https://api.re8ch.com
             - name: MGR_RPC_RW_BASE_URL
               value: http://192.0.2.3:3000
             - name: MGR_RPC_RO_BASE_URL
@@ -144,6 +168,8 @@ spec:
             - name: GITHUB_OAUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: GITHUB_OAUTH_CLIENT_SECRET, optional: true}
+            - name: GITHUB_ALLOWED_ORGS
+              value: re8ch
             - name: APPLE_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_ID, optional: true}
@@ -151,16 +177,20 @@ spec:
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_SECRET, optional: true}
             - name: AUTH_OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_CLIENT_ID}
-            - name: AUTH_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_CLIENT_SECRET}
+              value: stalwart-idp
+            - name: AUTH_OIDC_PUBLIC_CLIENT_IDS
+              value: re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant
+            - name: AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS
+              value: >-
+                https://id.re8ch.com/account/oauth/callback,https://id.re8ch.com/admin/oauth/callback,https://stalwart-admin.service.re8ch.com/admin/oauth/callback,
+                https://mail.re8ch.com/ar/auth/callback,https://mail.re8ch.com/ca/auth/callback,https://mail.re8ch.com/cs/auth/callback,https://mail.re8ch.com/da/auth/callback,https://mail.re8ch.com/de/auth/callback,https://mail.re8ch.com/en/auth/callback,https://mail.re8ch.com/es/auth/callback,https://mail.re8ch.com/fa/auth/callback,https://mail.re8ch.com/fr/auth/callback,https://mail.re8ch.com/he/auth/callback,https://mail.re8ch.com/hu/auth/callback,https://mail.re8ch.com/it/auth/callback,https://mail.re8ch.com/ja/auth/callback,https://mail.re8ch.com/ko/auth/callback,https://mail.re8ch.com/lv/auth/callback,https://mail.re8ch.com/mn/auth/callback,https://mail.re8ch.com/nb/auth/callback,https://mail.re8ch.com/nl/auth/callback,https://mail.re8ch.com/pl/auth/callback,https://mail.re8ch.com/pt/auth/callback,https://mail.re8ch.com/ro/auth/callback,https://mail.re8ch.com/ru/auth/callback,https://mail.re8ch.com/sk/auth/callback,https://mail.re8ch.com/tr/auth/callback,https://mail.re8ch.com/uk/auth/callback,https://mail.re8ch.com/zh/auth/callback,https://mail.re8ch.com/zh-TW/auth/callback
+            - name: AUTH_OIDC_ISSUER
+              value: https://auth.re8ch.com
             - name: AUTH_OIDC_SIGNING_KEY_PEM
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-broker-client, key: AUTH_OIDC_SIGNING_KEY_PEM}
             - name: AUTH_OIDC_REDIRECT_URI
-              value: https://dex.service.re8ch.com/callback
+              value: https://id.re8ch.com/account/oauth/callback
             - name: AUTHENTIK_OIDC_ISSUER
               value: https://auth.re8ch.com/application/o/re8ch-business/
             - name: AUTHENTIK_OIDC_SCOPES
@@ -176,22 +206,6 @@ spec:
                 secretKeyRef:
                   name: re8ch-auth-gateway-secrets
                   key: AUTHENTIK_OIDC_CLIENT_SECRET
-                  optional: true
-            - name: DEX_OIDC_ISSUER
-              value: https://dex.service.re8ch.com
-            - name: DEX_OIDC_SCOPES
-              value: openid email profile groups
-            - name: DEX_OIDC_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: re8ch-auth-gateway-secrets
-                  key: DEX_OIDC_CLIENT_ID
-                  optional: true
-            - name: DEX_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: re8ch-auth-gateway-secrets
-                  key: DEX_OIDC_CLIENT_SECRET
                   optional: true
             - name: AUTH_GATEWAY_COOKIE_SECRET
               valueFrom:

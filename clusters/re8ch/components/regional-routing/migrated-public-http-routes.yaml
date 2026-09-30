@@ -58,4 +58,4 @@ spec:
   hostnames: [operate.tools.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /mcp}}, {path: {type: PathPrefix, value: /.well-known}}]
-      backendRefs: [{name: mcp-ops-operate-external-proxy, port: 8080}]
+      backendRefs: [{name: re8ch-operate-vmcp-session-router, port: 4483}]

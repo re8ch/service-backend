@@ -713,7 +713,7 @@
     "kind": "agent-memory",
     "module": "cluster-website",
     "ref": "catalogs/platform/modules/cluster-website/MEMORY.md",
-    "sha256": "b9dcc01fcaecf4b32950c421e016f3a307d8f365f6cf7370aca8e168f4f08154"
+    "sha256": "9dbb23702b80f6e56910d00f125730b036f5666edcf62dbacfb6272cb644c9c3"
   },
   {
     "module": "codex-admin-plugins",
@@ -733,7 +733,7 @@
     "kind": "agent-memory",
     "module": "codex-admin-plugins",
     "ref": "catalogs/platform/modules/codex-admin-plugins/MEMORY.md",
-    "sha256": "1d62a64784ca087231219507bd964a2ff89d966a89551579d284153b54b74795"
+    "sha256": "8ebf3f0c1c3c92fafcdce5b2766966f4b15d38bca6e2b89c7d690173e93a8b2e"
   },
   {
     "module": "connectool",
@@ -817,7 +817,7 @@
     "kind": "agent-memory",
     "module": "image-website",
     "ref": "catalogs/platform/modules/image-website/MEMORY.md",
-    "sha256": "8ee5cb7088019f1e1cfc0325ff04998955140840be86657fc0f53a4b63300844"
+    "sha256": "65a152e7fab8292ade2fda2ace7ec12314dc0b0cadfe32c419ef57aaf2eb91be"
   },
   {
     "module": "mcp-registry",
@@ -877,7 +877,7 @@
     "kind": "agent-memory",
     "module": "observable-website",
     "ref": "catalogs/platform/modules/observable-website/MEMORY.md",
-    "sha256": "7ffb6d74bc3e7368bba5799e5cdd956a4c4fd887e3d7532b05069d5dc1433353"
+    "sha256": "da0b8d6d252b1fc08e6b20101f45cdb2b471b2e93552c82ee77d0b89dd14cac6"
   },
   {
     "module": "product-public-data",
@@ -937,7 +937,7 @@
     "kind": "agent-memory",
     "module": "registry-product-site",
     "ref": "catalogs/platform/modules/registry-product-site/MEMORY.md",
-    "sha256": "a37a3ecc7632e7ddf79e61110943b02119e6dc5ea2037c30083f3d871ff9ce0e"
+    "sha256": "015dd21d6b35fe2aa73fc1c2eafe0201a1f68173e3c3096bedf6c7d247dc6abd"
   },
   {
     "module": "service-backend",
@@ -1013,7 +1013,7 @@
     "kind": "agent-memory",
     "module": "user-hub",
     "ref": "catalogs/platform/modules/user-hub/MEMORY.md",
-    "sha256": "7a5d8284cdf1fe29e7f1adc34635d5c984dc79cd7b404e616ce950606ab7582f"
+    "sha256": "5d37fc6e2eb1eba71aa73b2f8b8e936f453cd76d7550c420fccbb62b6a48e2a7"
   },
   {
     "module": "qianwen-app",

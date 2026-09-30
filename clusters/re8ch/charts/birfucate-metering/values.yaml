@@ -22,6 +22,10 @@ browserAPI:
 tenantPlatform:
   enabled: false
   image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+  provider:
+    enabled: false
+    image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+    databaseBindings: []
   tenantReadinessPath: /readyz
   placement:
     nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
@@ -47,12 +51,10 @@ tenantPlatform:
       imagePullSecretRef: harbor-functions-shared-pull
       harborProjectRef: re8ch
       identityBindings:
-        - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin}
-        - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin}
-        # Compatibility for the currently deployed runtime image, whose
-        # service identity uses Dex's public issuer. Keep the internal issuer
-        # binding above for direct in-cluster identities and future images.
-        - {name: admin-vmcp-service-public, issuer: https://dex.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+        - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin, revoked: true}
+        - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin, revoked: true}
+        - {name: admin-github-k8s-admins-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
+        - {name: admin-vmcp-service-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
       grants: []
       nativeAccess: false
     - name: artchais
@@ -95,10 +97,12 @@ tenantPlatform:
       grants:
         - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
         - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+        - {name: tenant-ci-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
       nativeAccess: true
 
 prometheus:
   baseURL: http://vmsingle-opencost.observability-system.svc.cluster.local:8428
+  queryBaseURL: http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus
   writePath: /api/v1/import/prometheus
   timeoutSeconds: 15
 
@@ -113,9 +117,7 @@ usageSink:
   enabled: false
   url: http://tenant-infrastructure.tenant-infrastructure.svc.cluster.local/internal/usage-events
   timeoutSeconds: 10
-  # Authentication is injected only by an out-of-band Secret.
-  existingSecret: ""
-  tokenKey: token
+  allowedTenants: []
 
 outbox:
   enabled: true
@@ -144,50 +146,78 @@ meters:
       resourceType: model-spend
       purpose: model-inference
       unit: USD
+      valueKind: rate
       costFromQuantity: true
       currency: USD
       tenantLabel: team_alias
       resourceLabel: requested_model
-      query: sum by (team_alias, requested_model) (increase(litellm_spend_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, requested_model) (rate(litellm_spend_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-input-tokens
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: model-token
       purpose: model-inference
       unit: token
+      valueKind: rate
       tenantLabel: team_alias
       resourceLabel: requested_model
-      query: sum by (team_alias, requested_model) (increase(litellm_input_tokens_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, requested_model) (rate(litellm_input_tokens_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-output-tokens
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: model-token
       purpose: model-inference
       unit: token
+      valueKind: rate
       tenantLabel: team_alias
       resourceLabel: requested_model
-      query: sum by (team_alias, requested_model) (increase(litellm_output_tokens_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, requested_model) (rate(litellm_output_tokens_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-tool-spend
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: tool-spend
       purpose: tenant-tool-call
       unit: USD
+      valueKind: rate
       costFromQuantity: true
       currency: USD
       tenantLabel: team_alias
       resourceLabel: mcp_server_name
-      query: sum by (team_alias, mcp_server_name) (increase(litellm_mcp_tool_call_spend_metric_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, mcp_server_name) (rate(litellm_mcp_tool_call_spend_metric_total{team_alias!=""}[5m]))
     - name: ai-gateway-tool-calls
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
       resourceType: tool-call
       purpose: tenant-tool-call
       unit: call
+      valueKind: rate
       tenantLabel: team_alias
       resourceLabel: mcp_server_name
-      query: sum by (team_alias, mcp_server_name) (increase(litellm_mcp_tool_calls_total{team_alias!=""}[5m]))
+      query: sum by (team_alias, mcp_server_name) (rate(litellm_mcp_tool_calls_total{team_alias!=""}[5m]))
   occupancy:
+    # Existing tenant workloads may have no per-resource metering labels. The
+    # controller-owned namespace label is the attribution authority. Exclude
+    # explicitly metered Pods to avoid charging the same request twice.
+    - name: tenant-namespace-cpu-request
+      domain: compute
+      serviceClass: compute.workload.v1
+      resourceType: namespace-cpu
+      purpose: workload-runtime
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      query: label_replace((sum by (exported_namespace) (max by (exported_namespace, exported_pod, exported_container) (kube_pod_container_resource_requests{resource="cpu"}) unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (exported_namespace) group_left(label_tenancy_re8ch_com_tenant) max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""})), "namespace", "$1", "exported_namespace", "(.+)")
+    - name: tenant-namespace-memory-request
+      domain: compute
+      serviceClass: compute.workload.v1
+      resourceType: namespace-memory
+      purpose: workload-runtime
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      query: label_replace((sum by (exported_namespace) (max by (exported_namespace, exported_pod, exported_container) (kube_pod_container_resource_requests{resource="memory"}) unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (exported_namespace) group_left(label_tenancy_re8ch_com_tenant) max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""})), "namespace", "$1", "exported_namespace", "(.+)") / 1073741824
     - name: sandbox-cpu-request
       domain: sandbox
       serviceClass: sandbox.runtime.v1
@@ -234,6 +264,24 @@ meters:
       tenantLabel: label_tenant
       resourceLabel: label_resource_ref
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: tenant-workload-cpu-used
+      domain: compute
+      resourceType: cpu-used
+      purpose: workload-runtime
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]) * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"})
+    - name: tenant-workload-memory-used
+      domain: compute
+      resourceType: memory-used
+      purpose: workload-runtime
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (container_memory_working_set_bytes{container!="",image!=""} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: tenant-claim-ephemeral-storage-request
       domain: compute
       resourceType: ephemeral-storage
@@ -255,7 +303,25 @@ meters:
       valueKind: gauge
       tenantLabel: label_tenant
       resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) ((kube_persistentvolumeclaim_resource_requests_storage_bytes * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) * on (namespace, persistentvolumeclaim) group_left() (kube_persistentvolumeclaim_status_phase{phase="Bound"} == 1)) / 1073741824
+    - name: ceph-volume-requested
+      domain: ceph
+      resourceType: storage-request
+      purpose: requested-capacity
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
       query: sum by (label_tenant, label_resource_ref) (kube_persistentvolumeclaim_resource_requests_storage_bytes * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: ceph-volume-used
+      domain: ceph
+      resourceType: storage-used
+      purpose: occupied-capacity
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes) * on (namespace, persistentvolumeclaim) group_left(label_tenant, label_resource_ref) kube_persistentvolumeclaim_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: pigsty-database-storage
       domain: pigsty
       resourceType: database-storage

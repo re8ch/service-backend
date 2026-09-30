@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-oauth-clients-headlamp-v2
+  namespace: supabase-identity
+data:
+  clients.sql: |
+    begin;
+    insert into auth.oauth_clients (
+      id, client_secret_hash, registration_type, client_type,
+      token_endpoint_auth_method, redirect_uris, grant_types,
+      client_name, client_uri
+    ) values (
+      'ed4e0331-7522-59f8-8a72-2d558844dc24', '', 'manual', 'public',
+      'none', 'https://headlamp.service.re8ch.com/oidc-callback',
+      'authorization_code,refresh_token', 'Headlamp Kubernetes console',
+      'https://headlamp.service.re8ch.com'
+    ) on conflict (id) do update set
+      client_secret_hash = excluded.client_secret_hash,
+      registration_type = excluded.registration_type,
+      client_type = excluded.client_type,
+      token_endpoint_auth_method = excluded.token_endpoint_auth_method,
+      redirect_uris = excluded.redirect_uris,
+      grant_types = excluded.grant_types,
+      client_name = excluded.client_name,
+      client_uri = excluded.client_uri,
+      deleted_at = null,
+      updated_at = now();
+    do $$
+    begin
+      if not exists (
+        select 1 from auth.oauth_clients
+        where id = 'ed4e0331-7522-59f8-8a72-2d558844dc24'
+          and client_secret_hash = ''
+          and client_type = 'public' and token_endpoint_auth_method = 'none'
+          and deleted_at is null
+      ) then
+        raise exception 'Headlamp OAuth client was not registered';
+      end if;
+    end $$;
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-oauth-clients-headlamp-v2
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      containers:
+        - name: register
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args:
+            - psql -X -v ON_ERROR_STOP=1 "$GOTRUE_DB_DATABASE_URL" -f /sql/clients.sql
+          env:
+            - name: GOTRUE_DB_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-identity-secrets
+                  key: GOTRUE_DB_DATABASE_URL
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - name: sql
+          configMap:
+            name: supabase-oauth-clients-headlamp-v2

@@ -15,14 +15,14 @@ kind: ConfigMap
 metadata: {name: harbor-tenant-catalog, namespace: ai-operations}
 data:
   harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"tenant-ci":{},"thiking-machine":{}}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata: {name: harbor-tenant-catalog, namespace: credential-broker}
 data:
   harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"thiking-machine":{}}}
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"tenant-ci":{},"thiking-machine":{}}}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -476,7 +476,7 @@ spec:
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/orchestra/mcp"}
             - {name: INSTALL_STATE_HMAC_KEY, valueFrom: {secretKeyRef: {name: marketplace-installer, key: state-hmac-key}}}
             - {name: INSTALL_REDIRECT_URI, value: "https://marketplace.re8ch.com/install/callback"}
-            - {name: MARKETPLACE_SOURCE, value: "https://github.com/re8ch/codex-admin-plugins.git"}
+            - {name: MARKETPLACE_SOURCE, value: "https://github.com/re8ch-ai/codex-admin-plugins.git"}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/re8ch-ai-operations/devices.db}
             - {name: TEABLE_BASE_URL, value: "https://teable.re8ch.com"}
             - {name: LITELLM_BASE_URL, value: "https://litellm.service.re8ch.com"}

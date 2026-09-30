@@ -6,7 +6,7 @@ metadata:
   labels:
     reconcile.fluxcd.io/watch: Enabled
 data:
-  nodes.json: '{"restricted-node-1eb0570f74":{"capacityMbps":200,"region":"cn-hunan"},"amdwsl-zt":{"capacityMbps":100,"region":"cn-hubei"},"restricted-node-296f36f2fb":{"capacityMbps":200,"region":"cn-hunan"},"domain-ex":{"capacityMbps":3,"region":"cn-shanghai"},"muaya-ecs":{"capacityMbps":3,"region":"cn-hangzhou"},"muaya-lightweight":{"capacityMbps":3,"region":"cn-shanghai"},"overseas-kl":{"capacityMbps":1000,"region":"my-kul"},"overseas-la":{"capacityMbps":1000,"region":"us-ca"},"restricted-node-6dc3f140f9":{"capacityMbps":200,"region":"cn-hunan"},"suxunji":{"capacityMbps":3,"region":"cn-shanghai"},"vm-20-12-ubuntu":{"capacityMbps":3,"region":"cn-guangzhou"},"zan":{"capacityMbps":3,"region":"cn-guangzhou"}}'
+  nodes.json: '{"restricted-node-1eb0570f74":{"capacityMbps":200,"region":"cn-hunan"},"amdwsl-zt":{"capacityMbps":100,"region":"cn-hubei"},"restricted-node-296f36f2fb":{"capacityMbps":200,"region":"cn-hunan"},"domain-ex":{"capacityMbps":3,"region":"cn-shanghai"},"muaya-ecs":{"capacityMbps":3,"region":"cn-hangzhou"},"muaya-lightweight":{"capacityMbps":3,"region":"cn-shanghai"},"overseas-flk":{"capacityMbps":400,"region":"de-fsn"},"overseas-kl":{"capacityMbps":1000,"region":"my-kul"},"overseas-la":{"capacityMbps":1000,"region":"us-ca"},"overseas-la-2":{"capacityMbps":1000,"region":"us-ca"},"restricted-node-6dc3f140f9":{"capacityMbps":200,"region":"cn-hunan"},"suxunji":{"capacityMbps":3,"region":"cn-shanghai"},"vm-20-12-ubuntu":{"capacityMbps":3,"region":"cn-guangzhou"},"zan":{"capacityMbps":3,"region":"cn-guangzhou"}}'
   advanced-fabric-values.yaml: |
     advancedFabric:
       nodes:
@@ -133,6 +133,36 @@ data:
         asn: 65003
         legacyASN: 4200000089
         monthlyTrafficLimitGiB: 300
+        publicAuthority: true
+        inventoryComplete: true
+      - name: overseas-la-2
+        region: us-ca
+        uplinkMbps: 1000
+        role: spine
+        class: A
+        failureDomain: overseas-la-2
+        provider: dmit
+        internalIP: 192.0.2.47
+        podCIDR: 192.0.2.203/24
+        acceleratedIP: 192.0.2.148
+        asn: 65006
+        legacyASN: 4200000220
+        monthlyTrafficLimitGiB: 1024
+        publicAuthority: true
+        inventoryComplete: true
+      - name: overseas-flk
+        region: de-fsn
+        uplinkMbps: 400
+        role: spine
+        class: A
+        failureDomain: overseas-flk
+        provider: hetzner
+        internalIP: 192.0.2.39
+        podCIDR: 192.0.2.165/24
+        acceleratedIP: 192.0.2.48
+        asn: 65005
+        legacyASN: 4200000105
+        monthlyTrafficLimitGiB: 20480
         publicAuthority: true
         inventoryComplete: true
       - name: overseas-la

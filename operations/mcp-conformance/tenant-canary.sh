@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-endpoint=https://tools.re8ch.com/tenant/mcp
-metadata_url=https://tools.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp
+endpoint=https://tools.service.re8ch.com/tenant/mcp
+metadata_url=https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp
 evidence=tenant-canary.evidence.json
 
 # Always prove the new publication is routed, advertises the canonical resource,

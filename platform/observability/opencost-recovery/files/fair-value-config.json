@@ -36,6 +36,8 @@
     {"name": "qianwen-test-nuclio-2", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
     {"name": "overseas-edge-50", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
     {"name": "overseas-la", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.92, "storageGiB": 19.6, "bookMonthlyCNY": null},
+    {"name": "overseas-la-2", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.9, "storageGiB": 20, "bookMonthlyCNY": null},
+    {"name": "overseas-flk", "regionGroup": "eu-central", "resourceClass": "compute-storage", "cpuCores": 2, "memoryGiB": 3.7, "storageGiB": 40, "bookMonthlyCNY": null},
     {"name": "overseas-kl", "regionGroup": "ap-southeast", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.92, "storageGiB": 19.58, "bookMonthlyCNY": null}
   ]
 }

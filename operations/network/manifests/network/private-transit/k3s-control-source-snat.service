@@ -1,0 +1,14 @@
+[Unit]
+Description=RE8CH K3s control-plane source identity over AdvFab
+Wants=network-online.target
+After=network-online.target
+Before=k3s-agent.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/k3s-control-source-snat --inventory /etc/re8ch/podcidr-fabric-inventory.json
+ExecStop=-/usr/sbin/nft delete table ip re8ch_k3s_control_snat
+
+[Install]
+WantedBy=multi-user.target

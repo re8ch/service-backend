@@ -2,21 +2,7 @@ apiVersion: apiserver.config.k8s.io/v1
 kind: AuthenticationConfiguration
 jwt:
   - issuer:
-      url: https://dex.re8ch.com
-      audiences: [headlamp]
+      url: https://db-rw.re8ch.com/auth/v1
+      audiences: [ed4e0331-7522-59f8-8a72-2d558844dc24]
     claimMappings:
-      username: {claim: email, prefix: 'oidc:'}
-      groups: {claim: groups, prefix: 'oidc:'}
-  - issuer:
-      url: https://dex.service.re8ch.com
-      audiences: [headlamp]
-    claimMappings:
-      username: {claim: email, prefix: 'oidc:'}
-      groups: {claim: groups, prefix: 'oidc:'}
-  - issuer:
-      url: https://id-stalwart.tools.re8ch.com
-      audiences: [kubectl-stalwart-pilot]
-    claimMappings:
-      # Stalwart v0.16.18 issues stable email claims but does not emit groups.
-      # The pilot therefore reuses the existing named-user RBAC binding.
       username: {claim: email, prefix: 'oidc:'}

@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: tramontane-silver
+    delivery.re8ch.com/codename: mistral-violet
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:6a2d6847d741202f5cd1f2361ad8fe4d40a99fbc1a8d47529b26fa20048daf68
+    digest: sha256:65f815cfdbe5c44dab989762ec34fb94ee548436a0f10adc1a43e62e2e4dc476
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: tramontane-silver
+    delivery.re8ch.com/codename: mistral-violet
 spec:
   interval: 1m
   retryInterval: 1m

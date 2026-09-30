@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-harry-admin-alias-v1
+  namespace: mail-system
+data:
+  reconcile.py: |
+    import base64
+    import json
+    import os
+    import urllib.request
+
+    endpoint = os.environ["STALWART_URL"].rstrip("/") + "/jmap"
+    credential = os.environ["STALWART_RECOVERY_ADMIN"]
+    authorization = "Basic " + base64.b64encode(credential.encode()).decode()
+
+    def call(name, arguments):
+        payload = json.dumps({
+            "using": ["urn:ietf:params:jmap:core", "urn:stalwart:jmap"],
+            "methodCalls": [[name, arguments, "alias"]],
+        }).encode()
+        request = urllib.request.Request(endpoint, payload, {
+            "Authorization": authorization,
+            "Content-Type": "application/json",
+        })
+        with urllib.request.urlopen(request, timeout=20) as response:
+            result = json.load(response)["methodResponses"][0]
+        if result[0] != name:
+            raise RuntimeError("Stalwart rejected the account operation")
+        return result[1]
+
+    def accounts():
+        return call("x:Account/get", {
+            "ids": None,
+            "properties": ["name", "domainId", "emailAddress", "aliases", "permissions"],
+        })["list"]
+
+    current = accounts()
+    matches = [item for item in current if item.get("emailAddress") == "harry@re8ch.com"]
+    if len(matches) != 1:
+        raise RuntimeError("expected exactly one Harry mailbox")
+    harry = matches[0]
+    domain_id = harry["domainId"]
+    for item in current:
+        if item.get("emailAddress") == "admin@re8ch.com" and item["id"] != harry["id"]:
+            raise RuntimeError("admin address belongs to another mailbox")
+        for alias in (item.get("aliases") or {}).values():
+            if alias.get("name") == "admin" and alias.get("domainId") == domain_id and item["id"] != harry["id"]:
+                raise RuntimeError("admin alias belongs to another mailbox")
+
+    aliases = dict(harry.get("aliases") or {})
+    if not any(value.get("name") == "admin" and value.get("domainId") == domain_id for value in aliases.values()):
+        next_id = str(max((int(key) for key in aliases if key.isdigit()), default=-1) + 1)
+        aliases[next_id] = {"enabled": True, "name": "admin", "domainId": domain_id}
+
+    old_permissions = harry.get("permissions") or {"@type": "Inherit"}
+    if old_permissions.get("@type") not in ("Inherit", "Merge"):
+        raise RuntimeError("refusing to replace custom Harry mailbox permissions")
+    enabled = dict(old_permissions.get("enabledPermissions") or {})
+    disabled = dict(old_permissions.get("disabledPermissions") or {})
+    if disabled.get("authenticateWithAlias"):
+        raise RuntimeError("alias authentication is explicitly denied")
+    enabled["authenticateWithAlias"] = True
+    permissions = {"@type": "Merge", "enabledPermissions": enabled, "disabledPermissions": disabled}
+
+    if aliases != (harry.get("aliases") or {}) or permissions != old_permissions:
+        result = call("x:Account/set", {
+            "update": {harry["id"]: {"aliases": aliases, "permissions": permissions}},
+        })
+        if harry["id"] not in result.get("updated", {}):
+            raise RuntimeError("Stalwart did not update Harry mailbox")
+
+    updated = next(item for item in accounts() if item["id"] == harry["id"])
+    if not any(value.get("enabled") and value.get("name") == "admin" and value.get("domainId") == domain_id for value in (updated.get("aliases") or {}).values()):
+        raise RuntimeError("admin mailbox alias was not saved")
+    if not (updated.get("permissions") or {}).get("enabledPermissions", {}).get("authenticateWithAlias"):
+        raise RuntimeError("alias sign-in permission was not saved")
+    print("harry@re8ch.com accepts admin@re8ch.com as mailbox alias")
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-harry-admin-alias-v1
+  namespace: mail-system
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: r640}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: reconcile
+          image: docker.1ms.run/library/python@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+          command: [python3, /app/reconcile.py]
+          envFrom: [{secretRef: {name: stalwart-recovery-admin}}]
+          env:
+            - {name: STALWART_URL, value: "http://stalwart.mail-system.svc.cluster.local:8080"}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: app, mountPath: /app, readOnly: true}
+      volumes:
+        - {name: app, configMap: {name: stalwart-harry-admin-alias-v1}}

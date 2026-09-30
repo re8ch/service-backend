@@ -198,6 +198,9 @@ spec:
               operation:
                 type: string
                 enum: [EnsurePresent, EnsureAbsent]
+              expiresAt:
+                type: string
+                format: date-time
           status:
             type: object
             properties:
@@ -540,6 +543,18 @@ spec:
                     type: string
                   namespace:
                     type: string
+              volumeAllocation:
+                type: object
+                properties:
+                  state:
+                    type: string
+                    enum: [Pending, Bound, Retained, Unknown]
+                  capacity:
+                    type: string
+                    nullable: true
+                  persistentVolume:
+                    type: string
+                    nullable: true
               endpoint:
                 type: object
                 properties:

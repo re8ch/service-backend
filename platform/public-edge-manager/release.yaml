@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:a0680378f3330cbc5bcbeb918a0d230750f127fbda86ffcdde763b9f02297df5}
+  ref: {digest: sha256:451e5b7c85d667c5d75842292e580ab80acafb0011e5ff454fe85a18c7fe9579}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -27,12 +27,10 @@ spec:
   rollback: {cleanupOnFail: true}
   values:
     image:
-      repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.11"
-      # Pin the amd64 manifest used by the current PublicEdge nodes. restricted-node-6dc3f140f9's
-      # containerd cannot reliably hydrate the signed multi-arch index through
-      # its GHCR blob path, while this immutable child manifest is verified.
-      digest: sha256:390b5b9d14f9161bc70b26ad456fd72a3e5e8955172ba1da919ed61059972c5a
+      repository: registry.re8ch.com/public-edge/public-edge-manager
+      tag: "v0.6.14"
+      # Mirror of the pinned upstream release, pulled by digest on restricted-node-6dc3f140f9.
+      digest: sha256:d6d75792dea89758ec0c642f64700143266dba960780ae36acc9c82ec97c993e
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -42,11 +40,13 @@ spec:
       nameserversConfigMap: public-edge-nameservers
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
-      zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com.]
+      zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
       # ACME follows this alias into the parent Cloudflare zone. PublicEdge
       # remains authoritative for service records; no per-service parent A is
       # needed. The chart's externalCDN field is its static-record opt-in.
       externalRecords:
+        _dnsauth.auth.re8ch.com.:
+          - {type: CNAME, value: auth.re8ch.com.eoacme0.com., externalCDN: true, provider: tencent-edgeone}
         aliyun.anycam.functions.re8ch.com.:
           - {type: CNAME, value: 1184182212873855.cn-hangzhou.fc.aliyuncs.com., externalCDN: true, provider: aliyun-fc}
         aliyun-ap-northeast-1.anycam.functions.re8ch.com.:
@@ -134,10 +134,12 @@ spec:
       replicas: 2
       intervalSeconds: 15
       probeTimeoutSeconds: 2
-      defaultCapacityMbps: 100
+      # Unknown uplinks do not meet the public-edge minimum until measured.
+      defaultCapacityMbps: 1
       minimumCapacityMbps: 100
-      # Shared cluster inventory is the sole source of membership, capacity and
-      # region; public IP and readiness are checked independently at runtime.
+      # Shared inventory supplies capacity and region facts where present.
+      # Every live Node is considered; unlisted nodes can qualify with measured
+      # capacity annotations and the same public IP/path/listener probes.
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       maxNameservers: 3
       gatewayNamespace: kube-system
@@ -146,7 +148,9 @@ spec:
       ingressLabel: networking.re8ch.com/public-edge-ready
       serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot, service-overseas]
       parentZone: re8ch.com
-      childZones: [auth.re8ch.com, api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com]
+      # Keep auth's authoritative zone for rollback, but stop recreating its
+      # parent NS delegation before replacing that delegation with EdgeOne CNAME.
+      childZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com, test.re8ch.com]
       cloudflareSecretRef: {namespace: qianwen-ops, name: cloudflare-pg-dns-controller-secret, key: CF_API_TOKEN}
     services:
       # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
@@ -181,27 +185,24 @@ spec:
       image.service.re8ch.com.: {service: image-service, class: service-pilot, probePath: /image, acceptedStatuses: [200, 400, 401, 403, 404, 405]}
       ledger-decisions.service.re8ch.com.: {service: ledger-decisions-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307, 401, 403]}
       mail.service.re8ch.com.: {service: mail-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307]}
+      stalwart-admin.service.re8ch.com.: {service: stalwart-admin, class: service-pilot, probePath: /admin, acceptedStatuses: [200, 302]}
       pay.service.re8ch.com.: {service: pay-service, class: service-overseas, probePath: /, acceptedStatuses: [200, 302, 307, 401]}
       pay-api.service.re8ch.com.: {service: pay-api, class: service-overseas, probePath: /health, acceptedStatuses: [200, 401, 404]}
       dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
       collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
       mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
-      stalwart-admin.tools.re8ch.com.: {service: stalwart-admin, class: web, probePath: /admin, acceptedStatuses: [200, 302]}
-      id-stalwart.tools.re8ch.com.: {service: stalwart-idp, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
+      id.re8ch.com.: {service: stalwart, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       hooks.re8ch.com.: {service: hooks, class: web, probePath: /hook/, acceptedStatuses: [400, 404]}
-    readinessGates:
-      db-rw:
-        configMap: {namespace: kube-system, name: pg-re8ch-role-authority, dataKey: authority.json}
-        requiredFields: {authority: patroni}
-        addressPath: [leader, address]
-        endpointSlice: {namespace: pigsty-external, name: pg-re8ch-primary}
-        requireSingleReadyAddress: true
+    # PublicEdge status already supplies edge transport readiness. The legacy
+    # db-rw gate performs two Kubernetes API reads during each DNS query and
+    # can exceed recursive resolver timeouts even while Supabase is healthy.
     workload:
       httpPort: 18080
       tolerations:
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         - {key: node.cilium.io/agent-not-ready, operator: Exists, effect: NoSchedule}
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
       containerSecurityContext:
         allowPrivilegeEscalation: false
         capabilities: {add: [NET_BIND_SERVICE], drop: [ALL]}

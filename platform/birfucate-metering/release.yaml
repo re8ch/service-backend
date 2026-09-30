@@ -44,7 +44,13 @@ spec:
       enabled: true
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:a449da07d69295ea1ce6f6abfc4a62a74954a7af5f048921d3279c2bd5591e95
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:e2bca93340b87b794d5be3e69df06713c42cbdfbf487355d076df4037895233b
+      provider:
+        enabled: true
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:e2bca93340b87b794d5be3e69df06713c42cbdfbf487355d076df4037895233b
+        databaseBindings:
+          - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
+          - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
       tenantReadinessPath: /readyz
       state:
         storageClassName: rbd-r640
@@ -67,8 +73,10 @@ spec:
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
           identityBindings:
-            - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin}
-            - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin}
+            - {name: admin-github-k8s-admins, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: admin, revoked: true}
+            - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin, revoked: true}
+            - {name: admin-github-k8s-admins-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
+            - {name: admin-vmcp-service-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
           grants: []
           nativeAccess: false
         - name: artchais
@@ -122,13 +130,18 @@ spec:
           identityBindings:
             # The same GitHub identity is deliberately projected differently by
             # audience: ordinary re8ch operator here, protected admin above.
-            - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: operator}
-            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: operator}
+            - {name: re8ch-tenant-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: operator, revoked: true}
+            - {name: re8ch-github-k8s-admins-as-operators, issuer: https://dex.service.re8ch.com, group: "re8ch:k8s-admins", role: operator, revoked: true}
+            - {name: re8ch-tenant-admins-as-operators-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: operator}
+            - {name: re8ch-github-k8s-admins-as-operators-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: operator}
             # Dex wraps the upstream GitHub numeric ID in its connector-scoped
             # stable `sub`. Hash the actual Dex userinfo `sub`, including the
             # issuer prefix used by the tenant authorizer. This remains an
             # ordinary re8ch tenant binding, not admin access.
-            - {name: re8ch-dex-woomou-subject-operator, issuer: https://dex.service.re8ch.com, subjectHash: "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6", role: operator}
+            - {name: re8ch-dex-woomou-subject-operator, issuer: https://dex.service.re8ch.com, subjectHash: "sha256:f14d4712ab05a8ce0c052e0390ccae30cf4f3768065de4cf292f4923b25456f6", role: operator, revoked: true}
+            # ToolHive audit identifies the same operator as re8ch:user:46 under
+            # the public auth issuer. Bind only that subject to the existing role.
+            - {name: re8ch-auth-woomou-subject-operator, issuer: https://auth.re8ch.com, subjectHash: "sha256:c1f31ccaf6518e235725fdb1e46a6a8b79721e055eaf0b6f1b5bd3549bae7e92", role: operator}
             - {name: re8ch-auth-admins, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:admin", role: admin}
             - {name: re8ch-auth-operators, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:member", role: operator}
             - {name: re8ch-auth-billing, issuer: https://api.re8ch.com/auth, group: "tenant:re8ch:billing", role: viewer}
@@ -138,7 +151,7 @@ spec:
             - {name: re8ch-database, consumableRef: database.postgresql.shared.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-network, consumableRef: network.tenant.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-among-clusters, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}
-            - {name: re8ch-observability, consumableRef: observability.grafana.v1, roleRef: viewer, lifecycle: Active}
+            - {name: re8ch-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-ai-model-gateway, consumableRef: ai.model-gateway.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-sandbox-runtime, consumableRef: sandbox.runtime.v1, roleRef: operator, lifecycle: Active}
@@ -164,16 +177,18 @@ spec:
           grants:
             - {name: tenant-ci-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: tenant-ci-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+            - {name: tenant-ci-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+            - {name: tenant-ci-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
-    # Keep the first production reconciliation equivalent to the validated
-    # canary: no stateful allocation while Ceph is degraded and no downstream
-    # delivery until the tenant usage sink is promoted.
+    # Keep downstream provisioning gated while Ceph is degraded. Raw, unpriced
+    # usage is delivered only for the re8ch tenant.
     outbox:
       enabled: false
     usageSink:
-      enabled: false
-    pricing:
       enabled: true
+      allowedTenants: [re8ch]
+    pricing:
+      enabled: false
       currency: CNY
       rateCardRef: re8ch-showback-2026-09
     serviceMonitor:

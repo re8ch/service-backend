@@ -4,7 +4,14 @@ import tempfile
 import unittest
 import json
 import sys
+import threading
+import urllib.error
+import urllib.request
+from urllib.request import urlopen as real_urlopen
+from http.server import ThreadingHTTPServer
+from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -23,6 +30,97 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_billing_http_requires_supabase_tenant_membership_and_allows_auth_center(self):
+        m = load("tenant")
+        m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "billing.db"
+        m._TENANT_SERVICE_STORE = None
+        event = {
+            "eventId": "ue_" + "d" * 32, "tenantRef": "re8ch", "resourceRef": "re8ch-anysite",
+            "serviceClass": "compute.workload.v1", "meter": "occupancy.cpu", "quantity": 45,
+            "unit": "core-second", "periodStart": "2026-09-29T00:00:00Z",
+            "periodEnd": "2026-09-29T00:01:00Z", "regionRef": "loudi",
+            "sourceOperationId": "birfucate:test", "observedAt": "2026-09-29T00:01:00Z",
+            "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False,
+        }
+        m.tenant_service_store().receive_usage(event)
+        m.supabase_identity = lambda token: {"auth_type": "supabase", "subject": "user-1", "_supabase_access_token": token} if token == "valid-token" else None
+        m.authenticated_tenant_context = lambda identity: {"tenantRef": "re8ch"} if identity.get("requested_tenant") == "re8ch" else (_ for _ in ()).throw(PermissionError())
+        server = ThreadingHTTPServer(("127.0.0.1", 0), m.Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        url = f"http://127.0.0.1:{server.server_port}/billing/usage"
+        try:
+            preflight = urllib.request.Request(url, method="OPTIONS", headers={"Origin": "https://auth.re8ch.com"})
+            with real_urlopen(preflight, timeout=2) as response:
+                self.assertEqual(response.status, 204)
+                self.assertEqual(response.headers["Access-Control-Allow-Origin"], "https://auth.re8ch.com")
+            headers = {"Origin": "https://auth.re8ch.com", "Authorization": "Bearer valid-token", "X-RE8CH-Tenant": "re8ch"}
+            with real_urlopen(urllib.request.Request(url, headers=headers), timeout=2) as response:
+                result = json.load(response)
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+            self.assertEqual(result["tenantRef"], "re8ch")
+            self.assertEqual(result["items"][0]["quantity"], 45)
+            self.assertFalse(result["pricingApplied"])
+            for denied_headers, expected in [({**headers, "X-RE8CH-Tenant": "other"}, 403),
+                                             ({**headers, "Authorization": "Bearer wrong"}, 401)]:
+                with self.assertRaises(urllib.error.HTTPError) as denied:
+                    real_urlopen(urllib.request.Request(url, headers=denied_headers), timeout=2)
+                self.assertEqual(denied.exception.code, expected)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+    def test_usage_receiver_authenticates_deduplicates_and_isolates(self):
+        m = load("tenant")
+        m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "usage.db"
+        m._TENANT_SERVICE_STORE = None
+        m.authenticated_usage_collector = lambda header: header == "Bearer test-projected-token"
+        server = ThreadingHTTPServer(("127.0.0.1", 0), m.Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        event = {
+            "eventId": "ue_" + "c" * 32, "tenantRef": "re8ch", "resourceRef": "claim://re8ch/test",
+            "serviceClass": "compute.workload.v1", "meter": "occupancy.cpu", "quantity": 60,
+            "unit": "core-second", "periodStart": "2026-09-01T00:00:00Z",
+            "periodEnd": "2026-09-01T00:01:00Z", "regionRef": "loudi",
+            "sourceOperationId": "birfucate:test", "observedAt": "2026-09-01T00:01:00Z",
+            "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False,
+        }
+        def post(value, token):
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{server.server_port}/internal/usage-events",
+                data=json.dumps(value).encode(), headers={"Authorization": token, "Content-Type": "application/json"}, method="POST",
+            )
+            with real_urlopen(request, timeout=2) as response:
+                return response.status, json.load(response)
+        try:
+            with self.assertRaises(urllib.error.HTTPError) as denied:
+                post(event, "Bearer wrong")
+            self.assertEqual(denied.exception.code, 401)
+            self.assertEqual(post(event, "Bearer test-projected-token")[0], 201)
+            status, replay = post(event, "Bearer test-projected-token")
+            self.assertEqual(status, 200)
+            self.assertTrue(replay["idempotentReplay"])
+            collector_path = Path(__file__).parents[2] / "charts/birfucate-metering/files/collector.py"
+            collector_spec = importlib.util.spec_from_file_location("usage_collector_test", collector_path)
+            collector = importlib.util.module_from_spec(collector_spec)
+            collector_spec.loader.exec_module(collector)
+            token_path = m.TENANT_SERVICE_DB.parent / "projected-token"
+            token_path.write_text("test-projected-token")
+            collector.USAGE_TOKEN_PATH = token_path
+            outbox = collector.Outbox(m.TENANT_SERVICE_DB.parent / "outbox.db")
+            outbox.put(event)
+            with patch.object(collector.urllib.request, "urlopen", real_urlopen):
+                collector.deliver({"usageSink": {"enabled": True, "url": f"http://127.0.0.1:{server.server_port}/internal/usage-events"}}, outbox)
+            self.assertEqual(outbox.pending(), [])
+            self.assertEqual(m.tenant_service_store().usage_summary("re8ch")["eventCount"], 1)
+            self.assertEqual(m.tenant_service_store().usage_summary("artchais")["eventCount"], 0)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
     def test_tenant_profile_includes_artchais_grant_tools_and_denies_secret_admin_commands(self):
         m = load("tenant")
         self.assertTrue({
@@ -86,14 +184,30 @@ class RegistryTests(unittest.TestCase):
         body = json.loads(m.resources_read(identity, uri)["contents"][0]["text"])
         self.assertEqual(body["kind"], "GrafanaCapabilityList")
 
+    def test_resource_list_does_not_fetch_resource_contents(self):
+        m = load("tenant")
+        m.authenticated_tenant = lambda _identity: "acme"
+        def unexpected_fetch(*_args, **_kwargs):
+            self.fail("resources/list must not fetch resource contents")
+        m.tenant_service_store = unexpected_fetch
+        m.tenant_control_request = unexpected_fetch
+        m.tenant_claim_usage_summary = unexpected_fetch
+        m.grafana_capabilities = unexpected_fetch
+        listed = m.resources_list({"subject": "user-1"}, None)
+        self.assertIn("re8ch://tenant/acme/claims", {item["uri"] for item in listed["resources"]})
+
     def test_grafana_query_requires_tenant_scope_and_rejects_sql_writes(self):
         m = load("tenant")
         gx = importlib.import_module("grafana_exploration")
         base = {"timeRange": {"from": 1_000, "to": 2_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}}]}
-        gx.validate_query_spec(base, "qwen", {"metrics": "prometheus"})
-        bad = json.loads(json.dumps(base)); bad["queries"][0]["model"]["expr"] = "up"
-        with self.assertRaises(gx.ExplorationError):
-            gx.validate_query_spec(bad, "qwen", {"metrics": "prometheus"})
+        with patch.dict(os.environ, {"GRAFANA_TENANT_BINDINGS_JSON": json.dumps({"qwen": {"orgId": 4, "tenantLabel": "qianwen", "tokenEnv": "TEST_GRAFANA_TOKEN"}})}):
+            gx.validate_query_spec(base, "qwen", {"metrics": "prometheus"})
+            bad = json.loads(json.dumps(base)); bad["queries"][0]["model"]["expr"] = "up"
+            with self.assertRaises(gx.ExplorationError):
+                gx.validate_query_spec(bad, "qwen", {"metrics": "prometheus"})
+        with patch.dict(os.environ, {"GRAFANA_TENANT_BINDINGS_JSON": ""}):
+            with self.assertRaises(gx.ExplorationError):
+                gx.tenant_config("qwen")
         with self.assertRaises(gx.ExplorationError):
             gx.validate_sql("DELETE FROM events")
         with self.assertRaises(gx.ExplorationError):
@@ -109,11 +223,12 @@ class RegistryTests(unittest.TestCase):
                 return {"results": {"A": {"frames": []}}}
         client = Client()
         spec = {"timeRange": {"from": 1_000, "to": 61_000}, "queries": [{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": {"expr": 'up{tenant="qianwen"}'}, "maxDataPoints": 1000}]}
-        gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
-        self.assertEqual(client.body["queries"][0]["intervalMs"], 15_000)
-        spec["queries"][0]["intervalMs"] = 1000
-        with self.assertRaises(gx.ExplorationError):
+        with patch.dict(os.environ, {"GRAFANA_TENANT_BINDINGS_JSON": json.dumps({"qwen": {"orgId": 4, "tenantLabel": "qianwen", "tokenEnv": "TEST_GRAFANA_TOKEN"}})}):
             gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
+            self.assertEqual(client.body["queries"][0]["intervalMs"], 15_000)
+            spec["queries"][0]["intervalMs"] = 1000
+            with self.assertRaises(gx.ExplorationError):
+                gx.execute_query(client, "qwen", spec, [{"uid": "metrics", "type": "prometheus", "jsonData": {"timeInterval": "15s"}}])
 
     def test_grafana_indicators_and_correlations_are_deterministic(self):
         load("tenant")
@@ -218,7 +333,10 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("tenant_create", names)
         self.assertIn("byoc_cluster_register", names)
         registry.authenticated_tenant = lambda _identity: "acme"
-        registry.tenant_control_request = lambda *_args, **_kwargs: {"items": []}
+        registry.tenant_control_request = lambda path, *_args, **_kwargs: {"items": [
+            {"consumableRef": service_class, "roleRef": "operator"}
+            for service_class in ("registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1")
+        ] if path == "/v1/grants" else []}
         registry.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
         identity = {"tenant": "acme", "groups": []}
         listed = registry.resources_list(identity, None)
@@ -255,7 +373,7 @@ class RegistryTests(unittest.TestCase):
             def read(self): return b'{"tenantRef":"research-a","runtimeNamespaceRef":"research-a"}'
         m.urllib.request.urlopen = lambda *_args, **_kwargs: Response()
         identity = {
-            "auth_type": "dex", "issuer": "https://dex.service.re8ch.com",
+            "auth_type": "dex", "issuer": "https://auth.re8ch.com",
             "subject": "subject-1", "groups": [],
         }
         self.assertEqual(m.authenticated_tenant(identity), "research-a")
@@ -295,7 +413,7 @@ class RegistryTests(unittest.TestCase):
         tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
         identity = {
             "subject": "dex-subject-1",
-            "issuer": "https://dex.service.re8ch.com",
+            "issuer": "https://auth.re8ch.com",
             "groups": ["Artchais", "re8ch:tenant-users"],
             "auth_type": "dex",
         }
@@ -306,7 +424,7 @@ class RegistryTests(unittest.TestCase):
             tenant.vmcp_exchange_identity(token),
             {
                 "subject": "dex-subject-1",
-                "issuer": "https://dex.service.re8ch.com",
+                "issuer": "https://auth.re8ch.com",
                 "groups": ["Artchais", "re8ch:tenant-users"],
                 "auth_type": "dex",
             },
@@ -317,25 +435,25 @@ class RegistryTests(unittest.TestCase):
 
     def test_vmcp_token_exchange_validates_subject_token_and_target(self):
         tenant = load("tenant")
-        tenant.SERVICE_API_TOKEN = "unit-test-exchange-key"
-        tenant.dex_identity = lambda token: {
-            "subject": "dex-subject-1",
-            "issuer": "https://dex.service.re8ch.com",
-            "groups": ["Artchais"],
-            "auth_type": "dex",
-        } if token == "incoming-dex-token" else None
+        import base64
+        import json
+        import time
+        claims = {"exp": int(time.time()) + 300}
+        subject_token = "header." + base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode() + ".signature"
+        tenant.supabase_identity = lambda token: {"subject": "supabase-user", "auth_type": "supabase"} if token == subject_token else None
         form = {
             "grant_type": ["urn:ietf:params:oauth:grant-type:token-exchange"],
             "subject_token_type": ["urn:ietf:params:oauth:token-type:access_token"],
-            "subject_token": ["incoming-dex-token"],
+            "subject_token": [subject_token],
             "audience": ["aud-tenant"],
         }
         exchanged = tenant.exchange_vmcp_subject_token(form)
         self.assertEqual(exchanged["token_type"], "Bearer")
-        self.assertEqual(
-            tenant.vmcp_exchange_identity(exchanged["access_token"])["subject"],
-            "dex-subject-1",
-        )
+        self.assertEqual(exchanged["access_token"], subject_token)
+        form["subject_token"] = ["incoming-dex-token"]
+        with self.assertRaises(PermissionError):
+            tenant.exchange_vmcp_subject_token(form)
+        form["subject_token"] = [subject_token]
         form["audience"] = ["wrong-audience"]
         with self.assertRaises(PermissionError):
             tenant.exchange_vmcp_subject_token(form)

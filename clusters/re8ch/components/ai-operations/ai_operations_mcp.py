@@ -12,6 +12,7 @@ import os
 import re
 import secrets
 import shlex
+import ssl
 import sqlite3
 import subprocess
 import threading
@@ -21,6 +22,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -48,7 +50,9 @@ PROFILE = os.getenv("RE8CH_TOOL_PROFILE", "cloud").lower()
 AUDIENCE = os.getenv("RE8CH_TOOL_AUDIENCE", f"re8ch-{PROFILE}-tool")
 LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.getenv("LISTEN_PORT", "19443"))
-DEX_USERINFO_URL = os.getenv("DEX_USERINFO_URL", "https://dex.service.re8ch.com/userinfo")
+DEX_USERINFO_URL = os.getenv("DEX_USERINFO_URL", "https://auth.re8ch.com/userinfo")
+SUPABASE_ISSUER = "https://db-rw.re8ch.com/auth/v1"
+SUPABASE_USER_URL = os.getenv("SUPABASE_USER_URL", "http://supabase-identity-auth.supabase-identity.svc:9999/user")
 REGISTRY_PATH = Path(os.getenv("DEVICE_REGISTRY_PATH", "/var/lib/re8ch-ai-operations/devices.db"))
 NODE_INVENTORY_PATH = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-ai-operations/nodes.json"))
 KUBECONFIG_DIR = Path(os.getenv("KUBECONFIG_DIR", "/etc/re8ch-ai-operations/kubeconfigs"))
@@ -60,15 +64,43 @@ ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
 SERVICE_API_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 VMCP_TOKEN_EXCHANGE_TTL = int(os.getenv("VMCP_TOKEN_EXCHANGE_TTL_SECONDS", "300"))
 HARBOR_URL = os.getenv("HARBOR_URL", "https://registry.re8ch.com")
-GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com")
+GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com/grafana")
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
 SUPPLY_CHAIN_REQUIRED = os.getenv("HARBOR_SUPPLY_CHAIN_REQUIRED", "false").lower() == "true"
 TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
+AUTH_DISCOVERY_URL = os.getenv(
+    "AUTH_DISCOVERY_URL",
+    "https://auth.re8ch.com/.well-known/openid-configuration",
+)
 ARTCHAIS_TENANT_REF = os.getenv("ARTCHAIS_TENANT_REF", "artchais")
 TENANT_CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
+TENANT_USAGE_CLIENT = os.getenv("TENANT_USAGE_CLIENT", "")
+TENANT_USAGE_AUDIENCE = "re8ch-usage"
+
+
+def authenticated_usage_collector(authorization: str) -> bool:
+    """Verify a projected Birfucate service account token with Kubernetes."""
+    if not TENANT_USAGE_CLIENT or not authorization.startswith("Bearer "):
+        return False
+    token = authorization[7:]
+    if not token or len(token) > 16384:
+        return False
+    host = os.getenv("KUBERNETES_SERVICE_HOST", "")
+    if not host:
+        return False
+    service_token = Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
+    ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    request = urllib.request.Request(
+        f"https://{host}:{os.getenv('KUBERNETES_SERVICE_PORT', '443')}/apis/authentication.k8s.io/v1/tokenreviews",
+        data=json.dumps({"apiVersion": "authentication.k8s.io/v1", "kind": "TokenReview", "spec": {"token": token, "audiences": [TENANT_USAGE_AUDIENCE]}}).encode(),
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + service_token}, method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=3, context=ssl.create_default_context(cafile=ca)) as response:
+        status = json.load(response).get("status", {})
+    return bool(status.get("authenticated") and status.get("user", {}).get("username") == TENANT_USAGE_CLIENT and TENANT_USAGE_AUDIENCE in status.get("audiences", []))
 
 PROFILE_GROUPS = {
     "cloud": {ADMIN_GROUP},
@@ -85,12 +117,12 @@ SESSIONS: dict[str, subprocess.Popen[bytes]] = {}
 SESSION_LOCK = threading.Lock()
 INSTALL_STATES: dict[str, tuple[str, int, str]] = {}
 INSTALL_STATE_LOCK = threading.Lock()
-DEX_AUTH_URL = os.getenv("DEX_AUTH_URL", "https://dex.service.re8ch.com/auth")
-DEX_TOKEN_URL = os.getenv("DEX_TOKEN_URL", "https://dex.service.re8ch.com/token")
+DEX_AUTH_URL = os.getenv("DEX_AUTH_URL", "https://auth.re8ch.com/authorize")
+DEX_TOKEN_URL = os.getenv("DEX_TOKEN_URL", "https://auth.re8ch.com/token")
 INSTALL_CLIENT_ID = os.getenv("INSTALL_CLIENT_ID", "re8ch-marketplace-installer")
 INSTALL_REDIRECT_URI = os.getenv("INSTALL_REDIRECT_URI", "https://marketplace.re8ch.com/install/callback")
 INSTALL_STATE_HMAC_KEY = os.getenv("INSTALL_STATE_HMAC_KEY", "")
-MARKETPLACE_SOURCE = os.getenv("MARKETPLACE_SOURCE", "https://github.com/re8ch/codex-admin-plugins.git")
+MARKETPLACE_SOURCE = os.getenv("MARKETPLACE_SOURCE", "https://github.com/re8ch-ai/codex-admin-plugins.git")
 CAPSULE_SIGNING_KEY = os.getenv("CAPSULE_SIGNING_KEY", "")
 CAPSULE_POLICY_REVISION = int(os.getenv("CAPSULE_POLICY_REVISION", "1"))
 CAPSULE_POLICY_PATH = Path(os.getenv("CAPSULE_POLICY_PATH", "/etc/re8ch-ai-operations/capsule-policy.json"))
@@ -437,13 +469,34 @@ def dex_identity(token: str) -> dict[str, Any] | None:
     tenant = data.get("tenant") or data.get("tenantRef")
     return {
         "subject": subject,
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "email": data.get("email"),
         "email_verified": data.get("email_verified") is True,
         "groups": groups,
         "tenant": tenant,
         "auth_type": "dex",
     }
+
+
+def supabase_identity(token: str) -> dict[str, Any] | None:
+    """Validate a GoTrue token with GoTrue before trusting its subject."""
+    if len(token) > 16384:
+        return None
+    try:
+        encoded = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        if claims.get("iss") != SUPABASE_ISSUER or claims.get("aud") != "authenticated":
+            return None
+        request = urllib.request.Request(SUPABASE_USER_URL, headers={"Authorization": "Bearer " + token, "Accept": "application/json"})
+        with urllib.request.urlopen(request, timeout=5) as response:
+            user = json.load(response)
+    except (IndexError, ValueError, TypeError, urllib.error.URLError):
+        return None
+    subject = str(user.get("id") or "") if isinstance(user, dict) else ""
+    if not subject or subject != claims.get("sub") or user.get("is_anonymous") is True:
+        return None
+    return {"subject": subject, "issuer": SUPABASE_ISSUER, "email": user.get("email"),
+            "groups": [], "auth_type": "supabase", "_supabase_access_token": token}
 
 
 def _b64url_encode(value: bytes) -> str:
@@ -463,7 +516,7 @@ def mint_vmcp_identity_token(identity: dict[str, Any]) -> tuple[str, int]:
         "iss": "re8ch-vmcp-token-exchange",
         "aud": AUDIENCE,
         "sub": str(identity.get("subject") or ""),
-        "upstream_iss": str(identity.get("issuer") or "https://dex.service.re8ch.com"),
+        "upstream_iss": str(identity.get("issuer") or "https://auth.re8ch.com"),
         "groups": sorted({str(group) for group in identity.get("groups") or []}),
         "iat": issued_at,
         "exp": issued_at + expires_in,
@@ -500,7 +553,7 @@ def vmcp_exchange_identity(token: str) -> dict[str, Any] | None:
             return None
         return {
             "subject": payload["sub"],
-            "issuer": payload.get("upstream_iss") or "https://dex.service.re8ch.com",
+            "issuer": payload.get("upstream_iss") or "https://auth.re8ch.com",
             "groups": groups,
             "auth_type": "dex",
         }
@@ -517,9 +570,19 @@ def exchange_vmcp_subject_token(form: dict[str, list[str]]) -> dict[str, Any]:
         raise ValueError("unsupported_subject_token_type")
     if (form.get("audience") or [""])[0] != AUDIENCE:
         raise PermissionError("invalid_target")
-    identity = dex_identity((form.get("subject_token") or [""])[0])
+    subject_token = (form.get("subject_token") or [""])[0]
+    identity = supabase_identity(subject_token) if PROFILE == "tenant" else dex_identity(subject_token)
     if not identity:
         raise PermissionError("invalid_subject_token")
+    if PROFILE == "tenant":
+        # Preserve the user JWT so PostgREST can apply that user's RLS on every
+        # tenant operation. The backend validates it again with GoTrue.
+        return {
+            "access_token": subject_token,
+            "issued_token_type": access_token_type,
+            "token_type": "Bearer",
+            "expires_in": max(1, min(int(json.loads(_b64url_decode(subject_token.split(".")[1]))["exp"]) - int(time.time()), 600)),
+        }
     access_token, expires_in = mint_vmcp_identity_token(identity)
     return {
         "access_token": access_token,
@@ -534,6 +597,8 @@ def allowed(identity: dict[str, Any]) -> bool:
         return True
     if PROFILE == "admin":
         return "re8ch:tenant-admins" in set(identity.get("groups", []))
+    if PROFILE == "tenant" and identity.get("auth_type") == "supabase" and identity.get("subject"):
+        return True
     if ALLOW_AUTHENTICATED_DEX and identity.get("auth_type") in {"dex", "device"} and identity.get("subject"):
         return True
     return bool(set(identity.get("groups", [])) & PROFILE_GROUPS.get(PROFILE, set()))
@@ -669,6 +734,7 @@ TENANT_TOOLS = [
 ]
 
 HARBOR_TENANT_TOOLS = [
+    {"name": "tenant_human_access_issue", "description": "Issue a short-lived one-time browser link for a tenant-owned Harbor or Grafana human credential reference.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
     {"name": "harbor_project_get", "description": "Read the authenticated tenant's Harbor project metadata and quota summary.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
     {"name": "harbor_repository_list", "description": "List repositories in the authenticated tenant's Harbor project.", "inputSchema": schema({"credential_ref": {"type": "string"}}, ["credential_ref"])},
     {"name": "harbor_artifact_list", "description": "List artifacts, tags and scan summaries in a tenant repository.", "inputSchema": schema({"credential_ref": {"type": "string"}, "repository": {"type": "string"}}, ["credential_ref", "repository"])},
@@ -705,6 +771,7 @@ TENANT_INFRA_TOOLS = [
     {"name": "service_binding_list", "description": "List bindings owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}})},
     {"name": "service_binding_revoke", "description": "Revoke a tenant binding and its opaque credential reference.", "inputSchema": schema({"binding_ref": {"type": "string"}}, ["binding_ref"])},
     {"name": "usage_summary_get", "description": "Return unpriced usage totals for the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}})},
+    {"name": "usage_events_list", "description": "List accepted unpriced UsageEvents for the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 500}})},
     {"name": "operation_get", "description": "Read an immutable tenant operation record.", "inputSchema": schema({"operation_id": {"type": "string"}}, ["operation_id"])},
 ]
 
@@ -736,7 +803,7 @@ GRAFANA_TENANT_TOOLS = [
 ]
 
 TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
-TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "operation_get"}
+TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "usage_events_list", "operation_get"}
 TENANT_CLAIM_TOOLS = [
     {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
     {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
@@ -750,7 +817,7 @@ TENANT_CLAIM_TOOLS = [
 ]
 TENANT_KUBERNETES_TOOLS = [
     {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
-    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy.", "inputSchema": schema({"namespace": {"type": "string"}}, ["namespace"])},
+    {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.", "inputSchema": schema({"namespace": {"type": "string"}, "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 604800}}, ["namespace"])},
     {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
     {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
     {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
@@ -803,7 +870,8 @@ def tools() -> list[dict[str, Any]]:
     if PROFILE == "tenant":
         base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
         byoc = [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
-        return base + HARBOR_TENANT_TOOLS + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + TENANT_KUBERNETES_TOOLS + ARTCHAIS_CLUSTER_TOOLS
+        harbor_tools = [tool for tool in HARBOR_TENANT_TOOLS if TENANT_CONTROL_URL or tool["name"] != "tenant_human_access_issue"]
+        return base + harbor_tools + GRAFANA_TENANT_TOOLS + byoc + TENANT_CLAIM_TOOLS + TENANT_KUBERNETES_TOOLS + ARTCHAIS_CLUSTER_TOOLS
     return COMMON_TOOLS + {"cloud": CLOUD_TOOLS, "infra": INFRA_TOOLS, "orchestra": ORCHESTRA_TOOLS}.get(PROFILE, [])
 
 
@@ -911,35 +979,55 @@ def tenant_service_store() -> ServiceStore:
     return _TENANT_SERVICE_STORE
 
 
-def tenant_catalog_for_profile() -> list[dict[str, Any]]:
-    return service_catalog()
+def tenant_service_grants(tenant: str) -> dict[str, str]:
+    grants: dict[str, str] = {}
+    for item in tenant_control_request("/v1/grants", tenant).get("items", []):
+        service_class = item.get("consumableRef")
+        role = item.get("roleRef")
+        if service_class and role in {"viewer", "operator", "admin"}:
+            if service_class in grants:
+                raise PermissionError("exactly one active TenantGrant is required per service class")
+            grants[service_class] = role
+    return grants
 
 
-def mcp_resources(identity: dict[str, Any]) -> list[dict[str, Any]]:
-    """Materialize bounded, tenant-scoped MCP resources; samples remain outside Kubernetes/MCP."""
+def require_tenant_service_grant(tenant: str, service_class: str, *, mutate: bool = False) -> None:
+    if service_class not in {item["serviceClass"] for item in service_catalog()}:
+        raise PermissionError("service class is not published")
+    role = tenant_service_grants(tenant).get(service_class)
+    if role is None or (mutate and role not in {"operator", "admin"}):
+        raise PermissionError("an active service class TenantGrant is required")
+
+
+def tenant_catalog_for_profile(tenant: str) -> list[dict[str, Any]]:
+    grants = tenant_service_grants(tenant)
+    return [item for item in service_catalog() if item["serviceClass"] in grants]
+
+
+def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
+    """List authorized resource descriptors without fetching their contents."""
     tenant = authenticated_tenant(identity)
-    store = tenant_service_store()
-    records: list[tuple[str, str, Any]] = [
-        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", {"services": tenant_catalog_for_profile(), "pricingIncluded": False}),
+    records = [
+        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(tenant), "pricingIncluded": False}),
     ]
     if PROFILE == "admin":
         records.extend([
-            ("re8ch://admin/tenants", "Tenants", {"tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}),
-            ("re8ch://admin/byoc/registrations", "BYOC registrations", {"registrations": store.registrations()}),
-            ("re8ch://admin/byoc/connections", "BYOC connections", {"connections": store.connections()}),
+            ("re8ch://admin/tenants", "Tenants", lambda: {"tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}),
+            ("re8ch://admin/byoc/registrations", "BYOC registrations", lambda: {"registrations": tenant_service_store().registrations()}),
+            ("re8ch://admin/byoc/connections", "BYOC connections", lambda: {"connections": tenant_service_store().connections()}),
         ])
     else:
         records.extend([
-            (f"re8ch://tenant/{tenant}/instances", "Service instances", {"instances": store.list(tenant)}),
-            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", {"bindings": store.bindings(tenant)}),
-            (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", store.usage_summary(tenant, None)),
-            (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", tenant_control_request("/v1/claims", tenant)),
-            (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", tenant_claim_usage_summary(tenant)),
-            (f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities()),
-            (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", {"registrations": store.registrations(tenant)}),
-            (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", {"connections": store.connections(tenant)}),
+            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": tenant_service_store().list(tenant)}),
+            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": tenant_service_store().bindings(tenant)}),
+            (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", lambda: tenant_service_store().usage_summary(tenant, None)),
+            (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", lambda: tenant_control_request("/v1/claims", tenant)),
+            (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", lambda: tenant_claim_usage_summary(tenant)),
+            (f"re8ch://tenant/{tenant}/grafana/capabilities", "Grafana capabilities", grafana_capabilities),
+            (f"re8ch://tenant/{tenant}/byoc/registrations", "BYOC registrations", lambda: {"registrations": tenant_service_store().registrations(tenant)}),
+            (f"re8ch://tenant/{tenant}/byoc/connections", "BYOC connections", lambda: {"connections": tenant_service_store().connections(tenant)}),
         ])
-    return [{"uri": uri, "name": name, "mimeType": "application/json", "value": value} for uri, name, value in records]
+    return [{"uri": uri, "name": name, "mimeType": "application/json", "get_value": get_value} for uri, name, get_value in records]
 
 
 def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, Any]:
@@ -956,7 +1044,7 @@ def resources_list(identity: dict[str, Any], cursor: str | None) -> dict[str, An
         offset = int(cursor or "0")
     except ValueError as exc:
         raise ValueError("invalid resource cursor") from exc
-    records = mcp_resources(identity)
+    records = mcp_resource_definitions(identity)
     if offset < 0 or offset > len(records):
         raise ValueError("invalid resource cursor")
     page = records[offset:offset + page_size]
@@ -976,16 +1064,40 @@ def resources_read(identity: dict[str, Any], uri: str) -> dict[str, Any]:
         if isinstance(value, dict) and isinstance(value.get("blob"), (bytes, bytearray)):
             return {"contents": [{"uri": uri, "mimeType": value.get("mimeType", "application/octet-stream"), "blob": base64.b64encode(value["blob"]).decode()}]}
         return {"contents": [{"uri": uri, "mimeType": "application/json", "text": json.dumps(value, ensure_ascii=False, separators=(",", ":"))}]}
-    match = next((item for item in mcp_resources(identity) if item["uri"] == uri), None)
+    match = next((item for item in mcp_resource_definitions(identity) if item["uri"] == uri), None)
     if not match:
         raise PermissionError("resource is not visible to the authenticated tenant")
-    return {"contents": [{"uri": uri, "mimeType": match["mimeType"], "text": json.dumps(match["value"], ensure_ascii=False, separators=(",", ":"))}]}
+    return {"contents": [{"uri": uri, "mimeType": match["mimeType"], "text": json.dumps(match["get_value"](), ensure_ascii=False, separators=(",", ":"))}]}
 
 
 def authenticated_tenant_context(identity: dict[str, Any]) -> dict[str, str]:
+    if identity.get("auth_type") == "supabase" and PROFILE == "tenant":
+        selected = str(identity.get("requested_tenant") or "")
+        token = identity.get("_supabase_access_token")
+        if not token or not TENANT_CONTROL_URL or not TENANT_CLAIM_SERVICE_TOKEN:
+            raise PermissionError("select an active tenant")
+        request = urllib.request.Request(
+            TENANT_CONTROL_URL + "/v1/resolve-supabase",
+            data=json.dumps({"tenantRef": selected, "accessToken": token}).encode(), method="POST",
+            headers={"Content-Type": "application/json", "X-Tenant-Caller": "tenant", "X-Tenant-Service-Token": TENANT_CLAIM_SERVICE_TOKEN},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=8) as response:
+                resolved = json.load(response)
+        except urllib.error.HTTPError as exc:
+            raise PermissionError("identity is not an active member of the selected tenant") from exc
+        except (urllib.error.URLError, ValueError) as exc:
+            raise RuntimeError("tenant authorizer is unavailable") from exc
+        tenant_ref = resolved.get("tenantRef")
+        if (not isinstance(tenant_ref, str) or not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", tenant_ref)
+                or tenant_ref == "admin" or (selected and tenant_ref != selected)
+                or resolved.get("role") not in {"viewer", "operator", "admin"}
+                or not resolved.get("defaultNamespace")):
+            raise RuntimeError("tenant authorizer returned an invalid context")
+        return resolved
     groups = {str(group) for group in identity.get("groups") or []}
     subject = str(identity.get("subject") or "").strip()
-    issuer = str(identity.get("issuer") or "https://dex.service.re8ch.com").rstrip("/")
+    issuer = str(identity.get("issuer") or "https://auth.re8ch.com").rstrip("/")
     if TENANT_CONTROL_URL and subject:
         default_group = next((group.removeprefix("re8ch:default-tenant:") for group in groups if group.startswith("re8ch:default-tenant:")), "")
         payload = json.dumps({
@@ -1054,6 +1166,27 @@ def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> No
             raise PermissionError("privileged containers are denied")
 
 
+def label_native_metered_object(obj: dict[str, Any], tenant: str, namespace: str) -> dict[str, Any]:
+    """Attach stable tenant/resource identity to native workload and PVC requests."""
+    value = json.loads(json.dumps(obj))
+    kind = value["kind"]
+    if kind not in {"PersistentVolumeClaim", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}:
+        return value
+    name = str(value.get("metadata", {}).get("name") or "")
+    if not name:
+        raise PermissionError("metered native resources require metadata.name")
+    resource_ref = hashlib.sha256(f"{tenant}/{namespace}/{kind}/{name}".encode()).hexdigest()[:32]
+    labels = {"tenant": tenant, "resource_ref": resource_ref, "tenancy.re8ch.com/tenant": tenant, "birfucate.re8ch.com/metered": "true"}
+    value.setdefault("metadata", {}).setdefault("labels", {}).update(labels)
+    if kind != "PersistentVolumeClaim":
+        if kind == "CronJob":
+            template = value.setdefault("spec", {}).setdefault("jobTemplate", {}).setdefault("spec", {}).setdefault("template", {})
+        else:
+            template = value.setdefault("spec", {}).setdefault("template", {})
+        template.setdefault("metadata", {}).setdefault("labels", {}).update(labels)
+    return value
+
+
 def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> dict[str, Any]:
     context = authenticated_tenant_context(identity)
     role = context["role"]
@@ -1065,7 +1198,10 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
         raise PermissionError("operator or admin role is required")
     if name == "tenant_namespace_create":
         namespace = valid_kubernetes_name(str(args["namespace"]))
-        return tenant_control_request("/v1/namespaces", tenant, {"namespaceName": namespace})
+        request = {"namespaceName": namespace}
+        if "ttlSeconds" in args:
+            request["ttlSeconds"] = args["ttlSeconds"]
+        return tenant_control_request("/v1/namespaces", tenant, request)
     if name == "tenant_namespace_delete":
         namespace = valid_kubernetes_name(str(args["namespace"]))
         preview = {"tenantRef": tenant, "namespace": namespace, "deleted": False}
@@ -1075,7 +1211,19 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
     namespace = valid_kubernetes_name(str(args.get("namespace") or context.get("defaultNamespace") or context["runtimeNamespaceRef"]))
     if "defaultNamespace" in context:
         owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
-        ready_namespaces = {item.get("spec", {}).get("namespaceName") for item in owned if item.get("spec", {}).get("operation") == "EnsurePresent" and item.get("status", {}).get("phase") == "Ready"}
+        ready_namespaces = set()
+        for item in owned:
+            spec = item.get("spec", {})
+            if spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
+                continue
+            expires_at = spec.get("expiresAt")
+            if expires_at:
+                try:
+                    if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+                        continue
+                except (TypeError, ValueError):
+                    continue
+            ready_namespaces.add(spec.get("namespaceName"))
         if namespace not in ready_namespaces:
             raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
@@ -1095,7 +1243,7 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
             raise PermissionError("object kind is not in the tenant workload allowlist")
         metadata = obj.get("metadata") or {}
         validate_tenant_kubernetes_object(obj, namespace)
-        obj = {**obj, "metadata": {**metadata, "namespace": namespace}}
+        obj = label_native_metered_object({**obj, "metadata": {**metadata, "namespace": namespace}}, tenant, namespace)
         preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "applied": False, "object": obj}
         if not args.get("apply"):
             return preview
@@ -1138,10 +1286,25 @@ def tenant_control_request(path: str, tenant: str, payload: dict[str, Any] | Non
         raise ValueError(detail) from None
 
 
+def require_ready_human_credential(tenant: str, reference: str) -> None:
+    provider, ref_tenant, _ = credential_store().parse_provider_reference(reference)
+    if ref_tenant != tenant:
+        raise PermissionError("cross-tenant credential reference denied")
+    service_class = {"harbor": "registry.harbor.v1", "grafana": "observability.grafana.v1"}[provider]
+    instances = tenant_control_request("/v1/services", tenant).get("items", [])
+    if not any(item.get("spec", {}).get("serviceClass") == service_class
+               and item.get("spec", {}).get("lifecycle") == "Requested"
+               and item.get("status", {}).get("phase") == "Ready"
+               and item.get("status", {}).get("humanCredentialRef") == reference
+               for item in instances):
+        raise PermissionError("human credential has no ready tenant service instance")
+
+
 def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> dict[str, Any]:
     result = tenant_control_request("/v1/claims" + ("/" + urllib.parse.quote(claim_name, safe="") if claim_name else ""), tenant)
     values = [result] if claim_name else result.get("items", [])
     rows = []
+    store = tenant_service_store()
     for value in values:
         spec, status = value.get("spec", {}), value.get("status", {})
         params = spec.get("parameters", {})
@@ -1150,8 +1313,12 @@ def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> di
             row["requested"] = {"storageGiB": params.get("sizeGiB")}
         else:
             row["requested"] = {"pods": params.get("replicas", params.get("parallelism", 1)), **params.get("resources", {}), "publicEndpoints": 1 if params.get("exposure", {}).get("enabled") else 0}
+        if row["claimUid"]:
+            usage = store.usage_summary(tenant, row["claimUid"])
+            row["usage"] = {"totals": usage["totals"], "eventCount": usage["eventCount"]}
+            row["usageState"] = "observed" if usage["eventCount"] else "pending-observation"
         rows.append(row)
-    return {"tenantRef": tenant, "claims": rows, "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate", "usageState": "requested-capacity; UsageEvent aggregation is asynchronous"}
+    return {"tenantRef": tenant, "claims": rows, "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate", "usageState": "accepted-events" if any(row.get("usage", {}).get("eventCount") for row in rows) else "pending-observation"}
 
 
 def readiness() -> tuple[bool, dict[str, str]]:
@@ -1162,7 +1329,7 @@ def readiness() -> tuple[bool, dict[str, str]]:
         checks["stateStore"] = "ok"
     except Exception:
         checks["stateStore"] = "failed"
-    targets = {"dex": "https://dex.service.re8ch.com/.well-known/openid-configuration"}
+    targets = {"auth": AUTH_DISCOVERY_URL}
     if TENANT_CONTROL_URL:
         targets["tenantAuthorizer"] = TENANT_CONTROL_URL + "/readyz"
     if PROFILE == "tenant": targets["supplyChain"] = SUPPLY_CHAIN_URL.rstrip("/") + "/healthz"
@@ -1953,6 +2120,10 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
 
     if PROFILE == "tenant" and name in {tool["name"] for tool in HARBOR_TENANT_TOOLS}:
         tenant = authenticated_tenant(identity)
+        if name == "tenant_human_access_issue":
+            require_ready_human_credential(tenant, args["credential_ref"])
+            credential_store().get(args["credential_ref"], tenant)
+            return {"tenantRef": tenant, "credential": redemption_registry().issue(args["credential_ref"], tenant), "credentialMaterialReturned": False}
         if name.startswith("harbor_build_"):
             if name == "harbor_build_get": return supply_chain_client().get_build(tenant, args["operation_id"])
             if name == "harbor_build_list": return supply_chain_client().list_builds(tenant)
@@ -2018,24 +2189,28 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 raise PermissionError("cross-tenant connection revoke is forbidden")
             return store.revoke_connection(target, args["connection_ref"], bool(args.get("offline")))
         if name == "service_catalog_list":
-            services = tenant_catalog_for_profile()
-            if tenant == "artchais":
+            services = tenant_catalog_for_profile(tenant)
+            if tenant == "artchais" and any(item["serviceClass"] == "network.among-clusters.v1" for item in services):
                 try:
                     tenant_control_request("/v1/services/catalog", tenant)
                 except PermissionError:
                     services = [item for item in services if item["serviceClass"] != "network.among-clusters.v1"]
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
-            if args["spec"].get("serviceClass") == "network.among-clusters.v1":
+            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
+            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
+            authenticated_tenant_operator(identity)
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
-            if args["spec"].get("serviceClass") == "network.among-clusters.v1":
+            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
+            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
+            authenticated_tenant_operator(identity)
             return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
         if name == "service_instance_get":
             if args["resource_ref"].startswith(f"service://{tenant}/"):
@@ -2049,20 +2224,23 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             controlled = tenant_control_request("/v1/services", tenant).get("items", [])
             return {"tenantRef": tenant, "instances": store.list(tenant) + controlled}
         if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
+            authenticated_tenant_operator(identity)
             if args["resource_ref"].startswith(f"service://{tenant}/"):
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
                 try:
                     current = tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
-                    if current.get("spec", {}).get("serviceClass") == "network.among-clusters.v1":
+                    if current.get("spec", {}).get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                         if authenticated_tenant_operator(identity) != tenant:
                             raise PermissionError("tenant context changed during authorization")
                         if name == "service_instance_update":
-                            raise ServiceError("AmongClusters tenant service parameters are immutable")
+                            raise ServiceError("provider-backed tenant service parameters are immutable")
                         desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}[name]
                         return tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe="") + "/lifecycle", tenant, {"desiredState": desired, "idempotencyKey": args["idempotency_key"]})
                 except ValueError:
                     pass
             current = store.get(tenant, args["resource_ref"])
+            if name in {"service_instance_update", "service_instance_resume"}:
+                require_tenant_service_grant(tenant, current["service_class"], mutate=True)
             spec = dict(args.get("spec") or current["spec"])
             if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
                 raise ServiceError("serviceClass is immutable")
@@ -2071,13 +2249,19 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 spec["desiredState"] = desired
             return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
         if name == "service_binding_create":
+            current = store.get(tenant, args["resource_ref"])
+            require_tenant_service_grant(tenant, current["service_class"], mutate=True)
+            authenticated_tenant_operator(identity)
             return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
         if name == "service_binding_list":
             return {"tenantRef": tenant, "bindings": store.bindings(tenant, args.get("resource_ref"))}
         if name == "service_binding_revoke":
+            authenticated_tenant_operator(identity)
             return store.revoke_binding(tenant, args["binding_ref"])
         if name == "usage_summary_get":
             return store.usage_summary(tenant, args.get("resource_ref"))
+        if name == "usage_events_list":
+            return store.usage_events(tenant, args.get("resource_ref"), args.get("limit", 100))
         if name == "operation_get":
             return store.operation(tenant, args["operation_id"])
 
@@ -2135,6 +2319,22 @@ class Handler(BaseHTTPRequestHandler):
         for key, value in (headers or {}).items():
             self.send_header(key, value)
         self.end_headers(); self.wfile.write(raw)
+
+    def billing_headers(self) -> dict[str, str]:
+        headers = {"Cache-Control": "no-store", "Vary": "Origin"}
+        if self.headers.get("Origin") == "https://auth.re8ch.com":
+            headers["Access-Control-Allow-Origin"] = "https://auth.re8ch.com"
+        return headers
+
+    def do_OPTIONS(self) -> None:
+        if PROFILE != "tenant" or urllib.parse.urlparse(self.path).path != "/billing/usage" or self.headers.get("Origin") != "https://auth.re8ch.com":
+            self.send_json(403, {"error": "forbidden"}); return
+        self.send_response(204)
+        for key, value in {**self.billing_headers(), "Access-Control-Allow-Methods": "GET, OPTIONS",
+                           "Access-Control-Allow-Headers": "Authorization, X-RE8CH-Tenant",
+                           "Access-Control-Max-Age": "600"}.items():
+            self.send_header(key, value)
+        self.end_headers()
 
     def redirect(self, location: str) -> None:
         self.send_response(302)
@@ -2231,9 +2431,12 @@ class Handler(BaseHTTPRequestHandler):
         token = header[7:]
         if SERVICE_API_TOKEN and hmac.compare_digest(token, SERVICE_API_TOKEN):
             return {"subject": "service:litellm", "groups": sorted(PROFILE_GROUPS.get(PROFILE, set())), "auth_type": "service"}
-        if token.startswith("r8x_"):
+        if token.startswith("r8x_") and PROFILE != "tenant":
             return vmcp_exchange_identity(token)
-        identity = registry().authenticate(token) if token.startswith("r8d_") else dex_identity(token)
+        if PROFILE == "tenant":
+            identity = supabase_identity(token)
+        else:
+            identity = registry().authenticate(token) if token.startswith("r8d_") else (supabase_identity(token) or dex_identity(token))
         if identity and PROFILE == "tenant":
             selected = self.headers.get("X-RE8CH-Tenant", "")
             if selected:
@@ -2244,6 +2447,31 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
+        if PROFILE == "tenant" and parsed.path == "/billing/usage":
+            headers = self.billing_headers()
+            selected = self.headers.get("X-RE8CH-Tenant", "")
+            if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", selected) or selected == "admin":
+                self.send_json(400, {"error": "select an organization"}, headers); return
+            identity = self.identity()
+            if not identity or identity.get("auth_type") != "supabase":
+                self.send_json(401, {"error": "unauthorized"}, headers); return
+            try:
+                tenant = authenticated_tenant(identity)
+                params = urllib.parse.parse_qs(parsed.query)
+                now = datetime.now(timezone.utc)
+                start = datetime.fromisoformat(params["from"][0].replace("Z", "+00:00")) if "from" in params else now - timedelta(days=1)
+                end = datetime.fromisoformat(params["to"][0].replace("Z", "+00:00")) if "to" in params else now
+                result = tenant_service_store().billing_usage(tenant, start, end)
+                self.send_json(200, result, headers)
+            except PermissionError:
+                self.send_json(403, {"error": "organization access denied"}, headers)
+            except (ValueError, KeyError, ServiceError):
+                self.send_json(400, {"error": "invalid billing window"}, headers)
+            except RuntimeError:
+                self.send_json(503, {"error": "tenant authorizer unavailable"}, headers)
+            except sqlite3.Error:
+                self.send_json(503, {"error": "usage ledger unavailable"}, headers)
+            return
         if parsed.path == "/livez":
             self.send_json(200, {"status": "ok", "profile": PROFILE}); return
         if parsed.path in {"/readyz", "/healthz"}:
@@ -2265,13 +2493,34 @@ class Handler(BaseHTTPRequestHandler):
             self.marketplace_callback(urllib.parse.parse_qs(parsed.query)); return
         if "/.well-known/oauth-protected-resource" in self.path:
             origin = os.getenv("PUBLIC_MCP_URL", f"https://{PROFILE}.tools.re8ch.com/mcp")
-            self.send_json(200, {"resource": origin, "authorization_servers": ["https://dex.service.re8ch.com"], "bearer_methods_supported": ["header"], "scopes_supported": ["openid", "profile", "email", "groups", "offline_access"]}); return
+            issuer = SUPABASE_ISSUER if PROFILE == "tenant" else "https://auth.re8ch.com"
+            scopes = ["openid", "profile", "email", "offline_access"] if PROFILE == "tenant" else ["openid", "profile", "email", "groups", "offline_access"]
+            self.send_json(200, {"resource": origin, "authorization_servers": [issuer], "bearer_methods_supported": ["header"], "scopes_supported": scopes}); return
         if parsed.path.endswith("/mcp"):
             self.send_json(405, {"error": "method_not_allowed", "allowed": ["POST"]}, {"Allow": "POST"}); return
         self.send_json(404, {"error": "not_found"})
 
     def do_POST(self) -> None:
         request_path = urllib.parse.urlparse(self.path).path
+        if request_path == "/internal/usage-events":
+            try:
+                authenticated = PROFILE == "tenant" and authenticated_usage_collector(self.headers.get("Authorization", ""))
+            except (OSError, urllib.error.URLError, ValueError):
+                self.send_json(503, {"error": "usage authentication unavailable"}); return
+            if not authenticated:
+                self.send_json(401, {"error": "unauthorized"}); return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 < length <= 65536:
+                    raise ValueError("invalid event size")
+                event = json.loads(self.rfile.read(length))
+                result = tenant_service_store().receive_usage(event)
+                self.send_json(200 if result["idempotentReplay"] else 201, result)
+            except ServiceError as exc:
+                self.send_json(409 if "different content" in str(exc) else 400, {"error": str(exc)})
+            except (ValueError, json.JSONDecodeError):
+                self.send_json(400, {"error": "invalid UsageEvent"})
+            return
         if request_path == "/oauth/token":
             if PROFILE != "tenant":
                 self.send_json(404, {"error": "not_found"}); return
@@ -2292,8 +2541,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not consumed:
                     self.send_json(410, {"error": "expired_or_consumed"}, {"Cache-Control": "no-store"}); return
                 reference, tenant = consumed
+                require_ready_human_credential(tenant, reference)
                 material = credential_store().get(reference, tenant)
-                self.send_json(200, {"tenant": tenant, "registry": HARBOR_URL, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
+                provider, _, _ = credential_store().parse_provider_reference(reference)
+                service_url = HARBOR_URL if provider == "harbor" else GRAFANA_URL
+                self.send_json(200, {"tenant": tenant, "provider": provider, "serviceUrl": service_url, **material}, {"Cache-Control": "no-store", "Pragma": "no-cache"}); return
             except Exception:
                 self.send_json(400, {"error": "invalid_redemption"}, {"Cache-Control": "no-store"}); return
         if request_path == "/credentials/adopt":
@@ -2323,7 +2575,8 @@ class Handler(BaseHTTPRequestHandler):
                 "PUBLIC_RESOURCE_METADATA_URL",
                 os.getenv("PUBLIC_ORIGIN", f"https://{PROFILE}.tools.re8ch.com") + "/.well-known/oauth-protected-resource/mcp",
             )
-            self.send_json(401, {"error": "invalid_token"}, {"WWW-Authenticate": f'Bearer realm="https://dex.service.re8ch.com", resource_metadata="{metadata}"'}); return
+            issuer = SUPABASE_ISSUER if PROFILE == "tenant" else "https://auth.re8ch.com"
+            self.send_json(401, {"error": "invalid_token"}, {"WWW-Authenticate": f'Bearer realm="{issuer}", resource_metadata="{metadata}"'}); return
         if not allowed(identity):
             self.send_json(403, {"error": "forbidden"}); return
         try:

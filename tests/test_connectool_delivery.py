@@ -14,7 +14,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert source["spec"]["ref"] == {"tag": "0.6.1"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
@@ -46,9 +46,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         },
     ]
     publications = release["spec"]["values"]["toolhive"]["publications"]
-    assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
+    assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-operate-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
     assert {item["name"]: item["replicas"] for item in publications} == {
         "re8ch-tools-vmcp": 1,
+        "re8ch-operate-vmcp": 1,
         "re8ch-admin-vmcp": 1,
         "tenant-vmcp": 1,
     }
@@ -57,8 +58,12 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert by_name["re8ch-tools-vmcp"]["allowSingleReplicaWhenCapacityLimited"] is True
     assert by_name["re8ch-tools-vmcp"]["workloads"] == [
         {"name": "ops-observe-vmcp-internal", "toolConfigRef": "ops-public-read-tools"},
+    ]
+    assert by_name["re8ch-operate-vmcp"]["workloads"] == [
         {"name": "ops-operate-vmcp-internal", "toolConfigRef": "ops-operate-tools"},
     ]
+    assert by_name["re8ch-operate-vmcp"]["group"] == "platform-operate-public"
+    assert by_name["re8ch-operate-vmcp"]["resourceUrl"] == "https://operate.tools.re8ch.com/mcp"
     assert by_name["re8ch-admin-vmcp"]["workloads"] == [
         {"name": "ops-admin-vmcp-internal", "toolConfigRef": "ops-admin-tools"},
         {"name": "admin-api-backend"},
@@ -72,6 +77,8 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
             "type": "externalAuthConfigRef",
             "externalAuthConfigRef": {"name": "vmcp-observe-backend-auth"},
         },
+    }
+    assert by_name["re8ch-operate-vmcp"]["outgoingAuth"]["backends"] == {
         "ops-operate-vmcp-internal": {
             "type": "externalAuthConfigRef",
             "externalAuthConfigRef": {"name": "vmcp-admin-backend-auth"},
@@ -122,7 +129,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["placement"]["hostAliases"] == [{
         "ip": "192.0.2.213",
-        "hostnames": ["dex.service.re8ch.com"],
+        "hostnames": ["id.re8ch.com", "auth.re8ch.com"],
     }]
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
@@ -154,12 +161,17 @@ def test_public_and_internal_mcp_clients_use_declared_frontends():
     rendered_routes = "\n".join(path.read_text() for path in route_files)
     # The privileged Tools publication is a singleton on restricted-node-6dc3f140f9 during the
     # A1/B1 fabric incident, so its public route can safely target vMCP
-    # directly. Multi-replica admin and tenant publications keep routers.
+    # directly. The singleton tenant publication also bypasses its router;
+    # only the multi-replica admin publication requires session routing here.
     assert "vmcp-re8ch-tools-vmcp" in rendered_routes
     assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
     assert "re8ch-tools-vmcp-session-router" in rendered_routes
     assert "re8ch-admin-vmcp-session-router" in rendered_routes
-    assert "backendRefs: [{name: tenant-vmcp-session-router, port: 4483}]" in rendered_routes
+    assert "re8ch-operate-vmcp-session-router" in rendered_routes
+    dns = yaml.safe_load((ROOT / "clusters/re8ch/components/public-exposure/operate-tools-dns-authority.yaml").read_text())
+    assert dns["metadata"]["labels"]["networking.re8ch.com/dns-authority"] == "public-edge"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
+    assert "backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]" in rendered_routes
     toolhive_ingresses = "\n".join(
         (ROOT / path).read_text()
         for path in (

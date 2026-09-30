@@ -23,7 +23,6 @@ resources:
 - secrets/hyperswitch-bootstrap-admin.sops.yaml
 - secrets/tenant-claim-internal-auth.sops.yaml
 - secrets/re8ch-auth-broker-client-auth.sops.yaml
-- secrets/re8ch-auth-broker-client-dex.sops.yaml
 - secrets/tenant-registry-supply-chain.sops.yaml
 - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
 - secrets/admin-vmcp-backend-auth-tenant.sops.yaml
@@ -44,20 +43,20 @@ resources:
 - components/ai-operations/platform.yaml
 - components/ai-operations/sandbox-trials
 - components/tenancy/re8ch-managed-business-namespaces.yaml
-- components/auth/dex/dex-ha-deployment.yaml
-- components/auth/dex/dex-service-deployment.yaml
-- components/auth/dex/dex-service-config-reconciler.yaml
-- components/auth/dex/grafana-client.yaml
 - components/auth/deployments/auth-postgrest.yaml
 - components/auth/deployments/re8ch-auth-gateway.yaml
 - components/auth/services/re8ch-auth-gateway.yaml
 - components/auth/user-center.yaml
+- ../../operations/supabase-identity
 - components/egress-fabric/identity-egress.yaml
 - components/egress-fabric/live-node-egress-labels.yaml
+- components/egress-fabric/mihomo-node-labeler
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml
 - components/public-exposure/gateway-dns-authorities.yaml
 - components/public-exposure/grafana-dns-authority.yaml
+- components/public-exposure/operate-tools-dns-authority.yaml
+- components/public-exposure/operate-tools-http-route.yaml
 - components/public-exposure/legacy-special-http-routes.yaml
 - components/opencost/ui-nginx-config.yaml
 - components/observability/retire-legacy-qianwen-grafana.yaml
@@ -80,6 +79,7 @@ resources:
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
+- components/synthetic-monitoring
 - ../../platform/incidentrelay
 - ../../platform/paralus
 - flux-system/gitops-oci-reader.sops.yaml
@@ -130,9 +130,44 @@ patches:
     group: apps
     version: v1
     kind: Deployment
+    name: notification-controller
+    namespace: flux-system
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 2
+    - op: add
+      path: /spec/template/spec/affinity/nodeAffinity/preferredDuringSchedulingIgnoredDuringExecution
+      value:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+      - weight: 80
+        preference:
+          matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb]}
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
     name: (helm-controller|kustomize-controller)
     namespace: flux-system
   patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 2
+    - op: add
+      path: /spec/template/spec/affinity/nodeAffinity/preferredDuringSchedulingIgnoredDuringExecution
+      value:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+      - weight: 80
+        preference:
+          matchExpressions:
+          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb]}
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --concurrent=10

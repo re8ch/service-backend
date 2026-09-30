@@ -7,10 +7,17 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: re8ch-user-center, app.kubernetes.io/part-of: re8ch-auth}}
     spec:
-      imagePullSecrets: [{name: ghcr-re8ch}]
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: pg-re8ch
+          effect: NoSchedule
+      imagePullSecrets: [{name: user-hub-harbor-pull}]
       containers:
         - name: web
-          image: ghcr.io/re8ch/user-hub@sha256:e6ed2ba8ab55bf7e6455e135a6933f3c3ed4d1c06497bfcb5b9b6c06cc427632
+          image: registry.re8ch.com/auth/user-hub:identity-center-20260929@sha256:44b2489d7375ff69ee8b2ba4f9e97e3121a89cad08e6b84a96174e8cd8fd546d
           ports: [{name: http, containerPort: 8080}]
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
@@ -18,7 +25,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 101, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: cache, mountPath: /var/cache/nginx}
-            - {name: run, mountPath: /var/run}
+            - {name: run, mountPath: /var/run/nginx}
       volumes:
         - {name: cache, emptyDir: {}}
         - {name: run, emptyDir: {}}
@@ -34,7 +41,26 @@ metadata: {name: re8ch-user-center, namespace: auth}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: auth-https}]
   hostnames: [auth.re8ch.com]
-  rules: [{backendRefs: [{name: re8ch-user-center, port: 80}], filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Gateway, value: cilium}]}}]}]
+  rules:
+    - matches:
+        - {path: {type: Exact, value: /.well-known/oauth-authorization-server}}
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /.well-known/openid-configuration}}
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+    - matches:
+        - {path: {type: Exact, value: /.well-known/openid-configuration}}
+        - {path: {type: Exact, value: /jwks}}
+        - {path: {type: Exact, value: /authorize}}
+        - {path: {type: Exact, value: /token}}
+        - {path: {type: Exact, value: /userinfo}}
+        - {path: {type: Exact, value: /start}}
+        - {path: {type: PathPrefix, value: /callback}}
+        - {path: {type: PathPrefix, value: /auth}}
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+      filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Identity-Plane, value: stalwart-broker}]}}]
+    - backendRefs: [{name: re8ch-user-center, port: 80}]
+      filters: [{type: ResponseHeaderModifier, responseHeaderModifier: {set: [{name: X-Re8ch-Gateway, value: cilium}]}}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -44,18 +70,50 @@ spec:
   hostnames: [auth.re8ch.com]
   rules: [{filters: [{type: RequestRedirect, requestRedirect: {scheme: https, statusCode: 308}}]}]
 ---
+# EdgeOne's HTTPS origin enters through this dedicated SNI and Host name.
+# Static assets stay on COS; only dynamic paths reach this route.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: re8ch-auth-edgeone-origin, namespace: auth}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: auth-origin-https}]
+  hostnames: [auth-origin.re8ch.com]
+  rules:
+    - matches: [{path: {type: Exact, value: /.well-known/oauth-authorization-server}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            hostname: auth.re8ch.com
+            path: {type: ReplaceFullPath, replaceFullPath: /.well-known/openid-configuration}
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+    - matches: [{path: {type: PathPrefix, value: /auth/v1}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            hostname: auth.re8ch.com
+            path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+      backendRefs: [{name: supabase-identity-auth, namespace: supabase-identity, port: 9999}]
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {hostname: auth.re8ch.com}
+      backendRefs: [{name: re8ch-auth-gateway, port: 8080}]
+---
+# EdgeOne's HTTPS origin uses a parent-zone Cloudflare proxy to reach the
+# inventory-declared RouterOS/Cilium authority. This avoids the child-zone
+# DNS dependency and the observed direct EdgeOne-to-VIP TLS handshake failure.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: re8ch-user-center-dns
+  name: re8ch-user-center-origin-dns
   namespace: auth
   labels: {networking.re8ch.com/dns-authority: public-edge}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: auth.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: auth-origin.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.138
     external-dns.alpha.kubernetes.io/ttl: "60"
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     networking.re8ch.com/provider: public-edge-manager
 spec:
   ingressClassName: external-dns-only
-  rules: [{host: auth.re8ch.com, http: {paths: [{path: /, pathType: Prefix, backend: {service: {name: re8ch-user-center, port: {number: 80}}}}]}}]
+  rules: [{host: auth-origin.re8ch.com, http: {paths: [{path: /, pathType: Prefix, backend: {service: {name: re8ch-user-center, port: {number: 80}}}}]}}]

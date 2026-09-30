@@ -28,7 +28,7 @@ spec:
                 type: object
                 required: [provider, ownership, environment]
                 properties:
-                  provider: {type: string, enum: [tencent, aliyun, overseas, onprem, wsl]}
+                  provider: {type: string, enum: [tencent, aliyun, overseas, onprem, wsl, dmit, hetzner]}
                   region: {type: string}
                   ownership: {type: string, enum: [owned, rented, local]}
                   environment: {type: string, enum: [cloud, cross-border, datacenter, workstation]}

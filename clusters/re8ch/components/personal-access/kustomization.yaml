@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - data-plane.yaml
   - edge-expansion.yaml
+  - edge-access-anytls.yaml
   - access-dns.yaml
   - udp-host-tuning.yaml

@@ -29,12 +29,57 @@ def test_tenant_profile_includes_claim_api(monkeypatch):
     assert {"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"} <= {tool["name"] for tool in module.tools()}
 
 
+def test_human_credential_requires_ready_matching_instance(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args: {"items": [{"spec": {"serviceClass": "registry.harbor.v1", "lifecycle": "Requested"}, "status": {"phase": "Ready", "humanCredentialRef": "credential://harbor/acme/" + "a" * 32}}]})
+    module.require_ready_human_credential("acme", "credential://harbor/acme/" + "a" * 32)
+    import pytest
+    with pytest.raises(PermissionError, match="ready"):
+        module.require_ready_human_credential("acme", "credential://harbor/acme/" + "b" * 32)
+    with pytest.raises(PermissionError, match="cross-tenant"):
+        module.require_ready_human_credential("other", "credential://harbor/acme/" + "a" * 32)
+
+
 def test_native_apply_forces_resolved_namespace(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
     value = module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {}}, "apply": False}, {"subject": "agent"})
     assert value["namespace"] == "tenant-acme"
     assert value["object"]["metadata"]["namespace"] == "tenant-acme"
+    labels = value["object"]["spec"]["template"]["metadata"]["labels"]
+    assert labels["tenant"] == "acme"
+    assert labels["birfucate.re8ch.com/metered"] == "true"
+    assert labels["resource_ref"] == value["object"]["metadata"]["labels"]["resource_ref"]
+
+
+def test_native_pvc_is_metered_without_claim_ownership(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    obj = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "1Gi"}}}}
+    value = module.call_tool("tenant_kubernetes_apply", {"object": obj, "apply": False}, {"subject": "agent"})
+    assert value["object"]["metadata"]["labels"]["birfucate.re8ch.com/metered"] == "true"
+    assert "labels" not in obj["metadata"]
+
+
+def test_claim_usage_summary_reports_accepted_events(monkeypatch, tmp_path):
+    module = load(monkeypatch)
+    module.TENANT_SERVICE_DB = tmp_path / "usage.db"
+    module._TENANT_SERVICE_STORE = None
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": [{
+        "metadata": {"name": "data", "uid": "claim-uid-1"},
+        "spec": {"capability": "storage.volume.v1", "parameters": {"sizeGiB": 1}},
+        "status": {"phase": "Ready"},
+    }]})
+    event = {"eventId": "ue_" + "d" * 32, "tenantRef": "re8ch", "resourceRef": "claim-uid-1",
+             "serviceClass": "storage.volume.v1", "meter": "occupancy.ceph-volume-capacity", "quantity": 60,
+             "unit": "GiB-second", "periodStart": "2026-09-01T00:00:00Z", "periodEnd": "2026-09-01T00:01:00Z",
+             "regionRef": "loudi", "sourceOperationId": "birfucate:test", "observedAt": "2026-09-01T00:01:00Z",
+             "schemaVersion": "usage.re8ch.com/v1", "pricingApplied": False, "accountingPosted": False}
+    module.tenant_service_store().receive_usage(event)
+    result = module.tenant_claim_usage_summary("re8ch")
+    assert result["claims"][0]["requested"] == {"storageGiB": 1}
+    assert result["claims"][0]["usage"]["totals"] == {"occupancy.ceph-volume-capacity:GiB-second": 60.0}
+    assert result["usageState"] == "accepted-events"
 
 
 def test_native_apply_rejects_cross_tenant_namespace(monkeypatch):
@@ -81,13 +126,69 @@ def test_amongclusters_service_requests_use_grant_enforcing_controller(monkeypat
     assert calls[1][0][2]["idempotencyKey"] == "create-001"
 
 
+def test_harbor_and_grafana_service_requests_use_controller_not_local_store(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator"})
+    class NoLocalStore:
+        def plan(self, *_args): raise AssertionError("local intent store must not plan provider services")
+        def mutate(self, *_args): raise AssertionError("local intent store must not create provider services")
+    monkeypatch.setattr(module, "tenant_service_store", NoLocalStore)
+    calls = []
+    monkeypatch.setattr(module, "tenant_control_request", lambda *args, **kwargs: calls.append(args) or {"decision": "preview"})
+    for service_class in ("registry.harbor.v1", "observability.grafana.v1"):
+        spec = {"serviceClass": service_class, "planRef": "pull" if service_class.startswith("registry") else "viewer", "parameters": {}}
+        module.call_tool("service_instance_plan", {"name": "access", "spec": spec}, {"subject": "agent"})
+        module.call_tool("service_instance_create", {"name": "access", "spec": spec, "idempotency_key": "create-12345"}, {"subject": "agent"})
+    assert [call[0] for call in calls] == ["/v1/services/plan", "/v1/services", "/v1/services/plan", "/v1/services"]
+
+
 def test_artchais_catalog_hides_amongclusters_when_controller_denies_grant(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
     monkeypatch.setattr(module, "tenant_service_store", lambda: object())
-    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: (_ for _ in ()).throw(PermissionError("grant revoked")))
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": []})
     value = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
     assert "network.among-clusters.v1" not in {item["serviceClass"] for item in value["services"]}
+
+
+def test_service_catalog_and_mutations_require_class_grant_and_operator(monkeypatch):
+    module = load(monkeypatch)
+    role = {"value": "operator"}
+    grants = {"items": [{"consumableRef": "storage.volume.v1", "roleRef": "operator"}]}
+    calls = []
+    class Store:
+        def plan(self, *args): calls.append(("plan", args)); return {"decision": "preview"}
+        def mutate(self, *args): calls.append(("mutate", args)); return {"state": "Provisioning"}
+        def get(self, *_args): return {"name": "disk", "service_class": "storage.volume.v1", "spec": {"serviceClass": "storage.volume.v1"}}
+        def create_binding(self, *args): calls.append(("bind", args)); return {"bindingRef": "binding://acme/one"}
+    monkeypatch.setattr(module, "tenant_service_store", Store)
+    monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": role["value"]})
+    monkeypatch.setattr(module, "tenant_control_request", lambda path, tenant, *_args, **_kwargs: grants if path == "/v1/grants" else {"items": []})
+    import pytest
+    spec = {"serviceClass": "storage.volume.v1", "planRef": "shared", "regionRef": "loudi", "parameters": {"sizeGiB": 1}}
+    listed = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
+    assert {item["serviceClass"] for item in listed["services"]} == {"storage.volume.v1"}
+    assert module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"}) == {"decision": "preview"}
+    grants["items"] = []
+    with pytest.raises(PermissionError, match="active service class TenantGrant"):
+        module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
+    assert [name for name, _ in calls] == ["plan"]
+    grants["items"] = [{"consumableRef": "storage.volume.v1", "roleRef": "viewer"}]
+    with pytest.raises(PermissionError, match="active service class TenantGrant"):
+        module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"})
+    grants["items"] = [{"consumableRef": "storage.volume.v1", "roleRef": "operator"}]
+    role["value"] = "viewer"
+    with pytest.raises(PermissionError, match="operator TenantGrant role"):
+        module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
+    role["value"] = "operator"
+    module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
+    grants["items"] = []
+    with pytest.raises(PermissionError, match="active service class TenantGrant"):
+        module.call_tool("service_binding_create", {"resource_ref": "service://acme/disk", "binding_type": "access", "parameters": {}}, {"subject": "agent"})
+    module.call_tool("service_instance_delete", {"resource_ref": "service://acme/disk", "idempotency_key": "delete-12345"}, {"subject": "agent"})
+    assert [name for name, _ in calls] == ["plan", "mutate", "mutate"]
 
 
 def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatch):
@@ -98,6 +199,22 @@ def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatc
     value = module.call_tool("tenant_namespace_create", {"namespace": "re8ch-demo"}, {"subject": "agent"})
     assert value == {"status": "accepted"}
     assert calls == [("/v1/namespaces", "re8ch", {"namespaceName": "re8ch-demo"}, None)]
+
+
+def test_tenant_namespace_ttl_is_forwarded_and_expired_namespace_is_denied(monkeypatch):
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default", "runtimeNamespaceRef": "re8ch-default"})
+    calls = []
+    def request(path, tenant, payload=None, method=None, caller="tenant"):
+        calls.append((path, tenant, payload))
+        if payload:
+            return {"status": "accepted"}
+        return {"items": [{"spec": {"tenantRef": "re8ch", "namespaceName": "re8ch-test-demo-pr-1", "operation": "EnsurePresent", "expiresAt": "2020-01-01T00:00:00Z"}, "status": {"phase": "Ready"}}]}
+    monkeypatch.setattr(module, "tenant_control_request", request)
+    module.call_tool("tenant_namespace_create", {"namespace": "re8ch-test-demo-pr-1", "ttlSeconds": 3600}, {"subject": "agent"})
+    assert calls[0] == ("/v1/namespaces", "re8ch", {"namespaceName": "re8ch-test-demo-pr-1", "ttlSeconds": 3600})
+    with __import__("pytest").raises(PermissionError, match="Ready namespace"):
+        module.call_tool("tenant_kubernetes_apply", {"namespace": "re8ch-test-demo-pr-1", "object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo"}}, "apply": False}, {"subject": "agent"})
 
 
 def test_explicit_workload_namespace_must_be_ready_and_owned(monkeypatch):

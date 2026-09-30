@@ -10,7 +10,7 @@ spec:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.0$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -30,12 +30,48 @@ spec:
     disableTakeOwnership: false
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  # The trusted issuer is pinned to the Cilium Gateway VIP inside these pods.
+  # ToolHive otherwise rejects OIDC discovery at that private address.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: re8ch-tools-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: re8ch-admin-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: re8ch-operate-vmcp-issuer}
+            patch: |-
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: MCPOIDCConfig, name: tenant-vmcp-issuer}
+            patch: |-
+              - op: replace
+                path: /spec/inline/issuer
+                value: https://db-rw.re8ch.com/auth/v1
+              - op: add
+                path: /spec/inline/jwksAllowPrivateIP
+                value: true
+          - target: {group: toolhive.stacklok.dev, version: v1beta1, kind: VirtualMCPServer, name: tenant-vmcp}
+            patch: |-
+              - op: replace
+                path: /spec/incomingAuth/oidcConfigRef/audience
+                value: authenticated
+              - op: replace
+                path: /spec/incomingAuth/oidcConfigRef/scopes
+                value: [openid, profile, email, offline_access]
   values:
     global:
-      issuer: https://dex.service.re8ch.com
+      issuer: https://auth.re8ch.com
       scopes: [openid, profile, email, groups, offline_access]
     dex:
-      contract: {enabled: true, namespace: dex, configMapName: connectool-dex-clients}
+      contract: {enabled: false, namespace: dex, configMapName: connectool-dex-clients}
     distribution:
       updated: "2026-09-23"
       channels:
@@ -62,7 +98,7 @@ spec:
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         topologySpreadConstraints: []
         hostAliases:
-          - {ip: "192.0.2.213", hostnames: [dex.service.re8ch.com]}
+          - {ip: "192.0.2.213", hostnames: [id.re8ch.com, auth.re8ch.com]}
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits: {cpu: 500m, memory: 256Mi}
@@ -153,12 +189,36 @@ spec:
           allowSingleReplicaWhenCapacityLimited: true
           workloads:
             - {name: ops-observe-vmcp-internal, toolConfigRef: ops-public-read-tools}
-            - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
           outgoingAuth:
             source: inline
             default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
             backends:
               ops-observe-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-observe-backend-auth}}
+          operational:
+            failureHandling:
+              partialFailureMode: best_effort
+              healthCheckInterval: 30s
+              healthCheckTimeout: 10s
+              unhealthyThreshold: 3
+              circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}
+          authorization:
+            groupClaim: groups
+            policies:
+              - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
+              - 'permit(principal in THVGroup::"re8ch:qwen-operators", action, resource);'
+        - name: re8ch-operate-vmcp
+          clientId: re8ch-cloud-platform-tool
+          resourceUrl: https://operate.tools.re8ch.com/mcp
+          group: platform-operate-public
+          createGroup: false
+          replicas: 1
+          allowSingleReplicaWhenCapacityLimited: true
+          workloads:
+            - {name: ops-operate-vmcp-internal, toolConfigRef: ops-operate-tools}
+          outgoingAuth:
+            source: inline
+            default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
+            backends:
               ops-operate-vmcp-internal: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}
           operational:
             failureHandling:
@@ -200,7 +260,7 @@ spec:
             policies:
               - 'permit(principal in THVGroup::"re8ch:k8s-admins", action, resource);'
         - name: tenant-vmcp
-          clientId: re8ch-tenant
+          clientId: 2981225a-da08-5aaa-9e84-8fd151696113
           resourceUrl: https://tools.service.re8ch.com/tenant/mcp
           group: tenant-public
           createGroup: true
@@ -230,11 +290,12 @@ spec:
               # applies TenantGrant authorization before executing any tool.
               - 'permit(principal, action, resource);'
     codex:
-      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch/codex-admin-plugins.git}
+      marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch-ai/codex-admin-plugins.git}
       plugins:
         - {name: re8ch-cloud-platform-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: true, skills: [skills/cloud-platform/SKILL.md]}
         - {name: re8ch-cluster-infra-tool, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/cluster-infra/SKILL.md]}
         - {name: re8ch-agent-orchestra-collab, publication: re8ch-tools-vmcp, category: Productivity, mcpOwner: false, skills: [skills/agent-orchestra/SKILL.md]}
+        - {name: re8ch-platform-operate, publication: re8ch-operate-vmcp, category: Productivity, mcpOwner: true, skills: [skills/platform-operate/SKILL.md]}
         - {name: re8ch-platform-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: true, skills: []}
         - {name: re8ch-tenant-admin, publication: re8ch-admin-vmcp, category: Productivity, mcpOwner: false, skills: [skills/tenant-admin/SKILL.md]}
         - {name: re8ch-tenant, publication: tenant-vmcp, category: Productivity, mcpOwner: true, skills: []}

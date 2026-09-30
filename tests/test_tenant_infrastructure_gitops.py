@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 
 import yaml
 
@@ -11,14 +12,29 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
-def tenant_chart_documents():
+def tenant_chart_documents(provider_enabled=False):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
+    command = ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"]
+    if provider_enabled:
+        command.extend(["--set", "tenantPlatform.provider.enabled=true", "--set-string", "tenantPlatform.provider.image=registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64])
     rendered = subprocess.run(
-        ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"],
+        command,
         check=True, capture_output=True, text=True,
     ).stdout
     return [item for item in yaml.safe_load_all(rendered) if item]
+
+
+def test_provider_worker_requires_explicit_signed_image_rollout():
+    assert not any(item.get("metadata", {}).get("name") == "tenant-provider-reconciler" for item in tenant_chart_documents())
+    docs = tenant_chart_documents(provider_enabled=True)
+    worker = next(item for item in docs if item.get("kind") == "Deployment" and item["metadata"]["name"] == "tenant-provider-reconciler")
+    container = worker["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64
+    assert container["env"][1]["valueFrom"]["secretKeyRef"] == {"name": "tenant-provider-identity", "key": "service-role-key"}
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.provider.enabled=true"], capture_output=True, text=True)
+    assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
 
 
 def test_contract_schemas_are_valid_json_and_have_stable_ids():
@@ -64,8 +80,13 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp",
     }
+    tenant_env = {item["name"]: item.get("value") for item in deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
+    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
+    native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
+    native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
+    assert native_paths == {"/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp"}
     tenant_affinity = deployments["tenant-api"]["spec"]["template"]["spec"]["affinity"]["podAffinity"]
     assert tenant_affinity["requiredDuringSchedulingIgnoredDuringExecution"][0]["labelSelector"]["matchLabels"] == {"app": "admin-api"}
 
@@ -141,18 +162,21 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     docs = tenant_chart_documents()
     admin_tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.") and item["metadata"]["name"] == "admin")
     assert admin_tenant["spec"]["lifecycle"] == "Active"
-    admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
+    admin_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service-auth")
     assert admin_binding["spec"] == {
         "tenantRef": "admin",
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "group": "re8ch:tenant-admins",
         "role": "admin",
         "revoked": False,
     }
-    user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins")
+    retired_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-vmcp-service")
+    assert retired_binding["spec"]["issuer"] == "https://dex.service.re8ch.com"
+    assert retired_binding["spec"]["revoked"] is True
+    user_binding = next(item for item in docs if item["kind"] == "TenantIdentityBinding" and item["metadata"]["name"] == "admin-github-k8s-admins-auth")
     assert user_binding["spec"] == {
         "tenantRef": "admin",
-        "issuer": "https://dex.service.re8ch.com",
+        "issuer": "https://auth.re8ch.com",
         "group": "re8ch:k8s-admins",
         "role": "admin",
         "revoked": False,
@@ -212,6 +236,9 @@ def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     tenant = release["spec"]["values"]["tenantPlatform"]
     assert tenant["tenantReadinessPath"] == "/readyz"
     assert tenant["supplyChain"] == {"required": False}
+    assert tenant["provider"]["enabled"] is True
+    assert tenant["provider"]["image"] == tenant["image"]
+    assert tenant["image"].startswith("registry.re8ch.com/image/re8ch-ai-operations@sha256:")
     artchais = next(item for item in tenant["tenants"] if item["name"] == "artchais")
     subject_binding = next(
         item for item in artchais["identityBindings"]
@@ -277,15 +304,25 @@ def test_artchais_github_team_bindings_have_explicit_roles():
         ("Artchais:tenant-operators", "operator"),
         ("Artchais:tenant-viewers", "viewer"),
     }
-    grants = [item for item in docs if item["kind"] == "TenantGrant"]
+    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "artchais"]
     assert {item["spec"]["consumableRef"] for item in grants} == {"compute.workload.v1", "storage.volume.v1"}
+
+
+def test_tenant_ci_can_request_harbor_from_its_declared_catalog_project():
+    docs = tenant_chart_documents()
+    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "tenant-ci"]
+    assert "registry.harbor.v1" in {item["spec"]["consumableRef"] for item in grants}
+    catalogs = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text())
+                if item and item.get("kind") == "ConfigMap" and item.get("metadata", {}).get("name") == "harbor-tenant-catalog"]
+    assert len(catalogs) == 2
+    assert all("tenant-ci" in json.loads(item["data"]["harbor-tenants.json"])["tenants"] for item in catalogs)
 
 
 def test_connectool_has_one_generic_tenant_publication():
     release = documents(ROOT / "platform/connectool/release.yaml")[1]
     publications = release["spec"]["values"]["toolhive"]["publications"]
     tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
-    assert tenant["clientId"] == "re8ch-tenant"
+    assert tenant["clientId"] == "2981225a-da08-5aaa-9e84-8fd151696113"
     assert tenant["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
     assert tenant["workloads"] == [{"name": "tenant-api-backend"}]
     serialized = json.dumps(publications)
@@ -293,13 +330,13 @@ def test_connectool_has_one_generic_tenant_publication():
         assert legacy not in serialized
 
 
-def test_tenant_public_route_uses_vmcp_session_router_and_internal_service_auth():
+def test_single_replica_tenant_public_route_bypasses_session_router():
     docs = tenant_chart_documents()
     route = next(item for item in docs if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "tenant-mcp")
     backends = [rule["backendRefs"][0] for rule in route["spec"]["rules"]]
     assert backends == [
-        {"name": "tenant-vmcp-session-router", "port": 4483},
-        {"name": "tenant-vmcp-session-router", "port": 4483},
+        {"name": "vmcp-tenant-vmcp", "port": 4483},
+        {"name": "vmcp-tenant-vmcp", "port": 4483},
     ]
     assert not any(item["kind"] == "ReferenceGrant" and item["metadata"]["name"] == "tenant-mcp-publicedge" for item in docs)
     assert not any(item["kind"] == "CiliumNetworkPolicy" and item["metadata"]["name"] == "tenant-api-publicedge" for item in docs)
@@ -439,3 +476,44 @@ def test_native_tenant_owner_is_reconciled_and_does_not_own_platform_boundaries(
         rule.get("resourceNames") == ["tenant-resource-provisioner"] and rule["verbs"] == ["bind"]
         for rule in cluster_role["rules"] if "clusterroles" in rule.get("resources", [])
     )
+
+
+def test_grafana_org_sync_can_reach_grafana_and_metrics_auth_selects_only_tenant_users():
+    grafana = documents(ROOT / "platform/observability/production/grafana.yaml")
+    cron = next(item for item in grafana if item["kind"] == "CronJob" and item["metadata"]["name"] == "re8ch-grafana-org-sync")
+    pod_labels = cron["spec"]["jobTemplate"]["spec"]["template"]["metadata"]["labels"]
+    policy = next(item for item in grafana if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "re8ch-grafana")
+    assert {"podSelector": {"matchLabels": pod_labels}} in policy["spec"]["ingress"][0]["from"]
+    assert {"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "tenant-infrastructure"}},
+            "podSelector": {"matchLabels": {"app": "tenant-provider-reconciler"}}} in policy["spec"]["ingress"][0]["from"]
+
+    provider_role = next(item for item in tenant_chart_documents(provider_enabled=True)
+                         if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-provider-credential-write")
+    assert {"apiGroups": ["operator.victoriametrics.com"], "resources": ["vmusers"],
+            "verbs": ["get", "create", "delete"]} in provider_role["rules"]
+
+    auth = documents(ROOT / "platform/observability/production/tenant-metrics-auth.yaml")[0]
+    assert auth["kind"] == "VMAuth" and auth["metadata"]["name"] == "tenant-metrics"
+    assert auth["spec"]["selectAllByDefault"] is False
+    assert auth["spec"]["userNamespaceSelector"]["matchLabels"] == {"kubernetes.io/metadata.name": "credential-broker"}
+    assert auth["spec"]["userSelector"]["matchLabels"] == {"observability.re8ch.com/tenant-metrics-user": "true"}
+    assert "@sha256:" in auth["spec"]["image"]["tag"]
+
+
+def test_database_metrics_bindings_limit_provider_reads_to_pinned_re8ch_credentials():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    bindings = release["spec"]["values"]["tenantPlatform"]["provider"]["databaseBindings"]
+    assert {item["database"] for item in bindings} == {"anysite", "secretary"}
+    assert all(item["tenantRef"] == "re8ch" and item["namespace"].startswith("re8ch-") for item in bindings)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as values:
+        json.dump(release["spec"]["values"], values)
+        values.flush()
+        docs = [item for item in yaml.safe_load_all(subprocess.run(
+            ["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name],
+            check=True, capture_output=True, text=True).stdout) if item]
+    roles = [item for item in docs if item["kind"] == "Role" and item["metadata"]["name"].startswith("tenant-provider-database-metrics-")]
+    assert {(item["metadata"]["namespace"], item["rules"][0]["resourceNames"][0]) for item in roles} == {
+        (item["namespace"], item["secretName"]) for item in bindings}
+    provider = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-provider-reconciler")
+    env = {item["name"]: item for item in provider["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert json.loads(env["GRAFANA_DATABASE_BINDINGS_JSON"]["value"]) == bindings

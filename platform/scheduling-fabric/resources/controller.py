@@ -281,6 +281,10 @@ def trimaran_nodes():
     return set.intersection(*series) if series else set()
 
 CAPACITY_TAINT = {"key": "scheduling.re8ch.com/capacity-window", "value": "closed", "effect": "NoSchedule"}
+SMALL_NODE_MEMORY_BYTES = 4 * 1024**3
+SMALL_NODE_POD_LIMIT = 20
+SMALL_NODE_DEFAULT_CPU = 0.1
+SMALL_NODE_DEFAULT_MEMORY = 128 * 1024**2
 CEPH_QUORUM_BRIDGE_LABEL = "storage.re8ch.com/ceph-pilot"
 CAPACITY_PATHS = ("/", "/var/lib/kubelet", "/var/lib/containerd", "/var/lib/rancher/k3s/agent/containerd")
 
@@ -357,19 +361,24 @@ def capacity_window(node, measurement, reservations=None, previously_closed=Fals
     memory_total, memory_available = measurement["memoryTotal"], measurement["memoryAvailable"]
     if memory_total <= 0:
         return "unknown", ["memory-telemetry-incomplete"]
-    if memory_available < max(memory_total * (0.20 if previously_closed else 0.10), (1 if previously_closed else 0.5) * 1024**3):
+    small = memory_total <= SMALL_NODE_MEMORY_BYTES
+    if memory_available < max(memory_total * ((0.35 if previously_closed else 0.25) if small else (0.20 if previously_closed else 0.10)), (768 if previously_closed else 512) * 1024**2 if small else (1 if previously_closed else 0.5) * 1024**3):
         reasons.append("memory-low")
-    if measurement["cpuRatio"] > (0.80 if previously_closed else 0.95):
+    if measurement["cpuRatio"] > ((0.60 if previously_closed else 0.75) if small else (0.80 if previously_closed else 0.95)):
         reasons.append("cpu-saturated")
     allocatable = node.get("status", {}).get("allocatable", {})
     reservations = reservations or {}
-    for resource, threshold in (("cpu", 0.80 if previously_closed else 0.90),
-                                ("memory", 0.80 if previously_closed else 0.90),
+    for resource, threshold in (("cpu", (0.60 if previously_closed else 0.70) if small else (0.80 if previously_closed else 0.90)),
+                                ("memory", (0.60 if previously_closed else 0.70) if small else (0.80 if previously_closed else 0.90)),
                                 ("ephemeral-storage", 0.75 if previously_closed else 0.90),
-                                ("pods", 0.85 if previously_closed else 0.95)):
+                                ("pods", (0.60 if previously_closed else 0.75) if small else (0.85 if previously_closed else 0.95))):
         parser = cpu if resource == "cpu" else memory
         limit = parser(allocatable.get(resource, "0"))
-        if limit > 0 and reservations.get(resource, 0) / limit >= threshold:
+        if small and resource == "pods":
+            limit = min(limit, SMALL_NODE_POD_LIMIT)
+        if small and limit <= 0:
+            reasons.append("allocatable-missing:" + resource)
+        elif limit > 0 and reservations.get(resource, 0) / limit >= threshold:
             reasons.append("requests-high:" + resource)
     for pressure in ("DiskPressure", "MemoryPressure", "PIDPressure"):
         if conditions.get(pressure) == "True":
@@ -402,6 +411,8 @@ def reconcile_capacity_windows(nodes):
         print(f"capacity telemetry unavailable: {exc}", flush=True)
         return
     reservations = {}
+    small_nodes = {n.get("metadata", {}).get("name") for n in nodes
+                   if 0 < memory(n.get("status", {}).get("capacity", {}).get("memory", "0")) <= SMALL_NODE_MEMORY_BYTES}
     for pod in items("/api/v1/pods"):
         node_name = pod.get("spec", {}).get("nodeName")
         if not node_name or pod.get("status", {}).get("phase") in ("Succeeded", "Failed"):
@@ -412,8 +423,9 @@ def reconcile_capacity_windows(nodes):
             parser = cpu if resource == "cpu" else memory
             containers = pod.get("spec", {}).get("containers", [])
             init_containers = pod.get("spec", {}).get("initContainers", [])
-            normal = sum(parser(c.get("resources", {}).get("requests", {}).get(resource, "0")) for c in containers)
-            init = max((parser(c.get("resources", {}).get("requests", {}).get(resource, "0")) for c in init_containers), default=0)
+            default = (SMALL_NODE_DEFAULT_CPU if resource == "cpu" else SMALL_NODE_DEFAULT_MEMORY) if node_name in small_nodes else 0
+            normal = sum(parser(c.get("resources", {}).get("requests", {}).get(resource, default)) for c in containers)
+            init = max((parser(c.get("resources", {}).get("requests", {}).get(resource, default)) for c in init_containers), default=0)
             overhead = parser(pod.get("spec", {}).get("overhead", {}).get(resource, "0"))
             booked[resource] += max(normal, init) + overhead
     for node in nodes:

@@ -20,10 +20,13 @@ def test_cloud_platform_uses_the_owned_core_service_plane():
         "operator": "In",
         "values": ["core"],
     }]
-    anti_affinity = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+    anti_affinity = affinity["podAntiAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
     assert anti_affinity == [{
-        "labelSelector": {"matchLabels": {"app": "re8ch-cloud-platform"}},
-        "topologyKey": "kubernetes.io/hostname",
+        "weight": 100,
+        "podAffinityTerm": {
+            "labelSelector": {"matchLabels": {"app": "re8ch-cloud-platform"}},
+            "topologyKey": "kubernetes.io/hostname",
+        },
     }]
 
 
@@ -32,3 +35,9 @@ def test_cloud_platform_keeps_one_replica_during_voluntary_disruption():
 
     assert pdb["spec"]["minAvailable"] == 1
     assert pdb["spec"]["selector"]["matchLabels"] == {"app": "re8ch-cloud-platform"}
+
+
+def test_rollout_can_replace_pods_with_old_required_anti_affinity():
+    deployment = next(item for item in resources() if item["kind"] == "Deployment")
+    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 2

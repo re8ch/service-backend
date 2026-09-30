@@ -22,18 +22,18 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     assert [item["metadata"]["name"] for item in groups] == ["tenant-public"]
     oidc = next(item for item in objects if item["kind"] == "MCPOIDCConfig" and item["metadata"]["name"] == "re8ch-tools-vmcp-issuer")
     vmcp = next(item for item in objects if item["kind"] == "VirtualMCPServer" and item["metadata"]["name"] == "re8ch-tools-vmcp")
-    dex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "dex-static-clients")
+    dex = [item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "dex-static-clients"]
     codex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "codex-marketplace")
     registration = json.loads(codex["data"]["re8ch-cloud-platform-tool.mcp.json"])
     server = registration["mcpServers"]["re8ch-cloud-platform-tool"]
-    assert oidc["spec"]["inline"]["issuer"] == "https://dex.service.re8ch.com"
+    assert oidc["spec"]["inline"]["issuer"] == "https://auth.re8ch.com"
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
     assert vmcp["spec"]["replicas"] == 1
     assert vmcp["spec"]["sessionAffinity"] == "ClientIP"
     assert vmcp["spec"]["sessionStorage"] == {"provider": "memory"}
-    assert "public: true" in dex["data"]["clients.yaml"]
+    assert dex == []
 
 
 def test_skill_only_plugins_do_not_duplicate_mcp_registration():
@@ -107,6 +107,7 @@ def test_connectool_renders_admin_and_tenant_publications():
     tenant = vmcps["tenant-vmcp"]
     assert {name: item["spec"]["replicas"] for name, item in vmcps.items()} == {
         "re8ch-tools-vmcp": 1,
+        "re8ch-operate-vmcp": 1,
         "re8ch-admin-vmcp": 1,
         "tenant-vmcp": 1,
     }
@@ -117,7 +118,7 @@ def test_connectool_renders_admin_and_tenant_publications():
             "scheduling.re8ch.com/pool-service-core-local": "true",
             "scheduling.re8ch.com/network-serving": "true",
         }
-    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "re8ch-tenant"
+    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "2981225a-da08-5aaa-9e84-8fd151696113"
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
 
 
@@ -125,7 +126,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     objects = render()
     pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
     assert pdbs == {
-        "re8ch-tools-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
+        "re8ch-tools-vmcp-session-router", "re8ch-operate-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
     }
     policies = [item for item in objects if item["kind"] == "MutatingAdmissionPolicy"]
     assert len(policies) == 2
@@ -149,6 +150,7 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
     }
     assert set(routers) == {
         "re8ch-tools-vmcp-session-router",
+        "re8ch-operate-vmcp-session-router",
         "re8ch-admin-vmcp-session-router",
         "tenant-vmcp-session-router",
     }

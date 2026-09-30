@@ -217,7 +217,12 @@ RESOURCE_PATHS = {
 PLATFORM_RESOURCE_PATHS = {
     "fluxdeployments": "/apis/apps/v1/namespaces/flux-system/deployments",
     "fluxgitrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/gitrepositories",
+    "fluxocirepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/ocirepositories",
+    "fluxhelmrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/helmrepositories",
+    "fluxhelmcharts": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/helmcharts",
     "fluxkustomizations": "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-system/kustomizations",
+    "fluxhelmreleases": "/apis/helm.toolkit.fluxcd.io/v2/namespaces/flux-system/helmreleases",
+    "fluxevents": "/api/v1/namespaces/flux-system/events",
     "fluxreceivers": "/apis/notification.toolkit.fluxcd.io/v1/namespaces/flux-system/receivers",
     "fluxproviders": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/flux-system/providers",
     "fluxalerts": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/flux-system/alerts",
@@ -776,18 +781,22 @@ def simplify_resource(item, default_kind=None):
         out["message"] = item.get("message")
         out["type"] = item.get("type")
         out["lastTimestamp"] = item.get("lastTimestamp") or item.get("eventTime")
-    elif kind in ("GitRepository", "Kustomization", "Receiver", "Provider", "Alert"):
+    elif kind in ("GitRepository", "OCIRepository", "HelmRepository", "HelmChart", "Kustomization", "HelmRelease", "Receiver", "Provider", "Alert"):
         out["suspended"] = bool(spec.get("suspend", False))
         out["conditions"] = [
             {key: condition.get(key) for key in ("type", "status", "reason", "message")}
             for condition in status.get("conditions", [])
         ]
-        if kind == "GitRepository":
+        if kind in ("GitRepository", "OCIRepository", "HelmRepository", "HelmChart"):
             out["url"] = spec.get("url")
             out["revision"] = status.get("artifact", {}).get("revision")
+            out["artifactDigest"] = status.get("artifact", {}).get("digest")
         elif kind == "Kustomization":
             out["lastAppliedRevision"] = status.get("lastAppliedRevision")
             out["sourceRef"] = spec.get("sourceRef")
+        elif kind == "HelmRelease":
+            out["lastAppliedRevision"] = status.get("lastAppliedRevision")
+            out["lastAttemptedRevision"] = status.get("lastAttemptedRevision")
         elif kind == "Receiver":
             out["webhookPath"] = status.get("webhookPath")
             out["receiverType"] = spec.get("type")
@@ -4155,7 +4164,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_usage_guide", "description": "Return the Ops usage guide.", "inputSchema": schema()},
         {"name": "get_tenant_context", "description": "Return the authenticated tenant endpoints and safety boundaries.", "inputSchema": schema()},
         {"name": "get_kubeconfig", "description": "Return the authenticated tenant operator kubeconfig for CLI automation.", "inputSchema": schema()},
-        {"name": "list_k8s_resources", "description": "List tenant Kubernetes resources or read-only nodes.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}})},
+        {"name": "list_k8s_resources", "description": "List tenant Kubernetes resources or read-only nodes. Platform observe also accepts fluxgitrepositories, fluxocirepositories, fluxhelmrepositories, fluxhelmcharts, fluxkustomizations, fluxhelmreleases, fluxevents, fluxdeployments, fluxreceivers, fluxproviders and fluxalerts in flux-system; results contain sanitized status only.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}})},
         {"name": "restart_deployment", "description": "Restart one Deployment in the authenticated tenant namespace.", "inputSchema": schema({"deployment": {"type": "string"}}, ["deployment"])},
         {"name": "get_registry_info", "description": "Return Harbor registry information for authenticated tenant images.", "inputSchema": schema()},
         {"name": "get_tenant_resource_catalog", "description": "Return the tenant resource name catalog. Normal token returns this tenant; admin token can pass allTenants=true.", "inputSchema": schema({"allTenants": {"type": "boolean", "default": False}})},

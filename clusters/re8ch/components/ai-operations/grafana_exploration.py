@@ -31,30 +31,16 @@ RESULT_TTL_SECONDS = 900
 FUNCTIONS_PATH = Path(os.getenv("GRAFANA_FUNCTIONS_PATH", Path(__file__).with_name("grafana_functions.json")))
 CAPABILITIES_PATH = Path(os.getenv("GRAFANA_CAPABILITIES_PATH", Path(__file__).with_name("grafana_capabilities.json")))
 
-TENANT_GRAFANA = {
-    "qwen": {"orgId": 2, "namespace": "qwen", "tokenSecret": "grafana-qianwen-viewer", "tenantLabel": "qianwen"},
-    "qianwen": {"orgId": 2, "namespace": "qwen", "tokenSecret": "grafana-qianwen-viewer", "tenantLabel": "qianwen"},
-    "ledger": {"orgId": 3, "namespace": "ledger", "tokenSecret": "grafana-ledger-viewer", "tenantLabel": "ledger"},
-    "re8ch": {"orgId": 4, "namespace": "qianwen-ops", "tokenSecret": "grafana-re8ch-viewer", "tenantLabel": "re8ch"},
-}
-
-
 def tenant_config(tenant: str) -> dict[str, Any]:
     dynamic = os.getenv("GRAFANA_TENANT_BINDINGS_JSON", "")
-    if dynamic:
-        try:
-            configured = json.loads(dynamic)
-            if tenant in configured:
-                value = configured[tenant]
-                if not isinstance(value.get("orgId"), int) or not value.get("tokenEnv") or not value.get("tenantLabel"):
-                    raise ExplorationError("invalid server-side Grafana tenant binding")
-                return dict(value)
-        except json.JSONDecodeError as exc:
-            raise ExplorationError("invalid server-side Grafana tenant bindings") from exc
     try:
-        return dict(TENANT_GRAFANA[tenant])
-    except KeyError as exc:
-        raise ExplorationError("tenant has no Grafana organization binding") from exc
+        configured = json.loads(dynamic) if dynamic else {}
+    except json.JSONDecodeError as exc:
+        raise ExplorationError("invalid server-side Grafana tenant bindings") from exc
+    value = configured.get(tenant) if isinstance(configured, dict) else None
+    if not isinstance(value, dict) or not isinstance(value.get("orgId"), int) or value["orgId"] <= 1 or not value.get("tokenEnv") or not value.get("tenantLabel"):
+        raise ExplorationError("tenant has no verified Grafana organization binding")
+    return dict(value)
 
 
 def stable_hash(value: Any) -> str:

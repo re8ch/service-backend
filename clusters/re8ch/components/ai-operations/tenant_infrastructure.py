@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -52,15 +53,15 @@ CATALOG: dict[str, dict[str, Any]] = {
     },
     "registry.harbor.v1": {
         "plans": ["pull", "build-push", "project-admin"], "regions": ["global", "loudi"],
-        "parameters": {"project", "quotaGiB", "retentionDays", "robotDurationDays", "scanPolicy"},
+        "parameters": {"project", "quotaGiB", "robotDurationDays", "identityUserRef"},
         "meters": {"artifact_storage": "GiB-hour", "pull_bytes": "byte", "push_bytes": "byte", "scans": "scan"},
         "adapter": "harbor-project-rbac", "accessUnit": "ProjectMembershipRobot", "bindings": ["project:membership", "access:broker-reference"],
     },
     "observability.grafana.v1": {
         "plans": ["viewer", "editor"], "regions": ["global", "loudi"],
-        "parameters": {"organizationRef", "folderRefs", "datasourceRefs", "retentionClass"},
+        "parameters": {"folderRefs", "datasourceRefs", "humanLogin", "identityUserRef"},
         "meters": {"active_series": "series-hour", "samples": "sample", "logs": "byte", "retained_data": "GiB-hour", "queries": "query"},
-        "adapter": "grafana-access", "accessUnit": "OrganizationFolderDatasourceGrant", "bindings": ["oidc:team", "grafana:folder-grant", "grafana:datasource-grant"],
+        "adapter": "grafana-access", "accessUnit": "OrganizationFolderDatasourceGrant", "bindings": ["identity:user", "grafana:organization-member", "grafana:datasource-scope"],
     },
     "ai.model-gateway.v1": {
         "plans": ["standard", "budgeted"], "regions": ["global", "cn"],
@@ -139,8 +140,8 @@ def validate_spec(spec: dict[str, Any], *, previous: dict[str, Any] | None = Non
         if not parameters.get("project") or int(parameters.get("quotaGiB", 0)) < 1 or not 0 < int(parameters.get("robotDurationDays", 0)) <= 365:
             raise ServiceError("Harbor requires project, positive quotaGiB and bounded robotDurationDays")
     if service_class == "observability.grafana.v1":
-        if not parameters.get("datasourceRefs") or not (parameters.get("organizationRef") or parameters.get("folderRefs")):
-            raise ServiceError("Grafana requires datasourceRefs and an organizationRef or folderRefs")
+        if not parameters.get("datasourceRefs") or not parameters.get("humanLogin") or not parameters.get("identityUserRef"):
+            raise ServiceError("Grafana requires datasourceRefs, humanLogin and identityUserRef")
     if service_class == "network.among-clusters.v1" and not parameters.get("destinationClusterRefs"):
         raise ServiceError("AmongClusters requires destinationClusterRefs")
     return {**spec, "desiredState": spec.get("desiredState", "Ready"), "parameters": parameters, "labels": spec.get("labels") or {}}
@@ -165,6 +166,9 @@ class ServiceStore:
             CREATE TABLE IF NOT EXISTS operations(operation_id TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, action TEXT NOT NULL, idempotency_key TEXT NOT NULL, request_hash TEXT NOT NULL, before_json TEXT, after_json TEXT, result_json TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(tenant_ref,idempotency_key));
             CREATE TABLE IF NOT EXISTS bindings(binding_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, binding_type TEXT NOT NULL, binding_json TEXT NOT NULL, revoked_at TEXT, created_at TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS usage_outbox(event_id TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, event_json TEXT NOT NULL, delivered_at TEXT, created_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS received_usage(event_id TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, event_json TEXT NOT NULL, received_at TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS received_usage_tenant_resource ON received_usage(tenant_ref, resource_ref);
+            CREATE INDEX IF NOT EXISTS received_usage_tenant_received ON received_usage(tenant_ref, received_at);
             CREATE TABLE IF NOT EXISTS tenants(tenant_ref TEXT PRIMARY KEY, display_name TEXT NOT NULL, visibility TEXT NOT NULL, state TEXT NOT NULL, identity_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT);
             CREATE TABLE IF NOT EXISTS grants(grant_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, consumable_ref TEXT NOT NULL, role_ref TEXT NOT NULL, visibility TEXT NOT NULL, constraints_json TEXT NOT NULL, access_ref TEXT NOT NULL, created_at TEXT NOT NULL, revoked_at TEXT, UNIQUE(tenant_ref,consumable_ref,role_ref));
             CREATE TABLE IF NOT EXISTS cluster_registrations(registration_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, cluster_uid TEXT NOT NULL, region_ref TEXT NOT NULL, issuer TEXT NOT NULL, public_key_hash TEXT NOT NULL, capabilities_json TEXT NOT NULL, state TEXT NOT NULL, enrollment_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(tenant_ref,cluster_uid));
@@ -418,14 +422,95 @@ class ServiceStore:
             db.execute("INSERT OR IGNORE INTO usage_outbox VALUES(?,?,?,?,?,?)", (event["eventId"], tenant, resource_ref, json.dumps(event, sort_keys=True), None, timestamp())); db.commit()
         return event
 
+    def receive_usage(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Accept an unpriced, immutable UsageEvent into the Billing usage ledger."""
+        required = {"eventId", "tenantRef", "resourceRef", "serviceClass", "meter", "quantity", "unit", "periodStart", "periodEnd", "regionRef", "sourceOperationId", "observedAt", "schemaVersion"}
+        allowed = required | {"dimensions", "pricingApplied", "accountingPosted"}
+        if not isinstance(event, dict) or required - event.keys() or event.keys() - allowed:
+            raise ServiceError("invalid UsageEvent fields")
+        if not re.fullmatch(r"ue_[a-f0-9]{32}", str(event["eventId"])) or event["schemaVersion"] != "usage.re8ch.com/v1":
+            raise ServiceError("invalid UsageEvent identity or version")
+        if any(not isinstance(event[key], str) or not event[key] for key in required - {"quantity"}):
+            raise ServiceError("invalid UsageEvent string field")
+        if not isinstance(event["quantity"], (int, float)) or isinstance(event["quantity"], bool) or not math.isfinite(event["quantity"]) or event["quantity"] < 0:
+            raise ServiceError("invalid UsageEvent quantity")
+        if event.get("pricingApplied", False) is not False or event.get("accountingPosted", False) is not False:
+            raise ServiceError("priced or posted events are not accepted")
+        if not isinstance(event.get("dimensions", {}), dict):
+            raise ServiceError("invalid UsageEvent dimensions")
+        try:
+            start = datetime.fromisoformat(event["periodStart"].replace("Z", "+00:00"))
+            end = datetime.fromisoformat(event["periodEnd"].replace("Z", "+00:00"))
+            observed = datetime.fromisoformat(event["observedAt"].replace("Z", "+00:00"))
+            if any(value.tzinfo is None for value in (start, end, observed)) or not start < end:
+                raise ValueError("invalid period")
+        except ValueError as exc:
+            raise ServiceError("invalid UsageEvent period") from exc
+        canonical = json.dumps(event, sort_keys=True, separators=(",", ":"))
+        with self.lock, self.connect() as db:
+            row = db.execute("SELECT event_json FROM received_usage WHERE event_id=?", (event["eventId"],)).fetchone()
+            if row:
+                if json.dumps(json.loads(row[0]), sort_keys=True, separators=(",", ":")) != canonical:
+                    raise ServiceError("eventId already exists with different content")
+                return {"eventId": event["eventId"], "accepted": True, "idempotentReplay": True}
+            db.execute("INSERT INTO received_usage VALUES(?,?,?,?,?)", (event["eventId"], event["tenantRef"], event["resourceRef"], canonical, timestamp()))
+            db.commit()
+        return {"eventId": event["eventId"], "accepted": True, "idempotentReplay": False}
+
     def usage_summary(self, tenant: str, resource_ref: str | None = None) -> dict[str, Any]:
         sql, args = "SELECT event_json FROM usage_outbox WHERE tenant_ref=?", [tenant]
         if resource_ref:
             sql, args = sql + " AND resource_ref=?", [tenant, resource_ref]
         with self.connect() as db:
             events = [json.loads(row[0]) for row in db.execute(sql, args).fetchall()]
+            received_sql = "SELECT event_json FROM received_usage WHERE tenant_ref=?"
+            received_args = [tenant]
+            if resource_ref:
+                received_sql += " AND resource_ref=?"
+                received_args.append(resource_ref)
+            events += [json.loads(row[0]) for row in db.execute(received_sql, received_args).fetchall()]
+        events = list({event["eventId"]: event for event in events}.values())
         totals: dict[str, float] = {}
         for event in events:
             key = event["meter"] + ":" + event["unit"]
             totals[key] = totals.get(key, 0) + float(event["quantity"])
         return {"tenantRef": tenant, "resourceRef": resource_ref, "totals": totals, "eventCount": len(events), "pricingApplied": False, "accountingPosted": False}
+
+    def usage_events(self, tenant: str, resource_ref: str | None = None, limit: int = 100) -> dict[str, Any]:
+        if not 1 <= limit <= 500:
+            raise ServiceError("limit must be between 1 and 500")
+        sql = "SELECT event_json FROM received_usage WHERE tenant_ref=?"
+        args: list[Any] = [tenant]
+        if resource_ref:
+            sql += " AND resource_ref=?"
+            args.append(resource_ref)
+        with self.connect() as db:
+            rows = db.execute(sql + " ORDER BY received_at DESC,event_id DESC LIMIT ?", [*args, limit]).fetchall()
+        return {"tenantRef": tenant, "resourceRef": resource_ref, "events": [json.loads(row[0]) for row in rows]}
+
+    def billing_usage(self, tenant: str, start: datetime, end: datetime) -> dict[str, Any]:
+        """Summarize accepted, unpriced events for a tenant and receipt window."""
+        if start.tzinfo is None or end.tzinfo is None or not start < end or end - start > timedelta(days=31):
+            raise ServiceError("billing window must be between 0 and 31 days")
+        lower = start.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+        upper = end.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+        with self.connect() as db:
+            # The runtime has a read-only root filesystem. GROUP BY may spill
+            # to SQLite's default temporary directory as the ledger grows.
+            db.execute("PRAGMA temp_store=MEMORY")
+            rows = db.execute("""
+                SELECT json_extract(event_json, '$.serviceClass'), resource_ref,
+                       json_extract(event_json, '$.meter'), json_extract(event_json, '$.unit'),
+                       SUM(CAST(json_extract(event_json, '$.quantity') AS REAL)),
+                       MIN(json_extract(event_json, '$.periodStart')),
+                       MAX(json_extract(event_json, '$.periodEnd')), COUNT(*)
+                  FROM received_usage
+                 WHERE tenant_ref=? AND received_at>=? AND received_at<?
+                 GROUP BY 1,2,3,4 ORDER BY 1,2,3,4
+            """, (tenant, lower, upper)).fetchall()
+        return {"tenantRef": tenant, "windowStart": lower, "windowEnd": upper,
+                "pricingApplied": False, "accountingPosted": False,
+                "items": [{"serviceClass": service, "resourceRef": resource, "meter": meter,
+                           "unit": unit, "quantity": quantity, "periodStart": period_start,
+                           "periodEnd": period_end, "eventCount": count}
+                          for service, resource, meter, unit, quantity, period_start, period_end, count in rows]}

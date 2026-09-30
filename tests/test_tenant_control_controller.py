@@ -1,6 +1,10 @@
 import importlib.util
+import io
+import json
 from pathlib import Path
 import re
+import urllib.error
+from datetime import datetime, timezone
 
 import pytest
 
@@ -12,6 +16,64 @@ SPEC = importlib.util.spec_from_file_location(
 )
 controller = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(controller)
+
+
+def test_volume_observation_distinguishes_request_allocation_and_retention(monkeypatch):
+    claim = {"metadata": {"name": "data", "uid": "claim-uid"}, "status": {}, "spec": {"capability": "storage.volume.v1", "tenantRef": "acme"}}
+
+    class VolumeKube:
+        pvc = {"spec": {}, "status": {"phase": "Pending"}}
+        pv = {"metadata": {"resourceVersion": "1", "labels": {}}, "spec": {"claimRef": {"namespace": "acme", "name": "trc-data", "uid": "pvc-uid"}}}
+        patches = []
+
+        def get(self, plural, name, namespace=None, api=None):
+            if plural == "persistentvolumes":
+                assert (name, api) == ("pvc-123", "api/v1")
+                return self.pv
+            assert (plural, name, namespace, api) == ("persistentvolumeclaims", "trc-data", "acme", "api/v1")
+            if self.pvc is None:
+                raise urllib.error.HTTPError("", 404, "missing", {}, None)
+            return self.pvc
+
+        def patch(self, plural, name, body, api=None):
+            self.patches.append((plural, name, body, api))
+
+    fake = VolumeKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    assert controller.volume_observation(claim, "acme")["state"] == "Pending"
+    fake.pvc = {"metadata": {"uid": "pvc-uid"}, "spec": {"volumeName": "pvc-123"}, "status": {"phase": "Bound", "capacity": {"storage": "10Gi"}}}
+    assert controller.volume_observation(claim, "acme") == {"state": "Bound", "capacity": "10Gi", "persistentVolume": "pvc-123"}
+    assert fake.patches == [("persistentvolumes", "pvc-123", {"metadata": {"resourceVersion": "1", "labels": {"birfucate.re8ch.com/metered": "true", "tenant": "acme", "resource_ref": "claim-uid", "tenancy.re8ch.com/claim-uid": "claim-uid"}}}, "api/v1")]
+    assert controller.volume_observation(claim, "acme", released=True)["state"] == "Retained"
+    fake.pv["metadata"]["labels"]["tenant"] = "other"
+    with pytest.raises(PermissionError, match="conflicting tenant attribution"):
+        controller.volume_observation(claim, "acme")
+    fake.pv["metadata"]["labels"] = {}
+    fake.pv["spec"]["claimRef"]["uid"] = "foreign-pvc"
+    with pytest.raises(PermissionError, match="claimRef"):
+        controller.volume_observation(claim, "acme")
+    fake.pv["spec"]["claimRef"]["uid"] = "pvc-uid"
+    claim["status"]["volumeAllocation"] = controller.volume_observation(claim, "acme")
+    fake.pvc = None
+    assert controller.volume_observation(claim, "acme", released=True) == {"state": "Unknown", "capacity": None, "persistentVolume": "pvc-123"}
+
+
+def test_pr_namespace_expiry_is_timezone_aware_and_stops_reconciliation(monkeypatch):
+    deadline = "2026-09-28T00:00:00Z"
+    spec = {"operation": "EnsurePresent", "expiresAt": deadline}
+    assert controller.namespace_expired(spec, datetime(2026, 9, 28, tzinfo=timezone.utc))
+    assert not controller.namespace_expired(spec, datetime(2026, 9, 27, tzinfo=timezone.utc))
+    assert not controller.namespace_expired({**spec, "operation": "EnsureAbsent"})
+    class ExpiryKube:
+        def __init__(self): self.patches = []
+        def list(self, plural): return [{"metadata": {"name": "acme"}, "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "acme-default", "allowedPrefixes": ["acme-"], "allowCreate": True}}}]
+        def patch(self, plural, name, value): self.patches.append((plural, name, value))
+    fake = ExpiryKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    monkeypatch.setattr(controller, "utcnow", lambda: datetime(2026, 9, 28, tzinfo=timezone.utc))
+    resource = {"metadata": {"name": "acme-pr", "uid": "uid-1"}, "spec": {"tenantRef": "acme", "namespaceName": "acme-pr", **spec}}
+    controller.reconcile_tenant_namespace(resource, {"acme": {"metadata": {"name": "acme", "uid": "tenant-uid"}, "spec": {"lifecycle": "Active"}}})
+    assert fake.patches == [("tenantnamespaces", "acme-pr", {"spec": {"operation": "EnsureAbsent"}})]
 
 
 class FakeKube:
@@ -32,6 +94,102 @@ def group_binding(tenant, group, role):
 
 def tenant(name, lifecycle="Active"):
     return {"metadata": {"name": name}, "spec": {"lifecycle": lifecycle}}
+
+
+def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeypatch):
+    class ProviderKube:
+        def __init__(self):
+            self.created = None
+            self.status = None
+        def list(self, plural, namespace=None):
+            if plural == "tenantserviceinstances": return []
+            assert plural == "tenantgrants"
+            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
+        def create(self, plural, value, namespace):
+            self.created = (plural, value, namespace)
+            return value
+        def patch_status(self, plural, name, status, namespace):
+            self.status = status
+    fake = ProviderKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
+    monkeypatch.setattr(controller, "runtime_namespace", lambda _tenant: "acme")
+    monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
+    body = {"name": "registry", "spec": {"serviceClass": "registry.harbor.v1", "planRef": "build-push", "parameters": {"quotaGiB": 10, "identityUserRef": "11111111-1111-4111-8111-111111111111"}}, "idempotencyKey": "create-12345"}
+    class Request:
+        path = "/v1/services"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "acme", "X-Tenant-Service-Token": "test-token", "Content-Length": str(len(json.dumps(body).encode()))}
+        rfile = io.BytesIO(json.dumps(body).encode())
+        def send_json(self, status, value): self.response = (status, value)
+    request = Request()
+    controller.Handler.do_POST(request)
+    assert request.response[0] == 202
+    assert request.response[1]["state"] == "Provisioning"
+    assert fake.created[0] == "tenantserviceinstances"
+    assert fake.created[2] == "acme"
+    assert fake.created[1]["spec"] == {"tenantRef": "acme", "serviceClass": "registry.harbor.v1", "plan": "build-push", "lifecycle": "Requested", "parameters": {"project": "acme", "quotaGiB": 10, "robotDurationDays": 90, "identityUserRef": "11111111-1111-4111-8111-111111111111"}}
+    assert fake.status["phase"] == "Pending"
+
+
+def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
+    class Grants:
+        def list(self, plural):
+            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
+    monkeypatch.setattr(controller, "KUBE", Grants())
+    monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
+    with pytest.raises(PermissionError, match="outside the authenticated tenant"):
+        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"project": "other", "quotaGiB": 10, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
+    with pytest.raises(PermissionError, match="outside the TenantGrant"):
+        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 21, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
+    with pytest.raises(PermissionError, match="operator TenantGrant"):
+        controller.provider_service_spec("acme", "grafana", {"serviceClass": "observability.grafana.v1", "planRef": "viewer"})
+
+
+def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatch):
+    class Grants:
+        def list(self, plural):
+            assert plural == "tenantgrants"
+            return [{"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1",
+                              "roleRef": "operator", "lifecycle": "Active"}}]
+    monkeypatch.setattr(controller, "KUBE", Grants())
+    monkeypatch.delenv("GRAFANA_TENANT_BINDINGS_JSON", raising=False)
+    request = {"serviceClass": "observability.grafana.v1", "planRef": "viewer", "parameters": {
+        "datasourceRefs": ["kube", "app"], "folderRefs": [], "humanLogin": "acme-admin",
+        "identityUserRef": "11111111-1111-4111-8111-111111111111"}}
+    result = controller.provider_service_spec("acme", "grafana", request)
+    assert result["datasourceRefs"] == ["app", "kube"]
+    request["parameters"]["datasourceRefs"] = ["platform"]
+    with pytest.raises(PermissionError, match="currently publishes"):
+        controller.provider_service_spec("acme", "grafana", request)
+
+def test_service_grants_endpoint_is_tenant_scoped_and_excludes_expired_grants(monkeypatch):
+    now = datetime(2026, 9, 29, tzinfo=timezone.utc)
+    values = [
+        {"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}},
+        {"spec": {"tenantRef": "other", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}},
+        {"spec": {"tenantRef": "acme", "consumableRef": "sandbox.runtime.v1", "roleRef": "operator", "lifecycle": "Revoked"}},
+        {"spec": {"tenantRef": "acme", "consumableRef": "network.tenant.v1", "roleRef": "operator", "lifecycle": "Active", "expiresAt": now.isoformat()}},
+        {"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1", "roleRef": "viewer", "lifecycle": "Active", "notBefore": "2026-10-01T00:00:00Z"}},
+    ]
+    class GrantsKube:
+        def list(self, plural):
+            assert plural == "tenantgrants"
+            return values
+    monkeypatch.setattr(controller, "KUBE", GrantsKube())
+    monkeypatch.setattr(controller, "utcnow", lambda: now)
+    monkeypatch.setattr(controller, "runtime_namespace", lambda tenant_ref: "tenant-" + tenant_ref)
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
+    class Request:
+        path = "/v1/grants"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "acme", "X-Tenant-Service-Token": "test-token"}
+        def send_json(self, status, value):
+            self.response = (status, value)
+    request = Request()
+    controller.Handler.do_GET(request)
+    assert request.response == (200, {"items": [{"consumableRef": "registry.harbor.v1", "roleRef": "operator"}]})
+    request.headers = {**request.headers, "X-Tenant-Service-Token": "wrong"}
+    controller.Handler.do_GET(request)
+    assert request.response[0] == 404
 
 
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
@@ -106,6 +264,9 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     role = next(item for item in resources if item["kind"] == "Role")
     assert "namespaces" not in str(role["rules"])
     assert "clusterroles" not in str(role["rules"])
+    metrics = next(item for item in resources if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "tenant-metrics-scrape")
+    assert metrics["spec"]["podSelector"] == {"matchLabels": {"observability.re8ch.com/scrape": "true"}}
+    assert metrics["spec"]["ingress"] == [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]
 
 
 def test_groups_spanning_tenants_are_denied(monkeypatch):
