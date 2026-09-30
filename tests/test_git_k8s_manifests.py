@@ -553,12 +553,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:efa04a334c6855b07ce5e72c9a3f8e9e0888b7c3744d65160d1f74f8f6e3a806"}
+    assert source["spec"]["ref"] == {"digest": "sha256:7faea97b23fb940fffd2fdb27075d5a3cc04988eb361711e664dd0928114b476"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "v0.6.21",
-        "digest": "sha256:c5852aebc72d04dfa70bec8c922a7bd87bc433c0768cc06b6e4ef27c2c839b63",
+        "tag": "v0.6.22",
+        "digest": "sha256:1f1d186e2d61d94992ad231c975f12a6fc8abcbb69f8e7d6e4f27069de559411",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -570,6 +570,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["dns"]["axfrAllowedCidrs"] == ["192.0.2.67/32"]
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
     assert values["dns"]["externalRecords"]["_acme-challenge.service.re8ch.com."][0]["value"] == "_acme-challenge.re8ch.com."
+    assert values["dns"]["externalRecords"]["dnshenet-key.service.re8ch.com."][0]["type"] == "TXT"
     assert values["services"]["api.re8ch.com."] == {
         "service": "api", "class": "api", "probePath": "/auth/me", "acceptedStatuses": [200]
     }

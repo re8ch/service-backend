@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:efa04a334c6855b07ce5e72c9a3f8e9e0888b7c3744d65160d1f74f8f6e3a806}
+  ref: {digest: sha256:7faea97b23fb940fffd2fdb27075d5a3cc04988eb361711e664dd0928114b476}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "v0.6.21"
+      tag: "v0.6.22"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:c5852aebc72d04dfa70bec8c922a7bd87bc433c0768cc06b6e4ef27c2c839b63
+      digest: sha256:1f1d186e2d61d94992ad231c975f12a6fc8abcbb69f8e7d6e4f27069de559411
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -130,6 +130,8 @@ spec:
           - {type: CNAME, value: 1301339749.ap-guangzhou.tencentscf.com., externalCDN: true, provider: tencent-scf}
         _acme-challenge.service.re8ch.com.:
           - {type: CNAME, value: _acme-challenge.re8ch.com., externalCDN: true, provider: cloudflare-dns01}
+        dnshenet-key.service.re8ch.com.:
+          - {type: TXT, value: "hEoXQWWZ7vJQ0rqzfWB8E/Ifpsi+OzthgIJJJX9v9/E", externalCDN: true, provider: he-ownership}
     crd: {install: true}
     # Used only to create the initial ConfigMap. The controller replaces it
     # with stable hash-based names after public UDP/TCP 53 qualification.
