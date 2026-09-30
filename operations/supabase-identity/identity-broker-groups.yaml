@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-identity-broker-groups-v1
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    begin;
+    
+    -- The public OAuth broker still uses legacy session IDs. Resolve those IDs
+    -- through the migration's immutable link and read current organization rows.
+    -- External provider observations may expire; organization membership does not.
+    create or replace function api.auth_broker_groups(p_legacy_user_id bigint)
+    returns text[] language sql stable security definer
+    set search_path = pg_catalog, pg_temp as $$
+      with linked as (
+        select l.user_id
+        from core.legacy_user_ids l
+        join auth.users u on u.id = l.user_id
+        where l.legacy_user_id = p_legacy_user_id
+          and u.deleted_at is null
+          and (u.banned_until is null or u.banned_until < now())
+          and u.email_confirmed_at is not null
+      ), memberships as (
+        select m.tenant_ref, m.role
+        from linked l
+        join core.organization_members m on m.user_id = l.user_id
+        join core.organizations o on o.tenant_ref = m.tenant_ref
+        where m.status = 'active' and o.status = 'active'
+          and o.kind <> 'personal'
+      ), projected as (
+        select 'tenant:' || tenant_ref || ':' || role as value from memberships
+        union all
+        select 're8ch:k8s-admins' from memberships
+          where tenant_ref = 'admin' and role in ('owner', 'admin')
+        union all
+        select 're8ch:tenant-admins' from memberships
+          where tenant_ref = 'admin' and role in ('owner', 'admin')
+      )
+      select coalesce(array_agg(distinct value order by value), '{}'::text[])
+      from projected;
+    $$;
+    alter function api.auth_broker_groups(bigint) owner to supabase_admin;
+    revoke all on function api.auth_broker_groups(bigint) from public, anon, authenticated, service_role;
+    grant execute on function api.auth_broker_groups(bigint) to identity_service;
+    
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-identity-broker-groups-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
+      containers:
+        - name: migrate
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args: ["psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql"]
+          env:
+            - {name: PGHOST, value: pg-re8ch-primary.pigsty-external.svc.cluster.local}
+            - {name: PGDATABASE, value: re8ch_identity}
+            - {name: PGUSER, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_USER_READ_WRITE}}}
+            - {name: PGPASSWORD, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_PASSWORD}}}
+          volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - {name: sql, configMap: {name: supabase-identity-broker-groups-v1}}
