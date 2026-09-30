@@ -712,6 +712,8 @@ modules:
       digest: sha256:242f5ca9b9052c723e31e81d358a6e60bb5ff58ab3bfc3489ee1a0c96a4eade4
     - codename: meridian-amber
       digest: sha256:1d4afe355d8c5b738b371f5773f6067f55cd8358003d2a0285a7377cf62c96c2
+    - codename: passage-amber
+      digest: sha256:547d74bdf0b7988cfcc560257ca3efc72be13d851b59887a84f5c371a57f73fc
   platform/public-edge-manager:
     releases:
     - codename: bora
