@@ -17,7 +17,8 @@ def test_public_edge_discovers_nodes_without_inventory_or_publisher():
     discovery = values["discovery"]
     assert discovery["replicas"] == 2
     assert discovery["gatewaySelector"] == "networking.re8ch.com/public-edge-gateway=true"
-    assert discovery["maxNameservers"] == 2
+    assert discovery["maxNameservers"] == 3
+    assert discovery["probeNodeNames"] == ["overseas-la-2", "overseas-flk"]
     assert values["runtime"] == {"configMapName": "public-edge-runtime"}
     assert not (ROOT / "platform/public-edge-manager/dns-candidate-nodes.yaml").exists()
     assert not (ROOT / "platform/public-edge-manager/nameserver-election.yaml").exists()
