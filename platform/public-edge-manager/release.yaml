@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:160b86c61f183590dfff0ae5649505b6bcc6f58fb0fa47e162354a9e0126766a}
+  ref: {digest: sha256:efa04a334c6855b07ce5e72c9a3f8e9e0888b7c3744d65160d1f74f8f6e3a806}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "v0.6.20"
+      tag: "v0.6.21"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:e755f81585c48eadc1c8cdeb8d80b4cb7ff287d0d861731ddb88fdfcd79c19bf
+      digest: sha256:c5852aebc72d04dfa70bec8c922a7bd87bc433c0768cc06b6e4ef27c2c839b63
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -39,6 +39,10 @@ spec:
     dns:
       soaRname: hostmaster.re8ch.com.
       nameserversConfigMap: public-edge-nameservers
+      # HE pulls the public service zone over TCP from the overseas primary.
+      # Its documented slave source is 192.0.2.192; all other AXFR is refused.
+      axfrZones: [service.re8ch.com.]
+      axfrAllowedCidrs: [192.0.2.192/32]
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
