@@ -18,6 +18,15 @@ Actions Secret `SECRETARY_EXTERNAL_PROBE_WEBHOOK_SECRET`. The current Secretary
 API accepts the shared `secretary-runtime/webhook-secret`; a dedicated scoped
 external-probe key should be implemented before production activation.
 
+The external PublicEdge probe and the scheduled external k6 contracts now use
+the same signed observation publisher. A failed target has a stable Secretary
+interaction ID across runs; each GitHub run has a distinct idempotency key and
+an Actions artifact reference. Missing credentials or a rejected observation
+remain visible in the failed Actions run. Secretary records supporting probe
+evidence only. It does not page an operator or prove message delivery. Production
+on-call activation still needs an Alertmanager/IncidentRelay route or an approved
+SMS adapter, a missing-run alert, and a forced-failure delivery drill.
+
 The authoritative restricted-node-6dc3f140f9 public route remains `192.0.2.138 -> RouterOS
 DNAT/eBGP -> 192.0.2.213/Cilium Gateway`, as declared in
 `operations/network/manifests/network/public-mesh/inventory.json`. The probe

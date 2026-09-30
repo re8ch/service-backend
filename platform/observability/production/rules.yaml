@@ -263,3 +263,22 @@ spec:
             summary: Alertmanager receiver requests are failing
             description: Alertmanager integration {{ $labels.integration }} has failed one or more notification attempts in the last ten minutes.
             runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
+    - name: re8ch.synthetic.oncall
+      interval: 1m
+      rules:
+        - alert: Re8chK6FastCheckOverdue
+          expr: time() - (kube_cronjob_status_last_successful_time{namespace="synthetic-monitoring",cronjob="k6-contracts-fast"} or on (namespace,cronjob) kube_cronjob_created{namespace="synthetic-monitoring",cronjob="k6-contracts-fast"}) > 900
+          for: 2m
+          labels: {namespace: synthetic-monitoring, severity: critical, owner: platform-observability, service: k6-contracts-fast, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: synthetic}
+          annotations:
+            summary: Fast internal k6 contracts have not succeeded for 15 minutes
+            description: Inspect the k6-contracts-fast Job and Pod logs in Headlamp; this also catches missing schedules and repeated failures.
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/operations/k6/README.md
+        - alert: Re8chK6StandardCheckOverdue
+          expr: time() - (kube_cronjob_status_last_successful_time{namespace="synthetic-monitoring",cronjob="k6-contracts"} or on (namespace,cronjob) kube_cronjob_created{namespace="synthetic-monitoring",cronjob="k6-contracts"}) > 4500
+          for: 2m
+          labels: {namespace: synthetic-monitoring, severity: warning, owner: platform-observability, service: k6-contracts, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: synthetic}
+          annotations:
+            summary: Standard internal k6 contracts have not succeeded for 75 minutes
+            description: Inspect the k6-contracts Job and Pod logs in Headlamp; this also catches missing schedules and repeated failures.
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/operations/k6/README.md

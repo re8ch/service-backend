@@ -1,5 +1,6 @@
 import importlib.util
 import tempfile
+import sys
 import unittest
 import urllib.error
 from pathlib import Path
@@ -7,6 +8,7 @@ from unittest.mock import patch
 
 
 PATH = Path(__file__).resolve().parents[1] / "operations/monitoring/public_edge_probe.py"
+sys.path.insert(0, str(PATH.parent))
 SPEC = importlib.util.spec_from_file_location("public_edge_probe", PATH)
 probe_module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(probe_module)
