@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/re8ch-business-namespaces
-codename: sentinel
+codename: shield
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-re8ch-business-namespaces
-  digest: sha256:7ffb822605529fb7881803491e9c855dda092a3024f5edeb476b86f81381d015
+  digest: sha256:ebe4c9efdd1738affb292285b969c7bdbb73c01faabc52af04ef338831a5b720
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
