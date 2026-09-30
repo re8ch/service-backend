@@ -304,6 +304,7 @@ metadata:
   name: supabase-identity-rest
   namespace: supabase-identity
 spec:
+  clusterIP: 192.0.2.30
   selector:
     app.kubernetes.io/component: rest
   ports:
