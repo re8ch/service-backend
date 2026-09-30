@@ -840,6 +840,8 @@ modules:
       digest: sha256:0901530d3a8d34ac2c81f630a2ef3ba2d1219c2ef8924f94fbe9788c1e0e9ba3
     - codename: tramontane-violet
       digest: sha256:0308b06bf5fb992e53aa1edd8c02cc784285db1bacaba93bd21a098252f46f92
+    - codename: zephyr-violet
+      digest: sha256:f63812cc487f78cfa86e5b948426dd655b01bb9b1df84e13a70532507b926914
   platform/adapter:
     releases:
     - codename: anchor
