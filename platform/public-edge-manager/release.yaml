@@ -27,10 +27,10 @@ spec:
   rollback: {cleanupOnFail: true}
   values:
     image:
-      repository: registry.re8ch.com/public-edge/public-edge-manager
+      repository: ghcr.io/public-edge/public-edge-manager
       tag: "v0.6.15"
-      # Mirror of the pinned upstream release, pulled by digest on restricted-node-6dc3f140f9.
-      digest: sha256:404a17e878aaeed4d095677e1d17962b35945a403772f37d321389bf09b80829
+      # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
+      digest: sha256:56a8133206fa9b2695effc90dade4daf21b6d99e5127f5455c32db23118e9550
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}

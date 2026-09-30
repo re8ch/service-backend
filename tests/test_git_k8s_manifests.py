@@ -555,9 +555,9 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert source["spec"]["ref"] == {"digest": "sha256:8c4493c1a8402481341c15ea2a25c320f164d448e1fcf676292a9c401b0ef83c"}
     values = release["spec"]["values"]
     assert values["image"] == {
-        "repository": "registry.re8ch.com/public-edge/public-edge-manager",
+        "repository": "ghcr.io/public-edge/public-edge-manager",
         "tag": "v0.6.15",
-        "digest": "sha256:404a17e878aaeed4d095677e1d17962b35945a403772f37d321389bf09b80829",
+        "digest": "sha256:56a8133206fa9b2695effc90dade4daf21b6d99e5127f5455c32db23118e9550",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
