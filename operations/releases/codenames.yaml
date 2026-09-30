@@ -854,6 +854,8 @@ modules:
       digest: sha256:1632c1e7e277cf36bfaefa297610f80590c6ae2701a2d100b72c730b710a946d
     - codename: chinook-bronze
       digest: sha256:d7799850e6f25f380217adad24adde4f3032c3c1124bcc9f44143d4d0c2f30ca
+    - codename: etesian-bronze
+      digest: sha256:ee70908596cfe6105284903be3d49a19f21a5bfbc518172039032778c32f6ee7
   platform/adapter:
     releases:
     - codename: anchor
