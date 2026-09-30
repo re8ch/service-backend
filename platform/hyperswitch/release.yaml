@@ -83,14 +83,22 @@ spec:
                   rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
                 template:
                   spec:
+                    imagePullSecrets:
+                      - name: harbor-hyperswitch-admin
                     containers:
                       - name: superposition
+                        image: registry.re8ch.com/hyperswitch/superposition@sha256:cedca5587ded9007697faa2379d2c5b65342dacf55115c980162794167b58ccc
                         env:
                           - name: DB_PASSWORD
                             valueFrom:
                               secretKeyRef:
-                                name: hyperswitch-pigsty-credentials
+                                name: hyperswitch-superposition-prod-secrets
                                 key: DB_PASSWORD
+                          - name: SUPERPOSITION_TOKEN
+                            valueFrom:
+                              secretKeyRef:
+                                name: hyperswitch-superposition-prod-secrets
+                                key: SUPERPOSITION_TOKEN
           - target:
               group: apps
               version: v1
@@ -148,8 +156,8 @@ spec:
             email: "false"
             totp: "true"
             sample_data: "false"
-            test_processors: "true"
-            is_live_mode: "false"
+            test_processors: "false"
+            is_live_mode: "true"
       resources:
         requests: {cpu: 100m, memory: 128Mi}
         limits: {cpu: 500m, memory: 512Mi}
@@ -206,24 +214,38 @@ spec:
       superposition:
         enabled: true
         replicaCount: 1
+        # These are supplied only as local:v1 ciphertext through the separately
+        # provisioned production Secret referenced by the Deployment patch.
+        secrets:
+          db_password: ""
+          superposition_token: ""
+          oidc_client_secret: ""
+        volumes:
+          - name: local-kms-key
+            persistentVolumeClaim:
+              claimName: hyperswitch-superposition-local-key
+        volumeMounts:
+          - name: local-kms-key
+            mountPath: /run/re8ch-local-kms
+            readOnly: true
         configs:
           # Use the concrete in-namespace Service FQDN. The compatibility
           # ExternalName alias is not resolvable on every cluster DNS path.
           db_host: "pg-re8ch-primary.pigsty-external.svc.cluster.local:5432"
           db_name: hyperswitch
           db_user: hyperswitch_migrator
+          local_kms_key_file: /run/re8ch-local-kms/key
           rust_log: info
-          # This release is explicitly sandbox-only. In PROD, Superposition
-          # requires an external KMS and treats DB_PASSWORD as ciphertext;
-          # DEV consumes the SOPS-protected database password directly.
-          app_env: DEV
+          # The production image reads local:v1 ciphertext using the protected
+          # restricted-node-6dc3f140f9 key file mounted through a read-only PVC.
+          app_env: PROD
           auth_provider: DISABLED
           auth_z_provider: DISABLED
         resources:
           requests: {cpu: 50m, memory: 128Mi}
           limits: {cpu: 500m, memory: 512Mi}
       server:
-        run_env: sandbox
+        run_env: production
         ingress: {enabled: false}
         configs:
           # Router v1.126 reads `origins`; the chart's legacy `origin` default
@@ -235,12 +257,9 @@ spec:
             source: sqlx
             forex_enabled: false
           connectors:
-            # Alipay offers a real developer sandbox; this release remains
-            # sandbox-only until the enterprise application is certified.
+            # Use the production merchant gateway for the live environment.
             alipaycn:
-              base_url: "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
-            # WeChat Pay API v3 has no equivalent general-purpose sandbox.
-            # Signed fixtures cover the connector until a merchant smoke test.
+              base_url: "https://openapi.alipay.com/gateway.do"
             wechatpaycn:
               base_url: "https://api.mch.weixin.qq.com"
           superposition:

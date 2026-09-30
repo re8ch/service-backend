@@ -12,7 +12,7 @@ def objects():
     return list(yaml.safe_load_all(RELEASE.read_text()))
 
 
-def test_hyperswitch_is_active_internal_sandbox_with_sops_values():
+def test_hyperswitch_is_active_internal_production_with_sops_values():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     assert release["spec"]["suspend"] is False
     assert release["spec"]["targetNamespace"] == "payments"
@@ -32,7 +32,9 @@ def test_hyperswitch_is_active_internal_sandbox_with_sops_values():
     assert features["email"] == "false"
     assert features["sample_data"] == "false"
     assert values["hyperswitch-app"]["server"]["ingress"]["enabled"] is False
-    assert values["hyperswitch-app"]["server"]["run_env"] == "sandbox"
+    assert values["hyperswitch-app"]["server"]["run_env"] == "production"
+    assert features["is_live_mode"] == "true"
+    assert features["test_processors"] == "false"
 
 
 def test_control_center_route_uses_service_port_not_container_port():
@@ -170,7 +172,11 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     assert app["superposition"]["enabled"] is True
     assert app["superpositionDB"]["enable"] is True
     assert app["superpositionFallback"]["source"] == "configMap"
-    assert app["superposition"]["configs"]["app_env"] == "DEV"
+    assert app["superposition"]["configs"]["app_env"] == "PROD"
+    assert app["superposition"]["configs"]["local_kms_key_file"] == "/run/re8ch-local-kms/key"
+    assert app["superposition"]["secrets"] == {
+        "db_password": "", "superposition_token": "", "oidc_client_secret": "",
+    }
     assert app["superposition"]["configs"]["db_host"] == (
         "pg-re8ch-primary.pigsty-external.svc.cluster.local:5432"
     )
@@ -182,14 +188,14 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     assert "https://pay.service.re8ch.com" in cors["origins"]
     connectors = app["server"]["configs"]["connectors"]
     assert connectors["alipaycn"]["base_url"].startswith(
-        "https://openapi-sandbox.dl.alipaydev.com/"
+        "https://openapi.alipay.com/"
     )
     assert connectors["wechatpaycn"]["base_url"] == "https://api.mch.weixin.qq.com"
     secretish_keys = {"db" + "_password", "superposition" + "_token", "api" + "_key", "client" + "_secret"}
 
     def visit(value):
         if isinstance(value, dict):
-            assert secretish_keys.isdisjoint(value)
+            assert all(value[key] == "" for key in secretish_keys.intersection(value))
             for child in value.values():
                 visit(child)
         elif isinstance(value, list):
@@ -313,7 +319,7 @@ def test_rendered_helm_values_namespace_and_job_admission():
         kind = resource["kind"]
         if kind in {"HelmRelease", "HelmRepository"}:
             assert resource["metadata"]["namespace"] == secret["metadata"]["namespace"]
-        elif kind != "Namespace":
+        elif kind not in {"Namespace", "PersistentVolume"}:
             assert resource["metadata"]["namespace"] == "payments"
         if kind == "Job":
             expected_revision = "-v13" if "bootstrap-admin" in resource["metadata"]["name"] else "-v5"
