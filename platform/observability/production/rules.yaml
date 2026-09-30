@@ -266,6 +266,14 @@ spec:
     - name: re8ch.synthetic.oncall
       interval: 1m
       rules:
+        - alert: Re8chK6CronJobMissing
+          expr: absent(kube_cronjob_info{namespace="synthetic-monitoring",cronjob="k6-contracts-fast"}) or absent(kube_cronjob_info{namespace="synthetic-monitoring",cronjob="k6-contracts"})
+          for: 5m
+          labels: {namespace: synthetic-monitoring, severity: critical, owner: platform-observability, service: k6-contracts, tier: critical, alert_layer: prometheus, policy_id: platform-default, signal_domain: synthetic}
+          annotations:
+            summary: Internal k6 CronJob or its inventory telemetry is missing
+            description: Check the {{ $labels.cronjob }} CronJob and kube-state-metrics scrape before trusting synthetic coverage.
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/operations/k6/README.md
         - alert: Re8chK6FastCheckOverdue
           expr: time() - (kube_cronjob_status_last_successful_time{namespace="synthetic-monitoring",cronjob="k6-contracts-fast"} or on (namespace,cronjob) kube_cronjob_created{namespace="synthetic-monitoring",cronjob="k6-contracts-fast"}) > 900
           for: 2m
