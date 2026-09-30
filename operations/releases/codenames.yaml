@@ -866,6 +866,8 @@ modules:
       digest: sha256:69bb6c89eb168eaa1e0a15ebf64aadeb7377e96e680ff9fad4af6a040b2fc1a5
     - codename: bora-coral
       digest: sha256:9e2221595783e8b5f546b511107f3b415597ca68623d5f440f1510a8cd510781
+    - codename: chinook-coral
+      digest: sha256:ab12524d655d12a4397a354aa734674a5cbcc44336e7644dfc43e247901490da
   platform/adapter:
     releases:
     - codename: anchor
