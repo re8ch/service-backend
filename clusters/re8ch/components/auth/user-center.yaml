@@ -17,7 +17,7 @@ spec:
       imagePullSecrets: [{name: user-hub-harbor-pull}]
       containers:
         - name: web
-          image: registry.re8ch.com/auth/user-hub:identity-center-20260929@sha256:44b2489d7375ff69ee8b2ba4f9e97e3121a89cad08e6b84a96174e8cd8fd546d
+          image: registry.re8ch.com/auth/user-hub:phone-20260930@sha256:a5cbac702687c5e9e7a79b9771c761a204bf087f1606688bc2ae5b204c246068
           ports: [{name: http, containerPort: 8080}]
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
