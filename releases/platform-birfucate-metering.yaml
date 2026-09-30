@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: confluence-bronze
+codename: eddy-bronze
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:ab08470c7b4aba740b43909d9a2e8b091085f68d4f2eba3d19581f2bfd49ead3
+  digest: sha256:b9fc1e1506c6267e7b04ace14c5a473e8a67bf76929518311c74a674edec4b47
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
