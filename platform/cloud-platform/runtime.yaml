@@ -3,7 +3,7 @@ kind: Deployment
 metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
 spec:
   replicas: 2
-  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 1}}
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 2, maxSurge: 1}}
   selector: {matchLabels: {app: re8ch-cloud-platform}}
   template:
     metadata: {labels: {app: re8ch-cloud-platform}}

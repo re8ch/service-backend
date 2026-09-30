@@ -35,3 +35,9 @@ def test_cloud_platform_keeps_one_replica_during_voluntary_disruption():
 
     assert pdb["spec"]["minAvailable"] == 1
     assert pdb["spec"]["selector"]["matchLabels"] == {"app": "re8ch-cloud-platform"}
+
+
+def test_rollout_can_replace_pods_with_old_required_anti_affinity():
+    deployment = next(item for item in resources() if item["kind"] == "Deployment")
+    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 2
