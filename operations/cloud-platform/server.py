@@ -75,7 +75,14 @@ def authenticate(header: str) -> Identity | None:
     if SERVICE_TOKEN and token == SERVICE_TOKEN:
         return Identity("service:toolhive", (ADMIN_GROUP,))
     try:
-        request = urllib.request.Request(DEX_USERINFO, headers={"Authorization": header, "Accept": "application/json"})
+        request = urllib.request.Request(
+            DEX_USERINFO,
+            headers={
+                "Authorization": header,
+                "Accept": "application/json",
+                "User-Agent": "RE8CH-Cloud-Platform/1.0",
+            },
+        )
         with urllib.request.urlopen(request, timeout=5) as response:
             claims = json.load(response)
         encoded = token.split(".")[1]
