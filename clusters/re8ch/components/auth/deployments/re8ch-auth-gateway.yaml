@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:email-phone-20260930b@sha256:22b7c7ecdeede1d31c43d8e2026ed5d3dbe6845bc66dc0eeadfcf5ec2f8e7d67
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:durable-groups-20260930@sha256:a4e995d65b282e48bea84d3b0c86206e9fe2045ff98cf444ec825f87f2961165
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
