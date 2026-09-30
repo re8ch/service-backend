@@ -100,6 +100,35 @@ def test_hyperswitch_singleton_upgrades_without_surge():
     }
 
 
+def test_control_center_stays_on_r640_with_cached_vendor_image():
+    release = next(item for item in objects() if item["kind"] == "HelmRelease")
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    control_center = next(
+        item for item in patches
+        if item["target"]["name"] == "hyperswitch-control-center"
+    )
+    rendered = yaml.safe_load(control_center["patch"])
+    assert rendered["spec"]["template"]["spec"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
+
+
+def test_superposition_uses_preloaded_verified_harbor_build():
+    release = next(item for item in objects() if item["kind"] == "HelmRelease")
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    superposition = next(
+        item for item in patches
+        if item["target"]["name"] == "hyperswitch-superposition"
+    )
+    rendered = yaml.safe_load(superposition["patch"])
+    container = rendered["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == (
+        "registry.re8ch.com/hyperswitch/superposition:"
+        "re8ch-45fa7d15222dce436f7851e1bb32a30f550966db"
+    )
+    assert container["imagePullPolicy"] == "Never"
+
+
 def test_hyperswitch_router_uses_re8ch_connector_image_by_digest():
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
