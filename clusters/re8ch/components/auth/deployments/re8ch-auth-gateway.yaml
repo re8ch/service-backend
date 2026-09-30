@@ -55,7 +55,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:durable-groups-20260930@sha256:a4e995d65b282e48bea84d3b0c86206e9fe2045ff98cf444ec825f87f2961165
+          image: registry.re8ch.com/auth/re8ch-auth-gateway:platform-3facb6b@sha256:c2f103c137af8c762a86983ee8404e16bf40da2944e658eca8581f07fb0c22bf
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -92,6 +92,9 @@ spec:
             - name: IDENTITY_PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_PGRST_JWT_SECRET}
+            - name: IDENTITY_GOTRUE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_GOTRUE_SERVICE_ROLE_KEY}
             - name: IDENTITY_SEND_EMAIL_HOOK_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: IDENTITY_SEND_EMAIL_HOOK_SECRET}
@@ -194,6 +197,48 @@ spec:
             - name: WECHAT_WEB_APP_SECRET
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: WECHAT_WEB_APP_SECRET}
+            - name: WECHAT_MINI_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: WECHAT_MINI_APP_ID, optional: true}
+            - name: WECHAT_MINI_APP_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: WECHAT_MINI_APP_SECRET, optional: true}
+            - name: ALIPAY_MINI_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: ALIPAY_MINI_APP_ID, optional: true}
+            - name: ALIPAY_MINI_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: ALIPAY_MINI_PRIVATE_KEY, optional: true}
+            - name: DOUYIN_MINI_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: DOUYIN_MINI_APP_ID, optional: true}
+            - name: DOUYIN_MINI_APP_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: DOUYIN_MINI_APP_SECRET, optional: true}
+            - name: TIKTOK_MINIS_CLIENT_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TIKTOK_MINIS_CLIENT_KEY, optional: true}
+            - name: TIKTOK_MINIS_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TIKTOK_MINIS_CLIENT_SECRET, optional: true}
+            - name: TIKTOK_CLIENT_KEY
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TIKTOK_CLIENT_KEY, optional: true}
+            - name: TIKTOK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: TIKTOK_CLIENT_SECRET, optional: true}
+            - name: META_FACEBOOK_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: META_FACEBOOK_APP_ID, optional: true}
+            - name: META_FACEBOOK_APP_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: META_FACEBOOK_APP_SECRET, optional: true}
+            - name: META_INSTAGRAM_APP_ID
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: META_INSTAGRAM_APP_ID, optional: true}
+            - name: META_INSTAGRAM_APP_SECRET
+              valueFrom:
+                secretKeyRef: {name: re8ch-auth-gateway-secrets, key: META_INSTAGRAM_APP_SECRET, optional: true}
             - name: APPLE_OIDC_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_ID, optional: true}
