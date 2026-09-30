@@ -163,6 +163,9 @@ spec:
       # Keep auth's authoritative zone for rollback, but stop recreating its
       # parent NS delegation before replacing that delegation with EdgeOne CNAME.
       childZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com, test.re8ch.com]
+      # HE slave authority verified over public UDP and TCP before delegation.
+      secondaryNameserversByZone:
+        service.re8ch.com: [ns1.he.net., ns2.he.net., ns3.he.net., ns4.he.net., ns5.he.net.]
       cloudflareSecretRef: {namespace: qianwen-ops, name: cloudflare-pg-dns-controller-secret, key: CF_API_TOKEN}
     services:
       # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
