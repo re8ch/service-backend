@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: chinook-bronze
+    delivery.re8ch.com/codename: etesian-bronze
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:d7799850e6f25f380217adad24adde4f3032c3c1124bcc9f44143d4d0c2f30ca
+    digest: sha256:ee70908596cfe6105284903be3d49a19f21a5bfbc518172039032778c32f6ee7
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: chinook-bronze
+    delivery.re8ch.com/codename: etesian-bronze
 spec:
   interval: 1m
   retryInterval: 1m
