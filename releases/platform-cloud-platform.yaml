@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: reef
+codename: tundra
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:0e34c7bf12588a93b1a06e71b4583d2b0fcbe53a0050182418a9b6dde5941970
+  digest: sha256:517e42087bf8a9773591d57f94f166f5046731f11bf6317e06746c4e456ca491
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
