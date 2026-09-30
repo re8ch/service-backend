@@ -60,8 +60,14 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 - Superposition: enabled, internal only; schema migration and fallback seed are
   intentionally supplied as reviewed artifacts rather than downloaded at boot
 - Superposition image: the production-capable `re8ch-business/superposition`
-  build is mirrored into the existing private Harbor project and pinned by
-  digest. The `harbor-hyperswitch-admin` pull secret remains outside Git.
+  build is mirrored into the existing private Harbor project. The deployment
+  uses the build-specific tag `re8ch-45fa7d15222dce436f7851e1bb32a30f550966db`
+  with `imagePullPolicy: Never` while Harbor's blob redirect remains slow from
+  restricted-node-6dc3f140f9. Before scheduling this Pod on a restored node, seed the verified
+  linux/amd64 Harbor manifest digest
+  `sha256:cedca5587ded9007697faa2379d2c5b65342dacf55115c980162794167b58ccc`
+  into its containerd image store under that tag. The
+  `harbor-hyperswitch-admin` pull secret remains outside Git.
 - Superposition production secrets: `DB_PASSWORD` and `SUPERPOSITION_TOKEN` are
   `local:v1` ciphertext in `payments/hyperswitch-superposition-prod-secrets`.
   The 32-byte AES key stays on restricted-node-6dc3f140f9 at
