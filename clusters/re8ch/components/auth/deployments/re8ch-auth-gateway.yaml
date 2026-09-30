@@ -134,13 +134,13 @@ spec:
             - name: AUTH_SMTP_TLS_MODE
               value: ssl
             - name: AUTH_SMTP_TIMEOUT
-              value: 15s
+              value: 4s
             - name: AUTH_SMTP_USERNAME
-              value: image@re8ch.com
+              value: business@re8ch.com
             - name: AUTH_SMTP_FROM
-              value: image@re8ch.com
+              value: business@re8ch.com
             - name: AUTH_SMTP_FROM_NAME
-              value: RE8CH Image Registry
+              value: RE8CH Business
             - name: AUTH_GATEWAY_DEFAULT_RETURN_URL
               value: https://auth.re8ch.com
             - name: AUTH_ACCOUNT_ORIGINS
