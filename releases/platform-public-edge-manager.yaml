@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-coral
+codename: etesian-coral
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:ab12524d655d12a4397a354aa734674a5cbcc44336e7644dfc43e247901490da
+  digest: sha256:f2b482ac8fb32021a60479f0737f27f790f0854547493be4c671a914027fee30
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
