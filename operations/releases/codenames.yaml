@@ -87,6 +87,8 @@ modules:
       digest: sha256:6e29bb79918d45307b948db63e8a4a937a341296ad7c8592d69cf40e53cc77fa
     - codename: sentinel
       digest: sha256:7ffb822605529fb7881803491e9c855dda092a3024f5edeb476b86f81381d015
+    - codename: shield
+      digest: sha256:ebe4c9efdd1738affb292285b969c7bdbb73c01faabc52af04ef338831a5b720
   clusters/re8ch/components/network/podcidr-fabric:
     releases:
     - codename: bora
