@@ -862,6 +862,8 @@ modules:
       digest: sha256:8f7abe87884eb1ee7d5c65713783b43b9c74bf989729b72f6de02696a1b8cad2
     - codename: tramontane-bronze
       digest: sha256:db1e002079f06b35daf3241b3523cbfa6c95286536f84ed76327bc99df35af2f
+    - codename: zephyr-bronze
+      digest: sha256:69bb6c89eb168eaa1e0a15ebf64aadeb7377e96e680ff9fad4af6a040b2fc1a5
   platform/adapter:
     releases:
     - codename: anchor
