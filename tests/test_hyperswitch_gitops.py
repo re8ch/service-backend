@@ -43,6 +43,16 @@ def test_control_center_route_uses_service_port_not_container_port():
     assert route["spec"]["rules"][0]["backendRefs"][0]["port"] == 80
 
 
+def test_payment_registry_route_only_matches_payment_prefix():
+    routes = list(yaml.safe_load_all(ROUTES.read_text()))
+    route = next(item for item in routes if item.get("metadata", {}).get("name") == "re8ch-payment-registry-public")
+    assert route["spec"]["hostnames"] == ["pay-api.service.re8ch.com"]
+    assert route["spec"]["rules"] == [{
+        "matches": [{"path": {"type": "PathPrefix", "value": "/payment"}}],
+        "backendRefs": [{"name": "nuclio-payment-registry-api", "port": 8080}],
+    }]
+
+
 def test_admin_bootstrap_uses_injected_service_coordinates():
     job = yaml.safe_load((ROOT / "platform/hyperswitch/bootstrap-admin-job.yaml").read_text())
     assert job["metadata"]["name"] == "hyperswitch-bootstrap-admin-v13"
