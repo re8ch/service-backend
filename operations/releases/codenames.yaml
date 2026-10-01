@@ -706,6 +706,8 @@ modules:
       digest: sha256:1969e0d5987319d02f0e6159db0c2b9f3c4c06608e8ec7639194de717eb6adf3
     - codename: cascade-coral
       digest: sha256:062508fccb8ca6a471a7c554b55804b9c2705b9deb2220c552e36d01439156c4
+    - codename: confluence-coral
+      digest: sha256:500ec1efcffe1789ad2d62dcda129a1882d0336ecbc50429ec42e38e5f59ae11
   platform/hyperswitch:
     releases:
     - codename: anchor

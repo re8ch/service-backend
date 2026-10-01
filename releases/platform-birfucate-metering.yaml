@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: cascade-coral
+codename: confluence-coral
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:062508fccb8ca6a471a7c554b55804b9c2705b9deb2220c552e36d01439156c4
+  digest: sha256:500ec1efcffe1789ad2d62dcda129a1882d0336ecbc50429ec42e38e5f59ae11
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
