@@ -69,6 +69,7 @@ HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-opera
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
+DYNAMIC_SKILL_ADMIN_URL = os.getenv("DYNAMIC_SKILL_ADMIN_URL", "")
 SUPPLY_CHAIN_REQUIRED = os.getenv("HARBOR_SUPPLY_CHAIN_REQUIRED", "false").lower() == "true"
 TENANT_CONTROL_URL = os.getenv("TENANT_CONTROL_URL", "").rstrip("/")
 AUTH_DISCOVERY_URL = os.getenv(
@@ -803,6 +804,12 @@ GRAFANA_TENANT_TOOLS = [
 ]
 
 TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
+DYNAMIC_SKILL_ADMIN_TOOLS = [
+    {"name": "dynamic_skill_pending", "description": "List tenant workflow drafts awaiting platform review.", "inputSchema": schema({})},
+    {"name": "dynamic_skill_publish", "description": "Publish a reviewed platform-wide or tenant-specific workflow directly.", "inputSchema": schema({"target_tenant": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}, "workflow": {"type": "string"}}, ["target_tenant", "name", "description", "workflow"])},
+    {"name": "dynamic_skill_review", "description": "Approve or reject a submitted tenant workflow draft.", "inputSchema": schema({"skill_ref": {"type": "string"}, "publish": {"type": "boolean"}}, ["skill_ref", "publish"])},
+    {"name": "dynamic_skill_revoke", "description": "Revoke a published workflow version.", "inputSchema": schema({"skill_ref": {"type": "string"}}, ["skill_ref"])},
+]
 TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "usage_events_list", "operation_get"}
 TENANT_CLAIM_TOOLS = [
     {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
@@ -866,7 +873,8 @@ def tools() -> list[dict[str, Any]]:
     if PROFILE == "all":
         return COMMON_TOOLS + CLOUD_TOOLS + INFRA_TOOLS + TENANT_TOOLS + TENANT_INFRA_TOOLS + ORCHESTRA_TOOLS
     if PROFILE == "admin":
-        return [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_ADMIN_NAMES] + [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in TENANT_ADMIN_NAMES]
+        base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_ADMIN_NAMES] + [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in TENANT_ADMIN_NAMES]
+        return base + (DYNAMIC_SKILL_ADMIN_TOOLS if DYNAMIC_SKILL_ADMIN_URL else [])
     if PROFILE == "tenant":
         base = [tool for tool in TENANT_INFRA_TOOLS if tool["name"] in TENANT_CONSUMER_NAMES]
         byoc = [tool for tool in TENANT_BYOC_TOOLS if tool["name"] in {"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"}]
@@ -1656,9 +1664,41 @@ def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str
     return {"operationId": operation_id, "tenantRef": tenant, "deleted": True, "title": deleted.get("title")}
 
 
+def dynamic_skill_admin_call(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
+    if PROFILE != "admin" or not DYNAMIC_SKILL_ADMIN_URL or not SERVICE_API_TOKEN:
+        raise PermissionError("dynamic skill administration is unavailable")
+    subject = str(identity.get("subject") or identity.get("sub") or "")
+    if not subject:
+        raise PermissionError("authenticated admin subject required")
+    action = name.removeprefix("dynamic_skill_")
+    payload = {"action": action}
+    if action == "publish":
+        payload.update(targetTenant=args["target_tenant"], name=args["name"], description=args["description"], workflow=args["workflow"])
+    elif action == "review":
+        payload.update(skillRef=args["skill_ref"], publish=args["publish"])
+    elif action == "revoke":
+        payload["skillRef"] = args["skill_ref"]
+    request = urllib.request.Request(
+        DYNAMIC_SKILL_ADMIN_URL,
+        data=json.dumps(payload).encode(),
+        method="POST",
+        headers={"Authorization": "Bearer " + SERVICE_API_TOKEN, "X-RE8CH-Admin-Subject": subject,
+                 "Content-Type": "application/json", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise ValueError(f"dynamic skill administration returned HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("dynamic skill administration is unavailable") from exc
+
+
 def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if name not in {tool["name"] for tool in tools()}:
         raise PermissionError("tool is not published in this profile")
+    if PROFILE == "admin" and name in {tool["name"] for tool in DYNAMIC_SKILL_ADMIN_TOOLS}:
+        return dynamic_skill_admin_call(name, args, identity)
     if PROFILE == "tenant" and name in {tool["name"] for tool in ARTCHAIS_CLUSTER_TOOLS}:
         return call_artc_cluster_tool(name, args, identity)
     if PROFILE == "tenant" and name in {tool["name"] for tool in TENANT_KUBERNETES_TOOLS}:

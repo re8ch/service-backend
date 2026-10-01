@@ -1,4 +1,7 @@
 {{- if .Values.tenantPlatform.enabled }}
+{{- if and .Values.tenantPlatform.tenantAPI.enabled (not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" .Values.tenantPlatform.tenantAPI.image)) }}
+{{- fail "tenantPlatform.tenantAPI.image must be pinned to a verified sha256 digest" }}
+{{- end }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -76,6 +79,9 @@ spec:
             - {name: DEX_USERINFO_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/userinfo"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/admin-devices.db}
+            {{- if .Values.tenantPlatform.tenantAPI.enabled }}
+            - {name: DYNAMIC_SKILL_ADMIN_URL, value: "http://tenant-api.tenant-infrastructure.svc:19450/internal/dynamic-skills"}
+            {{- end }}
           envFrom:
             - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
           ports: [{name: http, containerPort: 19449}]
@@ -117,7 +123,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: runtime
-          image: {{ .Values.tenantPlatform.image | quote }}
+          image: {{ ternary .Values.tenantPlatform.tenantAPI.image .Values.tenantPlatform.image .Values.tenantPlatform.tenantAPI.enabled | quote }}
           imagePullPolicy: IfNotPresent
           envFrom:
             - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
@@ -141,7 +147,16 @@ spec:
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: TENANT_USAGE_CLIENT, value: 'system:serviceaccount:{{ .Release.Namespace }}:{{ include "birfucate-metering.fullname" . }}'}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
-          ports: [{name: http, containerPort: 19448}]
+            {{- if .Values.tenantPlatform.tenantAPI.enabled }}
+            - {name: DYNAMIC_SKILL_DB, value: /var/lib/tenant-platform/dynamic-skills.db}
+            - {name: DYNAMIC_SKILL_ADMIN_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
+            - {name: ADMIN_LISTEN_PORT, value: "19450"}
+            {{- end }}
+          ports:
+            - {name: http, containerPort: 19448}
+            {{- if .Values.tenantPlatform.tenantAPI.enabled }}
+            - {name: skill-admin, containerPort: 19450}
+            {{- end }}
           startupProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 30, periodSeconds: 2, timeoutSeconds: 3}
           readinessProbe: {httpGet: {path: {{ .Values.tenantPlatform.tenantReadinessPath }}, port: http}, failureThreshold: 3, periodSeconds: 5, timeoutSeconds: 10}
           livenessProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 3, periodSeconds: 15, timeoutSeconds: 3}
@@ -158,7 +173,13 @@ spec: {selector: {app: admin-api}, ports: [{name: http, port: 80, targetPort: ht
 apiVersion: v1
 kind: Service
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
-spec: {selector: {app: tenant-api}, ports: [{name: http, port: 80, targetPort: http}]}
+spec:
+  selector: {app: tenant-api}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+    {{- if .Values.tenantPlatform.tenantAPI.enabled }}
+    - {name: skill-admin, port: 19450, targetPort: skill-admin}
+    {{- end }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -259,6 +280,11 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Release.Namespace }}}}
           podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
       ports: [{protocol: TCP, port: 19448}]
+    {{- if .Values.tenantPlatform.tenantAPI.enabled }}
+    - from:
+        - podSelector: {matchLabels: {app: admin-api}}
+      ports: [{protocol: TCP, port: 19450}]
+    {{- end }}
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

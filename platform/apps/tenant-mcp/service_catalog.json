@@ -1,0 +1,279 @@
+[
+  {
+    "accessUnit": "VirtualKeyTeamModelPolicy",
+    "adapter": "litellm-team-policy",
+    "bindings": [
+      "access:broker-reference",
+      "policy:model-allowlist"
+    ],
+    "meters": {
+      "gpu_time": "GPU-second",
+      "input_tokens": "token",
+      "output_tokens": "token",
+      "requests": "request"
+    },
+    "parameters": [
+      "concurrency",
+      "expiresAt",
+      "models",
+      "tokenBudget"
+    ],
+    "plans": [
+      "standard",
+      "budgeted"
+    ],
+    "regions": [
+      "global",
+      "cn"
+    ],
+    "serviceClass": "ai.model-gateway.v1"
+  },
+  {
+    "accessUnit": "DatabaseRoleSchema",
+    "adapter": "pigsty-postgresql",
+    "bindings": [
+      "endpoint:rw",
+      "endpoint:ro",
+      "access:broker-reference"
+    ],
+    "meters": {
+      "allocated_storage": "GiB-hour",
+      "backup_storage": "GiB-month",
+      "connection_class": "class-hour",
+      "instance_hours": "hour"
+    },
+    "parameters": [
+      "backupClass",
+      "connectionClass",
+      "extensions",
+      "retentionClass",
+      "storageGiB"
+    ],
+    "plans": [
+      "standard"
+    ],
+    "regions": [
+      "loudi"
+    ],
+    "serviceClass": "database.postgresql.shared.v1"
+  },
+  {
+    "accessUnit": "AuthenticatedClusterLink",
+    "adapter": "among-clusters-access",
+    "bindings": [
+      "link:authenticated",
+      "grant:service-import"
+    ],
+    "meters": {
+      "egress_bytes": "byte",
+      "ingress_bytes": "byte",
+      "path_hours": "path-hour",
+      "route_changes": "change"
+    },
+    "parameters": [
+      "bandwidthClass",
+      "destinationClusterRefs",
+      "namespaceRef",
+      "serviceRefs",
+      "sourceClusterRef"
+    ],
+    "plans": [
+      "private",
+      "metered-egress"
+    ],
+    "regions": [
+      "global",
+      "cn",
+      "apac",
+      "us"
+    ],
+    "serviceClass": "network.among-clusters.v1"
+  },
+  {
+    "accessUnit": "NamespaceIdentityAndRoute",
+    "adapter": "cilium-public-edge",
+    "bindings": [
+      "policy:default-deny",
+      "route:tenant-scoped"
+    ],
+    "meters": {
+      "bandwidth_class": "class-hour",
+      "dns_queries": "query",
+      "egress_bytes": "byte",
+      "ingress_bytes": "byte",
+      "public_ip": "IP-hour",
+      "tunnel_connections": "connection-hour"
+    },
+    "parameters": [
+      "bandwidthClass",
+      "dnsZoneRef",
+      "features",
+      "hostname",
+      "ports",
+      "protocol",
+      "serviceRef"
+    ],
+    "plans": [
+      "public",
+      "full"
+    ],
+    "regions": [
+      "global",
+      "cn",
+      "apac",
+      "us"
+    ],
+    "serviceClass": "network.tenant.v1"
+  },
+  {
+    "accessUnit": "OrganizationFolderDatasourceGrant",
+    "adapter": "grafana-access",
+    "bindings": [
+      "identity:user",
+      "grafana:organization-member",
+      "grafana:datasource-scope"
+    ],
+    "meters": {
+      "active_series": "series-hour",
+      "logs": "byte",
+      "queries": "query",
+      "retained_data": "GiB-hour",
+      "samples": "sample"
+    },
+    "parameters": [
+      "datasourceRefs",
+      "folderRefs",
+      "humanLogin",
+      "identityUserRef"
+    ],
+    "plans": [
+      "viewer",
+      "editor"
+    ],
+    "regions": [
+      "global",
+      "loudi"
+    ],
+    "serviceClass": "observability.grafana.v1"
+  },
+  {
+    "accessUnit": "ProjectMembershipRobot",
+    "adapter": "harbor-project-rbac",
+    "bindings": [
+      "project:membership",
+      "access:broker-reference"
+    ],
+    "meters": {
+      "artifact_storage": "GiB-hour",
+      "pull_bytes": "byte",
+      "push_bytes": "byte",
+      "scans": "scan"
+    },
+    "parameters": [
+      "identityUserRef",
+      "project",
+      "quotaGiB",
+      "robotDurationDays"
+    ],
+    "plans": [
+      "pull",
+      "build-push",
+      "project-admin"
+    ],
+    "regions": [
+      "global",
+      "loudi"
+    ],
+    "serviceClass": "registry.harbor.v1"
+  },
+  {
+    "accessUnit": "SandboxSession",
+    "adapter": "opensandbox-session",
+    "bindings": [
+      "sandbox:session",
+      "artifact:scoped"
+    ],
+    "meters": {
+      "artifacts": "GiB-hour",
+      "cpu": "core-second",
+      "egress": "byte",
+      "memory": "GiB-second",
+      "runtime": "second"
+    },
+    "parameters": [
+      "cpu",
+      "imageDigest",
+      "memory",
+      "networkClass",
+      "retentionClass",
+      "storageGiB",
+      "ttlSeconds"
+    ],
+    "plans": [
+      "ephemeral",
+      "artifact-retained"
+    ],
+    "regions": [
+      "loudi"
+    ],
+    "serviceClass": "sandbox.runtime.v1"
+  },
+  {
+    "accessUnit": "ObjectBucketClaim",
+    "adapter": "rook-ceph-rgw",
+    "bindings": [
+      "bucket:{tenant}/{name}",
+      "access:broker-reference"
+    ],
+    "meters": {
+      "egress_bytes": "byte",
+      "ingress_bytes": "byte",
+      "requests": "request",
+      "stored_data": "GiB-hour"
+    },
+    "parameters": [
+      "lifecycleDays",
+      "provider",
+      "quotaGiB",
+      "visibility"
+    ],
+    "plans": [
+      "dedicated",
+      "shared-prefix"
+    ],
+    "regions": [
+      "guangzhou",
+      "hangzhou",
+      "hongkong",
+      "shanghai"
+    ],
+    "serviceClass": "storage.bucket.v1"
+  },
+  {
+    "accessUnit": "PersistentVolumeClaim",
+    "adapter": "rook-ceph-csi",
+    "bindings": [
+      "pvc:{tenant}/{name}"
+    ],
+    "meters": {
+      "provisioned_storage": "GiB-hour",
+      "read_bytes": "byte",
+      "snapshot_storage": "GiB-month",
+      "write_bytes": "byte"
+    },
+    "parameters": [
+      "accessMode",
+      "backupClass",
+      "sizeGiB",
+      "snapshotClass"
+    ],
+    "plans": [
+      "rbd",
+      "cephfs"
+    ],
+    "regions": [
+      "loudi"
+    ],
+    "serviceClass": "storage.volume.v1"
+  }
+]

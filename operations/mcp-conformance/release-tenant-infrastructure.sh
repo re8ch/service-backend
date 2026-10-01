@@ -46,7 +46,9 @@ fi
 
 : "${TENANT_IMAGE_REPOSITORY:=registry.re8ch.com/image/re8ch-ai-operations}"
 : "${TENANT_IMAGE_TAG:=${GITHUB_SHA:-$(git rev-parse HEAD)}}"
-dockerfile=clusters/re8ch/components/ai-operations/Dockerfile
+: "${TENANT_IMAGE_DOCKERFILE:=clusters/re8ch/components/ai-operations/Dockerfile}"
+: "${TENANT_IMAGE_ARTIFACT_NAME:=tenant-infrastructure}"
+dockerfile="$TENANT_IMAGE_DOCKERFILE"
 image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
 trap 'rm -f "$metadata"' EXIT
@@ -96,9 +98,9 @@ digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["contai
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
 echo "Image published at ${immutable}; generating SBOM"
 if docker sbom version >/dev/null 2>&1; then
-  docker sbom --platform linux/amd64 --format spdx-json "$immutable" > tenant-infrastructure.spdx.json
+  docker sbom --platform linux/amd64 --format spdx-json "$immutable" > "${TENANT_IMAGE_ARTIFACT_NAME}.spdx.json"
 else
-  syft "$immutable" -o spdx-json > tenant-infrastructure.spdx.json
+  syft "$immutable" -o spdx-json > "${TENANT_IMAGE_ARTIFACT_NAME}.spdx.json"
 fi
 if [[ -n "${COSIGN_KEY:-}" ]]; then
   echo "Signing image with configured key"
@@ -116,4 +118,4 @@ else
   echo "COSIGN_KEY or GitHub Actions OIDC is required" >&2
   exit 1
 fi
-printf '%s\n' "$immutable" | tee tenant-infrastructure.image
+printf '%s\n' "$immutable" | tee "${TENANT_IMAGE_ARTIFACT_NAME}.image"
