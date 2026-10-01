@@ -742,6 +742,8 @@ modules:
       digest: sha256:747732aaf2a5dc48cca3570769f313e4670ec8b82613a7c17a79897592e072aa
     - codename: passage-copper
       digest: sha256:d42c4aa7cd4bbd9089456731db727438c07c087fefe533317ad4ff197cf71664
+    - codename: trailhead-copper
+      digest: sha256:3a62d522ce4526c48792e9cb27b8115381033d6e973dc762290cd066e20b5ee5
   platform/public-edge-manager:
     releases:
     - codename: bora
