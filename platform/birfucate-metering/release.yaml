@@ -47,7 +47,7 @@ spec:
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:a7ab13de5e292fe8ec50477bc52c47990739606e302058fd60ae29f7e07704ee
       tenantAPI:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:b55cb4edf934cd33629e1e031d072a33040a5915b6fc3b79971c85ebdbb7580d
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:33f1d0f9d1d9300f8699d5e4ab6dff9f6e8839f49687967fdc961f20267986ce
       provider:
         enabled: true
         image: registry.re8ch.com/image/re8ch-ai-operations@sha256:a7ab13de5e292fe8ec50477bc52c47990739606e302058fd60ae29f7e07704ee
