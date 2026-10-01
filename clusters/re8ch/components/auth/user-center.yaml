@@ -17,7 +17,7 @@ spec:
       imagePullSecrets: [{name: user-hub-harbor-pull}]
       containers:
         - name: web
-          image: registry.re8ch.com/auth/user-hub:credits-5b6155a@sha256:d55dc7d969e946561f25aae37c2234a810d3ac5fecb8eeefd55e4d0b5523b4cb
+          image: registry.re8ch.com/auth/user-hub:billing-44a0652@sha256:5b09386adbd30a4e77aa0e240de4635b7b4977c6279ae23e77e508a35ae8fd44
           ports: [{name: http, containerPort: 8080}]
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
@@ -100,12 +100,9 @@ spec:
       backendRefs: [{name: re8ch-user-center, port: 80}]
     - matches: [{path: {type: Exact, value: /logo.svg}}]
       filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            hostname: brand-assets.re8ch.com
-            path: {type: ReplaceFullPath, replaceFullPath: /SVG/logo.svg}
-            statusCode: 302
+        - type: URLRewrite
+          urlRewrite: {hostname: auth.re8ch.com}
+      backendRefs: [{name: re8ch-user-center, port: 80}]
     - matches: [{path: {type: PathPrefix, value: /}}]
       filters:
         - type: URLRewrite
