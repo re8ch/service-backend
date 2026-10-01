@@ -98,6 +98,14 @@ spec:
         - type: URLRewrite
           urlRewrite: {hostname: auth.re8ch.com}
       backendRefs: [{name: re8ch-user-center, port: 80}]
+    - matches: [{path: {type: Exact, value: /logo.svg}}]
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            hostname: brand-assets.re8ch.com
+            path: {type: ReplaceFullPath, replaceFullPath: /SVG/logo.svg}
+            statusCode: 302
     - matches: [{path: {type: PathPrefix, value: /}}]
       filters:
         - type: URLRewrite
