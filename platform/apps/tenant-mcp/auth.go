@@ -23,6 +23,7 @@ type identity struct {
 	Role             string
 	DefaultNamespace string
 	Service          bool
+	PlatformAdmin    bool
 }
 
 type identityKey struct{}
@@ -42,6 +43,7 @@ type jwtClaims struct {
 	Audience string `json:"aud"`
 	Subject  string `json:"sub"`
 	Expires  int64  `json:"exp"`
+	AAL      string `json:"aal"`
 }
 
 func decodeClaims(token string) (jwtClaims, error) {
@@ -113,6 +115,9 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 		return identity{}, errors.New("tenant authorizer returned an invalid context")
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
+	// Discovery is scoped to the current organization membership, never to a
+	// client-supplied group or the tenant role.
+	id.PlatformAdmin, _ = currentPlatformAdmin(ctx, bearer)
 	return id, nil
 }
 
