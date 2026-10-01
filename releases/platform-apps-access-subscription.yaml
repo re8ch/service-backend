@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/apps/access-subscription
-codename: citadel
+codename: sentinel
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
-  digest: sha256:08fd3743845e436225f403020a16872d5f480a9a4f8c969c1d48ad7b219242af
+  digest: sha256:71e842d7532d5f5085ae1a41e0799d3d050a119bd84f78a43ea9509143ac4780
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

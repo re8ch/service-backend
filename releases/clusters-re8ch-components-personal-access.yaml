@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/personal-access
-codename: ward
+codename: watchtower
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
-  digest: sha256:caa180f8727b6588010a1fdd803913cd636ea9f0d8ba87429320634d6c824d6e
+  digest: sha256:0111ae0750bf765a6a96cac5a16a630a5ee161b1c0a4a66c98f114205000278b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
