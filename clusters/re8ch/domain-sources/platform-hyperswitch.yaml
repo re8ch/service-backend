@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/hyperswitch
-    delivery.re8ch.com/codename: trailhead-amber
+    delivery.re8ch.com/codename: anchor-copper
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
   ref:
-    digest: sha256:2c898604d1e30f994f64a6b6f858e4c208f36bcca401e7a1a7210eb82daac95e
+    digest: sha256:39c17d395377cf3e8499d322627b5296cab616da4ea2c798782864c4e240bdb1
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/hyperswitch
-    delivery.re8ch.com/codename: trailhead-amber
+    delivery.re8ch.com/codename: anchor-copper
 spec:
   interval: 1m
   retryInterval: 1m
