@@ -704,6 +704,8 @@ modules:
       digest: sha256:d0fcfb1cadc155f00c78e2fb90c3f1dbab7b6b83e99a0de094a34b5719ebf79c
     - codename: tideway-bronze
       digest: sha256:1969e0d5987319d02f0e6159db0c2b9f3c4c06608e8ec7639194de717eb6adf3
+    - codename: cascade-coral
+      digest: sha256:062508fccb8ca6a471a7c554b55804b9c2705b9deb2220c552e36d01439156c4
   platform/hyperswitch:
     releases:
     - codename: anchor

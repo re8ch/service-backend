@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: tideway-bronze
+codename: cascade-coral
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:1969e0d5987319d02f0e6159db0c2b9f3c4c06608e8ec7639194de717eb6adf3
+  digest: sha256:062508fccb8ca6a471a7c554b55804b9c2705b9deb2220c552e36d01439156c4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
