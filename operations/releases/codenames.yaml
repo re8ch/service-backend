@@ -698,6 +698,8 @@ modules:
       digest: sha256:b9fc1e1506c6267e7b04ace14c5a473e8a67bf76929518311c74a674edec4b47
     - codename: gulfstream-bronze
       digest: sha256:2bf16101a416b29c4e5fb643aa1ef48c2cd2848f080983d0dc97af13a00ddbc2
+    - codename: riptide-bronze
+      digest: sha256:a8d9c89ef6a2961497e5c8ff68f9a0fe1b889fdfdeb96156197cf33a701502ae
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -740,6 +742,8 @@ modules:
       digest: sha256:747732aaf2a5dc48cca3570769f313e4670ec8b82613a7c17a79897592e072aa
     - codename: passage-copper
       digest: sha256:d42c4aa7cd4bbd9089456731db727438c07c087fefe533317ad4ff197cf71664
+    - codename: trailhead-copper
+      digest: sha256:3a62d522ce4526c48792e9cb27b8115381033d6e973dc762290cd066e20b5ee5
   platform/public-edge-manager:
     releases:
     - codename: bora
