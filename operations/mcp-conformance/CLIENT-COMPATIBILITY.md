@@ -40,10 +40,11 @@ at the wrong MCP URL. Then test each client's login and a read-only tool call.
 Record client version, selected authentication mode, HTTP status and a redacted
 error; never record tokens or full tool responses.
 
-As of 2026-10-02, the live Infra and Orchestra routes lacked dedicated
-`tools.service.re8ch.com` routing: their resource metadata resolved to Cloud,
-and unauthenticated MCP probes returned 503 and 404 respectively. The GitOps
-route change in this branch addresses that declaration; live behavior still
-requires a signed merge, successful CI and Flux reconciliation. Dex discovery
-also returned 403 from the probing host, so OAuth login must be tested after
-route reconciliation rather than presumed working.
+As of 2026-10-02, Infra and Orchestra are not published on
+`tools.service.re8ch.com`: their resource metadata resolves to Cloud, and
+unauthenticated MCP probes returned 503 and 404 respectively. The historical
+`ai-operations/platform.yaml` deployments and Services for these planes are
+absent from the live cluster. Do not add routes to those Service names until a
+current backend publication exists. The discovery checker remains a gate for
+the eventual publication. OAuth login must be tested in each client rather
+than presumed working.
