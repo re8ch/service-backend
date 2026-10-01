@@ -1,9 +1,9 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-09-25T05:17:33Z'
-  generation: 1790313453
-  schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
+  generatedAt: '2026-10-01T08:47:44Z'
+  generation: 1790844464
+  schemaHash: 4f239cfc42af4e136d29a29b8d8492475691433278522a33744d2f158255ae9e
 modules:
   2woodblog:
     commit: 019c2b9c2a21f93bf371ecb3e01eec3ed605f38c
@@ -294,10 +294,10 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
   user-hub:
-    commit: 6b9d3c6cc5f9d614e460c89aaf48b1b071cc6e31
+    commit: 4d91325cbe76f8a80cad51d214d7d4d5ea042222
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch-business/user-hub.git
+    repository: https://github.com/re8ch/user-hub.git
   z-anatomy-models:
     commit: 7ff6c89d1fdbbe527ea705e9c3688052b981126f
     defaultBranch: master
