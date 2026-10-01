@@ -12,17 +12,35 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
-def tenant_chart_documents(provider_enabled=False):
+def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
     command = ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"]
     if provider_enabled:
         command.extend(["--set", "tenantPlatform.provider.enabled=true", "--set-string", "tenantPlatform.provider.image=registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64])
+    if tenant_go_enabled:
+        command.extend(["--set", "tenantPlatform.tenantAPI.enabled=true", "--set-string", "tenantPlatform.tenantAPI.image=registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64])
     rendered = subprocess.run(
         command,
         check=True, capture_output=True, text=True,
     ).stdout
     return [item for item in yaml.safe_load_all(rendered) if item]
+
+
+def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
+    docs = tenant_chart_documents(tenant_go_enabled=True)
+    deployments = {item["metadata"]["name"]: item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] in {"admin-api", "tenant-api"}}
+    tenant = deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]
+    admin = deployments["admin-api"]["spec"]["template"]["spec"]["containers"][0]
+    assert tenant["image"] == "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64
+    assert admin["image"].endswith("sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6")
+    assert {port["name"] for port in tenant["ports"]} == {"http", "skill-admin"}
+    assert next(env["value"] for env in admin["env"] if env["name"] == "DYNAMIC_SKILL_ADMIN_URL") == "http://tenant-api.tenant-infrastructure.svc:19450/internal/dynamic-skills"
+    policy = next(item for item in docs if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "tenant-api")
+    assert any(rule.get("ports") == [{"protocol": "TCP", "port": 19450}] and rule["from"][0]["podSelector"]["matchLabels"] == {"app": "admin-api"} for rule in policy["spec"]["ingress"])
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.tenantAPI.enabled=true"], capture_output=True, text=True)
+    assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
 
 
 def test_provider_worker_requires_explicit_signed_image_rollout():
