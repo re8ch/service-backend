@@ -1,0 +1,136 @@
+# Secrets payment-postgrest-secrets, payment-registry-secrets, and
+# identity-credits-secrets are provisioned out of band.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-postgrest
+  namespace: payments
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: payment-postgrest}
+  template:
+    metadata:
+      labels: {app: payment-postgrest}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: postgrest
+          image: docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - name: PGRST_DB_URI
+              valueFrom: {secretKeyRef: {name: payment-postgrest-secrets, key: PGRST_DB_URI_RW}}
+            - {name: PGRST_DB_SCHEMAS, value: payment_api}
+            - {name: PGRST_DB_ANON_ROLE, value: payment_anon}
+            - name: PGRST_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: payment-postgrest-secrets, key: PGRST_JWT_SECRET}}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-postgrest
+  namespace: payments
+spec:
+  selector: {app: payment-postgrest}
+  ports: [{name: http, port: 3000, targetPort: http}]
+---
+# The RO hostname uses the primary until the Pigsty replica contains this
+# database. The payment API invokes only read RPCs through that hostname.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: payment-postgrest-rw
+  namespace: payments
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-rw-https}
+  hostnames: [db-rw.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /payment}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}
+      backendRefs: [{name: payment-postgrest, port: 3000}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: payment-postgrest-ro
+  namespace: payments
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-ro-https}
+  hostnames: [db-ro.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /payment}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}
+      backendRefs: [{name: payment-postgrest, port: 3000}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nuclio-payment-registry-api
+  namespace: payments
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: payment-registry-api}
+  template:
+    metadata:
+      labels: {app: payment-registry-api}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      imagePullSecrets: [{name: harbor-hyperswitch-admin}]
+      containers:
+        - name: nuclio
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:credits-4ef9001@sha256:c6652c0b91fb516497c3fc5443b2d8698dfae1ab20343641694413e8aedc6363
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 8080}]
+          envFrom:
+            - secretRef: {name: payment-registry-secrets}
+            - secretRef: {name: identity-credits-secrets}
+          env:
+            - {name: NUCLIO_FUNCTION_NAME, value: payment-registry-api}
+            - {name: NUCLIO_FUNCTION_VERSION, value: latest}
+            - {name: CREDITS_DISPATCH_ENABLED, value: "true"}
+            - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
+            - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
+            - {name: CREDITS_POSTGREST_RW_BASE_URL, value: "http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000"}
+            - {name: CREDITS_POSTGREST_RO_BASE_URL, value: "http://supabase-identity-rest-ro.supabase-identity.svc.cluster.local:3000"}
+          readinessProbe:
+            httpGet: {path: /v1/healthz, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nuclio-payment-registry-api
+  namespace: payments
+spec:
+  selector: {app: payment-registry-api}
+  ports: [{name: http, port: 8080, targetPort: http}]
