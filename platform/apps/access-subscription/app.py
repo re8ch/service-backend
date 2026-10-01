@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dex-fronted Store, admin API and device-scoped subscription service."""
+"""Auth Gateway-fronted Store, admin API and device-scoped subscription service."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode, urlparse
 
 from core import (DEFAULT_NODES, Node, Publication, RuntimeTarget, authorization, canonical_subject, clash_meta_import_url, issue_token, mihomo_config, proxy_password,
                   public_node, shadowrocket_config, shadowrocket_import_url, SHADOWROCKET_PROFILE_REVISION, subscription_body,
@@ -29,6 +29,9 @@ RULES_ROOT = Path(os.getenv("RULES_ROOT", "/rules"))
 BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://sub.access.re8ch.com").rstrip("/")
 HMAC_SECRET = Path(os.getenv("HMAC_SECRET_PATH", "/secrets/hmac-key")).read_bytes().strip()
 IDENTITY_ALIASES = json.loads(os.getenv("IDENTITY_ALIASES_JSON", "{}"))
+AUTH_GATEWAY_URL = os.getenv("AUTH_GATEWAY_URL", "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth").rstrip("/")
+AUTH_LOGIN_URL = os.getenv("AUTH_LOGIN_URL", "https://api.re8ch.com/auth/start")
+AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "re8ch_sso")
 
 PORTAL = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
 <title>access re8ch com</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{font:16px system-ui;margin:0;background:#101114;color:#eee}main{max-width:920px;margin:auto;padding:32px 20px}button,input,a.cta{font:inherit;padding:11px 16px;border-radius:9px;border:1px solid #3b414b}button{cursor:pointer}input{min-width:280px}a{color:#9ee6a8}.cta{display:inline-block;text-decoration:none;font-weight:650}.primary{background:#83dfa0;color:#102016;border-color:#83dfa0}.secondary{background:#292d35;color:#eee}.danger{color:#ff9c9c}article{background:#1d1f24;padding:20px;margin:14px 0;border-radius:14px}.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.choice{background:#17191e;border:1px solid #353a44;border-radius:12px;padding:18px}.recommended{border-color:#72d993}.badge{display:inline-block;background:#244a31;color:#a8f0bd;padding:3px 8px;border-radius:99px;font-size:13px;font-weight:700}.muted{color:#aaa}.warning{color:#ffd28a}.row{display:flex;gap:8px;flex-wrap:wrap}.steps{padding-left:22px;line-height:1.65}code.url{display:block;margin-top:10px;padding:10px;background:#0f1114;border-radius:8px;overflow-wrap:anywhere;color:#9ee6a8}@media(max-width:700px){.choice-grid{grid-template-columns:1fr}main{padding:20px 12px}}</style>
@@ -172,10 +175,32 @@ def update_devices(mutator, attempts: int = 5) -> dict:
 
 
 def identity(headers) -> str:
-    preferred = headers.get("X-Auth-Request-Preferred-Username") or headers.get("X-Forwarded-Preferred-Username")
-    subject = preferred or headers.get("X-Auth-Request-User") or headers.get("X-Forwarded-User")
-    email = headers.get("X-Auth-Request-Email") or headers.get("X-Forwarded-Email")
-    return canonical_subject(subject, email, IDENTITY_ALIASES)
+    # Only pass the gateway session cookie. Ignore client-supplied identity headers.
+    cookies = [part.strip() for part in headers.get("Cookie", "").split(";")]
+    session = next((part for part in cookies if part.startswith(AUTH_COOKIE_NAME + "=")), "")
+    if not session:
+        raise PermissionError("login required")
+    request = urllib.request.Request(AUTH_GATEWAY_URL + "/me", headers={"Cookie": session})
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            result = json.load(response)
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        raise RuntimeError("auth gateway unavailable") from exc
+    profile = result.get("identity") if isinstance(result, dict) else None
+    if not isinstance(profile, dict) or not profile.get("subject"):
+        raise PermissionError("login required")
+    email = profile.get("email") if profile.get("emailVerified") is True else None
+    return canonical_subject(profile["subject"], email, IDENTITY_ALIASES)
+
+
+def login_location() -> str:
+    return AUTH_LOGIN_URL + "?" + urlencode({"service": "re8ch", "return_to": BASE_URL + "/"})
+
+
+def same_origin(headers) -> bool:
+    origin = headers.get("Origin") or headers.get("Referer", "")
+    parsed = urlparse(origin)
+    return parsed.scheme == "https" and parsed.netloc == urlparse(BASE_URL).netloc
 
 
 def member_for(user: str) -> dict:
@@ -274,7 +299,16 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(304, b"", "application/octet-stream", {"ETag": f'"{etag}"'}, "private, max-age=3600")
                 return self.send(200, raw, mimetypes.guess_type(file_path.name)[0] or "application/octet-stream",
                                  {"ETag": f'"{etag}"'}, "private, max-age=3600")
-            user = identity(self.headers)
+            try:
+                user = identity(self.headers)
+            except PermissionError:
+                if path in ("/", "/admin"):
+                    self.send_response(302)
+                    self.send_header("Location", login_location())
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    return
+                raise
             member = member_for(user)
             devices, usage = devices_state(), usage_state()
             records = [self.device_view(key, value, usage) for key, value in devices.items() if owned_by(value, user)]
@@ -308,6 +342,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         try:
+            if not same_origin(self.headers):
+                raise PermissionError("same-origin request required")
             user = identity(self.headers)
             member_for(user)
             path = self.path.split("?", 1)[0]
@@ -346,6 +382,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         try:
+            if not same_origin(self.headers):
+                raise PermissionError("same-origin request required")
             user = identity(self.headers)
             member = member_for(user)
             admin_path = self.path.startswith("/api/admin/devices/")

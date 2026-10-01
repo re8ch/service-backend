@@ -20,11 +20,17 @@ listener from client-facing values.
 
 ## Membership and control plane
 
-The private, otherwise empty `re8ch/access-edge-members` GitHub repository is
+The subscription Store signs users in through RE8CH Auth Gateway. It verifies
+the shared `re8ch_sso` session with the gateway on every private request. The
+private, otherwise empty `re8ch/access-edge-members` GitHub repository is
 the membership authority. Accepted collaborators with `read`, `triage` or
 `write` may use Access Edge; `maintain` and `admin` may also open `/admin`.
 Pending invitations are not members. `Woomou` is canonicalized to `hliu74` so
-the GitHub, Apple and Dex identities retain one account and administrator role.
+the existing devices and administrator role retain one account. The Store's
+`IDENTITY_ALIASES_JSON` maps Auth Gateway's verified `harry@re8ch.com` email
+to this legacy account. Unverified emails and display names cannot claim the
+legacy account. Device records and subscription tokens keep their existing
+`hliu74` subject, so no token rotation is needed for this identity migration.
 
 The GitHub App must be installed only on that repository and granted only
 Repository metadata read access. Install its generated values without printing
@@ -94,16 +100,17 @@ NodeLocal DNS are unchanged.
 
 ## Bootstrap
 
-Run these only after the GitHub pull request is merged and before reconciling Flux:
+For a fresh data-plane install, generate runtime secrets after the GitHub pull
+request is merged and before reconciling Flux:
 
 ```sh
 clusters/re8ch/components/personal-access/bootstrap-runtime-secrets.sh
-clusters/re8ch/components/personal-access/register-dex-client.sh
 ```
 
-The scripts generate values in temporary files with mode `0700`, do not print
-them, and never write them into Git. The Dex script creates a timestamped backup
-Secret and reports its name.
+The script generates values in a temporary directory with mode `0700`, does
+not print them, and never writes them into Git. The historical Dex client
+registration script is retained only for rollback and the separate DNS admin
+login; do not run it for the subscription Store cutover.
 
 After Access DNS is healthy, RouterOS may use `192.0.2.78` as its primary DNS
 and domestic resolvers as fallback. RouterOS administration is allowed only by
@@ -121,7 +128,7 @@ The release checks are:
 1. The published AnyTLS SNI presents a valid certificate and its regional node
    sustains at least 100 Mbps.
 2. UDP/443 completes a Hysteria2 transfer through `192.0.2.75`.
-3. `sub.access.re8ch.com` completes Dex login and creates, imports, rotates and
+3. `sub.access.re8ch.com` completes RE8CH Auth Gateway login and creates, imports, rotates and
    revokes a one-click Shadowrocket configuration through
    `shadowrocket://config/add?url=...`, containing both nodes and routing rules;
    creates a V2Box subscription through `v2box://install-sub?url=...&name=...`;
@@ -139,6 +146,7 @@ completes.
 
 Point RouterOS back to its previous domestic DNS, disable only the two RouterOS
 DNAT rules tagged `re8ch-personal-access`, and restore the reported pre-change
-Dex Secret if login is affected. For rule rollback, atomically repoint the
+Dex Secret and the prior `oauth2-proxy-access-subscription` Deployment and
+HTTPRoute if Store login is affected. For rule rollback, atomically repoint the
 `/rules/current` symlink to one of the retained versions. The shared RouterOS
 TCP/443 listener and other Gateway hostnames must not be removed.
