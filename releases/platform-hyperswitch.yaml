@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: passage-copper
+codename: trailhead-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:d42c4aa7cd4bbd9089456731db727438c07c087fefe533317ad4ff197cf71664
+  digest: sha256:3a62d522ce4526c48792e9cb27b8115381033d6e973dc762290cd066e20b5ee5
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
