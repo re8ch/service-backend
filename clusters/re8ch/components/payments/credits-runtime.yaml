@@ -13,6 +13,7 @@ spec:
     metadata:
       labels: {app: payment-postgrest}
     spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
@@ -32,7 +33,7 @@ spec:
             periodSeconds: 10
           resources:
             requests: {cpu: 50m, memory: 64Mi}
-            limits: {memory: 256Mi}
+            limits: {cpu: 500m, memory: 256Mi}
 ---
 apiVersion: v1
 kind: Service
@@ -100,6 +101,7 @@ spec:
     metadata:
       labels: {app: payment-registry-api}
     spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
@@ -124,7 +126,7 @@ spec:
             periodSeconds: 10
           resources:
             requests: {cpu: 100m, memory: 128Mi}
-            limits: {memory: 512Mi}
+            limits: {cpu: "1", memory: 512Mi}
 ---
 apiVersion: v1
 kind: Service
