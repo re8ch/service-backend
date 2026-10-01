@@ -91,6 +91,8 @@ gitlink `4d416578d422dba72d82d49078a5da9df8b7c2da`. Build with
 URL rewrite is applied to `HyperLoader.js` and `app.js` at image build time so
 SDK assets load from the same public host. The image is signed and pinned by
 digest in `sdk-runtime.yaml`; the chart's cluster-side SDK build remains disabled.
+After rewriting `app.js` for the public backend URL, regenerate its SHA-384
+integrity value in `index.html` before packaging the image.
 
 ## China connector live profile
 
