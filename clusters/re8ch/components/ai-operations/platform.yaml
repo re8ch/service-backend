@@ -574,6 +574,30 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
+metadata: {name: tools-service-infra-mcp, namespace: ai-operations}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /infra}}]
+      backendRefs: [{name: cluster-infra-tool, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/infra}}]
+      backendRefs: [{name: cluster-infra-tool, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: tools-service-orchestra-mcp, namespace: ai-operations}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [tools.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /orchestra}}]
+      backendRefs: [{name: agent-orchestra-collab, port: 80}]
+    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/orchestra}}]
+      backendRefs: [{name: agent-orchestra-collab, port: 80}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
   name: marketplace-installer
   namespace: ai-operations
