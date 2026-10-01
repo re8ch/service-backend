@@ -31,3 +31,11 @@ metadata:
   labels:
     app.kubernetes.io/part-of: paralus
     platform.re8ch.com/class: internal-control-plane
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aesthete
+  labels:
+    app.kubernetes.io/part-of: aesthete
+    pod-security.kubernetes.io/enforce: restricted
