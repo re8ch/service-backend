@@ -138,18 +138,28 @@ func (s *server) handler() http.Handler {
 			return
 		}
 		header := r.Header.Get("Authorization")
-		if !strings.HasPrefix(header, "Bearer ") {
+		challenge := func() {
 			metadata := os.Getenv("PUBLIC_RESOURCE_METADATA_URL")
 			if metadata == "" {
 				metadata = "https://tenant.tools.re8ch.com/.well-known/oauth-protected-resource/mcp"
 			}
 			w.Header().Set("WWW-Authenticate", `Bearer realm="`+supabaseIssuer+`", resource_metadata="`+metadata+`"`)
+		}
+		if !strings.HasPrefix(header, "Bearer ") {
+			challenge()
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
 			return
 		}
 		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
 		if err != nil {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
+			if errors.Is(err, errInvalidToken) {
+				log.Print("tenant MCP rejected bearer during GoTrue verification")
+				challenge()
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
+				return
+			}
+			log.Print("tenant MCP rejected verified bearer during tenant resolution")
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
 			return
 		}
 		mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
