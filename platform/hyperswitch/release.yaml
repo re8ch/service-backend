@@ -87,7 +87,7 @@ spec:
                       - name: harbor-hyperswitch-admin
                     containers:
                       - name: superposition
-                        # restricted-node-6dc3f140f9 has this verified Harbor manifest preloaded into
+                        # R640 has this verified Harbor manifest preloaded into
                         # containerd; its pod cannot use the slow external blob
                         # redirect path during a live rollout.
                         image: registry.re8ch.com/hyperswitch/superposition:re8ch-45fa7d15222dce436f7851e1bb32a30f550966db
@@ -120,7 +120,7 @@ spec:
                 template:
                   spec:
                     nodeSelector:
-                      kubernetes.io/hostname: restricted-node-6dc3f140f9
+                      kubernetes.io/hostname: r640
           # Inventory the Redis owner without changing its Pod template. This
           # records placement governance now and avoids a needless StatefulSet
           # restart before its durable worker destination is reviewed.
@@ -147,7 +147,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [r640]}
     hyperswitch-web:
       enabled: false
       autoBuild: {enable: false, forceBuild: false}
@@ -245,7 +245,7 @@ spec:
           local_kms_key_file: /run/re8ch-local-kms/key
           rust_log: info
           # The production image reads local:v1 ciphertext using the protected
-          # restricted-node-6dc3f140f9 key file mounted through a read-only PVC.
+          # R640 key file mounted through a read-only PVC.
           app_env: PROD
           auth_provider: DISABLED
           auth_z_provider: DISABLED
@@ -260,7 +260,13 @@ spec:
           # is ignored by the binary and causes validation to fail at startup.
           cors:
             wildcard_origin: false
-            origins: "https://pay.service.re8ch.com,https://api.re8ch.com"
+            origins: "https://pay.service.re8ch.com,https://pay-api.service.re8ch.com,https://api.re8ch.com"
+          multitenancy:
+            tenants:
+              public:
+                base_url: "https://pay-api.service.re8ch.com"
+          payment_link:
+            sdk_url: "https://pay-api.service.re8ch.com/web/0.134.0/v1/HyperLoader.js"
           analytics:
             source: sqlx
             forex_enabled: false

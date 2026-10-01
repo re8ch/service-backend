@@ -79,6 +79,22 @@ Stripe and PayPal should initially use hosted/redirect checkout, so raw card
 data never enters RE8CH services. The existing Nuclio WeChat and Alipay code can
 remain active until equivalent connectors pass replay and reconciliation tests.
 
+## Hosted checkout SDK
+
+Payment links use a self-hosted Hyperswitch Web SDK at
+`https://pay-api.service.re8ch.com/web/0.134.0/v1/HyperLoader.js`. The image is
+built outside the cluster from `juspay/hyperswitch-web` tag `v0.134.0` (commit
+`5aafd0485dad1bc1963a71b3ae8d24cea4594f45`) and its pinned `shared-code`
+gitlink `1af3e5dabf9d5a17dd864ac7312151ebac4367c6`. The image also serves
+the previous `0.129.0` assets for payment links created before this change. Build with
+`npm ci --ignore-scripts`, `npm run re:build`, and `npm run build:sandbox`, setting
+`ENV_BACKEND_URL=https://pay-api.service.re8ch.com`. The upstream Helm image's
+URL rewrite is applied to `HyperLoader.js` and `app.js` at image build time so
+SDK assets load from the same public host. The image is signed and pinned by
+digest in `sdk-runtime.yaml`; the chart's cluster-side SDK build remains disabled.
+After rewriting `app.js` for the public backend URL, regenerate its SHA-384
+integrity value in `index.html` and `fullscreenIndex.html` before packaging the image.
+
 ## China connector live profile
 
 - `alipaycn` uses Alipay's production gateway. Keep its merchant App ID, RSA2

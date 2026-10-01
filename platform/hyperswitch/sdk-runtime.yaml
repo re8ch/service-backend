@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hyperswitch-web
+  namespace: payments
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: hyperswitch-web}
+  template:
+    metadata:
+      labels: {app: hyperswitch-web}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      imagePullSecrets: [{name: harbor-hyperswitch-admin}]
+      securityContext: {runAsNonRoot: true, runAsUser: 101, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: web
+          image: registry.re8ch.com/hyperswitch/hyperswitch-web:re8ch-0.134.0-5aafd04-dual1@sha256:519e12c50b4bb1ef0f26d249b0723f895a6792760a903b70683b0c81fb08e2c6
+          ports: [{name: http, containerPort: 8080}]
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          volumeMounts:
+            - {name: cache, mountPath: /var/cache/nginx}
+            - {name: run, mountPath: /var/run/nginx}
+      volumes:
+        - {name: cache, emptyDir: {}}
+        - {name: run, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hyperswitch-web
+  namespace: payments
+spec:
+  selector: {app: hyperswitch-web}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hyperswitch-web-public
+  namespace: payments
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: pay-api-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: pay-api-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: pay-api-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: pay-api-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: pay-api-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: pay-api-https}
+  hostnames: [pay-api.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /web}}]
+      backendRefs: [{name: hyperswitch-web, port: 8080}]

@@ -129,7 +129,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: nuclio
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:gotrue-8e30e0a@sha256:ce8ff5c2a1ccf6a2f2ad3ef8f89334b946c2ecdc171bafb457c5a15d0b0b13a7
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:stripe-profile-aa5196e@sha256:b6ffb0620a3175d425a27db89e29546403111bd41e1a39ca995bd0a7147ca432
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: processor-config, mountPath: /etc/nuclio/config/processor, readOnly: true}
@@ -141,6 +141,7 @@ spec:
             - {name: NUCLIO_FUNCTION_NAME, value: payment-registry-api}
             - {name: NUCLIO_FUNCTION_VERSION, value: latest}
             - {name: CREDITS_DISPATCH_ENABLED, value: "true"}
+            - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: CREDITS_POSTGREST_RW_BASE_URL, value: "http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000"}

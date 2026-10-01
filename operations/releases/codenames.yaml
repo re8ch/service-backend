@@ -696,6 +696,8 @@ modules:
       digest: sha256:ab08470c7b4aba740b43909d9a2e8b091085f68d4f2eba3d19581f2bfd49ead3
     - codename: eddy-bronze
       digest: sha256:b9fc1e1506c6267e7b04ace14c5a473e8a67bf76929518311c74a674edec4b47
+    - codename: gulfstream-bronze
+      digest: sha256:2bf16101a416b29c4e5fb643aa1ef48c2cd2848f080983d0dc97af13a00ddbc2
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -728,6 +730,14 @@ modules:
       digest: sha256:2c898604d1e30f994f64a6b6f858e4c208f36bcca401e7a1a7210eb82daac95e
     - codename: anchor-copper
       digest: sha256:39c17d395377cf3e8499d322627b5296cab616da4ea2c798782864c4e240bdb1
+    - codename: beacon-copper
+      digest: sha256:8a42fe304ba8136675f139c9fe859858f6fca251e33d6de1173e51b369505db4
+    - codename: compass-copper
+      digest: sha256:55e977776b47249c5c22c9270849bd24a4e1b478720195b086dec95de0cf9069
+    - codename: harbor-copper
+      digest: sha256:d69e0ee4c5a00dcd18e0950c720b8bed1e750434592b0522721604d70ce6db71
+    - codename: meridian-copper
+      digest: sha256:747732aaf2a5dc48cca3570769f313e4670ec8b82613a7c17a79897592e072aa
   platform/public-edge-manager:
     releases:
     - codename: bora
