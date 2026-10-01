@@ -8,6 +8,7 @@ resources:
   - superposition-schema-job.yaml
   - bootstrap-admin-job.yaml
   - public-route.yaml
+  - sdk-runtime.yaml
   - superposition-local-key-volume.yaml
 
 configMapGenerator:

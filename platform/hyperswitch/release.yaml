@@ -266,7 +266,7 @@ spec:
               public:
                 base_url: "https://pay-api.service.re8ch.com"
           payment_link:
-            sdk_url: "https://beta.hyperswitch.io/v1/HyperLoader.js"
+            sdk_url: "https://pay-api.service.re8ch.com/web/0.129.0/v1/HyperLoader.js"
           analytics:
             source: sqlx
             forex_enabled: false
