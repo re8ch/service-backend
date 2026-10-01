@@ -85,6 +85,40 @@ func TestMCPIdentityAndDynamicSkill(t *testing.T) {
 	}
 }
 
+func TestMCPRejectedBearerReturnsOAuthChallenge(t *testing.T) {
+	s := testServer(t)
+	t.Setenv("PUBLIC_RESOURCE_METADATA_URL", "https://tools.example.test/.well-known/oauth-protected-resource/mcp")
+	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
+	req.Header.Set("Authorization", "Bearer invalid")
+	response := httptest.NewRecorder()
+	s.handler().ServeHTTP(response, req)
+	if response.Code != http.StatusUnauthorized || !strings.Contains(response.Header().Get("WWW-Authenticate"), `resource_metadata="https://tools.example.test/.well-known/oauth-protected-resource/mcp"`) {
+		t.Fatalf("invalid bearer must return a discoverable OAuth challenge: %d %q", response.Code, response.Header().Get("WWW-Authenticate"))
+	}
+}
+
+func TestMCPVerifiedBearerWithoutTenantIsForbidden(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "select an active tenant"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
+	req.Header.Set("Authorization", "Bearer "+fixtureToken())
+	response := httptest.NewRecorder()
+	s.handler().ServeHTTP(response, req)
+	if response.Code != http.StatusForbidden || response.Header().Get("WWW-Authenticate") != "" {
+		t.Fatalf("verified user without a tenant must not be asked to log in again: %d %q", response.Code, response.Header().Get("WWW-Authenticate"))
+	}
+}
+
 func TestTokenExchangePreservesUserJWT(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, 200, map[string]string{"id": "user-1"}) }))
