@@ -42,6 +42,7 @@ resources:
 - components/farseer/public-web.yaml
 - components/cilium/r640-policy-update-budget.yaml
 - components/ai-operations/platform.yaml
+- components/codex-conversation-archive
 - components/ai-operations/sandbox-trials
 - components/tenancy/re8ch-managed-business-namespaces.yaml
 - components/auth/deployments/auth-postgrest.yaml
