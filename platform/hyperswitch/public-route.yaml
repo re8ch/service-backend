@@ -49,3 +49,21 @@ spec:
   rules:
     - matches: [{path: {type: PathPrefix, value: /payment}}]
       backendRefs: [{name: nuclio-payment-registry-api, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: re8ch-payment-registry-auth-center
+  namespace: payments
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: api-https}
+  hostnames: [api.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /payment}}]
+      backendRefs: [{name: nuclio-payment-registry-api, port: 8080}]
