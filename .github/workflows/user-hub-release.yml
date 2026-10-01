@@ -1,0 +1,39 @@
+name: user-hub-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: User Hub commit already pinned by the service-backend gitlink
+        required: true
+        type: string
+
+permissions: {contents: read}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Initialize pinned User Hub source
+        run: |
+          git submodule update --init -- catalogs/platform/modules/user-hub/source
+          test "$(git -C catalogs/platform/modules/user-hub/source rev-parse HEAD)" = "${{ inputs.revision }}"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Build and publish immutable User Hub image
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: catalogs/platform/modules/user-hub/source
+          push: true
+          tags: registry.re8ch.com/auth/user-hub:ui-${{ inputs.revision }}
+          platforms: linux/amd64
+          provenance: mode=max
+          sbom: true
+      - name: Publish digest
+        run: echo "registry.re8ch.com/auth/user-hub:ui-${{ inputs.revision }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
