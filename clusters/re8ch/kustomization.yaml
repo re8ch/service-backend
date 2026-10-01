@@ -34,6 +34,7 @@ resources:
 - secrets/ontology-microscope-db.sops.yaml
 - secrets/ontology-microscope-evaluation.sops.yaml
 - components/cilium/gateway-api-canary.yaml
+- components/aesthete/native-api-route.yaml
 - components/cluster-inventory/configmap.yaml
 - components/cilium/service-zone-wave-15.yaml
 - components/cilium/advfab-worker-node-ips.yaml
