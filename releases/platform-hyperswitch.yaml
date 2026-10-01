@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: anchor-copper
+codename: beacon-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:39c17d395377cf3e8499d322627b5296cab616da4ea2c798782864c4e240bdb1
+  digest: sha256:8a42fe304ba8136675f139c9fe859858f6fca251e33d6de1173e51b369505db4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
