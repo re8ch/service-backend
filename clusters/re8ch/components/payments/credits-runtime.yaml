@@ -129,7 +129,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: nuclio
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:credits-4ef9001@sha256:c6652c0b91fb516497c3fc5443b2d8698dfae1ab20343641694413e8aedc6363
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:credits-4ef9001-nucliofix@sha256:7b4ca70c555536c2a018b58e2b4131f8a9a1e49d5e0b66a3f4553c82b4fc017c
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: processor-config, mountPath: /etc/nuclio/config/processor, readOnly: true}
