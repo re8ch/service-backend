@@ -17,10 +17,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Initialize pinned User Hub source
         env:
-          USER_HUB_DEPLOY_KEY: ${{ secrets.USER_HUB_DEPLOY_KEY }}
+          USER_HUB_DEPLOY_KEY_B64: ${{ secrets.USER_HUB_DEPLOY_KEY_B64 }}
         run: |
           install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$USER_HUB_DEPLOY_KEY" > "$HOME/.ssh/user-hub-release"
+          printf '%s' "$USER_HUB_DEPLOY_KEY_B64" | base64 --decode > "$HOME/.ssh/user-hub-release"
           chmod 600 "$HOME/.ssh/user-hub-release"
           git config --global url."git@github.com:".insteadOf https://github.com/
           GIT_SSH_COMMAND="ssh -i $HOME/.ssh/user-hub-release -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
