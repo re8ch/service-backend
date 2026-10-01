@@ -271,6 +271,7 @@ def test_public_routes_use_dedicated_tls_listeners():
     assert {route["spec"]["hostnames"][0] for route in http_routes} == {
         "pay.service.re8ch.com",
         "pay-api.service.re8ch.com",
+        "api.re8ch.com",
     }
     for route in http_routes:
         assert len(route["spec"]["parentRefs"]) == 6
@@ -288,6 +289,16 @@ def test_public_routes_use_dedicated_tls_listeners():
             ]
         }
     ]
+
+    auth_center_route = next(
+        route for route in http_routes
+        if route["spec"]["hostnames"] == ["api.re8ch.com"]
+    )
+    assert all(ref["sectionName"] == "api-https" for ref in auth_center_route["spec"]["parentRefs"])
+    assert auth_center_route["spec"]["rules"] == [{
+        "matches": [{"path": {"type": "PathPrefix", "value": "/payment"}}],
+        "backendRefs": [{"name": "nuclio-payment-registry-api", "port": 8080}],
+    }]
 
     assert all(route["kind"] != "Ingress" for route in routes)
 
