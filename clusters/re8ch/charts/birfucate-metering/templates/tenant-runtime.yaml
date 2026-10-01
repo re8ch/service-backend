@@ -19,6 +19,36 @@ metadata: {name: tenant-api, namespace: tenant-infrastructure}
 automountServiceAccountToken: false
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-platform-tool-upstream-read, namespace: toolhive-system}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [ops-mcp-observe-upstream, ops-mcp-admin-upstream]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-platform-tool-upstream-read, namespace: toolhive-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-platform-tool-upstream-read}
+subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-native-platform-tool-read, namespace: ai-operations}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [cluster-infra-service-auth]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-native-platform-tool-read, namespace: ai-operations}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-native-platform-tool-read}
+subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata: {name: tenant-usage-token-reviewer}
 rules: [{apiGroups: [authentication.k8s.io], resources: [tokenreviews], verbs: [create]}]

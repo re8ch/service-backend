@@ -41,6 +41,9 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerGrafanaTools(ms)
 	s.registerKubernetesTools(ms)
 	s.registerArtcTools(ms)
+	if id.PlatformAdmin && !id.Service {
+		s.registerPlatformTools(ms)
+	}
 	s.registerResources(ms, id)
 	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input searchInput) (*mcp.CallToolResult, any, error) {
