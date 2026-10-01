@@ -870,6 +870,8 @@ modules:
       digest: sha256:ab12524d655d12a4397a354aa734674a5cbcc44336e7644dfc43e247901490da
     - codename: etesian-coral
       digest: sha256:f2b482ac8fb32021a60479f0737f27f790f0854547493be4c671a914027fee30
+    - codename: mistral-coral
+      digest: sha256:4869bba86f629d0d43e84c56f3e5a00c060e1f579d1d706ddd15a356e0334dde
   platform/adapter:
     releases:
     - codename: anchor
