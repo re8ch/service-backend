@@ -736,6 +736,8 @@ modules:
       digest: sha256:55e977776b47249c5c22c9270849bd24a4e1b478720195b086dec95de0cf9069
     - codename: harbor-copper
       digest: sha256:d69e0ee4c5a00dcd18e0950c720b8bed1e750434592b0522721604d70ce6db71
+    - codename: meridian-copper
+      digest: sha256:747732aaf2a5dc48cca3570769f313e4670ec8b82613a7c17a79897592e072aa
   platform/public-edge-manager:
     releases:
     - codename: bora
