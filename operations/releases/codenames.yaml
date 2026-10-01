@@ -696,6 +696,8 @@ modules:
       digest: sha256:ab08470c7b4aba740b43909d9a2e8b091085f68d4f2eba3d19581f2bfd49ead3
     - codename: eddy-bronze
       digest: sha256:b9fc1e1506c6267e7b04ace14c5a473e8a67bf76929518311c74a674edec4b47
+    - codename: gulfstream-bronze
+      digest: sha256:2bf16101a416b29c4e5fb643aa1ef48c2cd2848f080983d0dc97af13a00ddbc2
   platform/hyperswitch:
     releases:
     - codename: anchor
