@@ -13,8 +13,67 @@ import (
 )
 
 func fixtureToken() string {
-	claims, _ := json.Marshal(map[string]any{"iss": supabaseIssuer, "aud": "authenticated", "sub": "user-1", "exp": time.Now().Add(time.Hour).Unix()})
+	return fixtureTokenFor("user-1")
+}
+
+func fixtureTokenFor(subject string) string {
+	claims, _ := json.Marshal(map[string]any{"iss": supabaseIssuer, "aud": "authenticated", "sub": subject, "exp": time.Now().Add(time.Hour).Unix()})
 	return "eyJhbGciOiJub25lIn0." + base64.RawURLEncoding.EncodeToString(claims) + ".signature"
+}
+
+func TestMCPPersonalSkillCannotBeLoadedByAnotherAuthenticatedUser(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		claims, err := decodeClaims(token)
+		if err != nil {
+			writeJSON(w, 401, map[string]string{"error": "invalid_token"})
+			return
+		}
+		writeJSON(w, 200, map[string]string{"id": claims.Subject})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	call := func(subject, method string, params any) map[string]any {
+		t.Helper()
+		body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(string(body)))
+		req.Header.Set("Authorization", "Bearer "+fixtureTokenFor(subject))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, req)
+		if response.Code != 200 {
+			t.Fatalf("MCP %s failed: %d %s", method, response.Code, response.Body.String())
+		}
+		var decoded map[string]any
+		if err := json.Unmarshal(response.Body.Bytes(), &decoded); err != nil {
+			t.Fatal(err)
+		}
+		return decoded["result"].(map[string]any)
+	}
+	draft := call("h-user-id", "tools/call", map[string]any{"name": "dynamic_skill_submit", "arguments": map[string]any{"name": "userhub-pipeline", "description": "Monitor User Hub", "workflow": "Check CI and deployment.", "visibility": "personal"}})
+	ref := draft["structuredContent"].(map[string]any)["skillRef"].(string)
+	if _, err := s.review(request{SkillRef: ref, Subject: "reviewer", Publish: true}); err != nil {
+		t.Fatal(err)
+	}
+	search := func(subject string) []any {
+		result := call(subject, "tools/call", map[string]any{"name": "dynamic_skill_search", "arguments": map[string]any{"query": "userhub pipeline"}})
+		return result["structuredContent"].(map[string]any)["matches"].([]any)
+	}
+	if len(search("h-user-id")) != 1 || len(search("other-user")) != 0 {
+		t.Fatal("personal skill visibility does not follow authenticated subject")
+	}
+	loaded := call("other-user", "tools/call", map[string]any{"name": "dynamic_skill_load", "arguments": map[string]any{"skillRef": ref, "instruction": "Monitor"}})
+	if loaded["isError"] != true {
+		t.Fatalf("another user loaded a personal workflow: %v", loaded)
+	}
 }
 
 func TestMCPIdentityAndDynamicSkill(t *testing.T) {

@@ -28,6 +28,7 @@ type submitInput struct {
 	Name        string `json:"name" jsonschema:"Stable lowercase skill name"`
 	Description string `json:"description" jsonschema:"What this tenant-specific workflow does"`
 	Workflow    string `json:"workflow" jsonschema:"Instructions for the current Agent to follow after review"`
+	Visibility  string `json:"visibility,omitempty" jsonschema:"Use personal to make the reviewed workflow visible only to this authenticated user; default is tenant"`
 }
 
 func (s *server) skillMCP(id identity) *mcp.Server {
@@ -47,7 +48,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			if err != nil {
 				return nil, nil, err
 			}
-			value, err := s.search(request{Tenant: id.Tenant, Query: input.Query})
+			value, err := s.search(request{Tenant: id.Tenant, Subject: id.Subject, Query: input.Query})
 			return nil, value, err
 		})
 	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_load", Description: "Read a published workflow for a natural-language task. The current Agent interprets it using its existing tools and approvals."},
@@ -56,7 +57,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			if err != nil {
 				return nil, nil, err
 			}
-			value, err := s.load(request{Tenant: id.Tenant, SkillRef: input.SkillRef, Instruction: input.Instruction})
+			value, err := s.load(request{Tenant: id.Tenant, Subject: id.Subject, SkillRef: input.SkillRef, Instruction: input.Instruction})
 			return nil, value, err
 		})
 	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_submit", Description: "Submit a tenant workflow draft for platform review. Drafts cannot be loaded or executed."},
@@ -68,7 +69,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			if id.Role != "operator" && id.Role != "admin" {
 				return nil, nil, errors.New("an operator TenantGrant role is required")
 			}
-			value, err := s.submit(request{Tenant: id.Tenant, Subject: id.Subject, Name: input.Name, Description: input.Description, Workflow: input.Workflow}, false)
+			value, err := s.submit(request{Tenant: id.Tenant, Subject: id.Subject, Name: input.Name, Description: input.Description, Workflow: input.Workflow, Visibility: input.Visibility}, false)
 			return nil, value, err
 		})
 	return ms
