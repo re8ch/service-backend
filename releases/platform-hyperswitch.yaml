@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: compass-copper
+codename: harbor-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:55e977776b47249c5c22c9270849bd24a4e1b478720195b086dec95de0cf9069
+  digest: sha256:d69e0ee4c5a00dcd18e0950c720b8bed1e750434592b0522721604d70ce6db71
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
