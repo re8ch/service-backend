@@ -19,6 +19,13 @@ privileges. `dynamic_skill_search` returns published matches for the current
 tenant and platform-wide skills; `dynamic_skill_load` returns a selected
 workflow. Tenant operators can submit a draft with `dynamic_skill_submit`.
 Drafts remain invisible until an admin reviews them.
+Set `visibility: personal` when submitting a workflow that should follow one
+GoTrue user across computers. The server binds it to the authenticated subject;
+search and load require the same subject and tenant after publication. The
+default remains tenant visibility. A reviewable User Hub release supervision
+workflow is in `workflows/userhub-pipeline.md`; publishing it for a person
+requires that person to submit it from their authenticated session and an
+administrator to approve the resulting draft.
 
 The Python `admin-api` publishes four management tools while the Go tenant API
 is enabled: `dynamic_skill_pending`, `dynamic_skill_publish`,
@@ -52,4 +59,5 @@ before considering the migration complete. Rollback is the previous HelmRelease
 revision with `tenantAPI.enabled: false`; SQLite tenant state remains compatible.
 
 The public HTTP routes and ToolHive backend URL do not change during cutover.
-No credentials or dynamic workflow text are committed to Git.
+No credentials or submitted workflow records are committed to Git. Reviewed
+workflow templates may be kept here as source for an explicit submission.

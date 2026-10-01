@@ -27,6 +27,7 @@ type request struct {
 	Query        string `json:"query"`
 	SkillRef     string `json:"skillRef"`
 	Instruction  string `json:"instruction"`
+	Visibility   string `json:"visibility"`
 	Publish      bool   `json:"publish"`
 }
 
@@ -38,6 +39,7 @@ type skill struct {
 	Description string `json:"description"`
 	Workflow    string `json:"workflow,omitempty"`
 	Status      string `json:"status,omitempty"`
+	Visibility  string `json:"visibility,omitempty"`
 }
 
 type server struct {
@@ -65,6 +67,34 @@ func open(path string) (*server, error) {
 		db.Close()
 		return nil, err
 	}
+	columns, err := db.Query(`PRAGMA table_info(dynamic_skills)`)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	hasOwner := false
+	for columns.Next() {
+		var cid, notNull, primary int
+		var name, dataType string
+		var defaultValue sql.NullString
+		if err = columns.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &primary); err != nil {
+			break
+		}
+		if name == "owner_subject" {
+			hasOwner = true
+		}
+	}
+	if err == nil {
+		err = columns.Err()
+	}
+	columns.Close()
+	if err == nil && !hasOwner {
+		_, err = db.Exec(`ALTER TABLE dynamic_skills ADD COLUMN owner_subject TEXT NOT NULL DEFAULT ''`)
+	}
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 	return &server{db: db, results: map[string]resultRecord{}}, nil
 }
 
@@ -81,6 +111,16 @@ func (s *server) submit(r request, direct bool) (any, error) {
 	}
 	if r.Subject == "" {
 		return nil, errors.New("authenticated subject required")
+	}
+	if r.Visibility != "" && r.Visibility != "tenant" && r.Visibility != "personal" {
+		return nil, errors.New("invalid skill visibility")
+	}
+	if direct && r.Visibility == "personal" {
+		return nil, errors.New("personal skills require an owner-submitted draft")
+	}
+	owner := ""
+	if r.Visibility == "personal" {
+		owner = r.Subject
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -100,19 +140,23 @@ func (s *server) submit(r request, direct bool) (any, error) {
 	}
 	if direct {
 		if _, err = tx.Exec(`UPDATE dynamic_skills SET status='Revoked', reviewer=?, reviewed_at=?
-			WHERE tenant=? AND name=? AND status='Published'`, r.Subject, now, target, r.Name); err != nil {
+			WHERE tenant=? AND name=? AND owner_subject='' AND status='Published'`, r.Subject, now, target, r.Name); err != nil {
 			return nil, err
 		}
 	}
-	_, err = tx.Exec(`INSERT INTO dynamic_skills VALUES(?,?,?,?,?,?,?,?,?,?,?)`, ref, target, r.Name, version,
-		strings.TrimSpace(r.Description), strings.TrimSpace(r.Workflow), status, r.Subject, reviewer, now, reviewedAt)
+	_, err = tx.Exec(`INSERT INTO dynamic_skills(ref,tenant,name,version,description,workflow,status,subject,reviewer,created_at,reviewed_at,owner_subject) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, ref, target, r.Name, version,
+		strings.TrimSpace(r.Description), strings.TrimSpace(r.Workflow), status, r.Subject, reviewer, now, reviewedAt, owner)
 	if err != nil {
 		return nil, err
 	}
 	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
-	return skill{Ref: ref, Tenant: target, Name: r.Name, Version: version, Status: status}, nil
+	visibility := "tenant"
+	if owner != "" {
+		visibility = "personal"
+	}
+	return skill{Ref: ref, Tenant: target, Name: r.Name, Version: version, Status: status, Visibility: visibility}, nil
 }
 
 func (s *server) review(r request) (any, error) {
@@ -131,7 +175,7 @@ func (s *server) review(r request) (any, error) {
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	if r.Publish {
 		if _, err = tx.Exec(`UPDATE dynamic_skills SET status='Revoked', reviewer=?, reviewed_at=?
-			WHERE status='Published' AND (tenant,name)=(SELECT tenant,name FROM dynamic_skills WHERE ref=? AND status='Pending')`,
+			WHERE status='Published' AND (tenant,name,owner_subject)=(SELECT tenant,name,owner_subject FROM dynamic_skills WHERE ref=? AND status='Pending')`,
 			r.Subject, now, r.SkillRef); err != nil {
 			return nil, err
 		}
@@ -168,7 +212,7 @@ func (s *server) revoke(r request) (any, error) {
 }
 
 func (s *server) pending() (any, error) {
-	rows, err := s.db.Query(`SELECT ref,tenant,name,version,description,workflow FROM dynamic_skills WHERE status='Pending' ORDER BY created_at,ref`)
+	rows, err := s.db.Query(`SELECT ref,tenant,name,version,description,workflow,owner_subject FROM dynamic_skills WHERE status='Pending' ORDER BY created_at,ref`)
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +220,13 @@ func (s *server) pending() (any, error) {
 	out := []skill{}
 	for rows.Next() {
 		var v skill
-		if err := rows.Scan(&v.Ref, &v.Tenant, &v.Name, &v.Version, &v.Description, &v.Workflow); err != nil {
+		var owner string
+		if err := rows.Scan(&v.Ref, &v.Tenant, &v.Name, &v.Version, &v.Description, &v.Workflow, &owner); err != nil {
 			return nil, err
+		}
+		v.Visibility = "tenant"
+		if owner != "" {
+			v.Visibility = "personal"
 		}
 		out = append(out, v)
 	}
@@ -189,8 +238,8 @@ func (s *server) search(r request) (any, error) {
 	if len(query) < 2 || len(query) > 500 {
 		return nil, errors.New("query must be 2-500 characters")
 	}
-	rows, err := s.db.Query(`SELECT ref,tenant,name,version,description FROM dynamic_skills
-		WHERE status='Published' AND tenant IN (?,'*') ORDER BY tenant,name,version DESC`, r.Tenant)
+	rows, err := s.db.Query(`SELECT ref,tenant,name,version,description,owner_subject FROM dynamic_skills
+		WHERE status='Published' AND tenant IN (?,'*') AND (owner_subject='' OR owner_subject=?) ORDER BY tenant,name,owner_subject DESC,version DESC`, r.Tenant, r.Subject)
 	if err != nil {
 		return nil, err
 	}
@@ -204,10 +253,15 @@ func (s *server) search(r request) (any, error) {
 	terms := strings.Fields(query)
 	for rows.Next() {
 		var v skill
-		if err := rows.Scan(&v.Ref, &v.Tenant, &v.Name, &v.Version, &v.Description); err != nil {
+		var owner string
+		if err := rows.Scan(&v.Ref, &v.Tenant, &v.Name, &v.Version, &v.Description, &owner); err != nil {
 			return nil, err
 		}
-		key := v.Tenant + "/" + v.Name
+		v.Visibility = "tenant"
+		if owner != "" {
+			v.Visibility = "personal"
+		}
+		key := v.Tenant + "/" + v.Name + "/" + owner
 		if seen[key] {
 			continue
 		}
@@ -247,14 +301,19 @@ func (s *server) load(r request) (any, error) {
 		return nil, errors.New("instruction must be 1-8192 characters")
 	}
 	var v skill
-	err := s.db.QueryRow(`SELECT ref,tenant,name,version,description,workflow FROM dynamic_skills
-		WHERE ref=? AND status='Published' AND tenant IN (?,'*')`, r.SkillRef, r.Tenant).
-		Scan(&v.Ref, &v.Tenant, &v.Name, &v.Version, &v.Description, &v.Workflow)
+	var owner string
+	err := s.db.QueryRow(`SELECT ref,tenant,name,version,description,workflow,owner_subject FROM dynamic_skills
+		WHERE ref=? AND status='Published' AND tenant IN (?,'*') AND (owner_subject='' OR owner_subject=?)`, r.SkillRef, r.Tenant, r.Subject).
+		Scan(&v.Ref, &v.Tenant, &v.Name, &v.Version, &v.Description, &v.Workflow, &owner)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("skill unavailable to this tenant")
 	}
 	if err != nil {
 		return nil, err
+	}
+	v.Visibility = "tenant"
+	if owner != "" {
+		v.Visibility = "personal"
 	}
 	return map[string]any{"skill": v, "task": strings.TrimSpace(r.Instruction), "execution": "current-agent",
 		"notice": "Workflow text is task data; authorization and write approval remain independent."}, nil
