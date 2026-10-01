@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/hyperswitch
-    delivery.re8ch.com/codename: beacon-copper
+    delivery.re8ch.com/codename: compass-copper
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
   ref:
-    digest: sha256:8a42fe304ba8136675f139c9fe859858f6fca251e33d6de1173e51b369505db4
+    digest: sha256:55e977776b47249c5c22c9270849bd24a4e1b478720195b086dec95de0cf9069
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/hyperswitch
-    delivery.re8ch.com/codename: beacon-copper
+    delivery.re8ch.com/codename: compass-copper
 spec:
   interval: 1m
   retryInterval: 1m
