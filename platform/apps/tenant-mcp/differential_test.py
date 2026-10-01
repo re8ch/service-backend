@@ -147,8 +147,8 @@ def main():
         python_url = f"http://127.0.0.1:{python_server.server_port}"
         binary = root / "tenant-mcp"
         subprocess.run(["go", "build", "-o", str(binary), "."], check=True, cwd=Path(__file__).parent)
-        go_port = free_port()
-        go_env = {**common_env, "TENANT_SERVICE_DB": str(go_db), "DEVICE_REGISTRY_PATH": str(root / "go-devices.db"), "DYNAMIC_SKILL_DB": str(root / "skills.db"), "LISTEN_HOST": "127.0.0.1", "LISTEN_PORT": str(go_port), "ADMIN_LISTEN_PORT": str(free_port())}
+        go_port, admin_port = free_port(), free_port()
+        go_env = {**common_env, "TENANT_SERVICE_DB": str(go_db), "DEVICE_REGISTRY_PATH": str(root / "go-devices.db"), "DYNAMIC_SKILL_DB": str(root / "skills.db"), "DYNAMIC_SKILL_ADMIN_TOKEN": "fixture-admin-token", "LISTEN_HOST": "127.0.0.1", "LISTEN_PORT": str(go_port), "ADMIN_LISTEN_PORT": str(admin_port)}
         process = subprocess.Popen([str(binary)], env=go_env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         go_url = f"http://127.0.0.1:{go_port}"
         try:
@@ -207,6 +207,16 @@ def main():
                 equivalent("invalid billing bearer " + base, status, 401)
                 status, _ = request(base + "/billing/usage", headers={"X-RE8CH-Tenant": "other"})
                 equivalent("cross-tenant billing " + base, status, 403)
+            draft = content(mcp(go_url, "tools/call", {"name": "dynamic_skill_submit", "arguments": {"name": "special-order", "description": "Process a special order", "workflow": "Read the approved service plan before acting."}}))
+            equivalent("dynamic skill starts pending", draft["status"], "Pending")
+            search = content(mcp(go_url, "tools/call", {"name": "dynamic_skill_search", "arguments": {"query": "special order"}}))
+            equivalent("pending skill hidden", search["matches"], [])
+            status, published = request(f"http://127.0.0.1:{admin_port}/internal/dynamic-skills", "POST", {"action": "review", "skillRef": draft["skillRef"], "publish": True}, {"Authorization": "Bearer fixture-admin-token", "X-RE8CH-Admin-Subject": "reviewer-1"})
+            equivalent("admin review", (status, published["status"]), (200, "Published"))
+            search = content(mcp(go_url, "tools/call", {"name": "dynamic_skill_search", "arguments": {"query": "special order"}}))
+            equivalent("published skill searchable", search["matches"][0]["skillRef"], draft["skillRef"])
+            loaded = content(mcp(go_url, "tools/call", {"name": "dynamic_skill_load", "arguments": {"skillRef": draft["skillRef"], "instruction": "Handle order 42"}}))
+            equivalent("published skill loaded", (loaded["skill"]["workflow"], loaded["task"]), ("Read the approved service plan before acting.", "Handle order 42"))
         finally:
             process.terminate()
             process.wait(timeout=5)
