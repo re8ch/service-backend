@@ -225,8 +225,13 @@ func (s *server) billingHTTP(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
 		return
 	}
-	id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), selected)
-	if err != nil || id.Service {
+	bearer := strings.TrimPrefix(header, "Bearer ")
+	id, err := s.authenticate(r.Context(), bearer, selected)
+	if errors.Is(err, errInvalidToken) || id.Service {
+		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
+		return
+	}
+	if err != nil {
 		writeJSON(w, 403, map[string]string{"error": "organization access denied"})
 		return
 	}

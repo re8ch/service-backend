@@ -27,6 +27,8 @@ type identity struct {
 
 type identityKey struct{}
 
+var errInvalidToken = errors.New("invalid bearer token")
+
 func identityFrom(ctx context.Context) (identity, error) {
 	value, ok := ctx.Value(identityKey{}).(identity)
 	if !ok || value.Service || value.Subject == "" || value.Tenant == "" {
@@ -75,7 +77,7 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	}
 	id, err := s.verifySupabase(ctx, bearer)
 	if err != nil {
-		return identity{}, err
+		return identity{}, fmt.Errorf("%w: %v", errInvalidToken, err)
 	}
 	controlURL := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/")
 	secret := os.Getenv("TENANT_CLAIM_SERVICE_TOKEN")

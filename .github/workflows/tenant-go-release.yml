@@ -32,6 +32,7 @@ jobs:
         working-directory: platform/apps/tenant-mcp
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
       - run: python3 -m pytest tests/test_tenant_infrastructure_gitops.py -q
+      - run: python3 platform/apps/tenant-mcp/differential_test.py
       - run: docker build -f platform/apps/tenant-mcp/Dockerfile -t re8ch-tenant-mcp:pr .
   release:
     if: github.event_name != 'pull_request'

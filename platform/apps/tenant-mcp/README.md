@@ -32,6 +32,11 @@ version revokes the previous version of the same name and tenant.
 
 Run `go test -race ./...` and `go vet ./...` in this directory. The repository
 chart tests are `python3 -m pytest tests/test_tenant_infrastructure_gitops.py`.
+Run `python3 differential_test.py` here to start both tenant runtimes against
+the same fake identity services and copied SQLite fixture. It compares all
+legacy tool schemas, selected read and write results, tenant resources, OAuth,
+billing, authorization boundaries, and idempotent replay. Resource list order
+is normalized because the Go SDK sorts the list by URI.
 Build locally from the repository root with
 `docker build -f platform/apps/tenant-mcp/Dockerfile -t re8ch-tenant-mcp:local .`.
 
