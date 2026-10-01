@@ -1,5 +1,28 @@
 # Secrets payment-postgrest-secrets, payment-registry-secrets, and
 # identity-credits-secrets are provisioned out of band.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nuclio-payment-registry-api
+  namespace: payments
+data:
+  processor.yaml: |
+    metadata:
+      name: payment-registry-api
+      namespace: payments
+    spec:
+      runtime: golang
+      handler: main:Handler
+      eventTimeout: 60s
+      triggers:
+        default-http:
+          kind: http
+          mode: sync
+          name: default-http
+          attributes:
+            serviceType: ClusterIP
+            maxRequestBodySize: 1048576
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -108,6 +131,8 @@ spec:
         - name: nuclio
           image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:credits-4ef9001@sha256:c6652c0b91fb516497c3fc5443b2d8698dfae1ab20343641694413e8aedc6363
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: processor-config, mountPath: /etc/nuclio/config/processor, readOnly: true}
           ports: [{name: http, containerPort: 8080}]
           envFrom:
             - secretRef: {name: payment-registry-secrets}
@@ -127,6 +152,9 @@ spec:
           resources:
             requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: processor-config
+          configMap: {name: nuclio-payment-registry-api}
 ---
 apiVersion: v1
 kind: Service
