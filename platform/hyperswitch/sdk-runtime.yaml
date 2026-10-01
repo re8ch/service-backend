@@ -11,12 +11,12 @@ spec:
     metadata:
       labels: {app: hyperswitch-web}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       securityContext: {runAsNonRoot: true, runAsUser: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: web
-          image: registry.re8ch.com/hyperswitch/hyperswitch-web:re8ch-0.134.0-5aafd04-dual1@sha256:519e12c50b4bb1ef0f26d249b0723f895a6792760a903b70683b0c81fb08e2c6
+          image: registry.re8ch.com/hyperswitch/hyperswitch-web:re8ch-0.134.0-5aafd04-card1@sha256:3fba035e31d645066e58b7683d892659ca42bdeed7061f440b7975557216da12
           ports: [{name: http, containerPort: 8080}]
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
