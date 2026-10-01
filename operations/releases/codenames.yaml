@@ -710,6 +710,8 @@ modules:
       digest: sha256:500ec1efcffe1789ad2d62dcda129a1882d0336ecbc50429ec42e38e5f59ae11
     - codename: eddy-coral
       digest: sha256:7028875b3a23f7aa0f885ae41f197bd723ee291921dcc5a0e2ec399ef2802971
+    - codename: gulfstream-coral
+      digest: sha256:e3c85857c7d7acf109eed9055bc59a007d311e45a0e25e442a3203a42637b14a
   platform/hyperswitch:
     releases:
     - codename: anchor
