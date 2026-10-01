@@ -54,7 +54,7 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   `registry.re8ch.com/hyperswitch/hyperswitch-router@sha256:10a106c6a144633613529959a6a2f5edcd54fd5786e1ca3e722e27d87c958eb6`.
   The `payments/harbor-hyperswitch-admin` pull secret is managed out of band by
   the tenant credential broker and is never stored in Git.
-- Placement: restricted-node-6dc3f140f9
+- Placement: R640
 - Database: Pigsty `hyperswitch` with dedicated owner/admin/migrator/runtime/
   read-only/PostgREST roles; the bundled PostgreSQL chart is disabled
 - Superposition: enabled, internal only; schema migration and fallback seed are
@@ -63,14 +63,14 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
   build is mirrored into the existing private Harbor project. The deployment
   uses the build-specific tag `re8ch-45fa7d15222dce436f7851e1bb32a30f550966db`
   with `imagePullPolicy: Never` while Harbor's blob redirect remains slow from
-  restricted-node-6dc3f140f9. Before scheduling this Pod on a restored node, seed the verified
+  R640. Before scheduling this Pod on a restored node, seed the verified
   linux/amd64 Harbor manifest digest
   `sha256:cedca5587ded9007697faa2379d2c5b65342dacf55115c980162794167b58ccc`
   into its containerd image store under that tag. The
   `harbor-hyperswitch-admin` pull secret remains outside Git.
 - Superposition production secrets: `DB_PASSWORD` and `SUPERPOSITION_TOKEN` are
   `local:v1` ciphertext in `payments/hyperswitch-superposition-prod-secrets`.
-  The 32-byte AES key stays on restricted-node-6dc3f140f9 at
+  The 32-byte AES key stays on R640 at
   `/var/lib/re8ch/hyperswitch-local-key/key` and is mounted read-only through
   `hyperswitch-superposition-local-key-r640`. Back up and protect this key
   separately; losing it prevents Superposition from decrypting its credentials.
@@ -94,6 +94,9 @@ SDK assets load from the same public host. The image is signed and pinned by
 digest in `sdk-runtime.yaml`; the chart's cluster-side SDK build remains disabled.
 After rewriting `app.js` for the public backend URL, regenerate its SHA-384
 integrity value in `index.html` and `fullscreenIndex.html` before packaging the image.
+The `card1` build defaults a missing `paymentMethodOrder` SDK option to `["card"]`.
+The current payment-link renderer omits that option, which otherwise leaves the
+card collector hidden even when `/account/payment_methods` returns Stripe card.
 
 ## China connector live profile
 
