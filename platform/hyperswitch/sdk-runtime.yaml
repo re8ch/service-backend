@@ -16,7 +16,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 101, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: web
-          image: registry.re8ch.com/hyperswitch/hyperswitch-web:re8ch-0.129.0-e146cc6-sri1@sha256:7315464267118b76dce153c4bfc2a6fd12e885147efd6e38d8bf219e5d977c64
+          image: registry.re8ch.com/hyperswitch/hyperswitch-web:re8ch-0.134.0-5aafd04-dual1@sha256:519e12c50b4bb1ef0f26d249b0723f895a6792760a903b70683b0c81fb08e2c6
           ports: [{name: http, containerPort: 8080}]
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
