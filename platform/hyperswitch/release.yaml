@@ -261,6 +261,12 @@ spec:
           cors:
             wildcard_origin: false
             origins: "https://pay.service.re8ch.com,https://api.re8ch.com"
+          multitenancy:
+            tenants:
+              public:
+                base_url: "https://pay-api.service.re8ch.com"
+          payment_link:
+            sdk_url: "https://beta.hyperswitch.io/v1/HyperLoader.js"
           analytics:
             source: sqlx
             forex_enabled: false
