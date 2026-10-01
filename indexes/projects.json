@@ -433,11 +433,11 @@
   },
   {
     "catalog": "platform",
-    "commit": "6b9d3c6cc5f9d614e460c89aaf48b1b071cc6e31",
+    "commit": "4d91325cbe76f8a80cad51d214d7d4d5ea042222",
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",
-    "repository": "https://github.com/re8ch-business/user-hub.git",
+    "repository": "https://github.com/re8ch/user-hub.git",
     "source": "catalogs/platform/modules/user-hub/source"
   },
   {
