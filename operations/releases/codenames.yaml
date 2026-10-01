@@ -738,6 +738,8 @@ modules:
       digest: sha256:d69e0ee4c5a00dcd18e0950c720b8bed1e750434592b0522721604d70ce6db71
     - codename: meridian-copper
       digest: sha256:747732aaf2a5dc48cca3570769f313e4670ec8b82613a7c17a79897592e072aa
+    - codename: passage-copper
+      digest: sha256:d42c4aa7cd4bbd9089456731db727438c07c087fefe533317ad4ff197cf71664
   platform/public-edge-manager:
     releases:
     - codename: bora
