@@ -45,6 +45,9 @@ spec:
       tolerations:
         - {operator: Exists}
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:e2bca93340b87b794d5be3e69df06713c42cbdfbf487355d076df4037895233b
+      tenantAPI:
+        enabled: true
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:ee4a416d5c7ea3ba67ada7cf9a5b0eb001c84db426e452f8b7dae50b2dc1e2ce
       provider:
         enabled: true
         image: registry.re8ch.com/image/re8ch-ai-operations@sha256:e2bca93340b87b794d5be3e69df06713c42cbdfbf487355d076df4037895233b
