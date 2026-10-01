@@ -1,0 +1,375 @@
+package main
+
+import (
+	"context"
+	"crypto/subtle"
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+type searchInput struct {
+	Query string `json:"query" jsonschema:"Search phrase describing the capability needed"`
+}
+
+type loadInput struct {
+	SkillRef    string `json:"skillRef" jsonschema:"Published dynamic skill reference returned by dynamic_skill_search"`
+	Instruction string `json:"instruction" jsonschema:"The user's current task in natural language"`
+}
+
+type submitInput struct {
+	Name        string `json:"name" jsonschema:"Stable lowercase skill name"`
+	Description string `json:"description" jsonschema:"What this tenant-specific workflow does"`
+	Workflow    string `json:"workflow" jsonschema:"Instructions for the current Agent to follow after review"`
+}
+
+func (s *server) skillMCP(id identity) *mcp.Server {
+	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}, Resources: &mcp.ResourceCapabilities{}}})
+	s.registerClaimTools(ms)
+	s.registerNamespaceTools(ms)
+	s.registerBYOCTools(ms)
+	s.registerServiceTools(ms)
+	s.registerHarborTools(ms)
+	s.registerGrafanaTools(ms)
+	s.registerKubernetesTools(ms)
+	s.registerArtcTools(ms)
+	s.registerResources(ms, id)
+	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input searchInput) (*mcp.CallToolResult, any, error) {
+			id, err := identityFrom(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			value, err := s.search(request{Tenant: id.Tenant, Query: input.Query})
+			return nil, value, err
+		})
+	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_load", Description: "Read a published workflow for a natural-language task. The current Agent interprets it using its existing tools and approvals."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input loadInput) (*mcp.CallToolResult, any, error) {
+			id, err := identityFrom(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			value, err := s.load(request{Tenant: id.Tenant, SkillRef: input.SkillRef, Instruction: input.Instruction})
+			return nil, value, err
+		})
+	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_submit", Description: "Submit a tenant workflow draft for platform review. Drafts cannot be loaded or executed."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input submitInput) (*mcp.CallToolResult, any, error) {
+			id, err := identityFrom(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			if id.Role != "operator" && id.Role != "admin" {
+				return nil, nil, errors.New("an operator TenantGrant role is required")
+			}
+			value, err := s.submit(request{Tenant: id.Tenant, Subject: id.Subject, Name: input.Name, Description: input.Description, Workflow: input.Workflow}, false)
+			return nil, value, err
+		})
+	return ms
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+
+func (s *server) handler() http.Handler {
+	mcpHandler := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
+		id, _ := req.Context().Value(identityKey{}).(identity)
+		return s.skillMCP(id)
+	},
+		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"status": "ok", "profile": "tenant"})
+	})
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		ready, checks := s.readiness(r.Context())
+		status := 503
+		label := "not-ready"
+		if ready {
+			status, label = 200, "ready"
+		}
+		writeJSON(w, status, map[string]any{"status": label, "profile": "tenant", "checks": checks})
+	})
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { muxHandlerRedirect(w, r, "/readyz", mux) })
+	mux.HandleFunc("GET /install", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		http.Redirect(w, r, "https://tools.re8ch.com/catalog", http.StatusFound)
+	})
+	metadataHandler := func(w http.ResponseWriter, _ *http.Request) {
+		origin := os.Getenv("PUBLIC_MCP_URL")
+		if origin == "" {
+			origin = "https://tenant.tools.re8ch.com/mcp"
+		}
+		writeJSON(w, 200, map[string]any{"resource": origin, "authorization_servers": []string{supabaseIssuer}, "bearer_methods_supported": []string{"header"}, "scopes_supported": []string{"openid", "profile", "email", "offline_access"}})
+	}
+	mux.HandleFunc("GET /.well-known/oauth-protected-resource", metadataHandler)
+	mux.HandleFunc("GET /.well-known/oauth-protected-resource/", metadataHandler)
+	mux.HandleFunc("POST /oauth/token", s.exchangeToken)
+	mux.HandleFunc("OPTIONS /billing/usage", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Origin") != "https://auth.re8ch.com" {
+			writeJSON(w, 403, map[string]string{"error": "forbidden"})
+			return
+		}
+		billingHeaders(w, r)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, X-RE8CH-Tenant")
+		w.Header().Set("Access-Control-Max-Age", "600")
+		w.WriteHeader(204)
+	})
+	mux.HandleFunc("GET /billing/usage", s.billingHTTP)
+	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
+	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })
+	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
+	mux.HandleFunc("POST /credentials/redeem", s.redeemHTTP)
+	mux.HandleFunc("POST /credentials/adopt", s.adoptHTTP)
+	mux.HandleFunc("/mcp", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Allow", "POST")
+			writeJSON(w, 405, map[string]any{"error": "method_not_allowed", "allowed": []string{"POST"}})
+			return
+		}
+		header := r.Header.Get("Authorization")
+		if !strings.HasPrefix(header, "Bearer ") {
+			metadata := os.Getenv("PUBLIC_RESOURCE_METADATA_URL")
+			if metadata == "" {
+				metadata = "https://tenant.tools.re8ch.com/.well-known/oauth-protected-resource/mcp"
+			}
+			w.Header().Set("WWW-Authenticate", `Bearer realm="`+supabaseIssuer+`", resource_metadata="`+metadata+`"`)
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
+			return
+		}
+		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
+		if err != nil {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
+			return
+		}
+		mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
+	})
+	return mux
+}
+
+func (s *server) adminHandler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /internal/dynamic-skills", s.skillAdminHTTP)
+	return mux
+}
+
+func muxHandlerRedirect(w http.ResponseWriter, r *http.Request, path string, mux *http.ServeMux) {
+	clone := r.Clone(r.Context())
+	clone.URL.Path = path
+	mux.ServeHTTP(w, clone)
+}
+
+func (s *server) exchangeToken(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 131072)
+	if err := r.ParseForm(); err != nil {
+		writeJSON(w, 400, map[string]string{"error": "invalid_request"})
+		return
+	}
+	const grant = "urn:ietf:params:oauth:grant-type:token-exchange"
+	const tokenType = "urn:ietf:params:oauth:token-type:access_token"
+	if r.Form.Get("grant_type") != grant || (r.Form.Get("subject_token_type") != "" && r.Form.Get("subject_token_type") != tokenType) {
+		writeJSON(w, 400, map[string]string{"error": "unsupported_grant_type"})
+		return
+	}
+	audience := os.Getenv("RE8CH_TOOL_AUDIENCE")
+	if audience == "" {
+		audience = "re8ch-tenant-tool"
+	}
+	if r.Form.Get("audience") != audience {
+		writeJSON(w, 401, map[string]string{"error": "invalid_target"})
+		return
+	}
+	token := r.Form.Get("subject_token")
+	if _, err := s.verifySupabase(r.Context(), token); err != nil {
+		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
+		return
+	}
+	claims, err := decodeClaims(token)
+	if err != nil {
+		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
+		return
+	}
+	expires := min(max(claims.Expires-time.Now().Unix(), 1), 600)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+	writeJSON(w, 200, map[string]any{"access_token": token, "issued_token_type": tokenType, "token_type": "Bearer", "expires_in": expires})
+}
+
+func billingHeaders(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Vary", "Origin")
+	if r.Header.Get("Origin") == "https://auth.re8ch.com" {
+		w.Header().Set("Access-Control-Allow-Origin", "https://auth.re8ch.com")
+	}
+}
+
+func (s *server) billingHTTP(w http.ResponseWriter, r *http.Request) {
+	billingHeaders(w, r)
+	selected := r.Header.Get("X-RE8CH-Tenant")
+	if selected == "" || selected == "admin" || !tenantName.MatchString(selected) {
+		writeJSON(w, 400, map[string]string{"error": "select an organization"})
+		return
+	}
+	header := r.Header.Get("Authorization")
+	if !strings.HasPrefix(header, "Bearer ") {
+		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
+		return
+	}
+	id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), selected)
+	if err != nil || id.Service {
+		writeJSON(w, 403, map[string]string{"error": "organization access denied"})
+		return
+	}
+	now := time.Now().UTC()
+	start, end := now.Add(-24*time.Hour), now
+	if value := r.URL.Query().Get("from"); value != "" {
+		start, err = parseTime(value)
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"error": "invalid billing window"})
+			return
+		}
+	}
+	if value := r.URL.Query().Get("to"); value != "" {
+		end, err = parseTime(value)
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"error": "invalid billing window"})
+			return
+		}
+	}
+	result, err := s.billingUsage(id.Tenant, start, end)
+	if err != nil {
+		writeJSON(w, 400, map[string]string{"error": "invalid billing window"})
+		return
+	}
+	writeJSON(w, 200, result)
+}
+
+func (s *server) receiveUsageHTTP(w http.ResponseWriter, r *http.Request) {
+	allowed, err := usageCollectorAuthenticated(r)
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "usage authentication unavailable"})
+		return
+	}
+	if !allowed {
+		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 65536)
+	var event map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		writeJSON(w, 400, map[string]string{"error": "invalid UsageEvent"})
+		return
+	}
+	result, err := s.receiveUsage(event)
+	if err != nil {
+		status := 400
+		if strings.Contains(err.Error(), "different content") {
+			status = 409
+		}
+		writeJSON(w, status, map[string]string{"error": err.Error()})
+		return
+	}
+	status := 201
+	if result["idempotentReplay"] == true {
+		status = 200
+	}
+	writeJSON(w, status, result)
+}
+
+func (s *server) skillAdminHTTP(w http.ResponseWriter, r *http.Request) {
+	secret := os.Getenv("DYNAMIC_SKILL_ADMIN_TOKEN")
+	header := r.Header.Get("Authorization")
+	if secret == "" || !strings.HasPrefix(header, "Bearer ") || subtle.ConstantTimeCompare([]byte(strings.TrimPrefix(header, "Bearer ")), []byte(secret)) != 1 {
+		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 50000)
+	var command request
+	if err := json.NewDecoder(r.Body).Decode(&command); err != nil {
+		writeJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		return
+	}
+	command.Tenant = "admin"
+	command.Subject = strings.TrimSpace(r.Header.Get("X-RE8CH-Admin-Subject"))
+	if command.Subject == "" || len(command.Subject) > 256 {
+		writeJSON(w, 400, map[string]string{"error": "admin subject required"})
+		return
+	}
+	var result any
+	var err error
+	switch command.Action {
+	case "pending":
+		result, err = s.pending()
+	case "publish":
+		result, err = s.submit(command, true)
+	case "review":
+		result, err = s.review(command)
+	case "revoke":
+		result, err = s.revoke(command)
+	default:
+		writeJSON(w, 400, map[string]string{"error": "unknown action"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, 200, result)
+}
+
+func main() {
+	path := os.Getenv("DYNAMIC_SKILL_DB")
+	if path == "" {
+		path = "/var/lib/tenant-platform/dynamic-skills.db"
+	}
+	s, err := open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer s.db.Close()
+	ledgerPath := os.Getenv("TENANT_SERVICE_DB")
+	if ledgerPath == "" {
+		ledgerPath = "/var/lib/tenant-platform/tenant-services.db"
+	}
+	s.ledger, err = openLedger(ledgerPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer s.ledger.Close()
+	redemptionPath := os.Getenv("DEVICE_REGISTRY_PATH")
+	if redemptionPath == "" {
+		redemptionPath = "/var/lib/tenant-platform/tenant-devices.db"
+	}
+	s.redemptions, err = openRedemptions(redemptionPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer s.redemptions.Close()
+	host := os.Getenv("LISTEN_HOST")
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	port := os.Getenv("LISTEN_PORT")
+	if _, err := strconv.Atoi(port); err != nil {
+		port = "19448"
+	}
+	httpServer := &http.Server{Addr: host + ":" + port, Handler: s.handler(), ReadHeaderTimeout: 5 * time.Second}
+	adminPort := os.Getenv("ADMIN_LISTEN_PORT")
+	if _, err := strconv.Atoi(adminPort); err != nil {
+		adminPort = "19450"
+	}
+	adminServer := &http.Server{Addr: host + ":" + adminPort, Handler: s.adminHandler(), ReadHeaderTimeout: 5 * time.Second}
+	go func() { log.Fatal(adminServer.ListenAndServe()) }()
+	log.Fatal(httpServer.ListenAndServe())
+}

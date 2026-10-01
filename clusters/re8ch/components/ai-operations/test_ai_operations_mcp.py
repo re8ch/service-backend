@@ -30,6 +30,30 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_admin_dynamic_skill_tools_forward_review_with_subject(self):
+        with patch.dict(os.environ, {"DYNAMIC_SKILL_ADMIN_URL": "http://tenant-api.test/internal/dynamic-skills", "SERVICE_API_TOKEN": "test-secret"}):
+            admin = load("admin")
+        names = {tool["name"] for tool in admin.tools()}
+        self.assertTrue({"dynamic_skill_pending", "dynamic_skill_publish", "dynamic_skill_review", "dynamic_skill_revoke"} <= names)
+        tenant = load("tenant")
+        self.assertNotIn("dynamic_skill_review", {tool["name"] for tool in tenant.tools()})
+
+        class Reply:
+            def __enter__(self): return self
+            def __exit__(self, *_args): return False
+            def read(self, *_args): return b'{"status":"Published"}'
+
+        def inspect(request, timeout):
+            self.assertEqual(timeout, 10)
+            self.assertEqual(request.get_header("Authorization"), "Bearer test-secret")
+            self.assertEqual(request.get_header("X-re8ch-admin-subject"), "reviewer-1")
+            self.assertEqual(json.loads(request.data), {"action": "review", "skillRef": "dynamic-skill://acme/example/v1", "publish": True})
+            return Reply()
+
+        with patch.object(admin.urllib.request, "urlopen", side_effect=inspect):
+            result = admin.call_tool("dynamic_skill_review", {"skill_ref": "dynamic-skill://acme/example/v1", "publish": True}, {"subject": "reviewer-1"})
+        self.assertEqual(result, {"status": "Published"})
+
     def test_billing_http_requires_supabase_tenant_membership_and_allows_auth_center(self):
         m = load("tenant")
         m.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "billing.db"

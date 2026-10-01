@@ -1,0 +1,1353 @@
+[
+  {
+    "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "service_catalog_list"
+  },
+  {
+    "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "spec": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "spec"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_plan"
+  },
+  {
+    "description": "Create a durable tenant service instance request idempotently.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "spec": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "spec",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_create"
+  },
+  {
+    "description": "Read one service instance owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_ref"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_get"
+  },
+  {
+    "description": "List service instances owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "service_instance_list"
+  },
+  {
+    "description": "Update the desired specification of a tenant service instance idempotently.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string"
+        },
+        "resource_ref": {
+          "type": "string"
+        },
+        "spec": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "resource_ref",
+        "spec",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_update"
+  },
+  {
+    "description": "Suspend a tenant service instance without deleting retained data.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string"
+        },
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_ref",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_suspend"
+  },
+  {
+    "description": "Resume a suspended tenant service instance.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string"
+        },
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_ref",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_resume"
+  },
+  {
+    "description": "Soft-delete a tenant service instance and retain recoverable data for the controller retention period.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "type": "string"
+        },
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_ref",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "service_instance_delete"
+  },
+  {
+    "description": "Create an opaque tenant binding; credential material is never returned.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_type": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_ref",
+        "binding_type"
+      ],
+      "type": "object"
+    },
+    "name": "service_binding_create"
+  },
+  {
+    "description": "List bindings owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "service_binding_list"
+  },
+  {
+    "description": "Revoke a tenant binding and its opaque credential reference.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_ref"
+      ],
+      "type": "object"
+    },
+    "name": "service_binding_revoke"
+  },
+  {
+    "description": "Return unpriced usage totals for the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "usage_summary_get"
+  },
+  {
+    "description": "List accepted unpriced UsageEvents for the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "maximum": 500,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "resource_ref": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "usage_events_list"
+  },
+  {
+    "description": "Read an immutable tenant operation record.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "type": "object"
+    },
+    "name": "operation_get"
+  },
+  {
+    "description": "Issue a short-lived one-time browser link for a tenant-owned Harbor or Grafana human credential reference.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_human_access_issue"
+  },
+  {
+    "description": "Read the authenticated tenant's Harbor project metadata and quota summary.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_project_get"
+  },
+  {
+    "description": "List repositories in the authenticated tenant's Harbor project.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_repository_list"
+  },
+  {
+    "description": "List artifacts, tags and scan summaries in a tenant repository.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_artifact_list"
+  },
+  {
+    "description": "Read one artifact with tags, scan overview and OCI accessory metadata.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_artifact_get"
+  },
+  {
+    "description": "Preview or request Harbor's native vulnerability scan for one artifact.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_artifact_scan_start"
+  },
+  {
+    "description": "Read Harbor's native vulnerability addition for one artifact.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_vulnerability_report_get"
+  },
+  {
+    "description": "Read Harbor's native SBOM addition for one artifact when the scanner provides it.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_sbom_get"
+  },
+  {
+    "description": "List OCI subject accessories such as signatures, attestations and SBOM artifacts.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_accessory_list"
+  },
+  {
+    "description": "Preview or create a tag on an existing tenant artifact.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference",
+        "tag"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_tag_create"
+  },
+  {
+    "description": "Preview or delete one explicitly selected tenant artifact tag.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "repository",
+        "reference",
+        "tag"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_tag_delete"
+  },
+  {
+    "description": "Read the authenticated tenant project's sanitized Harbor audit events.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "credential_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_audit_log_list"
+  },
+  {
+    "description": "Start an isolated BuildKit build with mandatory SBOM and provenance attestations, optional signing and Harbor scan.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "build_args": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "context": {
+          "type": "string"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "dockerfile": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "enum": [
+              "linux/amd64",
+              "linux/arm64"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "scan": {
+          "type": "boolean"
+        },
+        "sign": {
+          "type": "boolean"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "credential_ref",
+        "context",
+        "repository",
+        "tag",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_build_start"
+  },
+  {
+    "description": "Read one tenant build, attestation, signature and scan operation summary.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_build_get"
+  },
+  {
+    "description": "List the authenticated tenant's supply-chain operations.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "harbor_build_list"
+  },
+  {
+    "description": "Preview or cancel one authenticated tenant build.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "operation_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "type": "object"
+    },
+    "name": "harbor_build_cancel"
+  },
+  {
+    "description": "List Grafana-native, datasource-plugin, and RE8CH-derived capabilities with API generation, version, DataFrame contract, availability, limitations, and canary evidence.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "grafana_capability_list"
+  },
+  {
+    "description": "Read one reviewed Grafana capability contract by stable capability ID.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability_id"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_capability_get"
+  },
+  {
+    "description": "List query capabilities for datasources visible in the authenticated tenant Grafana organization.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "grafana_datasource_list"
+  },
+  {
+    "description": "Read sanitized metadata for one tenant-visible Grafana datasource.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "datasource_uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "datasource_uid"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_datasource_get"
+  },
+  {
+    "description": "Run bounded tenant-scoped datasource queries through Grafana and return normalized DataFrames.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "spec": {
+          "additionalProperties": false,
+          "properties": {
+            "indicators": {
+              "items": {
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "pipeline": {
+              "items": {
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "queries": {
+              "items": {
+                "type": "object"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "type": "array"
+            },
+            "timeRange": {
+              "type": "object"
+            },
+            "visualization": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "queries"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "spec"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_query"
+  },
+  {
+    "description": "Apply deterministic reduce, merge, math, normalize, or filter operations to numeric series.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "pipeline": {
+          "items": {
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "result_ref": {
+          "type": "string"
+        },
+        "series": {
+          "additionalProperties": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "name": "grafana_analyze"
+  },
+  {
+    "description": "Calculate moving average, EMA, change rate, volatility, z-score, slope, trend, and quantiles.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "indicators": {
+          "items": {
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "result_ref": {
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "indicators"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_indicators"
+  },
+  {
+    "description": "Calculate Pearson, Spearman, and lag correlations, or list native Grafana datasource correlations.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "datasource_uid": {
+          "type": "string"
+        },
+        "left": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "max_lag": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "method": {
+          "enum": [
+            "pearson",
+            "spearman"
+          ],
+          "type": "string"
+        },
+        "right": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "name": "grafana_correlate"
+  },
+  {
+    "description": "Render an existing tenant panel or an ephemeral dashboard to a short-lived PNG resource reference.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "dashboard": {
+          "type": "object"
+        },
+        "dashboard_uid": {
+          "type": "string"
+        },
+        "from": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "height": {
+          "maximum": 1600,
+          "minimum": 200,
+          "type": "integer"
+        },
+        "panel_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "to": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "width": {
+          "maximum": 2400,
+          "minimum": 320,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "panel_id"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_render"
+  },
+  {
+    "description": "Explicitly save an AI exploration dashboard in the authenticated tenant organization.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "dashboard": {
+          "type": "object"
+        },
+        "folder_uid": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dashboard",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_exploration_save"
+  },
+  {
+    "description": "Explicitly delete a saved AI exploration dashboard owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "dashboard_uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dashboard_uid"
+      ],
+      "type": "object"
+    },
+    "name": "grafana_exploration_delete"
+  },
+  {
+    "description": "Register an outbound-only BYOC cluster identity for admin approval.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cluster_uid": {
+          "type": "string"
+        },
+        "issuer": {
+          "type": "string"
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "region_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cluster_uid",
+        "region_ref",
+        "issuer",
+        "public_key"
+      ],
+      "type": "object"
+    },
+    "name": "byoc_cluster_register"
+  },
+  {
+    "description": "List cluster registrations visible to the current plane.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "tenant_ref": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "byoc_registration_list"
+  },
+  {
+    "description": "List authenticated cluster connections visible to the current tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "byoc_connection_list"
+  },
+  {
+    "description": "Revoke a cluster connection; offline clusters enter RevocationPending.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "connection_ref": {
+          "type": "string"
+        },
+        "offline": {
+          "type": "boolean"
+        },
+        "tenant_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tenant_ref",
+        "connection_ref"
+      ],
+      "type": "object"
+    },
+    "name": "byoc_connection_revoke"
+  },
+  {
+    "description": "List autonomous tenant compute and independent volume claim contracts.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "tenant_capabilities_list"
+  },
+  {
+    "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "claim"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_claim_plan"
+  },
+  {
+    "description": "Create an already planned tenant claim idempotently within the active TenantGrant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "object"
+        },
+        "claim_hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim",
+        "claim_hash"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_claim_create"
+  },
+  {
+    "description": "Read one claim and its workload, volume or public endpoint binding.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_claim_get"
+  },
+  {
+    "description": "List claims owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "tenant_claim_list"
+  },
+  {
+    "description": "Scale or roll a Deployment, or expand a volume, using a fresh claimHash. Job parameters are immutable.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "type": "object"
+        },
+        "claim_hash": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "claim",
+        "claim_hash",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_claim_update"
+  },
+  {
+    "description": "Renew a claim TTL from now without per-request approval.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ttl_seconds": {
+          "maximum": 2592000,
+          "minimum": 300,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "ttl_seconds",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_claim_renew"
+  },
+  {
+    "description": "Release compute children; independent volume data remains retained.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_claim_cancel"
+  },
+  {
+    "description": "Return auditable, unpriced showback records joined by tenant claim UID.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_name": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "tenant_usage_summary_get"
+  },
+  {
+    "description": "List namespaces owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "tenant_namespace_list"
+  },
+  {
+    "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "ttlSeconds": {
+          "maximum": 604800,
+          "minimum": 300,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "namespace"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_namespace_create"
+  },
+  {
+    "description": "Request deletion of a non-default namespace owned by the authenticated tenant.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_namespace_delete"
+  },
+  {
+    "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_kubernetes_get"
+  },
+  {
+    "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "object": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "object"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_kubernetes_apply"
+  },
+  {
+    "description": "Preview or delete one allowlisted object from an authenticated tenant namespace. Operator or admin role and apply=true are required.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "type": "object"
+    },
+    "name": "tenant_kubernetes_delete"
+  },
+  {
+    "description": "Read an allowlisted, non-secret Kubernetes resource from the Artchais artc cluster using the caller's tenant role.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource"
+      ],
+      "type": "object"
+    },
+    "name": "artc_kubernetes_read"
+  },
+  {
+    "description": "Preview or apply one allowlisted namespaced object to the Artchais namespace. Operator or admin role is required and apply=true is explicit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "object": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "object"
+      ],
+      "type": "object"
+    },
+    "name": "artc_kubernetes_apply"
+  },
+  {
+    "description": "Preview or run a bounded kubectl argv against artc using the admin grant. Credential export, Secret access, exec and proxy commands are always denied.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        },
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "stdin": {
+          "maxLength": 1048576,
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "maximum": 600,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "argv"
+      ],
+      "type": "object"
+    },
+    "name": "artc_kubernetes_admin"
+  }
+]
