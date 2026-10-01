@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: gulfstream-bronze
+    delivery.re8ch.com/codename: riptide-bronze
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:2bf16101a416b29c4e5fb643aa1ef48c2cd2848f080983d0dc97af13a00ddbc2
+    digest: sha256:a8d9c89ef6a2961497e5c8ff68f9a0fe1b889fdfdeb96156197cf33a701502ae
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: gulfstream-bronze
+    delivery.re8ch.com/codename: riptide-bronze
 spec:
   interval: 1m
   retryInterval: 1m
