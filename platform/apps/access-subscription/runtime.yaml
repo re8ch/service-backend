@@ -88,8 +88,9 @@ spec:
             - {name: HTTP_PORT, value: "18081"}
             - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
             - {name: RULES_ROOT, value: /rules}
+            - {name: AUTH_GATEWAY_URL, value: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth}
             - name: IDENTITY_ALIASES_JSON
-              value: '{"hliu74@apple.com":"hliu74","admin@re8ch.com":"hliu74","woomou":"hliu74","Cgg2MTY5MDcxORIGZ2l0aHVi":"hliu74"}'
+              value: '{"harry@re8ch.com":"hliu74","hliu74@apple.com":"hliu74","admin@re8ch.com":"hliu74","woomou":"hliu74","Cgg2MTY5MDcxORIGZ2l0aHVi":"hliu74"}'
           volumeMounts:
             - {name: code, mountPath: /app, readOnly: true}
             - {name: hmac, mountPath: /secrets, readOnly: true}
@@ -126,7 +127,7 @@ spec:
             - {name: GITHUB_APP_ID, valueFrom: {secretKeyRef: {name: access-github-app, key: app-id}}}
             - {name: GITHUB_INSTALLATION_ID, valueFrom: {secretKeyRef: {name: access-github-app, key: installation-id}}}
             - name: IDENTITY_ALIASES_JSON
-              value: '{"hliu74@apple.com":"hliu74","admin@re8ch.com":"hliu74","woomou":"hliu74","Cgg2MTY5MDcxORIGZ2l0aHVi":"hliu74"}'
+              value: '{"harry@re8ch.com":"hliu74","hliu74@apple.com":"hliu74","admin@re8ch.com":"hliu74","woomou":"hliu74","Cgg2MTY5MDcxORIGZ2l0aHVi":"hliu74"}'
           volumeMounts:
             - {name: code, mountPath: /app, readOnly: true}
             - {name: hmac, mountPath: /secrets, readOnly: true}
@@ -177,86 +178,13 @@ kind: PodDisruptionBudget
 metadata: {name: access-subscription}
 spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: access-subscription}}}
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata: {name: oauth2-proxy-access-subscription}
-spec:
-  replicas: 2
-  selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}
-  template:
-    metadata: {labels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}
-    spec:
-      automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}}
-      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
-      containers:
-        - name: oauth2-proxy
-          image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0@sha256:37c1570c0427e02fc7c947ef2c04e8995b8347b7abc9fcf1dbb4e376a4b221a7
-          args:
-            - --provider=oidc
-            - --oidc-issuer-url=https://dex.service.re8ch.com
-            # Keep browser authorization on the public issuer while avoiding a
-            # public Gateway/RouteOS hairpin for the server-side code exchange.
-            - --redeem-url=http://dex.dex.svc.cluster.local/token
-            - --redirect-url=https://sub.access.re8ch.com/oauth2/callback
-            - --upstream=http://access-subscription:8080
-            - --http-address=0.0.0.0:4180
-            - --email-domain=*
-            - --scope=openid profile email
-            - --cookie-secure=true
-            - --cookie-samesite=lax
-            - --cookie-csrf-per-request=true
-            - --cookie-expire=12h
-            - --cookie-refresh=1h
-            - --reverse-proxy=true
-            - --set-xauthrequest=true
-            - --pass-user-headers=true
-            - --skip-provider-button=true
-            - --skip-auth-route=^/s/
-            - --skip-auth-route=^/r/
-            - --skip-auth-route=^/healthz$
-            - --skip-auth-route=^/favicon\.ico$
-            - --skip-auth-route=^/apple-touch-icon\.png$
-            - --skip-auth-route=^/apple-touch-icon-precomposed\.png$
-          envFrom: [{secretRef: {name: oauth2-proxy-access-subscription}}]
-          ports: [{name: http, containerPort: 4180}]
-          readinessProbe: {httpGet: {path: /ping, port: http}, periodSeconds: 5}
-          resources: {requests: {cpu: 20m, memory: 32Mi}, limits: {cpu: 300m, memory: 128Mi}}
-          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
----
-apiVersion: v1
-kind: Service
-metadata: {name: oauth2-proxy-access-subscription}
-spec:
-  selector: {app.kubernetes.io/name: oauth2-proxy-access-subscription}
-  ports: [{name: http, port: 4180, targetPort: http}]
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata: {name: oauth2-proxy-access-subscription}
-spec: {minAvailable: 1, selector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}}
----
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata: {name: access-subscription}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-sub-https}]
   hostnames: [sub.access.re8ch.com]
-  rules: [{backendRefs: [{name: oauth2-proxy-access-subscription, port: 4180}]}]
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata: {name: access-subscription-gateway}
-spec:
-  endpointSelector: {matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}
-  ingress:
-    - fromEntities: [ingress]
-      toPorts: [{ports: [{port: "4180", protocol: TCP}]}]
+  rules: [{backendRefs: [{name: access-subscription, port: 8080}]}]
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -264,5 +192,5 @@ metadata: {name: access-subscription-portal}
 spec:
   endpointSelector: {matchLabels: {app.kubernetes.io/name: access-subscription}}
   ingress:
-    - fromEndpoints: [{matchLabels: {app.kubernetes.io/name: oauth2-proxy-access-subscription}}]
-      toPorts: [{ports: [{port: "8080", protocol: TCP}, {port: "18080", protocol: TCP}, {port: "18081", protocol: TCP}]}]
+    - fromEntities: [ingress]
+      toPorts: [{ports: [{port: "18081", protocol: TCP}]}]
