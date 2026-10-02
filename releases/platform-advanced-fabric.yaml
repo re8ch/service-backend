@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: tramontane-copper
+codename: zephyr-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:47f0341e9dcd262123ce88ff60e67b8fb4f1c37b124416dc3e7f05a1681c46d9
+  digest: sha256:505270f6294a27f250605439473cae672d9449c0da28142b9f219c2aec018bad
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
