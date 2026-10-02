@@ -1,4 +1,5 @@
 import importlib.util
+import urllib.error
 from pathlib import Path
 
 
@@ -36,3 +37,25 @@ def test_observer_marks_sensitive_content_without_reading_it():
     row = {"path": "/workspace/.aws/credentials"}
     observer.attach_content_evidence(row, 1)
     assert row["contentEvidence"] == {"state": "Redacted", "reason": "SensitivePath"}
+
+
+def test_observer_keeps_capture_running_during_temporary_api_disconnect(monkeypatch):
+    observer = load_observer()
+    monkeypatch.setattr(observer, "request", lambda *args, **kwargs: (_ for _ in ()).throw(
+        urllib.error.URLError(ConnectionResetError("connection reset"))))
+    assert observer.capture_still_active({"metadata": {"namespace": "cloud-disk", "name": "probe"}})
+
+
+def test_observer_retries_evidence_publish(monkeypatch):
+    observer = load_observer()
+    attempts = []
+
+    def publish(*args):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise urllib.error.URLError(TimeoutError("API timeout"))
+
+    monkeypatch.setattr(observer, "publish", publish)
+    monkeypatch.setattr(observer.time, "sleep", lambda _: None)
+    observer.publish_with_retry({"metadata": {"uid": "probe"}}, [], True)
+    assert len(attempts) == 2

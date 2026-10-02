@@ -530,7 +530,9 @@ def reconcile_analysis(obj):
         evidence = analysis_evidence(obj)
         expired = int(time.time()) >= int(status.get("deadlineEpoch", 0))
         stopped = spec.get("stop") is True
-        if not evidence and not (expired or stopped):
+        # The observer seals its ConfigMap after the trace window. Allow a
+        # short grace period for that write and transient API retries.
+        if not evidence and not stopped and int(time.time()) < int(status.get("deadlineEpoch", 0)) + 90:
             return
         if not evidence:
             patch_status(obj, "runtimeanalyses", {
