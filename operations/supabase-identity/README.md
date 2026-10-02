@@ -26,8 +26,11 @@ distinct JWT signing material and all database DSNs targeting `re8ch_identity`.
 ## GitHub login
 
 GoTrue uses the existing RE8CH GitHub OAuth app directly. The app must have
-`https://db-rw.re8ch.com/auth/v1/callback` as an exact callback URL, alongside
-the existing auth-gateway callback. Copy its `GITHUB_OAUTH_CLIENT_ID` and
+`https://auth.re8ch.com/auth/v1/callback` as an exact callback URL, alongside
+the existing auth-gateway callback. Register that exact callback in the GitHub
+OAuth app before promoting this GoTrue deployment; keep wildcard matching off.
+After a successful login, remove the retired `db-rw.re8ch.com` callback from
+the app. Copy its `GITHUB_OAUTH_CLIENT_ID` and
 `GITHUB_OAUTH_CLIENT_SECRET` keys from the `auth/re8ch-auth-gateway-secrets`
 Secret into `supabase-identity/supabase-identity-secrets` through the cluster
 secret manager before deploying the GoTrue GitHub provider. Never write their
