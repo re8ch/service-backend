@@ -62,7 +62,7 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
         for suffix in ("CLIENT_ID", "SECRET"):
             key = f"{provider}_OIDC_CLIENT_ID" if suffix == "CLIENT_ID" else f"{provider}_OIDC_CLIENT_SECRET"
             assert env[f"GOTRUE_EXTERNAL_{provider}_{suffix}"]["valueFrom"]["secretKeyRef"]["key"] == key
-    assert env["HTTPS_PROXY"]["value"] == env["HTTP_PROXY"]["value"] == "http://192.0.2.29:17893"
+    assert env["HTTPS_PROXY"]["value"] == env["HTTP_PROXY"]["value"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
     assert ".svc" in env["NO_PROXY"]["value"]
     for name, key in (
         ("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", "GITHUB_OAUTH_CLIENT_ID"),

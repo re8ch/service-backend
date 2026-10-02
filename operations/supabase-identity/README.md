@@ -47,6 +47,13 @@ Stalwart's OIDC Directory points to `auth.re8ch.com` and validates tokens;
 Stalwart does not initiate a GitHub login. Do not put Stalwart upstream of
 GoTrue for this browser login, because that reverses the dependency and cannot
 authenticate the GitHub account.
+GoTrue's outbound OAuth provider calls use the existing node-local
+`mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891` service. Its
+GitHub authorization-code exchange must not depend on one hardcoded overseas
+node address: `192.0.2.29:17893` reset the connection in the October 2
+login recovery. TLS verification remains end to end; private and cluster
+requests retain the existing NO_PROXY exclusions.
+
 The Auth image is pinned to the verified Harbor mirror of Supabase Auth v2.196.0;
 the namespace has a `supabase-identity-harbor-pull` image pull Secret. Rotate its
 registry credentials through the cluster secret manager.
