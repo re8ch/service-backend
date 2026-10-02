@@ -49,8 +49,9 @@ spec:
     spec:
       serviceAccountName: cloud-disk
       automountServiceAccountToken: false
+      imagePullSecrets: [{name: ghcr-re8ch}]
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -71,7 +72,7 @@ spec:
               valueFrom: {fieldRef: {fieldPath: status.hostIP}}
             - {name: HTTP_PROXY, value: "http://$(NODE_IP):17891"}
             - {name: HTTPS_PROXY, value: "http://$(NODE_IP):17891"}
-            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,10.0.0.0/8,100.64.0.0/10"}
             - name: RCLONE_CONFIG
               value: /etc/rclone/rclone.conf
             - name: RCLONE_RC_USER
@@ -103,6 +104,59 @@ spec:
             - {name: workspace, mountPath: /workspace}
             - {name: cache, mountPath: /cache}
             - {name: tmp, mountPath: /tmp}
+        - name: gateway
+          image: ghcr.io/re8ch/cloud-disk-gateway@sha256:18c305d040f6591b76ae36866b77e1024d4f14ae5b9ae61d6db9f3d7014e47e3
+          env:
+            - {name: RCLONE_CONFIG, value: /etc/rclone/rclone.conf}
+            - {name: CLOUD_DISK_STATE, value: /state}
+            - {name: CLOUD_DISK_LINK_KEY, valueFrom: {secretKeyRef: {name: cloud-disk-edge, key: link-key}}}
+            - {name: CLOUD_DISK_INTERNAL_TOKEN, valueFrom: {secretKeyRef: {name: cloud-disk-edge, key: internal-token}}}
+            - name: NODE_IP
+              valueFrom: {fieldRef: {fieldPath: status.hostIP}}
+            - {name: HTTP_PROXY, value: "http://$(NODE_IP):17891"}
+            - {name: HTTPS_PROXY, value: "http://$(NODE_IP):17891"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,10.0.0.0/8,100.64.0.0/10"}
+          ports: [{name: internal, containerPort: 8081}]
+          readinessProbe: {httpGet: {path: /health, port: internal}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /health, port: internal}, periodSeconds: 30}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          volumeMounts:
+            - {name: credentials, mountPath: /etc/rclone, readOnly: true}
+            - {name: workspace, mountPath: /workspace}
+            - {name: state, mountPath: /state}
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0@sha256:37c1570c0427e02fc7c947ef2c04e8995b8347b7abc9fcf1dbb4e376a4b221a7
+          args:
+            - --provider=oidc
+            - --oidc-issuer-url=https://auth.re8ch.com
+            - --client-id=re8ch-cloud-disk-web
+            - --redirect-url=https://cloud-disk.service.re8ch.com/oauth2/callback
+            - --upstream=http://127.0.0.1:8080
+            - --http-address=0.0.0.0:4180
+            - --email-domain=*
+            - --scope=openid email profile groups offline_access
+            - --allowed-group=re8ch:k8s-admins
+            - --code-challenge-method=S256
+            - --cookie-secure=true
+            - --cookie-samesite=lax
+            - --cookie-refresh=4m
+            - --cookie-expire=8h
+            - --reverse-proxy=true
+            - --skip-provider-button=true
+            - --pass-user-headers=true
+          env:
+            - {name: OAUTH2_PROXY_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: cloud-disk-edge, key: oidc-client-secret}}}
+            - {name: OAUTH2_PROXY_COOKIE_SECRET, valueFrom: {secretKeyRef: {name: cloud-disk-edge, key: cookie-secret}}}
+          ports: [{name: web, containerPort: 4180}]
+          readinessProbe: {httpGet: {path: /ping, port: web}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /ping, port: web}, periodSeconds: 30}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
       volumes:
         - name: credentials
           secret:
@@ -114,6 +168,8 @@ spec:
           emptyDir: {sizeLimit: 2Gi}
         - name: tmp
           emptyDir: {sizeLimit: 128Mi}
+        - name: state
+          emptyDir: {sizeLimit: 64Mi}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

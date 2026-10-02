@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata: {name: cloud-disk-web, namespace: cloud-disk}
+spec:
+  selector: {app.kubernetes.io/name: cloud-disk}
+  ports: [{name: web, port: 4180, targetPort: web}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: cloud-disk-internal, namespace: cloud-disk}
+spec:
+  selector: {app.kubernetes.io/name: cloud-disk}
+  ports: [{name: internal, port: 8081, targetPort: internal}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: cloud-disk-public, namespace: cloud-disk}
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
+  hostnames: [cloud-disk.service.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /transfer/}}]
+      backendRefs: [{name: cloud-disk-internal, port: 8081}]
+    - matches: [{path: {type: PathPrefix, value: /}}]
+      backendRefs: [{name: cloud-disk-web, port: 4180}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloud-disk-public-dns
+  namespace: cloud-disk
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: cloud-disk.service.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules: [{host: cloud-disk.service.re8ch.com}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: cloud-disk-entrypoints, namespace: cloud-disk}
+spec:
+  endpointSelector: {matchLabels: {app.kubernetes.io/name: cloud-disk}}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts: [{ports: [{port: "4180", protocol: TCP}, {port: "8081", protocol: TCP}]}]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: toolhive-system
+            toolhive-name: cloud-disk-mcp
+      toPorts: [{ports: [{port: "8081", protocol: TCP}]}]

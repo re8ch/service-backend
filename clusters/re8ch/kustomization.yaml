@@ -25,6 +25,11 @@ resources:
 - secrets/hyperswitch-bootstrap-admin.sops.yaml
 - secrets/tenant-claim-internal-auth.sops.yaml
 - secrets/re8ch-auth-broker-client-auth.sops.yaml
+- secrets/cloud-disk-oidc-client-auth.sops.yaml
+- secrets/cloud-disk-edge.sops.yaml
+- secrets/cloud-disk-mcp-internal.sops.yaml
+- secrets/ghcr-re8ch-cloud-disk.sops.yaml
+- secrets/ghcr-re8ch-auth.sops.yaml
 - secrets/tenant-registry-supply-chain.sops.yaml
 - secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
 - secrets/admin-vmcp-backend-auth-tenant.sops.yaml

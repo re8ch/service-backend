@@ -56,9 +56,10 @@ spec:
           effect: NoSchedule
       imagePullSecrets:
         - name: harbor-auth-admin
+        - name: ghcr-re8ch
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:5fb3f4dcdeb4df80c901289e872797faf6006d3caa8ea808c40d5d23e33f2bd4
+          image: ghcr.io/re8ch/re8ch-auth-gateway@sha256:b8e8ec92b371b51a177ee2c2094e87d9a9f548f6673c919da4e01b14ffa68772
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -251,6 +252,9 @@ spec:
                 secretKeyRef: {name: re8ch-auth-gateway-secrets, key: APPLE_OIDC_CLIENT_SECRET, optional: true}
             - name: AUTH_OIDC_CLIENT_ID
               value: stalwart-idp
+            - name: AUTH_OIDC_CLOUD_DISK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: cloud-disk-oidc-client-auth, key: client-secret}
             - name: AUTH_OIDC_PUBLIC_CLIENT_IDS
               value: re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant
             - name: AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS
@@ -370,4 +374,3 @@ spec:
             limits:
               cpu: 500m
               memory: 256Mi
-
