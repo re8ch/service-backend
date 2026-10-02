@@ -34,6 +34,7 @@ resources:
 - secrets/incidentrelay-alertmanager-tokens.sops.yaml
 - secrets/ontology-microscope-db.sops.yaml
 - secrets/ontology-microscope-evaluation.sops.yaml
+- secrets/zerotier-planet-env.sops.yaml
 - components/cilium/gateway-api-canary.yaml
 - components/aesthete/native-api-route.yaml
 - components/cluster-inventory/configmap.yaml
@@ -81,6 +82,7 @@ resources:
 - components/toolhive/operator-release.yaml
 - components/rook-ceph/releases.yaml
 - components/rook-ceph/storage-node-labels.yaml
+- components/ops/zerotier-planet.yaml
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
