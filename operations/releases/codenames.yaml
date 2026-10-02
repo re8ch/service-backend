@@ -407,6 +407,8 @@ modules:
       digest: sha256:505270f6294a27f250605439473cae672d9449c0da28142b9f219c2aec018bad
     - codename: bora-indigo
       digest: sha256:03baaf391a46aab19df834e9433e6291340fb02ae49bd6b04a702c977fd61488
+    - codename: chinook-indigo
+      digest: sha256:7c06d8eaf92a0503fce3d13eb9144490dffde794d06c1c96a511877ad2f45545
   platform/git-workspaces:
     releases:
     - codename: andromeda
