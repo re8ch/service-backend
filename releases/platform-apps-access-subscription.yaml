@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/apps/access-subscription
-codename: ward
+codename: watchtower
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
-  digest: sha256:a9e84f1205e28403ca2738eb684fff9502469e2270271aad7f1402840a7cfa14
+  digest: sha256:c9b09554b044ddbf655f45f68dc76922b54332932894260e2138ece519489ee6
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
