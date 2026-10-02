@@ -58,7 +58,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:60a356e08728ce2d22d908bfcc4e3c6bc52ad9556ac50223fed6a11f9b35d5b0
+          image: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:5fb3f4dcdeb4df80c901289e872797faf6006d3caa8ea808c40d5d23e33f2bd4
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -71,13 +71,12 @@ spec:
             - name: GODEBUG
               value: netdns=cgo
             - name: HTTPS_PROXY
-              # Control-plane Cilium Service translation is currently degraded.
-              # overseas-la is the declared healthy identity-egress authority.
+              # External OAuth providers use the managed egress proxy.
               value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
             - name: HTTP_PROXY
               value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
             - name: NO_PROXY
-              value: localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.179/12,192.0.2.148/16
+              value: localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.179/12,192.0.2.148/16,api.re8ch.com,db-rw.re8ch.com,db-ro.re8ch.com
             - name: API_BASE_URL
               value: https://api.re8ch.com/auth
             - name: PUBLIC_API_BASE_URL
@@ -85,11 +84,11 @@ spec:
             - name: IDENTITY_AUTH_URL
               value: https://db-rw.re8ch.com/auth/v1
             - name: IDENTITY_USER_URL
-              value: http://supabase-identity-auth.supabase-identity.svc:9999/user
+              value: https://db-rw.re8ch.com/auth/v1/user
             - name: IDENTITY_RO_URL
-              value: http://192.0.2.44:3000
+              value: https://db-ro.re8ch.com/identity/rest/v1
             - name: IDENTITY_RW_URL
-              value: http://192.0.2.30:3000
+              value: https://db-rw.re8ch.com/identity/rest/v1
             - name: IDENTITY_AVATAR_COS_BUCKET
               value: re8ch-avatars-1301339749
             - name: IDENTITY_AVATAR_COS_REGION
@@ -130,9 +129,9 @@ spec:
             - name: IDENTITY_V2_RETURN_ORIGINS
               value: https://auth.re8ch.com,https://re8ch.com,https://api.re8ch.com
             - name: MGR_RPC_RW_BASE_URL
-              value: http://192.0.2.158:3000
+              value: https://db-rw.re8ch.com/auth
             - name: MGR_RPC_RO_BASE_URL
-              value: http://192.0.2.158:3000
+              value: https://db-ro.re8ch.com/auth
             - name: AUTH_SERVICE_ROLE
               value: auth_app_rw
             - name: AUTH_GATEWAY_COOKIE_NAME

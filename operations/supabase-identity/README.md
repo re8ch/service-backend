@@ -199,3 +199,19 @@ the private key and registry credential inside their Kubernetes Secrets; do
 not copy them to a workstation, command line, log, or Git. Remove the temporary
 Jobs after verification. The resulting signature must be visible as a Harbor
 OCI referrer before the signed GitOps image-pin PR is merged.
+
+### PublicEdge identity API calls
+
+Tenant calls shared session and organization APIs at `https://api.re8ch.com/auth/v2`.
+Auth Gateway calls GoTrue at `https://db-rw.re8ch.com/auth/v1`, identity RO/RW at
+`https://db-ro.re8ch.com/identity/rest/v1` and `https://db-rw.re8ch.com/identity/rest/v1`,
+and legacy auth RPCs at the corresponding public `/auth` endpoints. These API
+contracts use public DNS names and HTTPS through the existing PublicEdge routes,
+with no private service DNS/IP override. Explicit NO_PROXY hosts keep RE8CH API
+requests off the external OAuth provider proxy. The managed proxy remains for
+provider connectivity (for example GitHub code exchange).
+
+The legacy RPC client previously replaced the shared HTTP client's resolver on
+its first request, breaking later internal service-name lookups. The gateway
+release isolates that client and reports identity infrastructure failures as 503
+instead of forcing an OAuth refresh with a false 401.
