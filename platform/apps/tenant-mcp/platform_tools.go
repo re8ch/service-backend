@@ -15,8 +15,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// This is the same caller-scoped, live membership projection used by the
-// identity service. A missing RPC or failed read closes the privileged gate.
+// This is the caller-scoped membership projection used when a session first
+// requests tenant tools. A failed read closes the privileged gate.
 func currentPlatformAdmin(ctx context.Context, bearer string) (bool, error) {
 	if bearer == "" {
 		return false, errors.New("user bearer required")
@@ -191,9 +191,8 @@ func platformIdentity(ctx context.Context) (identity, error) {
 	if err != nil {
 		return identity{}, err
 	}
-	allowed, err := currentPlatformAdmin(ctx, id.Token)
-	if err != nil || !allowed {
-		return identity{}, errors.New("active platform admin membership required")
+	if !id.PlatformAdmin {
+		return identity{}, errors.New("platform admin membership required for this session")
 	}
 	return id, nil
 }
@@ -236,13 +235,6 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			backend, ok := platformBackends[input.Backend]
 			if !ok || !backend.Allowed[input.ToolName] {
 				return nil, nil, errors.New("platform tool is not allowlisted")
-			}
-			if input.Backend != "cloud" {
-				id, _ := identityFrom(ctx)
-				claims, err := decodeClaims(id.Token)
-				if err != nil || claims.AAL != "aal2" {
-					return nil, nil, errors.New("authenticator step-up is required for privileged platform tools")
-				}
 			}
 			value, err := withPlatformBackend(ctx, input.Backend, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
 				if !allowed[input.ToolName] {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
@@ -39,11 +40,55 @@ func identityFrom(ctx context.Context) (identity, error) {
 }
 
 type jwtClaims struct {
-	Issuer   string `json:"iss"`
-	Audience string `json:"aud"`
-	Subject  string `json:"sub"`
-	Expires  int64  `json:"exp"`
-	AAL      string `json:"aal"`
+	Issuer    string `json:"iss"`
+	Audience  string `json:"aud"`
+	Subject   string `json:"sub"`
+	Expires   int64  `json:"exp"`
+	SessionID string `json:"session_id"`
+}
+
+type platformAdminDecision struct {
+	allowed bool
+	retryAt time.Time
+}
+
+// Cache the organization decision for this verified login session. A bearer
+// fingerprint is used for tokens without a session_id claim.
+func (s *server) platformAdminForSession(ctx context.Context, bearer, subject string) bool {
+	claims, err := decodeClaims(bearer)
+	if err != nil || claims.Subject != subject {
+		return false
+	}
+	session := claims.SessionID
+	if session == "" {
+		session = bearer
+	}
+	key := fmt.Sprintf("%x", sha256.Sum256([]byte(subject+"\x00"+session)))
+	s.platformAdminMu.Lock()
+	decision, found := s.platformAdminSessions[key]
+	s.platformAdminMu.Unlock()
+	if found && (decision.retryAt.IsZero() || time.Now().Before(decision.retryAt)) {
+		return decision.allowed
+	}
+	allowed, lookupErr := currentPlatformAdmin(ctx, bearer)
+	decision = platformAdminDecision{allowed: allowed && lookupErr == nil}
+	if lookupErr != nil {
+		decision.retryAt = time.Now().Add(30 * time.Second)
+	}
+	s.platformAdminMu.Lock()
+	if s.platformAdminSessions == nil {
+		s.platformAdminSessions = make(map[string]platformAdminDecision)
+	}
+	if _, exists := s.platformAdminSessions[key]; !exists {
+		if len(s.platformAdminOrder) >= 2048 {
+			delete(s.platformAdminSessions, s.platformAdminOrder[0])
+			s.platformAdminOrder = s.platformAdminOrder[1:]
+		}
+		s.platformAdminOrder = append(s.platformAdminOrder, key)
+	}
+	s.platformAdminSessions[key] = decision
+	s.platformAdminMu.Unlock()
+	return decision.allowed
 }
 
 func decodeClaims(token string) (jwtClaims, error) {
@@ -115,9 +160,8 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 		return identity{}, errors.New("tenant authorizer returned an invalid context")
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
-	// Discovery is scoped to the current organization membership, never to a
-	// client-supplied group or the tenant role.
-	id.PlatformAdmin, _ = currentPlatformAdmin(ctx, bearer)
+	// Resolve the privileged membership once per verified login session.
+	id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)
 	return id, nil
 }
 

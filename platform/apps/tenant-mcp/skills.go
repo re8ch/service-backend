@@ -43,11 +43,14 @@ type skill struct {
 }
 
 type server struct {
-	db          *sql.DB
-	ledger      *sql.DB
-	redemptions *sql.DB
-	resultsMu   sync.Mutex
-	results     map[string]resultRecord
+	db                    *sql.DB
+	ledger                *sql.DB
+	redemptions           *sql.DB
+	resultsMu             sync.Mutex
+	results               map[string]resultRecord
+	platformAdminMu       sync.Mutex
+	platformAdminSessions map[string]platformAdminDecision
+	platformAdminOrder    []string
 }
 
 func open(path string) (*server, error) {
