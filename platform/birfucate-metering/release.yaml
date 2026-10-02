@@ -47,7 +47,8 @@ spec:
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:a7ab13de5e292fe8ec50477bc52c47990739606e302058fd60ae29f7e07704ee
       tenantAPI:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:75034f93764c910af3d53ceef052fdf13e345b55e8b66681798bcae9bad6c20a
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:72eb3e2126d6495c441efb17aa64841270553476133ca7e629c7850f50442cd7
+        organizationsURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/organizations
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
       provider:
         enabled: true

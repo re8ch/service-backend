@@ -26,6 +26,7 @@ tenantPlatform:
     enabled: false
     image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
     platformSessionURL: ""
+    organizationsURL: ""
   provider:
     enabled: false
     image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
