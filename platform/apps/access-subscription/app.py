@@ -51,6 +51,14 @@ PORTAL = PORTAL.replace(
     '<a class="cta secondary" href="${esc(j.shadowrocketURL)}" download="re8ch-shadowrocket.conf">下载 .conf</a></div><h4>macOS 稳定导入</h4><ol class=steps><li>复制下方完整配置地址。</li><li>进入 Shadowrocket → <b>配置</b> → <b>+</b> → <b>从 URL 下载</b>。</li><li>粘贴地址并下载，点击 <code>shadowrocket.conf</code> → <b>使用配置</b>。以后在配置页选择<b>更新</b>，不要在首页创建节点订阅。</li></ol><code class=url>${esc(j.shadowrocketURL)}</code><hr><h3>Mihomo 完整配置</h3>',
 )
 
+PORTAL = PORTAL.replace(
+    '<p>供 Clash Meta、Mihomo 和兼容客户端使用。</p><div class=row>',
+    '<p>供 Clash Meta、Mihomo 和 v2rayN 的 Mihomo 核心使用。v2rayN 请通过「服务器 → 添加自定义配置服务器」选择 Mihomo，填入下方 YAML 地址；普通节点订阅不会导入这份完整策略。</p><div class=row>',
+).replace(
+    '<a class="cta secondary" href="${esc(j.mihomoURL)}">打开 Mihomo YAML</a></div></section>',
+    '<a class="cta secondary" href="${esc(j.mihomoURL)}">打开 Mihomo YAML</a></div><code class=url>${esc(j.mihomoURL)}</code></section>',
+)
+
 ADMIN = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Access Admin</title><style>body{font:15px system-ui;background:#101114;color:#eee;margin:30px}article{background:#1d1f24;padding:14px;margin:10px;border-radius:10px}button{padding:7px}</style><h1>Access Admin</h1><div id=o></div><script>function esc(s){let d=document.createElement('div');d.textContent=String(s);return d.innerHTML}async function load(){let r=await fetch('/api/admin/users'),j=await r.json();o.innerHTML=Object.entries(j.members||{}).map(([u,m])=>`<article><b>${esc(u)}</b> · ${esc(m.permission||'')}${m.admin?' · admin':''}<div>${(j.devices[u]||[]).map(d=>`${esc(d.name)} · ${d.enabled?'启用':'撤销'} · ${d.activeConnections||0} 连接 <button onclick="revoke('${d.id}')">撤销</button>`).join('<br>')||'无设备'}</div></article>`).join('')}async function revoke(id){await fetch('/api/admin/devices/'+id,{method:'DELETE'});load()}load()</script></html>"""
 
 
@@ -91,7 +99,9 @@ def edge_access_nodes(nodes: list[dict], pods: list[dict], probe) -> tuple[Node,
         if capacity < 100:
             continue
         region = metadata.get("labels", {}).get("topology.kubernetes.io/region", "global")
-        discovered.append(Node(f"edge-access-{name}", f"🌐 EdgeAccess · {name}",
+        labels = {("overseas-la-2", "us-ca"): "🇺🇸 洛杉矶 2 · EdgeAccess",
+                  ("overseas-flk", "de-fsn"): "🇩🇪 德国 Falkenstein · EdgeAccess"}
+        discovered.append(Node(f"edge-access-{name}", labels.get((name, region), f"🌐 EdgeAccess · {name}"),
                                Publication("anytls", public_ip, 24443, "access.re8ch.com"),
                                RuntimeTarget("edge-access-anytls", "edge-access-anytls", region, capacity)))
     return tuple(sorted(discovered, key=lambda node: node.node_id))
