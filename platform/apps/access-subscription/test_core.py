@@ -95,6 +95,17 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("AUTO = fallback, LA-PREFERRED, DE, DIRECT", shadowrocket)
         self.assertIn("LA-PREFERRED = url-test, LA 1, LA 2", shadowrocket)
 
+    def test_second_la_discovery_keeps_first_la_publication_preferred(self):
+        dynamic = (
+            Node("edge-access-overseas-la-2", "LA 2", Publication("anytls", "192.0.2.146", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
+            Node("edge-access-overseas-flk", "DE", Publication("anytls", "192.0.2.38", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
+        )
+        shadowrocket = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
+        self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 · AnyTLS, LA 2, 🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", shadowrocket)
+        self.assertIn("AUTO = fallback, LA-PREFERRED, DE, DIRECT", shadowrocket)
+        mihomo = mihomo_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
+        self.assertIn('      - "🇺🇸 Edge Direct · 洛杉矶 · AnyTLS"\n      - "LA 2"\n      - "🇺🇸 Edge Direct · 洛杉矶 · Hysteria2"', mihomo)
+
     def test_mihomo_forces_todesk_process_and_domains_direct(self):
         config = mihomo_config("credential", "token", "https://sub.access.re8ch.com").decode()
         self.assertIn("find-process-mode: strict", config)
