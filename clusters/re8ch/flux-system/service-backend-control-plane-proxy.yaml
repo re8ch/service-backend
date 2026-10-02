@@ -7,6 +7,6 @@ type: Opaque
 stringData:
   # This contains only the non-secret in-cluster proxy endpoint. Provider and
   # GitHub credentials remain in their SOPS-managed Secrets.
-  # Source delivery runs on restricted-node-6dc3f140f9. Use its existing local proxy service so a
-  # failed remote LA path cannot stop GitHub authentication and reconciliation.
-  address: http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893
+  # Source delivery runs on restricted-node-6dc3f140f9. Use its managed egress proxy, which selects
+  # overseas exits rather than relying on unreliable direct GitHub access.
+  address: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
