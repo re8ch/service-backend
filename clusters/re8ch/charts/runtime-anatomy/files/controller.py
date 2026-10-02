@@ -565,6 +565,10 @@ def reconcile_analysis(obj):
             "findings": ([{"reason": "ObjectAuditUnavailable", "buckets": missing_buckets}] if missing_buckets else []),
             "conditions": [condition("Ready", "True" if phase == "Ready" else "False", reason, message)],
         })
+    except (urllib.error.URLError, ConnectionError, TimeoutError):
+        # The API can briefly reset connections during a control-plane restart.
+        # Leave this analysis pending so the next reconciliation can retry it.
+        raise
     except Exception as error:
         fail(obj, "runtimeanalyses", "AnalysisFailed", str(error))
 
