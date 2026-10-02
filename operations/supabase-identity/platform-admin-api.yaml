@@ -1,7 +1,17 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: supabase-platform-admin-api-v1
+  auth-owner.sql: |
+    -- Apply as supabase_auth_admin before 046_identity_platform_sessions.sql.
+    -- Permit the identity-owned SECURITY DEFINER functions to inspect lifecycle
+    -- metadata and attach cascading foreign keys, never refresh-token material.
+    begin;
+    grant usage on schema auth to supabase_admin;
+    grant references(id) on auth.sessions, auth.users to supabase_admin;
+    grant select(id,user_id,not_after) on auth.sessions to supabase_admin;
+    grant select(session_id,revoked) on auth.refresh_tokens to supabase_admin;
+    commit;
+  name: supabase-platform-admin-api-v2
   namespace: supabase-identity
 data:
   migration.sql: |
@@ -138,7 +148,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: supabase-platform-admin-api-v1
+  name: supabase-platform-admin-api-v2
   namespace: supabase-identity
 spec:
   backoffLimit: 4
@@ -154,6 +164,24 @@ spec:
         operator: Equal
         value: pg-re8ch
         effect: NoSchedule
+      initContainers:
+      - name: authorize-session-metadata
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        command: [/bin/sh, -ceu]
+        args: ['psql -X -v ON_ERROR_STOP=1 "$GOTRUE_DB_DATABASE_URL" -f /sql/auth-owner.sql']
+        env:
+        - name: GOTRUE_DB_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: GOTRUE_DB_DATABASE_URL
+        volumeMounts:
+        - name: sql
+          mountPath: /sql
+          readOnly: true
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 250m, memory: 128Mi}
       containers:
       - name: migrate
         image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
@@ -191,4 +219,4 @@ spec:
       volumes:
       - name: sql
         configMap:
-          name: supabase-platform-admin-api-v1
+          name: supabase-platform-admin-api-v2
