@@ -13,15 +13,29 @@ done
 
 for peer in 'wg-pt-a1 192.0.2.173 A1' 'wg-pt-b1 192.0.2.213 B1'; do
   read -r interface destination name <<< "$peer"
-  for port in 6443 2379; do
+  for port in 6443 2379 2380 10251; do
     if [[ $port == 6443 ]]; then
       comment="MUBAO K3s API via $name"
+    elif [[ $port == 10251 ]]; then
+      comment="MUBAO aggregated metrics API via $name"
     else
       comment="MUBAO K3s etcd client $name"
     fi
     ufw route allow in on wg-pt-mubao out on "$interface" \
       from 192.0.2.114 to "$destination" port "$port" proto tcp \
       comment "$comment"
+  done
+done
+
+# Embedded etcd peers must connect in both directions. Allow only the
+# accelerated identities of A1/B1 and MUBAO, regardless of relay ingress leg.
+for ingress in wg-pt-a1 wg-pt-b1; do
+  for source in 192.0.2.173 192.0.2.213; do
+    for port in 2379 2380; do
+      ufw route allow in on "$ingress" out on wg-pt-mubao \
+        from "$source" to 192.0.2.114 port "$port" proto tcp \
+        comment 'MUBAO etcd peer A1/B1'
+    done
   done
 done
 
