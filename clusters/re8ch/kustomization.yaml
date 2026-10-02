@@ -84,6 +84,7 @@ resources:
 - components/rook-ceph/releases.yaml
 - components/rook-ceph/storage-node-labels.yaml
 - components/ops/zerotier-planet.yaml
+- components/ops/kube-state-metrics-stable.yaml
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
