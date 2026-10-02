@@ -403,6 +403,8 @@ modules:
       digest: sha256:aee9bcafe64d6b3d6115027b407cc9a984b6699a5dfc021e570123f2c8425295
     - codename: tramontane-copper
       digest: sha256:47f0341e9dcd262123ce88ff60e67b8fb4f1c37b124416dc3e7f05a1681c46d9
+    - codename: zephyr-copper
+      digest: sha256:505270f6294a27f250605439473cae672d9449c0da28142b9f219c2aec018bad
   platform/git-workspaces:
     releases:
     - codename: andromeda
