@@ -409,6 +409,8 @@ modules:
       digest: sha256:03baaf391a46aab19df834e9433e6291340fb02ae49bd6b04a702c977fd61488
     - codename: chinook-indigo
       digest: sha256:7c06d8eaf92a0503fce3d13eb9144490dffde794d06c1c96a511877ad2f45545
+    - codename: etesian-indigo
+      digest: sha256:6f8480f37830cf38d92ed242b66fd33f32feba56b82a6e818a99a1b638348e53
   platform/git-workspaces:
     releases:
     - codename: andromeda
