@@ -65,10 +65,10 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: access-subscription, app.kubernetes.io/component: portal}
-      annotations: {access.re8ch.com/code-revision: "20261003-gotrue-oauth-1"}
+      annotations: {access.re8ch.com/code-revision: "20261003-gotrue-auth-host-1"}
     spec:
       serviceAccountName: access-subscription
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -112,7 +112,7 @@ spec:
       annotations: {access.re8ch.com/code-revision: "20261003-gotrue-github-id-1"}
     spec:
       serviceAccountName: access-controller
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: controller

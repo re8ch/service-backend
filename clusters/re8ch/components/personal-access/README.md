@@ -3,9 +3,9 @@
 `access re8ch com` exposes the existing Mihomos Cluster to devices that are not
 members of ZeroTier/NetBird. RouterOS remains a public L4 entry point only:
 
-- TCP/443 is forwarded to the Cilium Gateway VIP `192.0.2.209`; TLS SNI selects
+- TCP/443 is forwarded to the Cilium Gateway VIP `10.251.0.4`; TLS SNI selects
   Auto, US California, Malaysia Kuala Lumpur, or the GoTrue subscription portal.
-- UDP/443 is forwarded to `192.0.2.75`; Hysteria2 uses one multi-endpoint
+- UDP/443 is forwarded to `10.251.0.11`; Hysteria2 uses one multi-endpoint
   service because UDP cannot be shared using TLS SNI.
 - The regional Mihomo listeners hand traffic to the node-local smart-egress
   SOCKS service at `identity-egress.egress-fabric.svc.cluster.local:17893`.
@@ -20,9 +20,10 @@ listener from client-facing values.
 
 ## Membership and control plane
 
-The subscription Store signs users in through Supabase GoTrue OAuth. Its issuer
-and token endpoints are at `https://db-rw.re8ch.com/auth/v1`, while the login
-and consent UI is at `auth.re8ch.com`. The exact registered callback is
+The subscription Store signs users in through Supabase GoTrue OAuth. Browser
+authorization starts at `https://auth.re8ch.com/auth/v1/oauth/authorize` and
+continues through the User Hub on the same host. The issuer and server-side
+token endpoint remain at `https://db-rw.re8ch.com/auth/v1`. The exact registered callback is
 `https://sub.access.re8ch.com/oauth/callback`. The Store validates its OAuth
 bearer token against GoTrue `/user` on every private request. The
 private, otherwise empty `re8ch/access-edge-members` GitHub repository is
@@ -93,7 +94,7 @@ currently covers Tencent Cloud/Qcloud, Alibaba Cloud and Huawei Cloud domains,
 so an incomplete upstream list cannot silently send those consoles through an
 overseas proxy.
 
-Access DNS is internal only at `192.0.2.78`: two MosDNS replicas provide split
+Access DNS is internal only at `10.251.0.12`: two MosDNS replicas provide split
 resolution and a recoverable AdGuard Home instance supplies conservative
 filtering plus a 24-hour query UI. TCP/UDP 53 is admitted only from the RouterOS
 LAN and approved cluster network. The AdGuard UI is protected by Dex at
@@ -114,13 +115,13 @@ not print them, and never writes them into Git. The historical Dex client
 registration script is retained only for rollback and the separate DNS admin
 login; do not run it for the subscription Store cutover.
 
-After Access DNS is healthy, RouterOS may use `192.0.2.78` as its primary DNS
+After Access DNS is healthy, RouterOS may use `10.251.0.12` as its primary DNS
 and domestic resolvers as fallback. RouterOS administration is allowed only by
-SSH to `192.0.2.131`; do not enable or use a public management address.
+SSH to `192.168.88.1`; do not enable or use a public management address.
 
 ## Qualification and publication
 
-The production names publish RouterOS `192.0.2.79` with TTL 60. Keep a
+The production names publish RouterOS `223.159.210.222` with TTL 60. Keep a
 regional node in the subscription only after it sustains at least 100 Mbps in a
 four-stream qualification test. The Kuala Lumpur listener remains an
 unpublished candidate because it did not meet that gate.
@@ -129,7 +130,7 @@ The release checks are:
 
 1. The published AnyTLS SNI presents a valid certificate and its regional node
    sustains at least 100 Mbps.
-2. UDP/443 completes a Hysteria2 transfer through `192.0.2.75`.
+2. UDP/443 completes a Hysteria2 transfer through `10.251.0.11`.
 3. `sub.access.re8ch.com` completes GoTrue OAuth login through the
    `auth.re8ch.com` User Hub and creates, imports, rotates and
    revokes a one-click Shadowrocket configuration through

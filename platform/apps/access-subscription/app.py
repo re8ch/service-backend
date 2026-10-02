@@ -32,6 +32,7 @@ BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://sub.access.re8ch.com").rstrip("
 HMAC_SECRET = Path(os.getenv("HMAC_SECRET_PATH", "/secrets/hmac-key")).read_bytes().strip()
 IDENTITY_ALIASES = json.loads(os.getenv("IDENTITY_ALIASES_JSON", "{}"))
 OAUTH_ISSUER = "https://db-rw.re8ch.com/auth/v1"
+OAUTH_AUTHORIZE_URL = "https://auth.re8ch.com/auth/v1/oauth/authorize"
 OAUTH_CLIENT_ID = "e93247af-5bc0-4f3d-829b-8a70e0a69d31"
 OAUTH_REDIRECT = BASE_URL + "/oauth/callback"
 SESSION_COOKIE = "__Host-access_oauth"
@@ -341,7 +342,7 @@ class Handler(BaseHTTPRequestHandler):
                           "redirect_uri": OAUTH_REDIRECT, "scope": "openid profile email",
                           "state": state, "code_challenge": challenge, "code_challenge_method": "S256"}
                 flow = seal({"state": state, "verifier": verifier}, "flow")
-                return self.redirect(OAUTH_ISSUER + "/oauth/authorize?" + urlencode(params),
+                return self.redirect(OAUTH_AUTHORIZE_URL + "?" + urlencode(params),
                                      f"{FLOW_COOKIE}={flow}; Max-Age=600; Path=/; Secure; HttpOnly; SameSite=Lax")
             if path == "/oauth/callback":
                 values = parse_qs(urlparse(self.path).query)
