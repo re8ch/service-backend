@@ -15,7 +15,7 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20260907-todesk-direct-1"
+SHADOWROCKET_PROFILE_REVISION = "20261003-la-preferred-de-fallback-1"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
 # still recovering. Keep clients on the two independently reachable LA
@@ -127,6 +127,18 @@ def published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]
     )
 
 
+def priority_nodes(active: tuple[Node, ...]) -> tuple[tuple[Node, ...], tuple[Node, ...]]:
+    """Prefer the two qualified LA hosts, then the qualified German host."""
+    preferred_ids = ("edge-access-overseas-la", "edge-access-overseas-la-2")
+    preferred = tuple(node for node_id in preferred_ids for node in active if node.node_id == node_id)
+    if not preferred:
+        # Keep the existing LA publication usable while dynamic discovery is unavailable.
+        preferred = tuple(node for node in active if node.node_id in
+                          {"direct-la-anytls", "direct-la-hysteria2"})
+    backup = tuple(node for node in active if node.node_id == "edge-access-overseas-flk")
+    return preferred, backup
+
+
 def public_node(node: Node) -> dict:
     # Runtime Service/listener names are control-plane details.  Status clients
     # receive only publication data plus non-sensitive qualification signals.
@@ -230,20 +242,22 @@ def mihomo_proxy(node: Node, password: str) -> list[str]:
 def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [json.dumps(node.name, ensure_ascii=False) for node in active]
-    stable_ids = ("direct-la-anytls", "direct-la-hysteria2")
-    stable = [node for node_id in stable_ids for node in active if node.node_id == node_id]
-    stable_names = [json.dumps(node.name, ensure_ascii=False) for node in stable]
+    preferred, backup = priority_nodes(active)
+    preferred_names = [json.dumps(node.name, ensure_ascii=False) for node in preferred]
+    backup_names = [json.dumps(node.name, ensure_ascii=False) for node in backup]
     out = ["mixed-port: 7890", "allow-lan: false", "mode: rule", "log-level: warning", "ipv6: false",
            "find-process-mode: strict", "unified-delay: true", "tcp-concurrent: true", "proxies:"]
     for node in active:
         out.extend(mihomo_proxy(node, password))
-    out.extend(["proxy-groups:", "  - name: PROXY", "    type: select", "    proxies:", "      - CODEX-STABLE", "      - AUTO"])
+    out.extend(["proxy-groups:", "  - name: PROXY", "    type: select", "    proxies:", "      - AUTO", "      - CODEX-STABLE"])
     out.extend(f"      - {name}" for name in names)
-    out.extend(["      - DIRECT", "  - name: CODEX-STABLE", "    type: select", "    proxies:"])
-    out.extend(f"      - {name}" for name in stable_names)
-    out.extend(["      - DIRECT", "  - name: AUTO", "    type: url-test", "    url: https://www.gstatic.com/generate_204",
+    out.extend(["      - DIRECT", "  - name: CODEX-STABLE", "    type: select", "    proxies:", "      - AUTO",
+                "  - name: AUTO", "    type: fallback", "    url: https://www.gstatic.com/generate_204",
+                "    interval: 600", "    proxies:", "      - LA-PREFERRED"])
+    out.extend(f"      - {name}" for name in backup_names)
+    out.extend(["      - DIRECT", "  - name: LA-PREFERRED", "    type: url-test", "    url: https://www.gstatic.com/generate_204",
                 "    interval: 600", "    tolerance: 80", "    proxies:"])
-    out.extend(f"      - {name}" for name in stable_names)
+    out.extend(f"      - {name}" for name in preferred_names)
     for _rule_id, label in SERVICE_RULESETS:
         if _rule_id == "ai":
             choices = ("CODEX-STABLE", "PROXY", "AUTO", "DIRECT")
@@ -299,8 +313,9 @@ def shadowrocket_config(password: str, token: str, base_url: str,
                         nodes: tuple[Node, ...] = DEFAULT_NODES) -> bytes:
     active = published_nodes(nodes)
     names = [node.name for node in active]
-    stable_ids = ("direct-la-anytls", "direct-la-hysteria2")
-    stable_names = [node.name for node_id in stable_ids for node in active if node.node_id == node_id]
+    preferred, backup = priority_nodes(active)
+    preferred_names = [node.name for node in preferred]
+    backup_names = [node.name for node in backup]
     config_url = f"{base_url}/s/{token}/shadowrocket.conf?v={SHADOWROCKET_PROFILE_REVISION}"
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
              "skip-proxy = 192.0.2.136/16, 192.0.2.183/8, 192.0.2.33/12, 127.0.0.0/8, localhost, *.local, todesk.com, *.todesk.com",
@@ -313,9 +328,10 @@ def shadowrocket_config(password: str, token: str, base_url: str,
              "udp-policy-not-supported-behaviour = REJECT", "", "[Proxy]"]
     lines.extend(shadowrocket_proxy(node, password) for node in active)
     lines.extend(["", "[Proxy Group]",
-                  f"PROXY = select, CODEX-STABLE, AUTO, {', '.join(names)}",
-                  f"CODEX-STABLE = select, {', '.join(stable_names)}",
-                  f"AUTO = url-test, {', '.join(stable_names)}, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"])
+                  f"PROXY = select, AUTO, CODEX-STABLE, {', '.join(names)}, DIRECT",
+                  "CODEX-STABLE = select, AUTO",
+                  f"AUTO = fallback, LA-PREFERRED, {', '.join(backup_names + ['DIRECT'])}, interval=600, timeout=5, url=https://www.gstatic.com/generate_204",
+                  f"LA-PREFERRED = url-test, {', '.join(preferred_names)}, interval=600, tolerance=80, timeout=5, url=https://www.gstatic.com/generate_204"])
     for _rule_id, label in SERVICE_RULESETS:
         if _rule_id == "ai":
             choices = "CODEX-STABLE, PROXY, AUTO, DIRECT"
