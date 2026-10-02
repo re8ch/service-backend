@@ -1,21 +1,36 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: supabase-platform-admin-api-v3
+  name: supabase-platform-admin-api-v4
   namespace: supabase-identity
 data:
   auth-owner.sql: |
     -- Apply as supabase_auth_admin before 046_identity_platform_sessions.sql.
-    -- Permit the identity-owned SECURITY DEFINER functions to inspect lifecycle
-    -- metadata and attach cascading foreign keys, never refresh-token material.
+    -- GoTrue owns session tables with RLS enabled. Expose a boolean for the verified
+    -- request only; SELECT grants alone do not cross this ownership boundary.
     begin;
     grant usage on schema auth to supabase_admin;
     grant references(id) on auth.sessions, auth.users to supabase_admin;
-    grant select(id,user_id,not_after) on auth.sessions to supabase_admin;
-    grant select(session_id,revoked) on auth.refresh_tokens to supabase_admin;
+    create or replace function auth.platform_session_active()
+    returns boolean language sql stable security definer
+    set search_path = pg_catalog, pg_temp as $$
+      select exists (
+        select 1 from auth.sessions s
+        where s.id = nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'session_id', '')::uuid
+          and s.user_id = nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', '')::uuid
+          and (s.not_after is null or s.not_after > now())
+          -- GoTrue v2.196 supports both legacy token rows and HMAC refresh tokens.
+          -- HMAC sessions carry the rotation counter on the session itself.
+          and ((s.refresh_token_counter is not null and s.refresh_token_hmac_key is not null)
+            or exists (select 1 from auth.refresh_tokens r where r.session_id = s.id and not r.revoked))
+      )
+    $$;
+    alter function auth.platform_session_active() owner to supabase_auth_admin;
+    revoke all on function auth.platform_session_active() from public, anon, authenticated;
+    grant execute on function auth.platform_session_active() to supabase_admin;
     commit;
   migration.sql: |
-    -- Reviewed Cloud Functions d4bc659ae4ece0fe28f4732bc428d08841fddc1e
+    -- Reviewed Cloud Functions 43eb7f2
 
     -- Persist one platform entitlement decision per verified GoTrue login session.
     -- Token refresh preserves session_id; a new login is evaluated independently.
@@ -41,9 +56,7 @@ data:
         raise exception 'authenticated login session required' using errcode = '28000';
       end if;
       -- No cached grant outlives logout, revocation, expiry, or its actual owner.
-      if not exists(select 1 from auth.sessions s where s.id = v_session
-        and s.user_id = v_user and (s.not_after is null or s.not_after > now())
-        and exists(select 1 from auth.refresh_tokens r where r.session_id = s.id and not r.revoked)) then
+      if not auth.platform_session_active() then
         raise exception 'session is no longer active' using errcode = '28000';
       end if;
       select allowed into v_allowed from core.platform_session_entitlements
@@ -74,13 +87,10 @@ data:
     create or replace function core.has_platform_session(p_user_id uuid)
     returns boolean language sql stable security definer
     set search_path=pg_catalog,pg_temp as $$
-     select p_user_id=api.current_user_id() and exists(
+     select p_user_id=api.current_user_id() and auth.platform_session_active() and exists(
       select 1 from core.platform_session_entitlements g
-      join auth.sessions s on s.id=g.session_id and s.user_id=g.user_id
       where g.user_id=p_user_id and g.allowed
-       and s.id::text=coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'session_id','')
-       and (s.not_after is null or s.not_after>now())
-       and exists(select 1 from auth.refresh_tokens r where r.session_id=s.id and not r.revoked))
+       and g.session_id::text=coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'session_id',''))
     $$;
     alter function core.has_platform_session(uuid) owner to supabase_admin;
     revoke all on function core.has_platform_session(uuid) from public,anon,authenticated;
@@ -144,11 +154,12 @@ data:
     grant execute on function api.platform_organization_members(text,integer,integer) to authenticated;
     commit;
     notify pgrst,'reload schema';
+
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: supabase-platform-admin-api-v3
+  name: supabase-platform-admin-api-v4
   namespace: supabase-identity
 spec:
   backoffLimit: 4
@@ -219,4 +230,4 @@ spec:
       volumes:
       - name: sql
         configMap:
-          name: supabase-platform-admin-api-v3
+          name: supabase-platform-admin-api-v4

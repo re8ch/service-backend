@@ -22,3 +22,13 @@ def test_session_migration_scripts_are_mounted_and_use_separate_owners():
     assert owner_env['PGUSER']['valueFrom']['secretKeyRef']['key'] == 'POSTGRES_USER_READ_WRITE'
     assert 'references(id)' in config['data']['auth-owner.sql']
     assert 'grant select *' not in config['data']['auth-owner.sql']
+
+    auth_sql = config['data']['auth-owner.sql']
+    assert 'function auth.platform_session_active()' in auth_sql
+    assert 'owner to supabase_auth_admin' in auth_sql
+    assert 'from public, anon, authenticated' in auth_sql
+    assert 'grant execute on function auth.platform_session_active() to supabase_admin' in auth_sql
+    migration = config['data']['migration.sql']
+    assert 'auth.platform_session_active()' in migration
+    assert 'from auth.sessions' not in migration
+    assert 'from auth.refresh_tokens' not in migration
