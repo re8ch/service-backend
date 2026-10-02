@@ -1,0 +1,38 @@
+server: https://192.0.2.205:6443
+token-file: /etc/rancher/k3s/server-token
+node-name: restricted-node-abb3f27a69
+node-ip: 192.0.2.114
+advertise-address: 192.0.2.114
+tls-san:
+  - 192.0.2.114
+  - 192.0.2.61
+flannel-backend: none
+disable-network-policy: true
+disable-etcd: true
+disable-scheduler: true
+disable:
+  - servicelb
+embedded-registry: false
+write-kubeconfig-mode: "0600"
+node-taint:
+  - node-role.kubernetes.io/control-plane=true:NoSchedule
+node-label:
+  - pigsty.cc/provider=onprem-wsl
+  - pigsty.cc/region=loudi
+  - pigsty.cc/node-class=control-plane
+  - pigsty.cc/workload=control-plane
+  - pigsty.cc/zt-ip=192.0.2.61
+  - re8ch.com/cilium-migrate=true
+  - re8ch.com/control-route=advfab-relay
+  - re8ch.com/external-ip-mode=none
+  - re8ch.com/public-control=none
+  - re8ch.com/public-ip=none
+kubelet-arg:
+  - max-pods=64
+  - kube-reserved=cpu=500m,memory=768Mi,ephemeral-storage=2Gi,pid=1024
+  - system-reserved=cpu=500m,memory=768Mi,ephemeral-storage=2Gi,pid=1024
+  - enforce-node-allocatable=pods
+  - eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%
+kube-apiserver-arg:
+  - event-ttl=1h
+  - authentication-config=/etc/rancher/k3s/dex-dual-issuer-authentication.yaml

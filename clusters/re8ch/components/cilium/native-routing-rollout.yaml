@@ -41,6 +41,23 @@ spec:
     direct-routing-skip-unreachable: "false"
     direct-routing-device: zto5uhdriy
 ---
+# MUBAO's node IP is on loopback; the restricted-node-6dc3f140f9 WireGuard leg carries its PodCIDR.
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: native-routing-mubao-wsl
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: restricted-node-abb3f27a69
+  defaults:
+    routing-mode: native
+    ipv4-native-routing-cidr: 192.0.2.224/16
+    auto-direct-node-routes: "false"
+    direct-routing-skip-unreachable: "false"
+    direct-routing-device: wg-pt-mubao
+---
 # Promotion is label-driven and gated by two Established route-server sessions
 # plus a complete retained-node PodCIDR RIB on every selected node.
 apiVersion: v1
