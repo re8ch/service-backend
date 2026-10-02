@@ -96,7 +96,8 @@ spec:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: admin}
     # The generated proxy performs an unauthenticated MCP initialize while it
-    # starts. Only proxy-labelled pods may reach this port (see the
+    # starts. Only proxy-labelled pods and the authenticated tenant gateway may
+    # reach this port (see the
     # vmcp-internal-backends NetworkPolicy), so trust the cluster Pod CIDR at
     # this final hop while vMCP continues to inject the workload token.
     - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
@@ -250,4 +251,8 @@ spec:
   ingress:
     - from:
         - podSelector: {matchLabels: {app: mcpserver, toolhive: "true"}}
+        # Both selectors are one peer: do not admit other tenant workloads.
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: tenant-infrastructure}
+          podSelector: {matchLabels: {app: tenant-api}}
       ports: [{protocol: TCP, port: 8088}]
