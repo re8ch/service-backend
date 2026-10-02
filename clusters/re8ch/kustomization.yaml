@@ -6,6 +6,7 @@ resources:
 - flux-system/verification-keys.yaml
 - flux-system/sops-canary.sops.yaml
 - flux-system/service-backend-github-app-auth.sops.yaml
+- flux-system/service-backend-github-ssh.sops.yaml
 - flux-system/service-backend-github-reaction-auth.sops.yaml
 - flux-system/service-backend-github-policy-reviewer-auth.sops.yaml
 - flux-system/service-backend-github-webhook.sops.yaml
