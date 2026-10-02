@@ -8,8 +8,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -389,6 +391,27 @@ func main() {
 		adminPort = "19450"
 	}
 	adminServer := &http.Server{Addr: host + ":" + adminPort, Handler: s.adminHandler(), ReadHeaderTimeout: 5 * time.Second}
-	go func() { log.Fatal(adminServer.ListenAndServe()) }()
-	log.Fatal(httpServer.ListenAndServe())
+	s.moduleRegistry()
+	defer s.modules.close()
+	shutdown, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	failures := make(chan error, 2)
+	go func() { failures <- adminServer.ListenAndServe() }()
+	go func() { failures <- httpServer.ListenAndServe() }()
+	select {
+	case <-shutdown.Done():
+	case err := <-failures:
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("tenant listener failed: %v", err)
+		}
+	}
+	// Shutdown both listeners together, allowing accepted mutations to finish.
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	adminDone := make(chan struct{})
+	go func() { defer close(adminDone); _ = adminServer.Shutdown(ctx) }()
+	if err := httpServer.Shutdown(ctx); err != nil {
+		log.Printf("tenant drain deadline: %v", err)
+	}
+	<-adminDone
 }
