@@ -1,0 +1,7 @@
+[Unit]
+Description=Guarded MUBAO K3s and SSH health check
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-k3s-watchdog

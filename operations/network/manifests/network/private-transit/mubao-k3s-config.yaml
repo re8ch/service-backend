@@ -28,7 +28,9 @@ node-label:
   - re8ch.com/public-control=none
   - re8ch.com/public-ip=none
 kubelet-arg:
-  - max-pods=64
+  # Bound pod admission on the shared 8 GiB WSL VM; image pulls stay serialized.
+  - max-pods=32
+  - serialize-image-pulls=true
   - kube-reserved=cpu=500m,memory=768Mi,ephemeral-storage=2Gi,pid=1024
   - system-reserved=cpu=500m,memory=768Mi,ephemeral-storage=2Gi,pid=1024
   - enforce-node-allocatable=pods
@@ -36,3 +38,6 @@ kubelet-arg:
 kube-apiserver-arg:
   - event-ttl=1h
   - authentication-config=/etc/rancher/k3s/dex-dual-issuer-authentication.yaml
+  # API Priority and Fairness uses the sum as its request concurrency ceiling.
+  - max-requests-inflight=200
+  - max-mutating-requests-inflight=100

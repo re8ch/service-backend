@@ -1,6 +1,8 @@
 [Unit]
 Description=K3s control-plane server on MUBAO WSL
 Documentation=https://docs.k3s.io/
+StartLimitIntervalSec=300
+StartLimitBurst=3
 Wants=network-online.target
 Requires=wg-quick@wg-pt-mubao.service
 After=network-online.target wg-quick@wg-pt-mubao.service
@@ -16,7 +18,8 @@ LimitCORE=infinity
 TasksMax=infinity
 TimeoutStartSec=120s
 Restart=always
-RestartSec=5s
+RestartSec=30s
+ExecCondition=/usr/local/sbin/re8ch-k3s-start-gate
 ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
 ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml
