@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -84,7 +86,9 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	}))
 	defer control.Close()
 	active := true
+	rpcCalls := 0
 	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rpcCalls++
 		claims, _ := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 		if active && claims.Subject == "admin-user" {
 			writeJSON(w, 200, []map[string]string{{"tenant_ref": "admin", "tenant_role": "admin"}})
@@ -97,10 +101,20 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	t.Setenv("TENANT_CONTROL_URL", control.URL)
 	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
 	t.Setenv("PLATFORM_MEMBERSHIP_URL", rpc.URL)
-	call := func(subject, method string, params any) map[string]any {
+	backend := mcp.NewServer(&mcp.Implementation{Name: "fixture-admin", Version: "1.0.0"}, nil)
+	mcp.AddTool(backend, &mcp.Tool{Name: "tenant_list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		return nil, map[string]any{"tenants": []string{"re8ch"}}, nil
+	})
+	upstream := httptest.NewServer(mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return backend }, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true}))
+	defer upstream.Close()
+	t.Setenv("SERVICE_API_TOKEN", "fixture-service-token")
+	t.Setenv("PLATFORM_TENANT_ADMIN_MCP_URL", upstream.URL)
+	call := func(subject, session, method string, params any) map[string]any {
+		claims, _ := json.Marshal(map[string]any{"iss": supabaseIssuer, "aud": "authenticated", "sub": subject, "session_id": session, "exp": time.Now().Add(time.Hour).Unix()})
+		token := "eyJhbGciOiJub25lIn0." + base64.RawURLEncoding.EncodeToString(claims) + ".signature"
 		body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
 		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(string(body)))
-		req.Header.Set("Authorization", "Bearer "+fixtureTokenFor(subject))
+		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json, text/event-stream")
 		response := httptest.NewRecorder()
@@ -123,22 +137,34 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		}
 		return false
 	}
-	if !contains(call("admin-user", "tools/list", map[string]any{})) {
+	if !contains(call("admin-user", "session-1", "tools/list", map[string]any{})) {
 		t.Fatal("admin tool absent")
 	}
-	withoutStepUp := call("admin-user", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "infra", "toolName": "restart_managed_platform_deployment"}})
-	if withoutStepUp["result"].(map[string]any)["isError"] != true {
-		t.Fatal("privileged operation did not require authenticator step-up")
+	if rpcCalls != 1 {
+		t.Fatalf("first session made %d membership calls", rpcCalls)
 	}
-	if contains(call("ordinary-user", "tools/list", map[string]any{})) {
+	privileged := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
+	if privileged["error"] != nil || privileged["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("admin call without AAL2 failed: %#v", privileged)
+	}
+	if rpcCalls != 1 {
+		t.Fatalf("same-session call repeated membership lookup: %d", rpcCalls)
+	}
+	if contains(call("ordinary-user", "session-2", "tools/list", map[string]any{})) {
 		t.Fatal("ordinary user sees admin tool")
 	}
-	guessed := call("ordinary-user", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "infra", "toolName": "restart_managed_platform_deployment"}})
+	guessed := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
 	if guessed["error"] == nil {
 		t.Fatal("guessed privileged call was accepted")
 	}
+	if rpcCalls != 2 {
+		t.Fatalf("ordinary session repeated membership lookup: %d", rpcCalls)
+	}
 	active = false
-	if contains(call("admin-user", "tools/list", map[string]any{})) {
-		t.Fatal("revoked user still sees admin tool")
+	if !contains(call("admin-user", "session-1", "tools/list", map[string]any{})) || rpcCalls != 2 {
+		t.Fatal("existing login session lost its cached admin decision")
+	}
+	if contains(call("admin-user", "session-3", "tools/list", map[string]any{})) || rpcCalls != 3 {
+		t.Fatal("new login session did not receive a fresh membership decision")
 	}
 }

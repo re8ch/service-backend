@@ -39,13 +39,13 @@ version revokes the previous version of the same name and tenant.
 
 The tenant MCP also exposes `platform_tool_catalog` and `platform_tool_call`
 only to a verified user with a current `owner` or `admin` membership in the
-hidden `admin` organization. It reads the live Supabase membership projection
-when listing tools and again before every call, so removing that membership
-revokes this surface immediately. The service bearer cannot use it. The call
+hidden `admin` organization. It reads the Supabase membership projection once
+per verified login session and caches that decision in the tenant process.
+A new login session receives a fresh decision; a process restart clears the
+cache. The service bearer cannot use it. The call
 tool uses a fixed allowlist of published Cloud/Infra/Admin and native Cloud
 Platform tool names; backend discovery cannot silently grant a new tool.
-Calls to the Infra, Admin and native Cloud Platform backends require a GoTrue
-`aal2` session. Backend credentials are read by the tenant runtime's Kubernetes
+Backend credentials are read by the tenant runtime's Kubernetes
 service account from three named Secrets via tightly scoped `get` RBAC and are
 never returned to the caller. The old Admin and Cloud/Infra MCP connections
 remain published.
