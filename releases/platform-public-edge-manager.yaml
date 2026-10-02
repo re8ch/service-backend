@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: mistral-coral
+codename: sirocco-coral
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:4869bba86f629d0d43e84c56f3e5a00c060e1f579d1d706ddd15a356e0334dde
+  digest: sha256:05ac0046ea6ab91af01e04f4c0d8cc683d689c35cbde0e3a48f5093df32bb040
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

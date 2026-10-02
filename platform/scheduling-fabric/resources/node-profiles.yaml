@@ -36,7 +36,8 @@ spec:
   reservationProfile: control-large
   background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: Main server and capacity anchor}
   failureDomains: {site: cn-hunan-r640, power: r640-mains, network: r640-dedicated-line, host: restricted-node-6dc3f140f9}
-  reliability: {class: anchor, disruptionRisk: 15, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
+  # Recover the core anchor after 30 healthy minutes, not a day-long outage.
+  reliability: {class: anchor, disruptionRisk: 15, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 1800}
   capabilities: {cpuClass: server, bandwidthMbps: 200, servicePlane: core, functionExecution: true, placementPools: [service-core-local, service-core-r640], storage: [ceph-osd, ceph-client, object-client], draDeviceClasses: [re8ch-usb], scheduling: [stable, dynamic]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---

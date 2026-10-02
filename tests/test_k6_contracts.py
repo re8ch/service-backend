@@ -40,3 +40,20 @@ def test_contract_revision_digest_detects_dataset_edit():
     changed = json.dumps({**json.loads(raw), "probes": []}).encode()
     with pytest.raises(AssertionError, match="digest"):
         k6.validate_revisions(changed, revisions)
+
+
+def test_pr_gate_is_offline_while_production_monitor_keeps_failure_signal():
+    import yaml
+    root = Path(__file__).resolve().parents[1]
+    ci = yaml.safe_load((root / ".github/workflows/ci.yml").read_text())
+    job = ci["jobs"]["k6-contracts"]
+    commands = "\n".join(step.get("run", "") for step in job["steps"])
+    assert "operations/k6/validate.py" in commands
+    assert "inspect smoke.js" in commands and "--network none" in commands
+    assert "run smoke.js" not in commands
+    assert "k6-contracts" in ci["jobs"]["validate"]["needs"]
+    monitor = yaml.safe_load((root / ".github/workflows/k6-contracts.yml").read_text())
+    live = monitor["jobs"]["contracts"]
+    assert not live.get("continue-on-error", False)
+    probes = [s for s in live["steps"] if "run --summary-export" in s.get("run", "")]
+    assert len(probes) == 1 and not probes[0].get("continue-on-error", False)

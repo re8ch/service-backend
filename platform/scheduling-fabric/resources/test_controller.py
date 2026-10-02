@@ -58,7 +58,7 @@ class ScoreTests(unittest.TestCase):
     def test_profile_projects_reviewed_pool_membership_without_host_selectors(self):
         labels = controller.profile_labels({
             "capabilities": {"placementPools": ["service-core-local", "service-core-ab"]},
-        }, "restricted-node-1eb0570f74")
+        }, "a1-wsl-zt")
         self.assertEqual(labels["scheduling.re8ch.com/pool-service-core-local"], "true")
         self.assertEqual(labels["scheduling.re8ch.com/pool-service-core-ab"], "true")
         self.assertEqual(labels["scheduling.re8ch.com/pool-service-core-r640"], "false")
@@ -229,7 +229,7 @@ class ScoreTests(unittest.TestCase):
     @patch.object(controller, "items", return_value=[])
     @patch.object(controller, "capacity_measurements", return_value={})
     def test_ceph_quorum_bridge_removes_capacity_taint(self, _metrics, _items, patch_node, request):
-        node = {"metadata": {"name": "restricted-node-6dc3f140f9", "resourceVersion": "1", "labels": {
+        node = {"metadata": {"name": "r640", "resourceVersion": "1", "labels": {
                     controller.CEPH_QUORUM_BRIDGE_LABEL: "true"}, "annotations": {}},
                 "spec": {"taints": [controller.CAPACITY_TAINT]},
                 "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
@@ -240,7 +240,7 @@ class ScoreTests(unittest.TestCase):
     @patch.object(controller, "request")
     @patch.object(controller, "capacity_measurements", side_effect=TimeoutError)
     def test_ceph_quorum_bridge_runs_when_telemetry_times_out(self, _metrics, request):
-        node = {"metadata": {"name": "restricted-node-6dc3f140f9", "resourceVersion": "1", "labels": {
+        node = {"metadata": {"name": "r640", "resourceVersion": "1", "labels": {
                     controller.CEPH_QUORUM_BRIDGE_LABEL: "true"}},
                 "spec": {"taints": [controller.CAPACITY_TAINT]}}
         request.return_value = {"metadata": {"resourceVersion": "2"}}
@@ -266,6 +266,19 @@ class ScoreTests(unittest.TestCase):
         result = controller.node_reliability(node, events, spec, datetime(2026, 9, 19, 0, 30, tzinfo=timezone.utc))
         self.assertFalse(result["eligible"])
         self.assertEqual(result["recentNotReady"], 1)
+
+    def test_anchor_recovers_after_reviewed_cooldown_and_rejects_new_failure(self):
+        import yaml
+        profiles = yaml.safe_load_all(Path(__file__).with_name("node-profiles.yaml").read_text())
+        policy = next(p["spec"] for p in profiles if p and p.get("metadata", {}).get("name") == "r640")
+        node = {"metadata": {"name": "r640"}, "status": {"conditions": [
+            {"type": "Ready", "status": "True", "lastTransitionTime": "2026-10-02T12:21:14Z"}]}}
+        event = {"involvedObject": {"name": "r640"}, "reason": "NodeNotReady", "lastTimestamp": "2026-10-02T12:21:00Z"}
+        for minute, expected in [(40, False), (52, True)]:
+            result = controller.node_reliability(node, [event], policy, datetime(2026, 10, 2, 12, minute, tzinfo=timezone.utc))
+            self.assertEqual(result["eligible"], expected)
+        event["lastTimestamp"] = "2026-10-02T12:51:00Z"
+        self.assertFalse(controller.node_reliability(node, [event], policy, datetime(2026, 10, 2, 12, 52, tzinfo=timezone.utc))["eligible"])
 
     def test_reliability_accepts_compatible_stable_node(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
