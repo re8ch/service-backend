@@ -43,6 +43,24 @@ items:
       capabilities: [windows-host, wsl-lifecycle, scheduled-task-recovery]
       commands: {read: [hostname.exe, powershell.exe, schtasks.exe, wsl.exe], write: [powershell.exe, schtasks.exe, wsl.exe], rollback: [powershell.exe, schtasks.exe]}
 
+  - metadata: {name: restricted-node-abb3f27a69}
+    spec:
+      transport: ssh
+      address: 192.0.2.223
+      credentialRef: node-ssh
+      capabilities: [k3s-control-plane]
+      cluster:
+        membership: active
+        roles: [control-plane]
+        services: [k3s-server]
+        labels: {node-role.kubernetes.io/control-plane: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: mubao-windows}
+        taints: [{key: node-role.kubernetes.io/control-plane, value: "true", effect: NoSchedule}]
+        parameters: {cpu: 6, memoryKi: 8132732, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.141-microsoft-standard-WSL2}
+        network: {region: cn-hunan, zone: loudi, controlRoute: advfab-relay, externalIPMode: none, networkLevel: 4, uplinkMbps: 100}
+        fabric: {role: leaf, class: C, failureDomain: mubao, provider: local-wsl, internalIP: 192.0.2.39, podCIDR: 192.0.2.113/24, acceleratedIP: 192.0.2.223, asn: 4200010029, publicAuthority: false, inventoryComplete: true}
+        storage: {csiDrivers: [], profiles: []}
+      commands: {read: [hostname, uptime], write: [], rollback: []}
+
   - metadata: {name: restricted-node-1eb0570f74}
     spec:
       transport: ssh
