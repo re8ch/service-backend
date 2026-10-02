@@ -716,6 +716,8 @@ modules:
       digest: sha256:ccedd81b05a9e57c18bcf0416e0829b317be5f2116bf43e0ca73c1f2f5221b94
     - codename: springtide-coral
       digest: sha256:8da5f6d67348d47514710742935d1166a0a5690287bf3bc6a706f73f7196e903
+    - codename: tideway-coral
+      digest: sha256:df59167737988285acfb00c5f68fe1c9c0f15c3a30d83b8291e761dbf36bd473
   platform/hyperswitch:
     releases:
     - codename: anchor
