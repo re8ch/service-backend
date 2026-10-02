@@ -16,5 +16,5 @@ def test_platform_modules_only_admit_gateway_from_tenant_namespace():
     }]
     matches = policy['spec']['podSelector']['matchExpressions']
     assert next(m for m in matches if m['key'] == 'app')['values'] == [
-        'ops-admin-vmcp-internal', 'ops-observe-vmcp-internal', 'ops-operate-vmcp-internal'
+        'ops-admin-vmcp-internal', 'ops-observe-vmcp-internal', 'ops-operate-vmcp-internal', 'cloud-disk-mcp'
     ]

@@ -243,6 +243,7 @@ spec:
           workloads:
             - {name: ops-admin-vmcp-internal, toolConfigRef: ops-admin-tools}
             - {name: admin-api-backend}
+            - {name: cloud-disk-mcp}
           outgoingAuth:
             source: inline
             default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: vmcp-admin-backend-auth}}

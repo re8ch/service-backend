@@ -1,0 +1,33 @@
+apiVersion: toolhive.stacklok.dev/v1beta1
+kind: MCPServer
+metadata:
+  name: cloud-disk-mcp
+  namespace: toolhive-system
+  labels: {re8ch.com/risk: privileged, re8ch.com/publication-stage: vmcp-internal}
+spec:
+  groupRef: {name: platform-admin-public}
+  image: ghcr.io/re8ch/cloud-disk-gateway@sha256:18c305d040f6591b76ae36866b77e1024d4f14ae5b9ae61d6db9f3d7014e47e3
+  replicas: 1
+  backendReplicas: 1
+  transport: streamable-http
+  mcpPort: 8088
+  proxyPort: 8080
+  serviceAccount: ops-mcp-admin
+  secrets:
+    - {name: cloud-disk-mcp-internal, key: internal-token, targetEnvName: CLOUD_DISK_INTERNAL_TOKEN}
+    - {name: ops-mcp-admin-upstream, key: x-ops-token, targetEnvName: OPS_ADMIN_TOKEN}
+  env:
+    - {name: CLOUD_DISK_BACKEND, value: http://cloud-disk-internal.cloud-disk.svc.cluster.local:8081/internal/call}
+  audit: {enabled: true}
+  podTemplateSpec:
+    metadata: {annotations: {scheduling.re8ch.com/placement-class: service-core-r640}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: r640}
+      imagePullSecrets: [{name: ghcr-re8ch}]
+      containers:
+        - name: mcp
+          command: [python, /app/mcp.py]
+          ports: [{name: mcp, containerPort: 8088}]
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}

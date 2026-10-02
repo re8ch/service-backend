@@ -67,6 +67,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert by_name["re8ch-admin-vmcp"]["workloads"] == [
         {"name": "ops-admin-vmcp-internal", "toolConfigRef": "ops-admin-tools"},
         {"name": "admin-api-backend"},
+        {"name": "cloud-disk-mcp"},
     ]
     assert by_name["re8ch-tools-vmcp"]["outgoingAuth"]["default"] == {
         "type": "externalAuthConfigRef",
