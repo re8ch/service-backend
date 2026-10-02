@@ -140,8 +140,8 @@ spec:
         vip: 192.0.2.116/32
         port: 6443
         mode: healthy-ecmp
-        eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
-        guardedNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
+        eligibleNodes: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
+        guardedNodes: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
         nodeOperations:
           - name: restricted-node-6dc3f140f9
             localAsn: 4200000128

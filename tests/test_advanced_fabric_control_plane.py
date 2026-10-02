@@ -28,10 +28,10 @@ def test_release_consumes_signed_public_advanced_fabrics_chart():
     )
 
 
-def test_control_plane_vip_uses_all_etcd_hosts_as_guarded_origins():
+def test_control_plane_vip_uses_three_wsl_etcd_hosts_as_guarded_origins():
     advanced = release_values()["advancedFabric"]
     api = advanced["controlPlaneApi"]
-    expected = {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9", "restricted-node-abb3f27a69"}
+    expected = {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69"}
 
     assert advanced["mode"] == "guarded-apply"
     assert advanced["applyEnabled"] is True
