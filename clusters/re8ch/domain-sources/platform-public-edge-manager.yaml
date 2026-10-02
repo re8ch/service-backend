@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: mistral-coral
+    delivery.re8ch.com/codename: sirocco-coral
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:4869bba86f629d0d43e84c56f3e5a00c060e1f579d1d706ddd15a356e0334dde
+    digest: sha256:05ac0046ea6ab91af01e04f4c0d8cc683d689c35cbde0e3a48f5093df32bb040
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: mistral-coral
+    delivery.re8ch.com/codename: sirocco-coral
 spec:
   interval: 1m
   retryInterval: 1m
