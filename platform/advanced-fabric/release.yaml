@@ -8,12 +8,12 @@ spec:
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:c1bbc596cbaced0f499c79324927bf0040b879499b10440a3f656d710bf9a63a
+    digest: sha256:59f3362aa46afbf2dd045dee6957027cfc22723ca00e357f00a3137e4243bb25
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.5$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.6$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -160,6 +160,11 @@ spec:
             sourceIdentityRules:
               - {source: 192.0.2.179, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.179, destination: 192.0.2.65/24}
+            # Forwarded peer TLS must retain the A1/B1 identity before the
+            # restricted-node-6dc3f140f9 source-identity SNAT catches traffic to MUBAO.
+            sourceIdentityPreserveRules:
+              - {source: 192.0.2.242/32, destination: 192.0.2.223/32, protocol: tcp, port: "2379-2380"}
+              - {source: 192.0.2.1/32, destination: 192.0.2.223/32, protocol: tcp, port: "2379-2380"}
             fallbackRoutes:
               - {destination: 192.0.2.176/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
               - {destination: 192.0.2.4/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
