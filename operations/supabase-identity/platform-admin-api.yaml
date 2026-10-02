@@ -1,6 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: supabase-platform-admin-api-v3
+  namespace: supabase-identity
+data:
   auth-owner.sql: |
     -- Apply as supabase_auth_admin before 046_identity_platform_sessions.sql.
     -- Permit the identity-owned SECURITY DEFINER functions to inspect lifecycle
@@ -11,9 +14,6 @@ metadata:
     grant select(id,user_id,not_after) on auth.sessions to supabase_admin;
     grant select(session_id,revoked) on auth.refresh_tokens to supabase_admin;
     commit;
-  name: supabase-platform-admin-api-v2
-  namespace: supabase-identity
-data:
   migration.sql: |
     -- Reviewed Cloud Functions d4bc659ae4ece0fe28f4732bc428d08841fddc1e
 
@@ -148,7 +148,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: supabase-platform-admin-api-v2
+  name: supabase-platform-admin-api-v3
   namespace: supabase-identity
 spec:
   backoffLimit: 4
@@ -219,4 +219,4 @@ spec:
       volumes:
       - name: sql
         configMap:
-          name: supabase-platform-admin-api-v2
+          name: supabase-platform-admin-api-v3
