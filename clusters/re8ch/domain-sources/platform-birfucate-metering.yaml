@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: riptide-coral
+    delivery.re8ch.com/codename: springtide-coral
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:ccedd81b05a9e57c18bcf0416e0829b317be5f2116bf43e0ca73c1f2f5221b94
+    digest: sha256:8da5f6d67348d47514710742935d1166a0a5690287bf3bc6a706f73f7196e903
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: riptide-coral
+    delivery.re8ch.com/codename: springtide-coral
 spec:
   interval: 1m
   retryInterval: 1m

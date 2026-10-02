@@ -714,6 +714,8 @@ modules:
       digest: sha256:e3c85857c7d7acf109eed9055bc59a007d311e45a0e25e442a3203a42637b14a
     - codename: riptide-coral
       digest: sha256:ccedd81b05a9e57c18bcf0416e0829b317be5f2116bf43e0ca73c1f2f5221b94
+    - codename: springtide-coral
+      digest: sha256:8da5f6d67348d47514710742935d1166a0a5690287bf3bc6a706f73f7196e903
   platform/hyperswitch:
     releases:
     - codename: anchor
