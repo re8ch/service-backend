@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/apps/access-subscription
-codename: aegis-amber
+codename: bastion-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
-  digest: sha256:3c847a8d6a7200cb7289822d86904fa98b45cb746577d280e3741a8fe3caaa1b
+  digest: sha256:c640dab9314c2b0c8199588a78ad1598234d3db9c84b9b43f60427409be6ddb7
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
