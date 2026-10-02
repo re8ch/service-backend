@@ -22,7 +22,7 @@ umask 077
 cat > "$config" <<EOF
 [Interface]
 Address = 192.0.2.135/32
-MTU = 1280
+MTU = 1200
 Table = off
 PostUp = wg set %i private-key $key
 PostUp = ip address show dev lo | grep -q '192.0.2.223/32' || ip address add 192.0.2.223/32 dev lo
@@ -33,7 +33,7 @@ PostDown = ip route del 192.0.2.179/32 dev %i || true
 
 [Peer]
 PublicKey = H6trdN+xorHMYEFsPV6G8CMLmhMZkObgnQfcXYUSNVQ=
-AllowedIPs = 192.0.2.198/32, 192.0.2.179/32, 192.0.2.242/32, 192.0.2.1/32
+AllowedIPs = 192.0.2.198/32, 192.0.2.179/32, 192.0.2.242/32, 192.0.2.1/32, 192.0.2.57/16
 Endpoint = 192.0.2.138:51893
 PersistentKeepalive = 15
 EOF

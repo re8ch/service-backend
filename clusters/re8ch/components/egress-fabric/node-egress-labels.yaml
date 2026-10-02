@@ -20,6 +20,12 @@ metadata:
 apiVersion: v1
 kind: Node
 metadata:
+  name: restricted-node-abb3f27a69
+  labels: {networking.re8ch.com/geo: cn, networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: loudi}
+---
+apiVersion: v1
+kind: Node
+metadata:
   name: amdwsl-zt
   labels: {networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, topology.kubernetes.io/region: cn-hubei, topology.kubernetes.io/zone: hubei}
 ---

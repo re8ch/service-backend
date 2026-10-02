@@ -1,0 +1,45 @@
+mirrors:
+  docker.io:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-dockerhub/$1"}
+  ghcr.io:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-ghcr/$1"}
+  gcr.io:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-gcr/$1"}
+  quay.io:
+    endpoint: ["https://quay.io"]
+  nvcr.io:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-nvcr/$1"}
+  registry.k8s.io:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-k8s/$1"}
+  mcr.microsoft.com:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-mcr/$1"}
+  docker.elastic.co:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-elastic/$1"}
+  container-registry.oracle.com:
+    endpoint: ["https://registry.re8ch.com"]
+    rewrite: {"^(.*)$": "proxy-oracle/$1"}
+  registry.re8ch.com:
+    endpoint: ["https://registry.re8ch.com"]
+configs:
+  "10.181.22.77:5000":
+    tls:
+      insecure_skip_verify: true
+  "registry.re8ch.com":
+    tls:
+      ca_file: /etc/rancher/k3s/harbor-zt-re8ch.crt
+  "harbor.re8ch.com":
+    tls:
+      ca_file: /etc/rancher/k3s/harbor-zt-re8ch.crt
+  "harbor.zt.re8ch.com":
+    tls:
+      ca_file: /etc/rancher/k3s/harbor-zt-re8ch.crt
+  "registry.zt.re8ch.com":
+    tls:
+      ca_file: /etc/rancher/k3s/harbor-zt-re8ch.crt

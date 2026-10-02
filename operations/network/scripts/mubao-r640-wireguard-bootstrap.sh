@@ -29,7 +29,7 @@ cat > "$config_file" <<EOF
 [Interface]
 Address = 192.0.2.198/32
 ListenPort = $port
-MTU = 1280
+MTU = 1200
 Table = off
 PostUp = wg set %i private-key $key_file
 PostUp = ip route replace 192.0.2.98/32 dev %i scope link
@@ -47,7 +47,7 @@ AllowedIPs = 192.0.2.98/32
 [Peer]
 # MUBAO WSL server path; AdvFab identity remains separate from ZeroTier.
 PublicKey = $wsl_public_key
-AllowedIPs = 192.0.2.135/32, 192.0.2.223/32
+AllowedIPs = 192.0.2.135/32, 192.0.2.223/32, 192.0.2.113/24
 EOF
 chmod 600 "$key_file" "$config_file"
 ufw allow in on eno2np1 to 192.0.2.169 port "$port" proto udp comment 'RE8CH MUBAO WG transit'
