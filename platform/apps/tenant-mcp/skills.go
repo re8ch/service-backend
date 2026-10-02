@@ -43,6 +43,8 @@ type skill struct {
 }
 
 type server struct {
+	modulesOnce           sync.Once
+	modules               *platformRegistry
 	db                    *sql.DB
 	ledger                *sql.DB
 	redemptions           *sql.DB

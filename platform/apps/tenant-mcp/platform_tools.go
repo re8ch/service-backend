@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -61,12 +63,12 @@ type platformToolInput struct {
 }
 
 type platformBackend struct {
-	URL       string
-	Namespace string
-	Secret    string
-	SecretKey string
-	Header    string
-	Allowed   map[string]bool
+	URL       string          `json:"url"`
+	Namespace string          `json:"namespace"`
+	Secret    string          `json:"secret"`
+	SecretKey string          `json:"secretKey"`
+	Header    string          `json:"header"`
+	Allowed   map[string]bool `json:"allowed"`
 }
 
 func names(text string) map[string]bool {
@@ -77,47 +79,20 @@ func names(text string) map[string]bool {
 	return result
 }
 
-var platformBackends = map[string]platformBackend{
-	"cloud": {
-		URL:       "http://mcp-ops-observe-vmcp-internal.toolhive-system.svc.cluster.local:8080/mcp",
-		Namespace: "toolhive-system",
-		Secret:    "ops-mcp-observe-upstream",
-		SecretKey: "x-ops-token",
-		Header:    "X-Ops-Token",
-		Allowed:   names(`get_usage_guide get_tenant_context list_k8s_resources get_registry_info get_tenant_resource_catalog get_grafana_links get_tenant_metrics_summary get_platform_service_health get_platform_service_catalog get_platform_permission_coverage get_platform_access_posture get_managed_platform_operation_status get_ceph_storage_status get_ready_node_storage_inventory get_runtime_storage_analyses get_nuclio_function_status diagnose_nuclio_function get_nuclio_capacity_status get_litellm_gateway_status get_fleet_control_status get_supabase_platform_status get_neo4j_platform_status get_identity_platform_status get_agent_runtime_status get_observability_platform_status get_artifact_platform_status get_database_routing_status get_external_publication_readiness`),
-	},
-	"infra": {
-		URL:       "http://mcp-ops-operate-vmcp-internal.toolhive-system.svc.cluster.local:8080/mcp",
-		Namespace: "toolhive-system",
-		Secret:    "ops-mcp-admin-upstream",
-		SecretKey: "x-ops-token",
-		Header:    "X-Ops-Token",
-		Allowed:   names(`get_managed_platform_operation_status restart_managed_platform_deployment scale_managed_platform_deployment get_ceph_recovery_status restart_ceph_osd_1`),
-	},
-	"admin": {
-		URL:       "http://mcp-ops-admin-vmcp-internal.toolhive-system.svc.cluster.local:8080/mcp",
-		Namespace: "toolhive-system",
-		Secret:    "ops-mcp-admin-upstream",
-		SecretKey: "x-ops-token",
-		Header:    "X-Ops-Token",
-		Allowed:   names(`list_dex_users get_dex_hash_instructions create_dex_user grant_user_namespace get_tenancy_admin_workflow generate_pg_tenant_database_plan ensure_tenant_database_secrets ensure_tenant_database_bundle ensure_tenant_access ensure_harbor_tenant set_tool_publication_stage get_tenant_secret_refs`),
-	},
-	"native": {
-		URL:       "http://re8ch-cloud-platform.ai-operations.svc.cluster.local:19443/mcp",
-		Namespace: "ai-operations",
-		Secret:    "cluster-infra-service-auth",
-		SecretKey: "token",
-		Header:    "Authorization",
-		Allowed:   names(`nodes.list nodes.get nodes.reachability node.ssh.exec kubectl.exec kube.nodes kube.namespaces kube.pods kube.deployments kube.services kube.endpoints kube.secrets kube.resource.get kube.resource.list kube.resource.watch kube.resource.apply kube.resource.patch kube.resource.delete kube.events.query kube.events.watch workspace.list workspace.status workspace.scan workspace.doctor workspace.index workspace.sync workspace.context workspace.memory-audit`),
-	},
-	"tenant_admin": {
-		URL:       "http://admin-api.tenant-infrastructure.svc.cluster.local/mcp",
-		Namespace: "tenant-infrastructure",
-		Secret:    "admin-vmcp-backend-auth",
-		SecretKey: "token",
-		Header:    "Authorization",
-		Allowed:   names(`tenant_create tenant_list tenant_grant_create tenant_visibility_update tenant_delete byoc_registration_list byoc_connection_approve byoc_connection_revoke dynamic_skill_pending dynamic_skill_publish dynamic_skill_review dynamic_skill_revoke`),
-	},
+// Defaults are also published as the GitOps module registry. Runtime configuration
+// is data: changing an endpoint or allowlist does not require a gateway rebuild.
+//
+//go:embed platform-modules.json
+var defaultPlatformModules []byte
+
+var platformBackends = mustDefaultPlatformBackends()
+
+func mustDefaultPlatformBackends() map[string]platformBackend {
+	registry, err := decodePlatformRegistry(defaultPlatformModules)
+	if err != nil {
+		panic(err)
+	}
+	return registry.Backends
 }
 
 func platformCredential(ctx context.Context, backend platformBackend) (string, error) {
@@ -148,42 +123,45 @@ func platformCredential(ctx context.Context, backend platformBackend) (string, e
 }
 
 type platformAuthTransport struct {
-	base   http.RoundTripper
-	token  string
-	header string
+	base            http.RoundTripper
+	token           string
+	header          string
+	connecting      *atomic.Bool
+	connectDeadline time.Time
 }
 
 func (t platformAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	copy := req.Clone(req.Context())
+	ctx := req.Context()
+	cancel := func() {}
+	if t.connecting != nil && t.connecting.Load() {
+		ctx, cancel = context.WithDeadline(ctx, t.connectDeadline)
+	}
+	copy := req.Clone(ctx)
 	if t.header == "Authorization" {
 		copy.Header.Set("Authorization", "Bearer "+t.token)
 	} else {
 		copy.Header.Set(t.header, t.token)
 	}
-	return t.base.RoundTrip(copy)
+	response, err := t.base.RoundTrip(copy)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	response.Body = &platformResponseBody{ReadCloser: response.Body, cancel: cancel}
+	return response, nil
 }
 
+type platformResponseBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *platformResponseBody) Close() error { defer b.cancel(); return b.ReadCloser.Close() }
+
 func withPlatformBackend(ctx context.Context, name string, fn func(*mcp.ClientSession, map[string]bool) (any, error)) (any, error) {
-	backend, ok := platformBackends[name]
-	if !ok {
-		return nil, errors.New("unknown platform backend")
-	}
-	endpoint := backend.URL
-	if override := os.Getenv("PLATFORM_" + strings.ToUpper(name) + "_MCP_URL"); override != "" {
-		endpoint = override
-	}
-	token, err := platformCredential(ctx, backend)
-	if err != nil {
-		return nil, err
-	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "re8ch-tenant-platform-gateway", Version: "1.0.0"}, nil)
-	httpClient := &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }, Transport: platformAuthTransport{base: http.DefaultTransport, token: token, header: backend.Header}}
-	session, err := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: endpoint, HTTPClient: httpClient, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer session.Close()
-	return fn(session, backend.Allowed)
+	registry := newPlatformRegistry("")
+	defer registry.close()
+	return registry.call(ctx, name, fn)
 }
 
 func platformIdentity(ctx context.Context) (identity, error) {
@@ -203,40 +181,18 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
-			var tools []map[string]any
-			var unavailable []string
-			for _, backendName := range []string{"cloud", "infra", "admin", "native", "tenant_admin"} {
-				value, err := withPlatformBackend(ctx, backendName, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
-					result, err := session.ListTools(ctx, nil)
-					if err != nil {
-						return nil, err
-					}
-					var items []map[string]any
-					for _, tool := range result.Tools {
-						if allowed[tool.Name] {
-							items = append(items, map[string]any{"backend": backendName, "name": tool.Name, "description": tool.Description, "inputSchema": tool.InputSchema})
-						}
-					}
-					return items, nil
-				})
-				if err != nil {
-					unavailable = append(unavailable, backendName)
-					continue
-				}
-				tools = append(tools, value.([]map[string]any)...)
-			}
-			return nil, map[string]any{"tools": tools, "unavailableBackends": unavailable}, nil
+			return nil, s.moduleRegistry().catalog(ctx), nil
 		})
 	mcp.AddTool(ms, &mcp.Tool{Name: "platform_tool_call", Description: "Call one allowlisted Cloud Platform, Cluster Infra, or platform admin tool. Copy backend, name, and arguments from platform_tool_catalog."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformToolInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
-			backend, ok := platformBackends[input.Backend]
+			backend, ok := s.moduleRegistry().backend(input.Backend)
 			if !ok || !backend.Allowed[input.ToolName] {
 				return nil, nil, errors.New("platform tool is not allowlisted")
 			}
-			value, err := withPlatformBackend(ctx, input.Backend, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
+			value, err := s.moduleRegistry().call(ctx, input.Backend, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
 				if !allowed[input.ToolName] {
 					return nil, errors.New("platform tool is not allowlisted")
 				}
