@@ -30,8 +30,16 @@ POLL = int(os.getenv("POLL_INTERVAL_SECONDS", "5"))
 MAX_TRACE_BYTES = int(os.getenv("MAX_TRACE_BYTES", str(16 * 1024 * 1024)))
 ANALYSIS_LABEL = "anatomy.re8ch.com/analysis"
 EVIDENCE_NAMESPACE = os.getenv("EVIDENCE_NAMESPACE", "runtime-anatomy")
+RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
 SENSITIVE = re.compile(r"(?i)(^|/)(\.aws|\.docker|\.kube|\.ssh|secrets?|tokens?|cookies?|credentials)(/|$)|password|private.?key|access.?key")
 CREDENTIAL = re.compile(r"(?i)(authorization\s*[:=]|bearer\s+[a-z0-9._-]+|password\s*[:=]|secret[_-]?key\s*[:=]|-----BEGIN [A-Z ]*PRIVATE KEY-----)")
+
+
+class TemporaryAPIError(Exception):
+    pass
+
+
+RETRYABLE_API_ERRORS = (TemporaryAPIError, urllib.error.URLError, ConnectionError, TimeoutError)
 
 
 def request(path, method="GET", body=None, content_type="application/json", allow_404=False):
@@ -46,6 +54,8 @@ def request(path, method="GET", body=None, content_type="application/json", allo
     except urllib.error.HTTPError as error:
         if allow_404 and error.code == 404:
             return None
+        if error.code in RETRYABLE_HTTP_STATUS:
+            raise TemporaryAPIError(f"Kubernetes {method} {path}: {error.code}") from error
         detail = error.read().decode(errors="replace")
         raise RuntimeError(f"Kubernetes {method} {path}: {error.code} {detail[:500]}") from error
 
@@ -194,12 +204,31 @@ def publish(analysis, events, complete, error=None):
         request(f"/api/v1/namespaces/{EVIDENCE_NAMESPACE}/configmaps", "POST", body)
 
 
+def publish_with_retry(analysis, events, complete, error=None):
+    deadline = time.monotonic() + 90
+    while True:
+        try:
+            return publish(analysis, events, complete, error)
+        except RETRYABLE_API_ERRORS:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(POLL)
+
+
+def capture_still_active(analysis):
+    try:
+        current = request(f"{GROUP}/namespaces/{analysis['metadata']['namespace']}/runtimeanalyses/{analysis['metadata']['name']}", allow_404=True)
+    except RETRYABLE_API_ERRORS:
+        return True
+    return bool(current) and current.get("spec", {}).get("stop") is not True
+
+
 def observe(analysis):
     status = analysis.get("status", {})
     pid = target_pid(status["target"]["containerID"])
     mounts = [item["mountPath"] for item in status["target"].get("volumes", [])]
     if not mounts:
-        publish(analysis, [], False, "NoPersistentVolumeMounts")
+        publish_with_retry(analysis, [], False, "NoPersistentVolumeMounts")
         return
     remaining = max(1, int(status["deadlineEpoch"]) - int(time.time()))
     with tempfile.TemporaryDirectory() as directory:
@@ -210,8 +239,7 @@ def observe(analysis):
         deadline = time.time() + remaining
         collector_error = None
         while time.time() < deadline and process.poll() is None:
-            current = request(f"{GROUP}/namespaces/{analysis['metadata']['namespace']}/runtimeanalyses/{analysis['metadata']['name']}", allow_404=True)
-            if not current or current.get("spec", {}).get("stop") is True:
+            if not capture_still_active(analysis):
                 break
             trace_bytes = sum(item.stat().st_size for item in Path(directory).glob("trace*") if item.is_file())
             if trace_bytes > MAX_TRACE_BYTES:
@@ -230,7 +258,7 @@ def observe(analysis):
         stderr = process.stderr.read().strip()[:1000] if process.stderr else ""
         if not events and stderr and "Operation not permitted" in stderr:
             collector_error = "PtraceUnavailable: " + stderr
-        publish(analysis, events, not bool(collector_error), collector_error)
+        publish_with_retry(analysis, events, not bool(collector_error), collector_error)
 
 
 def run_once():
@@ -246,7 +274,7 @@ def run_once():
         try:
             observe(analysis)
         except Exception as error:
-            publish(analysis, [], False, str(error)[:1000])
+            publish_with_retry(analysis, [], False, str(error)[:1000])
 
 
 if __name__ == "__main__":
