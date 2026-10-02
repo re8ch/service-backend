@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/name: zerotier-planet
     app.kubernetes.io/part-of: re8ch-network
 spec:
-  # Activate only during the cutover, after stopping the legacy Docker container.
-  replicas: 0
+  # The legacy Docker container must be stopped before this Pod starts.
+  replicas: 1
   revisionHistoryLimit: 2
   strategy:
     type: Recreate
