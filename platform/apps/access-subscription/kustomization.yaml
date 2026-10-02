@@ -6,4 +6,3 @@ resources:
 configMapGenerator:
   - name: access-subscription-code
     files: [app.py, controller.py, core.py, rule_sync.py, telemetry.py]
-generatorOptions: {disableNameSuffixHash: true}
