@@ -121,6 +121,16 @@ data:
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
           case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
         done
+        # Relayed identities use restricted-node-6dc3f140f9's existing tunnel, never a direct A/B peer.
+        r640_peer="$(host wg show "${iface}" allowed-ips | awk -v transit="172.31.${fabric_octet}.128/32" '{ for (i=2; i<=NF; i++) if ($i == transit) { print $1; exit } }')"
+        if [ -n "${r640_peer}" ]; then
+          allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${r640_peer}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
+          current="${allowed}"
+          for prefix in $(jq -r '.relayNodes[]?.acceleratedIp + "/32"' /config/inventory.json); do
+            case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+          done
+          [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${r640_peer}" allowed-ips "${allowed}"
+        fi
         return 0
       fi
 
@@ -301,6 +311,7 @@ data:
         echo 'no ip prefix-list POD-FABRIC-OUT'
         jq -r '.routeServers[], .nodes[] | .podCIDR' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " NR * 10 " permit " $0}'
         jq -r '.routeServers[], .nodes[] | .acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 300 + NR * 10 " permit " $0}'
+        jq -r '.relayNodes[]?.acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 600 + NR * 10 " permit " $0}'
         echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 192.0.2.215/24 ge 32 le 32'
         echo 'ip prefix-list POD-FABRIC-OUT seq 1000 deny any'
         echo 'no ip prefix-list POD-FABRIC-RR-SELF'
@@ -426,6 +437,7 @@ data:
       touch /run/podcidr-fabric-ready
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
+        reconcile_wireguard_allowed_ips
         reconcile_rr_interconnect_transit_sources || {
           rm -f /run/podcidr-fabric-ready
           exit 1
@@ -467,6 +479,7 @@ data:
     b1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .asn' /config/inventory.json)"
 
     apply_fabric() {
+      relay_prefix_lines="$(jq -r '.relayNodes[]?.acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-SELF seq " 200 + NR * 10 " permit " $0}')"
       host vtysh <<EOF
     configure terminal
     no ip prefix-list POD-FABRIC-IN
@@ -477,6 +490,7 @@ data:
     no ip prefix-list POD-FABRIC-SELF
     ip prefix-list POD-FABRIC-SELF seq 10 permit ${pod_cidr}
     ip prefix-list POD-FABRIC-SELF seq 20 permit ${accelerated_ip}/32
+    ${relay_prefix_lines}
     ip prefix-list POD-FABRIC-SELF seq 1000 deny any
     route-map POD-FABRIC-SELF-NH-A1 permit 10
     match ip address prefix-list POD-FABRIC-SELF
@@ -521,6 +535,41 @@ data:
     EOF
     }
 
+    reconcile_relay_nodes() {
+      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      jq -c '.relayNodes[]?' /config/inventory.json | while read -r relay; do
+        peer="$(printf '%s' "${relay}" | jq -r .transportIp)"
+        relay_ip="$(printf '%s' "${relay}" | jq -r .relayIp)"
+        relay_asn="$(printf '%s' "${relay}" | jq -r .asn)"
+        identity="$(printf '%s' "${relay}" | jq -r .acceleratedIp)"
+        [ "$(printf '%s' "${relay}" | jq -r .name)" = restricted-node-abb3f27a69 ] || { echo "unsupported relay node" >&2; return 1; }
+        [ "${relay_ip}" = 192.0.2.111 ] || { echo "unsupported relay source: ${relay_ip}" >&2; return 1; }
+        host vtysh <<EOF
+    configure terminal
+    ip prefix-list MUBAO-IN seq 10 permit ${identity}/32
+    ip prefix-list MUBAO-IN seq 1000 deny any
+    ip prefix-list MUBAO-OUT seq 10 permit 192.0.2.205/32
+    ip prefix-list MUBAO-OUT seq 20 permit 192.0.2.173/32
+    ip prefix-list MUBAO-OUT seq 30 permit 192.0.2.213/32
+    ip prefix-list MUBAO-OUT seq 1000 deny any
+    router bgp ${asn}
+    neighbor ${peer} remote-as ${relay_asn}
+    neighbor ${peer} update-source ${relay_ip}
+    neighbor ${peer} disable-connected-check
+    neighbor ${peer} timers 3 9
+    address-family ipv4 unicast
+    neighbor ${peer} activate
+    neighbor ${peer} prefix-list MUBAO-IN in
+    neighbor ${peer} prefix-list MUBAO-OUT out
+    neighbor ${peer} maximum-prefix 1 90 restart 5
+    exit-address-family
+    end
+    write memory
+    clear bgp ${peer} soft
+    EOF
+      done
+    }
+
     reconcile_routeros_boundary() {
       routeros_peer="$(printf '%s' "${node}" | jq -r '.routerOsPeer // empty')"
       [ -n "${routeros_peer}" ] || return 0
@@ -549,6 +598,7 @@ data:
     }
 
     apply_fabric
+    reconcile_relay_nodes
     reconcile_routeros_boundary
     reconcile_wireguard_allowed_ips
     reconcile_public_mesh_allowed_ips
@@ -588,7 +638,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: rr-interconnect-source-identity-v1
+        networking.re8ch.com/config-revision: mubao-relay-bgp-v1
     spec:
       hostPID: true
       hostNetwork: true
