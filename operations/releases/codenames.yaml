@@ -718,6 +718,8 @@ modules:
       digest: sha256:8da5f6d67348d47514710742935d1166a0a5690287bf3bc6a706f73f7196e903
     - codename: tideway-coral
       digest: sha256:df59167737988285acfb00c5f68fe1c9c0f15c3a30d83b8291e761dbf36bd473
+    - codename: cascade-onyx
+      digest: sha256:f6f08afdf20129079ae3f3123138b029b2b13cc7e5086d7de7436aa26aebe434
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -934,6 +936,8 @@ modules:
       digest: sha256:6131e5deacc2bdd6ea07e85c6bfc943241d51c3d4beccc2d3ccdb544f4fd1e73
     - codename: wetland
       digest: sha256:9622aa3ba20c01a15597b3e96566a9887da24e578992fc7c125eae2184b0076e
+    - codename: atoll-amber
+      digest: sha256:a946a2dada8f6835adbd9ee559a55f7830718d16945487767633a87c12faf35d
   platform/secretary-system:
     releases:
     - codename: aegis
