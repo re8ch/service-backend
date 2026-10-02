@@ -212,6 +212,9 @@ spec:
         prometheus.io/path: /metrics
     spec:
       serviceAccountName: path-controller
+      tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: PreferNoSchedule}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
