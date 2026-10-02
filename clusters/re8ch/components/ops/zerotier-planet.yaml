@@ -23,20 +23,9 @@ spec:
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      nodeSelector:
-        kubernetes.io/hostname: vm-20-12-ubuntu
-      tolerations:
-      - key: scheduling.re8ch.com/capacity-window
-        operator: Equal
-        value: closed
-        effect: NoSchedule
-      - key: anchor
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
-      - key: node.cilium.io/agent-not-ready
-        operator: Exists
-        effect: NoSchedule
+      # Planet identity depends on this host's IP and data. If the node is
+      # unavailable, leave the Pod down rather than place it elsewhere.
+      nodeName: vm-20-12-ubuntu
       terminationGracePeriodSeconds: 60
       containers:
       - name: planet

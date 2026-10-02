@@ -3,7 +3,9 @@
 The staged `kube-system/zerotier-planet` Deployment has zero replicas. It uses
 the current ICP Docker image digest, encrypted environment, and the four
 existing host data directories. It must stay on `vm-20-12-ubuntu`; another node
-cannot use those paths or the current planet identity.
+cannot use those paths, IP address, or the current planet identity. The Pod is
+bound with `spec.nodeName`, so it bypasses normal scheduling. If ICP is down,
+the service stays down until ICP returns; do not move it to another node.
 
 ## Preconditions
 
