@@ -54,7 +54,6 @@ jobs:
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-          TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_BUILDER: ${{ steps.buildx.outputs.name }}
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/image/re8ch-tenant-mcp
           TENANT_IMAGE_DOCKERFILE: platform/apps/tenant-mcp/Dockerfile
