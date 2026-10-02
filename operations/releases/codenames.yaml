@@ -489,6 +489,8 @@ modules:
       digest: sha256:3c847a8d6a7200cb7289822d86904fa98b45cb746577d280e3741a8fe3caaa1b
     - codename: bastion-amber
       digest: sha256:c640dab9314c2b0c8199588a78ad1598234d3db9c84b9b43f60427409be6ddb7
+    - codename: citadel-amber
+      digest: sha256:0051f9d4008df784a1544858fc9c7d4d1057d20be4ceb96b0fc3a24061c39f79
   platform/connectool:
     releases:
     - codename: anchor
