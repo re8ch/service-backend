@@ -5,6 +5,7 @@ metadata:
   namespace: flux-system
 type: Opaque
 stringData:
-  # Credential-free endpoint of restricted-node-6dc3f140f9's existing managed SOCKS egress.
-  # source-controller is placed on restricted-node-6dc3f140f9. Keep SSH host and commit verification.
-  address: socks5://192.0.2.205:1080
+  # Use the verified global exit directly. restricted-node-6dc3f140f9's local SOCKS endpoint can
+  # route Git pack transfers through an unhealthy headless-service endpoint.
+  # Keep SSH host and commit verification on the GitRepository.
+  address: socks5://192.0.2.59:1080

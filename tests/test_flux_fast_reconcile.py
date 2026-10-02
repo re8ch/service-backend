@@ -19,7 +19,7 @@ def test_root_frequency_and_local_sync():
     assert docs[0]['spec']['secretRef']['name'] == 'service-backend-github-ssh'
     assert docs[0]['spec']['proxySecretRef'] == {'name': 'service-backend-github-socks'}
     proxy = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-socks.yaml').read_text())
-    assert proxy['stringData'] == {'address': 'socks5://192.0.2.205:1080'}
+    assert proxy['stringData'] == {'address': 'socks5://192.0.2.59:1080'}
     assert docs[0]['spec']['verify']['mode'] == 'HEAD'
     secret = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-ssh.sops.yaml').read_text())
     assert secret['stringData']['identity'].startswith('ENC[')
