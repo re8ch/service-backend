@@ -5,6 +5,7 @@ resources:
   - rbac.yaml
   - config.yaml
   - workloads.yaml
+  - path-controller.yaml
   - regional-policy-workloads.yaml
   - node-egress-labels.yaml
   - network-policy.yaml
