@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerotier-planet
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: zerotier-planet
+    app.kubernetes.io/part-of: re8ch-network
+spec:
+  # Activate only during the cutover, after stopping the legacy Docker container.
+  replicas: 0
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zerotier-planet
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zerotier-planet
+        app.kubernetes.io/part-of: re8ch-network
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # Planet identity depends on this host's IP and data. If the node is
+      # unavailable, leave the Pod down rather than place it elsewhere.
+      nodeName: vm-20-12-ubuntu
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: planet
+        image: xubiaolin/zerotier-planet@sha256:55611f7107fb48c33ecffa132a694b6c3f23cdb61f2317def309447d24d34fdb
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - secretRef:
+            name: zerotier-planet-env
+        ports:
+        - {name: planet-udp, containerPort: 9994, protocol: UDP}
+        - {name: planet-tcp, containerPort: 9994, protocol: TCP}
+        - {name: file-http, containerPort: 3000, protocol: TCP}
+        - {name: admin-http, containerPort: 3443, protocol: TCP}
+        startupProbe:
+          tcpSocket: {port: admin-http}
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet: {path: /, port: admin-http}
+          periodSeconds: 10
+        resources:
+          requests: {cpu: 25m, memory: 64Mi}
+        volumeMounts:
+        - {name: dist, mountPath: /app/dist}
+        - {name: ztncui, mountPath: /app/ztncui}
+        - {name: one, mountPath: /var/lib/zerotier-one}
+        - {name: config, mountPath: /app/config}
+      volumes:
+      - name: dist
+        hostPath: {path: /home/ubuntu/docker-zerotier-planet-master/data/zerotier/dist, type: Directory}
+      - name: ztncui
+        hostPath: {path: /home/ubuntu/docker-zerotier-planet-master/data/zerotier/ztncui, type: Directory}
+      - name: one
+        hostPath: {path: /home/ubuntu/docker-zerotier-planet-master/data/zerotier/one, type: Directory}
+      - name: config
+        hostPath: {path: /home/ubuntu/docker-zerotier-planet-master/data/zerotier/config, type: Directory}
