@@ -52,7 +52,7 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
         "name": "supabase-identity-secrets", "key": "SEND_EMAIL_HOOK_SECRET",
     }
     assert env["GOTRUE_EXTERNAL_GITHUB_ENABLED"]["value"] == "true"
-    assert env["GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI"]["value"] == "https://db-rw.re8ch.com/auth/v1/callback"
+    assert env["GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI"]["value"] == "https://auth.re8ch.com/auth/v1/callback"
     assert env["GOTRUE_EXPERIMENTAL_PROVIDER_LINKING_DOMAINS"]["value"] == "github=github,google=google,apple=apple"
     assert env["GOTRUE_SECURITY_MANUAL_LINKING_ENABLED"]["value"] == "true"
     assert config["data"]["ADDITIONAL_REDIRECT_URLS"] == "https://api.re8ch.com/auth/v2/callback"

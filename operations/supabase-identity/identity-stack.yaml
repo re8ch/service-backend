@@ -707,7 +707,7 @@ spec:
               name: supabase-identity-secrets
               key: GITHUB_OAUTH_CLIENT_SECRET
         - name: GOTRUE_EXTERNAL_GITHUB_REDIRECT_URI
-          value: https://db-rw.re8ch.com/auth/v1/callback
+          value: https://auth.re8ch.com/auth/v1/callback
         # Prevent email-similarity account linking across providers. Imported
         # provider subjects and explicit manual linking remain authoritative.
         - name: GOTRUE_EXPERIMENTAL_PROVIDER_LINKING_DOMAINS
