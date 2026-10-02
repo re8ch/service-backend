@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-platform-admin-api-v1
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    -- Reviewed Cloud Functions d4bc659ae4ece0fe28f4732bc428d08841fddc1e
+
+    -- Persist one platform entitlement decision per verified GoTrue login session.
+    -- Token refresh preserves session_id; a new login is evaluated independently.
+    begin;
+    create table if not exists core.platform_session_entitlements (
+      session_id uuid primary key references auth.sessions(id) on delete cascade,
+      user_id uuid not null references auth.users(id) on delete cascade,
+      allowed boolean not null,
+      decided_at timestamptz not null default now()
+    );
+    alter table core.platform_session_entitlements owner to supabase_admin;
+    alter table core.platform_session_entitlements enable row level security;
+    revoke all on core.platform_session_entitlements from public, anon, authenticated;
+
+    create or replace function api.platform_session_entitlement()
+    returns jsonb language plpgsql volatile security definer
+    set search_path = pg_catalog, pg_temp as $$
+    declare v_user uuid := api.current_user_id(); v_session uuid; v_allowed boolean;
+    begin
+      v_session := nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb
+        ->> 'session_id', '')::uuid;
+      if v_user is null or v_session is null then
+        raise exception 'authenticated login session required' using errcode = '28000';
+      end if;
+      -- No cached grant outlives logout, revocation, expiry, or its actual owner.
+      if not exists(select 1 from auth.sessions s where s.id = v_session
+        and s.user_id = v_user and (s.not_after is null or s.not_after > now())
+        and exists(select 1 from auth.refresh_tokens r where r.session_id = s.id and not r.revoked)) then
+        raise exception 'session is no longer active' using errcode = '28000';
+      end if;
+      select allowed into v_allowed from core.platform_session_entitlements
+        where session_id = v_session and user_id = v_user;
+      if not found then
+        -- Concurrent replicas must not evaluate and overwrite different decisions.
+        perform pg_advisory_xact_lock(hashtextextended('platform-session:' || v_session::text, 0));
+        select allowed into v_allowed from core.platform_session_entitlements
+          where session_id = v_session and user_id = v_user;
+        if not found then
+          v_allowed := core.is_platform_admin(v_user);
+          insert into core.platform_session_entitlements(session_id, user_id, allowed)
+            values(v_session, v_user, v_allowed);
+        end if;
+      end if;
+      return jsonb_build_object('sessionId', v_session, 'subject', v_user, 'platformAdmin', v_allowed);
+    end $$;
+    alter function api.platform_session_entitlement() owner to supabase_admin;
+    revoke all on function api.platform_session_entitlement() from public, anon;
+    grant execute on function api.platform_session_entitlement() to authenticated;
+    commit;
+    notify pgrst, 'reload schema';
+
+    -- Platform sessions reuse the established organization functions and invariants.
+    -- A session grant is not an organization membership: only this authenticated
+    -- login can use it, and it disappears with the actual GoTrue session.
+    begin;
+    create or replace function core.has_platform_session(p_user_id uuid)
+    returns boolean language sql stable security definer
+    set search_path=pg_catalog,pg_temp as $$
+     select p_user_id=api.current_user_id() and exists(
+      select 1 from core.platform_session_entitlements g
+      join auth.sessions s on s.id=g.session_id and s.user_id=g.user_id
+      where g.user_id=p_user_id and g.allowed
+       and s.id::text=coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'session_id','')
+       and (s.not_after is null or s.not_after>now())
+       and exists(select 1 from auth.refresh_tokens r where r.session_id=s.id and not r.revoked))
+    $$;
+    alter function core.has_platform_session(uuid) owner to supabase_admin;
+    revoke all on function core.has_platform_session(uuid) from public,anon,authenticated;
+
+    -- Keep the existing UI's step-up rule for sessions without a platform grant.
+    create or replace function core.require_admin_step_up()
+    returns void language plpgsql stable security definer
+    set search_path=pg_catalog,pg_temp as $$
+    begin
+     if core.has_platform_session(api.current_user_id()) then return;end if;
+     if coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'aal','')<>'aal2' then
+      raise exception 'verify your authenticator before this admin action' using errcode='42501';
+     end if;
+    end $$;
+    alter function core.require_admin_step_up() owner to supabase_admin;
+    revoke all on function core.require_admin_step_up() from public,anon,authenticated;
+
+    create or replace function core.can_manage_org(p_user_id uuid,p_tenant_ref text,p_owner_only boolean default false)
+    returns boolean language sql stable security definer
+    set search_path=pg_catalog,pg_temp as $$
+     with recursive ancestors(tenant_ref,parent_ref,depth) as (
+      select tenant_ref,parent_ref,0 from core.organizations where tenant_ref=p_tenant_ref and status='active'
+      union all
+      select p.tenant_ref,p.parent_ref,a.depth+1 from core.organizations p join ancestors a on p.tenant_ref=a.parent_ref
+       where p.status='active' and a.depth<50)
+     select (core.has_platform_session(p_user_id) and exists(select 1 from ancestors)) or exists(
+      select 1 from ancestors a join core.organization_members m on m.tenant_ref=a.tenant_ref
+      where m.user_id=p_user_id and m.status='active' and (m.role='owner' or (not p_owner_only and m.role='admin')))
+    $$;
+    alter function core.can_manage_org(uuid,text,boolean) owner to supabase_admin;
+    revoke all on function core.can_manage_org(uuid,text,boolean) from public,anon,authenticated;
+
+    create or replace function api.platform_organization_get(p_tenant_ref text)
+    returns jsonb language plpgsql stable security definer
+    set search_path=pg_catalog,pg_temp as $$
+    declare v_org core.organizations;
+    begin
+     if not core.has_platform_session(api.current_user_id()) then raise exception 'platform session required' using errcode='42501';end if;
+     select * into v_org from core.organizations where tenant_ref=p_tenant_ref;
+     if not found then raise exception 'organization not found' using errcode='P0002';end if;
+     return jsonb_build_object('tenantRef',v_org.tenant_ref,'displayName',v_org.display_name,'parentRef',v_org.parent_ref,'kind',v_org.kind,'status',v_org.status);
+    end $$;
+    alter function api.platform_organization_get(text) owner to supabase_admin;
+    revoke all on function api.platform_organization_get(text) from public,anon;
+    grant execute on function api.platform_organization_get(text) to authenticated;
+
+    create or replace function api.platform_organization_members(p_tenant_ref text,p_limit integer default 100,p_offset integer default 0)
+    returns jsonb language plpgsql stable security definer
+    set search_path=pg_catalog,pg_temp as $$
+    declare v_result jsonb;
+    begin
+     perform api.platform_organization_get(p_tenant_ref);
+     if p_limit is null or p_limit<1 or p_limit>250 or p_offset is null or p_offset<0 then raise exception 'invalid pagination';end if;
+     select coalesce(jsonb_agg(to_jsonb(m)),'[]'::jsonb) into v_result from (
+      select user_id as "userId",role,status,created_at as "createdAt",updated_at as "updatedAt"
+      from core.organization_members where tenant_ref=p_tenant_ref order by created_at,user_id limit p_limit offset p_offset) m;
+     return jsonb_build_object('tenantRef',p_tenant_ref,'members',v_result);
+    end $$;
+    alter function api.platform_organization_members(text,integer,integer) owner to supabase_admin;
+    revoke all on function api.platform_organization_members(text,integer,integer) from public,anon;
+    grant execute on function api.platform_organization_members(text,integer,integer) to authenticated;
+    commit;
+    notify pgrst,'reload schema';
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-platform-admin-api-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: pg-re8ch
+        effect: NoSchedule
+      containers:
+      - name: migrate
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        command:
+        - /bin/sh
+        - -ceu
+        args:
+        - psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql
+        env:
+        - name: PGHOST
+          value: pg-re8ch-primary.pigsty-external.svc.cluster.local
+        - name: PGDATABASE
+          value: re8ch_identity
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: POSTGRES_USER_READ_WRITE
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: sql
+          mountPath: /sql
+          readOnly: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+      volumes:
+      - name: sql
+        configMap:
+          name: supabase-platform-admin-api-v1
