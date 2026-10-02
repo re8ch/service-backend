@@ -329,6 +329,8 @@ modules:
       digest: sha256:9b8d8704103ad5c64bd14508e41078cb7e65d62aa8425ffeb4298955289a2f27
     - codename: tundra-silver
       digest: sha256:40d6cb667a3b77078d69d4d543526ad0d403fda4d479204fc8406cefc2b3d4dd
+    - codename: wetland-silver
+      digest: sha256:1863dbc56eb8c0d7335a8a46f5da765db465d9ce342dfb2393e11edbd5607af7
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -918,6 +920,8 @@ modules:
       digest: sha256:f2b482ac8fb32021a60479f0737f27f790f0854547493be4c671a914027fee30
     - codename: mistral-coral
       digest: sha256:4869bba86f629d0d43e84c56f3e5a00c060e1f579d1d706ddd15a356e0334dde
+    - codename: sirocco-coral
+      digest: sha256:05ac0046ea6ab91af01e04f4c0d8cc683d689c35cbde0e3a48f5093df32bb040
   platform/adapter:
     releases:
     - codename: anchor
