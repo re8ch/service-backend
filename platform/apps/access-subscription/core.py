@@ -128,13 +128,13 @@ def published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]
 
 
 def priority_nodes(active: tuple[Node, ...]) -> tuple[tuple[Node, ...], tuple[Node, ...]]:
-    """Prefer the two qualified LA hosts, then the qualified German host."""
-    preferred_ids = ("edge-access-overseas-la", "edge-access-overseas-la-2")
-    preferred = tuple(node for node_id in preferred_ids for node in active if node.node_id == node_id)
-    if not preferred:
-        # Keep the existing LA publication usable while dynamic discovery is unavailable.
-        preferred = tuple(node for node in active if node.node_id in
-                          {"direct-la-anytls", "direct-la-hysteria2"})
+    """Prefer both LA hosts, retaining Hysteria2 on the first host as a spare."""
+    by_id = {node.node_id: node for node in active}
+    # direct-la is the qualified overseas-la host until its new EdgeAccess
+    # listener is enabled. Do not drop it when overseas-la-2 is discovered.
+    la_one = by_id.get("edge-access-overseas-la") or by_id.get("direct-la-anytls")
+    preferred = tuple(node for node in (
+        la_one, by_id.get("edge-access-overseas-la-2"), by_id.get("direct-la-hysteria2")) if node)
     backup = tuple(node for node in active if node.node_id == "edge-access-overseas-flk")
     return preferred, backup
 
