@@ -17,6 +17,8 @@
           "type": "object", "additionalProperties": false, "required": ["enabled", "image"],
           "properties": {
             "enabled": {"type": "boolean"},
+            "organizationsURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
+            "platformSessionURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"}
           }
         },
