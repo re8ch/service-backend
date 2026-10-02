@@ -19,8 +19,8 @@ def test_auth_gateway_uses_stable_cluster_dns_service():
         "cluster.local",
     ]
     env = {item["name"]: item.get("value") for item in pod["containers"][0]["env"]}
-    assert env["HTTP_PROXY"] == "http://192.0.2.147:17893"
-    assert env["HTTPS_PROXY"] == "http://192.0.2.147:17893"
+    assert env["HTTP_PROXY"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
+    assert env["HTTPS_PROXY"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
 
 
 def test_auth_gateway_rollout_preserves_capacity_and_internal_verification():
