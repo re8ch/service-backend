@@ -46,6 +46,9 @@ def test_rendered_controller_failover_and_source_cache_safety():
     source = deployments['source-controller']
     assert source['spec']['replicas'] == 1
     assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirst'
+    manager = source['spec']['template']['spec']['containers'][0]
+    proxy = next(e for e in manager['env'] if e['name'] == 'ALL_PROXY')
+    assert proxy['valueFrom']['secretKeyRef'] == {'name': 'service-backend-github-socks', 'key': 'address'}
     expression = source['spec']['template']['spec']['affinity']['nodeAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'
     ]['nodeSelectorTerms'][0]['matchExpressions'][0]
