@@ -124,7 +124,8 @@ def canonical_members(items: list[dict], aliases: dict[str, str] = ALIASES) -> d
         if role not in {"read", "pull", "triage", "write", "push", "maintain", "admin"}:
             continue
         subject = canonical_subject(login, None, aliases)
-        members[subject] = {"authorized": True, "admin": role in {"maintain", "admin"}, "github": login, "permission": role}
+        members[subject] = {"authorized": True, "admin": role in {"maintain", "admin"}, "github": login,
+                            "githubId": str(item.get("id", "")), "permission": role}
     return members
 
 

@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import ipaddress
 import json
 import mimetypes
 import os
+import secrets
 import socket
 import ssl
 import time
@@ -15,7 +17,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from core import (DEFAULT_NODES, Node, Publication, RuntimeTarget, authorization, canonical_subject, clash_meta_import_url, issue_token, mihomo_config, proxy_password,
                   public_node, shadowrocket_config, shadowrocket_import_url, SHADOWROCKET_PROFILE_REVISION, subscription_body,
@@ -29,9 +31,11 @@ RULES_ROOT = Path(os.getenv("RULES_ROOT", "/rules"))
 BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://sub.access.re8ch.com").rstrip("/")
 HMAC_SECRET = Path(os.getenv("HMAC_SECRET_PATH", "/secrets/hmac-key")).read_bytes().strip()
 IDENTITY_ALIASES = json.loads(os.getenv("IDENTITY_ALIASES_JSON", "{}"))
-AUTH_GATEWAY_URL = os.getenv("AUTH_GATEWAY_URL", "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth").rstrip("/")
-AUTH_LOGIN_URL = os.getenv("AUTH_LOGIN_URL", "https://api.re8ch.com/auth/start")
-AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "re8ch_sso")
+OAUTH_ISSUER = "https://db-rw.re8ch.com/auth/v1"
+OAUTH_CLIENT_ID = "e93247af-5bc0-4f3d-829b-8a70e0a69d31"
+OAUTH_REDIRECT = BASE_URL + "/oauth/callback"
+SESSION_COOKIE = "__Host-access_oauth"
+FLOW_COOKIE = "__Host-access_oauth_flow"
 
 PORTAL = """<!doctype html><html lang=zh-CN><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>
 <title>access re8ch com</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{font:16px system-ui;margin:0;background:#101114;color:#eee}main{max-width:920px;margin:auto;padding:32px 20px}button,input,a.cta{font:inherit;padding:11px 16px;border-radius:9px;border:1px solid #3b414b}button{cursor:pointer}input{min-width:280px}a{color:#9ee6a8}.cta{display:inline-block;text-decoration:none;font-weight:650}.primary{background:#83dfa0;color:#102016;border-color:#83dfa0}.secondary{background:#292d35;color:#eee}.danger{color:#ff9c9c}article{background:#1d1f24;padding:20px;margin:14px 0;border-radius:14px}.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.choice{background:#17191e;border:1px solid #353a44;border-radius:12px;padding:18px}.recommended{border-color:#72d993}.badge{display:inline-block;background:#244a31;color:#a8f0bd;padding:3px 8px;border-radius:99px;font-size:13px;font-weight:700}.muted{color:#aaa}.warning{color:#ffd28a}.row{display:flex;gap:8px;flex-wrap:wrap}.steps{padding-left:22px;line-height:1.65}code.url{display:block;margin-top:10px;padding:10px;background:#0f1114;border-radius:8px;overflow-wrap:anywhere;color:#9ee6a8}@media(max-width:700px){.choice-grid{grid-template-columns:1fr}main{padding:20px 12px}}</style>
@@ -175,26 +179,72 @@ def update_devices(mutator, attempts: int = 5) -> dict:
 
 
 def identity(headers) -> str:
-    # Only pass the gateway session cookie. Ignore client-supplied identity headers.
-    cookies = [part.strip() for part in headers.get("Cookie", "").split(";")]
-    session = next((part for part in cookies if part.startswith(AUTH_COOKIE_NAME + "=")), "")
-    if not session:
+    token = read_cookie(headers, SESSION_COOKIE)
+    if not token:
         raise PermissionError("login required")
-    request = urllib.request.Request(AUTH_GATEWAY_URL + "/me", headers={"Cookie": session})
+    access_token = unseal(token, "session", 3600).get("access_token")
+    if not isinstance(access_token, str) or not access_token:
+        raise PermissionError("login required")
+    return subject_from_token(access_token)
+
+
+def subject_from_token(access_token: str) -> str:
+    request = urllib.request.Request(OAUTH_ISSUER + "/user", headers={"Authorization": "Bearer " + access_token})
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
-            result = json.load(response)
+            user = json.load(response)
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            raise PermissionError("login required") from exc
+        raise RuntimeError("GoTrue unavailable") from exc
     except (urllib.error.URLError, TimeoutError, ValueError) as exc:
-        raise RuntimeError("auth gateway unavailable") from exc
-    profile = result.get("identity") if isinstance(result, dict) else None
-    if not isinstance(profile, dict) or not profile.get("subject"):
+        raise RuntimeError("GoTrue unavailable") from exc
+    if not isinstance(user, dict) or not user.get("id"):
         raise PermissionError("login required")
-    email = profile.get("email") if profile.get("emailVerified") is True else None
-    return canonical_subject(profile["subject"], email, IDENTITY_ALIASES)
+    github_ids = {str(item.get("id")) for item in user.get("identities", [])
+                  if isinstance(item, dict) and item.get("provider") == "github" and item.get("id")}
+    members = auth_state().get("members", {})
+    matches = [name for name, member in members.items() if member.get("githubId") in github_ids]
+    if len(matches) != 1:
+        raise PermissionError("linked GitHub membership required")
+    return matches[0]
 
 
 def login_location() -> str:
-    return AUTH_LOGIN_URL + "?" + urlencode({"service": "re8ch", "return_to": BASE_URL + "/"})
+    return BASE_URL + "/oauth/start"
+
+
+def read_cookie(headers, name: str) -> str:
+    return next((part.strip().split("=", 1)[1] for part in headers.get("Cookie", "").split(";")
+                 if part.strip().startswith(name + "=")), "")
+
+
+def seal(data: dict, purpose: str) -> str:
+    from core import b64url
+    payload = b64url(json.dumps({**data, "iat": int(time.time())}, separators=(",", ":")).encode())
+    signature = b64url(hmac.new(HMAC_SECRET, (purpose + ":" + payload).encode(), hashlib.sha256).digest())
+    return payload + "." + signature
+
+
+def unseal(value: str, purpose: str, max_age: int) -> dict:
+    import base64
+    try:
+        payload, signature = value.split(".", 1)
+        expected = seal_signature(payload, purpose)
+        if not hmac.compare_digest(signature, expected):
+            raise ValueError("invalid signature")
+        data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        age = int(time.time()) - int(data["iat"])
+        if age < 0 or age > max_age:
+            raise ValueError("expired cookie")
+        return data
+    except (ValueError, KeyError, TypeError) as exc:
+        raise PermissionError("login required") from exc
+
+
+def seal_signature(payload: str, purpose: str) -> str:
+    from core import b64url
+    return b64url(hmac.new(HMAC_SECRET, (purpose + ":" + payload).encode(), hashlib.sha256).digest())
 
 
 def same_origin(headers) -> bool:
@@ -244,6 +294,14 @@ def checked_rule(path: str) -> tuple[str, Path]:
 
 
 class Handler(BaseHTTPRequestHandler):
+    def redirect(self, location: str, cookie: str | None = None) -> None:
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.send_header("Cache-Control", "no-store")
+        if cookie:
+            self.send_header("Set-Cookie", cookie)
+        self.end_headers()
+
     def send(self, status: int, raw: bytes, content_type: str, headers: dict[str, str] | None = None, cache: str = "no-store") -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -274,6 +332,43 @@ class Handler(BaseHTTPRequestHandler):
             path = self.path.split("?", 1)[0]
             if path == "/healthz":
                 return self.json(200, {"ok": True})
+            if path == "/oauth/start":
+                verifier = secrets.token_urlsafe(32)
+                state = secrets.token_urlsafe(24)
+                from core import b64url
+                challenge = b64url(hashlib.sha256(verifier.encode()).digest())
+                params = {"response_type": "code", "client_id": OAUTH_CLIENT_ID,
+                          "redirect_uri": OAUTH_REDIRECT, "scope": "openid profile email",
+                          "state": state, "code_challenge": challenge, "code_challenge_method": "S256"}
+                flow = seal({"state": state, "verifier": verifier}, "flow")
+                return self.redirect(OAUTH_ISSUER + "/oauth/authorize?" + urlencode(params),
+                                     f"{FLOW_COOKIE}={flow}; Max-Age=600; Path=/; Secure; HttpOnly; SameSite=Lax")
+            if path == "/oauth/callback":
+                values = parse_qs(urlparse(self.path).query)
+                flow = unseal(read_cookie(self.headers, FLOW_COOKIE), "flow", 600)
+                state = values.get("state", [""])[0]
+                code = values.get("code", [""])[0]
+                if not code or not hmac.compare_digest(state, flow["state"]):
+                    raise PermissionError("OAuth state or code invalid")
+                form = urlencode({"grant_type": "authorization_code", "client_id": OAUTH_CLIENT_ID,
+                                  "redirect_uri": OAUTH_REDIRECT, "code": code,
+                                  "code_verifier": flow["verifier"]}).encode()
+                request = urllib.request.Request(OAUTH_ISSUER + "/oauth/token", data=form,
+                                                 headers={"Content-Type": "application/x-www-form-urlencoded"})
+                with urllib.request.urlopen(request, timeout=8) as response:
+                    tokens = json.load(response)
+                access_token = tokens.get("access_token")
+                if not isinstance(access_token, str) or not access_token:
+                    raise PermissionError("OAuth token missing")
+                member_for(subject_from_token(access_token))
+                cookie = seal({"access_token": access_token}, "session")
+                self.send_response(302)
+                self.send_header("Location", BASE_URL + "/")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Set-Cookie", f"{FLOW_COOKIE}=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax")
+                self.send_header("Set-Cookie", f"{SESSION_COOKIE}={cookie}; Max-Age=3600; Path=/; Secure; HttpOnly; SameSite=Lax")
+                self.end_headers()
+                return
             if path.startswith("/s/"):
                 token, payload, record, suffix = checked_subscription(self.path)
                 now = int(time.time())
@@ -303,11 +398,7 @@ class Handler(BaseHTTPRequestHandler):
                 user = identity(self.headers)
             except PermissionError:
                 if path in ("/", "/admin"):
-                    self.send_response(302)
-                    self.send_header("Location", login_location())
-                    self.send_header("Cache-Control", "no-store")
-                    self.end_headers()
-                    return
+                    return self.redirect(login_location())
                 raise
             member = member_for(user)
             devices, usage = devices_state(), usage_state()

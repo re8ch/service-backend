@@ -8,6 +8,7 @@ resources:
 - studio-public-route.yaml
 - oauth-clients-headlamp.yaml
 - oauth-clients-anycam.yaml
+- oauth-clients-access-subscription.yaml
 - oauth-clients-tenant-mcp.yaml
 - tenant-runtime-memberships.yaml
 - platform-admin-api.yaml

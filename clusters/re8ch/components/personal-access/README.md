@@ -4,7 +4,7 @@
 members of ZeroTier/NetBird. RouterOS remains a public L4 entry point only:
 
 - TCP/443 is forwarded to the Cilium Gateway VIP `192.0.2.209`; TLS SNI selects
-  Auto, US California, Malaysia Kuala Lumpur, or the Dex subscription portal.
+  Auto, US California, Malaysia Kuala Lumpur, or the GoTrue subscription portal.
 - UDP/443 is forwarded to `192.0.2.75`; Hysteria2 uses one multi-endpoint
   service because UDP cannot be shared using TLS SNI.
 - The regional Mihomo listeners hand traffic to the node-local smart-egress
@@ -20,17 +20,19 @@ listener from client-facing values.
 
 ## Membership and control plane
 
-The subscription Store signs users in through RE8CH Auth Gateway. It verifies
-the shared `re8ch_sso` session with the gateway on every private request. The
+The subscription Store signs users in through Supabase GoTrue OAuth. Its issuer
+and token endpoints are at `https://db-rw.re8ch.com/auth/v1`, while the login
+and consent UI is at `auth.re8ch.com`. The exact registered callback is
+`https://sub.access.re8ch.com/oauth/callback`. The Store validates its OAuth
+bearer token against GoTrue `/user` on every private request. The
 private, otherwise empty `re8ch/access-edge-members` GitHub repository is
 the membership authority. Accepted collaborators with `read`, `triage` or
 `write` may use Access Edge; `maintain` and `admin` may also open `/admin`.
 Pending invitations are not members. `Woomou` is canonicalized to `hliu74` so
-the existing devices and administrator role retain one account. The Store's
-`IDENTITY_ALIASES_JSON` maps Auth Gateway's verified `harry@re8ch.com` email
-to this legacy account. Unverified emails and display names cannot claim the
-legacy account. Device records and subscription tokens keep their existing
-`hliu74` subject, so no token rotation is needed for this identity migration.
+the existing devices and administrator role retain one account. The Store
+matches GoTrue's linked GitHub provider ID with the collaborator ID in the
+membership cache. Emails and display names cannot claim a member account.
+Device records and subscription tokens keep their existing `hliu74` subject.
 
 The GitHub App must be installed only on that repository and granted only
 Repository metadata read access. Install its generated values without printing
@@ -128,7 +130,8 @@ The release checks are:
 1. The published AnyTLS SNI presents a valid certificate and its regional node
    sustains at least 100 Mbps.
 2. UDP/443 completes a Hysteria2 transfer through `192.0.2.75`.
-3. `sub.access.re8ch.com` completes RE8CH Auth Gateway login and creates, imports, rotates and
+3. `sub.access.re8ch.com` completes GoTrue OAuth login through the
+   `auth.re8ch.com` User Hub and creates, imports, rotates and
    revokes a one-click Shadowrocket configuration through
    `shadowrocket://config/add?url=...`, containing both nodes and routing rules;
    creates a V2Box subscription through `v2box://install-sub?url=...&name=...`;
@@ -145,8 +148,8 @@ completes.
 ## Rollback
 
 Point RouterOS back to its previous domestic DNS, disable only the two RouterOS
-DNAT rules tagged `re8ch-personal-access`, and restore the reported pre-change
-Dex Secret and the prior `oauth2-proxy-access-subscription` Deployment and
-HTTPRoute if Store login is affected. For rule rollback, atomically repoint the
+DNAT rules tagged `re8ch-personal-access`. Restore the previous Store app and
+client registration through a reviewed GitOps change if login is affected.
+For rule rollback, atomically repoint the
 `/rules/current` symlink to one of the retained versions. The shared RouterOS
 TCP/443 listener and other Gateway hostnames must not be removed.
