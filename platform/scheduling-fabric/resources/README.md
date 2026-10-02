@@ -81,7 +81,7 @@ only for documented locality or public-delivery dependencies and must carry
 The cluster is intentionally heterogeneous. PlacementClass therefore starts
 with an allowlist, not an assumption that every Ready node is interchangeable.
 `service-core-local`, `service-core-ab` and `service-core-r640` preserve the
-reviewed A1/B1/restricted-node-6dc3f140f9 relationships through NodeProfile pool membership. Health,
+reviewed A1/B1/R640 relationships through NodeProfile pool membership. Health,
 capability and capacity-window labels dynamically shrink each pool to its
 currently usable set; they never expand it to an unrelated node.
 
@@ -137,10 +137,17 @@ configuration or restarts K3s.
 Control-plane isolation is intentionally two-step. Operators first apply
 `PreferNoSchedule`, verify that ordinary workloads have moved and that system
 components have explicit tolerations, then promote to `NoSchedule`. This
-program never uses `NoExecute`. The restricted-node-6dc3f140f9 AmongClusters Gateway remains pinned
+program never uses `NoExecute`. The R640 AmongClusters Gateway remains pinned
 and tolerated because it owns the reviewed RouterOS-delivered public listener;
 the Hub and Agent run on a stable worker.
 
 The current live scheduler trial is evidence, not authoritative desired state.
 Its configuration must be exported without generated metadata and reviewed
 before this directory is added to Flux.
+
+## Core anchor recovery
+
+R640 requires 30 continuous Ready minutes without pressure, cordon, maintenance,
+or a NotReady event in the same 30-minute window. A recovered control-plane
+anchor must not lose core service placement for 24 hours after one transient
+NotReady event. Other node profiles retain their existing history policies.

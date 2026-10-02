@@ -187,7 +187,8 @@ spec:
       phonycenter.service.re8ch.com.: {service: phonycenter-service, class: service-pilot, probePath: /}
       neo4j.service.re8ch.com.: {service: neo4j-service, class: service-pilot, probePath: /}
       litellm.service.re8ch.com.: {service: litellm-service, class: service-pilot, probePath: /health/readiness}
-      tools.service.re8ch.com.: {service: tools-service, class: service-pilot, probePath: /.well-known/oauth-protected-resource/cloud/mcp, acceptedStatuses: [200]}
+      # The primary Tenant entry must survive an optional Cloud vMCP outage.
+      tools.service.re8ch.com.: {service: tools-service, class: service-pilot, probePath: /.well-known/oauth-protected-resource/tenant-native/mcp, acceptedStatuses: [200]}
       dbgui.service.re8ch.com.: {service: dbgui-service, class: service-pilot, probePath: /}
       marketplace.service.re8ch.com.: {service: marketplace-service, class: service-pilot, probePath: /install, acceptedStatuses: [200, 302, 307, 401, 404]}
       admin.service.re8ch.com.: {service: admin-service, class: service-pilot, probePath: /mcp, acceptedStatuses: [200, 400, 401, 405, 406]}
