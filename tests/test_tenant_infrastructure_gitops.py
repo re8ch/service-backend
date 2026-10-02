@@ -33,6 +33,12 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     tenant = deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]
     admin = deployments["admin-api"]["spec"]["template"]["spec"]["containers"][0]
     assert tenant["image"] == "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64
+    for container in (tenant, admin):
+        env = {v["name"]: v.get("value") for v in container["env"]}
+        assert env["AUTH_DISCOVERY_URL"] == "https://api.re8ch.com/auth/.well-known/openid-configuration"
+        assert env["DEX_USERINFO_URL"] == "https://api.re8ch.com/auth/userinfo"
+    assert next(v["value"] for v in tenant["env"] if v["name"] == "SUPABASE_USER_URL") == "https://db-rw.re8ch.com/auth/v1/user"
+
     assert admin["image"].endswith("sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6")
     assert {port["name"] for port in tenant["ports"]} == {"http", "skill-admin"}
     assert next(env["value"] for env in admin["env"] if env["name"] == "DYNAMIC_SKILL_ADMIN_URL") == "http://tenant-api.tenant-infrastructure.svc:19450/internal/dynamic-skills"
@@ -555,7 +561,7 @@ def test_shared_session_authority_is_opt_in_and_only_on_go_tenant():
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "1" * 64
     tenant_image = "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "2" * 64
-    endpoint = "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session"
+    endpoint = "https://api.re8ch.com/auth/v2/platform/session"
     rendered = subprocess.check_output([
         "helm", "template", "birfucate", str(chart),
         "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.image=" + image,
