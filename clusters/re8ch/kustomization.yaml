@@ -58,6 +58,8 @@ resources:
 - components/egress-fabric/identity-egress.yaml
 - components/egress-fabric/live-node-egress-labels.yaml
 - components/egress-fabric/mihomo-node-labeler
+- components/egress-fabric/rbac.yaml
+- components/egress-fabric/path-controller.yaml
 - components/public-exposure/external-dns-cloudflare.yaml
 - components/public-exposure/external-dns-advfab.yaml
 - components/public-exposure/gateway-dns-authorities.yaml
@@ -190,6 +192,14 @@ patches:
     name: source-controller
     namespace: flux-system
 configMapGenerator:
+- name: route-path-controller-code
+  namespace: egress-fabric
+  files:
+  - path-controller.py=components/egress-fabric/controller/path_controller.py
+- name: re8ch-geodb-snapshot
+  namespace: egress-fabric
+  files:
+  - geodb.json.gz=components/egress-fabric/geodb/geodb.json.gz
 - name: rook-ceph-operator-values
   namespace: flux-system
   files:
