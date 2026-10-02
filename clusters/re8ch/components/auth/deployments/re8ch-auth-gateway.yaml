@@ -12,13 +12,15 @@ metadata:
     saas.re8ch.com/layer: prod
     saas.re8ch.com/function: gateway
 spec:
-  replicas: 1
+  replicas: 2
+  minReadySeconds: 5
   revisionHistoryLimit: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: re8ch-auth-gateway
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
   template:
     metadata:
       annotations:
@@ -32,6 +34,7 @@ spec:
         saas.re8ch.com/layer: prod
         saas.re8ch.com/function: gateway
     spec:
+      terminationGracePeriodSeconds: 45
       hostNetwork: false
       # The auth broker must resolve the identity-egress Service even when the
       # locality-aware advanced DNS VIP is degraded. The canonical kube-dns
@@ -55,7 +58,7 @@ spec:
         - name: harbor-auth-admin
       containers:
         - name: gateway
-          image: registry.re8ch.com/auth/re8ch-auth-gateway:platform-3facb6b@sha256:c2f103c137af8c762a86983ee8404e16bf40da2944e658eca8581f07fb0c22bf
+          image: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:60a356e08728ce2d22d908bfcc4e3c6bc52ad9556ac50223fed6a11f9b35d5b0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -81,6 +84,8 @@ spec:
               value: https://api.re8ch.com/auth
             - name: IDENTITY_AUTH_URL
               value: https://db-rw.re8ch.com/auth/v1
+            - name: IDENTITY_USER_URL
+              value: http://supabase-identity-auth.supabase-identity.svc:9999/user
             - name: IDENTITY_RO_URL
               value: http://192.0.2.44:3000
             - name: IDENTITY_RW_URL
@@ -366,3 +371,4 @@ spec:
             limits:
               cpu: 500m
               memory: 256Mi
+
