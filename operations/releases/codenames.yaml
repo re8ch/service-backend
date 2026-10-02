@@ -122,6 +122,8 @@ modules:
       digest: sha256:40c2a21d780c16645421c9be92ba07a2568e0bd67f87335cfffe7c6e98b95ac4
     - codename: bora-copper
       digest: sha256:a08ad18e2109a37d28164a00d8ed65d05d0cbc0c2ad4b0420ec0895552774dc6
+    - codename: chinook-copper
+      digest: sha256:f4bd7c0522d716c2d7d21586fb89916856f705c5b9ea8862bdc3651b0d20ae3e
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
