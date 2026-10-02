@@ -437,6 +437,7 @@ data:
     ip prefix-list MUBAO-IN seq 20 permit ${pod_prefix}
     ip prefix-list MUBAO-IN seq 1000 deny any
     ip prefix-list MUBAO-OUT seq 10 permit 192.0.2.205/32
+    ip prefix-list MUBAO-OUT seq 15 permit 192.0.2.220/32
     ip prefix-list MUBAO-OUT seq 20 permit 192.0.2.173/32
     ip prefix-list MUBAO-OUT seq 30 permit 192.0.2.213/32
     ip prefix-list MUBAO-OUT seq 40 permit 192.0.2.224/16 ge 24 le 24

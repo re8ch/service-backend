@@ -33,7 +33,7 @@ PostDown = ip route del 192.0.2.205/32 dev %i || true
 
 [Peer]
 PublicKey = H6trdN+xorHMYEFsPV6G8CMLmhMZkObgnQfcXYUSNVQ=
-AllowedIPs = 192.0.2.111/32, 192.0.2.205/32, 192.0.2.173/32, 192.0.2.213/32, 192.0.2.224/16
+AllowedIPs = 192.0.2.111/32, 192.0.2.205/32, 192.0.2.220/32, 192.0.2.173/32, 192.0.2.213/32, 192.0.2.224/16
 Endpoint = 192.0.2.79:51893
 PersistentKeepalive = 15
 EOF

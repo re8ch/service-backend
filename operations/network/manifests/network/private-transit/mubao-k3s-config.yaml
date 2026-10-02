@@ -4,12 +4,11 @@ node-name: restricted-node-abb3f27a69
 node-ip: 192.0.2.114
 advertise-address: 192.0.2.114
 tls-san:
+  - 192.0.2.220
   - 192.0.2.114
   - 192.0.2.61
 flannel-backend: none
 disable-network-policy: true
-disable-etcd: true
-disable-scheduler: true
 disable:
   - servicelb
 embedded-registry: false
@@ -41,3 +40,8 @@ kube-apiserver-arg:
   # API Priority and Fairness uses the sum as its request concurrency ceiling.
   - max-requests-inflight=200
   - max-mutating-requests-inflight=100
+etcd-arg:
+  - advertise-client-urls=https://192.0.2.114:2379
+  - initial-advertise-peer-urls=https://192.0.2.114:2380
+  - listen-client-urls=https://192.0.2.114:2379,https://127.0.0.1:2379
+  - listen-peer-urls=https://192.0.2.114:2380,https://127.0.0.1:2380
