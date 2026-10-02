@@ -4,11 +4,9 @@ metadata: {name: service-backend, namespace: flux-system}
 spec:
   interval: 30s
   timeout: 15m
-  provider: github
-  url: https://github.com/re8ch/service-backend.git
+  url: ssh://git@ssh.github.com:443/re8ch/service-backend.git
   ref: {branch: main}
-  secretRef: {name: service-backend-github-app-auth}
-  proxySecretRef: {name: service-backend-control-plane-proxy}
+  secretRef: {name: service-backend-github-ssh}
   verify:
     mode: HEAD
     secretRef: {name: service-backend-verification-keys}

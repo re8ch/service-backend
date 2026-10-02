@@ -47,7 +47,8 @@ def test_local_chart_sources_are_module_local_commit_pinned_and_signed(module):
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     assert source["spec"]["ref"] == {"commit": head}
     assert source["spec"]["verify"]["mode"] == "HEAD"
-    assert source["spec"]["secretRef"] == {"name": "service-backend-github-app-auth"}
+    assert source["spec"]["secretRef"] == {"name": "service-backend-github-ssh"}
+    assert source["spec"]["url"] == "ssh://git@ssh.github.com:443/re8ch/service-backend.git"
     assert release["spec"]["chart"]["spec"]["sourceRef"]["name"] == source["metadata"]["name"]
     assert source["metadata"]["name"] != "service-backend"
 

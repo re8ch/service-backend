@@ -15,9 +15,13 @@ def test_root_frequency_and_local_sync():
     assert docs[1]['spec']['interval'] == '1m'
     assert docs[0]['spec']['timeout'] == '15m'
     assert docs[1]['spec']['timeout'] == '3m'
-    assert docs[0]['spec']['proxySecretRef']['name'] == 'service-backend-control-plane-proxy'
-    proxy = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-control-plane-proxy.yaml').read_text())
-    assert proxy['stringData']['address'] == 'http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891'
+    assert docs[0]['spec']['url'] == 'ssh://git@ssh.github.com:443/re8ch/service-backend.git'
+    assert docs[0]['spec']['secretRef']['name'] == 'service-backend-github-ssh'
+    assert 'proxySecretRef' not in docs[0]['spec']
+    assert docs[0]['spec']['verify']['mode'] == 'HEAD'
+    secret = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-ssh.sops.yaml').read_text())
+    assert secret['stringData']['identity'].startswith('ENC[')
+    assert secret['stringData']['known_hosts'].startswith('ENC[')
     config = plistlib.loads((ROOT / 'operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist').read_bytes())
     assert config['StartInterval'] == 30
 

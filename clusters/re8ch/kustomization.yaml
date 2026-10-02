@@ -6,6 +6,7 @@ resources:
 - flux-system/verification-keys.yaml
 - flux-system/sops-canary.sops.yaml
 - flux-system/service-backend-github-app-auth.sops.yaml
+- flux-system/service-backend-github-ssh.sops.yaml
 - flux-system/service-backend-github-reaction-auth.sops.yaml
 - flux-system/service-backend-github-policy-reviewer-auth.sops.yaml
 - flux-system/service-backend-github-webhook.sops.yaml
@@ -47,6 +48,7 @@ resources:
 - components/tenancy/re8ch-managed-business-namespaces.yaml
 - components/auth/deployments/auth-postgrest.yaml
 - components/auth/deployments/re8ch-auth-gateway.yaml
+- components/auth/deployments/re8ch-auth-gateway-pdb.yaml
 - components/auth/services/re8ch-auth-gateway.yaml
 - components/auth/user-center.yaml
 - ../../operations/supabase-identity
