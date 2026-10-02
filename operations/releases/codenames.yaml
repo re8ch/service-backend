@@ -485,6 +485,8 @@ modules:
       digest: sha256:a9e84f1205e28403ca2738eb684fff9502469e2270271aad7f1402840a7cfa14
     - codename: watchtower
       digest: sha256:c9b09554b044ddbf655f45f68dc76922b54332932894260e2138ece519489ee6
+    - codename: aegis-amber
+      digest: sha256:3c847a8d6a7200cb7289822d86904fa98b45cb746577d280e3741a8fe3caaa1b
   platform/connectool:
     releases:
     - codename: anchor
