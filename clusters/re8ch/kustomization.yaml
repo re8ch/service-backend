@@ -36,6 +36,7 @@ resources:
 - secrets/ontology-microscope-db.sops.yaml
 - secrets/ontology-microscope-evaluation.sops.yaml
 - secrets/zerotier-planet-env.sops.yaml
+- secrets/cloud-disk-credentials.sops.yaml
 - components/cilium/gateway-api-canary.yaml
 - components/aesthete/native-api-route.yaml
 - components/cluster-inventory/configmap.yaml
@@ -82,6 +83,7 @@ resources:
 - components/toolhive/registry.yaml
 - components/toolhive/operator-release.yaml
 - components/rook-ceph/releases.yaml
+- components/cloud-disk
 - components/rook-ceph/storage-node-labels.yaml
 - components/ops/zerotier-planet.yaml
 - components/ops/kube-state-metrics-stable.yaml
