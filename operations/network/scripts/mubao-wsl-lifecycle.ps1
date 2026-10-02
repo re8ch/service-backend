@@ -5,6 +5,8 @@ $logDirectory = Join-Path $env:ProgramData 'RE8CH'
 $logPath = Join-Path $logDirectory 'mubao-wsl-lifecycle.log'
 $pausePath = 'M:\WSL\pause-autostart'
 $anchor = [datetimeoffset]'2026-08-14T12:00:00+08:00'
+$periodicMarker = Join-Path $logDirectory 'mubao-wsl-last-periodic.txt'
+$fallbackMarker = Join-Path $logDirectory 'mubao-wsl-last-fallback.txt'
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 
 function Invoke-WslBounded([string[]] $arguments, [int] $timeoutSeconds) {
@@ -43,22 +45,51 @@ function Write-LifecycleLog([string] $message) {
     Add-Content -LiteralPath $logPath -Value ('{0:o} {1}' -f (Get-Date), $message)
 }
 
-$minutes = ([datetimeoffset]::Now - $anchor).TotalMinutes
-$remainder = (($minutes % 2160) + 2160) % 2160
-if ($minutes -ge 0 -and ($remainder -le 15 -or $remainder -ge 2155)) {
-    Write-LifecycleLog 'action=periodic-shutdown intervalHours=36'
-    [void](Invoke-WslBounded @('--shutdown') 120)
-    Start-Sleep -Seconds 15
+function Read-Marker([string] $path) {
+    try {
+        return [datetimeoffset]::Parse((Get-Content -LiteralPath $path -Raw).Trim())
+    } catch {
+        return [datetimeoffset]::MinValue
+    }
+}
+
+function Save-Marker([string] $path, [datetimeoffset] $value) {
+    $temporary = "$path.tmp"
+    Set-Content -LiteralPath $temporary -Value $value.ToString('o') -NoNewline
+    Move-Item -LiteralPath $temporary -Destination $path -Force
 }
 
 Write-LifecycleLog 'action=start task=RE8CH-WSL-Lifecycle'
 $failures = 0
-$lastFallback = [datetimeoffset]::MinValue
 while ($true) {
     if (Test-Path -LiteralPath $pausePath) {
         Write-LifecycleLog 'action=wait reason=pause-file'
         Start-Sleep -Seconds 60
         continue
+    }
+    $now = [datetimeoffset]::Now
+    $minutes = ($now - $anchor).TotalMinutes
+    if ($minutes -ge 0) {
+        $period = [math]::Floor($minutes / 2160)
+        $boundary = $anchor.AddMinutes($period * 2160)
+        if ($now -lt $boundary.AddMinutes(15) -and (Read-Marker $periodicMarker) -lt $boundary) {
+            # Do not transiently remove an etcd voter unless both surviving
+            # control-plane APIs are ready through the declared relay path.
+            $a1 = Invoke-WslBounded @('-d', $distribution, '-u', 'root', '--exec', '/usr/bin/curl',
+                '--interface', '192.0.2.223', '--noproxy', '*', '-kfsS', '--max-time', '8',
+                'https://192.0.2.242:6443/readyz') 20
+            $b1 = Invoke-WslBounded @('-d', $distribution, '-u', 'root', '--exec', '/usr/bin/curl',
+                '--interface', '192.0.2.223', '--noproxy', '*', '-kfsS', '--max-time', '8',
+                'https://192.0.2.1:6443/readyz') 20
+            if ($a1 -and $b1) {
+                Save-Marker $periodicMarker $boundary
+                Write-LifecycleLog 'action=periodic-shutdown intervalHours=36 peerApis=healthy'
+                [void](Invoke-WslBounded @('--shutdown') 120)
+                Start-Sleep -Seconds 15
+            } else {
+                Write-LifecycleLog 'action=defer-periodic-shutdown reason=peer-api-unhealthy'
+            }
+        }
     }
     # The bounded Linux sleep holds the distro open and serves as a host-side
     # HCS/WSL responsiveness probe. Linux handles K3s-specific recovery.
@@ -71,11 +102,11 @@ while ($true) {
     if ($failures -eq 3) {
         Write-LifecycleLog 'action=terminate-distro reason=three-probe-failures'
         [void](Invoke-WslBounded @('--terminate', $distribution) 90)
-    } elseif ($failures -ge 6 -and ([datetimeoffset]::Now - $lastFallback).TotalHours -ge 6) {
+    } elseif ($failures -ge 6 -and ([datetimeoffset]::Now - (Read-Marker $fallbackMarker)).TotalHours -ge 6) {
         # Shared-VM shutdown also restarts Docker Desktop's WSL distributions.
         # Cap it at once in six hours and only after distro recovery failed.
         Write-LifecycleLog 'action=shutdown-shared-vm reason=terminate-failed-to-recover'
-        $lastFallback = [datetimeoffset]::Now
+        Save-Marker $fallbackMarker ([datetimeoffset]::Now)
         [void](Invoke-WslBounded @('--shutdown') 120)
     }
     Start-Sleep -Seconds 30
