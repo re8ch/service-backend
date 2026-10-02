@@ -549,3 +549,27 @@ def test_tenant_module_registry_projection_matches_gateway_defaults():
     assert "PLATFORM_MODULE_REGISTRY" in runtime
     assert "mountPath: /etc/re8ch/modules, readOnly: true" in runtime
     assert "subPath: modules.json" not in runtime
+
+
+def test_shared_session_authority_is_opt_in_and_only_on_go_tenant():
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "1" * 64
+    tenant_image = "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "2" * 64
+    endpoint = "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session"
+    rendered = subprocess.check_output([
+        "helm", "template", "birfucate", str(chart),
+        "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.image=" + image,
+        "--set", "tenantPlatform.tenantAPI.enabled=true", "--set", "tenantPlatform.tenantAPI.image=" + tenant_image,
+        "--set", "tenantPlatform.tenantAPI.platformSessionURL=" + endpoint,
+    ], text=True)
+    docs = list(yaml.safe_load_all(rendered))
+    for name in ("tenant-api", "admin-api"):
+        deployment = next(d for d in docs if d and d.get("kind") == "Deployment" and d["metadata"]["name"] == name)
+        env = {v["name"]: v.get("value") for v in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
+        if name == "tenant-api":
+            assert env["PLATFORM_SESSION_URL"] == endpoint
+        else:
+            assert "PLATFORM_SESSION_URL" not in env
+    defaults = tenant_chart_documents(tenant_go_enabled=True)
+    tenant = next(d for d in defaults if d.get("kind") == "Deployment" and d["metadata"]["name"] == "tenant-api")
+    assert all(v["name"] != "PLATFORM_SESSION_URL" for v in tenant["spec"]["template"]["spec"]["containers"][0]["env"])
