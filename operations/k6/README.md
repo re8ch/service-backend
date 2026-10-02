@@ -18,7 +18,7 @@ load-generator cluster.
 | Public DNS authority | existing GitHub workflow | 15 minutes | Detect delegation and public authority drift |
 | Standard public contract | GitHub-hosted runner | 30 minutes at `18,48` | Check discovery and service semantics |
 | Standard internal contract | `synthetic-monitoring` CronJob | 30 minutes at `20,50` | Check less urgent internal service behavior |
-| Change gate | control-plane PR CI | every PR | Validate the dataset and all public contracts before a change |
+| Change gate | control-plane PR CI | every PR | Validate contracts, tests and script loading without contacting production |
 
 The offsets spread expected traffic. GitHub scheduled workflows are best effort,
 so the phases are coordination hints, not a strict distributed clock. Each
@@ -32,7 +32,9 @@ consume that status through cluster telemetry.
 - **Public checks:** GitHub Actions → `k6 functional contracts` shows each run.
   The run summary lists every contract, pass/fail count, and HTTP p95. Download
   `k6-contract-summary` for the full JSON result (retained for 30 days). PR
-  checks also appear in `control-plane-ci` as `k6-contracts`.
+  checks appear in `control-plane-ci` as `k6-contracts`, but validate contracts
+  and load the script offline. Live production failures remain failures in this
+  separate scheduled/manual workflow and do not block repair PRs.
 - **Internal checks:** Headlamp's standard CronJobs, Jobs, and Pod logs in the
   `synthetic-monitoring` namespace show execution and the k6 threshold result.
   The existing `k6-contracts` CronJob is the standard cadence; the fast cadence
