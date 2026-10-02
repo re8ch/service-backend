@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory() as directory:
     secret = Path(directory) / "hmac-key"
     secret.write_bytes(b"test-secret")
     with patch.dict(os.environ, {"HMAC_SECRET_PATH": str(secret)}):
-        from app import edge_access_nodes
+        from app import PORTAL, edge_access_nodes
 
 
 class EdgeAccessDiscoveryTests(unittest.TestCase):
@@ -35,10 +35,31 @@ class EdgeAccessDiscoveryTests(unittest.TestCase):
                 for name in ("overseas-flk", "overseas-la-2")]
         active = edge_access_nodes(nodes, pods, lambda ip: ip == "192.0.2.101")
         self.assertEqual([node.node_id for node in active], ["edge-access-overseas-flk"])
+        self.assertEqual(active[0].name, "🇩🇪 德国 Falkenstein · EdgeAccess")
         raw = base64.b64decode(subscription_body("device-password", active)).decode()
         self.assertIn("anytls://device-password@192.0.2.101:24443", raw)
         self.assertIn("sni=access.re8ch.com", raw)
         self.assertNotIn("192.0.2.38", raw)
+
+    def test_live_region_labels_name_both_publications(self):
+        nodes = [
+            {"metadata": {"name": name, "labels": {"networking.re8ch.com/edge-access-anytls": "enabled",
+                         "topology.kubernetes.io/region": region},
+                          "annotations": {"networking.re8ch.com/capacity-mbps": "400"}},
+             "status": {"addresses": [{"type": "ExternalIP", "address": address}],
+                        "conditions": [{"type": "Ready", "status": "True"}]}}
+            for name, region, address in (("overseas-la-2", "us-ca", "192.0.2.38"),
+                                          ("overseas-flk", "de-fsn", "192.0.2.101"))]
+        pods = [{"metadata": {"labels": {"app.kubernetes.io/name": "edge-access-anytls"}},
+                 "spec": {"nodeName": name}, "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+                for name in ("overseas-flk", "overseas-la-2")]
+        active = edge_access_nodes(nodes, pods, lambda _ip: True)
+        self.assertEqual({node.node_id: node.name for node in active}, {
+            "edge-access-overseas-la-2": "🇺🇸 洛杉矶 2 · EdgeAccess",
+            "edge-access-overseas-flk": "🇩🇪 德国 Falkenstein · EdgeAccess",
+        })
+        self.assertIn("v2rayN 的 Mihomo 核心", PORTAL)
+        self.assertIn("${esc(j.mihomoURL)}</code>", PORTAL)
 
 
 if __name__ == "__main__":
