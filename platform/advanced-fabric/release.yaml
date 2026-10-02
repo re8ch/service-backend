@@ -140,8 +140,8 @@ spec:
         vip: 192.0.2.220/32
         port: 6443
         mode: healthy-ecmp
-        eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-        guardedNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
+        guardedNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
         nodeOperations:
           - name: restricted-node-6dc3f140f9
             localAsn: 4200000128
@@ -150,13 +150,19 @@ spec:
             frrImportPrefixLists: [SELF]
             frrNeighborPolicies:
               - {neighbor: 192.0.2.208, maximumPrefixes: 8}
+              - {neighbor: 192.0.2.246, maximumPrefixes: 3}
             frrPrefixEntries:
               - {list: POD-FABRIC-SELF, sequence: 30, prefix: 192.0.2.208/32}
+              - {list: MUBAO-IN, sequence: 15, prefix: 192.0.2.220/32}
             frrNetworks: [192.0.2.208/32]
             forwardRules:
               - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 192.0.2.208/32, destination: 192.0.2.220/32, protocol: tcp, port: 6443}
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
             wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardPeerPolicies:
+              - interface: wg-pt-mubao
+                peer: VVuXaxa2ZsblzpqhbzrjjZk/F22ilnz6QeL0DdYDlwA=
+                allowedPrefixes: [192.0.2.220/32]
             sourceIdentityRules:
               - {source: 192.0.2.205, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.205, destination: 192.0.2.106/24}
@@ -210,6 +216,11 @@ spec:
             sourceIdentityRules:
               - {source: 192.0.2.213, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.213, destination: 192.0.2.106/24}
+          - name: restricted-node-abb3f27a69
+            localAsn: 4200010029
+            vipInterface: lo
+            frrExportPrefixLists: [MUBAO-SELF-OUT]
+            wireguardInterfaces: []
           # Non-origin consumers never announce the API VIP. Their guarded=false
           # transactions only authorize cryptokey routing for the ECMP prefix.
           - name: overseas-la

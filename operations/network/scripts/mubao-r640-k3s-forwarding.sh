@@ -39,6 +39,13 @@ for ingress in wg-pt-a1 wg-pt-b1; do
   done
 done
 
+# MUBAO can originate the guarded API VIP. Keep the relay port limited to
+# cluster-facing ingress interfaces and the one API destination.
+for ingress in wg-pt-a1 wg-pt-b1 wg-public-mesh eno2np1 cilium_host; do
+  ufw route allow in on "$ingress" out on wg-pt-mubao \
+    to 192.0.2.220 port 6443 proto tcp comment 'MUBAO API VIP relay'
+done
+
 # Both metrics-server replicas run with hostNetwork on A1/B1. A1 may enter
 # restricted-node-6dc3f140f9 through either relay leg as its policy route changes. Keep the kubelet
 # probe limited to the two control-plane sources and one MUBAO destination.
