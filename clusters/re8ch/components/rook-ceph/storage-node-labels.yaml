@@ -3,6 +3,7 @@ kind: Node
 metadata:
   name: restricted-node-6dc3f140f9
   labels:
+    anatomy.re8ch.com/observer-allowed: "true"
     scheduling.re8ch.com/capability-storage-ceph-osd: "true"
     storage.re8ch.com/ceph-pilot: "true"
     networking.re8ch.com/firewall: cn
