@@ -65,7 +65,7 @@ spec:
             - >-
               exec rclone gui --no-open-browser
               --addr 0.0.0.0:5580 --api-addr 0.0.0.0:5581
-              --user "$GUI_USER" --pass "$GUI_PASS" --log-level ERROR
+              --log-level ERROR
           env:
             - name: NODE_IP
               valueFrom: {fieldRef: {fieldPath: status.hostIP}}
@@ -74,9 +74,9 @@ spec:
             - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
             - name: RCLONE_CONFIG
               value: /etc/rclone/rclone.conf
-            - name: GUI_USER
+            - name: RCLONE_RC_USER
               valueFrom: {secretKeyRef: {name: cloud-disk-credentials, key: gui-user}}
-            - name: GUI_PASS
+            - name: RCLONE_RC_PASS
               valueFrom: {secretKeyRef: {name: cloud-disk-credentials, key: gui-pass}}
             - name: XDG_CACHE_HOME
               value: /cache
