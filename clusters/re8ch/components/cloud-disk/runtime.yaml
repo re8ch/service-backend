@@ -67,6 +67,11 @@ spec:
               --addr 0.0.0.0:5580 --api-addr 0.0.0.0:5581
               --user "$GUI_USER" --pass "$GUI_PASS" --log-level ERROR
           env:
+            - name: NODE_IP
+              valueFrom: {fieldRef: {fieldPath: status.hostIP}}
+            - {name: HTTP_PROXY, value: "http://$(NODE_IP):17891"}
+            - {name: HTTPS_PROXY, value: "http://$(NODE_IP):17891"}
+            - {name: NO_PROXY, value: "127.0.0.1,localhost,.svc,.cluster.local,192.0.2.183/8,192.0.2.81/10"}
             - name: RCLONE_CONFIG
               value: /etc/rclone/rclone.conf
             - name: GUI_USER
