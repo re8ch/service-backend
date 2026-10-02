@@ -16,6 +16,7 @@ tls-san:
   - k3s-api.internal.re8ch.com
 flannel-backend: none
 disable-network-policy: true
+disable-scheduler: false
 write-kubeconfig-mode: "0644"
 disable:
   - servicelb
