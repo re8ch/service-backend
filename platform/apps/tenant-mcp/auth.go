@@ -30,6 +30,7 @@ type identity struct {
 type identityKey struct{}
 
 var errInvalidToken = errors.New("invalid bearer token")
+var errIdentityUnavailable = errors.New("identity authority unavailable")
 
 func identityFrom(ctx context.Context) (identity, error) {
 	value, ok := ctx.Value(identityKey{}).(identity)
@@ -124,6 +125,9 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	}
 	id, err := s.verifySupabase(ctx, bearer)
 	if err != nil {
+		if errors.Is(err, errIdentityUnavailable) {
+			return identity{}, err
+		}
 		return identity{}, fmt.Errorf("%w: %v", errInvalidToken, err)
 	}
 	controlURL := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/")
@@ -161,7 +165,9 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
 	// Resolve the privileged membership once per verified login session.
-	id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)
+	if os.Getenv("PLATFORM_SESSION_URL") == "" {
+		id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)
+	}
 	return id, nil
 }
 
@@ -172,6 +178,9 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 	claims, err := decodeClaims(bearer)
 	if err != nil {
 		return identity{}, err
+	}
+	if endpoint := os.Getenv("PLATFORM_SESSION_URL"); endpoint != "" {
+		return verifyPlatformSession(ctx, endpoint, bearer, claims)
 	}
 	userURL := os.Getenv("SUPABASE_USER_URL")
 	if userURL == "" {
@@ -200,4 +209,40 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 		return identity{}, errors.New("GoTrue subject mismatch")
 	}
 	return identity{Subject: user.ID, Token: bearer}, nil
+}
+
+// Auth Gateway replaces the direct GoTrue read in shared-session mode. It
+// verifies the bearer and reads a durable decision; it does not reevaluate
+// membership or require a second authentication step for each tool call.
+func verifyPlatformSession(ctx context.Context, endpoint, bearer string, claims jwtClaims) (identity, error) {
+	if claims.SessionID == "" {
+		return identity{}, errors.New("authenticated login session required")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return identity{}, err
+	}
+	req.Header.Set("Authorization", "Bearer "+bearer)
+	req.Header.Set("Accept", "application/json")
+	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := client.Do(req)
+	if err != nil {
+		return identity{}, errIdentityUnavailable
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 500 || resp.StatusCode == 429 {
+		return identity{}, errIdentityUnavailable
+	}
+	if resp.StatusCode != http.StatusOK {
+		return identity{}, errors.New("session authority rejected bearer")
+	}
+	var grant struct {
+		Subject       string `json:"subject"`
+		SessionID     string `json:"sessionId"`
+		PlatformAdmin bool   `json:"platformAdmin"`
+	}
+	if json.NewDecoder(io.LimitReader(resp.Body, 65536)).Decode(&grant) != nil || grant.Subject != claims.Subject || grant.SessionID != claims.SessionID {
+		return identity{}, errors.New("session authority returned a mismatched identity")
+	}
+	return identity{Subject: grant.Subject, Token: bearer, PlatformAdmin: grant.PlatformAdmin}, nil
 }

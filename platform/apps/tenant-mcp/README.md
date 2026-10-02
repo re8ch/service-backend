@@ -98,3 +98,15 @@ SIGTERM/SIGINT drains both HTTP listeners for up to 60 seconds. This is groundwo
 for rolling deployment, not a claim of multi-replica safety: the current chart
 still uses one replica and Recreate while the SQLite state and session cache
 are being migrated to shared storage.
+
+### Shared login entitlements
+
+After Cloud Functions migration `046_identity_platform_sessions.sql` and the
+Auth Gateway `/v2/platform/session` release, set `PLATFORM_SESSION_URL` to that
+internal endpoint. It replaces the direct GoTrue verification request and the
+process-local platform membership cache. Auth owns session liveness and one
+membership decision per login. No extra MFA challenge is required. Token refresh
+and gateway replica changes preserve the decision; logout, revocation, and expiry
+invalidate the session. If the identity authority is unavailable, MCP returns
+503 without a login challenge. Leave the option unset until the additive Auth
+migration and API deployment have been verified.

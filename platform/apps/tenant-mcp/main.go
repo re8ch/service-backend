@@ -158,6 +158,10 @@ func (s *server) handler() http.Handler {
 		}
 		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
 		if err != nil {
+			if errors.Is(err, errIdentityUnavailable) {
+				writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
+				return
+			}
 			if errors.Is(err, errInvalidToken) {
 				log.Print("tenant MCP rejected bearer during GoTrue verification")
 				challenge()
@@ -207,6 +211,10 @@ func (s *server) exchangeToken(w http.ResponseWriter, r *http.Request) {
 	}
 	token := r.Form.Get("subject_token")
 	if _, err := s.verifySupabase(r.Context(), token); err != nil {
+		if errors.Is(err, errIdentityUnavailable) {
+			writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
+			return
+		}
 		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
 		return
 	}
@@ -243,6 +251,10 @@ func (s *server) billingHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	bearer := strings.TrimPrefix(header, "Bearer ")
 	id, err := s.authenticate(r.Context(), bearer, selected)
+	if errors.Is(err, errIdentityUnavailable) {
+		writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
+		return
+	}
 	if errors.Is(err, errInvalidToken) || id.Service {
 		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
 		return
