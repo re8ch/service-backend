@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/personal-access
-codename: watchtower
+codename: aegis-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
-  digest: sha256:0111ae0750bf765a6a96cac5a16a630a5ee161b1c0a4a66c98f114205000278b
+  digest: sha256:3576fed0d54f8df903138733962da2cd5c51905f6db3f4e640e1581769256ee0
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
