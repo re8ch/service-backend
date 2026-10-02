@@ -18,7 +18,7 @@ does not mount any other tenant's PVC.
 On the Macmini, refresh the local bucket inventory, then encrypt the Secret:
 
 ```sh
-~/.local/bin/rclone-cloud-refresh
+python operations/cloud-disk/refresh-buckets.py
 python operations/cloud-disk/render-secret.py
 ```
 
