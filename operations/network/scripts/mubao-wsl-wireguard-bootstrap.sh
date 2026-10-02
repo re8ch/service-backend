@@ -26,12 +26,14 @@ MTU = 1280
 Table = off
 PostUp = wg set %i private-key $key
 PostUp = ip address show dev lo | grep -q '192.0.2.114/32' || ip address add 192.0.2.114/32 dev lo
+PostUp = ip route replace 192.0.2.111/32 dev %i src 192.0.2.246
 PostUp = ip route replace 192.0.2.205/32 dev %i src 192.0.2.114
+PostDown = ip route del 192.0.2.111/32 dev %i || true
 PostDown = ip route del 192.0.2.205/32 dev %i || true
 
 [Peer]
 PublicKey = H6trdN+xorHMYEFsPV6G8CMLmhMZkObgnQfcXYUSNVQ=
-AllowedIPs = 192.0.2.111/32, 192.0.2.205/32
+AllowedIPs = 192.0.2.111/32, 192.0.2.205/32, 192.0.2.173/32, 192.0.2.213/32
 Endpoint = 192.0.2.79:51893
 PersistentKeepalive = 15
 EOF
