@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: tundra-silver
+codename: wetland-silver
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:40d6cb667a3b77078d69d4d543526ad0d403fda4d479204fc8406cefc2b3d4dd
+  digest: sha256:1863dbc56eb8c0d7335a8a46f5da765db465d9ce342dfb2393e11edbd5607af7
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
