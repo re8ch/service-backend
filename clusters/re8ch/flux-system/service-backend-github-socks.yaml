@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-backend-github-socks
+  namespace: flux-system
+type: Opaque
+stringData:
+  # Credential-free endpoint of restricted-node-6dc3f140f9's existing managed SOCKS egress.
+  # source-controller is placed on restricted-node-6dc3f140f9. Keep SSH host and commit verification.
+  address: socks5://192.0.2.179:1080

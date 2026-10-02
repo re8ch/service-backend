@@ -12,6 +12,7 @@ resources:
 - flux-system/service-backend-github-webhook.sops.yaml
 - flux-system/service-backend-github-proxy.sops.yaml
 - flux-system/service-backend-control-plane-proxy.yaml
+- flux-system/service-backend-github-socks.yaml
 - flux-system/gotk-sync.yaml
 - flux-system/github-control-plane.yaml
 - flux-system/github-webhook-route.yaml
