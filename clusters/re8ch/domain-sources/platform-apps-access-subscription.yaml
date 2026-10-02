@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: sentinel
+    delivery.re8ch.com/codename: shield
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
   ref:
-    digest: sha256:71e842d7532d5f5085ae1a41e0799d3d050a119bd84f78a43ea9509143ac4780
+    digest: sha256:b900b18c95ca1ab3386238205062dc7e74b6360051c0ed8a78eecad96b68ce9e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: sentinel
+    delivery.re8ch.com/codename: shield
 spec:
   interval: 1m
   retryInterval: 1m
