@@ -968,6 +968,8 @@ modules:
       digest: sha256:a946a2dada8f6835adbd9ee559a55f7830718d16945487767633a87c12faf35d
     - codename: canopy-amber
       digest: sha256:1e882851513aab9daf058159cfcf17d92bd4962568667d6016437eac41f5c662
+    - codename: delta-amber
+      digest: sha256:921bd5b323b84297b204b13917e71bfad449c926ccf5fecebb18d8aade586f85
   platform/secretary-system:
     releases:
     - codename: aegis
