@@ -12,6 +12,16 @@ spec:
       # Follow the node's declared clusterDNS instead of pinning a historical
       # Service IP. This keeps restricted-node-6dc3f140f9, A1 and B1 on the same DNS path.
       dnsPolicy: ClusterFirst
+      containers:
+        - name: manager
+          env:
+            # Flux's SSH transport reads ALL_PROXY; HTTP requests keep their
+            # existing routing and the SSH host/commit checks remain enabled.
+            - name: ALL_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: service-backend-github-socks
+                  key: address
       nodeSelector:
         kubernetes.io/os: linux
         networking.re8ch.com/egress-policy: auto
