@@ -1,50 +1,64 @@
 # Third-party MCP client compatibility
 
-Use the public HTTPS Streamable HTTP endpoints below. Each is a distinct OAuth
-protected resource; do not reuse an access token across resources.
+The current public HTTPS Streamable HTTP resources are:
 
-| Tool plane | MCP URL |
-| --- | --- |
-| Cloud Platform | `https://tools.service.re8ch.com/cloud/mcp` |
-| Cluster Infra | `https://tools.service.re8ch.com/infra/mcp` |
-| Agent Orchestra | `https://tools.service.re8ch.com/orchestra/mcp` |
-| Tenant | `https://tools.service.re8ch.com/tenant/mcp` |
+| Resource | MCP URL | OAuth issuer | Registration |
+| --- | --- | --- | --- |
+| Cloud platform tools | `https://tools.service.re8ch.com/cloud/mcp` | `https://auth.re8ch.com` | No dynamic registration advertised |
+| Tenant tools | `https://tools.service.re8ch.com/tenant/mcp` | `https://db-rw.re8ch.com/auth/v1` | Dynamic registration advertised |
 
-All clients should discover the resource's OAuth metadata from the MCP
-challenge, use authorization code with PKCE S256, and request a token for the
-exact MCP resource URL. The tenant resource has a separate authorization server
-from the platform resources. Never put a shared bearer token in a public
-connector definition.
+The Cloud publication aggregates the platform observation tools and the
+Cloud/Infra/Orchestra skill packages. There are no independent live `/infra/mcp`
+or `/orchestra/mcp` resources. Tenant administration at
+`https://admin.re8ch.com:8443/mcp` is a separate privileged publication; do not
+substitute it for tenant self-service.
 
-## Client setup
+Every client should discover OAuth from the MCP challenge, use authorization
+code with PKCE S256, and bind the token to the exact MCP resource. The two
+resources have different issuers and must not share access tokens. Never put a
+shared bearer token in a public connector definition.
 
-| Client | Setup | Authentication consideration |
-| --- | --- | --- |
-| Cursor | Add each URL as a remote Streamable HTTP MCP server in MCP settings. | Use its OAuth login. |
-| Claude custom connector | Add each URL as a separate custom remote MCP connector. | Claude offers published identity, automatic registration, or an explicitly registered OAuth client; choose only a method supported by the RE8CH authorization server. |
-| WorkBuddy | Add one remote `streamableHttp` server per connector, then optionally package a Skill. | Its automatic OAuth path requires public-client registration and PKCE, including a supported callback URI. |
-| ChatGPT custom MCP app | Add the remote URL in developer mode and test privately before workspace publication. | Workspace availability and approval depend on the ChatGPT plan and admin settings. |
-| Doubao / Volcengine AgentKit | Check the exact product's custom MCP service form and authentication modes before registration. | AgentKit MCP support alone does not establish that the consumer can complete this OAuth flow. |
+## Claude custom connector
 
-Client references: [Cursor MCP](https://docs.cursor.com/context/model-context-protocol),
-[Claude remote connectors](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp),
+Add each desired MCP URL through **Customize → Connectors → Add custom
+connector**. For Tenant, choose **Register automatically** and complete the
+per-user login. For Cloud, neither **Register automatically** nor **Use Claude's
+published identity** is established by the current Dex discovery document:
+it advertises neither Dynamic Client Registration nor Client ID Metadata
+Documents. **Use your own OAuth client** requires a registered callback and
+client ID on the platform issuer; treat Cloud sign-in as blocked until that
+contract has been tested. Claude's remote connector traffic originates from
+Anthropic's cloud, so public reachability must be tested from that surface.
+
+## WorkBuddy
+
+The private plugin repository contains a `re8ch-tenant` WorkBuddy bundle that
+points to the Tenant resource. Keep `auth_mode` absent so WorkBuddy invokes its
+standard OAuth manager. Its documented flow requires dynamic registration,
+PKCE S256 and a supported callback. The Tenant issuer advertises a registration
+endpoint, but a successful WorkBuddy login and tool call remain to be tested.
+
+The Cloud bundle points at the Cloud resource. WorkBuddy's automatic OAuth
+flow cannot complete against the current Cloud issuer because no registration
+endpoint is advertised. The existing tenant-admin bundle uses WorkBuddy's
+server-side OAuth mode and requires coordination with WorkBuddy before use.
+
+## Other clients
+
+Cursor accepts remote Streamable HTTP MCP URLs with OAuth. ChatGPT custom MCP
+apps accept remote MCP servers in developer mode, subject to workspace settings.
+Doubao's direct end-user publication path is unavailable in the current
+distribution catalog; Volcengine AgentKit MCP support is a different product
+surface. Do not mark any of these clients as verified without a login and a
+read-only tool call from the actual client.
+
+References: [Claude remote connectors](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp),
 [WorkBuddy connectors](https://open.workbuddy.cn/docs/connector),
-[ChatGPT developer mode](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt),
-[Volcengine AgentKit MCP services](https://docs.volcengine.com/docs/agentkit/MCP_services?lang=zh).
+[Cursor MCP](https://docs.cursor.com/context/model-context-protocol),
+[ChatGPT developer mode](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt).
 
-## Verification before client testing
-
-Run `python operations/mcp-conformance/check_public_client_discovery.py`. It
-performs read-only requests and fails when a resource metadata document points
-at the wrong MCP URL. Then test each client's login and a read-only tool call.
-Record client version, selected authentication mode, HTTP status and a redacted
-error; never record tokens or full tool responses.
-
-As of 2026-10-02, Infra and Orchestra are not published on
-`tools.service.re8ch.com`: their resource metadata resolves to Cloud, and
-unauthenticated MCP probes returned 503 and 404 respectively. The historical
-`ai-operations/platform.yaml` deployments and Services for these planes are
-absent from the live cluster. Do not add routes to those Service names until a
-current backend publication exists. The discovery checker remains a gate for
-the eventual publication. OAuth login must be tested in each client rather
-than presumed working.
+Run `python operations/mcp-conformance/check_public_client_discovery.py` to
+check the two current resource URLs and the Tenant registration discovery.
+This is read-only and does not prove client compatibility. For each client,
+record its version, authentication mode, login result and one read-only tool
+call, with tokens and response contents redacted.

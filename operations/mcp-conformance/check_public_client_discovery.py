@@ -8,7 +8,7 @@ import urllib.request
 
 
 ORIGIN = "https://tools.service.re8ch.com"
-RESOURCES = ("cloud", "infra", "orchestra", "tenant")
+RESOURCES = ("cloud", "tenant")
 
 
 def fetch(url):
@@ -30,6 +30,11 @@ def main():
             if not isinstance(issuers, list) or len(issuers) != 1 or not issuers[0].startswith("https://"):
                 failures.append(f"{name}: expected one HTTPS authorization server")
             print(f"{name}: resource={metadata.get('resource')} issuer={issuers}")
+            if isinstance(issuers, list) and len(issuers) == 1:
+                discovery = fetch(issuers[0].rstrip("/") + "/.well-known/openid-configuration")
+                print(f"{name}: registration_endpoint={discovery.get('registration_endpoint')}")
+                if name == "tenant" and not discovery.get("registration_endpoint"):
+                    failures.append("tenant: WorkBuddy requires dynamic client registration")
         except (OSError, ValueError, KeyError) as exc:
             failures.append(f"{name}: metadata unavailable: {exc}")
     for failure in failures:
