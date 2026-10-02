@@ -32,3 +32,10 @@ def test_session_migration_scripts_are_mounted_and_use_separate_owners():
     assert 'auth.platform_session_active()' in migration
     assert 'from auth.sessions' not in migration
     assert 'from auth.refresh_tokens' not in migration
+
+
+def test_platform_migration_reloads_the_read_only_schema_cache():
+    _, job = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/platform-admin-api.yaml').read_text()))
+    _, deployment = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/identity-rest-ro.yaml').read_text()))
+    # RO disables LISTEN, so the same migration revision must roll its process.
+    assert deployment['spec']['template']['metadata']['annotations']['identity.re8ch.com/schema-revision'] == job['metadata']['name']
