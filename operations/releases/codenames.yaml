@@ -720,6 +720,8 @@ modules:
       digest: sha256:df59167737988285acfb00c5f68fe1c9c0f15c3a30d83b8291e761dbf36bd473
     - codename: cascade-onyx
       digest: sha256:f6f08afdf20129079ae3f3123138b029b2b13cc7e5086d7de7436aa26aebe434
+    - codename: confluence-onyx
+      digest: sha256:004eb1e507836367a95b7a0d925d593d22a09fec18d573377b9cf66b90220891
   platform/hyperswitch:
     releases:
     - codename: anchor
