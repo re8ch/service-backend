@@ -434,6 +434,7 @@ data:
         host vtysh <<EOF
     configure terminal
     ip prefix-list MUBAO-IN seq 10 permit ${identity}/32
+    ip prefix-list MUBAO-IN seq 15 permit 192.0.2.116/32
     ip prefix-list MUBAO-IN seq 20 permit ${pod_prefix}
     ip prefix-list MUBAO-IN seq 1000 deny any
     ip prefix-list MUBAO-OUT seq 10 permit 192.0.2.179/32
@@ -451,7 +452,7 @@ data:
     neighbor ${peer} activate
     neighbor ${peer} prefix-list MUBAO-IN in
     neighbor ${peer} prefix-list MUBAO-OUT out
-    neighbor ${peer} maximum-prefix 2 90 restart 5
+    neighbor ${peer} maximum-prefix 3 90 restart 5
     exit-address-family
     end
     write memory
@@ -460,7 +461,11 @@ data:
         peer_key="$(host wg show wg-pt-mubao allowed-ips | awk -v transit="${peer}/32" '{ for (i=2; i<=NF; i++) if ($i == transit) { print $1; exit } }')"
         [ -n "${peer_key}" ] || { echo "missing MUBAO WireGuard peer" >&2; return 1; }
         allowed="$(host wg show wg-pt-mubao allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
-        case ",${allowed}," in *",${pod_prefix},"*) : ;; *) host wg set wg-pt-mubao peer "${peer_key}" allowed-ips "${allowed},${pod_prefix}" ;; esac
+        existing_allowed="${allowed}"
+        for prefix in "${pod_prefix}" 192.0.2.116/32; do
+          case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+        done
+        [ "${allowed}" = "${existing_allowed}" ] || host wg set wg-pt-mubao peer "${peer_key}" allowed-ips "${allowed}"
       done
     }
 
