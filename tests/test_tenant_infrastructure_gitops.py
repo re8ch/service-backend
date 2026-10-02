@@ -535,3 +535,17 @@ def test_database_metrics_bindings_limit_provider_reads_to_pinned_re8ch_credenti
     provider = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-provider-reconciler")
     env = {item["name"]: item for item in provider["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert json.loads(env["GRAFANA_DATABASE_BINDINGS_JSON"]["value"]) == bindings
+
+
+def test_tenant_module_registry_projection_matches_gateway_defaults():
+    import json
+
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    registry = json.loads((chart / "files/tenant-platform-modules.json").read_text())
+    assert registry == json.loads((ROOT / "platform/apps/tenant-mcp/platform-modules.json").read_text())
+    for name in ("cloud", "infra", "admin"):
+        assert ":8088/mcp" in registry["backends"][name]["url"]
+    runtime = (chart / "templates/tenant-runtime.yaml").read_text()
+    assert "PLATFORM_MODULE_REGISTRY" in runtime
+    assert "mountPath: /etc/re8ch/modules, readOnly: true" in runtime
+    assert "subPath: modules.json" not in runtime

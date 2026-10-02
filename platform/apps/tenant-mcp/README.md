@@ -74,3 +74,27 @@ revision with `tenantAPI.enabled: false`; SQLite tenant state remains compatible
 The public HTTP routes and ToolHive backend URL do not change during cutover.
 No credentials or submitted workflow records are committed to Git. Reviewed
 workflow templates may be kept here as source for an explicit submission.
+
+### Module configuration and lifecycle
+
+`PLATFORM_MODULE_REGISTRY` points at a versioned JSON document. The chart mounts
+`tenant-platform-modules` as a directory (no `subPath`) so Kubernetes projects
+ConfigMap changes atomically. The gateway checks the file on requests, at most
+once per second, validates the complete document, and swaps modules atomically.
+Invalid or missing updates retain the previous valid registry. The embedded
+`platform-modules.json` is the startup fallback; the chart copy must match it in CI.
+Only GitOps administrators may change module URLs, credential references, and
+explicit tool allowlists. Credentials never appear in the registry.
+
+Discovery runs concurrently with a five-second total budget per module,
+including initialization, and caches successful or failed discovery for 30
+seconds. MCP sessions are reused; credentials are refreshed after five minutes
+when the session is idle. Changing/removing a module drains calls using its old
+session. Failed calls are never automatically replayed; callers must consult
+operation status before retrying a write. Tools are sorted for predictable
+catalog responses. A disconnected module does not hide healthy modules.
+
+SIGTERM/SIGINT drains both HTTP listeners for up to 60 seconds. This is groundwork
+for rolling deployment, not a claim of multi-replica safety: the current chart
+still uses one replica and Recreate while the SQLite state and session cache
+are being migrated to shared storage.
