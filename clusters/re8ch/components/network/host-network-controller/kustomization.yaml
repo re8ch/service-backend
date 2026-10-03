@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: [delivery.yaml, routeros-transit.yaml]
+resources: [delivery.yaml, routeros-transit.yaml, control-delivery.yaml]
 configMapGenerator:
   - name: host-network-controller
     namespace: kube-system
@@ -18,3 +18,17 @@ configMapGenerator:
   - name: routeros-transit-controller
     namespace: ops
     files: [routeros_transit.py, routeros-transit.json]
+  - name: control-transit-controller
+    namespace: kube-system
+    files:
+      - agent.py
+      - health.py
+      - deliver.sh
+      - package.json=control-package.json
+      - adoption.json=control-adoption.json
+      - control_pod_mesh.py
+      - re8ch-host-network.service
+      - re8ch-host-network.timer
+      - re8ch-host-network-watchdog.service
+      - re8ch-host-network-watchdog.timer
+      - re8ch-host-network-recover.service

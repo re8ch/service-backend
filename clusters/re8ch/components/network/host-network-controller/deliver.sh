@@ -26,10 +26,19 @@ host systemctl enable --now re8ch-host-network-watchdog.timer
 host systemctl start re8ch-host-network-recover.service
 # Wait for the reconciler binary that honors ownership handoff. A config
 # mount alone does not prove its already-running shell has loaded the change.
-while [ ! -f /host/run/re8ch-public-mesh-handoff-v1 ]; do
-  echo 'waiting for PodCIDR writer handoff support'
-  sleep 10
-done
+if [ "$(jq -r .scope /config/package.json)" = control-transit-peer ]; then
+  # Existing owner keeps routes but yields this peer to the transactional agent.
+  host systemctl is-active --quiet re8ch-control-pod-mesh.service
+  test -f /host/etc/re8ch/control-pod-mesh/control_plane_mesh.py
+  cp /config/control_pod_mesh.py /host/etc/re8ch/control-pod-mesh/control_pod_mesh.py.next
+  chmod 644 /host/etc/re8ch/control-pod-mesh/control_pod_mesh.py.next
+  mv /host/etc/re8ch/control-pod-mesh/control_pod_mesh.py.next /host/etc/re8ch/control-pod-mesh/control_pod_mesh.py
+else
+  while [ ! -f /host/run/re8ch-public-mesh-handoff-v1 ]; do
+    echo 'waiting for PodCIDR writer handoff support'
+    sleep 10
+  done
+fi
 # Adoption includes exact public-key and FRR-list ownership. No private keys.
 cp /config/adoption.json "$root/adoption.json.next"
 chmod 600 "$root/adoption.json.next"

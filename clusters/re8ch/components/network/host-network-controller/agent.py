@@ -62,10 +62,11 @@ def validate(p, adoption):
         raise ValueError('immutable model digest required')
     if not 30 <= p['timeout'] <= 180:
         raise ValueError('bounded rollback deadline required')
-    if p['scope'] != 'public-mesh-peers':
+    if p['scope'] not in ('public-mesh-peers', 'control-transit-peer'):
         raise ValueError('unsupported ownership scope')
     wg = p['wireguard']
-    if wg['interface'] != 'wg-public-mesh' or not 1120 <= wg['mtu'] <= 1420:
+    expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'restricted-node-abb3f27a69': 'wg-cp-mubao'}.get(p['node'])
+    if wg['interface'] != expected_interface or not 1120 <= wg['mtu'] <= 1420:
         raise ValueError('invalid interface/MTU')
     seen = set()
     for peer in wg['peers']:
@@ -76,10 +77,13 @@ def validate(p, adoption):
         seen.add(peer['publicKey'])
         if not 5 <= peer['keepalive'] <= 120:
             raise ValueError('invalid keepalive')
+        roots = ('192.0.2.246/24', '192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')
+        if p['scope'] == 'control-transit-peer':
+            roots += ('192.0.2.34/28', '192.0.2.95/24', '192.0.2.240/32')
         for prefix in peer['allowedIPs']:
             n = ipaddress.ip_network(prefix)
             if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
-                       ('192.0.2.246/24', '192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')):
+                       roots):
                 raise ValueError('prefix outside fabric authority')
         if peer.get('endpoint'):
             ip, port = peer['endpoint'].rsplit(':', 1)
