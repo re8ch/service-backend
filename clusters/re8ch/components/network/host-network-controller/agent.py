@@ -282,7 +282,15 @@ def reconcile(state, p, adoption):
     baseline = snapshot(p)
     expected = {'wireguard': p['wireguard'], 'prefixLists': p['prefixLists']}
     current = {key: baseline[key] for key in expected}
-    if (state / 'committed.json').exists() and json.loads((state / 'committed.json').read_text())['digest'] == target and current == expected:
+    persistent = baseline.get('persistentFields', {})
+    persistent_ok = persistent.get('Interface', {}).get('MTU') == str(p['wireguard']['mtu'])
+    for peer in p['wireguard']['peers']:
+        fields = persistent.get(peer['publicKey'], {})
+        persistent_ok = persistent_ok and sorted(x.strip() for x in fields.get('AllowedIPs', '').split(',')) == sorted(peer['allowedIPs'])
+        persistent_ok = persistent_ok and fields.get('PersistentKeepalive') == str(peer['keepalive'])
+        if peer.get('endpoint'):
+            persistent_ok = persistent_ok and fields.get('Endpoint') == peer['endpoint']
+    if (state / 'committed.json').exists() and json.loads((state / 'committed.json').read_text())['digest'] == target and current == expected and persistent_ok:
         return 'converged'
     try:
         if not healthy(p):
@@ -326,7 +334,10 @@ def main():
     with (args.state / 'lock').open('a') as lock:
         # All forward commands have a bound; watchdog acquires after a crashed
         # worker or at the next tick. No two host writers enter this transaction.
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
         if args.action in ('watchdog', 'recover-boot'):
             recover(args.state, force=args.action == 'recover-boot')
         else:

@@ -96,3 +96,16 @@ def test_rollback_restores_persistent_fields_separately():
     assert a.persistent_fields(restored, {KEY}) == baseline
     assert 'PrivateKey = PRIVATE' in restored
     assert 'MTU =' not in restored and 'Endpoint =' not in restored
+
+
+def test_commit_requires_three_health_rounds(tmp_path, monkeypatch):
+    p = package()
+    calls = []
+    monkeypatch.setattr(a, 'snapshot', lambda p: {'wireguard': {}, 'prefixLists': {}})
+    monkeypatch.setattr(a, 'healthy', lambda p: calls.append('health') or True)
+    monkeypatch.setattr(a, 'syntax_check', lambda p: None)
+    monkeypatch.setattr(a, 'apply_scopes', lambda p: calls.append('apply'))
+    monkeypatch.setattr(a.time, 'sleep', lambda n: None)
+    assert a.reconcile(tmp_path, p, adoption()) == 'committed'
+    assert calls == ['health', 'apply', 'health', 'health', 'health']
+    assert json.loads((tmp_path / 'transaction.json').read_text())['state'] == 'committed'
