@@ -144,6 +144,8 @@ modules:
       digest: sha256:81b94ac1e80a01adfd8c249741ac53e88abce01814529a792069f1ca797ccef3
     - codename: sirocco-indigo
       digest: sha256:a7fc768bb011e1b57d20bebb957cb06887b1fc84dd9907ae4c90da7a35753d0b
+    - codename: tramontane-indigo
+      digest: sha256:92761d91688f58d00073abad90fa5c45b37c405a78ee23292ad8ae6506fb0b55
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
