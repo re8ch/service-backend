@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: routeros-transit-controller, namespace: ops}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/name: routeros-transit-controller}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: routeros-transit-controller}
+    spec:
+      hostNetwork: true
+      automountServiceAccountToken: false
+      tolerations: [{operator: Exists}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: node-role.kubernetes.io/control-plane, operator: Exists}
+      containers:
+        - name: reconciler
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: [python3, /config/routeros_transit.py]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 150m, memory: 96Mi}
+          securityContext:
+            runAsUser: 65532
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          readinessProbe:
+            exec:
+              command: [python3, -c, "import pathlib,time; assert time.time()-pathlib.Path('/tmp/routeros-transit-ready').stat().st_mtime < 90"]
+            periodSeconds: 10
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: credential, mountPath: /credential, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: config
+          configMap: {name: routeros-transit-controller}
+        - name: credential
+          secret:
+            secretName: mikrotik-routeros-admin
+            items: [{key: username, path: username}, {key: password, path: password}]
+        - name: tmp
+          emptyDir: {medium: Memory, sizeLimit: 8Mi}
