@@ -1,0 +1,46 @@
+{
+  "authority": "RouterOS",
+  "managementIp": "192.0.2.240",
+  "publicEndpoint": "192.0.2.138",
+  "routerAsn": 4200064001,
+  "mtu": 1280,
+  "commentPrefix": "RE8CH CP MESH",
+  "links": [
+    {
+      "node": "restricted-node-1eb0570f74",
+      "interface": "wg-cp-a1",
+      "listenPort": 51893,
+      "routerAddress": "192.0.2.78/30",
+      "peerAddress": "192.0.2.227/32",
+      "identity": "192.0.2.242/32",
+      "probeIdentity": "192.0.2.76/32",
+      "asn": 4200010147,
+      "peerPublicKey": "RyAp0lPekfg6w17DK7CbI6+YphPMlNhap+6dDMRqPiE=",
+      "routerPublicKey": "Zl6S03B5xdedeDrbS48biCM+EpOzRN/tOsoLS/Deano="
+    },
+    {
+      "node": "restricted-node-296f36f2fb",
+      "interface": "wg-cp-b1",
+      "listenPort": 51894,
+      "routerAddress": "192.0.2.52/30",
+      "peerAddress": "192.0.2.239/32",
+      "identity": "192.0.2.1/32",
+      "probeIdentity": "192.0.2.71/32",
+      "asn": 4200010125,
+      "peerPublicKey": "jFAsQtg6M+QLqf3KNCzwZMXj7T9X5UBI4trTjLXY2V0=",
+      "routerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk="
+    },
+    {
+      "node": "restricted-node-abb3f27a69",
+      "interface": "wg-cp-mubao",
+      "listenPort": 51895,
+      "routerAddress": "192.0.2.47/30",
+      "peerAddress": "192.0.2.178/32",
+      "identity": "192.0.2.223/32",
+      "probeIdentity": "192.0.2.83/32",
+      "asn": 4200010029,
+      "peerPublicKey": "mMWc4x4hIEtaG828eTBVhnNr/2EJfgs1PsvIxUU8Zjw=",
+      "routerPublicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
+    }
+  ]
+}
