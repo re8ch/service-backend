@@ -830,6 +830,10 @@ modules:
       digest: sha256:f3d4e5d65af3b87ae7eaa5bbcad214a7c467b7e8ccc95a6c77adf7d93f109df9
     - codename: springtide-onyx
       digest: sha256:bd23aba17c767ee204cf32265d0f4d8b3640984302ebb1b6a79441e2c3997ec5
+    - codename: tideway-onyx
+      digest: sha256:4b5ffbdf69cd5b008abb0fe70c39724a86695ae739ac076e82d5d00238df7caf
+    - codename: cascade-quartz
+      digest: sha256:e0dbd8e9f78a9673b9cdc799fe32acfc15fe9c1ea36e0ec5123db5d0e8318e56
   platform/hyperswitch:
     releases:
     - codename: anchor
