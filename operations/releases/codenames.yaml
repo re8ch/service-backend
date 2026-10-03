@@ -431,6 +431,8 @@ modules:
       digest: sha256:a0e8dcaa84fa5ed72ece76b9840d8ef939325935df2176fca9375f2605ea4eba
     - codename: chinook-jade
       digest: sha256:72a028fa2280f3e5daad702a5a80def6478a674dc347c4afe7b95fed590afb4c
+    - codename: etesian-jade
+      digest: sha256:5a8fd8199125c4edda64a2b5add7069d22235f5dfcbd38c13d19431ac61556fe
   platform/git-workspaces:
     releases:
     - codename: andromeda
