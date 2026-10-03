@@ -37,10 +37,10 @@ def main():
     router_ip = str(router.ip)
     management_ip = str(ipaddress.ip_address(desired["managementIp"]))
     local_identity = link["identity"].split("/")[0]
-    route_table = "15300" if args.node == "restricted-node-296f36f2fb" else "main"
+    route_table = "15300" if args.node == "b1-wsl-zt" else "main"
     fallback_identities = link["fallbackIdentities"]
     egress_routes = link.get("egressRoutes", [])
-    if egress_routes and (args.node != "restricted-node-abb3f27a69" or egress_routes != ["192.0.2.148/32"]):
+    if egress_routes:
         raise ValueError("unreviewed control-plane egress route")
     if args.action in ("stage", "start"):
         if not key_file.is_file():
@@ -59,35 +59,35 @@ def main():
             "[Peer]\n"
             f"PublicKey = {link['routerPublicKey']}\n"
             f"Endpoint = {desired['publicEndpoint']}:{link['listenPort']}\n"
-            f"AllowedIPs = {router_ip}/32,192.0.2.65/24\n"
+            f"AllowedIPs = {router_ip}/32,10.250.0.0/24\n"
             "PersistentKeepalive = 25\n"
         )
         old_content = content
         middle_content = content.replace(
             "Table = off\n\n",
             "Table = off\n"
-            "PostUp = ip route replace 192.0.2.34/28 dev %i\n"
-            "PostDown = ip route del 192.0.2.34/28 dev %i || true\n\n",
+            "PostUp = ip route replace 172.31.96.0/28 dev %i\n"
+            "PostDown = ip route del 172.31.96.0/28 dev %i || true\n\n",
         ).replace(
-            f"AllowedIPs = {router_ip}/32,192.0.2.65/24",
-            "AllowedIPs = 192.0.2.34/28,192.0.2.65/24",
+            f"AllowedIPs = {router_ip}/32,10.250.0.0/24",
+            "AllowedIPs = 172.31.96.0/28,10.250.0.0/24",
         )
         content = middle_content.replace(
-            "AllowedIPs = 192.0.2.34/28,192.0.2.65/24",
-            "AllowedIPs = 192.0.2.34/28,192.0.2.95/24,192.0.2.65/24",
+            "AllowedIPs = 172.31.96.0/28,10.250.0.0/24",
+            "AllowedIPs = 172.31.96.0/28,172.31.97.0/24,10.250.0.0/24",
         )
         previous_content = content
         content = content.replace(
-            "PostUp = ip route replace 192.0.2.34/28 dev %i\n",
-            "PostUp = ip route replace 192.0.2.34/28 dev %i\n"
+            "PostUp = ip route replace 172.31.96.0/28 dev %i\n",
+            "PostUp = ip route replace 172.31.96.0/28 dev %i\n"
             f"PostUp = ip route replace {management_ip}/32 dev %i\n",
         ).replace(
-            "PostDown = ip route del 192.0.2.34/28 dev %i || true\n",
-            "PostDown = ip route del 192.0.2.34/28 dev %i || true\n"
+            "PostDown = ip route del 172.31.96.0/28 dev %i || true\n",
+            "PostDown = ip route del 172.31.96.0/28 dev %i || true\n"
             f"PostDown = ip route del {management_ip}/32 dev %i || true\n",
         ).replace(
-            "AllowedIPs = 192.0.2.34/28,192.0.2.95/24,192.0.2.65/24",
-            f"AllowedIPs = 192.0.2.34/28,192.0.2.95/24,{management_ip}/32,192.0.2.65/24",
+            "AllowedIPs = 172.31.96.0/28,172.31.97.0/24,10.250.0.0/24",
+            f"AllowedIPs = 172.31.96.0/28,172.31.97.0/24,{management_ip}/32,10.250.0.0/24",
         )
         management_content = content
         fallback_up = "".join(
@@ -134,8 +134,8 @@ def main():
         if args.action == "start":
             run("systemctl", "enable", "--now", f"wg-quick@{interface}.service")
             run("wg", "set", interface, "peer", link["routerPublicKey"],
-                "allowed-ips", f"192.0.2.34/28,192.0.2.95/24,{management_ip}/32,192.0.2.65/24")
-            run("ip", "route", "replace", "192.0.2.34/28", "dev", interface)
+                "allowed-ips", f"172.31.96.0/28,172.31.97.0/24,{management_ip}/32,10.250.0.0/24")
+            run("ip", "route", "replace", "172.31.96.0/28", "dev", interface)
             run("ip", "route", "replace", f"{management_ip}/32", "dev", interface)
             for identity in fallback_identities:
                 run("ip", "route", "replace", identity, "via", router_ip,
