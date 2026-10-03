@@ -28,6 +28,7 @@ tenantPlatform:
     platformSessionURL: ""
     organizationsURL: ""
     usersURL: ""
+    openAIAppsChallengeToken: ""
   provider:
     enabled: false
     image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
