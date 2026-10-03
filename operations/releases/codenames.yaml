@@ -423,6 +423,8 @@ modules:
       digest: sha256:ba39b3be3a7b19f9c432c5616d05cdf001b78e3f0a7e5954adaf1055d96e403e
     - codename: sirocco-indigo
       digest: sha256:d7407b82107df2910a0d987a9c3c92fc6f7e2e8d19386ba5d6befce32482aa60
+    - codename: tramontane-indigo
+      digest: sha256:2ad7c2fcc1844c8a1e8cb74b7a4213cb0f8f6ea544f06d95a4108f35ad3f7635
   platform/git-workspaces:
     releases:
     - codename: andromeda
