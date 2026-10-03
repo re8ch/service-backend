@@ -17,8 +17,11 @@ def test_node_storage_exporter_is_bounded_and_read_only():
     container = pod["containers"][0]
     assert not pod.get("hostNetwork", False)
     assert not pod.get("hostPID", False)
-    # Every node needs capacity telemetry before the scheduler opens admission.
-    assert pod.get("tolerations") == [{"operator": "Exists"}]
+    # Approved bootstrap telemetry (#1227) must run before eligibility is known.
+    # Keep this exception tied to a Linux-only, read-only bootstrap DaemonSet.
+    assert daemonset["spec"]["template"]["metadata"]["annotations"]["scheduling.re8ch.com/placement-class"] == "node-bootstrap"
+    assert pod["nodeSelector"] == {"kubernetes.io/os": "linux"}
+    assert pod["tolerations"] == [{"operator": "Exists"}]
     assert container["securityContext"]["readOnlyRootFilesystem"]
     assert not container["securityContext"]["allowPrivilegeEscalation"]
     assert container["resources"]["requests"] == {"cpu": "10m", "memory": "12Mi"}

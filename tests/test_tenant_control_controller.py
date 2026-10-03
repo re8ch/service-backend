@@ -422,3 +422,51 @@ def test_amongclusters_policy_exposes_only_the_reviewed_import():
     policy = controller.among_clusters_policy(instance)
     assert policy["metadata"]["namespace"] == "artchais"
     assert policy["spec"] == {"peerSelector": {"matchNames": ["re8ch-artc"]}, "serviceClasses": ["network.egress.mihomo"], "protocols": ["tcp"], "ports": [17891], "directions": ["import"], "maxAdvertisements": 1}
+
+
+def test_organization_dependencies_require_real_admin_session(monkeypatch):
+    class Reply(io.BytesIO):
+        def __enter__(self): return self
+        def __exit__(self, *_): self.close()
+    calls = []
+    def identity(request, timeout):
+        assert request.headers['Authorization'] == 'Bearer caller'
+        assert request.full_url.endswith('/rpc/platform_session_entitlement')
+        return Reply(json.dumps({'platformAdmin': False, 'subject': 'user', 'sessionId': 'login'}).encode())
+    monkeypatch.setattr(controller.urllib.request, 'urlopen', identity)
+    monkeypatch.setattr(controller, 'kube', lambda: calls.append('unexpected'))
+    for auth in ('', 'Bearer caller'):
+        with pytest.raises(PermissionError):
+            controller.organization_dependencies('personal-user', auth)
+    assert not calls
+
+
+def test_organization_dependencies_include_retained_runtime_authority(monkeypatch):
+    class Reply(io.BytesIO):
+        def __enter__(self): return self
+        def __exit__(self, *_): self.close()
+    monkeypatch.setattr(controller.urllib.request, 'urlopen', lambda *a, **kw: Reply(b'{"platformAdmin":true,"subject":"admin","sessionId":"login"}'))
+    class Runtime:
+        items = {}
+        def list(self, plural, **kwargs): return self.items.get(plural, [])
+    runtime = Runtime()
+    monkeypatch.setattr(controller, 'kube', lambda: runtime)
+    assert controller.organization_dependencies('personal-user', 'Bearer caller')['canArchive']
+    assert not controller.organization_dependencies('admin', 'Bearer caller')['canArchive']
+    for kind, item in (
+        ('tenants', {'metadata': {'name': 'personal-user'}, 'spec': {'lifecycle': 'Deleted'}}),
+        ('tenantnamespaces', {'spec': {'tenantRef': 'personal-user', 'operation': 'EnsureAbsent'}}),
+        ('tenantgrants', {'spec': {'tenantRef': 'personal-user'}}),
+        ('tenantidentitybindings', {'spec': {'tenantRef': 'personal-user'}}),
+        ('tenantserviceinstances', {'spec': {'tenantRef': 'personal-user'}, 'status': {'phase': 'Deleted'}}),
+        ('namespaces', {'metadata': {'name': 'custom-ns', 'labels': {'tenancy.re8ch.com/tenant': 'personal-user'}}}),
+        ('persistentvolumes', {'metadata': {'labels': {'tenant': 'personal-user'}}, 'status': {'phase': 'Released'}}),
+    ):
+        runtime.items = {kind: [item]}
+        result = controller.organization_dependencies('personal-user', 'Bearer caller')
+        assert result['dependencies'] == {kind: 1}
+        assert not result['canArchive']
+        assert controller.organization_dependencies('different-user', 'Bearer caller')['canArchive']
+    def unavailable(*args, **kwargs): raise RuntimeError('cluster unavailable')
+    monkeypatch.setattr(runtime, 'list', unavailable)
+    with pytest.raises(RuntimeError): controller.organization_dependencies('personal-user', 'Bearer caller')

@@ -871,6 +871,47 @@ def reconcile_loop():
         time.sleep(10)
 
 
+def organization_dependencies(tenant_ref, authorization):
+    """Conservative archive preflight against runtime authority, never cached Git."""
+    if not TENANT_NAME_RE.fullmatch(tenant_ref) or len(tenant_ref) > 80:
+        raise ValueError("invalid organization reference")
+    if not authorization.startswith("Bearer ") or len(authorization) > 16400:
+        raise PermissionError("admin login session required")
+    request = urllib.request.Request(
+        IDENTITY_REST_URL + "/rpc/platform_session_entitlement", data=b"{}", method="POST",
+        headers={"Authorization": authorization, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            grant = json.load(response)
+    except urllib.error.HTTPError as exc:
+        if exc.code in {401, 403}:
+            raise PermissionError("admin login session required") from None
+        raise RuntimeError("identity authority unavailable") from None
+    except (urllib.error.URLError, OSError, ValueError):
+        raise RuntimeError("identity authority unavailable") from None
+    if not isinstance(grant, dict) or grant.get("platformAdmin") is not True or not grant.get("sessionId") or not grant.get("subject"):
+        raise PermissionError("admin login session required")
+    counts = {}
+    # Retained declarations also block deletion: a Released claim can still own
+    # retained data. The managed namespace/Tenant must be removed by its normal
+    # lifecycle workflow before identity deletion. Do not add cluster-wide claim
+    # permissions: claims are scoped to these controller-owned namespaces.
+    for plural in ("tenants", "tenantnamespaces", "tenantidentitybindings", "tenantgrants", "tenantserviceinstances"):
+        count = sum(1 for item in kube().list(plural)
+                    if (item.get("metadata", {}).get("name") == tenant_ref if plural == "tenants"
+                        else item.get("spec", {}).get("tenantRef") == tenant_ref))
+        if count:
+            counts[plural] = count
+    for plural in ("namespaces", "persistentvolumes"):
+        count = sum(1 for item in kube().list(plural, api="api/v1")
+                    if tenant_ref in (item.get("metadata", {}).get("labels", {}).get("tenancy.re8ch.com/tenant"),
+                                      item.get("metadata", {}).get("labels", {}).get("tenant"))
+                    or (plural == "namespaces" and item.get("metadata", {}).get("name") == tenant_ref))
+        if count:
+            counts[plural] = count
+    return {"tenantRef": tenant_ref, "canArchive": tenant_ref != "admin" and not counts, "dependencies": counts}
+
+
 class Handler(BaseHTTPRequestHandler):
     def send_json(self, status, value):
         body = json.dumps(value, separators=(",", ":")).encode()
@@ -885,6 +926,17 @@ class Handler(BaseHTTPRequestHandler):
                 kube().get("leases", LEASE_NAME, NAMESPACE, "apis/coordination.k8s.io/v1")
                 self.send_json(200, {"status": "ready"})
             except Exception: self.send_json(503, {"status": "not-ready"})
+            return
+        if path.startswith("/v1/organization-dependencies/"):
+            try:
+                result = organization_dependencies(path.removeprefix("/v1/organization-dependencies/"), self.headers.get("Authorization", ""))
+                self.send_json(200, result)
+            except PermissionError:
+                self.send_json(403, {"error": "admin login session required"})
+            except ValueError:
+                self.send_json(400, {"error": "invalid dependency request"})
+            except Exception:
+                self.send_json(503, {"error": "dependency authority unavailable"})
             return
         service_token = self.headers.get("X-Tenant-Service-Token", "")
         caller = self.headers.get("X-Tenant-Caller", "")
