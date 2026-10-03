@@ -184,6 +184,7 @@ spec:
       supabase.service.re8ch.com.: {service: supabase-service, class: service-pilot, probePath: /}
       opensandbox.service.re8ch.com.: {service: opensandbox-service, class: service-pilot, probePath: /}
       storage.service.re8ch.com.: {service: storage-service, class: service-pilot, probePath: /healthz, acceptedStatuses: [200]}
+      cloud-disk.service.re8ch.com.: {service: cloud-disk-service, class: service-pilot, probePath: /, acceptedStatuses: [302]}
       phonycenter.service.re8ch.com.: {service: phonycenter-service, class: service-pilot, probePath: /}
       neo4j.service.re8ch.com.: {service: neo4j-service, class: service-pilot, probePath: /}
       litellm.service.re8ch.com.: {service: litellm-service, class: service-pilot, probePath: /health/readiness}
