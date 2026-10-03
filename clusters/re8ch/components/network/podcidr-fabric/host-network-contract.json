@@ -1133,7 +1133,7 @@
       "controlPodRoutePolicy": []
     }
   },
-  "modelDigest": "sha256:930d6c50bba9474561da21a76ca9035f8e63130039eb55db120813462eaca2cf",
+  "modelDigest": "sha256:9abb001755bf48f5f59920906f00b4b509b4d511e3a9112be57563bf9fbc42c7",
   "transitPaths": {
     "sources": [
       "192.0.2.147/32",
