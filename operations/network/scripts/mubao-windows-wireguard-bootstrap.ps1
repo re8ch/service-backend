@@ -19,13 +19,13 @@ if ($key -notmatch '^[A-Za-z0-9+/]{43}=$') { throw 'Private key has unexpected f
 $config = @"
 [Interface]
 PrivateKey = $key
-Address = 192.0.2.93/32
+Address = 172.31.95.29/32
 MTU = 1280
 
 [Peer]
 PublicKey = H6trdN+xorHMYEFsPV6G8CMLmhMZkObgnQfcXYUSNVQ=
-AllowedIPs = 192.0.2.111/32, 192.0.2.205/32
-Endpoint = 192.0.2.79:51893
+AllowedIPs = 172.31.95.128/32, 10.250.0.128/32
+Endpoint = 223.159.210.222:51897
 PersistentKeepalive = 15
 "@
 [System.IO.File]::WriteAllText($configPath, $config, [System.Text.Encoding]::ASCII)
