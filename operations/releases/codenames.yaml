@@ -196,6 +196,8 @@ modules:
       digest: sha256:ddfa595d5fa79b32f9825fcb735d7953c33769526998293d06e6b6fbfd89345d
     - codename: mistral-silver
       digest: sha256:e9b0f3621f2172e8d55e86828e7621492c5595434a3a9bd1612f529174b1f414
+    - codename: sirocco-silver
+      digest: sha256:a76b448e0f63a36545dca37ded57305370e7ecfa4e317d64c9cd19c167f0fc88
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
