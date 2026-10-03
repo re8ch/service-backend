@@ -76,6 +76,18 @@ revision_words:
 - bronze
 - coral
 - onyx
+- quartz
+- ruby
+- sapphire
+- topaz
+- opal
+- garnet
+- beryl
+- emerald
+- zircon
+- jasper
+- agate
+- turquoise
 modules:
   clusters/re8ch/components/re8ch-business-namespaces:
     releases:
