@@ -1,0 +1,22 @@
+{
+  "nodeName": "b1-windows",
+  "distribution": "Ubuntu-24.04",
+  "bootGraceSeconds": 900,
+  "failureThreshold": 3,
+  "nodeReplyTimeoutSeconds": 600,
+  "hostRebootCooldownSeconds": 21600,
+  "peerQuorumRequired": true,
+  "minimumHealthyPeers": 2,
+  "hostRebootDelaySeconds": 1200,
+  "lifecycleTaskName": "RE8CH WSL Lifecycle",
+  "peerHealthEndpoints": [
+    {
+      "address": "192.0.2.145",
+      "port": 22
+    },
+    {
+      "address": "192.0.2.79",
+      "port": 443
+    }
+  ]
+}
