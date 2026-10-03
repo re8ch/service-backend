@@ -1,0 +1,21 @@
+server: https://127.0.0.1:6443
+token-file: /etc/rancher/k3s/agent-token
+node-name: restricted-node-6dc3f140f9
+node-ip: 192.0.2.179
+node-external-ip: 192.0.2.138
+node-label:
+  - pigsty.cc/workload=pg-re8ch
+  - pigsty.cc/node-class=database
+  - pigsty.cc/provider=onprem
+  - pigsty.cc/region=r640-lan
+  - pigsty.cc/zt-ip=192.0.2.178
+  - re8ch.com/external-ip-mode=mikrotik-proxy
+  - re8ch.com/public-ip=none
+  - re8ch.com/numa-nodes=2
+  - re8ch.com/cilium-migrate=true
+kubelet-arg:
+  - max-pods=256
+  - kube-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096
+  - system-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096
+  - enforce-node-allocatable=pods
+  - eviction-hard=memory.available<4Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%
