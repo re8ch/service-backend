@@ -45,7 +45,8 @@ def test_rendered_controller_failover_and_source_cache_safety():
     # Never load-balance artifact requests over independently empty caches.
     source = deployments['source-controller']
     assert source['spec']['replicas'] == 1
-    assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirst'
+    assert source['spec']['template']['spec']['hostNetwork'] is True
+    assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirstWithHostNet'
     manager = source['spec']['template']['spec']['containers'][0]
     proxy = next(e for e in manager['env'] if e['name'] == 'ALL_PROXY')
     assert proxy['valueFrom']['secretKeyRef'] == {'name': 'service-backend-github-socks', 'key': 'address'}
@@ -55,6 +56,6 @@ def test_rendered_controller_failover_and_source_cache_safety():
     assert expression == {
         'key': 'kubernetes.io/hostname',
         'operator': 'In',
-        'values': ['restricted-node-6dc3f140f9'],
+        'values': ['restricted-node-abb3f27a69', 'restricted-node-1eb0570f74'],
     }
     assert services['identity-egress-control-plane']['spec']['internalTrafficPolicy'] == 'Local'
