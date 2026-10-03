@@ -100,3 +100,19 @@ bidirectional data-plane probes. FRR neighbor lifecycle, route/rule and AdvFab
 transactions are not yet supported by this adapter; they must not be marked as
 owned by it. Roll back the delivery through GitOps; never remove host rollback
 services while a transaction is applying/verifying/rolling-back.
+
+### Source-prefix closure and repair preflight
+
+The 2026-10-04 packet audit observed a DNS query reach restricted-node-6dc3f140f9 over private
+transit, an answer leave over wg-public-mesh, and FLK reject that peer's PodCIDR
+because its AllowedIPs contained only the transport and host identity. The
+legacy public-peer assembler now includes relay-node PodCIDRs and runs every
+reconciliation interval, while still yielding adopted peers to the host agent.
+
+The canary explicitly declares `repairBaselineDns: true` for this known repair.
+Only pre-change DNS success is waived; fresh discovery, peer handshake, BGP/BFD,
+control API and proxy checks remain mandatory. All per-replica DNS tests are
+mandatory after apply, and failed verification restores the baseline locally.
+DNS probes bind the declared accelerated identity, rather than relying on an
+arbitrary transport source address chosen by the kernel. This exception must
+be removed after successful repair; it is not a fleet default.

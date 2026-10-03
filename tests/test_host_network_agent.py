@@ -48,7 +48,7 @@ def test_apply_failure_rolls_back_and_blocks_revision(tmp_path, monkeypatch):
     p = package()
     baseline = {'wireguard': {}, 'prefixLists': {}}
     monkeypatch.setattr(a, 'snapshot', lambda p: baseline)
-    monkeypatch.setattr(a, 'healthy', lambda p: True)
+    monkeypatch.setattr(a, 'healthy', lambda p, **kw: True)
     monkeypatch.setattr(a, 'syntax_check', lambda p: None)
     calls = []
     def apply(value, restore=False):
@@ -83,7 +83,7 @@ def test_failed_rollback_remains_retryable(tmp_path, monkeypatch):
 
 def test_unhealthy_baseline_never_mutates(tmp_path, monkeypatch):
     monkeypatch.setattr(a, 'snapshot', lambda p: {'wireguard': {}, 'prefixLists': {}})
-    monkeypatch.setattr(a, 'healthy', lambda p: False)
+    monkeypatch.setattr(a, 'healthy', lambda p, **kw: False)
     assert a.reconcile(tmp_path, package(), adoption()) == 'preflight-unhealthy'
     assert not (tmp_path / 'transaction.json').exists()
 
@@ -102,10 +102,10 @@ def test_commit_requires_three_health_rounds(tmp_path, monkeypatch):
     p = package()
     calls = []
     monkeypatch.setattr(a, 'snapshot', lambda p: {'wireguard': {}, 'prefixLists': {}})
-    monkeypatch.setattr(a, 'healthy', lambda p: calls.append('health') or True)
+    monkeypatch.setattr(a, 'healthy', lambda p, **kw: calls.append(('health', kw.get('baseline', False))) or True)
     monkeypatch.setattr(a, 'syntax_check', lambda p: None)
     monkeypatch.setattr(a, 'apply_scopes', lambda p: calls.append('apply'))
     monkeypatch.setattr(a.time, 'sleep', lambda n: None)
     assert a.reconcile(tmp_path, p, adoption()) == 'committed'
-    assert calls == ['health', 'apply', 'health', 'health', 'health']
+    assert calls == [('health', True), 'apply', ('health', False), ('health', False), ('health', False)]
     assert json.loads((tmp_path / 'transaction.json').read_text())['state'] == 'committed'
