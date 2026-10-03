@@ -109,10 +109,7 @@ because its AllowedIPs contained only the transport and host identity. The
 legacy public-peer assembler now includes relay-node PodCIDRs and runs every
 reconciliation interval, while still yielding adopted peers to the host agent.
 
-The canary explicitly declares `repairBaselineDns: true` for this known repair.
-Only pre-change DNS success is waived; fresh discovery, peer handshake, BGP/BFD,
-control API and proxy checks remain mandatory. All per-replica DNS tests are
-mandatory after apply, and failed verification restores the baseline locally.
-DNS probes bind the declared accelerated identity, rather than relying on an
-arbitrary transport source address chosen by the kernel. This exception must
-be removed after successful repair; it is not a fleet default.
+The canary retains full pre-change and post-change health gates. The legacy
+assembler repairs unadopted source-prefix coverage before ownership transfer;
+no DNS baseline exception is needed. DNS probes bind the declared accelerated
+identity, rather than an arbitrary transport source chosen by the kernel.
