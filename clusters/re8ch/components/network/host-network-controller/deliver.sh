@@ -5,6 +5,8 @@ root=/host/var/lib/re8ch/host-network
 lib=/host/usr/local/lib/re8ch-host-network
 mkdir -p "$root" "$lib/checks"
 chmod 700 "$root" "$lib" "$lib/checks"
+cp /var/run/secrets/kubernetes.io/serviceaccount/ca.crt "$root/kube-ca.crt"
+host test -x /usr/bin/curl
 # This single-node pilot cannot cause concurrent fleet mutations.
 jq -e --arg node "$NODE_NAME" '.node == $node' /config/package.json >/dev/null
 # Install recovery before enabling any forward reconciliation.
@@ -37,11 +39,11 @@ while true; do
   chmod 600 "$root/desired.json.next"
   mv "$root/desired.json.next" "$root/desired.json"
   token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
-  if curl --fail --silent --show-error --max-time 8 \
-    --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+  if host /usr/bin/curl --fail --silent --show-error --max-time 8 \
+    --cacert /var/lib/re8ch/host-network/kube-ca.crt \
     -H "Authorization: Bearer $token" \
     "https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}/apis/discovery.k8s.io/v1/namespaces/kube-system/endpointslices?labelSelector=kubernetes.io%2Fservice-name%3Dadvanced-fabric-dns" \
-    -o /tmp/host-network-endpoints.json; then
+    > /tmp/host-network-endpoints.json; then
     jq --argjson now "$(date +%s)" '{observedAt:$now,dnsReplicas:([.items[].endpoints[] | select(.conditions.ready == true) | .addresses[]] | unique)}' /tmp/host-network-endpoints.json > "$root/health-targets.json.next"
     chmod 600 "$root/health-targets.json.next"
     mv "$root/health-targets.json.next" "$root/health-targets.json"
