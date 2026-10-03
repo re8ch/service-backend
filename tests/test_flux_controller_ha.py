@@ -64,8 +64,9 @@ def test_source_controller_is_single_active_on_verified_delivery_node():
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == ["restricted-node-6dc3f140f9"]
-    assert pod["dnsPolicy"] == "ClusterFirst"
+    assert expression["values"] == ["restricted-node-abb3f27a69", "restricted-node-1eb0570f74"]
+    assert pod["hostNetwork"] is True
+    assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert "dnsConfig" not in pod
     manager = pod["containers"][0]
     assert "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local." in manager["args"]

@@ -9,9 +9,10 @@ spec:
     type: Recreate
   template:
     spec:
-      # Follow the node's declared clusterDNS instead of pinning a historical
-      # Service IP. This keeps restricted-node-6dc3f140f9, A1 and B1 on the same DNS path.
-      dnsPolicy: ClusterFirst
+      # The MUBAO -> RouterOS -> A1 -> LA2 SOCKS path is host-routed. Keep
+      # source delivery on that path rather than Cilium's Pod egress table.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: manager
           env:
@@ -32,10 +33,13 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    # Source delivery is a singleton and depends on the local
-                    # identity-egress control-plane proxy path. restricted-node-6dc3f140f9 has both a
-                    # healthy proxy endpoint and registry-blob DNS; A1 cannot
-                    # reach that Service VIP and B1 cannot pull the image.
-                    values: [restricted-node-6dc3f140f9]
+                    # MUBAO owns the primary RouterOS path; A1 has a direct
+                    # WireGuard path to the same verified LA2 SOCKS endpoint.
+                    values: [restricted-node-abb3f27a69, restricted-node-1eb0570f74]
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-abb3f27a69]}
       tolerations:
         - operator: Exists
