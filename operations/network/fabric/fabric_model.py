@@ -205,6 +205,16 @@ def outputs(model):
         if section_name == "podcidrFabric":
             all_nodes = section["routeServers"] + section["nodes"] + section.get("relayNodes", [])
             nodes = {n["name"]: n for n in all_nodes}
+            source_policy = model["routeIntent"].get("hostSourceIdentity", {})
+            if source_policy and (source_policy.get("destinationClass"), source_policy.get("protocol"), source_policy.get("source")) != ("declared-podcidrs", "bgp", "acceleratedIp"):
+                raise ValueError("unsupported host source identity policy")
+            section["hostSourceIdentity"] = {}
+            for name in source_policy.get("nodes", []):
+                if name not in nodes:
+                    raise ValueError("unknown source identity node")
+                section["hostSourceIdentity"][name] = {
+                    "source": nodes[name]["acceleratedIp"],
+                    "destinations": sorted({n["podCIDR"] for n in all_nodes if n["name"] != name})}
             section["transitForwarding"] = {}
             for entry in model["routeIntent"].get("transitForwarding", []):
                 if (entry["node"], entry["relayNode"], entry["relayInterface"], entry["fabricInterfaces"]) != (

@@ -906,7 +906,16 @@
           "wg-pt-b1"
         ]
       }
-    ]
+    ],
+    "hostSourceIdentity": {
+      "nodes": [
+        "overseas-flk",
+        "overseas-la-2"
+      ],
+      "destinationClass": "declared-podcidrs",
+      "protocol": "bgp",
+      "source": "acceleratedIp"
+    }
   },
   "hostNetwork": {
     "apiVersion": "networking.re8ch.com/v1alpha1",
