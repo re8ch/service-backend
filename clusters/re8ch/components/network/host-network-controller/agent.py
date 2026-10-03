@@ -259,7 +259,7 @@ def healthy(p):
     for peer in p['health']['bgpPeers']:
         if summary.get('peers', {}).get(peer, {}).get('state') != 'Established':
             return False
-    bfd = json.loads(run(['vtysh', '-c', 'show bfd peers json']))
+    bfd = json.loads(run(['vtysh', '-c', 'show bfd peers json'])) if p['health'].get('bfdPeers') else []
     if any(not any(x.get('peer') == peer and x.get('status') == 'up' for x in bfd)
            for peer in p['health'].get('bfdPeers', [])):
         return False
