@@ -38,5 +38,7 @@ def test_promotion_requires_measured_mtu_and_updates_exact_route_map(monkeypatch
         assert commands == []
     else:
         shadow.main()
+        assert any("set src 192.0.2.114" in args and
+                   "ip protocol bgp route-map ROS-CP-FIB-SRC" in args for args in commands)
         assert ["configure terminal", "route-map ROS-CP-PROBE-IN permit 20",
                 "set local-preference 200", "end", "write memory"] in commands
