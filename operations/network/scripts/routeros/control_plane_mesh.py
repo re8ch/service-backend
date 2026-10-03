@@ -156,6 +156,27 @@ def preflight(router, desired):
             raise RuntimeError("RouterOS tunnel address already in use")
 
 
+def reconcile_mtu(router, desired):
+    """Lower only the three reviewed control-mesh interfaces after path-MTU validation."""
+    preflight(router, desired)
+    if desired["mtu"] != 1200:
+        raise RuntimeError("control-mesh path MTU must be the validated 1200")
+    interfaces = comments(router.rows("/interface/wireguard"))
+    changes = {}
+    for link in desired["links"]:
+        name = link["node"]
+        row = interfaces.get(f'{desired["commentPrefix"]} {name} interface')
+        if not row or row.get("name") != link["interface"] or row.get("listen-port") != str(link["listenPort"]):
+            raise RuntimeError(f"unexpected control-mesh interface for {name}")
+        if row.get("mtu") not in ("1280", "1200"):
+            raise RuntimeError(f"unexpected control-mesh MTU for {name}")
+        changes[name] = row
+    for name, row in changes.items():
+        if row["mtu"] != "1200":
+            router.update("/interface/wireguard", row[".id"], {"mtu": "1200"})
+    return {name: "1200" for name in changes}
+
+
 def stage(router, desired):
     preflight(router, desired)
     preserve = require_wan_reservation(router, desired)
@@ -312,7 +333,7 @@ def rollback_stage(router, desired):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True)
-    parser.add_argument("--action", choices=("validate", "preflight", "stage", "inspect", "stage-probe-bgp", "rollback-probe-bgp", "rollback-stage"), required=True)
+    parser.add_argument("--action", choices=("validate", "preflight", "stage", "inspect", "reconcile-mtu", "stage-probe-bgp", "rollback-probe-bgp", "rollback-stage"), required=True)
     args = parser.parse_args()
     desired = inventory(args.inventory)
     if args.action == "validate":
@@ -324,6 +345,8 @@ def main():
         print("RouterOS control-plane mesh preflight passed")
     elif args.action == "stage":
         print(json.dumps(stage(router, desired), sort_keys=True))
+    elif args.action == "reconcile-mtu":
+        print(json.dumps(reconcile_mtu(router, desired), sort_keys=True))
     elif args.action == "stage-probe-bgp":
         print(json.dumps(stage_probe_bgp(router, desired), sort_keys=True))
     elif args.action == "rollback-probe-bgp":
