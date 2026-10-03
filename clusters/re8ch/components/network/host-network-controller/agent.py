@@ -122,6 +122,11 @@ def snapshot(p):
         if key not in peers:
             raise ValueError('adoption requires existing peer')
         v = peers[key]
+        if peer.get('endpoint') and v['endpoints'] == '(none)':
+            raise ValueError('cannot adopt an endpoint without a restorable baseline')
+        for other_key, other in peers.items():
+            if other_key != key and set(peer['allowedIPs']) & set(other['allowed-ips'].split()):
+                raise ValueError('AllowedIPs ownership collision')
         owned.append({'publicKey': key, 'allowedIPs': v['allowed-ips'].split(),
                       'endpoint': None if v['endpoints'] == '(none)' else v['endpoints'],
                       'keepalive': 0 if v['persistent-keepalive'] == 'off' else int(v['persistent-keepalive'])})
@@ -268,6 +273,7 @@ def recover(state, force=False):
     t['state'] = 'rolled-back'
     save(path, t)
     save(state / 'blocked.json', {'digest': t['digest'], 'reason': 'health-or-deadline'})
+    save(state / 'status.json', {'state': 'rolled-back', 'digest': t['digest'], 'observedAt': time.time()})
 
 
 def reconcile(state, p, adoption):
@@ -316,6 +322,7 @@ def reconcile(state, p, adoption):
                 t['state'] = 'committed'
                 save(txpath, t)
                 save(state / 'committed.json', {'digest': target, 'package': p})
+                save(state / 'status.json', {'state': 'committed', 'digest': target, 'observedAt': time.time()})
                 return 'committed'
             time.sleep(3)
         raise RuntimeError('health deadline')
