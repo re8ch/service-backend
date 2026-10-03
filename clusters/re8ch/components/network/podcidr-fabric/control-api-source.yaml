@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: control-api-source
+  namespace: kube-system
+data:
+  reconcile.sh: |
+    #!/bin/sh
+    set -eu
+    node="$(jq -c --arg name "${NODE_NAME}" '.nodes[] | select(.name == $name and .peerMode == "transport")' /config/inventory.json)"
+    test -n "${node}"
+    last="$(printf '%s' "${node}" | jq -r '.internalIp | split(".")[3]')"
+    identity="$(printf '%s' "${node}" | jq -r '.acceleratedIp')"
+    host() { nsenter -t 1 -n chroot /host "$@"; }
+    while :; do
+      rm -f /run/control-api-source-ready
+      host ip -4 addr show | grep -Fq "${identity}/32" || { sleep 15; continue; }
+      host nft list table ip re8ch_control_api_snat >/dev/null 2>&1 ||
+        host nft add table ip re8ch_control_api_snat
+      host nft list chain ip re8ch_control_api_snat postrouting >/dev/null 2>&1 ||
+        host nft 'add chain ip re8ch_control_api_snat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+      active=0
+      for fabric in 93 94; do
+        if [ "${fabric}" = 93 ]; then iface=wg-pt-a1; else iface=wg-pt-b1; fi
+        host ip link show "${iface}" >/dev/null 2>&1 || continue
+        active=1
+        for api_ip in $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+          rule="ip saddr 172.31.${fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
+          host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
+            host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
+        done
+      done
+      [ "${active}" = 1 ] && touch /run/control-api-source-ready
+      sleep 60
+    done
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: control-api-source
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: control-api-source}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: control-api-source}
+    spec:
+      hostPID: true
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      tolerations: [{operator: Exists}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [overseas-kl, overseas-la, suxunji, muaya-lightweight, muaya-ecs, zan, domain-ex]
+      containers:
+        - name: reconciler
+          image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+          imagePullPolicy: IfNotPresent
+          command: [/usr/bin/sh, /config/reconcile.sh]
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          securityContext: {privileged: true}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 256Mi}
+          readinessProbe:
+            exec: {command: [/usr/bin/test, -f, /run/control-api-source-ready]}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: host-root, mountPath: /host, readOnly: true}
+      volumes:
+        - name: config
+          projected:
+            sources:
+              - configMap: {name: control-api-source, items: [{key: reconcile.sh, path: reconcile.sh}]}
+              - configMap: {name: podcidr-fabric-inventory, items: [{key: inventory.json, path: inventory.json}]}
+        - name: host-root
+          hostPath: {path: /, type: Directory}
