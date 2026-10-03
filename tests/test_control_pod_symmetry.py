@@ -40,7 +40,8 @@ def test_routeros_pod_route_is_a_policy_fallback(monkeypatch):
     spec = importlib.util.spec_from_file_location("control_pod_mesh", SCRIPT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    links = {item["node"]: item for item in json.loads(INVENTORY.read_text())["links"]}
+    inventory = json.loads(INVENTORY.read_text())
+    links = {item["node"]: item for item in inventory["links"]}
     calls = []
 
     def fake_run(*args):
@@ -51,7 +52,7 @@ def test_routeros_pod_route_is_a_policy_fallback(monkeypatch):
 
     monkeypatch.setattr(module, "run", fake_run)
     monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: calls.append(args))
-    module.node_action("stage-node", "restricted-node-1eb0570f74", links)
+    module.node_action("stage-node", "restricted-node-1eb0570f74", links, inventory["podRoutePolicy"])
 
     pod = "192.0.2.26/24"
     assert ("ip", "route", "replace", pod, "via", "192.0.2.190", "dev", "wg-cp-a1",
