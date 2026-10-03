@@ -10,6 +10,7 @@ import argparse
 import copy
 import ipaddress
 import json
+import hashlib
 from pathlib import Path
 
 
@@ -37,6 +38,76 @@ OUTPUTS = {
     ),
 }
 LISTS_BY_NAME = ("nodes", "gateways", "publicNodes", "targets")
+HOST_CONTRACT = "clusters/re8ch/components/network/podcidr-fabric/host-network-contract.json"
+
+
+def host_contract(model):
+    """Compile an inventory-mode contract; never imply host adoption."""
+    contract = copy.deepcopy(model["hostNetwork"])
+    if contract["mode"] != "inventory" or contract["adoptedNodes"]:
+        raise ValueError("host apply requires a separately implemented adoption controller")
+    if contract["ownership"]["frr"]["wholeFileReplacement"]:
+        raise ValueError("shared FRR configuration cannot be replaced wholesale")
+    if contract["ownership"]["advfab"]["ecmpMode"] != "per-flow":
+        raise ValueError("host ECMP must be per-flow")
+    if contract["rollout"]["maxUnavailable"] != 1 or not contract["rollout"]["controlPlaneSerial"]:
+        raise ValueError("host rollout must be serial")
+    if contract["rollback"]["requiresClusterApi"] or contract["rollback"]["executor"] != "host-local":
+        raise ValueError("network rollback must work without the cluster API")
+    sections = model["sections"]
+    fabric = sections["podcidrFabric"]
+    nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])
+    identities = [node["acceleratedIp"] for node in nodes]
+    if len(identities) != len(set(identities)):
+        raise ValueError("duplicate host accelerated identity")
+    public = {f'10.250.0.{node["id"]}': node for node in sections["publicMesh"]["nodes"]}
+    transit = sections["privateTransit"]
+    transit_nodes = {f'10.250.0.{node["id"]}': node
+                     for group in ("gateways", "workers", "publicNodes") for node in transit[group]}
+    control = {node["node"]: node for node in sections["routerosControlMesh"]["links"]}
+    plans = {}
+    for node in sorted(nodes, key=lambda item: item["name"]):
+        name, identity = node["name"], node["acceleratedIp"]
+        interfaces = []
+        if identity in public:
+            entry = public[identity]
+            interfaces.append({"name": "wg-public-mesh", "modelSection": "publicMesh",
+                               "inventoryName": entry["name"], "transportIp": entry["transportIp"],
+                               "mtu": entry.get("mtu", sections["publicMesh"]["mtu"]),
+                               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
+                               "declaredWriters": ["host-wg-quick", "podcidr-fabric-reconciler"]})
+        if identity in transit_nodes:
+            entry = transit_nodes[identity]
+            for key, spec in transit["fabrics"].items():
+                if entry in transit["publicNodes"] or entry.get("fabric") == key:
+                    interfaces.append({"name": spec["interface"], "modelSection": "privateTransit",
+                                       "inventoryName": entry["name"], "fabric": key,
+                                       "declaredWriters": ["host-wg-quick", "podcidr-fabric-reconciler"]})
+        if name in control:
+            interfaces.append({"name": control[name]["interface"], "modelSection": "routerosControlMesh",
+                               "declaredWriters": ["host-wg-quick", "re8ch-control-pod-mesh"]})
+        if name in {item["name"] for item in fabric["routeServers"]}:
+            interfaces.append({"name": "wg-wsl-lan", "modelSection": "podcidrFabric",
+                               "declaredWriters": ["host-wg-quick", "podcidr-fabric-reconciler"]})
+        if name in ("restricted-node-abb3f27a69", "restricted-node-6dc3f140f9"):
+            interfaces.append({"name": "wg-pt-mubao", "modelSection": "podcidrFabric.relayNodes",
+                               "declaredWriters": ["host-wg-quick", "podcidr-fabric-reconciler"]})
+        interface_names = [item["name"] for item in interfaces]
+        if len(interface_names) != len(set(interface_names)):
+            raise ValueError(f"duplicate interface scope on {name}")
+        plans[name] = {"node": name, "identity": identity, "podCIDR": node["podCIDR"],
+                       "asn": node["asn"], "mode": "inventory", "applyEligible": False,
+                       "wireguard": interfaces,
+                       "frr": {"path": "/etc/frr/frr.conf", "replacement": "owned-scopes-only",
+                               "modelSections": ["podcidrFabric"] + (["publicMesh"] if identity in public else []) + (["privateTransit"] if identity in transit_nodes else []) + (["routerosControlMesh"] if name in control else []),
+                               "declaredWriters": ["podcidr-fabric-reconciler", "host-frr-persisted-config"]},
+                       "adoptionBlockers": ["live-writer-audit-required", "transactional-host-controller-required"],
+                       "controlPodRoutePolicy": model["routeIntent"]["controlPodDirectPairs"] if name in control else []}
+    contract["nodes"] = plans
+    # Content identity is reproducible; promotion binds it to a signed Git SHA.
+    payload = json.dumps({"model": model, "plans": plans}, sort_keys=True, separators=(",", ":"))
+    contract["modelDigest"] = "sha256:" + hashlib.sha256(payload.encode()).hexdigest()
+    return contract
 
 
 def load_model(path=MODEL):
@@ -89,6 +160,7 @@ def outputs(model):
             result[paths[1]] = project(
                 section, model.get("runtimeProjections", {}).get(section_name, {})
             )
+    result[HOST_CONTRACT] = host_contract(model)
     return result
 
 
@@ -169,10 +241,17 @@ def validate(model):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("check", "render", "validate"))
+    parser.add_argument("action", choices=("check", "render", "validate", "host-plan"))
     parser.add_argument("--model", type=Path, default=MODEL)
+    parser.add_argument("--node")
     args = parser.parse_args()
     desired = validate(load_model(args.model))
+    if args.action == "host-plan":
+        contract = desired[HOST_CONTRACT]
+        if args.node not in contract["nodes"]:
+            parser.error("--node must name a declared host")
+        print(json.dumps({"modelDigest": contract["modelDigest"], **contract["nodes"][args.node]}, indent=2))
+        return
     if args.action == "validate":
         print(f"fabric model valid: {len(desired)} generated consumers")
         return
