@@ -7,6 +7,13 @@ data:
   reconcile.sh: |
     #!/bin/sh
     set -eu
+    loaded_revision="$(sha256sum /config/reconcile.sh /config/inventory.json)"
+    reload_if_changed() {
+      if [ "${loaded_revision}" != "$(sha256sum /config/reconcile.sh /config/inventory.json)" ]; then
+        echo "${NODE_NAME}: projected fabric revision changed; reloading owner"
+        exec /usr/bin/sh /config/reconcile.sh
+      fi
+    }
 
     node="$(jq -c --arg name "${NODE_NAME}" '.nodes[] | select(.name == $name)' /config/inventory.json)"
     route_server="$(jq -c --arg name "${NODE_NAME}" '.routeServers[] | select(.name == $name)' /config/inventory.json)"
@@ -525,6 +532,7 @@ data:
       touch /run/podcidr-fabric-ready
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
+      reload_if_changed
         reconcile_public_mesh_allowed_ips
         reconcile_wireguard_allowed_ips
         reconcile_control_api_spoke_symmetry
@@ -725,6 +733,7 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      reload_if_changed
       reconcile_transit_forwarding
       reconcile_public_mesh_allowed_ips
       reconcile_r640_b1_podcidr_authority || {
@@ -761,7 +770,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: public-mesh-source-closure-v11
+        networking.re8ch.com/config-revision: content-reload-v1
     spec:
       hostPID: true
       hostNetwork: true

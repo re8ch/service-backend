@@ -11,10 +11,10 @@ def test_r640_and_vm_delegate_each_others_identity_to_public_mesh():
     )
     nodes = {node["name"]: node for node in inventory["nodes"]}
 
-    assert nodes["restricted-node-6dc3f140f9"]["publicMeshIdentityPeers"] == ["vm-20-12-ubuntu"]
-    assert nodes["vm-20-12-ubuntu"]["publicMeshIdentityPeers"] == ["restricted-node-6dc3f140f9"]
-    assert nodes["restricted-node-6dc3f140f9"]["publicMeshPodCIDRPeers"] == ["vm-20-12-ubuntu"]
-    assert nodes["vm-20-12-ubuntu"]["publicMeshPodCIDRPeers"] == ["restricted-node-6dc3f140f9"]
+    assert nodes["r640"]["publicMeshIdentityPeers"] == ["vm-20-12-ubuntu"]
+    assert nodes["vm-20-12-ubuntu"]["publicMeshIdentityPeers"] == ["r640"]
+    assert nodes["r640"]["publicMeshPodCIDRPeers"] == ["vm-20-12-ubuntu"]
+    assert nodes["vm-20-12-ubuntu"]["publicMeshPodCIDRPeers"] == ["r640"]
 
 
 def test_reconciler_removes_identity_interface_route_for_public_mesh_peer():
@@ -35,5 +35,13 @@ def test_reconciler_removes_only_the_retired_vm_to_a1_api_dnat():
 
     assert '[ "${NODE_NAME}" = vm-20-12-ubuntu ] || return 0' in reconciler
     assert reconciler.count("RE8CH panel K3s API recovery via A1") == 2
-    assert reconciler.count("--to-destination 192.0.2.18:6443") == 2
+    assert reconciler.count("--to-destination 10.181.22.147:6443") == 2
     assert "iptables -t nat -D OUTPUT" in reconciler
+
+
+def test_running_owner_reloads_projected_code_and_inventory():
+    text = (ROOT / "clusters/re8ch/components/network/podcidr-fabric/reconciler.yaml").read_text()
+    assert 'sha256sum /config/reconcile.sh /config/inventory.json' in text
+    assert 'exec /usr/bin/sh /config/reconcile.sh' in text
+    for loop in text.split('while sleep 60; do')[1:]:
+        assert 'reload_if_changed' in loop.splitlines()[1]
