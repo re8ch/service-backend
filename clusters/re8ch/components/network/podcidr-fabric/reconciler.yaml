@@ -124,8 +124,10 @@ data:
             host ip rule add pref 11519 from "${spoke_ip}/32" to "${relay_ip}/32" ipproto tcp dport 6443 lookup 15300
           host ip rule show | grep -Fq "to ${spoke_ip} iif ${cp_iface} lookup main" ||
             host ip rule add pref 11522 iif "${cp_iface}" to "${spoke_ip}/32" lookup main
-          host ip rule show | grep -Fq "from ${local_ip} to ${spoke_ip} ipproto tcp sport 6443 lookup main" ||
-            host ip rule add pref 11522 from "${local_ip}/32" to "${spoke_ip}/32" ipproto tcp sport 6443 lookup main
+          for reply_ip in "${local_ip}" 192.0.2.116; do
+            host ip rule show | grep -Fq "from ${reply_ip} to ${spoke_ip} ipproto tcp sport 6443 lookup main" ||
+              host ip rule add pref 11522 from "${reply_ip}/32" to "${spoke_ip}/32" ipproto tcp sport 6443 lookup main
+          done
         done
       done
     }
@@ -692,7 +694,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: control-api-spoke-replies-v5
+        networking.re8ch.com/config-revision: control-vip-spoke-replies-v6
     spec:
       hostPID: true
       hostNetwork: true
