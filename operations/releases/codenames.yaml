@@ -343,6 +343,8 @@ modules:
       digest: sha256:1863dbc56eb8c0d7335a8a46f5da765db465d9ce342dfb2393e11edbd5607af7
     - codename: atoll-umber
       digest: sha256:f7137b8db7660a866c1df71b0c20fb5401a9a76ca405ce91138a0e3cd8b090f8
+    - codename: canopy-umber
+      digest: sha256:8d5d072290a9fa7b5c55ceb392cbbc931e9964afec25e00a170f1b483fe1793e
   platform/cloud-platform:
     releases:
     - codename: atoll
