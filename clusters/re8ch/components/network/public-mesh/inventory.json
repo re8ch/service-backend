@@ -119,10 +119,6 @@
       "publicMode": "static",
       "meshPeers": [
         "restricted-node-6dc3f140f9",
-        "vm-20-12-ubuntu",
-        "artchais-nuclio-1",
-        "rancher-panel",
-        "pg-re8ch-replica-186",
         "overseas-la-2",
         "restricted-node-abb3f27a69"
       ]
@@ -139,10 +135,6 @@
       "publicMode": "static",
       "meshPeers": [
         "restricted-node-6dc3f140f9",
-        "vm-20-12-ubuntu",
-        "artchais-nuclio-1",
-        "rancher-panel",
-        "pg-re8ch-replica-186",
         "overseas-flk",
         "restricted-node-abb3f27a69"
       ]
