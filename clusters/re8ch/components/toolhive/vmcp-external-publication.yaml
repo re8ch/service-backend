@@ -155,6 +155,10 @@ spec:
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: observe}
+    - {name: EXTERNAL_TOOLS_ORIGIN, value: "https://tools.service.re8ch.com"}
+    - {name: EXTERNAL_MCP_RESOURCE, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
+    - {name: EXTERNAL_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
+    - {name: EXTERNAL_AUTH_ORIGIN, value: "https://db-rw.re8ch.com/auth/v1"}
     - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
     - {name: TENANT_NAMESPACE, value: platform}
     - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
