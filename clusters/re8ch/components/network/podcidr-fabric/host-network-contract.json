@@ -131,7 +131,11 @@
     {
       "node": "restricted-node-abb3f27a69",
       "scope": "control-transit-peer",
-      "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao"
+      "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao",
+      "publicReceivePeers": {
+        "overseas-flk": "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
+        "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
+      }
     }
   ],
   "nodes": {
@@ -1133,7 +1137,7 @@
       "controlPodRoutePolicy": []
     }
   },
-  "modelDigest": "sha256:9abb001755bf48f5f59920906f00b4b509b4d511e3a9112be57563bf9fbc42c7",
+  "modelDigest": "sha256:a5f48076ffabe6c6182dcb146c8f95d09960f5c488e3103c26b96e8337e4fb08",
   "transitPaths": {
     "sources": [
       "192.0.2.147/32",

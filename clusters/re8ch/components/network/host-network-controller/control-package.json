@@ -1,7 +1,7 @@
 {
   "node": "restricted-node-abb3f27a69",
   "scope": "control-transit-peer",
-  "revision": "9abb001755bf48f5f59920906f00b4b509b4d511e3a9112be57563bf9fbc42c7",
+  "revision": "a5f48076ffabe6c6182dcb146c8f95d09960f5c488e3103c26b96e8337e4fb08",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-cp-mubao",
@@ -84,5 +84,33 @@
     "checks": [
       "/usr/local/lib/re8ch-host-network/checks/fabric"
     ]
-  }
+  },
+  "additionalWireguard": [
+    {
+      "interface": "wg-public-mesh",
+      "mtu": 1120,
+      "peers": [
+        {
+          "publicKey": "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
+          "allowedIPs": [
+            "192.0.2.154/32",
+            "192.0.2.48/32",
+            "192.0.2.165/24"
+          ],
+          "endpoint": "192.0.2.38:51888",
+          "keepalive": 15
+        },
+        {
+          "publicKey": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs=",
+          "allowedIPs": [
+            "192.0.2.206/32",
+            "192.0.2.148/32",
+            "192.0.2.203/24"
+          ],
+          "endpoint": "192.0.2.146:51888",
+          "keepalive": 15
+        }
+      ]
+    }
+  ]
 }

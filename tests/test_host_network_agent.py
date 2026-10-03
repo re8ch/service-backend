@@ -13,9 +13,9 @@ KEY = 'A' * 43 + '='
 def package():
     return {'node': 'pilot', 'scope': 'public-mesh-peers', 'revision': 'a' * 64, 'timeout': 30,
             'wireguard': {'interface': 'wg-public-mesh', 'mtu': 1280, 'peers': [
-                {'publicKey': KEY, 'allowedIPs': ['192.0.2.125/32', '192.0.2.179/32'], 'endpoint': '192.0.2.216:51820', 'keepalive': 15}]},
-            'prefixLists': {'FROM-128': ['ip prefix-list FROM-128 seq 10 permit 192.0.2.179/32']},
-            'health': {'bgpPeers': ['192.0.2.125'], 'checks': ['/usr/local/lib/re8ch-host-network/checks/fabric']}}
+                {'publicKey': KEY, 'allowedIPs': ['172.31.92.128/32', '10.250.0.128/32'], 'endpoint': '1.2.3.4:51820', 'keepalive': 15}]},
+            'prefixLists': {'FROM-128': ['ip prefix-list FROM-128 seq 10 permit 10.250.0.128/32']},
+            'health': {'bgpPeers': ['172.31.92.128'], 'checks': ['/usr/local/lib/re8ch-host-network/checks/fabric']}}
 
 
 def adoption():
@@ -35,11 +35,11 @@ def test_prefix_authority_and_scope():
 
 
 def test_persistent_merge_preserves_private_key_and_unowned_peer():
-    raw = '[Interface]\nPrivateKey = HOST-ONLY\nPostUp = keep-this\nMTU = 1420\n\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 192.0.2.125/32\n\n[Peer]\nPublicKey = OTHER\nAllowedIPs = 192.0.2.18/16\n'
+    raw = '[Interface]\nPrivateKey = HOST-ONLY\nPostUp = keep-this\nMTU = 1420\n\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 172.31.92.128/32\n\n[Peer]\nPublicKey = OTHER\nAllowedIPs = 10.8.0.0/16\n'
     patched = a.patch_wg_config(raw, package()['wireguard'])
     assert 'PrivateKey = HOST-ONLY' in patched
     assert 'PostUp = keep-this' in patched
-    assert '[Peer]\nPublicKey = OTHER\nAllowedIPs = 192.0.2.18/16' in patched
+    assert '[Peer]\nPublicKey = OTHER\nAllowedIPs = 10.8.0.0/16' in patched
     assert 'MTU = 1280' in patched and 'MTU = 1420' not in patched
     assert patched == a.patch_wg_config(patched, package()['wireguard'])
 
@@ -89,7 +89,7 @@ def test_unhealthy_baseline_never_mutates(tmp_path, monkeypatch):
 
 
 def test_rollback_restores_persistent_fields_separately():
-    raw = '[Interface]\nPrivateKey = PRIVATE\n\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 192.0.2.125/32\n'
+    raw = '[Interface]\nPrivateKey = PRIVATE\n\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 172.31.92.128/32\n'
     baseline = a.persistent_fields(raw, {KEY})
     changed = a.patch_wg_config(raw, package()['wireguard'])
     restored = a.patch_wg_config(changed, package()['wireguard'], baseline)
@@ -113,7 +113,7 @@ def test_commit_requires_three_health_rounds(tmp_path, monkeypatch):
 
 def test_syntax_staging_uses_host_config_dirs_and_strips_cli_headers(tmp_path, monkeypatch):
     p = package()
-    raw = '[Interface]\nMTU = 1280\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 192.0.2.125/32\n'
+    raw = '[Interface]\nMTU = 1280\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 172.31.92.128/32\n'
     original_read = Path.read_text
     monkeypatch.setattr(Path, 'read_text', lambda path, *args, **kwargs: raw if str(path) == '/etc/wireguard/wg-public-mesh.conf' else original_read(path, *args, **kwargs))
     original_mkstemp = a.tempfile.mkstemp
@@ -160,7 +160,7 @@ def test_health_does_not_require_bfdd_for_a_non_bfd_peer(monkeypatch):
     def run(argv):
         calls.append(argv)
         if 'show bgp ipv4 unicast summary json' in argv:
-            return json.dumps({'peers': {'192.0.2.125': {'state': 'Established'}}})
+            return json.dumps({'peers': {'172.31.92.128': {'state': 'Established'}}})
         if argv[0] == 'wg':
             return KEY + '\t' + str(int(a.time.time()))
         if 'show bfd peers json' in argv:
@@ -169,3 +169,60 @@ def test_health_does_not_require_bfdd_for_a_non_bfd_peer(monkeypatch):
     monkeypatch.setattr(a, 'run', run)
     assert a.healthy(p)
     assert not any('show bfd peers json' in argv for argv in calls)
+
+
+def control_package():
+    root = Path(__file__).parents[1] / 'clusters/re8ch/components/network/host-network-controller'
+    return (json.loads((root / 'control-package.json').read_text()),
+            json.loads((root / 'control-adoption.json').read_text()))
+
+
+def test_extra_interface_requires_exact_reviewed_adoption():
+    p, adopted = control_package()
+    a.validate(p, adopted)
+    extra = p['additionalWireguard'][0]
+    assert {prefix for peer in extra['peers'] for prefix in peer['allowedIPs'] if prefix.startswith('10.42.')} == {'10.42.4.0/24', '10.42.3.0/24'}
+    adopted['additionalPeerKeys']['wg-public-mesh'] = []
+    with pytest.raises(ValueError, match='ownership'):
+        a.validate(p, adopted)
+
+
+def test_snapshot_journals_both_interfaces_and_persistent_fields(monkeypatch):
+    p, _ = control_package()
+    byiface = {w['interface']: w for w in [p['wireguard']] + p['additionalWireguard']}
+    def run(argv):
+        if argv[0] == 'wg':
+            w = byiface[argv[2]]
+            def value(peer):
+                return {'allowed-ips': ' '.join(peer['allowedIPs']), 'endpoints': peer['endpoint'],
+                        'persistent-keepalive': str(peer['keepalive'])}[argv[3]]
+            return '\n'.join(peer['publicKey'] + '\t' + value(peer) for peer in w['peers'])
+        if argv[0] == 'ip':
+            return json.dumps([{'mtu': byiface[argv[-1]]['mtu']}])
+        return ''
+    def read(path):
+        w = byiface[path.stem]
+        return '[Interface]\nPrivateKey = KEEP-PRIVATE\nMTU = '+str(w['mtu'])+'\n'+''.join(
+            '[Peer]\nPublicKey = '+peer['publicKey']+'\nAllowedIPs = '+', '.join(peer['allowedIPs'])+'\n'
+            for peer in w['peers'])
+    monkeypatch.setattr(a, 'run', run)
+    monkeypatch.setattr(Path, 'read_text', read)
+    baseline = a.snapshot(p)
+    assert baseline['wireguard'] == p['wireguard']
+    assert baseline['additionalWireguard'] == p['additionalWireguard']
+    assert 'wg-public-mesh' in baseline['additionalPersistentFields']
+    assert 'KEEP-PRIVATE' not in json.dumps(baseline)
+
+
+def test_additional_peer_handshake_is_a_health_gate(monkeypatch):
+    p, _ = control_package()
+    def run(argv):
+        if argv[0] == 'vtysh':
+            return json.dumps({'peers': {ip: {'state': 'Established'} for ip in p['health']['bgpPeers']}})
+        if argv[:3] == ['wg', 'show', 'wg-cp-mubao']:
+            return p['wireguard']['peers'][0]['publicKey']+'\t'+str(int(a.time.time()))
+        if argv[:3] == ['wg', 'show', 'wg-public-mesh']:
+            return '\n'.join(peer['publicKey']+'\t0' for peer in p['additionalWireguard'][0]['peers'])
+        raise AssertionError('health scripts must not run after failed handshake')
+    monkeypatch.setattr(a, 'run', run)
+    assert not a.healthy(p)
