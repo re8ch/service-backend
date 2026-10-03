@@ -15,7 +15,7 @@ SPEC.loader.exec_module(FABRIC)
 
 def test_all_consumers_match_single_fabric_model():
     rendered = FABRIC.validate(FABRIC.load_model())
-    assert len(rendered) == 13
+    assert len(rendered) == 15
     for relative, expected in rendered.items():
         assert json.loads((ROOT / relative).read_text()) == expected
 
@@ -49,7 +49,7 @@ def test_host_contract_uses_runtime_node_names_and_has_stable_revision():
     assert first == FABRIC.host_contract(copy.deepcopy(model))
     assert "suxunji" in first["nodes"]
     assert "artchais-nuclio-1" not in first["nodes"]
-    assert first["nodes"]["restricted-node-abb3f27a69"]["applyEligible"] is False
+    assert first["nodes"]["restricted-node-abb3f27a69"]["applyEligible"] is True
     assert {item["name"] for item in first["nodes"]["restricted-node-abb3f27a69"]["wireguard"]} == {
         "wg-public-mesh", "wg-cp-mubao", "wg-pt-mubao"}
     changed = copy.deepcopy(model)

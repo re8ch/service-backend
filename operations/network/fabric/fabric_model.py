@@ -48,7 +48,9 @@ def host_contract(model):
     if contract["mode"] == "inventory":
         if contract["adoptedNodes"]:
             raise ValueError("inventory requires explicit adoption controller")
-    elif contract["mode"] != "canary" or contract["adoptedNodes"] != [pilot.get("node")] or pilot.get("node") != "overseas-flk":
+    elif (contract["mode"] != "canary" or pilot.get("node") != "overseas-flk"
+          or contract["adoptedNodes"] != [pilot.get("node")] + [c["node"] for c in contract.get("controlTransitControllers", [])]
+          or [c["node"] for c in contract.get("controlTransitControllers", [])] not in ([], ["restricted-node-abb3f27a69"])):
         raise ValueError("adoption controller currently permits one non-control-plane canary")
     if contract["ownership"]["frr"]["wholeFileReplacement"]:
         raise ValueError("shared FRR configuration cannot be replaced wholesale")
@@ -112,6 +114,8 @@ def host_contract(model):
         plan["mode"] = "canary"
         plan["applyEligible"] = True
         plan["adoptedScope"] = pilot["scope"]
+        for c in contract.get("controlTransitControllers", []):
+            plans[c["node"]].update(mode="canary", applyEligible=True, adoptedScope=c["scope"])
         plan["adoptionBlockers"] = ["live-preflight-health-required"]
     contract["nodes"] = plans
     # Content identity is reproducible; promotion binds it to a signed Git SHA.
@@ -241,6 +245,26 @@ def outputs(model):
         result[base + "adoption.json"] = {"node": controller["node"], "scope": controller["scope"],
             "peerKeys": [p["publicKey"] for p in peers], "prefixLists": list(lists),
             "managementPath": "public-ssh-independent-of-mesh", "writerAudit": "2026-10-04-flk-public-peers"}
+    for controller in model["hostNetwork"].get("controlTransitControllers", []):
+        control = model["sections"]["routerosControlMesh"]
+        own = next(link for link in control["links"] if link["node"] == controller["node"])
+        sources = ["192.0.2.178/28", "192.0.2.148/24", control["managementIp"] + "/32", "192.0.2.106/24"]
+        sources += [link["podCIDR"] for link in control["links"] if link["node"] != own["node"]]
+        sources += transit["sources"]
+        base = "clusters/re8ch/components/network/host-network-controller/"
+        health = copy.deepcopy(model["hostNetwork"]["controller"]["health"])
+        health.update(sourceIdentity=own["identity"].split("/")[0],
+                      bgpPeers=[str(ipaddress.ip_interface(own["routerAddress"]).ip)], bfdPeers=[],
+                      checks=["/usr/local/lib/re8ch-host-network/checks/fabric"])
+        result[base + "control-package.json"] = {"node": own["node"], "scope": "control-transit-peer",
+            "revision": result[HOST_CONTRACT]["modelDigest"].split(":")[1], "timeout": 180,
+            "wireguard": {"interface": own["interface"], "mtu": control["mtu"], "peers": [{
+                "publicKey": own["routerPublicKey"], "allowedIPs": sorted(set(sources)),
+                "endpoint": f'{control["publicEndpoint"]}:{own["listenPort"]}', "keepalive": 25}]},
+            "prefixLists": {}, "health": health}
+        result[base + "control-adoption.json"] = {"node": own["node"], "scope": "control-transit-peer",
+            "peerKeys": [own["routerPublicKey"]], "prefixLists": [],
+            "managementPath": controller["managementPath"], "writerAudit": "control-pod-owner-handoff-v1"}
     fabric = model["sections"]["podcidrFabric"]
     controls = model["sections"]["routerosControlMesh"]
     source_nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])

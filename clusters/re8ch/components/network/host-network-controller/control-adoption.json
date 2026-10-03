@@ -1,0 +1,10 @@
+{
+  "node": "restricted-node-abb3f27a69",
+  "scope": "control-transit-peer",
+  "peerKeys": [
+    "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
+  ],
+  "prefixLists": [],
+  "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao",
+  "writerAudit": "control-pod-owner-handoff-v1"
+}

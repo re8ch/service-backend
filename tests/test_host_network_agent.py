@@ -135,3 +135,19 @@ def test_syntax_staging_uses_host_config_dirs_and_strips_cli_headers(tmp_path, m
     a.syntax_check(p)
     assert '/etc/wireguard' in destinations and '/etc/frr' in destinations
     assert list(tmp_path.iterdir()) == []
+
+
+def test_control_transit_package_is_scoped_to_adopted_mubao_peer():
+    root = Path(__file__).parents[1] / 'clusters/re8ch/components/network/host-network-controller'
+    p = json.loads((root / 'control-package.json').read_text())
+    adoption = json.loads((root / 'control-adoption.json').read_text())
+    a.validate(p, adoption)
+    p['wireguard']['interface'] = 'wg-pt-mubao'
+    with pytest.raises(ValueError, match='interface'):
+        a.validate(p, adoption)
+
+
+def test_control_owner_delivery_matches_reviewed_source():
+    root = Path(__file__).parents[1]
+    assert (root / 'operations/network/scripts/routeros/control_pod_mesh.py').read_bytes() == (
+        root / 'clusters/re8ch/components/network/host-network-controller/control_pod_mesh.py').read_bytes()

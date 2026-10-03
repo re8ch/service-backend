@@ -987,7 +987,8 @@
       "boot": "last-known-good"
     },
     "adoptedNodes": [
-      "overseas-flk"
+      "overseas-flk",
+      "restricted-node-abb3f27a69"
     ],
     "controller": {
       "version": "v1-scoped-canary",
@@ -1024,6 +1025,13 @@
         "egressURL": "https://www.gstatic.com/generate_204",
         "sourceIdentity": "192.0.2.109"
       }
-    }
+    },
+    "controlTransitControllers": [
+      {
+        "node": "restricted-node-abb3f27a69",
+        "scope": "control-transit-peer",
+        "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao"
+      }
+    ]
   }
 }

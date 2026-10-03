@@ -144,3 +144,13 @@ These are desired paths, not observations of health or permission to advertise.
 The existing control-pod host owner consumes `podRoutePolicy.transitSources`;
 its host delivery must be upgraded before the new model is considered applied.
 Public authority, FRR route choice and NetworkPolicy are unchanged by this step.
+
+### Control transit canary
+
+MUBAO now has a separately generated `control-transit-peer` package delivered
+by Flux. Its existing control-pod owner is upgraded first to yield the adopted
+WG peer, while retaining its route responsibilities. The host agent owns that
+peer's persistent/runtime fields and MTU; local recovery is enabled before
+adoption. Its independent management path is wg-pt-mubao. A1/B1 remain inventory
+only for this scope until the MUBAO Pod-source acceptance matrix passes.
+The new adapter does not claim FRR neighbor or policy-route transaction support.

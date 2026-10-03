@@ -88,7 +88,8 @@
     "boot": "last-known-good"
   },
   "adoptedNodes": [
-    "overseas-flk"
+    "overseas-flk",
+    "restricted-node-abb3f27a69"
   ],
   "controller": {
     "version": "v1-scoped-canary",
@@ -126,6 +127,13 @@
       "sourceIdentity": "192.0.2.109"
     }
   },
+  "controlTransitControllers": [
+    {
+      "node": "restricted-node-abb3f27a69",
+      "scope": "control-transit-peer",
+      "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao"
+    }
+  ],
   "nodes": {
     "restricted-node-1eb0570f74": {
       "node": "restricted-node-1eb0570f74",
@@ -464,8 +472,8 @@
       "identity": "192.0.2.114",
       "podCIDR": "192.0.2.214/24",
       "asn": 4200010029,
-      "mode": "inventory",
-      "applyEligible": false,
+      "mode": "canary",
+      "applyEligible": true,
       "wireguard": [
         {
           "name": "wg-public-mesh",
@@ -522,7 +530,8 @@
           "restricted-node-296f36f2fb",
           "restricted-node-1eb0570f74"
         ]
-      ]
+      ],
+      "adoptedScope": "control-transit-peer"
     },
     "overseas-edge-50": {
       "node": "overseas-edge-50",
@@ -1124,7 +1133,7 @@
       "controlPodRoutePolicy": []
     }
   },
-  "modelDigest": "sha256:2696e2db0c9cf6d9db5bd712708bd1c428e086e442d18cd870bc2c26e4ab4de0",
+  "modelDigest": "sha256:529f64c9d3e6eb13ce72441ba4b33e7a3958d6814e21fe07265b7082133ab5a0",
   "transitPaths": {
     "sources": [
       "192.0.2.29/32",
