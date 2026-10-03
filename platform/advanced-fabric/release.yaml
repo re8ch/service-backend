@@ -336,12 +336,11 @@ spec:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         # DNS is a recovery-plane service, not an ordinary balanced workload.
-        # Keep exactly one replica in each reviewed control-plane failure
-        # domain so loss of A1 or B1 cannot remove half of the cluster DNS
-        # authority. restricted-node-6dc3f140f9 is deliberately admitted as the third independent
-        # floor; the hard anti-affinity below prevents replica co-location.
-        replicas: 3
-        pdbMinAvailable: 2
+        # Keep one replica on each control plane. Retain restricted-node-6dc3f140f9's local DNS
+        # endpoint for worker traffic while removing its API authority.
+        # Hard anti-affinity prevents replica co-location.
+        replicas: 4
+        pdbMinAvailable: 3
         # Run the blocking Helm test beside the restricted-node-6dc3f140f9 DNS replica. A control-plane
         # Service-path fault must remain observable, but must not leave the
         # already-upgraded fabric release permanently Stalled and block all
@@ -349,9 +348,9 @@ spec:
         testNodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         # Bootstrap by IP, outside both cluster DNS and the Service VIP path.
         kubernetesApiEndpoints:
-          - https://192.0.2.176:6443
-          - https://192.0.2.4:6443
-          - https://192.0.2.178:6443
+          - https://192.0.2.242:6443
+          - https://192.0.2.1:6443
+          - https://192.0.2.223:6443
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -359,7 +358,7 @@ spec:
                 - matchExpressions:
                     - key: kubernetes.io/hostname
                       operator: In
-                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69, restricted-node-6dc3f140f9]
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
