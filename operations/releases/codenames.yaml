@@ -425,6 +425,8 @@ modules:
       digest: sha256:d7407b82107df2910a0d987a9c3c92fc6f7e2e8d19386ba5d6befce32482aa60
     - codename: tramontane-indigo
       digest: sha256:2ad7c2fcc1844c8a1e8cb74b7a4213cb0f8f6ea544f06d95a4108f35ad3f7635
+    - codename: zephyr-indigo
+      digest: sha256:0da8b9c1c4e7da49834700638389f8c7316039034eda5119b7e2209148b385b5
   platform/git-workspaces:
     releases:
     - codename: andromeda
