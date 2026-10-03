@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/network/podcidr-fabric
-codename: zephyr-pearl
+codename: bora-silver
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
-  digest: sha256:dab7591a5ffe1d7eefad1d206b235d3616e058f177c20fe401a044638c21eb52
+  digest: sha256:cdfbe52435faa521477cbea5f067e56ad2fae1802661d91d3632491928c56f8f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
