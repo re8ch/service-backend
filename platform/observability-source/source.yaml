@@ -7,6 +7,17 @@ spec:
   interval: 1m
   path: ./
   prune: false
+  patches:
+  - target:
+      kind: Namespace
+      name: observability-system
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: observability-system
+        labels:
+          scheduling.re8ch.com/control-plane-allowed: "true"
   # Gate production on the installed operators. A transient upstream chart
   # index failure must remain visible on its HelmRepository without making
   # already healthy operators unavailable to dependent Kustomizations.
