@@ -18,13 +18,13 @@ def test_release_consumes_signed_public_advanced_fabrics_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     assert source["spec"]["url"] == "oci://ghcr.io/advanced-fabrics/charts/advanced-fabric"
     assert source["spec"]["ref"]["digest"] == (
-        "sha256:9044b27f3f4d23b936091f52d203cde4336800da639a81d4397eccd0cbb90736"
+        "sha256:9ccfa80203946025eef4a71e1b5cd54ffcf43b2430acc4f62968d4b7d0b37d9a"
     )
     identity = source["spec"]["verify"]["matchOIDCIdentity"][0]
     assert identity["issuer"] == r"^https://token\.actions\.githubusercontent\.com$"
     assert identity["subject"] == (
         r"^https://github\.com/advanced-fabrics/core/\.github/workflows/"
-        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.9$"
+        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.10$"
     )
 
 

@@ -8,12 +8,12 @@ spec:
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:9044b27f3f4d23b936091f52d203cde4336800da639a81d4397eccd0cbb90736
+    digest: sha256:9ccfa80203946025eef4a71e1b5cd54ffcf43b2430acc4f62968d4b7d0b37d9a
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.9$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.10$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -290,6 +290,10 @@ spec:
         # recovery domains for the NetworkPathAssessment freshness clock.
         replicas: 2
         pdbMinAvailable: 1
+        # Both eligible nodes run kube-apiserver. Reach the local instance
+        # directly so Lease renewal survives a cluster Service datapath fault.
+        useNodeLocalAPI: true
+        nodeLocalAPIPort: 6443
         tolerations:
           - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
@@ -336,12 +340,11 @@ spec:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         # DNS is a recovery-plane service, not an ordinary balanced workload.
-        # Keep exactly one replica in each reviewed control-plane failure
-        # domain so loss of A1 or B1 cannot remove half of the cluster DNS
-        # authority. restricted-node-6dc3f140f9 is deliberately admitted as the third independent
-        # floor; the hard anti-affinity below prevents replica co-location.
-        replicas: 3
-        pdbMinAvailable: 2
+        # Keep one replica on each control plane. Retain restricted-node-6dc3f140f9's local DNS
+        # endpoint for worker traffic while removing its API authority.
+        # Hard anti-affinity prevents replica co-location.
+        replicas: 4
+        pdbMinAvailable: 3
         # Run the blocking Helm test beside the restricted-node-6dc3f140f9 DNS replica. A control-plane
         # Service-path fault must remain observable, but must not leave the
         # already-upgraded fabric release permanently Stalled and block all
@@ -349,9 +352,9 @@ spec:
         testNodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
         # Bootstrap by IP, outside both cluster DNS and the Service VIP path.
         kubernetesApiEndpoints:
-          - https://192.0.2.176:6443
-          - https://192.0.2.4:6443
-          - https://192.0.2.178:6443
+          - https://192.0.2.242:6443
+          - https://192.0.2.1:6443
+          - https://192.0.2.223:6443
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -359,7 +362,7 @@ spec:
                 - matchExpressions:
                     - key: kubernetes.io/hostname
                       operator: In
-                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69, restricted-node-6dc3f140f9]
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:

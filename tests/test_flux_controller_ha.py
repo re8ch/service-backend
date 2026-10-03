@@ -12,7 +12,7 @@ REPLICATED = {
     "kustomize-controller",
     "notification-controller",
 }
-CONTROL_PLANES = {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}
+CONTROL_PLANES = {"restricted-node-1eb0570f74", "restricted-node-abb3f27a69"}
 
 
 def rendered_documents():
@@ -21,7 +21,7 @@ def rendered_documents():
     return list(yaml.safe_load_all(output))
 
 
-def test_flux_controllers_use_three_control_planes_and_stable_dns():
+def test_flux_controllers_span_two_control_planes_and_use_local_dns():
     deployments = {
         item["metadata"]["name"]: item
         for item in rendered_documents()
@@ -36,6 +36,10 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         assert expression["key"] == "kubernetes.io/hostname"
         assert set(expression["values"]) == CONTROL_PLANES
         assert pod["dnsPolicy"] == "ClusterFirst"
+        env = {item["name"]: item for item in pod["containers"][0]["env"]}
+        assert env["KUBERNETES_SERVICE_HOST"]["valueFrom"]["fieldRef"]["fieldPath"] == "status.hostIP"
+        assert env["KUBERNETES_SERVICE_PORT"]["value"] == "6443"
+        assert env["KUBERNETES_SERVICE_PORT_HTTPS"]["value"] == "6443"
         assert "dnsConfig" not in pod
         assert {
             "key": "node-role.kubernetes.io/control-plane",
@@ -47,7 +51,7 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         assert anti_affinity["matchLabelKeys"] == ["app"]
         assert "--enable-leader-election" in pod["containers"][0]["args"]
         preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
-        assert [item["preference"]["matchExpressions"][0]["values"] for item in preferred] == [["restricted-node-6dc3f140f9"], ["restricted-node-296f36f2fb"]]
+        assert [item["preference"]["matchExpressions"][0]["values"] for item in preferred] == [["restricted-node-abb3f27a69"], ["restricted-node-1eb0570f74"]]
         if name in {"helm-controller", "kustomize-controller"}:
             assert "--concurrent=10" in pod["containers"][0]["args"]
 
@@ -64,8 +68,9 @@ def test_source_controller_is_single_active_on_verified_delivery_node():
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == ["restricted-node-6dc3f140f9"]
-    assert pod["dnsPolicy"] == "ClusterFirst"
+    assert expression["values"] == ["restricted-node-abb3f27a69", "restricted-node-1eb0570f74"]
+    assert pod["hostNetwork"] is True
+    assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert "dnsConfig" not in pod
     manager = pod["containers"][0]
     assert "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local." in manager["args"]

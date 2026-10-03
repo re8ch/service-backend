@@ -210,7 +210,7 @@ def test_control_plane_reservations_are_declared_without_noexecute():
     assert "max-pods=32" in configs["mubao-k3s-config.yaml"]["kubelet-arg"]
 
 
-def test_advanced_fabric_controller_spreads_across_control_plane_recovery_domains():
+def test_advanced_fabric_controller_spans_two_control_nodes():
     release = list(
         yaml.safe_load_all(
             (ROOT / "platform/advanced-fabric/release.yaml").read_text()

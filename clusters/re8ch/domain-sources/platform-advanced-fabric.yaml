@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: bora-jade
+    delivery.re8ch.com/codename: etesian-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
   ref:
-    digest: sha256:a0e8dcaa84fa5ed72ece76b9840d8ef939325935df2176fca9375f2605ea4eba
+    digest: sha256:5a8fd8199125c4edda64a2b5add7069d22235f5dfcbd38c13d19431ac61556fe
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: bora-jade
+    delivery.re8ch.com/codename: etesian-jade
 spec:
   interval: 1m
   retryInterval: 1m
