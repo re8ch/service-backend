@@ -7,7 +7,7 @@ names even when older WireGuard inventories use aliases. The content digest
 identifies the exact model and node plans.
 
 ```sh
-python3 operations/network/fabric/fabric_model.py host-plan --node restricted-node-abb3f27a69
+python3 operations/network/fabric/fabric_model.py host-plan --node mubao-wsl
 python3 operations/network/fabric/fabric_model.py check
 ```
 
@@ -45,7 +45,7 @@ node may apply at a time; control-plane nodes must be serialized. Writer
 handoff, baseline snapshot and an independent management path are prerequisites.
 
 Before apply, validate WireGuard/FRR syntax, prefix scope, loop prevention and
-the restricted-node-6dc3f140f9 public authority. Before commit, verify handshakes, BGP/BFD, both PodCIDR
+the R640 public authority. Before commit, verify handshakes, BGP/BFD, both PodCIDR
 directions, every DNS replica over UDP/TCP, control-plane VIP and egress proxy.
 Pod Ready and BGP Established alone are insufficient.
 
@@ -61,7 +61,7 @@ adapter supports only the scopes listed below.
 ## v1 scoped canary controller (2026-10-04)
 
 The controller now supports a single non-control-plane canary: overseas-flk.
-Its scope is the public-mesh interface MTU, the restricted-node-6dc3f140f9/LA2 peers' AllowedIPs,
+Its scope is the public-mesh interface MTU, the R640/LA2 peers' AllowedIPs,
 endpoint and keepalive, and their exact FROM-* FRR prefix lists. All other
 neighbors, keys, interfaces, route tables and AdvFab policy remain with their
 existing owners. The compiler combines public identities and PodCIDR ownership
@@ -83,7 +83,7 @@ or explicit egress proxy tests. An unhealthy baseline blocks forward changes.
 Recovery uses only the local journal and works without Kubernetes connectivity.
 
 The first canary has not been certified as globally healthy: initial FLK checks
-could reach A1/B1 DNS but timed out to restricted-node-6dc3f140f9/MUBAO DNS. Installation is not a claim
+could reach A1/B1 DNS but timed out to R640/MUBAO DNS. Installation is not a claim
 of successful adoption or fleet-wide convergence. Query the host journal and
 status files, rather than treating the delivery Pod's Running phase as success.
 
@@ -103,7 +103,7 @@ services while a transaction is applying/verifying/rolling-back.
 
 ### Source-prefix closure and repair preflight
 
-The 2026-10-04 packet audit observed a DNS query reach restricted-node-6dc3f140f9 over private
+The 2026-10-04 packet audit observed a DNS query reach R640 over private
 transit, an answer leave over wg-public-mesh, and FLK reject that peer's PodCIDR
 because its AllowedIPs contained only the transport and host identity. The
 legacy public-peer assembler now includes relay-node PodCIDRs and runs every
@@ -119,7 +119,7 @@ identity, rather than an arbitrary transport source chosen by the kernel.
 `routeIntent.routerosTransitIngress` declares A1/B1 as forwarding ingresses.
 The compiler derives the exact other-node accelerated /32 and PodCIDR /24
 sources from PodCIDR ownership. `routeros-transit-controller` runs on a control
-plane (never requires restricted-node-6dc3f140f9 placement), uses the existing mounted RouterOS
+plane (never requires R640 placement), uses the existing mounted RouterOS
 credential, and maintains only:
 
 - transit additions on the reviewed A1/B1 RouterOS WG peers;
@@ -154,3 +154,14 @@ peer's persistent/runtime fields and MTU; local recovery is enabled before
 adoption. Its independent management path is wg-pt-mubao. A1/B1 remain inventory
 only for this scope until the MUBAO Pod-source acceptance matrix passes.
 The new adapter does not claim FRR neighbor or policy-route transaction support.
+
+### Relay forwarding firewall
+
+`routeIntent.transitForwarding` generates exact source/destination PodCIDR and
+WG interface pairs for the R640 MUBAO relay. The existing PodCIDR reconciler
+atomically replaces only RE8CH-FABRIC-FORWARD and places its jump before UFW.
+Both directions are declared; interfaces facing the LAN/public network are
+excluded. Removing the declaration removes this owned chain. This closes the
+observed MUBAO DNS return path (wg-pt-mubao -> wg-pt-a1/b1) without weakening
+Cilium workload policy or changing R640 public delivery. It is an interim
+usable relay path, not proof that the R640-independent return path is complete.

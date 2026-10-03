@@ -895,6 +895,17 @@
     "routerosTransitIngress": [
       "restricted-node-1eb0570f74",
       "restricted-node-296f36f2fb"
+    ],
+    "transitForwarding": [
+      {
+        "node": "restricted-node-6dc3f140f9",
+        "relayNode": "restricted-node-abb3f27a69",
+        "relayInterface": "wg-pt-mubao",
+        "fabricInterfaces": [
+          "wg-pt-a1",
+          "wg-pt-b1"
+        ]
+      }
     ]
   },
   "hostNetwork": {

@@ -248,6 +248,33 @@ data:
           ip daddr "${accelerated_cidr}" oifname wg-wsl-lan snat to "${accelerated_ip}"
     }
 
+    reconcile_transit_forwarding() {
+      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      chain=RE8CH-FABRIC-FORWARD
+      if ! jq -e --arg node "${NODE_NAME}" '.transitForwarding[$node] | length > 0' /config/inventory.json >/dev/null; then
+        if host iptables -w -S "${chain}" >/dev/null 2>&1; then
+          host iptables -w -D FORWARD -j "${chain}" 2>/dev/null || true
+          host iptables -w -F "${chain}"
+          host iptables -w -X "${chain}"
+        fi
+        return 0
+      fi
+      desired="$(mktemp)"
+      jq -r --arg node "${NODE_NAME}" --arg chain "${chain}" '.transitForwarding[$node][] |
+        "-A " + $chain + " -s " + .source + " -d " + .destination + " -i " + .inInterface + " -o " + .outInterface + " -j ACCEPT"' /config/inventory.json >"${desired}"
+      current="$(host iptables -w -S "${chain}" 2>/dev/null | sed '/^-N /d' || true)"
+      if [ "${current}" != "$(cat "${desired}")" ]; then
+        transaction="$(mktemp)"
+        { echo '*filter'; echo ":${chain} - [0:0]"; echo "-F ${chain}"; cat "${desired}"; echo COMMIT; } >"${transaction}"
+        host iptables-restore --test --noflush -w <"${transaction}"
+        host iptables-restore --noflush -w <"${transaction}"
+        rm -f "${transaction}"
+      fi
+      # Before UFW's default deny, but after Cilium's local-delivery chain.
+      host iptables -w -C FORWARD -j "${chain}" 2>/dev/null || host iptables -w -I FORWARD 2 -j "${chain}"
+      rm -f "${desired}"
+    }
+
     reconcile_r640_identity_transit_nat() {
       [ "${NODE_NAME}" = restricted-node-1eb0570f74 ] || return 0
       host ip link show wg-pt-a1 >/dev/null 2>&1 || return 0
@@ -683,6 +710,7 @@ data:
     }
 
     apply_fabric
+    reconcile_transit_forwarding
     reconcile_relay_nodes
     reconcile_routeros_boundary
     reconcile_r640_b1_podcidr_authority
@@ -697,6 +725,7 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      reconcile_transit_forwarding
       reconcile_public_mesh_allowed_ips
       reconcile_r640_b1_podcidr_authority || {
         rm -f /run/podcidr-fabric-ready
