@@ -50,6 +50,7 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
 
 def test_every_managed_server_uses_fixed_cluster_dns():
     configs = sorted((ROOT / "clusters/re8ch/components/ops").glob("*k3s-server-config.yaml"))
+    configs.append(ROOT / "operations/network/manifests/network/private-transit/mubao-k3s-config.yaml")
     assert len(configs) == 3
     for config in configs:
         rendered = yaml.safe_load(config.read_text())

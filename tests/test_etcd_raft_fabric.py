@@ -5,13 +5,13 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIGS = {
-    "a1-wsl2-k3s-server-config.yaml": "192.0.2.173",
-    "b1-wsl2-k3s-server-config.yaml": "192.0.2.213",
-    "r640-k3s-server-config.yaml": "192.0.2.205",
+    "clusters/re8ch/components/ops/a1-wsl2-k3s-server-config.yaml": ("restricted-node-1eb0570f74", "192.0.2.173"),
+    "clusters/re8ch/components/ops/b1-wsl2-k3s-server-config.yaml": ("restricted-node-296f36f2fb", "192.0.2.213"),
+    "operations/network/manifests/network/private-transit/mubao-k3s-config.yaml": ("restricted-node-abb3f27a69", "192.0.2.114"),
 }
 def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
-    for filename, address in CONFIGS.items():
-        config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
+    for filename, (_, address) in CONFIGS.items():
+        config = yaml.safe_load((ROOT / filename).read_text())
         args = set(config["etcd-arg"])
 
         assert config["node-ip"] == address
@@ -28,8 +28,10 @@ def test_etcd_peer_traffic_preserves_node_owned_advanced_fabric_source_identity(
     operations = {
         item["name"]: item for item in values["advancedFabric"]["controlPlaneApi"]["nodeOperations"]
     }
-    for filename, address in CONFIGS.items():
-        node = filename.removesuffix("-k3s-server-config.yaml").replace("-wsl2", "-wsl-zt")
+    # MUBAO uses the RouterOS control mesh; these source rules belong to A1/B1.
+    for _, (node, address) in CONFIGS.items():
+        if node == "restricted-node-abb3f27a69":
+            continue
         expected = [{
             "source": address,
             "destination": "192.0.2.106/24",
@@ -101,7 +103,6 @@ def test_etcd_migration_retains_only_legacy_client_listener_for_diagnostics():
     legacy = {
         "a1-wsl2-k3s-server-config.yaml": "192.0.2.18",
         "b1-wsl2-k3s-server-config.yaml": "192.0.2.208",
-        "r640-k3s-server-config.yaml": "192.0.2.183",
     }
     for filename, address in legacy.items():
         config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())

@@ -14,12 +14,12 @@ items:
       transport: ssh
       address: restricted-node-6dc3f140f9
       credentialRef: node-ssh
-      capabilities: [k3s-control-plane, etcd, harbor, pigsty]
+      capabilities: [k3s-worker, harbor, pigsty]
       cluster:
         membership: active
-        roles: [control-plane, etcd, nuclio, pg-re8ch]
-        services: [k3s-server, etcd, nuclio, pigsty, toolhive-primary, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi, rclone-csi]
-        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/nuclio: "true", node-role.kubernetes.io/pg-re8ch: "true", re8ch.com/toolhive-plane: primary, scheduling.re8ch.com/provider: onprem, scheduling.re8ch.com/environment: datacenter, scheduling.re8ch.com/reliability-class: anchor, scheduling.re8ch.com/failure-domain: restricted-node-6dc3f140f9, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true", storage.re8ch.com/object-client: "true"}
+        roles: [worker, nuclio, pg-re8ch]
+        services: [k3s-agent, api-relay, nuclio, pigsty, toolhive-primary, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi, rclone-csi]
+        labels: {node-role.kubernetes.io/nuclio: "true", node-role.kubernetes.io/pg-re8ch: "true", re8ch.com/toolhive-plane: primary, scheduling.re8ch.com/provider: onprem, scheduling.re8ch.com/environment: datacenter, scheduling.re8ch.com/reliability-class: anchor, scheduling.re8ch.com/failure-domain: restricted-node-6dc3f140f9, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true", storage.re8ch.com/object-client: "true"}
         taints: []
         parameters: {cpu: 80, memoryKi: 259312228, ephemeralStorageKi: 309043584, osImage: Ubuntu 26.04 LTS, kernelVersion: 7.0.0-29-generic}
         network: {region: cn-hunan, zone: hunan, controlRoute: public-primary, externalIPMode: mikrotik-proxy, networkLevel: 3, uplinkMbps: 200}
@@ -48,14 +48,14 @@ items:
       transport: ssh
       address: 192.0.2.114
       credentialRef: node-ssh
-      capabilities: [k3s-control-plane]
+      capabilities: [k3s-control-plane, etcd]
       cluster:
         membership: active
-        roles: [control-plane]
-        services: [k3s-server]
-        labels: {node-role.kubernetes.io/control-plane: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: mubao-windows}
+        roles: [control-plane, etcd]
+        services: [k3s-server, etcd]
+        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: mubao-windows}
         taints: [{key: node-role.kubernetes.io/control-plane, value: "true", effect: NoSchedule}]
-        parameters: {cpu: 6, memoryKi: 8132732, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
+        parameters: {cpu: 7, memoryKi: 10184560, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: loudi, controlRoute: advfab-relay, externalIPMode: none, networkLevel: 4, uplinkMbps: 100}
         fabric: {role: leaf, class: C, failureDomain: mubao, provider: local-wsl, internalIP: 192.0.2.61, podCIDR: 192.0.2.214/24, acceleratedIP: 192.0.2.114, asn: 4200010029, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [], profiles: []}
