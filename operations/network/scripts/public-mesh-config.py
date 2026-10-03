@@ -34,6 +34,11 @@ def validate(inv):
             errors.append(f'{node["name"]}: ztIp does not match id')
         if node["transportIp"] != f'172.31.92.{node["id"]}':
             errors.append(f'{node["name"]}: transportIp does not match id')
+        if "meshPeers" in node:
+            if node.get("acceleratedIp") != f'10.250.0.{node["id"]}':
+                errors.append(f'{node["name"]}: mesh expansion requires acceleratedIp')
+            if not node["meshPeers"]:
+                errors.append(f'{node["name"]}: meshPeers must not be empty')
         for route in node.get("rescueRoutes", []):
             if ipaddress.ip_network(route["prefix"]).prefixlen != 32:
                 errors.append(f'{node["name"]}: rescue route must be a /32')
@@ -60,8 +65,16 @@ def validate(inv):
                 errors.append(f'{node["name"]}: invalid podCIDRPeers peer: {peer_name}')
             elif node["name"] not in peer.get("podCIDRPeers", []):
                 errors.append(f'{node["name"]}: non-reciprocal podCIDR peer: {peer_name}')
-    if len(inv["nodes"]) != 8:
-        errors.append("inventory must contain exactly eight public-authority nodes")
+    names = {node["name"]: node for node in inv["nodes"]}
+    for node in inv["nodes"]:
+        for peer_name in node.get("meshPeers", []):
+            peer = names.get(peer_name)
+            if peer is None or peer is node:
+                errors.append(f'{node["name"]}: invalid mesh peer {peer_name}')
+            elif "meshPeers" in peer and node["name"] not in peer["meshPeers"]:
+                errors.append(f'{node["name"]}: non-reciprocal mesh peer {peer_name}')
+    if len(inv["nodes"]) < 2:
+        errors.append("inventory requires at least two nodes")
     if errors:
         raise ValueError("\n".join(errors))
 
@@ -77,6 +90,19 @@ def active_nodes(inv, stage):
     return [n for n in inv["nodes"] if int(n["rollout"]) <= stage]
 
 
+def active_peers(inv, node, stage):
+    peers = []
+    for peer in active_nodes(inv, stage):
+        if peer["id"] == node["id"]:
+            continue
+        if "meshPeers" in node and peer["name"] not in node["meshPeers"]:
+            continue
+        if "meshPeers" in peer and node["name"] not in peer["meshPeers"]:
+            continue
+        peers.append(peer)
+    return peers
+
+
 def render_wireguard(inv, node, peers, stage):
     keys = peers.get("publicKeys", peers)
     lines = [
@@ -87,16 +113,14 @@ def render_wireguard(inv, node, peers, stage):
         "Table = off",
         "PostUp = wg set %i private-key /etc/wireguard/wg-public-mesh.key",
     ]
-    for peer in active_nodes(inv, stage):
-        if peer["id"] != node["id"]:
-            lines.append(f'PostUp = ip route replace {peer["transportIp"]}/32 dev %i scope link')
-            lines.append(f'PostDown = ip route del {peer["transportIp"]}/32 dev %i || true')
-    for peer in active_nodes(inv, stage):
-        if peer["id"] == node["id"]:
-            continue
+    for peer in active_peers(inv, node, stage):
+        lines.append(f'PostUp = ip route replace {peer["transportIp"]}/32 dev %i scope link')
+        lines.append(f'PostDown = ip route del {peer["transportIp"]}/32 dev %i || true')
+    for peer in active_peers(inv, node, stage):
         if peer["id"] not in keys:
             raise ValueError(f'missing public key for peer id {peer["id"]}')
-        allowed = [f'{peer["transportIp"]}/32', f'{peer["ztIp"]}/32']
+        identity = f'10.250.0.{peer["id"]}' if "meshPeers" in node or "meshPeers" in peer else peer["ztIp"]
+        allowed = [f'{peer["transportIp"]}/32', f"{identity}/32"]
         if peer["name"] in node.get("podCIDRPeers", []):
             allowed.append(peer["podCIDR"])
         lines += [
@@ -112,7 +136,10 @@ def render_wireguard(inv, node, peers, stage):
 
 
 def render_frr(inv, node, stage):
-    peers = [p for p in active_nodes(inv, stage) if p["id"] != node["id"]]
+    peers = active_peers(inv, node, stage)
+    expanded = "meshPeers" in node
+    has_expanded_peer = any("meshPeers" in peer for peer in peers)
+    self_prefix = node["acceleratedIp"] if expanded else node["ztIp"]
     lines = [
         "frr defaults traditional",
         f'hostname {node["name"]}',
@@ -122,14 +149,17 @@ def render_frr(inv, node, stage):
     ]
     for peer in peers:
         lines += [f' peer {peer["transportIp"]}', "  transmit-interval 1000", "  receive-interval 1000", "  detect-multiplier 3", "  no shutdown", " exit"]
-    lines += ["!", f'ip route {node["ztIp"]}/32 Null0 254']
+    lines += ["!", f'ip route {self_prefix}/32 Null0 254']
     for route in node.get("rescueRoutes", []):
         lines.append(f'ip route {route["prefix"]} {route["via"]} {route["distance"]}')
-    lines += [f'ip prefix-list SELF seq 10 permit {node["ztIp"]}/32']
+    lines += [f'ip prefix-list SELF seq 10 permit {self_prefix}/32']
     if node.get("podCIDR"):
         lines.append(f'ip prefix-list SELF seq 20 permit {node["podCIDR"]}')
+    if has_expanded_peer and not expanded:
+        lines.append(f'ip prefix-list SELF-ACCEL seq 10 permit 10.250.0.{node["id"]}/32')
     for peer in peers:
-        lines.append(f'ip prefix-list FROM-{peer["id"]} seq 10 permit {peer["ztIp"]}/32')
+        identity = f'10.250.0.{peer["id"]}' if expanded or "meshPeers" in peer else peer["ztIp"]
+        lines.append(f'ip prefix-list FROM-{peer["id"]} seq 10 permit {identity}/32')
         if peer["name"] in node.get("podCIDRPeers", []):
             lines.append(f'ip prefix-list FROM-{peer["id"]} seq 20 permit {peer["podCIDR"]}')
     lines += ["!", f'router bgp {node["asn"]}', f' bgp router-id {node["ztIp"]}', " bgp ebgp-requires-policy", " no bgp default ipv4-unicast"]
@@ -139,12 +169,15 @@ def render_frr(inv, node, stage):
             "disableFqdnCapabilityFrom", []
         ):
             lines.append(f' no neighbor {peer["transportIp"]} capability fqdn')
-    lines += [" !", " address-family ipv4 unicast", f'  network {node["ztIp"]}/32']
+    lines += [" !", " address-family ipv4 unicast", f'  network {self_prefix}/32']
+    if has_expanded_peer and not expanded:
+        lines.append(f'  network 10.250.0.{node["id"]}/32')
     if node.get("podCIDR"):
         lines.append(f'  network {node["podCIDR"]}')
     for peer in peers:
         maximum = 2 if peer["name"] in node.get("podCIDRPeers", []) else 1
-        lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list SELF out', f'  neighbor {peer["transportIp"]} maximum-prefix {maximum} 90 restart 5']
+        outbound = "SELF-ACCEL" if "meshPeers" in peer and not expanded else "SELF"
+        lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list {outbound} out', f'  neighbor {peer["transportIp"]} maximum-prefix {maximum} 90 restart 5']
     lines += [" exit-address-family", "exit", "!"]
     return "\n".join(lines) + "\n"
 
@@ -157,16 +190,18 @@ def main():
     wg = sub.add_parser("wireguard")
     wg.add_argument("--node", required=True)
     wg.add_argument("--public-keys", required=True)
-    wg.add_argument("--stage", type=int, choices=range(0, 7), required=True)
+    wg.add_argument("--stage", type=int, required=True)
     frr = sub.add_parser("frr")
     frr.add_argument("--node", required=True)
-    frr.add_argument("--stage", type=int, choices=range(0, 7), required=True)
+    frr.add_argument("--stage", type=int, required=True)
     args = parser.parse_args()
     inv = load_json(args.inventory)
     validate(inv)
     if args.command == "validate":
-        print("inventory valid: eight public-authority nodes, unique addresses and private ASNs")
+        print(f'inventory valid: {len(inv["nodes"])} public-authority nodes, unique addresses and private ASNs')
         return
+    if args.stage < 0 or args.stage > max(int(node["rollout"]) for node in inv["nodes"]):
+        raise ValueError("stage is outside inventory rollout range")
     node = select(inv, args.node)
     if node["rollout"] > args.stage:
         raise ValueError(f'{node["name"]} is not enabled at stage {args.stage}')
