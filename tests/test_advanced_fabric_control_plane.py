@@ -74,9 +74,13 @@ def test_control_plane_rollout_does_not_enable_routeros_mutation():
     assert values["routerOS"]["enabled"] is False
 
 
-def test_controller_runs_on_verified_control_plane_api_path():
-    advanced = release_values()["advancedFabric"]
-    assert advanced["controller"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+def test_controller_has_two_lease_fenced_recovery_domains():
+    controller = release_values()["advancedFabric"]["controller"]
+    assert controller["replicas"] == 2
+    assert controller["pdbMinAvailable"] == 1
+    expressions = controller["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
+    assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"]}]
+    assert controller["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
 
 
 def test_virtual_ingress_controller_is_ha_and_confined_to_a1_b1():
