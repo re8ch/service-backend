@@ -69,7 +69,10 @@ def main():
             "AllowedIPs = 192.0.2.178/28,192.0.2.106/24",
             "AllowedIPs = 192.0.2.178/28,192.0.2.148/24,192.0.2.106/24",
         )
-        if conf.exists() and conf.read_text(encoding="ascii") not in (old_content, middle_content, content):
+        accepted = (old_content, middle_content, content)
+        if desired["mtu"] == 1200:
+            accepted += tuple(value.replace("MTU = 1200", "MTU = 1280") for value in accepted)
+        if conf.exists() and conf.read_text(encoding="ascii") not in accepted:
             raise RuntimeError("refusing to replace a different WireGuard config")
         if not conf.exists() or conf.read_text(encoding="ascii") != content:
             target = conf if not conf.exists() else conf.with_suffix(".conf.new")

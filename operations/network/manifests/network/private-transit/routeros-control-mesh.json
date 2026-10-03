@@ -3,7 +3,7 @@
   "managementIp": "192.0.2.131",
   "publicEndpoint": "192.0.2.79",
   "routerAsn": 4200064001,
-  "mtu": 1280,
+  "mtu": 1200,
   "commentPrefix": "RE8CH CP MESH",
   "links": [
     {
