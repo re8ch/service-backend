@@ -1,5 +1,7 @@
-# Flux owns only these governance labels. The prune opt-out is required because
-# Namespace lifecycle remains with each namespace's authoritative controller.
+# Only namespaces without another GitOps owner are declared here. The others
+# receive this label from their authoritative Namespace manifest or its Flux
+# Kustomization patch; duplicate Namespace reconciliation changed Cilium pod
+# identities on every cycle. The prune opt-out preserves namespace lifecycle.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -10,63 +12,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: flux-system
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: rook-ceph
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: scheduling-system
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: scheduler-system
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: observability-system
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: among-clusters
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kyverno
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kueue-system
-  annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
-  labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cert-manager
   annotations: {kustomize.toolkit.fluxcd.io/prune: disabled}
   labels: {scheduling.re8ch.com/control-plane-allowed: "true"}
 ---

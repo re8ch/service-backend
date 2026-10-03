@@ -170,8 +170,12 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
     }
     for item in namespaces:
         assert item["metadata"]["annotations"]["kustomize.toolkit.fluxcd.io/prune"] == "disabled"
-    for name in ("kube-system", "flux-system", "rook-ceph", "observability-system"):
+    for name in ("kube-system", "rook-ceph"):
         assert namespace_labels[name]["scheduling.re8ch.com/control-plane-allowed"] == "true"
+    assert not set(namespace_labels) & {
+        "flux-system", "cert-manager", "among-clusters", "kyverno",
+        "kueue-system", "scheduler-system", "scheduling-system", "observability-system",
+    }
     for name in ("tenant-qwen-runtime", "artchais-default"):
         assert namespace_labels[name]["tenancy.re8ch.com/managed"] == "true"
         assert namespace_labels[name]["kueue.x-k8s.io/managed"] == "true"
