@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: gulfstream-onyx
+codename: riptide-onyx
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:7fa892685f33d15911082ecb9483facb84044d1bb055ca8fc59b8fa874c66fb6
+  digest: sha256:f3d4e5d65af3b87ae7eaa5bbcad214a7c467b7e8ccc95a6c77adf7d93f109df9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

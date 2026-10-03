@@ -804,6 +804,8 @@ modules:
       digest: sha256:82c407968ddd19fb4eff4321ab43f41771e61e1d10c1a56fa9732aa100378425
     - codename: gulfstream-onyx
       digest: sha256:7fa892685f33d15911082ecb9483facb84044d1bb055ca8fc59b8fa874c66fb6
+    - codename: riptide-onyx
+      digest: sha256:f3d4e5d65af3b87ae7eaa5bbcad214a7c467b7e8ccc95a6c77adf7d93f109df9
   platform/hyperswitch:
     releases:
     - codename: anchor

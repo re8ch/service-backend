@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: gulfstream-onyx
+    delivery.re8ch.com/codename: riptide-onyx
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:7fa892685f33d15911082ecb9483facb84044d1bb055ca8fc59b8fa874c66fb6
+    digest: sha256:f3d4e5d65af3b87ae7eaa5bbcad214a7c467b7e8ccc95a6c77adf7d93f109df9
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: gulfstream-onyx
+    delivery.re8ch.com/codename: riptide-onyx
 spec:
   interval: 1m
   retryInterval: 1m
