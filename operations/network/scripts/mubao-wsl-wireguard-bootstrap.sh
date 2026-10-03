@@ -21,20 +21,20 @@ fi
 umask 077
 cat > "$config" <<EOF
 [Interface]
-Address = 192.0.2.135/32
+Address = 172.31.95.30/32
 MTU = 1200
 Table = off
 PostUp = wg set %i private-key $key
-PostUp = ip address show dev lo | grep -q '192.0.2.223/32' || ip address add 192.0.2.223/32 dev lo
-PostUp = ip route replace 192.0.2.198/32 dev %i src 192.0.2.135
-PostUp = ip route replace 192.0.2.179/32 dev %i src 192.0.2.223
-PostDown = ip route del 192.0.2.198/32 dev %i || true
-PostDown = ip route del 192.0.2.179/32 dev %i || true
+PostUp = ip address show dev lo | grep -q '10.250.0.29/32' || ip address add 10.250.0.29/32 dev lo
+PostUp = ip route replace 172.31.95.128/32 dev %i src 172.31.95.30
+PostUp = ip route replace 10.250.0.128/32 dev %i src 10.250.0.29
+PostDown = ip route del 172.31.95.128/32 dev %i || true
+PostDown = ip route del 10.250.0.128/32 dev %i || true
 
 [Peer]
 PublicKey = H6trdN+xorHMYEFsPV6G8CMLmhMZkObgnQfcXYUSNVQ=
-AllowedIPs = 192.0.2.198/32, 192.0.2.179/32, 192.0.2.116/32, 192.0.2.242/32, 192.0.2.1/32, 192.0.2.57/16
-Endpoint = 192.0.2.138:51893
+AllowedIPs = 172.31.95.128/32, 10.250.0.128/32, 10.250.0.1/32, 10.250.0.147/32, 10.250.0.125/32, 10.42.0.0/16
+Endpoint = 223.159.210.222:51896
 PersistentKeepalive = 15
 EOF
 chmod 600 "$config"

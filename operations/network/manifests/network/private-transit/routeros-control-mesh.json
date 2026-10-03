@@ -5,6 +5,7 @@
   "routerAsn": 4200064001,
   "mtu": 1200,
   "commentPrefix": "RE8CH CP MESH",
+  "r640WgRelay": {"externalUdpPorts": [51896, 51897, 51898, 51899, 51900, 51901, 51902, 51903], "assignments": {"mubaoWslData": 51896, "mubaoHostSsh": 51897}, "backendUdpPort": 51893, "comment": "RE8CH restricted-node-6dc3f140f9 private transit UDP relay pool"},
   "links": [
     {
       "node": "restricted-node-1eb0570f74",

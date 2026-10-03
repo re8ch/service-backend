@@ -55,9 +55,15 @@ def inventory(path):
     return desired
 
 
-def credential():
+def credential(kube_api_server=None):
+    command = ["sudo", "k3s", "kubectl"]
+    if kube_api_server:
+        if kube_api_server not in ("https://192.0.2.242:6443", "https://192.0.2.1:6443", "https://192.0.2.223:6443"):
+            raise ValueError("unexpected control-plane API server")
+        command.append(f"--server={kube_api_server}")
+    command += ["-n", "ops", "get", "secret", "mikrotik-routeros-admin", "-o", "json"]
     result = subprocess.run(
-        ["sudo", "k3s", "kubectl", "-n", "ops", "get", "secret", "mikrotik-routeros-admin", "-o", "json"],
+        command,
         check=True, capture_output=True, text=True,
     )
     data = json.loads(result.stdout)["data"]
@@ -67,9 +73,9 @@ def credential():
 
 
 class RouterOS:
-    def __init__(self, address):
+    def __init__(self, address, kube_api_server=None):
         self.base = f"http://{address}/rest"
-        self.auth = credential()
+        self.auth = credential(kube_api_server)
 
     def request(self, path, method="GET", body=None):
         request = urllib.request.Request(
