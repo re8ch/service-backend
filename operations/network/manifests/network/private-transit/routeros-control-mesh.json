@@ -44,7 +44,6 @@
       "identity": "192.0.2.114/32",
       "podCIDR": "192.0.2.214/24",
       "fallbackIdentities": ["192.0.2.173/32", "192.0.2.213/32"],
-      "egressRoutes": ["192.0.2.59/32"],
       "probeIdentity": "192.0.2.6/32",
       "asn": 4200010029,
       "peerPublicKey": "mMWc4x4hIEtaG828eTBVhnNr/2EJfgs1PsvIxUU8Zjw=",
