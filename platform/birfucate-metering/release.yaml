@@ -66,6 +66,24 @@ spec:
       supplyChain:
         required: false
       tenants:
+        # Dedicated sample-only public plugin review identity. No service grants,
+        # namespace creation, bootstrap workload, or shared provider access.
+        - name: personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38
+          displayName: OpenAI Review Demo
+          lifecycle: Active
+          deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: openai-review-demo
+            allowedPrefixes: [openai-review-demo-]
+            maxNamespaces: 1
+            allowCreate: false
+            allowDelete: false
+            bootstrapNamespaces: []
+          imagePullSecretRef: openai-review-no-image-pull
+          harborProjectRef: openai-review-demo
+          identityBindings: []
+          grants: []
+          nativeAccess: false
         - name: admin
           displayName: RE8CH Platform Administration
           lifecycle: Active
