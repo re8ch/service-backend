@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: mistral-copper
+    delivery.re8ch.com/codename: sirocco-copper
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:16397ad73307fe10bb671e2ff91ad8c752dbe48e5c9f0abe50257707699de1d3
+    digest: sha256:32efdf316fd580ccdbd1786af3f674452f69ea4e590cfe27cd8c73bb36231631
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: mistral-copper
+    delivery.re8ch.com/codename: sirocco-copper
 spec:
   interval: 1m
   retryInterval: 1m
