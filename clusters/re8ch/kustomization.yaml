@@ -106,6 +106,54 @@ patchesStrategicMerge:
 - retire-legacy-mcp.patch.yaml
 patches:
 - target:
+    version: v1
+    kind: Namespace
+    name: flux-system
+  patch: |-
+    - op: add
+      path: /metadata/labels/scheduling.re8ch.com~1control-plane-allowed
+      value: "true"
+- target:
+    group: kustomize.toolkit.fluxcd.io
+    version: v1
+    kind: Kustomization
+    name: domain-platform-among-clusters
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/patches
+      value:
+      - target:
+          kind: Namespace
+          name: among-clusters
+        patch: |-
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: among-clusters
+            labels:
+              scheduling.re8ch.com/control-plane-allowed: "true"
+- target:
+    group: kustomize.toolkit.fluxcd.io
+    version: v1
+    kind: Kustomization
+    name: domain-platform-scheduling-fabric
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/patches
+      value:
+      - target:
+          kind: Namespace
+          name: (kyverno|kueue-system|scheduler-system|scheduling-system)
+        patch: |-
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: not-used
+            labels:
+              scheduling.re8ch.com/control-plane-allowed: "true"
+- target:
     group: apps
     version: v1
     kind: Deployment
