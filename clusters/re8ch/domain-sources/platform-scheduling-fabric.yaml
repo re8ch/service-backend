@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: delta-umber
+    delivery.re8ch.com/codename: grove-umber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:9e2354aff206951e34eccd3e3d04ee357db6beb141db0f9ddfb0eb2e02773e31
+    digest: sha256:a621e69e40b41d6750a557d6b79c323ae4b075e516e6a3a28fa7d2abdb751d43
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: delta-umber
+    delivery.re8ch.com/codename: grove-umber
 spec:
   interval: 1m
   retryInterval: 1m

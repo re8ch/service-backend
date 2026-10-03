@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: delta-umber
+codename: grove-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:9e2354aff206951e34eccd3e3d04ee357db6beb141db0f9ddfb0eb2e02773e31
+  digest: sha256:a621e69e40b41d6750a557d6b79c323ae4b075e516e6a3a28fa7d2abdb751d43
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

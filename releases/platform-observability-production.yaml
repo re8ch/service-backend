@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: aperture-pearl
+codename: focus-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:859a6eabebbd15eac7697663596f915e1de1040262b533f4e58995d931679fdb
+  digest: sha256:54131b4106518c8761591bd642f1c55c9dce22018e50979b067f0daa42182fa9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

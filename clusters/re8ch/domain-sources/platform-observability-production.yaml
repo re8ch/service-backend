@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: aperture-pearl
+    delivery.re8ch.com/codename: focus-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:859a6eabebbd15eac7697663596f915e1de1040262b533f4e58995d931679fdb
+    digest: sha256:54131b4106518c8761591bd642f1c55c9dce22018e50979b067f0daa42182fa9
   verify:
     provider: cosign
     matchOIDCIdentity:
