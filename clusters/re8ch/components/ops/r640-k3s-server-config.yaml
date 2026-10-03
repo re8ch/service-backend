@@ -27,7 +27,7 @@ node-label:
   - "re8ch.com/public-ip=none"
   - "re8ch.com/numa-nodes=2"
   - "re8ch.com/cilium-migrate=true"
-  - "scheduling.re8ch.com/node-profile=control-large"
+  - "scheduling.re8ch.com/node-profile=worker-large"
 disable:
   - servicelb
   - coredns

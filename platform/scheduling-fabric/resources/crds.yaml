@@ -23,7 +23,7 @@ spec:
             properties:
               nodeName: {type: string, minLength: 1}
               aliases: {type: array, items: {type: string}}
-              reservationProfile: {type: string, enum: [control-large, control-small, worker-small, worker-standard]}
+              reservationProfile: {type: string, enum: [control-large, control-small, control-wsl, worker-large, worker-small, worker-standard]}
               background:
                 type: object
                 required: [provider, ownership, environment]
