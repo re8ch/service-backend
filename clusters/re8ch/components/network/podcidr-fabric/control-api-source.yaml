@@ -53,7 +53,8 @@ spec:
     matchLabels: {app.kubernetes.io/name: control-api-source}
   updateStrategy:
     type: RollingUpdate
-    rollingUpdate: {maxUnavailable: 1}
+    # Leave one rollout slot when an existing transit node is NotReady.
+    rollingUpdate: {maxUnavailable: 2}
   template:
     metadata:
       labels: {app.kubernetes.io/name: control-api-source}
