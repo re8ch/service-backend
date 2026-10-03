@@ -12,7 +12,7 @@ REPLICATED = {
     "kustomize-controller",
     "notification-controller",
 }
-CONTROL_PLANES = {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}
+CONTROL_PLANES = {"restricted-node-1eb0570f74", "restricted-node-abb3f27a69"}
 
 
 def rendered_documents():
@@ -21,7 +21,7 @@ def rendered_documents():
     return list(yaml.safe_load_all(output))
 
 
-def test_flux_controllers_use_three_control_planes_and_stable_dns():
+def test_flux_controllers_span_two_control_planes_and_use_local_dns():
     deployments = {
         item["metadata"]["name"]: item
         for item in rendered_documents()
@@ -47,7 +47,7 @@ def test_flux_controllers_use_three_control_planes_and_stable_dns():
         assert anti_affinity["matchLabelKeys"] == ["app"]
         assert "--enable-leader-election" in pod["containers"][0]["args"]
         preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
-        assert [item["preference"]["matchExpressions"][0]["values"] for item in preferred] == [["restricted-node-6dc3f140f9"], ["restricted-node-296f36f2fb"]]
+        assert [item["preference"]["matchExpressions"][0]["values"] for item in preferred] == [["restricted-node-abb3f27a69"], ["restricted-node-1eb0570f74"]]
         if name in {"helm-controller", "kustomize-controller"}:
             assert "--concurrent=10" in pod["containers"][0]["args"]
 
