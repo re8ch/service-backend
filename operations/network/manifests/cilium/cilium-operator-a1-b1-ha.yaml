@@ -22,16 +22,16 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+                    values: [restricted-node-1eb0570f74, restricted-node-abb3f27a69]
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-abb3f27a69]}
             - weight: 80
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
