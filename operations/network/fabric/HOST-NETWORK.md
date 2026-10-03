@@ -134,3 +134,13 @@ owned sources while retaining control identities and PodCIDRs. It publishes
 readiness only after reconciliation succeeds. Host transactional rollback and
 this additive RouterOS ACL reconciler have distinct scopes; RouterOS is not
 claimed to use the host agent's offline rollback transaction.
+
+### Transit receive closure
+
+The compiler now derives RouterOS peer transit sources and Linux control-peer
+receive sources from the same PodCIDR ownership. `transitPaths` records source,
+destination, approved transit receivers and the bidirectional probe requirement.
+These are desired paths, not observations of health or permission to advertise.
+The existing control-pod host owner consumes `podRoutePolicy.transitSources`;
+its host delivery must be upgraded before the new model is considered applied.
+Public authority, FRR route choice and NetworkPolicy are unchanged by this step.

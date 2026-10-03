@@ -147,12 +147,19 @@ def node_action(action, node, links, policy):
     base_allowed = original[1:]
     remote = [(name, link["podCIDR"]) for name, link in links.items() if name != node]
     remote_pods = [pod for _, pod in remote]
+    transit_sources = policy.get("transitSources", [])
+    for prefix in transit_sources:
+        network = ipaddress.ip_network(prefix)
+        if not any(network.subnet_of(ipaddress.ip_network(root)) for root in
+                   ("192.0.2.65/24", "192.0.2.57/16")):
+            raise ValueError("transit source outside fabric authority")
+    managed_sources = remote_pods + transit_sources
     direct_pairs = {tuple(pair) for pair in policy["directPairs"]}
     fallback_table = str(policy["fallbackTable"])
     if action == "stage-node":
-        allowed = list(dict.fromkeys(base_allowed + remote_pods))
+        allowed = list(dict.fromkeys(base_allowed + managed_sources))
     else:
-        allowed = [item for item in base_allowed if item not in remote_pods]
+        allowed = [item for item in base_allowed if item not in managed_sources]
     if original:
         run("wg", "set", interface, "peer", own["routerPublicKey"], "allowed-ips", ",".join(allowed))
     for peer_name, pod in remote:

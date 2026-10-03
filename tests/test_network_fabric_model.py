@@ -68,3 +68,23 @@ def test_host_contract_rejects_unsafe_activation(mutation, match):
     mutation(model["hostNetwork"])
     with pytest.raises(ValueError, match=match):
         FABRIC.validate(model)
+
+
+def test_transit_receive_contract_covers_both_routeros_and_linux():
+    outputs = FABRIC.validate(FABRIC.load_model())
+    contract = outputs[FABRIC.HOST_CONTRACT]["transitPaths"]
+    policy = outputs["operations/network/manifests/network/private-transit/routeros-control-mesh.json"]["podRoutePolicy"]
+    router = outputs["clusters/re8ch/components/network/host-network-controller/routeros-transit.json"]
+    assert contract["sources"] == policy["transitSources"] == router["sources"]
+    assert {"192.0.2.165/24", "192.0.2.203/24"} <= set(contract["linuxReceivers"]["restricted-node-abb3f27a69"]["transitSources"])
+    assert all(len(path["forward"]) == len(set(path["forward"])) for path in contract["paths"])
+    assert any(path["sourceNode"] == "overseas-flk" and path["destinationNode"] == "restricted-node-abb3f27a69"
+               for path in contract["paths"])
+
+
+def test_transit_duplicate_pod_ownership_rejected():
+    model = copy.deepcopy(FABRIC.load_model())
+    nodes = model["sections"]["podcidrFabric"]["nodes"]
+    nodes[1]["podCIDR"] = nodes[0]["podCIDR"]
+    with pytest.raises(ValueError, match="overlapping transit source ownership"):
+        FABRIC.transit_contract(model)
