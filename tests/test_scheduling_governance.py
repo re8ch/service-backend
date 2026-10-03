@@ -210,15 +210,22 @@ def test_control_plane_reservations_are_declared_without_noexecute():
     assert "max-pods=32" in configs["mubao-k3s-config.yaml"]["kubelet-arg"]
 
 
-def test_advanced_fabric_controller_runs_on_always_on_control_node():
+def test_advanced_fabric_controller_spreads_across_control_plane_recovery_domains():
     release = list(
         yaml.safe_load_all(
             (ROOT / "platform/advanced-fabric/release.yaml").read_text()
         )
     )
     helm_release = next(item for item in release if item and item.get("kind") == "HelmRelease")
-    selector = helm_release["spec"]["values"]["advancedFabric"]["controller"]["nodeSelector"]
-    assert selector == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    controller = helm_release["spec"]["values"]["advancedFabric"]["controller"]
+    assert controller["replicas"] == 2
+    assert controller["pdbMinAvailable"] == 1
+    assert not controller.get("nodeSelector")
+    affinity = controller["affinity"]
+    terms = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
+    assert terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"]}]}]
+    spread = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+    assert spread == [{"labelSelector": {"matchLabels": {"app.kubernetes.io/name": "advanced-fabric-controller"}}, "topologyKey": "kubernetes.io/hostname"}]
 
 
 def test_prefer_taint_stage_is_not_blocked_by_existing_pending_pods():
