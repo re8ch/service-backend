@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: springtide-onyx
+    delivery.re8ch.com/codename: tideway-onyx
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:bd23aba17c767ee204cf32265d0f4d8b3640984302ebb1b6a79441e2c3997ec5
+    digest: sha256:4b5ffbdf69cd5b008abb0fe70c39724a86695ae739ac076e82d5d00238df7caf
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: springtide-onyx
+    delivery.re8ch.com/codename: tideway-onyx
 spec:
   interval: 1m
   retryInterval: 1m
