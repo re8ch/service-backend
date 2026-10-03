@@ -277,6 +277,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.242/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.242/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.242/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.242/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.48/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.48/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.48/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.48/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.242/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.242/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.242/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.242/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.48/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.48/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.48/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.48/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.242/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.242/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.242/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.242/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.234/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -296,6 +416,126 @@
       {
         "source": "192.0.2.234/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.1/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.1/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.1/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.1/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.234/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.234/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.234/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.234/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.1/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.1/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.1/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.1/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.234/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.234/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.234/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.234/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.1/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.1/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.1/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.1/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -325,6 +565,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.117/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.117/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.117/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.117/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.134/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.134/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.134/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.134/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.117/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.117/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.117/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.117/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.134/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.134/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.134/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.134/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.117/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.117/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.117/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.117/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.4/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -344,6 +704,126 @@
       {
         "source": "192.0.2.4/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.81/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.81/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.81/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.81/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.4/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.4/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.4/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.4/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.81/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.81/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.81/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.81/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.4/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.4/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.4/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.4/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.81/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.81/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.81/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.81/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -373,6 +853,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.48/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.48/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.48/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.48/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.165/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.165/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.165/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.165/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.48/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.48/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.48/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.48/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.165/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.165/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.165/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.165/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.48/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.48/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.48/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.48/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.110/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -392,6 +992,126 @@
       {
         "source": "192.0.2.110/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.149/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.149/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.149/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.149/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.110/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.110/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.110/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.110/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.149/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.149/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.149/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.149/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.110/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.110/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.110/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.110/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.149/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.149/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.149/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.149/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -421,6 +1141,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.114/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.114/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.114/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.114/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.114/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.114/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.114/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.114/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.203/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -440,6 +1280,126 @@
       {
         "source": "192.0.2.203/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.148/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.148/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.148/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.148/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.203/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.203/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.203/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.203/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.148/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.148/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.148/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.148/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.203/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.203/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.203/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.203/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.148/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.148/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.148/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.148/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -469,6 +1429,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.246/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.246/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.246/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.246/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.79/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.79/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.79/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.79/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.246/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.246/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.246/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.246/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.79/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.79/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.79/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.79/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.246/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.246/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.246/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.246/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.89/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -488,6 +1568,126 @@
       {
         "source": "192.0.2.89/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.160/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.160/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.160/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.160/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.89/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.89/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.89/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.89/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.160/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.160/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.160/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.160/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.89/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.89/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.89/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.89/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.160/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.160/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.160/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.160/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -517,6 +1717,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.32/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.32/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.32/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.32/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.237/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.237/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.237/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.237/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.32/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.32/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.32/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.32/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.237/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.237/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.237/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.237/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.32/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.32/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.32/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.32/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.128/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -536,6 +1856,126 @@
       {
         "source": "192.0.2.128/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.152/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.152/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.152/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.152/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.128/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.128/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.128/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.128/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.152/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.152/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.152/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.152/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.128/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.128/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.128/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.128/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.152/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.152/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.152/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.152/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -565,6 +2005,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.46/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.46/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.46/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.46/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.94/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.94/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.94/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.94/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.46/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.46/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.46/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.46/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.94/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.94/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.94/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.94/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.46/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.46/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.46/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.46/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.96/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -584,6 +2144,126 @@
       {
         "source": "192.0.2.96/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.96/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.96/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.96/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.96/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.96/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.96/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.96/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.96/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.147/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.147/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       },
@@ -613,6 +2293,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.214/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.214/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.214/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.214/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.207/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.207/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.207/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.207/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.214/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.214/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.214/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.214/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.207/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.207/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.207/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.207/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.214/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.214/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.214/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.214/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.6/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -637,6 +2437,126 @@
       },
       {
         "source": "192.0.2.113/24",
+        "destination": "192.0.2.18/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.18/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.18/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.18/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.6/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.6/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.6/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.6/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.18/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.18/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.18/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.18/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.6/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.6/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.6/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.6/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.18/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.18/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.18/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.18/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
         "destination": "192.0.2.57/24",
         "inInterface": "wg-pt-mubao",
         "outInterface": "wg-pt-a1"
@@ -656,6 +2576,126 @@
       {
         "source": "192.0.2.57/24",
         "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.113/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.113/24",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.57/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.57/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.57/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.57/24",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.57/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.57/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.57/24",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.57/24",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-b1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-a1"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.116/32",
+        "inInterface": "wg-pt-a1",
+        "outInterface": "wg-pt-mubao"
+      },
+      {
+        "source": "192.0.2.116/32",
+        "destination": "192.0.2.223/32",
+        "inInterface": "wg-pt-mubao",
+        "outInterface": "wg-pt-b1"
+      },
+      {
+        "source": "192.0.2.223/32",
+        "destination": "192.0.2.116/32",
         "inInterface": "wg-pt-b1",
         "outInterface": "wg-pt-mubao"
       }
