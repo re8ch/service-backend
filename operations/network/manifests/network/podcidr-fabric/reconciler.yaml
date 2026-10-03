@@ -93,6 +93,26 @@ data:
       done
     }
 
+    reconcile_control_api_source_identity() {
+      [ -n "${node}" ] || return 0
+      [ "$(printf '%s' "${node}" | jq -r '.peerMode')" = transport ] || return 0
+      last="$(printf '%s' "${node}" | jq -r '.internalIp | split(".")[3]')"
+      identity="$(printf '%s' "${node}" | jq -r '.acceleratedIp')"
+      host nft list table ip re8ch_control_api_snat >/dev/null 2>&1 ||
+        host nft add table ip re8ch_control_api_snat
+      host nft list chain ip re8ch_control_api_snat postrouting >/dev/null 2>&1 ||
+        host nft 'add chain ip re8ch_control_api_snat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+      for fabric in 93 94; do
+        if [ "${fabric}" = 93 ]; then iface=wg-pt-a1; else iface=wg-pt-b1; fi
+        host ip link show "${iface}" >/dev/null 2>&1 || continue
+        for api_ip in $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+          rule="ip saddr 172.31.${fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
+          host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
+            host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
+        done
+      done
+    }
+
     reconcile_wireguard_allowed_ips() {
       if [ -n "${route_server}" ]; then
         if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
@@ -504,6 +524,7 @@ data:
     reconcile_relay_nodes
     reconcile_routeros_boundary
     reconcile_wireguard_allowed_ips
+    reconcile_control_api_source_identity
     reconcile_rr_interconnect_transit_sources
     reconcile_public_mesh_allowed_ips
     reconcile_control_plane_identity_routes
@@ -512,6 +533,8 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      reconcile_wireguard_allowed_ips
+      reconcile_control_api_source_identity
       reconcile_rr_interconnect_transit_sources || {
         rm -f /run/podcidr-fabric-ready
         exit 1
@@ -544,7 +567,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: mubao-relay-podcidr-v2
+        networking.re8ch.com/config-revision: mubao-control-api-source-v3
     spec:
       hostPID: true
       hostNetwork: true
