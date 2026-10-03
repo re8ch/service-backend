@@ -174,6 +174,8 @@ modules:
       digest: sha256:66667ac75c52c129387a14ac96d307ac92b7401d2a56637c650913c1cb5f20e6
     - codename: zephyr-jade
       digest: sha256:6a33fdfcea556aa6ffb61a4e7d0a87512ddbad5359fb4228441a95cfa7098cff
+    - codename: bora-pearl
+      digest: sha256:4927c7241094fab904d0d2170a318f24dc82941335d0db6502c3573ba2669cbe
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
