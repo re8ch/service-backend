@@ -151,3 +151,21 @@ def test_control_owner_delivery_matches_reviewed_source():
     root = Path(__file__).parents[1]
     assert (root / 'operations/network/scripts/routeros/control_pod_mesh.py').read_bytes() == (
         root / 'clusters/re8ch/components/network/host-network-controller/control_pod_mesh.py').read_bytes()
+
+
+def test_health_does_not_require_bfdd_for_a_non_bfd_peer(monkeypatch):
+    p = package()
+    p['health']['bfdPeers'] = []
+    calls = []
+    def run(argv):
+        calls.append(argv)
+        if 'show bgp ipv4 unicast summary json' in argv:
+            return json.dumps({'peers': {'192.0.2.125': {'state': 'Established'}}})
+        if argv[0] == 'wg':
+            return KEY + '\t' + str(int(a.time.time()))
+        if 'show bfd peers json' in argv:
+            raise RuntimeError('bfdd not configured')
+        return ''
+    monkeypatch.setattr(a, 'run', run)
+    assert a.healthy(p)
+    assert not any('show bfd peers json' in argv for argv in calls)
