@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: atoll-umber
+codename: canopy-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:f7137b8db7660a866c1df71b0c20fb5401a9a76ca405ce91138a0e3cd8b090f8
+  digest: sha256:8d5d072290a9fa7b5c55ceb392cbbc931e9964afec25e00a170f1b483fe1793e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
