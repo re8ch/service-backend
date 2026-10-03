@@ -109,3 +109,29 @@ def test_commit_requires_three_health_rounds(tmp_path, monkeypatch):
     assert a.reconcile(tmp_path, p, adoption()) == 'committed'
     assert calls == ['health', 'apply', 'health', 'health', 'health']
     assert json.loads((tmp_path / 'transaction.json').read_text())['state'] == 'committed'
+
+
+def test_syntax_staging_uses_host_config_dirs_and_strips_cli_headers(tmp_path, monkeypatch):
+    p = package()
+    raw = '[Interface]\nMTU = 1280\n[Peer]\nPublicKey = ' + KEY + '\nAllowedIPs = 192.0.2.125/32\n'
+    original_read = Path.read_text
+    monkeypatch.setattr(Path, 'read_text', lambda path, *args, **kwargs: raw if str(path) == '/etc/wireguard/wg-public-mesh.conf' else original_read(path, *args, **kwargs))
+    original_mkstemp = a.tempfile.mkstemp
+    destinations = []
+    def staged(**kwargs):
+        destinations.append(kwargs['dir'])
+        return original_mkstemp(prefix='hn-', suffix='.conf', dir=tmp_path)
+    monkeypatch.setattr(a.tempfile, 'mkstemp', staged)
+    def run(argv):
+        if argv == ['vtysh', '-c', 'show running-config']:
+            return 'Building configuration...\n\nCurrent configuration:\nfrr defaults traditional\n!\n'
+        if argv[:2] == ['vtysh', '-C']:
+            config = original_read(Path(argv[-1]))
+            assert 'Building configuration' not in config
+            assert 'Current configuration' not in config
+            assert 'ip prefix-list FROM-128' in config
+        return ''
+    monkeypatch.setattr(a, 'run', run)
+    a.syntax_check(p)
+    assert '/etc/wireguard' in destinations and '/etc/frr' in destinations
+    assert list(tmp_path.iterdir()) == []
