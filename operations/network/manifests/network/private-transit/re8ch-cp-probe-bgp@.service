@@ -1,0 +1,14 @@
+[Unit]
+Description=RE8CH RouterOS control-plane BGP probe on %i
+Wants=frr.service wg-quick@%i.service
+After=network-online.target frr.service wg-quick@%i.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/control_plane_probe_frr.py --inventory /etc/re8ch/routeros-control-mesh.json --interface %i --action apply
+Restart=on-failure
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target
