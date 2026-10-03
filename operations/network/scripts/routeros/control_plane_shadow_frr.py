@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep RouterOS control-plane identities in FRR as low preference fallbacks."""
+"""Manage exact RouterOS control-plane identity routes and their preference."""
 
 import argparse
 import ipaddress
@@ -14,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True)
     parser.add_argument("--node", required=True)
-    parser.add_argument("--action", choices=("apply", "rollback"), required=True)
+    parser.add_argument("--action", choices=("apply", "rollback", "promote", "demote"), required=True)
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise SystemExit("run as root")
@@ -31,6 +31,23 @@ def main():
         raise RuntimeError("probe BGP neighbor is not configured")
     if f"neighbor {router_ip} route-map ROS-CP-PROBE-OUT out" not in running:
         raise RuntimeError("probe BGP export filter is not configured")
+    if args.action in ("promote", "demote"):
+        if "route-map ROS-CP-PROBE-IN permit 20" not in running:
+            raise RuntimeError("production identity shadow route-map is not staged")
+        if args.action == "promote":
+            mtu = int(pathlib.Path(f"/sys/class/net/{iface}/mtu").read_text())
+            if mtu > 1200:
+                raise RuntimeError("control-mesh MTU exceeds the validated path limit")
+            route = run("ip", "route", "get", router_ip)
+            if f"dev {iface}" not in route:
+                raise RuntimeError("RouterOS tunnel path is not active")
+        preference = 200 if args.action == "promote" else 50
+        vtysh(["configure terminal", "route-map ROS-CP-PROBE-IN permit 20",
+               f"set local-preference {preference}", "end", "write memory"])
+        vtysh([f"clear bgp {router_ip} soft in"])
+        print(json.dumps({"node": args.node, "action": args.action,
+                          "localPreference": preference, "acceptedPeers": others}))
+        return
     if args.action == "apply":
         route = run("ip", "route", "get", router_ip)
         if f"dev {link['interface']}" not in route:
