@@ -1044,6 +1044,8 @@ modules:
       digest: sha256:05ac0046ea6ab91af01e04f4c0d8cc683d689c35cbde0e3a48f5093df32bb040
     - codename: tramontane-coral
       digest: sha256:cc4300703f2a18ec65f7c524d4954fe9c0492f87cb980343b8135334dbbd32e4
+    - codename: zephyr-coral
+      digest: sha256:30efacfc503c9e761b43dde1cf1ae5330fc5b0b47ee5f4632dbacab5fd714d59
   platform/adapter:
     releases:
     - codename: anchor
