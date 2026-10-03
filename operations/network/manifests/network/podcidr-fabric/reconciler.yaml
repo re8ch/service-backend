@@ -130,6 +130,10 @@ data:
           done
         done
       done
+      for node_ip in $(jq -r '.nodes[].acceleratedIp' /config/inventory.json); do
+        host ip rule show | grep -Fq "from 192.0.2.116 to ${node_ip} ipproto tcp sport 6443 lookup main" ||
+          host ip rule add pref 11522 from 192.0.2.116/32 to "${node_ip}/32" ipproto tcp sport 6443 lookup main
+      done
     }
 
     reconcile_wireguard_allowed_ips() {
@@ -163,7 +167,7 @@ data:
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
         remote_pods="$(jq -r --arg own "${pod_cidr}" '.routeServers[], .relayNodes[]?, .nodes[] | .podCIDR | select(. != $own)' /config/inventory.json | paste -sd, -)"
-        relay_identities="$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
+        relay_identities="192.0.2.116/32,$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
         if [ "${peer_mode}" = transport ]; then
           if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=192.0.2.63/24; else transport_cidr=192.0.2.208/24; fi
           case ",${allowed}," in *",${transport_cidr},"*) : ;; *) allowed="${allowed},${transport_cidr}" ;; esac
@@ -588,7 +592,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: control-vip-spoke-replies-v6
+        networking.re8ch.com/config-revision: control-vip-all-nodes-v7
     spec:
       hostPID: true
       hostNetwork: true
