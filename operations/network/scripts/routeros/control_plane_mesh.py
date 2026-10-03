@@ -16,27 +16,28 @@ import subprocess
 import urllib.error
 import urllib.request
 
-PRESERVE = "RE8CH preserve MikroTik WAN UDP before restricted-node-6dc3f140f9 default DNAT"
-DEFAULT_DNAT = "RE8CH default WAN UDP same-port DNAT to restricted-node-6dc3f140f9"
+PRESERVE = "RE8CH preserve MikroTik WAN UDP before R640 default DNAT"
+DEFAULT_DNAT = "RE8CH default WAN UDP same-port DNAT to R640"
 INPUT_DROP = "defconf: drop all not coming from LAN"
 
 
 def inventory(path):
     desired = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
-    if desired["authority"] != "RouterOS" or desired["managementIp"] != "192.0.2.131":
+    if desired["authority"] != "RouterOS" or desired["managementIp"] != "192.168.88.1":
         raise ValueError("unexpected RouterOS authority")
-    if desired["publicEndpoint"] != "192.0.2.79":
+    if desired["publicEndpoint"] != "223.159.210.222":
         raise ValueError("public endpoint differs from the validated authority inventory")
     if desired["routerAsn"] != 4200064001:
         raise ValueError("unexpected RouterOS BGP AS")
     links = desired["links"]
-    if len(links) != 3 or {link["node"] for link in links} != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69"}:
+    if len(links) != 3 or {link["node"] for link in links} != {"a1-wsl-zt", "b1-wsl-zt", "mubao-wsl"}:
         raise ValueError("expected exactly the three reviewed WSL nodes")
     if len({link["listenPort"] for link in links}) != 3:
         raise ValueError("WireGuard listener ports must be unique")
     if any(not 51893 <= link["listenPort"] <= 51895 for link in links):
         raise ValueError("listener port outside the reviewed reservation")
     networks = []
+    identities = {link["identity"] for link in links}
     for link in links:
         router = ipaddress.ip_interface(link["routerAddress"])
         peer = ipaddress.ip_network(link["peerAddress"], strict=True)
@@ -46,8 +47,13 @@ def inventory(path):
             raise ValueError("unexpected WireGuard public-key length")
         if ipaddress.ip_network(link["identity"]).prefixlen != 32:
             raise ValueError("control-plane identities must be /32")
+        expected_fallback = identities - {link["identity"]}
+        if link["node"] in ("a1-wsl-zt", "b1-wsl-zt"):
+            expected_fallback &= {"10.250.0.29/32"}
+        if set(link.get("fallbackIdentities", [])) != expected_fallback:
+            raise ValueError(f'unexpected control-plane fallback identities for {link["node"]}')
         probe = ipaddress.ip_network(link["probeIdentity"], strict=True)
-        if probe.prefixlen != 32 or not probe.subnet_of(ipaddress.ip_network("192.0.2.148/24")):
+        if probe.prefixlen != 32 or not probe.subnet_of(ipaddress.ip_network("172.31.97.0/24")):
             raise ValueError("BGP probe identity outside its isolated /24")
         if any(router.network.overlaps(prior) for prior in networks):
             raise ValueError("control-plane tunnel subnets overlap")
@@ -58,7 +64,7 @@ def inventory(path):
 def credential(kube_api_server=None):
     command = ["sudo", "k3s", "kubectl"]
     if kube_api_server:
-        if kube_api_server not in ("https://192.0.2.173:6443", "https://192.0.2.213:6443", "https://192.0.2.114:6443"):
+        if kube_api_server not in ("https://10.250.0.147:6443", "https://10.250.0.125:6443", "https://10.250.0.29:6443"):
             raise ValueError("unexpected control-plane API server")
         command.append(f"--server={kube_api_server}")
     command += ["-n", "ops", "get", "secret", "mikrotik-routeros-admin", "-o", "json"]
@@ -123,7 +129,7 @@ def require_wan_reservation(router, desired):
             raise RuntimeError("reviewed WAN NAT rule is disabled or changed")
         if value.get("dst-address") != desired["publicEndpoint"] or value.get("protocol") != "udp":
             raise RuntimeError("reviewed WAN NAT authority changed")
-    if preserve[1].get("action") != "accept" or default[1].get("action") != "dst-nat" or default[1].get("to-addresses") != "192.0.2.97":
+    if preserve[1].get("action") != "accept" or default[1].get("action") != "dst-nat" or default[1].get("to-addresses") != "192.168.88.251":
         raise RuntimeError("reviewed WAN NAT actions changed")
     return preserve[1]
 
@@ -239,7 +245,7 @@ def management_service(router, desired):
             if row.get("name") == "www" and row.get("dynamic") != "true"]
     if len(rows) != 1 or rows[0].get("disabled") == "true" or rows[0].get("port") != "80":
         raise RuntimeError("reviewed RouterOS REST service differs")
-    old = "192.0.2.16/24"
+    old = "192.168.88.0/24"
     permitted = ",".join([old] + [link["peerAddress"] for link in desired["links"]])
     if rows[0].get("address") not in (old, permitted):
         raise RuntimeError("RouterOS REST source allowlist differs")
@@ -277,8 +283,36 @@ def rollback_management(router, desired):
     return {"managementIp": desired["managementIp"], "rolledBack": True}
 
 
+def stage_fallback_routes(router, desired):
+    """Keep each control identity reachable during BGP or WSL restart.
+
+    Distance 25 leaves the reviewed eBGP distance 20 in charge when healthy.
+    Every route terminates on its own RouterOS WG peer, never on R640.
+    """
+    preflight(router, desired)
+    result = {}
+    for link in desired["links"]:
+        name = f'{desired["commentPrefix"]} {link["node"].split("-")[0].upper()} /32 direct WireGuard fallback'
+        peer = str(ipaddress.ip_network(link["peerAddress"]).network_address)
+        result[link["node"]] = ensure(router, "/ip/route", name, {
+            "dst-address": link["identity"], "gateway": peer, "distance": "25",
+        })[".id"]
+    return result
+
+
+def rollback_fallback_routes(router, desired):
+    names = {f'{desired["commentPrefix"]} {link["node"].split("-")[0].upper()} /32 direct WireGuard fallback'
+             for link in desired["links"]}
+    removed = []
+    for row in router.rows("/ip/route"):
+        if row.get("comment") in names:
+            router.delete("/ip/route", row[".id"])
+            removed.append(row["comment"])
+    return removed
+
+
 def stage_probe_bgp(router, desired):
-    """Exchange only 192.0.2.148/24 test /32s; never touch K3s routes."""
+    """Exchange only 172.31.97.0/24 test /32s; never touch K3s routes."""
     preflight(router, desired)
     if not any(row.get("name") == "re8ch-pod" and row.get("as") == str(desired["routerAsn"])
                for row in router.rows("/routing/bgp/instance")):
@@ -310,7 +344,7 @@ def stage_probe_bgp(router, desired):
         router.move_before("/ip/firewall/filter", input_rule[".id"], input_drop[".id"])
         forward_rule = ensure(router, "/ip/firewall/filter", prefix + " forward", {
             "chain": "forward", "action": "accept", "in-interface": link["interface"],
-            "src-address": link["probeIdentity"], "dst-address": "192.0.2.148/24",
+            "src-address": link["probeIdentity"], "dst-address": "172.31.97.0/24",
             "disabled": "false",
         })
         router.move_before("/ip/firewall/filter", forward_rule[".id"], fasttrack[".id"])
@@ -324,7 +358,7 @@ def stage_probe_bgp(router, desired):
         })
         ensure(router, "/routing/filter/rule", prefix + " accept out", {
             "chain": chain + "-out",
-            "rule": "if (dst in 192.0.2.148/24 && dst-len==32) { accept }",
+            "rule": "if (dst in 172.31.97.0/24 && dst-len==32) { accept }",
             "disabled": "false",
         })
         ensure(router, "/routing/filter/rule", prefix + " reject out", {
@@ -337,7 +371,7 @@ def stage_probe_bgp(router, desired):
             "input.filter": chain + "-in", "output.filter-chain": chain + "-out",
             "disabled": "false",
         })
-    return {"probePrefix": "192.0.2.148/24", "peers": [link["node"] for link in desired["links"]]}
+    return {"probePrefix": "172.31.97.0/24", "peers": [link["node"] for link in desired["links"]]}
 
 
 def rollback_probe_bgp(router, desired):
@@ -362,6 +396,9 @@ def rollback_probe_bgp(router, desired):
 
 def rollback_stage(router, desired):
     prefix = desired["commentPrefix"]
+    if any(str(row.get("comment", "")).startswith(prefix) and " direct WireGuard fallback" in row["comment"]
+           for row in router.rows("/ip/route")):
+        raise RuntimeError("withdraw control-plane fallback routes before removing the mesh")
     if any(str(row.get("comment", "")).endswith(" management REST")
            and str(row.get("comment", "")).startswith(prefix)
            for row in router.rows("/ip/firewall/filter")):
@@ -386,7 +423,7 @@ def rollback_stage(router, desired):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True)
-    parser.add_argument("--action", choices=("validate", "preflight", "stage", "inspect", "reconcile-mtu", "stage-probe-bgp", "stage-management", "rollback-management", "rollback-probe-bgp", "rollback-stage"), required=True)
+    parser.add_argument("--action", choices=("validate", "preflight", "stage", "inspect", "reconcile-mtu", "stage-probe-bgp", "stage-management", "rollback-management", "stage-fallback-routes", "rollback-fallback-routes", "rollback-probe-bgp", "rollback-stage"), required=True)
     args = parser.parse_args()
     desired = inventory(args.inventory)
     if args.action == "validate":
@@ -406,6 +443,10 @@ def main():
         print(json.dumps(stage_management(router, desired), sort_keys=True))
     elif args.action == "rollback-management":
         print(json.dumps(rollback_management(router, desired), sort_keys=True))
+    elif args.action == "stage-fallback-routes":
+        print(json.dumps(stage_fallback_routes(router, desired), sort_keys=True))
+    elif args.action == "rollback-fallback-routes":
+        print(json.dumps(rollback_fallback_routes(router, desired), sort_keys=True))
     elif args.action == "rollback-probe-bgp":
         print(json.dumps(rollback_probe_bgp(router, desired)))
     elif args.action == "rollback-stage":
