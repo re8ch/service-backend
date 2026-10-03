@@ -110,7 +110,11 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
     native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
     native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
-    assert native_paths == {"/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp"}
+    assert native_paths == {"/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp", "/.well-known/openai-apps-challenge"}
+    assert tenant_env["OPENAI_APPS_CHALLENGE_TOKEN"] == ""
+    challenge_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/.well-known/openai-apps-challenge")
+    assert challenge_rule["backendRefs"] == [{"name": "tenant-api", "port": 80}]
+    assert "filters" not in challenge_rule
     tenant_affinity = deployments["tenant-api"]["spec"]["template"]["spec"]["affinity"]["podAffinity"]
     assert tenant_affinity["requiredDuringSchedulingIgnoredDuringExecution"][0]["labelSelector"]["matchLabels"] == {"app": "admin-api"}
 

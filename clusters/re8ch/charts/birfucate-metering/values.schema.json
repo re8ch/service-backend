@@ -17,6 +17,7 @@
           "type": "object", "additionalProperties": false, "required": ["enabled", "image"],
           "properties": {
             "enabled": {"type": "boolean"},
+            "openAIAppsChallengeToken": {"type": "string", "pattern": "^$|^[A-Za-z0-9_-]{16,256}$"},
             "usersURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "organizationsURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "platformSessionURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},

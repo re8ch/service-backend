@@ -131,3 +131,14 @@ volume blocks archival; remove runtime declarations through their normal lifecyc
 before deleting the identity. Released status alone does not prove data is gone.
 The preflight and GoTrue deletion are separate service calls, not a distributed
 transaction.
+
+### OpenAI public directory domain verification
+
+After publishing a verified image containing `publication.go`, set
+`tenantPlatform.tenantAPI.openAIAppsChallengeToken` to the current draft's
+public domain-verification value. The existing HTTPS 443 HTTPRoute exposes
+`/.well-known/openai-apps-challenge` with the exact plain-text value, no login,
+and no caching. Empty/invalid configuration returns 404. This is a public
+ownership challenge, never an OAuth client secret or API credential. Verify
+the URL before clicking Verify Domain in the OpenAI draft. The default remains
+empty; this change alone does not verify a domain or publish a plugin.
