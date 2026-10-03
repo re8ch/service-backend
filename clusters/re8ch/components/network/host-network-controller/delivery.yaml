@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: host-network-controller, namespace: kube-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: host-network-controller, namespace: kube-system}
+rules:
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: host-network-controller, namespace: kube-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: host-network-controller}
+subjects: [{kind: ServiceAccount, name: host-network-controller, namespace: kube-system}]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: host-network-controller, namespace: kube-system}
+spec:
+  selector: {matchLabels: {app.kubernetes.io/name: host-network-controller}}
+  updateStrategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: host-network-controller}
+    spec:
+      serviceAccountName: host-network-controller
+      hostPID: true
+      hostNetwork: true
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations: [{operator: Exists}]
+      containers:
+        - name: delivery
+          image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+          command: [/usr/bin/sh, /config/deliver.sh]
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          securityContext: {privileged: true}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: host-root, mountPath: /host}
+      volumes:
+        - name: config
+          configMap: {name: host-network-controller}
+        - name: host-root
+          hostPath: {path: /, type: Directory}

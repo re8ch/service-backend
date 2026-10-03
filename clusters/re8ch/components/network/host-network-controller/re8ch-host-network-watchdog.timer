@@ -1,0 +1,7 @@
+[Unit]
+Description=Host-local network rollback deadline
+[Timer]
+OnBootSec=15
+OnUnitInactiveSec=10
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,14 @@
+{
+  "node": "overseas-flk",
+  "scope": "public-mesh-peers",
+  "peerKeys": [
+    "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
+    "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
+  ],
+  "prefixLists": [
+    "FROM-128",
+    "FROM-220"
+  ],
+  "managementPath": "public-ssh-independent-of-mesh",
+  "writerAudit": "2026-10-04-flk-public-peers"
+}

@@ -1,0 +1,7 @@
+[Unit]
+Description=Reconcile GitOps host network scope
+[Timer]
+OnBootSec=60
+OnUnitInactiveSec=60
+[Install]
+WantedBy=timers.target

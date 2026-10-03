@@ -72,6 +72,7 @@ domains:
       - clusters/re8ch/components/multicloud-functions-dns/base
       - clusters/re8ch/components/multicloud-functions-dns/ledger
       - clusters/re8ch/components/network/podcidr-fabric
+      - clusters/re8ch/components/network/host-network-controller
       - clusters/re8ch/components/regional-routing
     tests:
       - tests/test_advanced_fabric.py
@@ -82,6 +83,8 @@ domains:
       - tests/test_gateway_api_ingress_migration.py
       - tests/test_private_transit_config.py
       - tests/test_public_mesh_config.py
+      - tests/test_host_network_agent.py
+      - tests/test_network_fabric_model.py
       - tests/test_public_mesh_identity_routes.py
       - tests/test_r640_public_authority.py
       - tests/test_public_edge_publisher.py

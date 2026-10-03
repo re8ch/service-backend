@@ -12,10 +12,8 @@ python3 operations/network/fabric/fabric_model.py check
 ```
 
 Flux publishes the compiled document as `kube-system/host-network-contract`
-through the existing network PodCIDR OCI domain. This is an inventory-mode
-declaration. It starts no privileged agent, changes no route, and does not
-authorize existing consumers to apply a host plan. CI rejects switching to
-apply mode or listing adopted nodes until an adoption controller is implemented.
+through the existing network PodCIDR OCI domain. The current release enables the single scoped canary described below. Other
+host plans remain inventory-only. CI rejects fleet-wide adoption.
 
 ## Ownership
 
@@ -35,7 +33,7 @@ runtime state until each scope is explicitly transferred.
 
 ## Version and transaction format
 
-A future host controller consumes a signed promoted revision plus this model
+The host controller consumes a signed promoted revision plus this model
 digest. Each transaction must record node identity, desired digest, baseline
 digest, owned files/scopes, validation results, and previous committed revision.
 WireGuard private keys stay in approved host/Secret storage and are referenced
@@ -57,6 +55,48 @@ the owned WireGuard/FRR/routes/AdvFab scopes from the last known good snapshot.
 Do not retry a failed revision indefinitely. Boot from the last known good
 revision; retain failure evidence for the next rollout.
 
-This change standardizes desired configuration and the future controller's
-contract. Automatic host deployment, timed local rollback and live drift
-reconciliation are separate implementation work and are not activated here.
+The contract covers the intended full ownership model. The implemented v1
+adapter supports only the scopes listed below.
+
+## v1 scoped canary controller (2026-10-04)
+
+The controller now supports a single non-control-plane canary: overseas-flk.
+Its scope is the public-mesh interface MTU, the restricted-node-6dc3f140f9/LA2 peers' AllowedIPs,
+endpoint and keepalive, and their exact FROM-* FRR prefix lists. All other
+neighbors, keys, interfaces, route tables and AdvFab policy remain with their
+existing owners. The compiler combines public identities and PodCIDR ownership
+before emitting each complete peer prefix set. The old PodCIDR reconciler checks
+the local adoption manifest and yields these exact peers to the new assembler.
+
+Flux delivers a hashed ConfigMap through the existing signed PodCIDR OCI domain.
+The installer starts host systemd recovery/watchdog services before the forward
+timer. Node-local immutable desired digests, durable pre-write journals,
+three consecutive successful health rounds, bounded workers, reboot recovery,
+and failed-revision blocking implement a real transaction. Rollback restores
+only adopted runtime and persistent fields; it does not replace shared FRR.
+Private keys never enter packages or transaction journals.
+
+Live DNS EndpointSlices are refreshed into a separate timestamped health file.
+The host gate rejects discovery older than 120 seconds, missing DNS replicas,
+failed UDP/TCP DNS, BGP, BFD, WireGuard handshakes, control VIP/direct API TCP,
+or explicit egress proxy tests. An unhealthy baseline blocks forward changes.
+Recovery uses only the local journal and works without Kubernetes connectivity.
+
+The first canary has not been certified as globally healthy: initial FLK checks
+could reach A1/B1 DNS but timed out to restricted-node-6dc3f140f9/MUBAO DNS. Installation is not a claim
+of successful adoption or fleet-wide convergence. Query the host journal and
+status files, rather than treating the delivery Pod's Running phase as success.
+
+```sh
+systemctl status re8ch-host-network.timer re8ch-host-network-watchdog.timer
+cat /var/lib/re8ch/host-network/status.json
+# Journal contains public network scopes only, but stays root-readable.
+cat /var/lib/re8ch/host-network/transaction.json
+```
+
+V1 intentionally rejects additional adopted nodes. Expanding adoption requires
+extending the rollout coordinator and reviewing each ownership handoff, including
+bidirectional data-plane probes. FRR neighbor lifecycle, route/rule and AdvFab
+transactions are not yet supported by this adapter; they must not be marked as
+owned by it. Roll back the delivery through GitOps; never remove host rollback
+services while a transaction is applying/verifying/rolling-back.

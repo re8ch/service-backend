@@ -1,7 +1,7 @@
 {
   "apiVersion": "networking.re8ch.com/v1alpha1",
   "kind": "HostNetworkContract",
-  "mode": "inventory",
+  "mode": "canary",
   "desiredController": "re8ch-host-network-agent",
   "delivery": {
     "authority": "github/main",
@@ -87,7 +87,44 @@
     "failedRevisionRetry": "blocked-until-new-revision",
     "boot": "last-known-good"
   },
-  "adoptedNodes": [],
+  "adoptedNodes": [
+    "overseas-flk"
+  ],
+  "controller": {
+    "version": "v1-scoped-canary",
+    "node": "overseas-flk",
+    "scope": "public-mesh-peers",
+    "peerNames": [
+      "restricted-node-6dc3f140f9",
+      "overseas-la-2"
+    ],
+    "publicKeys": {
+      "restricted-node-6dc3f140f9": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
+      "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
+    },
+    "health": {
+      "tcpTargets": [
+        {
+          "ip": "192.0.2.116",
+          "port": 6443
+        },
+        {
+          "ip": "192.0.2.242",
+          "port": 6443
+        },
+        {
+          "ip": "192.0.2.1",
+          "port": 6443
+        },
+        {
+          "ip": "192.0.2.223",
+          "port": 6443
+        }
+      ],
+      "egressProxy": "http://192.0.2.179:17891",
+      "egressURL": "https://www.gstatic.com/generate_204"
+    }
+  },
   "nodes": {
     "restricted-node-1eb0570f74": {
       "node": "restricted-node-1eb0570f74",
@@ -551,8 +588,8 @@
       "identity": "192.0.2.48",
       "podCIDR": "192.0.2.165/24",
       "asn": 4200000105,
-      "mode": "inventory",
-      "applyEligible": false,
+      "mode": "canary",
+      "applyEligible": true,
       "wireguard": [
         {
           "name": "wg-public-mesh",
@@ -601,10 +638,10 @@
         ]
       },
       "adoptionBlockers": [
-        "live-writer-audit-required",
-        "transactional-host-controller-required"
+        "live-preflight-health-required"
       ],
-      "controlPodRoutePolicy": []
+      "controlPodRoutePolicy": [],
+      "adoptedScope": "public-mesh-peers"
     },
     "overseas-kl": {
       "node": "overseas-kl",
@@ -1086,5 +1123,5 @@
       "controlPodRoutePolicy": []
     }
   },
-  "modelDigest": "sha256:28ad71f84510cd356b9a457d90f06acc7f8f4336fa3e9e951b160d371239818b"
+  "modelDigest": "sha256:305b8e2fa2ffc49cf7f5fe99e8155fe6e990748e3ea259e4cd9c1c37c46161f8"
 }
