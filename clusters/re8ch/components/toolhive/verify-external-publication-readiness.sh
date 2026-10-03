@@ -1,10 +1,11 @@
 #!/usr/bin/env sh
 set -u
 
-: "${MCP_ORIGIN:=https://tools.re8ch.com:8443}"
-: "${MCP_RESOURCE:=$MCP_ORIGIN/mcp}"
+: "${MCP_ORIGIN:=https://tools.service.re8ch.com}"
+: "${MCP_RESOURCE:=$MCP_ORIGIN/tenant-native/mcp}"
 : "${AUTH_ORIGIN:=https://auth.re8ch.com}"
-: "${AUTH_ISSUER:=$AUTH_ORIGIN/}"
+: "${AUTH_ISSUER:=https://db-rw.re8ch.com/auth/v1}"
+: "${RESOURCE_METADATA_URL:=$MCP_ORIGIN/.well-known/oauth-protected-resource/tenant-native/mcp}"
 
 failures=0
 
@@ -30,9 +31,9 @@ headers_tmp=$(mktemp)
 trap 'rm -f "$resource_tmp" "$auth_tmp" "$headers_tmp"' EXIT INT TERM
 
 if curl --silent --show-error --fail --max-time 10 \
-  "$MCP_ORIGIN/.well-known/oauth-protected-resource/mcp" >"$resource_tmp"; then
-  if jq -e --arg resource "$MCP_RESOURCE" '
-    .resource == $resource and (.authorization_servers | type == "array" and length > 0)
+  "$RESOURCE_METADATA_URL" >"$resource_tmp"; then
+  if jq -e --arg resource "$MCP_RESOURCE" --arg issuer "${AUTH_ISSUER%/}" '
+    .resource == $resource and (.authorization_servers | index($issuer) != null)
   ' "$resource_tmp" >/dev/null 2>&1; then
     pass "RFC 9728 protected-resource metadata"
   else
@@ -44,10 +45,10 @@ fi
 
 auth_metadata_ok=false
 for suffix in .well-known/oauth-authorization-server .well-known/openid-configuration; do
-  metadata_url="${AUTH_ISSUER}${suffix}"
+  metadata_url="${AUTH_ISSUER%/}/${suffix}"
   if curl --silent --show-error --fail --max-time 10 "$metadata_url" >"$auth_tmp" && \
-     jq -e '
-       (.issuer | type == "string" and length > 0) and
+     jq -e --arg issuer "${AUTH_ISSUER%/}" '
+       (.issuer == $issuer) and
        (.authorization_endpoint | type == "string" and startswith("https://")) and
        (.token_endpoint | type == "string" and startswith("https://")) and
        ((.code_challenge_methods_supported // []) | index("S256") != null)
@@ -78,7 +79,7 @@ if [ -n "${OPENAI_APPS_CHALLENGE_TOKEN:-}" ]; then
   [ "$challenge" = "$OPENAI_APPS_CHALLENGE_TOKEN" ] && \
     pass "OpenAI domain challenge" || block "OpenAI domain challenge token"
 else
-  pass "OpenAI domain challenge not requested for this private Codex plugin"
+  pass "OpenAI domain challenge not tested (no challenge token supplied)"
 fi
 
 if [ "$failures" -eq 0 ]; then
