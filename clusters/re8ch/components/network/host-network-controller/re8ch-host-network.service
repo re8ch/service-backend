@@ -1,0 +1,13 @@
+[Unit]
+Description=RE8CH scoped host network transaction
+After=network-online.target frr.service re8ch-host-network-recover.service
+Wants=network-online.target
+Requires=re8ch-host-network-recover.service
+ConditionPathExists=/var/lib/re8ch/host-network/desired.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/re8ch-host-network/agent.py reconcile
+TimeoutStartSec=150
+KillMode=control-group
+UMask=0077

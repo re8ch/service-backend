@@ -896,7 +896,7 @@
   "hostNetwork": {
     "apiVersion": "networking.re8ch.com/v1alpha1",
     "kind": "HostNetworkContract",
-    "mode": "inventory",
+    "mode": "canary",
     "desiredController": "re8ch-host-network-agent",
     "delivery": {
       "authority": "github/main",
@@ -982,6 +982,43 @@
       "failedRevisionRetry": "blocked-until-new-revision",
       "boot": "last-known-good"
     },
-    "adoptedNodes": []
+    "adoptedNodes": [
+      "overseas-flk"
+    ],
+    "controller": {
+      "version": "v1-scoped-canary",
+      "node": "overseas-flk",
+      "scope": "public-mesh-peers",
+      "peerNames": [
+        "restricted-node-6dc3f140f9",
+        "overseas-la-2"
+      ],
+      "publicKeys": {
+        "restricted-node-6dc3f140f9": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
+        "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
+      },
+      "health": {
+        "tcpTargets": [
+          {
+            "ip": "192.0.2.220",
+            "port": 6443
+          },
+          {
+            "ip": "192.0.2.173",
+            "port": 6443
+          },
+          {
+            "ip": "192.0.2.213",
+            "port": 6443
+          },
+          {
+            "ip": "192.0.2.114",
+            "port": 6443
+          }
+        ],
+        "egressProxy": "http://192.0.2.205:17891",
+        "egressURL": "https://www.gstatic.com/generate_204"
+      }
+    }
   }
 }

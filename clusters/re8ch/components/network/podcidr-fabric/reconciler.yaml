@@ -16,6 +16,10 @@ data:
       nsenter -t 1 -n chroot /host "$@"
     }
 
+    # Advertise that this running writer understands per-peer adoption.
+    # Delivery waits for this marker before transferring ownership.
+    host touch /run/re8ch-public-mesh-handoff-v1
+
     wait_for_bgp() {
       attempts=0
       while [ "${attempts}" -lt 30 ]; do
@@ -268,6 +272,12 @@ data:
         ')"
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+        # A reviewed host adoption transfers this peer's complete AllowedIPs
+        # to the single host assembler. Other peers stay with this reconciler.
+        if [ -f /host/var/lib/re8ch/host-network/adoption.json ] &&
+          jq -e --arg key "${peer_key}" '.peerKeys | index($key) != null' /host/var/lib/re8ch/host-network/adoption.json >/dev/null; then
+          continue
+        fi
         case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
       done
     }
@@ -720,7 +730,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: r640-b1-podcidr-authority-v9
+        networking.re8ch.com/config-revision: host-network-scoped-handoff-v10
     spec:
       hostPID: true
       hostNetwork: true
