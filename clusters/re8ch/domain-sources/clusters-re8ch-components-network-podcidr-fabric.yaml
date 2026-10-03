@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: zephyr-indigo
+    delivery.re8ch.com/codename: chinook-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:c3003cf412971513baa7cf3784af632cac3cb4edf842519b6ad5ebc0165f96ed
+    digest: sha256:a6763104ce12a02141444b87b94c55160042e9cfb1617442d77c95ac5d7f8b67
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: zephyr-indigo
+    delivery.re8ch.com/codename: chinook-jade
 spec:
   interval: 1m
   retryInterval: 1m
