@@ -178,6 +178,8 @@ modules:
       digest: sha256:4927c7241094fab904d0d2170a318f24dc82941335d0db6502c3573ba2669cbe
     - codename: chinook-pearl
       digest: sha256:a0a6c33ac2daf3749618be850b846cd3f1d6ad394cf187cf876d6667b7c50dbe
+    - codename: etesian-pearl
+      digest: sha256:4f8442b12a9acc1a3a175204dab0b2f82cbeab4c851f14f277a3eb5d3584fbba
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
