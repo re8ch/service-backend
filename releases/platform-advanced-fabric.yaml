@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: tramontane-indigo
+codename: zephyr-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:2ad7c2fcc1844c8a1e8cb74b7a4213cb0f8f6ea544f06d95a4108f35ad3f7635
+  digest: sha256:0da8b9c1c4e7da49834700638389f8c7316039034eda5119b7e2209148b385b5
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
