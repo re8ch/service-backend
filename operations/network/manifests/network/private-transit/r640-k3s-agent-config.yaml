@@ -13,6 +13,13 @@ node-label:
   - re8ch.com/public-ip=none
   - re8ch.com/numa-nodes=2
   - re8ch.com/cilium-migrate=true
+  - networking.re8ch.com/geo=cn
+  - networking.re8ch.com/firewall=cn
+  - networking.re8ch.com/egress-policy=auto
+  - networking.re8ch.com/mihomo-exit-cn=enabled
+  - topology.kubernetes.io/region=cn-hunan
+  - topology.kubernetes.io/zone=hunan
+  - scheduling.re8ch.com/node-profile=worker-large
 kubelet-arg:
   - max-pods=256
   - kube-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096
