@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: supabase-platform-admin-api-v4
+  name: supabase-platform-admin-api-v5
   namespace: supabase-identity
 data:
   auth-owner.sql: |
@@ -28,6 +28,12 @@ data:
     alter function auth.platform_session_active() owner to supabase_auth_admin;
     revoke all on function auth.platform_session_active() from public, anon, authenticated;
     grant execute on function auth.platform_session_active() to supabase_admin;
+    commit;
+    -- Apply as the GoTrue table owner. Existing SELECT grants do not bypass RLS.
+    -- Only the trusted identity RPC owner can read users; API roles receive no access.
+    begin;
+    drop policy if exists identity_rpc_user_read on auth.users;
+    create policy identity_rpc_user_read on auth.users for select to supabase_admin using (true);
     commit;
   migration.sql: |
     -- Reviewed Cloud Functions 43eb7f2
@@ -155,11 +161,73 @@ data:
     commit;
     notify pgrst,'reload schema';
 
+    -- User CRUD source: re8ch/cloud-functions PR #107
+    -- Credential lifecycle belongs to GoTrue, never direct writes to auth.users.
+    begin;
+    create or replace function api.platform_user_delete_guard(p_user_id uuid)
+    returns jsonb language plpgsql volatile security definer
+    set search_path=pg_catalog,pg_temp as $$
+    begin
+     if not core.has_platform_session(api.current_user_id()) then raise exception 'platform session required' using errcode='42501';end if;
+     if p_user_id=api.current_user_id() or exists(select 1 from core.organization_members where user_id=p_user_id and tenant_ref='admin' and status='active') then
+      raise exception 'protected user' using errcode='23505';
+     end if;
+     if not exists(select 1 from auth.users where id=p_user_id and deleted_at is null) then raise exception 'user not found' using errcode='P0002';end if;
+     if exists(select 1 from core.organization_members m join core.organizations o on o.tenant_ref=m.tenant_ref where m.user_id=p_user_id and m.status='active' and o.kind<>'personal' and o.status='active') then
+      raise exception 'remove organization memberships before deleting user' using errcode='23505';
+     end if;
+     if exists(select 1 from core.organizations parent join core.organizations child on child.parent_ref=parent.tenant_ref where parent.personal_owner_id=p_user_id and child.status='active') then
+      raise exception 'move child organizations before deleting user' using errcode='23505';
+     end if;
+     return jsonb_build_object('personalOrganizations',coalesce((select jsonb_agg(tenant_ref) from core.organizations where personal_owner_id=p_user_id and kind='personal'),'[]'::jsonb));
+    end $$;
+    alter function api.platform_user_delete_guard(uuid) owner to supabase_admin;
+    revoke all on function api.platform_user_delete_guard(uuid) from public,anon;
+    grant execute on function api.platform_user_delete_guard(uuid) to authenticated;
+    -- Read and update the same profile authority used by User Hub.
+    create or replace function api.platform_users(p_user_id uuid default null, p_page integer default 1, p_per_page integer default 50)
+    returns jsonb language plpgsql stable security definer set search_path=pg_catalog,pg_temp as $$
+    declare result jsonb;
+    begin
+     if not core.has_platform_session(api.current_user_id()) then raise exception 'platform session required' using errcode='42501';end if;
+     if p_page is null or p_page<1 or p_page>10000 or p_per_page is null or p_per_page<1 or p_per_page>100 then raise exception 'invalid pagination' using errcode='22023';end if;
+     select coalesce(jsonb_agg(row), '[]'::jsonb) into result from (
+      select u.id,coalesce(u.email,'') as email,coalesce(p.display_name,'') as "displayName",u.created_at as "createdAt",
+       u.email_confirmed_at is not null as "emailConfirmed",false as deleted
+      from auth.users u left join core.user_profiles p on p.user_id=u.id
+      where u.deleted_at is null and (p_user_id is null or u.id=p_user_id)
+      order by u.created_at,u.id limit p_per_page offset ((p_page-1)*p_per_page)
+     ) row;
+     if p_user_id is not null then
+      if jsonb_array_length(result)=0 then raise exception 'user not found' using errcode='P0002';end if;
+      return result->0;
+     end if;
+     return jsonb_build_object('users',result);
+    end $$;
+    alter function api.platform_users(uuid,integer,integer) owner to supabase_admin;
+    revoke all on function api.platform_users(uuid,integer,integer) from public,anon;
+    grant execute on function api.platform_users(uuid,integer,integer) to authenticated;
+
+    create or replace function api.platform_user_update(p_user_id uuid,p_display_name text)
+    returns jsonb language plpgsql volatile security definer set search_path=pg_catalog,pg_temp as $$
+    begin
+     perform api.platform_users(p_user_id);
+     if p_display_name is null or length(btrim(p_display_name)) not between 1 and 80 then raise exception 'invalid display name' using errcode='22023';end if;
+     perform core.ensure_user_profile(p_user_id);
+     update core.user_profiles set display_name=btrim(p_display_name),updated_at=now() where user_id=p_user_id;
+     return api.platform_users(p_user_id);
+    end $$;
+    alter function api.platform_user_update(uuid,text) owner to supabase_admin;
+    revoke all on function api.platform_user_update(uuid,text) from public,anon;
+    grant execute on function api.platform_user_update(uuid,text) to authenticated;
+    notify pgrst,'reload schema';
+    commit;
+
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: supabase-platform-admin-api-v4
+  name: supabase-platform-admin-api-v5
   namespace: supabase-identity
 spec:
   backoffLimit: 4
@@ -169,7 +237,7 @@ spec:
       restartPolicy: Never
       automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - key: dedicated
         operator: Equal
@@ -230,4 +298,4 @@ spec:
       volumes:
       - name: sql
         configMap:
-          name: supabase-platform-admin-api-v4
+          name: supabase-platform-admin-api-v5

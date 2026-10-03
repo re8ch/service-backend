@@ -110,3 +110,24 @@ and gateway replica changes preserve the decision; logout, revocation, and expir
 invalidate the session. If the identity authority is unavailable, MCP returns
 503 without a login challenge. Leave the option unset until the additive Auth
 migration and API deployment have been verified.
+
+### Platform identity users
+
+`platform_user` is advertised only to human platform-admin sessions when
+`PLATFORM_USERS_URL` points to the identity gateway `/auth/v2/users`. It provides
+`list`, `get`, `create`, `update` and `delete`, forwarding the current caller's
+bearer with no retries or service-role credential. Creation is passwordless and
+unverified; update changes the canonical display name. Delete is GoTrue soft
+deletion, not personal-data erasure.
+
+Deployment requires Cloud Functions PR #107 and SQL migrations 048 (auth-owner
+RLS policy first). The v5 platform-admin migration Job embeds those migrations.
+Deploy the auth gateway and tenant-control dependency endpoint before publishing
+the tenant MCP image and User Hub PR #70.
+
+The dependency endpoint reads Kubernetes authority and fails closed. Any retained
+Tenant, namespace, binding, grant, service instance, or attributed persistent
+volume blocks archival; remove runtime declarations through their normal lifecycle
+before deleting the identity. Released status alone does not prove data is gone.
+The preflight and GoTrue deletion are separate service calls, not a distributed
+transaction.
