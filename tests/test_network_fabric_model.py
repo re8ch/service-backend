@@ -15,7 +15,7 @@ SPEC.loader.exec_module(FABRIC)
 
 def test_all_consumers_match_single_fabric_model():
     rendered = FABRIC.validate(FABRIC.load_model())
-    assert len(rendered) == 10
+    assert len(rendered) == 12
     for relative, expected in rendered.items():
         assert json.loads((ROOT / relative).read_text()) == expected
 

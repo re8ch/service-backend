@@ -1,0 +1,73 @@
+{
+  "node": "overseas-flk",
+  "scope": "public-mesh-peers",
+  "revision": "305b8e2fa2ffc49cf7f5fe99e8155fe6e990748e3ea259e4cd9c1c37c46161f8",
+  "timeout": 180,
+  "wireguard": {
+    "interface": "wg-public-mesh",
+    "mtu": 1280,
+    "peers": [
+      {
+        "publicKey": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
+        "allowedIPs": [
+          "192.0.2.125/32",
+          "192.0.2.179/32",
+          "192.0.2.140/24"
+        ],
+        "endpoint": "192.0.2.138:51888",
+        "keepalive": 15
+      },
+      {
+        "publicKey": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs=",
+        "allowedIPs": [
+          "192.0.2.206/32",
+          "192.0.2.148/32",
+          "192.0.2.203/24"
+        ],
+        "endpoint": "192.0.2.146:51888",
+        "keepalive": 15
+      }
+    ]
+  },
+  "prefixLists": {
+    "FROM-128": [
+      "ip prefix-list FROM-128 seq 10 permit 192.0.2.179/32"
+    ],
+    "FROM-220": [
+      "ip prefix-list FROM-220 seq 10 permit 192.0.2.148/32"
+    ]
+  },
+  "health": {
+    "tcpTargets": [
+      {
+        "ip": "192.0.2.116",
+        "port": 6443
+      },
+      {
+        "ip": "192.0.2.242",
+        "port": 6443
+      },
+      {
+        "ip": "192.0.2.1",
+        "port": 6443
+      },
+      {
+        "ip": "192.0.2.223",
+        "port": 6443
+      }
+    ],
+    "egressProxy": "http://192.0.2.179:17891",
+    "egressURL": "https://www.gstatic.com/generate_204",
+    "bgpPeers": [
+      "192.0.2.125",
+      "192.0.2.206"
+    ],
+    "bfdPeers": [
+      "192.0.2.125",
+      "192.0.2.206"
+    ],
+    "checks": [
+      "/usr/local/lib/re8ch-host-network/checks/fabric"
+    ]
+  }
+}

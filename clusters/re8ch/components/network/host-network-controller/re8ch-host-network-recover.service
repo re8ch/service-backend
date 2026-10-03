@@ -1,0 +1,12 @@
+[Unit]
+Description=Recover interrupted network transaction at boot
+After=network-online.target frr.service wg-quick@wg-public-mesh.service
+Before=re8ch-host-network.service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/re8ch-host-network/agent.py recover-boot
+RemainAfterExit=yes
+TimeoutStartSec=120
+UMask=0077
+[Install]
+WantedBy=multi-user.target

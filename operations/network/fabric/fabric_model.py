@@ -44,8 +44,12 @@ HOST_CONTRACT = "clusters/re8ch/components/network/podcidr-fabric/host-network-c
 def host_contract(model):
     """Compile an inventory-mode contract; never imply host adoption."""
     contract = copy.deepcopy(model["hostNetwork"])
-    if contract["mode"] != "inventory" or contract["adoptedNodes"]:
-        raise ValueError("host apply requires a separately implemented adoption controller")
+    pilot = contract.get("controller", {})
+    if contract["mode"] == "inventory":
+        if contract["adoptedNodes"]:
+            raise ValueError("inventory requires explicit adoption controller")
+    elif contract["mode"] != "canary" or contract["adoptedNodes"] != [pilot.get("node")] or pilot.get("node") != "overseas-flk":
+        raise ValueError("adoption controller currently permits one non-control-plane canary")
     if contract["ownership"]["frr"]["wholeFileReplacement"]:
         raise ValueError("shared FRR configuration cannot be replaced wholesale")
     if contract["ownership"]["advfab"]["ecmpMode"] != "per-flow":
@@ -103,6 +107,12 @@ def host_contract(model):
                                "declaredWriters": ["podcidr-fabric-reconciler", "host-frr-persisted-config"]},
                        "adoptionBlockers": ["live-writer-audit-required", "transactional-host-controller-required"],
                        "controlPodRoutePolicy": model["routeIntent"]["controlPodDirectPairs"] if name in control else []}
+    if contract["mode"] == "canary":
+        plan = plans[pilot["node"]]
+        plan["mode"] = "canary"
+        plan["applyEligible"] = True
+        plan["adoptedScope"] = pilot["scope"]
+        plan["adoptionBlockers"] = ["live-preflight-health-required"]
     contract["nodes"] = plans
     # Content identity is reproducible; promotion binds it to a signed Git SHA.
     payload = json.dumps({"model": model, "plans": plans}, sort_keys=True, separators=(",", ":"))
@@ -161,6 +171,34 @@ def outputs(model):
                 section, model.get("runtimeProjections", {}).get(section_name, {})
             )
     result[HOST_CONTRACT] = host_contract(model)
+    controller = model["hostNetwork"].get("controller")
+    if controller:
+        public = model["sections"]["publicMesh"]
+        byname = {n["name"]: n for n in public["nodes"]}
+        own = byname[controller["node"]]
+        fabric_nodes = model["sections"]["podcidrFabric"]
+        pods = {n["acceleratedIp"]: n["podCIDR"] for group in ("routeServers", "nodes", "relayNodes") for n in fabric_nodes.get(group, [])}
+        peers, lists, transports = [], {}, []
+        for name in controller["peerNames"]:
+            peer = byname[name]
+            if name not in own["meshPeers"]:
+                raise ValueError("canary peer outside declared adjacency")
+            identity = f'10.250.0.{peer["id"]}'
+            peers.append({"publicKey": controller["publicKeys"][name],
+                          "allowedIPs": [peer["transportIp"] + "/32", identity + "/32", pods[identity]],
+                          "endpoint": f'{peer["publicIp"]}:{public["listenPort"]}', "keepalive": 15})
+            key = f'FROM-{peer["id"]}'
+            lists[key] = [f'ip prefix-list {key} seq 10 permit {identity}/32']
+            transports.append(peer["transportIp"])
+        base = "clusters/re8ch/components/network/host-network-controller/"
+        result[base + "package.json"] = {"node": controller["node"], "scope": controller["scope"],
+            "revision": result[HOST_CONTRACT]["modelDigest"].split(":")[1], "timeout": 180,
+            "wireguard": {"interface": public["interface"], "mtu": own.get("mtu", public["mtu"]), "peers": peers},
+            "prefixLists": lists, "health": {**controller["health"], "bgpPeers": transports,
+                "bfdPeers": transports, "checks": ["/usr/local/lib/re8ch-host-network/checks/fabric"]}}
+        result[base + "adoption.json"] = {"node": controller["node"], "scope": controller["scope"],
+            "peerKeys": [p["publicKey"] for p in peers], "prefixLists": list(lists),
+            "managementPath": "public-ssh-independent-of-mesh", "writerAudit": "2026-10-04-flk-public-peers"}
     return result
 
 
