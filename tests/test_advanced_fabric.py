@@ -178,6 +178,8 @@ class AdvancedFabricTests(unittest.TestCase):
         controller = release["spec"]["values"]["advancedFabric"]["controller"]
         self.assertEqual(controller["replicas"], 2)
         self.assertEqual(controller["pdbMinAvailable"], 1)
+        self.assertIs(controller["useNodeLocalAPI"], True)
+        self.assertEqual(controller["nodeLocalAPIPort"], 6443)
         self.assertEqual(
             controller["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"],
             ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"],
