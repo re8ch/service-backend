@@ -286,7 +286,7 @@ def reconcile(state, p, adoption):
     persistent_ok = persistent.get('Interface', {}).get('MTU') == str(p['wireguard']['mtu'])
     for peer in p['wireguard']['peers']:
         fields = persistent.get(peer['publicKey'], {})
-        persistent_ok = persistent_ok and sorted(x.strip() for x in fields.get('AllowedIPs', '').split(',')) == sorted(peer['allowedIPs'])
+        persistent_ok = persistent_ok and sorted(x.strip() for x in (fields.get('AllowedIPs') or '').split(',')) == sorted(peer['allowedIPs'])
         persistent_ok = persistent_ok and fields.get('PersistentKeepalive') == str(peer['keepalive'])
         if peer.get('endpoint'):
             persistent_ok = persistent_ok and fields.get('Endpoint') == peer['endpoint']
