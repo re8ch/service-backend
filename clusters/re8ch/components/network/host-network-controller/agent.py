@@ -236,7 +236,7 @@ def syntax_check(p):
         run(['vtysh', '-C', '-f', str(path)])
 
 
-def healthy(p, baseline=False):
+def healthy(p):
     summary = json.loads(run(['vtysh', '-c', 'show bgp ipv4 unicast summary json']))
     for peer in p['health']['bgpPeers']:
         if summary.get('peers', {}).get(peer, {}).get('state') != 'Established':
@@ -249,7 +249,7 @@ def healthy(p, baseline=False):
     if any(time.time() - int(handshakes.get(peer['publicKey'], 0)) > 180 for peer in p['wireguard']['peers']):
         return False
     for check in p['health']['checks']:
-        run([check] + (['--baseline-dns-repair'] if baseline and p['health'].get('repairBaselineDns') else []))
+        run([check])
     return True
 
 
@@ -299,7 +299,7 @@ def reconcile(state, p, adoption):
     if (state / 'committed.json').exists() and json.loads((state / 'committed.json').read_text())['digest'] == target and current == expected and persistent_ok:
         return 'converged'
     try:
-        if not healthy(p, baseline=True):
+        if not healthy(p):
             raise RuntimeError('BGP/BFD/handshake gate')
     except Exception as exc:
         save(state / 'status.json', {'state': 'preflight-unhealthy', 'digest': target,
