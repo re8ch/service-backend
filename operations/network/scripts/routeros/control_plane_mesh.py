@@ -177,7 +177,10 @@ def stage(router, desired):
             "allowed-address": link["peerAddress"], "responder": "yes", "disabled": "false",
         }
         current_peer = comments(router.rows("/interface/wireguard/peers")).get(prefix + " peer")
-        if current_peer and current_peer.get("allowed-address") == link["peerAddress"] + "," + link["probeIdentity"]:
+        if current_peer and current_peer.get("allowed-address") in (
+            link["peerAddress"] + "," + link["probeIdentity"],
+            link["peerAddress"] + "," + link["probeIdentity"] + "," + link["identity"],
+        ):
             peer_body["allowed-address"] = current_peer["allowed-address"]
         ensure(router, "/interface/wireguard/peers", prefix + " peer", peer_body)
         rule = ensure(router, "/ip/firewall/filter", prefix + " WAN UDP", {
@@ -220,10 +223,13 @@ def stage_probe_bgp(router, desired):
         peer = comments(router.rows("/interface/wireguard/peers")).get(
             f'{desired["commentPrefix"]} {link["node"]} peer')
         if not peer or peer.get("allowed-address") not in (
-            link["peerAddress"], link["peerAddress"] + "," + link["probeIdentity"]):
+            link["peerAddress"], link["peerAddress"] + "," + link["probeIdentity"],
+            link["peerAddress"] + "," + link["probeIdentity"] + "," + link["identity"]):
             raise RuntimeError("reviewed WireGuard peer is missing or changed")
-        router.update("/interface/wireguard/peers", peer[".id"], {
-            "allowed-address": link["peerAddress"] + "," + link["probeIdentity"]})
+        allowed = link["peerAddress"] + "," + link["probeIdentity"]
+        if peer["allowed-address"].endswith("," + link["identity"]):
+            allowed += "," + link["identity"]
+        router.update("/interface/wireguard/peers", peer[".id"], {"allowed-address": allowed})
         router_ip = str(ipaddress.ip_interface(link["routerAddress"]).ip)
         peer_ip = str(ipaddress.ip_network(link["peerAddress"]).network_address)
         input_rule = ensure(router, "/ip/firewall/filter", prefix + " BGP input", {
@@ -266,6 +272,9 @@ def stage_probe_bgp(router, desired):
 
 def rollback_probe_bgp(router, desired):
     prefix = desired["commentPrefix"]
+    if any(str(row.get("comment", "")).startswith(prefix) and " shadow " in row["comment"]
+           for row in router.rows("/routing/filter/rule")):
+        raise RuntimeError("withdraw shadow identities before rolling back probe BGP")
     removed = []
     for path in ("/routing/bgp/connection", "/routing/filter/rule", "/ip/firewall/filter"):
         for row in router.rows(path):
