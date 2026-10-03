@@ -197,13 +197,23 @@ def apply_scopes(p, restore=False):
         if peer.get('endpoint'):
             argv += ['endpoint', peer['endpoint']]
         run(argv)
+    current = run(['vtysh', '-c', 'show running-config']).splitlines()
     argv = ['vtysh', '-c', 'configure terminal']
+    changed = False
     for name, lines in p['prefixLists'].items():
-        argv += ['-c', 'no ip prefix-list ' + name]
+        prior = [line for line in current if line.startswith('ip prefix-list ' + name + ' ')]
+        desired_sequences = {line.split()[4] for line in lines}
         for line in lines:
-            argv += ['-c', line]
-    argv += ['-c', 'end', '-c', 'write memory']
-    run(argv)
+            if line not in prior:
+                argv += ['-c', line]
+                changed = True
+        for line in prior:
+            if line.split()[4] not in desired_sequences:
+                argv += ['-c', 'no ip prefix-list ' + name + ' seq ' + line.split()[4]]
+                changed = True
+    if changed:
+        argv += ['-c', 'end', '-c', 'write memory']
+        run(argv)
 
 
 def syntax_check(p):
