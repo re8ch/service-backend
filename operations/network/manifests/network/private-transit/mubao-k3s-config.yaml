@@ -26,8 +26,9 @@ node-label:
   - re8ch.com/external-ip-mode=none
   - re8ch.com/public-control=none
   - re8ch.com/public-ip=none
+  - networking.re8ch.com/geo=cn
 kubelet-arg:
-  # Bound pod admission on the shared 8 GiB WSL VM; image pulls stay serialized.
+  # Bound pod admission on the shared 10 GiB WSL VM; image pulls stay serialized.
   - max-pods=32
   - serialize-image-pulls=true
   - kube-reserved=cpu=500m,memory=768Mi,ephemeral-storage=2Gi,pid=1024
