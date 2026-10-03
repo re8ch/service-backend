@@ -26,6 +26,7 @@ def main():
     router_ip = str(ipaddress.ip_interface(link["routerAddress"]).ip)
     own = link["identity"]
     others = [other["identity"] for name, other in links.items() if name != args.node]
+    iface = link["interface"]
     running = vtysh(["show running-config"])
     if f"neighbor {router_ip} route-map ROS-CP-PROBE-IN in" not in running:
         raise RuntimeError("probe BGP neighbor is not configured")
