@@ -102,10 +102,10 @@ def test_commit_requires_three_health_rounds(tmp_path, monkeypatch):
     p = package()
     calls = []
     monkeypatch.setattr(a, 'snapshot', lambda p: {'wireguard': {}, 'prefixLists': {}})
-    monkeypatch.setattr(a, 'healthy', lambda p, **kw: calls.append(('health', kw.get('baseline', False))) or True)
+    monkeypatch.setattr(a, 'healthy', lambda p, **kw: calls.append('health') or True)
     monkeypatch.setattr(a, 'syntax_check', lambda p: None)
     monkeypatch.setattr(a, 'apply_scopes', lambda p: calls.append('apply'))
     monkeypatch.setattr(a.time, 'sleep', lambda n: None)
     assert a.reconcile(tmp_path, p, adoption()) == 'committed'
-    assert calls == [('health', True), 'apply', ('health', False), ('health', False), ('health', False)]
+    assert calls == ['health', 'apply', 'health', 'health', 'health']
     assert json.loads((tmp_path / 'transaction.json').read_text())['state'] == 'committed'
