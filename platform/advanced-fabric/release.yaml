@@ -286,10 +286,24 @@ spec:
       weightedEcmp:
         enabled: true
       controller:
-        # This controller owns the freshness clock for NetworkPathAssessment.
-        # Keep it on the always-on control node so a workstation outage cannot
-        # make every PublicEdge fail closed with expired evidence.
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        # The Lease fences status writes while B1 and MUBAO provide separate
+        # recovery domains for the NetworkPathAssessment freshness clock.
+        replicas: 2
+        pdbMinAvailable: 1
+        tolerations:
+          - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
+          - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb, restricted-node-abb3f27a69]}
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels: {app.kubernetes.io/name: advanced-fabric-controller}
+                topologyKey: kubernetes.io/hostname
       virtualIngress:
         enabled: true
         replicas: 2
