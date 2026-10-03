@@ -227,3 +227,17 @@ readiness checker. It accepts no arbitrary origin and reads no OAuth client
 secret, token, certificate body, DNS API credential or user claim. The tool
 keeps the absent external MCPServer and Ingress visible as blockers until the
 separate public-read surface and all identity gates are proven.
+
+### Current public Re8ch readiness
+
+The public tenant-native endpoint is `https://tools.service.re8ch.com/tenant-native/mcp`
+on standard HTTPS 443. Its protected-resource document is
+`https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp`;
+the declared issuer is `https://db-rw.re8ch.com/auth/v1`. The readiness tool and
+shell probe check that resource, issuer, PKCE S256, TLS and the unauthenticated
+MCP challenge agree. The retired `tools.re8ch.com:8443/mcp` / embedded OAuth /
+`ops-observe-external` object are not this endpoint's authority.
+
+A passing result covers network and OAuth discovery only. Public plugin review
+also requires domain verification, authenticated tool scans, reviewer access,
+accurate tool annotations, review cases and publisher metadata.
