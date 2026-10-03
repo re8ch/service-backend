@@ -34,6 +34,8 @@ spec:
           readinessProbe:
             exec:
               command: [python3, -c, "import pathlib,time; assert time.time()-pathlib.Path('/tmp/routeros-transit-ready').stat().st_mtime < 90"]
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
             periodSeconds: 10
           volumeMounts:
             - {name: config, mountPath: /config, readOnly: true}
