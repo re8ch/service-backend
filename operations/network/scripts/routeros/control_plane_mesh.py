@@ -234,6 +234,49 @@ def inspect(router, desired):
     }
 
 
+def management_service(router, desired):
+    rows = [row for row in router.rows("/ip/service")
+            if row.get("name") == "www" and row.get("dynamic") != "true"]
+    if len(rows) != 1 or rows[0].get("disabled") == "true" or rows[0].get("port") != "80":
+        raise RuntimeError("reviewed RouterOS REST service differs")
+    old = "192.0.2.18/24"
+    permitted = ",".join([old] + [link["peerAddress"] for link in desired["links"]])
+    if rows[0].get("address") not in (old, permitted):
+        raise RuntimeError("RouterOS REST source allowlist differs")
+    return rows[0], old, permitted
+
+
+def stage_management(router, desired):
+    """Expose REST only to the three authenticated control-mesh tunnel peers."""
+    preflight(router, desired)
+    service, _, permitted = management_service(router, desired)
+    for link in desired["links"]:
+        name = f'{desired["commentPrefix"]} {link["node"]} management REST'
+        rule = ensure(router, "/ip/firewall/filter", name, {
+            "chain": "input", "action": "accept", "protocol": "tcp",
+            "in-interface": link["interface"],
+            "src-address": link["peerAddress"],
+            "dst-address": desired["managementIp"], "dst-port": "80",
+            "disabled": "false",
+        })
+        anchor = comments(router.rows("/ip/firewall/filter"))[INPUT_DROP]
+        router.move_before("/ip/firewall/filter", rule[".id"], anchor[".id"])
+    if service["address"] != permitted:
+        router.update("/ip/service", service[".id"], {"address": permitted})
+    return {"managementIp": desired["managementIp"], "peers": [link["node"] for link in desired["links"]]}
+
+
+def rollback_management(router, desired):
+    service, old, permitted = management_service(router, desired)
+    if service["address"] == permitted:
+        router.update("/ip/service", service[".id"], {"address": old})
+    names = {f'{desired["commentPrefix"]} {link["node"]} management REST' for link in desired["links"]}
+    for row in router.rows("/ip/firewall/filter"):
+        if row.get("comment") in names:
+            router.delete("/ip/firewall/filter", row[".id"])
+    return {"managementIp": desired["managementIp"], "rolledBack": True}
+
+
 def stage_probe_bgp(router, desired):
     """Exchange only 192.0.2.95/24 test /32s; never touch K3s routes."""
     preflight(router, desired)
@@ -319,6 +362,10 @@ def rollback_probe_bgp(router, desired):
 
 def rollback_stage(router, desired):
     prefix = desired["commentPrefix"]
+    if any(str(row.get("comment", "")).endswith(" management REST")
+           and str(row.get("comment", "")).startswith(prefix)
+           for row in router.rows("/ip/firewall/filter")):
+        raise RuntimeError("withdraw independent management access before removing the mesh")
     if any(str(row.get("comment", "")).startswith(prefix) for row in router.rows("/routing/bgp/connection")):
         raise RuntimeError("BGP is attached to this mesh; withdraw it before rolling back WireGuard")
     removed = []
@@ -339,7 +386,7 @@ def rollback_stage(router, desired):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True)
-    parser.add_argument("--action", choices=("validate", "preflight", "stage", "inspect", "reconcile-mtu", "stage-probe-bgp", "rollback-probe-bgp", "rollback-stage"), required=True)
+    parser.add_argument("--action", choices=("validate", "preflight", "stage", "inspect", "reconcile-mtu", "stage-probe-bgp", "stage-management", "rollback-management", "rollback-probe-bgp", "rollback-stage"), required=True)
     args = parser.parse_args()
     desired = inventory(args.inventory)
     if args.action == "validate":
@@ -355,6 +402,10 @@ def main():
         print(json.dumps(reconcile_mtu(router, desired), sort_keys=True))
     elif args.action == "stage-probe-bgp":
         print(json.dumps(stage_probe_bgp(router, desired), sort_keys=True))
+    elif args.action == "stage-management":
+        print(json.dumps(stage_management(router, desired), sort_keys=True))
+    elif args.action == "rollback-management":
+        print(json.dumps(rollback_management(router, desired), sort_keys=True))
     elif args.action == "rollback-probe-bgp":
         print(json.dumps(rollback_probe_bgp(router, desired)))
     elif args.action == "rollback-stage":
