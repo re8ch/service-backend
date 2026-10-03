@@ -1,0 +1,894 @@
+{
+  "schemaVersion": 1,
+  "authority": "github/main",
+  "sections": {
+    "publicMesh": {
+      "interface": "wg-public-mesh",
+      "listenPort": 51888,
+      "mtu": 1280,
+      "transportPrefix": "192.0.2.246/24",
+      "nodes": [
+        {
+          "id": "73",
+          "name": "vm-20-12-ubuntu",
+          "ztIp": "192.0.2.192",
+          "transportIp": "192.0.2.124",
+          "publicIp": "192.0.2.122",
+          "asn": 4200000073,
+          "rollout": 0,
+          "publicMode": "static",
+          "podCIDR": "192.0.2.57/24",
+          "podCIDRPeers": [
+            "restricted-node-6dc3f140f9"
+          ],
+          "peerCompatibility": {
+            "disableFqdnCapabilityFrom": [
+              "restricted-node-6dc3f140f9"
+            ]
+          },
+          "rescueRoutes": [
+            {
+              "prefix": "192.0.2.178/32",
+              "via": "192.0.2.48",
+              "distance": 250
+            }
+          ]
+        },
+        {
+          "id": "128",
+          "name": "restricted-node-6dc3f140f9",
+          "ztIp": "192.0.2.178",
+          "transportIp": "192.0.2.125",
+          "publicIp": "192.0.2.138",
+          "asn": 4200000128,
+          "rollout": 0,
+          "publicMode": "mikrotik-ebgp-transit-dnat",
+          "podCIDR": "192.0.2.140/24",
+          "podCIDRPeers": [
+            "vm-20-12-ubuntu"
+          ],
+          "publicAuthority": {
+            "type": "RouterOS",
+            "managementIp": "192.0.2.240",
+            "credentialsSecretRef": "ops/mikrotik-routeros-admin",
+            "gatewayVIP": "192.0.2.213",
+            "gatewayRef": "kube-system/re8ch-gateway-canary",
+            "routingAuthority": "AdvancedFabric",
+            "fallbackLanBackend": "192.0.2.169",
+            "requiredForwardPorts": [
+              25,
+              53,
+              80,
+              443,
+              465,
+              587,
+              993,
+              4190
+            ],
+            "dnsProtocols": [
+              "udp",
+              "tcp"
+            ]
+          }
+        },
+        {
+          "id": "79",
+          "name": "qianwen-nuclio-79",
+          "ztIp": "192.0.2.112",
+          "transportIp": "192.0.2.121",
+          "publicIp": "192.0.2.197",
+          "asn": 4200000079,
+          "rollout": 1,
+          "publicMode": "static",
+          "throughputProbeEnabled": false
+        },
+        {
+          "id": "77",
+          "name": "artchais-nuclio-1",
+          "ztIp": "192.0.2.182",
+          "transportIp": "192.0.2.61",
+          "publicIp": "192.0.2.86",
+          "asn": 4200000077,
+          "rollout": 2,
+          "publicMode": "static"
+        },
+        {
+          "id": "95",
+          "name": "harbor-registry",
+          "ztIp": "192.0.2.74",
+          "transportIp": "192.0.2.108",
+          "publicIp": "192.0.2.185",
+          "asn": 4200000095,
+          "rollout": 3,
+          "publicMode": "static"
+        },
+        {
+          "id": "16",
+          "name": "rancher-panel",
+          "ztIp": "192.0.2.138",
+          "transportIp": "192.0.2.219",
+          "publicIp": "192.0.2.192",
+          "asn": 4200000016,
+          "rollout": 4,
+          "publicMode": "static"
+        },
+        {
+          "id": "186",
+          "name": "pg-re8ch-replica-186",
+          "ztIp": "192.0.2.89",
+          "transportIp": "192.0.2.171",
+          "publicIp": "192.0.2.62",
+          "asn": 4200000186,
+          "rollout": 5,
+          "publicMode": "static"
+        },
+        {
+          "id": "50",
+          "name": "overseas-edge-50",
+          "ztIp": "192.0.2.79",
+          "transportIp": "192.0.2.4",
+          "publicIp": "192.0.2.189",
+          "asn": 4200000050,
+          "rollout": 6,
+          "publicMode": "static",
+          "region": "overseas",
+          "includedEgressGiB": 1024
+        },
+        {
+          "id": "105",
+          "name": "overseas-flk",
+          "ztIp": "192.0.2.39",
+          "transportIp": "192.0.2.154",
+          "acceleratedIp": "192.0.2.48",
+          "publicIp": "192.0.2.38",
+          "asn": 4200000105,
+          "rollout": 7,
+          "publicMode": "static",
+          "meshPeers": [
+            "restricted-node-6dc3f140f9",
+            "overseas-la-2",
+            "restricted-node-abb3f27a69"
+          ]
+        },
+        {
+          "id": "220",
+          "name": "overseas-la-2",
+          "ztIp": "192.0.2.47",
+          "transportIp": "192.0.2.206",
+          "acceleratedIp": "192.0.2.148",
+          "publicIp": "192.0.2.146",
+          "asn": 4200000220,
+          "rollout": 8,
+          "publicMode": "static",
+          "meshPeers": [
+            "restricted-node-6dc3f140f9",
+            "overseas-flk",
+            "restricted-node-abb3f27a69"
+          ]
+        },
+        {
+          "id": "29",
+          "name": "restricted-node-abb3f27a69",
+          "ztIp": "192.0.2.39",
+          "transportIp": "192.0.2.138",
+          "acceleratedIp": "192.0.2.223",
+          "publicIp": null,
+          "asn": 4200010029,
+          "rollout": 9,
+          "publicMode": "dial-only",
+          "mtu": 1120,
+          "meshPeers": [
+            "overseas-flk",
+            "overseas-la-2"
+          ]
+        }
+      ]
+    },
+    "privateTransit": {
+      "mtu": 1280,
+      "acceleratedPrefix": "192.0.2.65/24",
+      "fabrics": {
+        "a1": {
+          "interface": "wg-pt-a1",
+          "prefix": "192.0.2.63/24",
+          "port": 51889,
+          "gateway": "restricted-node-1eb0570f74"
+        },
+        "b1": {
+          "interface": "wg-pt-b1",
+          "prefix": "192.0.2.208/24",
+          "port": 51890,
+          "gateway": "restricted-node-296f36f2fb"
+        }
+      },
+      "gateways": [
+        {
+          "id": 147,
+          "name": "restricted-node-1eb0570f74",
+          "ztIp": "192.0.2.176",
+          "podCIDR": "192.0.2.48/24",
+          "asn": 4200010147,
+          "fabric": "a1",
+          "egressIp": "192.0.2.103"
+        },
+        {
+          "id": 125,
+          "name": "restricted-node-296f36f2fb",
+          "ztIp": "192.0.2.4",
+          "podCIDR": "192.0.2.234/24",
+          "asn": 4200010125,
+          "fabric": "b1",
+          "egressIp": "192.0.2.103"
+        }
+      ],
+      "workers": [
+        {
+          "id": 24,
+          "name": "qianwen-prod-nuclio-3",
+          "ztIp": "192.0.2.154",
+          "asn": 4200010024
+        },
+        {
+          "id": 38,
+          "name": "amdwsl-zt",
+          "ztIp": "192.0.2.10",
+          "asn": 4200010038
+        },
+        {
+          "id": 217,
+          "name": "qianwen-test-nuclio-2",
+          "ztIp": "192.0.2.111",
+          "asn": 4200010217
+        }
+      ],
+      "controlPlaneRelays": [
+        {
+          "name": "restricted-node-abb3f27a69",
+          "acceleratedIp": "192.0.2.223",
+          "podCIDR": "192.0.2.113/24"
+        }
+      ],
+      "publicNodes": [
+        {
+          "id": 16,
+          "name": "rancher-panel",
+          "ztIp": "192.0.2.138",
+          "publicIp": "192.0.2.192",
+          "asn": 4200000016,
+          "region": "guangzhou"
+        },
+        {
+          "id": 50,
+          "name": "overseas-edge-50",
+          "ztIp": "192.0.2.79",
+          "publicIp": "192.0.2.189",
+          "asn": 4200000050,
+          "region": "overseas"
+        },
+        {
+          "id": 73,
+          "name": "vm-20-12-ubuntu",
+          "ztIp": "192.0.2.192",
+          "publicIp": "192.0.2.122",
+          "asn": 4200000073,
+          "region": "shanghai"
+        },
+        {
+          "id": 77,
+          "name": "artchais-nuclio-1",
+          "ztIp": "192.0.2.182",
+          "publicIp": "192.0.2.86",
+          "asn": 4200000077,
+          "region": "shanghai"
+        },
+        {
+          "id": 79,
+          "name": "qianwen-nuclio-79",
+          "ztIp": "192.0.2.112",
+          "publicIp": "192.0.2.197",
+          "asn": 4200000079,
+          "region": "shanghai"
+        },
+        {
+          "id": 89,
+          "name": "overseas-kl",
+          "ztIp": "192.0.2.245",
+          "publicIp": "192.0.2.145",
+          "podCIDR": "192.0.2.110/24",
+          "asn": 4200000089,
+          "region": "kuala-lumpur"
+        },
+        {
+          "id": 95,
+          "name": "harbor-registry",
+          "ztIp": "192.0.2.74",
+          "publicIp": "192.0.2.185",
+          "asn": 4200000095,
+          "region": "hangzhou"
+        },
+        {
+          "id": 104,
+          "name": "overseas-la",
+          "ztIp": "192.0.2.110",
+          "publicIp": "192.0.2.111",
+          "podCIDR": "192.0.2.114/24",
+          "asn": 4200000104,
+          "region": "los-angeles"
+        },
+        {
+          "id": 105,
+          "name": "overseas-flk",
+          "ztIp": "192.0.2.39",
+          "publicIp": "192.0.2.38",
+          "podCIDR": "192.0.2.165/24",
+          "asn": 4200000105,
+          "region": "overseas"
+        },
+        {
+          "id": 128,
+          "name": "restricted-node-6dc3f140f9",
+          "ztIp": "192.0.2.178",
+          "publicIp": "192.0.2.138",
+          "podCIDR": "192.0.2.140/24",
+          "asn": 4200000128,
+          "region": "r640-lan"
+        },
+        {
+          "id": 186,
+          "name": "pg-re8ch-replica-186",
+          "ztIp": "192.0.2.89",
+          "publicIp": "192.0.2.62",
+          "asn": 4200000186,
+          "region": "unknown"
+        },
+        {
+          "id": 220,
+          "name": "overseas-la-2",
+          "ztIp": "192.0.2.47",
+          "publicIp": "192.0.2.146",
+          "podCIDR": "192.0.2.203/24",
+          "asn": 4200000220,
+          "region": "los-angeles"
+        }
+      ]
+    },
+    "podcidrFabric": {
+      "nativeRoutingCIDR": "192.0.2.57/16",
+      "acceleratedCIDR": "192.0.2.65/24",
+      "serviceCIDR": "192.0.2.121/24",
+      "removeCiliumDirectRoutes": true,
+      "readinessPodCIDRs": [
+        "192.0.2.140/24",
+        "192.0.2.48/24",
+        "192.0.2.234/24"
+      ],
+      "controlPlaneNodes": [
+        "restricted-node-1eb0570f74",
+        "restricted-node-296f36f2fb",
+        "restricted-node-6dc3f140f9"
+      ],
+      "relayNodes": [
+        {
+          "name": "restricted-node-abb3f27a69",
+          "transportIp": "192.0.2.135",
+          "relayIp": "192.0.2.198",
+          "acceleratedIp": "192.0.2.223",
+          "podCIDR": "192.0.2.113/24",
+          "asn": 4200010029
+        }
+      ],
+      "routeServers": [
+        {
+          "name": "restricted-node-1eb0570f74",
+          "internalIp": "192.0.2.176",
+          "transportIp": "192.0.2.178",
+          "rrInterconnectIp": "192.0.2.148",
+          "podCIDR": "192.0.2.48/24",
+          "acceleratedIp": "192.0.2.242",
+          "asn": 4200010147
+        },
+        {
+          "name": "restricted-node-296f36f2fb",
+          "internalIp": "192.0.2.4",
+          "transportIp": "192.0.2.101",
+          "rrInterconnectIp": "192.0.2.12",
+          "podCIDR": "192.0.2.234/24",
+          "acceleratedIp": "192.0.2.1",
+          "asn": 4200010125
+        }
+      ],
+      "nodes": [
+        {
+          "name": "restricted-node-6dc3f140f9",
+          "internalIp": "192.0.2.178",
+          "podCIDR": "192.0.2.140/24",
+          "acceleratedIp": "192.0.2.179",
+          "asn": 4200000128,
+          "peerMode": "transport",
+          "publicMeshIdentityPeers": [
+            "vm-20-12-ubuntu"
+          ],
+          "publicMeshPodCIDRPeers": [
+            "vm-20-12-ubuntu"
+          ],
+          "routerOsPeer": "192.0.2.240",
+          "serviceVipExports": [
+            "192.0.2.213/32"
+          ]
+        },
+        {
+          "name": "amdwsl-zt",
+          "internalIp": "192.0.2.10",
+          "podCIDR": "192.0.2.134/24",
+          "acceleratedIp": "192.0.2.117",
+          "asn": 4200010038,
+          "peerMode": "identity"
+        },
+        {
+          "name": "overseas-edge-50",
+          "internalIp": "192.0.2.79",
+          "podCIDR": "192.0.2.4/24",
+          "acceleratedIp": "192.0.2.81",
+          "asn": 4200000050,
+          "peerMode": "identity"
+        },
+        {
+          "name": "overseas-flk",
+          "internalIp": "192.0.2.39",
+          "kubernetesNodeIp": "192.0.2.48",
+          "podCIDR": "192.0.2.165/24",
+          "acceleratedIp": "192.0.2.48",
+          "asn": 4200000105,
+          "peerMode": "transport"
+        },
+        {
+          "name": "overseas-kl",
+          "internalIp": "192.0.2.245",
+          "podCIDR": "192.0.2.110/24",
+          "acceleratedIp": "192.0.2.149",
+          "asn": 4200000089,
+          "peerMode": "transport"
+        },
+        {
+          "name": "overseas-la",
+          "internalIp": "192.0.2.110",
+          "kubernetesNodeIp": "192.0.2.147",
+          "podCIDR": "192.0.2.114/24",
+          "acceleratedIp": "192.0.2.147",
+          "asn": 4200000104,
+          "peerMode": "transport"
+        },
+        {
+          "name": "overseas-la-2",
+          "internalIp": "192.0.2.47",
+          "kubernetesNodeIp": "192.0.2.148",
+          "podCIDR": "192.0.2.203/24",
+          "acceleratedIp": "192.0.2.148",
+          "asn": 4200000220,
+          "peerMode": "transport"
+        },
+        {
+          "name": "suxunji",
+          "internalIp": "192.0.2.182",
+          "podCIDR": "192.0.2.79/24",
+          "acceleratedIp": "192.0.2.246",
+          "asn": 4200000077,
+          "peerMode": "transport"
+        },
+        {
+          "name": "muaya-lightweight",
+          "internalIp": "192.0.2.112",
+          "podCIDR": "192.0.2.89/24",
+          "acceleratedIp": "192.0.2.160",
+          "asn": 4200000079,
+          "peerMode": "transport"
+        },
+        {
+          "name": "muaya-ecs",
+          "internalIp": "192.0.2.74",
+          "podCIDR": "192.0.2.237/24",
+          "acceleratedIp": "192.0.2.32",
+          "asn": 4200000095,
+          "peerMode": "transport"
+        },
+        {
+          "name": "zan",
+          "internalIp": "192.0.2.138",
+          "podCIDR": "192.0.2.128/24",
+          "acceleratedIp": "192.0.2.152",
+          "asn": 4200000016,
+          "peerMode": "transport"
+        },
+        {
+          "name": "domain-ex",
+          "internalIp": "192.0.2.89",
+          "podCIDR": "192.0.2.94/24",
+          "acceleratedIp": "192.0.2.46",
+          "asn": 4200000186,
+          "peerMode": "transport"
+        },
+        {
+          "name": "qwen-1",
+          "internalIp": "192.0.2.154",
+          "podCIDR": "192.0.2.96/24",
+          "acceleratedIp": "192.0.2.147",
+          "asn": 4200010024,
+          "peerMode": "identity"
+        },
+        {
+          "name": "qwen-2",
+          "internalIp": "192.0.2.111",
+          "podCIDR": "192.0.2.207/24",
+          "acceleratedIp": "192.0.2.214",
+          "asn": 4200010217,
+          "peerMode": "identity"
+        },
+        {
+          "name": "qwen-3",
+          "internalIp": "192.0.2.251",
+          "podCIDR": "192.0.2.6/24",
+          "acceleratedIp": "192.0.2.18",
+          "asn": 4200010047,
+          "peerMode": "identity"
+        },
+        {
+          "name": "vm-20-12-ubuntu",
+          "internalIp": "192.0.2.192",
+          "podCIDR": "192.0.2.57/24",
+          "acceleratedIp": "192.0.2.223",
+          "asn": 4200000073,
+          "peerMode": "identity",
+          "publicMeshIdentityPeers": [
+            "restricted-node-6dc3f140f9"
+          ],
+          "publicMeshPodCIDRPeers": [
+            "restricted-node-6dc3f140f9"
+          ]
+        }
+      ]
+    },
+    "routerosControlMesh": {
+      "authority": "RouterOS",
+      "managementIp": "192.0.2.240",
+      "publicEndpoint": "192.0.2.138",
+      "routerAsn": 4200064001,
+      "mtu": 1200,
+      "commentPrefix": "RE8CH CP MESH",
+      "r640WgRelay": {
+        "externalUdpPorts": [
+          51896,
+          51897,
+          51898,
+          51899,
+          51900,
+          51901,
+          51902,
+          51903
+        ],
+        "assignments": {
+          "mubaoWslData": 51896,
+          "mubaoHostSsh": 51897
+        },
+        "backendUdpPort": 51893,
+        "comment": "RE8CH restricted-node-6dc3f140f9 private transit UDP relay pool"
+      },
+      "links": [
+        {
+          "node": "restricted-node-1eb0570f74",
+          "interface": "wg-cp-a1",
+          "listenPort": 51893,
+          "routerAddress": "192.0.2.78/30",
+          "peerAddress": "192.0.2.227/32",
+          "identity": "192.0.2.242/32",
+          "podCIDR": "192.0.2.48/24",
+          "fallbackIdentities": [
+            "192.0.2.223/32"
+          ],
+          "probeIdentity": "192.0.2.76/32",
+          "asn": 4200010147,
+          "peerPublicKey": "RyAp0lPekfg6w17DK7CbI6+YphPMlNhap+6dDMRqPiE=",
+          "routerPublicKey": "Zl6S03B5xdedeDrbS48biCM+EpOzRN/tOsoLS/Deano="
+        },
+        {
+          "node": "restricted-node-296f36f2fb",
+          "interface": "wg-cp-b1",
+          "listenPort": 51894,
+          "routerAddress": "192.0.2.52/30",
+          "peerAddress": "192.0.2.239/32",
+          "identity": "192.0.2.1/32",
+          "podCIDR": "192.0.2.234/24",
+          "fallbackIdentities": [
+            "192.0.2.223/32"
+          ],
+          "probeIdentity": "192.0.2.71/32",
+          "asn": 4200010125,
+          "peerPublicKey": "jFAsQtg6M+QLqf3KNCzwZMXj7T9X5UBI4trTjLXY2V0=",
+          "routerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk="
+        },
+        {
+          "node": "restricted-node-abb3f27a69",
+          "interface": "wg-cp-mubao",
+          "listenPort": 51895,
+          "routerAddress": "192.0.2.47/30",
+          "peerAddress": "192.0.2.178/32",
+          "identity": "192.0.2.223/32",
+          "podCIDR": "192.0.2.113/24",
+          "fallbackIdentities": [
+            "192.0.2.242/32",
+            "192.0.2.1/32"
+          ],
+          "probeIdentity": "192.0.2.83/32",
+          "asn": 4200010029,
+          "peerPublicKey": "mMWc4x4hIEtaG828eTBVhnNr/2EJfgs1PsvIxUU8Zjw=",
+          "routerPublicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
+        }
+      ]
+    },
+    "advfabPolicy": {
+      "acceleratedPrefix": "192.0.2.65/24",
+      "decisionTable": 15300,
+      "decisionRulePriority": 11530,
+      "probeIntervalSeconds": 2,
+      "probeCount": 3,
+      "probeTimeoutSeconds": 1,
+      "minimumHoldSeconds": 60,
+      "weightChangeThresholdPercent": 20,
+      "telemetryPort": 9918,
+      "telemetryTimeoutSeconds": 0.5,
+      "telemetryMaxAgeSeconds": 10,
+      "gateways": [
+        {
+          "name": "a1",
+          "address": "192.0.2.176",
+          "interface": "wg-pt-a1",
+          "probeTable": 15101,
+          "mark": "0x1",
+          "staticWeight": 100,
+          "capacityMbps": 200
+        },
+        {
+          "name": "b1",
+          "address": "192.0.2.4",
+          "interface": "wg-pt-b1",
+          "probeTable": 15102,
+          "mark": "0x2",
+          "staticWeight": 100,
+          "capacityMbps": 200
+        }
+      ],
+      "targets": [
+        {
+          "name": "restricted-node-1eb0570f74",
+          "address": "192.0.2.242",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "restricted-node-296f36f2fb",
+          "address": "192.0.2.1",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "zan",
+          "address": "192.0.2.152",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "qwen-1",
+          "address": "192.0.2.147",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "amdwsl-zt",
+          "address": "192.0.2.117",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "overseas-edge-50",
+          "address": "192.0.2.81",
+          "region": "overseas",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "vm-20-12-ubuntu",
+          "address": "192.0.2.223",
+          "region": "shanghai",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "suxunji",
+          "address": "192.0.2.246",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "muaya-lightweight",
+          "address": "192.0.2.160",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "overseas-kl",
+          "address": "192.0.2.149",
+          "region": "kuala-lumpur",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "muaya-ecs",
+          "address": "192.0.2.32",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "overseas-la",
+          "address": "192.0.2.147",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "overseas-flk",
+          "address": "192.0.2.48",
+          "region": "overseas-flk",
+          "directRouteOnGateway": true,
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "overseas-la-2",
+          "address": "192.0.2.148",
+          "region": "overseas-la",
+          "directRouteOnGateway": true,
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "restricted-node-6dc3f140f9",
+          "address": "192.0.2.179",
+          "region": "r640-lan",
+          "directRouteOnGateway": true,
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "domain-ex",
+          "address": "192.0.2.46",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "qwen-2",
+          "address": "192.0.2.214",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        },
+        {
+          "name": "qwen-3",
+          "address": "192.0.2.18",
+          "staticPreference": {
+            "a1": 100,
+            "b1": 100
+          }
+        }
+      ]
+    }
+  },
+  "runtimeProjections": {
+    "publicMesh": {
+      "nodePatches": {
+        "restricted-node-6dc3f140f9": {
+          "replace": {
+            "publicMode": "mikrotik-dnat"
+          },
+          "remove": [
+            "publicAuthority"
+          ]
+        }
+      }
+    },
+    "privateTransit": {
+      "removeRoot": [
+        "controlPlaneRelays"
+      ],
+      "excludeNodes": {
+        "publicNodes": [
+          "overseas-flk",
+          "overseas-la-2"
+        ]
+      },
+      "nodePatches": {
+        "restricted-node-1eb0570f74": {
+          "remove": [
+            "podCIDR"
+          ]
+        },
+        "restricted-node-296f36f2fb": {
+          "remove": [
+            "podCIDR"
+          ]
+        },
+        "restricted-node-6dc3f140f9": {
+          "remove": [
+            "podCIDR"
+          ]
+        }
+      }
+    },
+    "podcidrFabric": {
+      "nodePatches": {
+        "overseas-la": {
+          "remove": [
+            "kubernetesNodeIp"
+          ]
+        }
+      }
+    },
+    "advfabPolicy": {
+      "nodePatches": {
+        "restricted-node-6dc3f140f9": {
+          "remove": [
+            "directRouteOnGateway"
+          ]
+        }
+      }
+    }
+  },
+  "routeIntent": {
+    "controlPodDirectPairs": [
+      [
+        "restricted-node-1eb0570f74",
+        "restricted-node-296f36f2fb"
+      ],
+      [
+        "restricted-node-296f36f2fb",
+        "restricted-node-1eb0570f74"
+      ]
+    ],
+    "mubaoPodFallback": "RouterOS",
+    "publicSpines": [
+      "overseas-flk",
+      "overseas-la-2"
+    ],
+    "ecmpMode": "per-flow"
+  }
+}
