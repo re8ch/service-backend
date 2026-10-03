@@ -18,13 +18,13 @@ def test_release_consumes_signed_public_advanced_fabrics_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     assert source["spec"]["url"] == "oci://ghcr.io/advanced-fabrics/charts/advanced-fabric"
     assert source["spec"]["ref"]["digest"] == (
-        "sha256:59f3362aa46afbf2dd045dee6957027cfc22723ca00e357f00a3137e4243bb25"
+        "sha256:8e832051bebd2fea504454c279fe0a36ebcd66654a002854cc837691798638c3"
     )
     identity = source["spec"]["verify"]["matchOIDCIdentity"][0]
     assert identity["issuer"] == r"^https://token\.actions\.githubusercontent\.com$"
     assert identity["subject"] == (
         r"^https://github\.com/advanced-fabrics/core/\.github/workflows/"
-        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.6$"
+        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.8$"
     )
 
 
@@ -74,9 +74,13 @@ def test_control_plane_rollout_does_not_enable_routeros_mutation():
     assert values["routerOS"]["enabled"] is False
 
 
-def test_controller_runs_on_verified_control_plane_api_path():
-    advanced = release_values()["advancedFabric"]
-    assert advanced["controller"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+def test_controller_has_two_lease_fenced_recovery_domains():
+    controller = release_values()["advancedFabric"]["controller"]
+    assert controller["replicas"] == 2
+    assert controller["pdbMinAvailable"] == 1
+    expressions = controller["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
+    assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"]}]
+    assert controller["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
 
 
 def test_virtual_ingress_controller_is_ha_and_confined_to_a1_b1():

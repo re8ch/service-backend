@@ -171,12 +171,17 @@ class AdvancedFabricTests(unittest.TestCase):
         dns = release["spec"]["values"]["advancedFabric"]["dns"]
         self.assertEqual(dns["testNodeSelector"], {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"})
 
-    def test_release_pins_controller_to_verified_control_plane_api_path(self):
+    def test_release_places_controller_on_two_control_planes(self):
         release_path = pathlib.Path(__file__).parents[1] / "platform" / "advanced-fabric" / "release.yaml"
         resources = [doc for doc in yaml.safe_load_all(release_path.read_text()) if doc]
         release = next(doc for doc in resources if doc["kind"] == "HelmRelease")
         controller = release["spec"]["values"]["advancedFabric"]["controller"]
-        self.assertEqual(controller["nodeSelector"], {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"})
+        self.assertEqual(controller["replicas"], 2)
+        self.assertEqual(controller["pdbMinAvailable"], 1)
+        self.assertEqual(
+            controller["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"],
+            ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"],
+        )
 
 
 if __name__ == "__main__":

@@ -8,12 +8,12 @@ spec:
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:59f3362aa46afbf2dd045dee6957027cfc22723ca00e357f00a3137e4243bb25
+    digest: sha256:8e832051bebd2fea504454c279fe0a36ebcd66654a002854cc837691798638c3
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.6$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.8$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -286,14 +286,33 @@ spec:
       weightedEcmp:
         enabled: true
       controller:
-        # This controller owns the freshness clock for NetworkPathAssessment.
-        # Keep it on the always-on control node so a workstation outage cannot
-        # make every PublicEdge fail closed with expired evidence.
-        nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        # The Lease fences status writes while B1 and MUBAO provide separate
+        # recovery domains for the NetworkPathAssessment freshness clock.
+        replicas: 2
+        pdbMinAvailable: 1
+        tolerations:
+          - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
+          - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb, restricted-node-abb3f27a69]}
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels: {app.kubernetes.io/name: advanced-fabric-controller}
+                topologyKey: kubernetes.io/hostname
       virtualIngress:
         enabled: true
         replicas: 2
         pdbMinAvailable: 1
+        # Recovery-plane replicas must schedule on the two reviewed control
+        # nodes even while ordinary workload admission is closed.
+        tolerations:
+          - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
+          - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
