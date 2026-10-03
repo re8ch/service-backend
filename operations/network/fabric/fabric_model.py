@@ -154,8 +154,48 @@ def project(section, overlay):
     return value
 
 
+def transit_contract(model):
+    """Compile both ends of RouterOS transit from the same node ownership."""
+    fabric = model["sections"]["podcidrFabric"]
+    controls = model["sections"]["routerosControlMesh"]
+    nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])
+    control_names = {link["node"] for link in controls["links"]}
+    ingress = model["routeIntent"]["routerosTransitIngress"]
+    if set(ingress) != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}:
+        raise ValueError("RouterOS transit ingress must be the two route servers")
+    sources = sorted({prefix for node in nodes if node["name"] not in control_names
+                      for prefix in (node["acceleratedIp"] + "/32", node["podCIDR"])})
+    owners = {}
+    for node in nodes:
+        for prefix in (node["acceleratedIp"] + "/32", node["podCIDR"]):
+            network = ipaddress.ip_network(prefix)
+            for other, owner in owners.items():
+                if network.overlaps(ipaddress.ip_network(other)) and owner != node["name"]:
+                    raise ValueError("overlapping transit source ownership")
+            owners[prefix] = node["name"]
+    paths = []
+    for source in nodes:
+        if source["name"] in control_names:
+            continue
+        for target in controls["links"]:
+            for via in ingress:
+                if via == target["node"]:
+                    continue
+                paths.append({"sourceNode": source["name"],
+                    "sourcePrefixes": [source["acceleratedIp"] + "/32", source["podCIDR"]],
+                    "destinationNode": target["node"], "destinationPrefix": target["podCIDR"],
+                    "forward": [source["name"], via, "RouterOS", target["node"]],
+                    "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
+                    "receivers": [via, "RouterOS", target["node"]],
+                    "eligibility": "bidirectional-host-and-pod-probe"})
+    return {"sources": sources, "paths": paths, "linuxReceivers": {
+        link["node"]: {"interface": link["interface"], "peerPublicKey": link["routerPublicKey"],
+                      "transitSources": sources} for link in controls["links"]}}
+
+
 def outputs(model):
     result = {}
+    transit = transit_contract(model)
     for section_name, paths in OUTPUTS.items():
         section = copy.deepcopy(model["sections"][section_name])
         if section_name == "routerosControlMesh":
@@ -164,6 +204,7 @@ def outputs(model):
                 "directPairs": intent["controlPodDirectPairs"],
                 "fallbackTable": intent["controlPodFallbackTable"],
                 "ruleBase": intent["controlPodRuleBase"],
+                "transitSources": transit["sources"],
             }
         result[paths[0]] = section
         if len(paths) == 2:
@@ -171,6 +212,7 @@ def outputs(model):
                 section, model.get("runtimeProjections", {}).get(section_name, {})
             )
     result[HOST_CONTRACT] = host_contract(model)
+    result[HOST_CONTRACT]["transitPaths"] = transit
     controller = model["hostNetwork"].get("controller")
     if controller:
         public = model["sections"]["publicMesh"]
@@ -206,8 +248,7 @@ def outputs(model):
     if set(ingress) != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}:
         raise ValueError("RouterOS transit ingress must be the two route servers")
     identities = {link["identity"] for link in controls["links"]}
-    sources = sorted({prefix for node in source_nodes if node["acceleratedIp"] + "/32" not in identities
-                      for prefix in (node["acceleratedIp"] + "/32", node["podCIDR"])})
+    sources = transit["sources"]
     result["clusters/re8ch/components/network/host-network-controller/routeros-transit.json"] = {
         "managementIp": controls["managementIp"], "publicEndpoint": controls["publicEndpoint"],
         "commentPrefix": "RE8CH FABRIC TRANSIT", "addressList": "re8ch-fabric-transit-sources",
