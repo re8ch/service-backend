@@ -53,6 +53,7 @@ data:
         echo 'exit'
         echo 'route-map RE8CH-POD-SOURCE permit 1000'
         echo 'exit'
+        echo 'no route-map RE8CH-POD-SOURCE optimization'
         echo 'ip protocol bgp route-map RE8CH-POD-SOURCE'
         echo 'end'
       } > /run/re8ch-pod-source.vty
@@ -75,6 +76,9 @@ data:
           verified=true; break
         fi
       done
+      mkdir -p /host/var/lib/re8ch
+      host ip -j route show proto bgp > /host/var/lib/re8ch/pod-source-observed.json.next
+      mv /host/var/lib/re8ch/pod-source-observed.json.next /host/var/lib/re8ch/pod-source-observed.json
       if [ "${verified}" != true ]; then
         host vtysh -c 'configure terminal' -c 'no ip protocol bgp route-map RE8CH-POD-SOURCE' -c 'end' -c 'write memory'
         mkdir -p /host/var/lib/re8ch
