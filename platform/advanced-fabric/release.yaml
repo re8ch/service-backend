@@ -57,10 +57,9 @@ spec:
   postRenderers:
     - kustomize:
         patches:
-          # DNS is replicated on every control-plane node. Keep service traffic
-          # on the caller's node so a broken cross-node datapath cannot stall
-          # Flux itself. A missing local endpoint must remain visible instead of
-          # silently falling back across the same fabric DNS is used to repair.
+          # Prefer healthy local DNS on control nodes, with a remote fallback
+          # for workers/spines that have no local replica. Per-replica probes
+          # report local and remote failures independently of Service routing.
           - target:
               version: v1
               kind: Service
@@ -71,7 +70,7 @@ spec:
                 value: PreferSameNode
               - op: add
                 path: /spec/internalTrafficPolicy
-                value: Local
+                value: Cluster
           # The 2 vCPU / 1.6 GiB muaya lightweight node repeatedly entered a
           # memory-reclaim and I/O-wait loop while this six-container agent
           # restarted Hubble every 15 seconds. Keep the lightweight node and
