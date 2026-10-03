@@ -46,7 +46,7 @@ metadata: {name: restricted-node-6dc3f140f9}
 spec:
   nodeName: restricted-node-6dc3f140f9
   reservationProfile: worker-large
-  background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: Public transit, storage and large-memory workload anchor}
+  background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: "Public transit, storage and large-memory workload anchor"}
   failureDomains: {site: cn-hunan-r640, power: r640-mains, network: r640-dedicated-line, host: restricted-node-6dc3f140f9}
   # Recover the core anchor after 30 healthy minutes, not a day-long outage.
   reliability: {class: anchor, disruptionRisk: 15, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 1800}
