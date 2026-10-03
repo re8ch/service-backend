@@ -75,7 +75,9 @@ def main():
             "address-family ipv4 unicast",
             f"network {probe}",
             f"neighbor {router_ip} activate",
-            f"neighbor {router_ip} maximum-prefix 2 90 restart 5",
+            # The shadow route-map can also accept the two production peer
+            # identities. Keep the bound after a cold boot replays this unit.
+            f"neighbor {router_ip} maximum-prefix 4 90 restart 5",
             f"neighbor {router_ip} route-map ROS-CP-PROBE-IN in",
             f"neighbor {router_ip} route-map ROS-CP-PROBE-OUT out",
             "exit-address-family", "end", "write memory",
