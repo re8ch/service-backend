@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: control-dns-reachability, namespace: kube-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: control-dns-reachability, namespace: kube-system}
+rules:
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: control-dns-reachability, namespace: kube-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: control-dns-reachability}
+subjects: [{kind: ServiceAccount, name: control-dns-reachability, namespace: kube-system}]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: {name: control-dns-reachability, namespace: kube-system}
+spec:
+  selector: {matchLabels: {app.kubernetes.io/name: control-dns-reachability}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: control-dns-reachability}
+    spec:
+      hostNetwork: true
+      serviceAccountName: control-dns-reachability
+      tolerations: [{operator: Exists}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [r640, a1-wsl-zt, b1-wsl-zt, mubao-wsl]}
+      containers:
+        - name: probe
+          image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+          command: [python3, /runtime/probe.py]
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          ports: [{name: metrics, containerPort: 9838, protocol: TCP}]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 150m, memory: 96Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities: {drop: [ALL]}
+          volumeMounts: [{name: runtime, mountPath: /runtime, readOnly: true}]
+      volumes: [{name: runtime, configMap: {name: control-dns-reachability}}]
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: control-dns-reachability
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  namespaceSelector: {matchNames: [kube-system]}
+  selector: {matchLabels: {app.kubernetes.io/name: control-dns-reachability}}
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 5s
+      relabelConfigs:
+        - {sourceLabels: [__meta_kubernetes_pod_node_name], targetLabel: node}
+        - {replacement: control-dns-reachability, targetLabel: service}
+        - {replacement: network, targetLabel: signal_domain}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: control-dns-reachability
+  namespace: observability-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  groups:
+    - name: control-dns-reachability
+      rules:
+        - alert: Re8chDnsReadyEndpointUnreachable
+          expr: min_over_time(re8ch_dns_peer_query_success{endpoint_ready="true"}[2m]) == 0
+          for: 1m
+          labels: {severity: critical}
+          annotations: {summary: DNS endpoint is Ready but unreachable from a control node}
+        - alert: Re8chDnsEndpointDiscoveryFailed
+          expr: re8ch_dns_probe_discovery_up == 0
+          for: 2m
+          labels: {severity: warning}
+          annotations: {summary: Control node cannot discover DNS endpoints}
