@@ -111,7 +111,6 @@ spec:
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-platform-admin}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: LISTEN_PORT, value: "19449"}
-            - {name: OPENAI_APPS_CHALLENGE_TOKEN, value: {{ .Values.tenantPlatform.tenantAPI.openAIAppsChallengeToken | default "" | quote }}}
             - {name: PUBLIC_MCP_URL, value: "https://admin.re8ch.com:8443/mcp"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
@@ -177,6 +176,7 @@ spec:
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
+            - {name: OPENAI_APPS_CHALLENGE_TOKEN, value: {{ .Values.tenantPlatform.tenantAPI.openAIAppsChallengeToken | default "" | quote }}}
             - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
