@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        identity.re8ch.com/schema-revision: supabase-platform-admin-api-v4
+        identity.re8ch.com/schema-revision: supabase-platform-admin-api-v5
       labels:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: rest-ro

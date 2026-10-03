@@ -220,14 +220,12 @@ def test_advanced_fabric_controller_spans_two_control_nodes():
     controller = helm_release["spec"]["values"]["advancedFabric"]["controller"]
     assert controller["replicas"] == 2
     assert controller["pdbMinAvailable"] == 1
-    expression = controller["affinity"]["nodeAffinity"][
-        "requiredDuringSchedulingIgnoredDuringExecution"
-    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression == {
-        "key": "kubernetes.io/hostname",
-        "operator": "In",
-        "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"],
-    }
+    assert not controller.get("nodeSelector")
+    affinity = controller["affinity"]
+    terms = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
+    assert terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"]}]}]
+    spread = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+    assert spread == [{"labelSelector": {"matchLabels": {"app.kubernetes.io/name": "advanced-fabric-controller"}}, "topologyKey": "kubernetes.io/hostname"}]
 
 
 def test_prefer_taint_stage_is_not_blocked_by_existing_pending_pods():

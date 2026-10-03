@@ -191,6 +191,9 @@ spec:
             {{- if .Values.tenantPlatform.tenantAPI.platformSessionURL }}
             - {name: PLATFORM_SESSION_URL, value: {{ .Values.tenantPlatform.tenantAPI.platformSessionURL | quote }}}
             {{- end }}
+            {{- if .Values.tenantPlatform.tenantAPI.usersURL }}
+            - {name: PLATFORM_USERS_URL, value: {{ .Values.tenantPlatform.tenantAPI.usersURL | quote }}}
+            {{- end }}
             {{- if .Values.tenantPlatform.tenantAPI.organizationsURL }}
             - {name: PLATFORM_ORGANIZATIONS_URL, value: {{ .Values.tenantPlatform.tenantAPI.organizationsURL | quote }}}
             {{- end }}
