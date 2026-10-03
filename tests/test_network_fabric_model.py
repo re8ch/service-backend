@@ -95,10 +95,14 @@ def test_relay_return_forwarding_is_exact_and_bidirectional():
     rules = outputs["clusters/re8ch/components/network/podcidr-fabric/inventory.json"]["transitForwarding"]["restricted-node-6dc3f140f9"]
     assert {"source": "192.0.2.214/24", "destination": "192.0.2.254/24",
             "inInterface": "wg-pt-mubao", "outInterface": "wg-pt-b1"} in rules
+    for source in ("192.0.2.114/32", "192.0.2.220/32"):
+        assert {"source": source, "destination": "192.0.2.254/24",
+                "inInterface": "wg-pt-mubao", "outInterface": "wg-pt-b1"} in rules
     for rule in rules:
         assert {"source": rule["destination"], "destination": rule["source"],
                 "inInterface": rule["outInterface"], "outInterface": rule["inInterface"]} in rules
-        assert rule["source"].startswith("10.42.") and rule["destination"].startswith("10.42.")
+        assert rule["source"].startswith(("10.42.", "10.250."))
+        assert rule["destination"].startswith(("10.42.", "10.250."))
         assert "eth" not in rule["inInterface"] + rule["outInterface"]
 
 

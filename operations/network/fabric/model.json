@@ -904,6 +904,9 @@
         "fabricInterfaces": [
           "wg-pt-a1",
           "wg-pt-b1"
+        ],
+        "relayServiceVIPs": [
+          "192.0.2.220/32"
         ]
       }
     ],

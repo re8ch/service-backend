@@ -225,13 +225,21 @@ def outputs(model):
                 for remote in all_nodes:
                     if remote["name"] in (entry["node"], entry["relayNode"]):
                         continue
-                    for interface in entry["fabricInterfaces"]:
-                        rule = {"source": nodes[entry["relayNode"]]["podCIDR"],
-                                "destination": remote["podCIDR"],
-                                "inInterface": entry["relayInterface"], "outInterface": interface}
-                        rules.append(rule)
-                        rules.append({"source": rule["destination"], "destination": rule["source"],
-                                      "inInterface": interface, "outInterface": entry["relayInterface"]})
+                    # Host services (including kube-apiserver) reply with the
+                    # node identity, while workloads reply with Pod addresses.
+                    # Both directions derive from the same declared ownership.
+                    relay = nodes[entry["relayNode"]]
+                    vips = entry.get("relayServiceVIPs", [])
+                    if vips not in ([], ["192.0.2.220/32"]):
+                        raise ValueError("unreviewed relayed service VIP ownership")
+                    for source in [relay["podCIDR"], relay["acceleratedIp"] + "/32"] + vips:
+                        for destination in (remote["podCIDR"], remote["acceleratedIp"] + "/32"):
+                            for interface in entry["fabricInterfaces"]:
+                                rule = {"source": source, "destination": destination,
+                                        "inInterface": entry["relayInterface"], "outInterface": interface}
+                                rules.append(rule)
+                                rules.append({"source": destination, "destination": source,
+                                              "inInterface": interface, "outInterface": entry["relayInterface"]})
                 section["transitForwarding"][entry["node"]] = rules
         if section_name == "routerosControlMesh":
             intent = model["routeIntent"]
