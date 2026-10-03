@@ -172,6 +172,8 @@ modules:
       digest: sha256:28421d87339424d932ab6c16a937f6bac2dbbede6cea2c98d812402bb2525a11
     - codename: tramontane-jade
       digest: sha256:66667ac75c52c129387a14ac96d307ac92b7401d2a56637c650913c1cb5f20e6
+    - codename: zephyr-jade
+      digest: sha256:6a33fdfcea556aa6ffb61a4e7d0a87512ddbad5359fb4228441a95cfa7098cff
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
