@@ -137,7 +137,7 @@ func (s *server) registerOrganizationTools(ms *mcp.Server) {
 	if os.Getenv("PLATFORM_ORGANIZATIONS_URL") == "" {
 		return
 	}
-	mcp.AddTool(ms, &mcp.Tool{Name: "platform_organization", Description: "Manage identity organizations and existing members through the identity authority. Admin login session required. Actions: list, get, members, create, rename, archive, add_member, set_member_role, remove_member. Archive requires dependency checks. Resource grants and quotas belong to tenant-control."}, func(ctx context.Context, _ *mcp.CallToolRequest, input organizationInput) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_organization"), Name: "platform_organization", Description: "Manage identity organizations and existing members through the identity authority. Admin login session required. Actions: list, get, members, create, rename, archive, add_member, set_member_role, remove_member. Archive requires dependency checks. Resource grants and quotas belong to tenant-control."}, func(ctx context.Context, _ *mcp.CallToolRequest, input organizationInput) (*mcp.CallToolResult, any, error) {
 		value, err := organizationCall(ctx, input)
 		return nil, value, err
 	})

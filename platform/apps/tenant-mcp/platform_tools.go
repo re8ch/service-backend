@@ -176,14 +176,14 @@ func platformIdentity(ctx context.Context) (identity, error) {
 }
 
 func (s *server) registerPlatformTools(ms *mcp.Server) {
-	mcp.AddTool(ms, &mcp.Tool{Name: "platform_tool_catalog", Description: "List Cloud Platform, Cluster Infra, and platform admin tools available to the current platform administrator."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "List Cloud Platform, Cluster Infra, and platform admin tools available to the current platform administrator."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
 			return nil, s.moduleRegistry().catalog(ctx), nil
 		})
-	mcp.AddTool(ms, &mcp.Tool{Name: "platform_tool_call", Description: "Call one allowlisted Cloud Platform, Cluster Infra, or platform admin tool. Copy backend, name, and arguments from platform_tool_catalog."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_call"), Name: "platform_tool_call", Description: "Call one allowlisted Cloud Platform, Cluster Infra, or platform admin tool. Copy backend, name, and arguments from platform_tool_catalog."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformToolInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err

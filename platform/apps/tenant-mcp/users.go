@@ -122,7 +122,7 @@ func (s *server) registerUserTools(ms *mcp.Server) {
 	if os.Getenv("PLATFORM_USERS_URL") == "" {
 		return
 	}
-	mcp.AddTool(ms, &mcp.Tool{Name: "platform_user", Description: "Platform admin identity user CRUD. Actions: list (page/perPage), get (userId), create (email, optional displayName), update (userId, displayName), delete (userId). Create produces an unverified passwordless account; mailbox verification through normal sign-in is required. Delete soft-deletes through GoTrue after organization/resource dependency checks, revoking login; this is not personal-data erasure. Uses the caller's admin login session."}, func(ctx context.Context, _ *mcp.CallToolRequest, input userInput) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_user"), Name: "platform_user", Description: "Platform admin identity user CRUD. Actions: list (page/perPage), get (userId), create (email, optional displayName), update (userId, displayName), delete (userId). Create produces an unverified passwordless account; mailbox verification through normal sign-in is required. Delete soft-deletes through GoTrue after organization/resource dependency checks, revoking login; this is not personal-data erasure. Uses the caller's admin login session."}, func(ctx context.Context, _ *mcp.CallToolRequest, input userInput) (*mcp.CallToolResult, any, error) {
 		value, err := userCall(ctx, input)
 		return nil, value, err
 	})

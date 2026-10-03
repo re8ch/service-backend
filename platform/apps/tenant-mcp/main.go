@@ -49,7 +49,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 		s.registerUserTools(ms)
 	}
 	s.registerResources(ms, id)
-	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_search"), Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input searchInput) (*mcp.CallToolResult, any, error) {
 			id, err := identityFrom(ctx)
 			if err != nil {
@@ -58,7 +58,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			value, err := s.search(request{Tenant: id.Tenant, Subject: id.Subject, Query: input.Query})
 			return nil, value, err
 		})
-	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_load", Description: "Read a published workflow for a natural-language task. The current Agent interprets it using its existing tools and approvals."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_load"), Name: "dynamic_skill_load", Description: "Read a published workflow for a natural-language task. The current Agent interprets it using its existing tools and approvals."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input loadInput) (*mcp.CallToolResult, any, error) {
 			id, err := identityFrom(ctx)
 			if err != nil {
@@ -67,7 +67,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			value, err := s.load(request{Tenant: id.Tenant, Subject: id.Subject, SkillRef: input.SkillRef, Instruction: input.Instruction})
 			return nil, value, err
 		})
-	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_submit", Description: "Submit a tenant workflow draft for platform review. Drafts cannot be loaded or executed."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_submit"), Name: "dynamic_skill_submit", Description: "Submit a tenant workflow draft for platform review. Drafts cannot be loaded or executed."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input submitInput) (*mcp.CallToolResult, any, error) {
 			id, err := identityFrom(ctx)
 			if err != nil {
