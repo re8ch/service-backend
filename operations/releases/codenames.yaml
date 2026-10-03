@@ -184,6 +184,8 @@ modules:
       digest: sha256:120e2e9c2c8dcb7de03abc953c69a541c0e41baf66fdcfb28d143a5d99b51a60
     - codename: sirocco-pearl
       digest: sha256:0cc7d5f10101f4f87ee79679c2aa12ecb6f86e58994a27232242023df2c06094
+    - codename: tramontane-pearl
+      digest: sha256:ee279dc7d1a871a2d4c3f03653c9cc9c0a47e0b6c42c79e047a03bf3fe6d991b
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
