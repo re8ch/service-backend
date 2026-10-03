@@ -50,6 +50,11 @@ def validate(inv):
         seen.add(node["name"])
         if node["ztIp"] != f'10.181.22.{node["id"]}':
             raise ValueError(f'{node["name"]}: id and ztIp differ')
+    for relay in inv.get("controlPlaneRelays", []):
+        identity = ipaddress.ip_address(relay["acceleratedIp"])
+        pod_cidr = ipaddress.ip_network(relay["podCIDR"], strict=True)
+        if identity not in accel_net or pod_cidr.prefixlen != 24 or not pod_cidr.subnet_of(ipaddress.ip_network("10.42.0.0/16")):
+            raise ValueError(f'{relay["name"]}: invalid control-plane relay prefix')
     for fabric, spec in inv["fabrics"].items():
         net = ipaddress.ip_network(spec["prefix"])
         if net.prefixlen != 24 or not net.is_private:
@@ -90,11 +95,13 @@ def allowed_for_spoke(inv, node, fabric, gw):
         values.append(f'{gw["ztIp"]}/32')
     else:
         # Public spokes must retain a control-plane path when the shared
-        # ZeroTier identity network or restricted-node-6dc3f140f9 is unavailable.
+        # ZeroTier identity network or R640 is unavailable.
         values.append(f'{gw["ztIp"]}/32')
         if gw.get("podCIDR"):
             values.append(gw["podCIDR"])
         values += [f'{accelerated(inv, n)}/32' for n in nodes(inv)]
+        for relay in inv.get("controlPlaneRelays", []):
+            values += [f'{relay["acceleratedIp"]}/32', relay["podCIDR"]]
     return values
 
 
