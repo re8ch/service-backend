@@ -224,16 +224,30 @@ def apply_scopes(p, restore=False):
 def syntax_check(p):
     wg = p['wireguard']
     candidate = patch_wg_config(Path('/etc/wireguard/' + wg['interface'] + '.conf').read_text(), wg)
-    with tempfile.TemporaryDirectory(prefix='re8ch-net-') as directory:
-        path = Path(directory) / 'candidate.conf'
+    # Host confinement may deny wg-quick reading /tmp even for root. Stage
+    # within each tool's configuration directory, mode 0600, and always remove.
+    staged = []
+    try:
+        fd, filename = tempfile.mkstemp(prefix='hn-', suffix='.conf', dir='/etc/wireguard')
+        os.close(fd)
+        path = Path(filename)
+        staged.append(path)
         atomic(path, candidate)
         run(['wg-quick', 'strip', str(path)])
         conf = run(['vtysh', '-c', 'show running-config'])
         conf = '\n'.join(line for line in conf.splitlines()
-                         if not any(line.startswith('ip prefix-list ' + name + ' ') for name in p['prefixLists']))
+                         if line.strip() not in ('Building configuration...', 'Current configuration:')
+                         and not any(line.startswith('ip prefix-list ' + name + ' ') for name in p['prefixLists']))
         conf += '\n' + '\n'.join(line for lines in p['prefixLists'].values() for line in lines) + '\n'
+        fd, filename = tempfile.mkstemp(prefix='hn-', suffix='.conf', dir='/etc/frr')
+        os.close(fd)
+        path = Path(filename)
+        staged.append(path)
         atomic(path, conf)
         run(['vtysh', '-C', '-f', str(path)])
+    finally:
+        for path in staged:
+            path.unlink(missing_ok=True)
 
 
 def healthy(p):

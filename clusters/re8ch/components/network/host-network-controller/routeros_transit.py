@@ -65,7 +65,7 @@ def reconcile(router, spec):
     owned_list = [x for x in lists if x.get('list') == spec['addressList']]
     if any(x.get('comment') != spec['commentPrefix'] for x in owned_list):
         raise ValueError('address list ownership conflict')
-    old_sources = {x['address'] for x in owned_list}
+    old_sources = {str(ipaddress.ip_network(x['address'])) for x in owned_list}
     wanted = set(spec['sources'])
     changes = 0
     # Keep each link's control baseline; mutate only formerly/newly declared
@@ -105,7 +105,7 @@ def reconcile(router, spec):
             # RouterOS evaluates the exact transit allow before its generic rules.
             router.request('/ip/firewall/filter/move','POST',{'numbers':row['.id'],'destination':anchor['.id']})
     for row in owned_list:
-        if row['address'] not in wanted:
+        if str(ipaddress.ip_network(row['address'])) not in wanted:
             router.request('/ip/firewall/address-list/'+row['.id'],'DELETE')
             changes += 1
     for row in filters:

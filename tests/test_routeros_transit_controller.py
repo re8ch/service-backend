@@ -1,6 +1,7 @@
 import copy
 import importlib.util
 import json
+import ipaddress
 from pathlib import Path
 import pytest
 
@@ -27,6 +28,8 @@ class Router:
             return copy.deepcopy(self.tables[path])
         if method == 'PUT':
             row = {'.id':'new'+str(len(self.calls)),**body}
+            if path == '/ip/firewall/address-list' and ipaddress.ip_network(row['address']).prefixlen == 32:
+                row['address'] = str(ipaddress.ip_network(row['address']).network_address)
             self.tables[path].append(row)
             return row
         table, key = path.rsplit('/',1)
