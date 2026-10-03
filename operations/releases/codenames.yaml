@@ -501,6 +501,8 @@ modules:
       digest: sha256:a37fe18c132e5d0d12e450799d31cdb451ece86431d22024db0a6ecf65d209c4
     - codename: sirocco-jade
       digest: sha256:2fb4faef0c1c8f13d6831823f0c9523f63611f285a962520c746be1efb87d05b
+    - codename: tramontane-jade
+      digest: sha256:8abec5edc00fea8a5402e81ab3e3a32810d21c0506d87702a4c61cf2a5f05164
   platform/git-workspaces:
     releases:
     - codename: andromeda

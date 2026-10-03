@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: sirocco-jade
+    delivery.re8ch.com/codename: tramontane-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
   ref:
-    digest: sha256:2fb4faef0c1c8f13d6831823f0c9523f63611f285a962520c746be1efb87d05b
+    digest: sha256:8abec5edc00fea8a5402e81ab3e3a32810d21c0506d87702a4c61cf2a5f05164
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: sirocco-jade
+    delivery.re8ch.com/codename: tramontane-jade
 spec:
   interval: 1m
   retryInterval: 1m
