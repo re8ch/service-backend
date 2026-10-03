@@ -64,8 +64,20 @@ def validate(p, adoption):
         raise ValueError('bounded rollback deadline required')
     if p['scope'] not in ('public-mesh-peers', 'control-transit-peer'):
         raise ValueError('unsupported ownership scope')
+    extra = p.get('additionalWireguard', [])
+    adopted_extra = adoption.get('additionalPeerKeys', {})
+    if extra or adopted_extra:
+        if p['scope'] != 'control-transit-peer' or p['node'] != 'mubao-wsl' or len(extra) != 1:
+            raise ValueError('additional interface scope not reviewed')
+        if {w['interface'] for w in extra} != {'wg-public-mesh'} or set(adopted_extra) != {'wg-public-mesh'}:
+            raise ValueError('additional interface adoption differs')
+        for w in extra:
+            validate({**p, 'scope': 'public-mesh-peers', 'wireguard': w,
+                      'prefixLists': {}, 'additionalWireguard': []},
+                     {'node': p['node'], 'scope': 'public-mesh-peers', 'peerKeys': adopted_extra[w['interface']],
+                      'prefixLists': []})
     wg = p['wireguard']
-    expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'restricted-node-abb3f27a69': 'wg-cp-mubao'}.get(p['node'])
+    expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'mubao-wsl': 'wg-cp-mubao'}.get(p['node'])
     if wg['interface'] != expected_interface or not 1120 <= wg['mtu'] <= 1420:
         raise ValueError('invalid interface/MTU')
     seen = set()
@@ -77,9 +89,9 @@ def validate(p, adoption):
         seen.add(peer['publicKey'])
         if not 5 <= peer['keepalive'] <= 120:
             raise ValueError('invalid keepalive')
-        roots = ('192.0.2.246/24', '192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')
+        roots = ('172.31.92.0/24', '10.250.0.0/24', '10.251.0.0/24', '10.42.0.0/16')
         if p['scope'] == 'control-transit-peer':
-            roots += ('192.0.2.34/28', '192.0.2.95/24', '192.0.2.240/32')
+            roots += ('172.31.96.0/28', '172.31.97.0/24', '192.168.88.1/32')
         for prefix in peer['allowedIPs']:
             n = ipaddress.ip_network(prefix)
             if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
@@ -102,7 +114,7 @@ def validate(p, adoption):
                 raise ValueError('invalid FRR prefix-list statement')
             n = ipaddress.ip_network(line.split()[-1])
             if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
-                       ('192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')):
+                       ('10.250.0.0/24', '10.251.0.0/24', '10.42.0.0/16')):
                 raise ValueError('FRR prefix outside authority')
     if not p['health']['bgpPeers'] or not p['health']['checks']:
         raise ValueError('health gates required')
@@ -140,8 +152,13 @@ def snapshot(p):
     mtu = json.loads(run(['ip', '-j', 'link', 'show', interface]))[0]['mtu']
     persistent = Path('/etc/wireguard/' + interface + '.conf').read_text()
     scopes = persistent_fields(persistent, {p['publicKey'] for p in owned})
-    return {'wireguard': {'interface': interface, 'mtu': mtu, 'peers': owned},
-            'prefixLists': prefixes, 'persistentFields': scopes}
+    result = {'wireguard': {'interface': interface, 'mtu': mtu, 'peers': owned},
+              'prefixLists': prefixes, 'persistentFields': scopes}
+    if p.get('additionalWireguard'):
+        extras = [snapshot({'wireguard': w, 'prefixLists': {}}) for w in p['additionalWireguard']]
+        result['additionalWireguard'] = [x['wireguard'] for x in extras]
+        result['additionalPersistentFields'] = {x['wireguard']['interface']: x['persistentFields'] for x in extras}
+    return result
 
 
 def persistent_fields(text, keys):
@@ -225,7 +242,14 @@ def apply_scopes(p, restore=False):
         run(argv)
 
 
+    for w in p.get('additionalWireguard', []):
+        apply_scopes({'wireguard': w, 'prefixLists': {},
+                      'persistentFields': p.get('additionalPersistentFields', {}).get(w['interface'])}, restore)
+
+
 def syntax_check(p):
+    for w in p.get('additionalWireguard', []):
+        syntax_check({'wireguard': w, 'prefixLists': {}})
     wg = p['wireguard']
     candidate = patch_wg_config(Path('/etc/wireguard/' + wg['interface'] + '.conf').read_text(), wg)
     # Host confinement may deny wg-quick reading /tmp even for root. Stage
@@ -263,9 +287,10 @@ def healthy(p):
     if any(not any(x.get('peer') == peer and x.get('status') == 'up' for x in bfd)
            for peer in p['health'].get('bfdPeers', [])):
         return False
-    handshakes = dict(line.split('\t') for line in run(['wg', 'show', p['wireguard']['interface'], 'latest-handshakes']).splitlines())
-    if any(time.time() - int(handshakes.get(peer['publicKey'], 0)) > 180 for peer in p['wireguard']['peers']):
-        return False
+    for w in [p['wireguard']] + p.get('additionalWireguard', []):
+        handshakes = dict(line.split('\t') for line in run(['wg', 'show', w['interface'], 'latest-handshakes']).splitlines())
+        if any(time.time() - int(handshakes.get(peer['publicKey'], 0)) > 180 for peer in w['peers']):
+            return False
     for check in p['health']['checks']:
         run([check])
     return True
@@ -305,6 +330,8 @@ def reconcile(state, p, adoption):
         return 'pending'
     baseline = snapshot(p)
     expected = {'wireguard': p['wireguard'], 'prefixLists': p['prefixLists']}
+    if p.get('additionalWireguard'):
+        expected['additionalWireguard'] = p['additionalWireguard']
     current = {key: baseline[key] for key in expected}
     persistent = baseline.get('persistentFields', {})
     persistent_ok = persistent.get('Interface', {}).get('MTU') == str(p['wireguard']['mtu'])
@@ -314,6 +341,15 @@ def reconcile(state, p, adoption):
         persistent_ok = persistent_ok and fields.get('PersistentKeepalive') == str(peer['keepalive'])
         if peer.get('endpoint'):
             persistent_ok = persistent_ok and fields.get('Endpoint') == peer['endpoint']
+    for w in p.get('additionalWireguard', []):
+        fields_by_peer = baseline.get('additionalPersistentFields', {}).get(w['interface'], {})
+        persistent_ok = persistent_ok and fields_by_peer.get('Interface', {}).get('MTU') == str(w['mtu'])
+        for peer in w['peers']:
+            fields = fields_by_peer.get(peer['publicKey'], {})
+            persistent_ok = persistent_ok and sorted(x.strip() for x in (fields.get('AllowedIPs') or '').split(',')) == sorted(peer['allowedIPs'])
+            persistent_ok = persistent_ok and fields.get('PersistentKeepalive') == str(peer['keepalive'])
+            if peer.get('endpoint'):
+                persistent_ok = persistent_ok and fields.get('Endpoint') == peer['endpoint']
     if (state / 'committed.json').exists() and json.loads((state / 'committed.json').read_text())['digest'] == target and current == expected and persistent_ok:
         return 'converged'
     try:
