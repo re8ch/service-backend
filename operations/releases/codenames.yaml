@@ -152,6 +152,8 @@ modules:
       digest: sha256:bbbd811a820e3231aa5f9862e677aadf184fa41a05ca756827e158d37c4d1cec
     - codename: chinook-jade
       digest: sha256:a6763104ce12a02141444b87b94c55160042e9cfb1617442d77c95ac5d7f8b67
+    - codename: etesian-jade
+      digest: sha256:e256c908185f77064beeb3a0c51858466ff95230911f80a3443b8594a4347c51
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
