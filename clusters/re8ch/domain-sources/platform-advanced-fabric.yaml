@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: etesian-indigo
+    delivery.re8ch.com/codename: mistral-indigo
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
   ref:
-    digest: sha256:6f8480f37830cf38d92ed242b66fd33f32feba56b82a6e818a99a1b638348e53
+    digest: sha256:ba39b3be3a7b19f9c432c5616d05cdf001b78e3f0a7e5954adaf1055d96e403e
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: etesian-indigo
+    delivery.re8ch.com/codename: mistral-indigo
 spec:
   interval: 1m
   retryInterval: 1m
