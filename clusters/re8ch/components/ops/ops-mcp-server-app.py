@@ -1981,9 +1981,10 @@ def get_database_routing_status():
     }
 
 def get_external_publication_readiness():
-    mcp_origin = os.getenv("EXTERNAL_TOOLS_ORIGIN", "https://tools.re8ch.com:8443").rstrip("/")
-    mcp_resource = mcp_origin + "/mcp"
-    auth_origin = os.getenv("EXTERNAL_AUTH_ORIGIN", mcp_origin).rstrip("/")
+    mcp_origin = os.getenv("EXTERNAL_TOOLS_ORIGIN", "https://tools.service.re8ch.com").rstrip("/")
+    mcp_resource = os.getenv("EXTERNAL_MCP_RESOURCE", mcp_origin + "/tenant-native/mcp").rstrip("/")
+    metadata_url = os.getenv("EXTERNAL_RESOURCE_METADATA_URL", mcp_origin + "/.well-known/oauth-protected-resource" + urllib.parse.urlparse(mcp_resource).path)
+    auth_origin = os.getenv("EXTERNAL_AUTH_ORIGIN", "https://db-rw.re8ch.com/auth/v1").rstrip("/")
     upstream_auth_origin = os.getenv("UPSTREAM_AUTH_ORIGIN", "https://auth.re8ch.com").rstrip("/")
 
     def dns_status(host):
@@ -2013,19 +2014,19 @@ def get_external_publication_readiness():
             return {"valid": False, "httpStatus": getattr(exc, "code", None), "error": "%s: %s" % (type(exc).__name__, str(exc)[:160])}
 
     tools_url, upstream_auth_url = urllib.parse.urlparse(mcp_origin), urllib.parse.urlparse(upstream_auth_origin)
-    tools_host, upstream_auth_host = tools_url.hostname or "tools.re8ch.com", upstream_auth_url.hostname or "auth.re8ch.com"
+    tools_host, upstream_auth_host = tools_url.hostname or "tools.service.re8ch.com", upstream_auth_url.hostname or "auth.re8ch.com"
     tools_dns, auth_dns = dns_status(tools_host), dns_status(upstream_auth_host)
     tools_tls = tls_status(tools_host, tools_url.port or 443)
     auth_tls = tls_status(upstream_auth_host, upstream_auth_url.port or 443)
     resource_metadata = json_metadata(
-        mcp_origin + "/.well-known/oauth-protected-resource/mcp",
-        lambda value: value.get("resource") == mcp_resource and bool(value.get("authorization_servers")),
+        metadata_url,
+        lambda value: value.get("resource") == mcp_resource and auth_origin in value.get("authorization_servers", []),
     )
     oauth_metadata = {"valid": False, "httpStatus": None, "error": "no valid OAuth/OIDC discovery document"}
     for path in ("/.well-known/oauth-authorization-server", "/.well-known/openid-configuration"):
         candidate = json_metadata(
             auth_origin + path,
-            lambda value: bool(value.get("issuer")) and str(value.get("authorization_endpoint", "")).startswith("https://") and str(value.get("token_endpoint", "")).startswith("https://") and "S256" in value.get("code_challenge_methods_supported", []),
+            lambda value: value.get("issuer") == auth_origin and str(value.get("authorization_endpoint", "")).startswith("https://") and str(value.get("token_endpoint", "")).startswith("https://") and "S256" in value.get("code_challenge_methods_supported", []),
         )
         if candidate["valid"]:
             candidate["path"] = path
@@ -2047,27 +2048,16 @@ def get_external_publication_readiness():
         challenge["error"] = "unauthenticated request unexpectedly succeeded"
     except urllib.error.HTTPError as exc:
         header = exc.headers.get("WWW-Authenticate", "")
-        challenge.update({"httpStatus": exc.code, "resourceMetadataAdvertised": "resource_metadata=" in header, "valid": exc.code == 401 and "resource_metadata=" in header})
+        challenge.update({"httpStatus": exc.code, "resourceMetadataAdvertised": "resource_metadata=" in header, "valid": exc.code == 401 and ('resource_metadata="' + metadata_url + '"') in header})
     except Exception as exc:
         challenge["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
-    external_server = False
-    try:
-        kube_request("GET", "/apis/toolhive.stacklok.dev/v1beta1/namespaces/toolhive-system/mcpservers/ops-observe-external")
-        external_server = True
-    except KubeError as exc:
-        if exc.status != 404:
-            raise
-    ingresses = kube_request("GET", "/apis/networking.k8s.io/v1/ingresses").get("items", [])
-    public_ingress = any(
-        rule.get("host") == "tools.re8ch.com"
-        for item in ingresses for rule in item.get("spec", {}).get("rules", [])
-    )
+    # Public reachability and OAuth are checked above. Deployment/route objects
+    # from the retired ToolHive publication are not gates for tenant-native MCP.
     gates = {
         "toolsDNS": tools_dns["resolved"], "authDNS": auth_dns["resolved"],
         "toolsTLS": tools_tls["trusted"], "authTLS": auth_tls["trusted"],
         "protectedResourceMetadata": resource_metadata["valid"], "oauthDiscoveryPKCE": oauth_metadata["valid"],
-        "unauthenticatedChallenge": challenge["valid"], "externalMCPServer": external_server,
-        "publicIngress": public_ingress,
+        "unauthenticatedChallenge": challenge["valid"],
     }
     return {
         "publicationReady": all(gates.values()),
@@ -2078,8 +2068,8 @@ def get_external_publication_readiness():
         "protectedResourceMetadata": resource_metadata,
         "oauthDiscovery": oauth_metadata,
         "mcpChallenge": challenge,
-        "origins": {"mcp": mcp_origin, "authorizationServer": auth_origin, "upstreamIdentity": upstream_auth_origin},
-        "policy": "The published restricted-node-6dc3f140f9 endpoint is ready only when DNS/TLS, embedded OAuth metadata, the MCP authentication challenge and cluster publication objects all pass.",
+        "origins": {"mcp": mcp_origin, "resource": mcp_resource, "resourceMetadata": metadata_url, "authorizationServer": auth_origin, "upstreamIdentity": upstream_auth_origin},
+        "policy": "Network/OAuth readiness for the public tenant-native MCP endpoint. This does not certify authenticated tool behavior or OpenAI review readiness.",
         "redaction": "OAuth client secrets, access/refresh tokens, certificate bodies, DNS API credentials and user claims are not read.",
         "humanTracking": {"toolhiveRegistry": "internal ToolHive Registry", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
@@ -4192,7 +4182,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_observability_platform_status", "description": "Return fixed Grafana/VictoriaMetrics/VMAlert/VictoriaLogs/OpenCost/Robusta/OTLP health, workload readiness, aggregate target counts and one-hour cluster cost/efficiency without arbitrary queries or tenant detail.", "inputSchema": schema()},
         {"name": "get_artifact_platform_status", "description": "Return Harbor core component and workload readiness plus the reviewed publication flow without reading credentials, artifacts, vulnerability details, users or robot data.", "inputSchema": schema()},
         {"name": "get_database_routing_status", "description": "Return Pigsty PostgreSQL/PgBouncer/PostgREST route reachability, sanitized EndpointSlice readiness and CloudBeaver reachability without SQL, schema, row, credential or connection data.", "inputSchema": schema()},
-        {"name": "get_external_publication_readiness", "description": "Return fixed tools/auth DNS, trusted TLS, OAuth metadata, MCP challenge and cluster publication-object gates without reading OAuth secrets, tokens, certificate bodies, DNS credentials or user claims.", "inputSchema": schema()},
+        {"name": "get_external_publication_readiness", "description": "Return fixed tools/auth DNS, trusted TLS, OAuth metadata, MCP challenge without reading OAuth secrets, tokens, certificate bodies, DNS credentials or user claims.", "inputSchema": schema()},
         {"name": "get_tenant_secret_refs", "description": "Return tenant-readable Kubernetes Secret references. Normal token is limited to this tenant namespace; admin can pass allTenants=true.", "inputSchema": schema({"namespace": {"type": "string"}, "allTenants": {"type": "boolean", "default": False}})},
         {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
         {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
