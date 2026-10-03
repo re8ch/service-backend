@@ -35,6 +35,7 @@ def main():
     peer = ipaddress.ip_network(link["peerAddress"]).network_address
     peer_address = f"{peer}/{router.network.prefixlen}"
     router_ip = str(router.ip)
+    management_ip = str(ipaddress.ip_address(desired["managementIp"]))
     if args.action in ("stage", "start"):
         if not key_file.is_file():
             raise RuntimeError(f"missing existing private key: {key_file}")
@@ -69,7 +70,20 @@ def main():
             "AllowedIPs = 192.0.2.178/28,192.0.2.106/24",
             "AllowedIPs = 192.0.2.178/28,192.0.2.148/24,192.0.2.106/24",
         )
-        accepted = (old_content, middle_content, content)
+        previous_content = content
+        content = content.replace(
+            "PostUp = ip route replace 192.0.2.178/28 dev %i\n",
+            "PostUp = ip route replace 192.0.2.178/28 dev %i\n"
+            f"PostUp = ip route replace {management_ip}/32 dev %i\n",
+        ).replace(
+            "PostDown = ip route del 192.0.2.178/28 dev %i || true\n",
+            "PostDown = ip route del 192.0.2.178/28 dev %i || true\n"
+            f"PostDown = ip route del {management_ip}/32 dev %i || true\n",
+        ).replace(
+            "AllowedIPs = 192.0.2.178/28,192.0.2.148/24,192.0.2.106/24",
+            f"AllowedIPs = 192.0.2.178/28,192.0.2.148/24,{management_ip}/32,192.0.2.106/24",
+        )
+        accepted = (old_content, middle_content, previous_content, content)
         if desired["mtu"] == 1200:
             accepted += tuple(value.replace("MTU = 1200", "MTU = 1280") for value in accepted)
         if conf.exists() and conf.read_text(encoding="ascii") not in accepted:
@@ -85,8 +99,9 @@ def main():
         if args.action == "start":
             run("systemctl", "enable", "--now", f"wg-quick@{interface}.service")
             run("wg", "set", interface, "peer", link["routerPublicKey"],
-                "allowed-ips", "192.0.2.178/28,192.0.2.148/24,192.0.2.106/24")
+                "allowed-ips", f"192.0.2.178/28,192.0.2.148/24,{management_ip}/32,192.0.2.106/24")
             run("ip", "route", "replace", "192.0.2.178/28", "dev", interface)
+            run("ip", "route", "replace", f"{management_ip}/32", "dev", interface)
     elif args.action == "stop":
         run("systemctl", "disable", "--now", f"wg-quick@{interface}.service")
     if args.action in ("start", "inspect"):
