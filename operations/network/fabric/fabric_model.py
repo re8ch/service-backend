@@ -202,6 +202,26 @@ def outputs(model):
     transit = transit_contract(model)
     for section_name, paths in OUTPUTS.items():
         section = copy.deepcopy(model["sections"][section_name])
+        if section_name == "podcidrFabric":
+            all_nodes = section["routeServers"] + section["nodes"] + section.get("relayNodes", [])
+            nodes = {n["name"]: n for n in all_nodes}
+            section["transitForwarding"] = {}
+            for entry in model["routeIntent"].get("transitForwarding", []):
+                if (entry["node"], entry["relayNode"], entry["relayInterface"], entry["fabricInterfaces"]) != (
+                        "restricted-node-6dc3f140f9", "restricted-node-abb3f27a69", "wg-pt-mubao", ["wg-pt-a1", "wg-pt-b1"]):
+                    raise ValueError("unreviewed transit firewall interface ownership")
+                rules = []
+                for remote in all_nodes:
+                    if remote["name"] in (entry["node"], entry["relayNode"]):
+                        continue
+                    for interface in entry["fabricInterfaces"]:
+                        rule = {"source": nodes[entry["relayNode"]]["podCIDR"],
+                                "destination": remote["podCIDR"],
+                                "inInterface": entry["relayInterface"], "outInterface": interface}
+                        rules.append(rule)
+                        rules.append({"source": rule["destination"], "destination": rule["source"],
+                                      "inInterface": interface, "outInterface": entry["relayInterface"]})
+                section["transitForwarding"][entry["node"]] = rules
         if section_name == "routerosControlMesh":
             intent = model["routeIntent"]
             section["podRoutePolicy"] = {
