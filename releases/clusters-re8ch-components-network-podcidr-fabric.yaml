@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/network/podcidr-fabric
-codename: sirocco-indigo
+codename: tramontane-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
-  digest: sha256:a7fc768bb011e1b57d20bebb957cb06887b1fc84dd9907ae4c90da7a35753d0b
+  digest: sha256:92761d91688f58d00073abad90fa5c45b37c405a78ee23292ad8ae6506fb0b55
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
