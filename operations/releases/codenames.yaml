@@ -126,6 +126,8 @@ modules:
       digest: sha256:f4bd7c0522d716c2d7d21586fb89916856f705c5b9ea8862bdc3651b0d20ae3e
     - codename: etesian-copper
       digest: sha256:29d3b1a7bb7b597652414057d00934944abb93915f3667f4bdf3bb23f562f5e1
+    - codename: mistral-copper
+      digest: sha256:16397ad73307fe10bb671e2ff91ad8c752dbe48e5c9f0abe50257707699de1d3
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
