@@ -160,7 +160,13 @@ def node_action(action, node, links, policy):
         allowed = list(dict.fromkeys(base_allowed + managed_sources))
     else:
         allowed = [item for item in base_allowed if item not in managed_sources]
-    if original:
+    adoption_path = pathlib.Path("/var/lib/re8ch/host-network/adoption.json")
+    adopted = False
+    if adoption_path.exists():
+        adoption = json.loads(adoption_path.read_text())
+        adopted = (adoption.get("node") == node and adoption.get("scope") == "control-transit-peer"
+                   and own["routerPublicKey"] in adoption.get("peerKeys", []))
+    if original and not adopted:
         run("wg", "set", interface, "peer", own["routerPublicKey"], "allowed-ips", ",".join(allowed))
     for peer_name, pod in remote:
         direct_priority, fallback_priority = fallback_rule_priorities(pod, int(policy["ruleBase"]))
