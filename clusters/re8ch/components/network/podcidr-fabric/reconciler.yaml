@@ -16,6 +16,10 @@ data:
       nsenter -t 1 -n chroot /host "$@"
     }
 
+    # Advertise that this running writer understands per-peer adoption.
+    # Delivery waits for this marker before transferring ownership.
+    host touch /run/re8ch-public-mesh-handoff-v1
+
     wait_for_bgp() {
       attempts=0
       while [ "${attempts}" -lt 30 ]; do

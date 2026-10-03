@@ -22,6 +22,12 @@ done
 host systemctl daemon-reload
 host systemctl enable --now re8ch-host-network-watchdog.timer
 host systemctl start re8ch-host-network-recover.service
+# Wait for the reconciler binary that honors ownership handoff. A config
+# mount alone does not prove its already-running shell has loaded the change.
+while [ ! -f /host/run/re8ch-public-mesh-handoff-v1 ]; do
+  echo 'waiting for PodCIDR writer handoff support'
+  sleep 10
+done
 # Adoption includes exact public-key and FRR-list ownership. No private keys.
 cp /config/adoption.json "$root/adoption.json.next"
 chmod 600 "$root/adoption.json.next"
