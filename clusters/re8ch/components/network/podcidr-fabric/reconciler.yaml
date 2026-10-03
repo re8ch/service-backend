@@ -657,9 +657,24 @@ data:
       rm -f "${commands}"
     }
 
+    reconcile_r640_b1_podcidr_authority() {
+      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      prefix="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .podCIDR' /config/inventory.json)"
+      [ -n "${prefix}" ] || return 1
+      # A historical low-metric route through RouterOS can override the valid
+      # FRR path and blackhole B1 DNS while its Pod remains locally Ready.
+      host vtysh -c "show bgp ipv4 unicast ${prefix} json" 2>/dev/null |
+        jq -e '[.paths[]? | select(.valid == true)] | length > 0' >/dev/null || return 1
+      while host ip -4 route show exact "${prefix}" | grep -Eq 'via 192\.168\.88\.1 dev eno2np1'; do
+        host ip route del "${prefix}" via 192.0.2.131 dev eno2np1 || return 1
+      done
+      host ip -4 route show exact "${prefix}" | grep -Eq 'dev wg-pt-(a1|b1)' || return 1
+    }
+
     apply_fabric
     reconcile_relay_nodes
     reconcile_routeros_boundary
+    reconcile_r640_b1_podcidr_authority
     reconcile_wireguard_allowed_ips
     reconcile_control_api_source_identity
     reconcile_public_mesh_allowed_ips
@@ -671,6 +686,10 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      reconcile_r640_b1_podcidr_authority || {
+        rm -f /run/podcidr-fabric-ready
+        exit 1
+      }
       reconcile_wireguard_allowed_ips
       reconcile_control_api_source_identity
       host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || {
@@ -701,7 +720,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: control-api-cross-fabric-v8
+        networking.re8ch.com/config-revision: r640-b1-podcidr-authority-v9
     spec:
       hostPID: true
       hostNetwork: true
