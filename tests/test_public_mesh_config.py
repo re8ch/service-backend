@@ -68,3 +68,38 @@ def test_pod_cidr_peering_must_be_reciprocal():
 
     with pytest.raises(ValueError, match="non-reciprocal podCIDR peer"):
         PUBLIC_MESH.validate(data)
+
+
+def test_expansion_stages_preserve_legacy_and_add_direct_spines():
+    data = inventory()
+    restricted-node-6dc3f140f9 = PUBLIC_MESH.select(data, "restricted-node-6dc3f140f9")
+    flk = PUBLIC_MESH.select(data, "overseas-flk")
+    assert "overseas-flk" not in PUBLIC_MESH.render_frr(data, restricted-node-6dc3f140f9, stage=6)
+    assert "neighbor 192.0.2.115 remote-as 4200000105" in PUBLIC_MESH.render_frr(data, restricted-node-6dc3f140f9, stage=7)
+    assert "neighbor 192.0.2.81 remote-as 4200000220" not in PUBLIC_MESH.render_frr(data, flk, stage=7)
+    assert "neighbor 192.0.2.81 remote-as 4200000220" in PUBLIC_MESH.render_frr(data, flk, stage=8)
+    assert "neighbor 192.0.2.115 remote-as" not in PUBLIC_MESH.render_frr(
+        data, PUBLIC_MESH.select(data, "qianwen-nuclio-79"), stage=8)
+
+
+def test_expanded_peers_exchange_accelerated_identities_only():
+    data = inventory()
+    flk = PUBLIC_MESH.select(data, "overseas-flk")
+    restricted-node-6dc3f140f9 = PUBLIC_MESH.select(data, "restricted-node-6dc3f140f9")
+    keys = {node["id"]: f'key-{node["id"]}' for node in data["nodes"]}
+    flk_frr = PUBLIC_MESH.render_frr(data, flk, stage=8)
+    r640_frr = PUBLIC_MESH.render_frr(data, restricted-node-6dc3f140f9, stage=8)
+    flk_wg = PUBLIC_MESH.render_wireguard(data, flk, keys, stage=8)
+    assert "network 192.0.2.109/32" in flk_frr
+    assert "network 192.0.2.61/32" not in flk_frr
+    assert "FROM-128 seq 10 permit 192.0.2.205/32" in flk_frr
+    assert "neighbor 192.0.2.115 prefix-list SELF-ACCEL out" in r640_frr
+    assert "AllowedIPs = 192.0.2.145/32, 192.0.2.205/32" in flk_wg
+    assert "192.0.2.183/32" not in flk_wg
+
+
+def test_expansion_rejects_unpaired_mesh_peer():
+    data = inventory()
+    PUBLIC_MESH.select(data, "overseas-la-2")["meshPeers"].remove("overseas-flk")
+    with pytest.raises(ValueError, match="non-reciprocal mesh peer"):
+        PUBLIC_MESH.validate(data)

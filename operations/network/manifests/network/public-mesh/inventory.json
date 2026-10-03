@@ -11,6 +11,8 @@
     {"id":"95","name":"harbor-registry","ztIp":"192.0.2.203","transportIp":"192.0.2.12","publicIp":"192.0.2.210","asn":4200000095,"rollout":3,"publicMode":"static"},
     {"id":"16","name":"rancher-panel","ztIp":"192.0.2.79","transportIp":"192.0.2.117","publicIp":"192.0.2.67","asn":4200000016,"rollout":4,"publicMode":"static"},
     {"id":"186","name":"pg-re8ch-replica-186","ztIp":"192.0.2.172","transportIp":"192.0.2.120","publicIp":"192.0.2.72","asn":4200000186,"rollout":5,"publicMode":"static"},
-    {"id":"50","name":"overseas-edge-50","ztIp":"192.0.2.122","transportIp":"192.0.2.208","publicIp":"192.0.2.3","asn":4200000050,"rollout":6,"publicMode":"static","region":"overseas","includedEgressGiB":1024}
+    {"id":"50","name":"overseas-edge-50","ztIp":"192.0.2.122","transportIp":"192.0.2.208","publicIp":"192.0.2.3","asn":4200000050,"rollout":6,"publicMode":"static","region":"overseas","includedEgressGiB":1024},
+    {"id":"105","name":"overseas-flk","ztIp":"192.0.2.61","transportIp":"192.0.2.115","acceleratedIp":"192.0.2.109","publicIp":"192.0.2.101","asn":4200000105,"rollout":7,"publicMode":"static","meshPeers":["restricted-node-6dc3f140f9","vm-20-12-ubuntu","artchais-nuclio-1","rancher-panel","pg-re8ch-replica-186","overseas-la-2"]},
+    {"id":"220","name":"overseas-la-2","ztIp":"192.0.2.25","transportIp":"192.0.2.81","acceleratedIp":"192.0.2.59","publicIp":"192.0.2.38","asn":4200000220,"rollout":8,"publicMode":"static","meshPeers":["restricted-node-6dc3f140f9","vm-20-12-ubuntu","artchais-nuclio-1","rancher-panel","pg-re8ch-replica-186","overseas-flk"]}
   ]
 }
