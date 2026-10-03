@@ -46,6 +46,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if id.PlatformAdmin && !id.Service {
 		s.registerPlatformTools(ms)
 		s.registerOrganizationTools(ms)
+		s.registerUserTools(ms)
 	}
 	s.registerResources(ms, id)
 	mcp.AddTool(ms, &mcp.Tool{Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
