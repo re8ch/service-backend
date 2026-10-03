@@ -13,9 +13,9 @@ FABRIC = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(FABRIC)
 
 
-def test_all_nine_consumers_match_single_fabric_model():
+def test_all_consumers_match_single_fabric_model():
     rendered = FABRIC.validate(FABRIC.load_model())
-    assert len(rendered) == 9
+    assert len(rendered) == 10
     for relative, expected in rendered.items():
         assert json.loads((ROOT / relative).read_text()) == expected
 
@@ -40,4 +40,31 @@ def test_unreviewed_public_authority_and_mesh_adjacency_are_rejected():
     mubao = next(node for node in public if node["name"] == "restricted-node-abb3f27a69")
     mubao["meshPeers"].remove("overseas-flk")
     with pytest.raises(ValueError, match="cannot dial public spine"):
+        FABRIC.validate(model)
+
+
+def test_host_contract_uses_runtime_node_names_and_has_stable_revision():
+    model = FABRIC.load_model()
+    first = FABRIC.host_contract(model)
+    assert first == FABRIC.host_contract(copy.deepcopy(model))
+    assert "suxunji" in first["nodes"]
+    assert "artchais-nuclio-1" not in first["nodes"]
+    assert first["nodes"]["restricted-node-abb3f27a69"]["applyEligible"] is False
+    assert {item["name"] for item in first["nodes"]["restricted-node-abb3f27a69"]["wireguard"]} == {
+        "wg-public-mesh", "wg-cp-mubao", "wg-pt-mubao"}
+    changed = copy.deepcopy(model)
+    changed["hostNetwork"]["rollout"]["verificationTimeoutSeconds"] += 1
+    assert FABRIC.host_contract(changed)["modelDigest"] != first["modelDigest"]
+
+
+@pytest.mark.parametrize("mutation,match", [
+    (lambda c: c.update(adoptedNodes=["restricted-node-6dc3f140f9"]), "adoption controller"),
+    (lambda c: c["ownership"]["frr"].update(wholeFileReplacement=True), "wholesale"),
+    (lambda c: c["rollback"].update(requiresClusterApi=True), "without the cluster API"),
+    (lambda c: c["rollout"].update(maxUnavailable=2), "serial"),
+])
+def test_host_contract_rejects_unsafe_activation(mutation, match):
+    model = copy.deepcopy(FABRIC.load_model())
+    mutation(model["hostNetwork"])
+    with pytest.raises(ValueError, match=match):
         FABRIC.validate(model)

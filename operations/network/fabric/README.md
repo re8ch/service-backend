@@ -3,7 +3,7 @@
 `model.json` is the reviewed source for the public WireGuard mesh, the A1/B1
 private transit mesh, PodCIDR routing, RouterOS control links, and the AdvFab
 path policy. It compiles to the nine existing operations and cluster inventory
-files. Edit the model, then run:
+files, plus the host-network contract published through Flux. Edit the model, then run:
 
 ```sh
 python3 operations/network/fabric/fabric_model.py validate
@@ -39,3 +39,8 @@ Host rollout is deliberately separate from generating desired state: compare
 the generated configuration with live WireGuard, FRR, RouterOS, and policy
 agent state; apply one node at a time; run cross-node DNS and return-path probes
 before advancing. The model validation does not imply a live link is healthy.
+
+Host WireGuard/FRR ownership, node plans, promotion and rollback requirements
+are standardized in [HOST-NETWORK.md](HOST-NETWORK.md). Generate a node plan
+with `fabric_model.py host-plan --node <kubernetes-node-name>`. The GitOps
+contract is inventory-only until a transactional host controller is implemented.

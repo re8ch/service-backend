@@ -892,5 +892,96 @@
     "ecmpMode": "per-flow",
     "controlPodFallbackTable": 15425,
     "controlPodRuleBase": 11450
+  },
+  "hostNetwork": {
+    "apiVersion": "networking.re8ch.com/v1alpha1",
+    "kind": "HostNetworkContract",
+    "mode": "inventory",
+    "desiredController": "re8ch-host-network-agent",
+    "delivery": {
+      "authority": "github/main",
+      "transport": "Flux-configmap",
+      "configMap": "kube-system/host-network-contract",
+      "activation": "explicit-node-adoption",
+      "signatureRequired": true
+    },
+    "ownership": {
+      "wireguard": {
+        "scope": "interface-and-peer-prefix",
+        "privateKeys": "host-or-approved-secret-only",
+        "sharedAllowedIPs": "single-assembler-required"
+      },
+      "frr": {
+        "scope": "neighbor-prefix-list-route-map",
+        "wholeFileReplacement": false,
+        "configPath": "/etc/frr/frr.conf"
+      },
+      "routes": {
+        "scope": "prefix-table-rule-priority",
+        "kernelStaticOverridesBgp": "reject-unless-declared"
+      },
+      "advfab": {
+        "scope": "policy-tables",
+        "ecmpMode": "per-flow",
+        "routeAuthority": "FRR-eligible-next-hops"
+      }
+    },
+    "rollout": {
+      "maxUnavailable": 1,
+      "controlPlaneSerial": true,
+      "states": [
+        "inventory",
+        "staged",
+        "validated",
+        "applying",
+        "verifying",
+        "committed",
+        "rolling-back",
+        "rolled-back",
+        "failed"
+      ],
+      "adoptionRequires": [
+        "writer-inventory-complete",
+        "scope-conflicts-resolved",
+        "baseline-snapshot",
+        "independent-management-path",
+        "render-diff-reviewed"
+      ],
+      "validationRequires": [
+        "wireguard-config-parse",
+        "frr-config-parse",
+        "allowed-prefixes",
+        "route-loop-check",
+        "public-authority-invariant"
+      ],
+      "healthRequires": [
+        "wireguard-handshake",
+        "bgp-bfd",
+        "bidirectional-podcidr",
+        "dns-each-replica-udp-tcp",
+        "control-plane-vip",
+        "egress-proxy"
+      ],
+      "verificationTimeoutSeconds": 180
+    },
+    "rollback": {
+      "trigger": [
+        "apply-error",
+        "health-timeout",
+        "management-path-lost"
+      ],
+      "executor": "host-local",
+      "requiresClusterApi": false,
+      "restore": [
+        "wireguard-config-and-runtime",
+        "frr-owned-scopes",
+        "route-and-rule-owned-scopes",
+        "advfab-policy"
+      ],
+      "lastKnownGood": "/var/lib/re8ch/host-network/last-known-good",
+      "failedRevisionRetry": "blocked-until-new-revision",
+      "boot": "last-known-good"
+    },
+    "adoptedNodes": []
   }
 }
