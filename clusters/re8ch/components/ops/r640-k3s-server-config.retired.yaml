@@ -1,15 +1,17 @@
-node-name: restricted-node-6dc3f140f9
-node-ip: 192.0.2.179
+# Retired 2026-10-03 after R640 left etcd. Recovery reference only; never
+# restart this server against its stale local etcd database.
+node-name: r640
+node-ip: 10.250.0.128
 node-taint:
   - "node-role.kubernetes.io/control-plane=true:NoSchedule"
-node-external-ip: 192.0.2.138
-cluster-dns: 192.0.2.149
-advertise-address: 192.0.2.179
+node-external-ip: 223.159.210.222
+cluster-dns: 10.43.65.40
+advertise-address: 10.250.0.128
 tls-san:
-  - 192.0.2.116
-  - 192.0.2.179
-  - 192.0.2.178
-  - 192.0.2.169
+  - 10.250.0.1
+  - 10.250.0.128
+  - 10.181.22.128
+  - 192.168.88.251
   - k3s-api.internal.re8ch.com
 flannel-backend: none
 disable-network-policy: true
@@ -19,7 +21,7 @@ node-label:
   - "pigsty.cc/node-class=database"
   - "pigsty.cc/provider=onprem"
   - "pigsty.cc/region=r640-lan"
-  - "pigsty.cc/zt-ip=192.0.2.178"
+  - "pigsty.cc/zt-ip=10.181.22.128"
   - "networking.re8ch.com/geo=cn"
   - "topology.kubernetes.io/region=cn-hunan"
   - "topology.kubernetes.io/zone=hunan"
@@ -43,7 +45,7 @@ kube-apiserver-arg:
 embedded-registry: false
 cluster-init: true
 etcd-arg:
-  - "advertise-client-urls=https://192.0.2.179:2379"
-  - "initial-advertise-peer-urls=https://192.0.2.179:2380"
-  - "listen-client-urls=https://192.0.2.179:2379,https://192.0.2.178:2379,https://127.0.0.1:2379,https://192.0.2.169:2379"
-  - "listen-peer-urls=https://192.0.2.179:2380,https://127.0.0.1:2380"
+  - "advertise-client-urls=https://10.250.0.128:2379"
+  - "initial-advertise-peer-urls=https://10.250.0.128:2380"
+  - "listen-client-urls=https://10.250.0.128:2379,https://10.181.22.128:2379,https://127.0.0.1:2379,https://192.168.88.251:2379"
+  - "listen-peer-urls=https://10.250.0.128:2380,https://127.0.0.1:2380"

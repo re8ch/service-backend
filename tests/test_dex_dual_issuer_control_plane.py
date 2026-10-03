@@ -16,8 +16,10 @@ def test_all_control_planes_share_supabase_authentication():
     assert headlamp_supabase['claimMappings'] == {
         'username': {'claim': 'email', 'prefix': 'oidc:'}
     }
-    for node in ('restricted-node-6dc3f140f9', 'a1-wsl2', 'b1-wsl2'):
-        config = yaml.safe_load((ROOT / f'{node}-k3s-server-config.yaml').read_text())
+    configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]
+    configs.append(ROOT.parents[3] / 'operations/network/manifests/network/private-transit/mubao-k3s-config.yaml')
+    for path in configs:
+        config = yaml.safe_load(path.read_text())
         flags = config['kube-apiserver-arg']
         assert 'authentication-config=/etc/rancher/k3s/dex-dual-issuer-authentication.yaml' in flags
         assert not any(flag.startswith('oidc-') for flag in flags)

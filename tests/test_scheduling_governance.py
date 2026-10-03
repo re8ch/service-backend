@@ -184,9 +184,16 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
 def test_control_plane_reservations_are_declared_without_noexecute():
     configs = {
         name: yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / name).read_text())
-        for name in ("r640-k3s-server-config.yaml", "a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml")
+        for name in ("a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml")
     }
-    assert "max-pods=256" in configs["r640-k3s-server-config.yaml"]["kubelet-arg"]
+    configs["mubao-k3s-config.yaml"] = yaml.safe_load(
+        (ROOT / "operations/network/manifests/network/private-transit/mubao-k3s-config.yaml").read_text()
+    )
+    agent = yaml.safe_load(
+        (ROOT / "operations/network/manifests/network/private-transit/r640-k3s-agent-config.yaml").read_text()
+    )
+    assert "max-pods=256" in agent["kubelet-arg"]
+    assert "node-taint" not in agent
     for config in configs.values():
         assert config["node-taint"] == ["node-role.kubernetes.io/control-plane=true:NoSchedule"]
     for name in ("a1-wsl2-k3s-server-config.yaml", "b1-wsl2-k3s-server-config.yaml"):
@@ -200,6 +207,7 @@ def test_control_plane_reservations_are_declared_without_noexecute():
         assert any(value.startswith("system-reserved=") for value in args)
         assert "enforce-node-allocatable=pods" in args
         assert not any("NoExecute" in value for value in args)
+    assert "max-pods=32" in configs["mubao-k3s-config.yaml"]["kubelet-arg"]
 
 
 def test_advanced_fabric_controller_runs_on_always_on_control_node():

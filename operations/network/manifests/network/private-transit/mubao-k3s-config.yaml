@@ -1,16 +1,18 @@
-server: https://192.0.2.179:6443
+server: https://10.250.0.128:6443
 token-file: /etc/rancher/k3s/server-token
-node-name: restricted-node-abb3f27a69
-node-ip: 192.0.2.223
-advertise-address: 192.0.2.223
+node-name: mubao-wsl
+node-ip: 10.250.0.29
+cluster-dns: 10.43.65.40
+advertise-address: 10.250.0.29
 tls-san:
-  - 192.0.2.116
-  - 192.0.2.223
-  - 192.0.2.39
+  - 10.250.0.1
+  - 10.250.0.29
+  - 10.181.22.29
 flannel-backend: none
 disable-network-policy: true
 disable:
   - servicelb
+  - coredns
 embedded-registry: false
 write-kubeconfig-mode: "0600"
 node-taint:
@@ -20,7 +22,7 @@ node-label:
   - pigsty.cc/region=loudi
   - pigsty.cc/node-class=control-plane
   - pigsty.cc/workload=control-plane
-  - pigsty.cc/zt-ip=192.0.2.39
+  - pigsty.cc/zt-ip=10.181.22.29
   - re8ch.com/cilium-migrate=true
   - re8ch.com/control-route=advfab-relay
   - re8ch.com/external-ip-mode=none
@@ -42,7 +44,7 @@ kube-apiserver-arg:
   - max-requests-inflight=200
   - max-mutating-requests-inflight=100
 etcd-arg:
-  - advertise-client-urls=https://192.0.2.223:2379
-  - initial-advertise-peer-urls=https://192.0.2.223:2380
-  - listen-client-urls=https://192.0.2.223:2379,https://127.0.0.1:2379
-  - listen-peer-urls=https://192.0.2.223:2380,https://127.0.0.1:2380
+  - advertise-client-urls=https://10.250.0.29:2379
+  - initial-advertise-peer-urls=https://10.250.0.29:2380
+  - listen-client-urls=https://10.250.0.29:2379,https://127.0.0.1:2379
+  - listen-peer-urls=https://10.250.0.29:2380,https://127.0.0.1:2380
