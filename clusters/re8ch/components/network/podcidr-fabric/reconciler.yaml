@@ -263,8 +263,8 @@ data:
     reconcile_public_mesh_allowed_ips() {
       iface=wg-public-mesh
       host ip link show "${iface}" >/dev/null 2>&1 || return 0
-      jq -c --arg own "${NODE_NAME}" '.routeServers[], .nodes[] | select(.name != $own)' /config/inventory.json | while read -r remote; do
-        last="$(printf '%s' "${remote}" | jq -r '.internalIp | split(".")[3]')"
+      jq -c --arg own "${NODE_NAME}" '.routeServers[], .nodes[], .relayNodes[]? | select(.name != $own)' /config/inventory.json | while read -r remote; do
+        last="$(printf '%s' "${remote}" | jq -r '.acceleratedIp | split(".")[3]')"
         accelerated="$(printf '%s' "${remote}" | jq -r .acceleratedIp)"
         prefix="$(printf '%s' "${remote}" | jq -r .podCIDR)"
         peer_key="$(host wg show "${iface}" allowed-ips | awk -v accel="${accelerated}/32" -v mesh="172.31.92.${last}/32" '
@@ -498,6 +498,7 @@ data:
       touch /run/podcidr-fabric-ready
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
+        reconcile_public_mesh_allowed_ips
         reconcile_wireguard_allowed_ips
         reconcile_control_api_spoke_symmetry
         reconcile_rr_interconnect_transit_sources || {
@@ -696,6 +697,7 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      reconcile_public_mesh_allowed_ips
       reconcile_r640_b1_podcidr_authority || {
         rm -f /run/podcidr-fabric-ready
         exit 1
@@ -730,7 +732,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: host-network-scoped-handoff-v10
+        networking.re8ch.com/config-revision: public-mesh-source-closure-v11
     spec:
       hostPID: true
       hostNetwork: true

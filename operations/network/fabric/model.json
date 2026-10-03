@@ -1017,7 +1017,9 @@
           }
         ],
         "egressProxy": "http://192.0.2.179:17891",
-        "egressURL": "https://www.gstatic.com/generate_204"
+        "egressURL": "https://www.gstatic.com/generate_204",
+        "sourceIdentity": "192.0.2.48",
+        "repairBaselineDns": true
       }
     }
   }

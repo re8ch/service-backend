@@ -7,15 +7,17 @@ import socket
 import ssl
 import struct
 import time
+import sys
 import urllib.request
 
 
-def dns(ip, tcp):
+def dns(ip, tcp, source):
     ident = 12753
     question = b''.join(bytes([len(p)]) + p.encode() for p in 'kubernetes.default.svc.cluster.local'.split('.')) + b'\0\0\1\0\1'
     request = struct.pack('!HHHHHH', ident, 256, 1, 0, 0, 0) + question
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM if tcp else socket.SOCK_DGRAM) as s:
         s.settimeout(2)
+        s.bind((source, 0))
         s.connect((ip, 53))
         s.sendall(struct.pack('!H', len(request)) + request if tcp else request)
         if tcp:
@@ -49,7 +51,7 @@ def main():
     if len(h['dnsReplicas']) < 4 or not h['tcpTargets']:
         raise RuntimeError('incomplete health target set')
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
-        jobs = [pool.submit(dns, ip, protocol) for ip in h['dnsReplicas'] for protocol in (False, True)]
+        jobs = [] if '--baseline-dns-repair' in sys.argv and h.get('repairBaselineDns') else [pool.submit(dns, ip, protocol, h['sourceIdentity']) for ip in h['dnsReplicas'] for protocol in (False, True)]
         jobs += [pool.submit(tcp, target) for target in h['tcpTargets']]
         for job in jobs:
             job.result()
