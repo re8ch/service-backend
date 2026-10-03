@@ -294,6 +294,11 @@ spec:
         enabled: true
         replicas: 2
         pdbMinAvailable: 1
+        # Recovery-plane replicas must schedule on the two reviewed control
+        # nodes even while ordinary workload admission is closed.
+        tolerations:
+          - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
+          - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
