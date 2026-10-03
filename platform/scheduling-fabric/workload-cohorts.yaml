@@ -31,7 +31,7 @@ spec:
     - {namespace: nuclio, kind: Deployment, name: ledger-decision-analysis, placementClass: function-execution, authority: live-drift}
     - {namespace: nuclio, kind: Deployment, name: nuclio-controller, placementClass: service-core-local, authority: live-drift}
     - {namespace: nuclio, kind: Deployment, name: nuclio-dashboard, placementClass: service-core-local, authority: live-drift}
-    - {namespace: observability-system, kind: DaemonSet, name: re8ch-node-storage-exporter, placementClass: node-serving-agent, authority: gitops}
+    - {namespace: observability-system, kind: DaemonSet, name: re8ch-node-storage-exporter, placementClass: node-bootstrap, authority: gitops}
     - {namespace: observability-system, kind: Deployment, name: victoria-metrics-operator, placementClass: service-core-local, authority: gitops}
     - {namespace: observability-system, kind: StatefulSet, name: vmalertmanager-re8ch-alertmanager, placementClass: service-core-local, authority: gitops-generated}
     - {namespace: ops, kind: Deployment, name: cloudbeaver, placementClass: stateful-ceph, authority: gitops}

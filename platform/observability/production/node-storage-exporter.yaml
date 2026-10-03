@@ -19,13 +19,12 @@ spec:
     matchLabels: {app.kubernetes.io/name: re8ch-node-storage-exporter}
   template:
     metadata:
-      annotations: {scheduling.re8ch.com/placement-class: node-serving-agent}
+      # Capacity telemetry must exist before workload eligibility can be decided.
+      annotations: {scheduling.re8ch.com/placement-class: node-bootstrap}
       labels: {app.kubernetes.io/name: re8ch-node-storage-exporter}
     spec:
-      nodeSelector: {scheduling.re8ch.com/workload-eligible: "true"}
-      tolerations:
-        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+      nodeSelector: {kubernetes.io/os: linux}
+      tolerations: [{operator: Exists}]
       containers:
         - name: node-exporter
           image: quay.io/prometheus/node-exporter:v1.9.1
