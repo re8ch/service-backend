@@ -186,6 +186,8 @@ modules:
       digest: sha256:0cc7d5f10101f4f87ee79679c2aa12ecb6f86e58994a27232242023df2c06094
     - codename: tramontane-pearl
       digest: sha256:ee279dc7d1a871a2d4c3f03653c9cc9c0a47e0b6c42c79e047a03bf3fe6d991b
+    - codename: zephyr-pearl
+      digest: sha256:dab7591a5ffe1d7eefad1d206b235d3616e058f177c20fe401a044638c21eb52
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
