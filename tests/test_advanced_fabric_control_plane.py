@@ -24,7 +24,7 @@ def test_release_consumes_signed_public_advanced_fabrics_chart():
     assert identity["issuer"] == r"^https://token\.actions\.githubusercontent\.com$"
     assert identity["subject"] == (
         r"^https://github\.com/advanced-fabrics/core/\.github/workflows/"
-        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.11$"
+        r"release-chart\.yaml@refs/tags/v1\.0\.0-rc\.12$"
     )
 
 
