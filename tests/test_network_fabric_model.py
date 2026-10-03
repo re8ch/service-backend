@@ -88,3 +88,15 @@ def test_transit_duplicate_pod_ownership_rejected():
     nodes[1]["podCIDR"] = nodes[0]["podCIDR"]
     with pytest.raises(ValueError, match="overlapping transit source ownership"):
         FABRIC.transit_contract(model)
+
+
+def test_relay_return_forwarding_is_exact_and_bidirectional():
+    outputs = FABRIC.validate(FABRIC.load_model())
+    rules = outputs["clusters/re8ch/components/network/podcidr-fabric/inventory.json"]["transitForwarding"]["restricted-node-6dc3f140f9"]
+    assert {"source": "192.0.2.113/24", "destination": "192.0.2.165/24",
+            "inInterface": "wg-pt-mubao", "outInterface": "wg-pt-b1"} in rules
+    for rule in rules:
+        assert {"source": rule["destination"], "destination": rule["source"],
+                "inInterface": rule["outInterface"], "outInterface": rule["inInterface"]} in rules
+        assert rule["source"].startswith("10.42.") and rule["destination"].startswith("10.42.")
+        assert "eth" not in rule["inInterface"] + rule["outInterface"]
