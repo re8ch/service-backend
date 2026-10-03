@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/network/podcidr-fabric
-codename: chinook-jade
+codename: etesian-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
-  digest: sha256:a6763104ce12a02141444b87b94c55160042e9cfb1617442d77c95ac5d7f8b67
+  digest: sha256:e256c908185f77064beeb3a0c51858466ff95230911f80a3443b8594a4347c51
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
