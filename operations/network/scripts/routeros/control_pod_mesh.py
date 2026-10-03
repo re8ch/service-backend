@@ -23,6 +23,12 @@ PODS = {
 }
 ROUTE_SUFFIX = " PodCIDR via WireGuard"
 RULE_SUFFIX = " PodCIDR forward "
+FALLBACK_TABLE = "15425"
+
+
+def fallback_rule_priorities(pod):
+    octet = ipaddress.ip_network(pod).network_address.packed[2]
+    return 11450 + 2 * octet, 11451 + 2 * octet
 
 
 def load_inventory(path):
@@ -144,10 +150,55 @@ def node_action(action, node, links):
     if original:
         run("wg", "set", interface, "peer", own["routerPublicKey"], "allowed-ips", ",".join(allowed))
     for pod in remote_pods:
+        direct_priority, fallback_priority = fallback_rule_priorities(pod)
+        if node == "restricted-node-abb3f27a69" or pod == PODS["restricted-node-abb3f27a69"]:
+            # MUBAO's alternative FRR paths currently reach the PodCIDRs
+            # through restricted-node-6dc3f140f9, but their cross-node forwarding is not healthy.
+            # Keep these four verified RouterOS paths until the underlying
+            # forwarding and return paths pass the remote DNS probes.
+            subprocess.run(("ip", "rule", "del", "pref", str(direct_priority),
+                            "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
+                           check=False, capture_output=True)
+            subprocess.run(("ip", "rule", "del", "pref", str(fallback_priority),
+                            "to", pod, "lookup", FALLBACK_TABLE),
+                           check=False, capture_output=True)
+            subprocess.run(("ip", "route", "del", pod, "table", FALLBACK_TABLE),
+                           check=False, capture_output=True)
+            if action == "stage-node":
+                run("ip", "route", "replace", pod, "via", router_ip, "dev", interface,
+                    "src", own["identity"].split("/")[0], "metric", "10")
+            else:
+                subprocess.run(("ip", "route", "del", pod, "via", router_ip,
+                                "dev", interface), check=False, capture_output=True)
+            continue
         if action == "stage-node":
+            # A metric-10 RouterOS route in main hides the FRR /24 even when
+            # BGP is healthy. Consult main for a specific route first, then
+            # use the RouterOS route only when that route disappears.
             run("ip", "route", "replace", pod, "via", router_ip, "dev", interface,
-                "src", own["identity"].split("/")[0], "metric", "10")
+                "src", own["identity"].split("/")[0], "metric", "250",
+                "table", FALLBACK_TABLE)
+            subprocess.run(("ip", "rule", "del", "pref", str(direct_priority),
+                            "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
+                           check=False, capture_output=True)
+            subprocess.run(("ip", "rule", "del", "pref", str(fallback_priority),
+                            "to", pod, "lookup", FALLBACK_TABLE),
+                           check=False, capture_output=True)
+            run("ip", "rule", "add", "pref", str(direct_priority), "to", pod,
+                "lookup", "main", "suppress_prefixlength", "23")
+            run("ip", "rule", "add", "pref", str(fallback_priority), "to", pod,
+                "lookup", FALLBACK_TABLE)
+            subprocess.run(("ip", "route", "del", pod, "via", router_ip,
+                            "dev", interface), check=False, capture_output=True)
         else:
+            subprocess.run(("ip", "rule", "del", "pref", str(direct_priority),
+                            "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
+                           check=False, capture_output=True)
+            subprocess.run(("ip", "rule", "del", "pref", str(fallback_priority),
+                            "to", pod, "lookup", FALLBACK_TABLE),
+                           check=False, capture_output=True)
+            subprocess.run(("ip", "route", "del", pod, "table", FALLBACK_TABLE),
+                           check=False, capture_output=True)
             subprocess.run(("ip", "route", "del", pod, "via", router_ip, "dev", interface),
                            check=False, capture_output=True)
     return {"node": node, "action": action, "remotePodCIDRs": remote_pods}
