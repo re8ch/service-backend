@@ -130,6 +130,8 @@ modules:
       digest: sha256:16397ad73307fe10bb671e2ff91ad8c752dbe48e5c9f0abe50257707699de1d3
     - codename: sirocco-copper
       digest: sha256:32efdf316fd580ccdbd1786af3f674452f69ea4e590cfe27cd8c73bb36231631
+    - codename: tramontane-copper
+      digest: sha256:d83aded7abc4ecf246dbafee4731871b4e433e7041b5f904325bddc86976c038
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
