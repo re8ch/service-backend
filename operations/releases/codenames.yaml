@@ -176,6 +176,8 @@ modules:
       digest: sha256:6a33fdfcea556aa6ffb61a4e7d0a87512ddbad5359fb4228441a95cfa7098cff
     - codename: bora-pearl
       digest: sha256:4927c7241094fab904d0d2170a318f24dc82941335d0db6502c3573ba2669cbe
+    - codename: chinook-pearl
+      digest: sha256:a0a6c33ac2daf3749618be850b846cd3f1d6ad394cf187cf876d6667b7c50dbe
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
