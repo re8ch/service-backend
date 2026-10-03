@@ -24,6 +24,15 @@ data:
         if [ "${fabric}" = 93 ]; then iface=wg-pt-a1; else iface=wg-pt-b1; fi
         host ip link show "${iface}" >/dev/null 2>&1 || continue
         active=1
+        peer="$(host wg show "${iface}" peers | awk 'NR == 1 {print; exit}')"
+        if [ -n "${peer}" ]; then
+          allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
+          original="${allowed}"
+          for prefix in $(jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json); do
+            case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+          done
+          [ "${allowed}" = "${original}" ] || host wg set "${iface}" peer "${peer}" allowed-ips "${allowed}"
+        fi
         for api_ip in $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
           rule="ip saddr 172.31.${fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
           host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
@@ -48,6 +57,7 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: control-api-source}
+      annotations: {networking.re8ch.com/config-revision: mubao-allowed-ips-v2}
     spec:
       hostPID: true
       hostNetwork: true

@@ -113,6 +113,20 @@ data:
       done
     }
 
+    reconcile_control_api_spoke_symmetry() {
+      [ -n "${route_server}" ] || return 0
+      if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then cp_iface=wg-cp-a1; else cp_iface=wg-cp-b1; fi
+      host ip link show "${cp_iface}" >/dev/null 2>&1 || return 0
+      for relay_ip in $(jq -r '.relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+        for spoke_ip in $(jq -r '.nodes[] | select(.peerMode == "transport" and .name != "restricted-node-6dc3f140f9") | .acceleratedIp' /config/inventory.json); do
+          host ip rule show | grep -Fq "from ${spoke_ip} to ${relay_ip} ipproto tcp dport 6443 lookup 15300" ||
+            host ip rule add pref 11519 from "${spoke_ip}/32" to "${relay_ip}/32" ipproto tcp dport 6443 lookup 15300
+          host ip rule show | grep -Fq "to ${spoke_ip} iif ${cp_iface} lookup main" ||
+            host ip rule add pref 11522 iif "${cp_iface}" to "${spoke_ip}/32" lookup main
+        done
+      done
+    }
+
     reconcile_wireguard_allowed_ips() {
       if [ -n "${route_server}" ]; then
         if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
@@ -355,6 +369,7 @@ data:
       host vtysh <"${commands}"
       rm -f "${commands}"
       reconcile_wireguard_allowed_ips
+      reconcile_control_api_spoke_symmetry
       reconcile_public_mesh_allowed_ips
       reconcile_control_plane_identity_routes
       cleanup_cilium_direct_routes
@@ -363,6 +378,7 @@ data:
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
         reconcile_wireguard_allowed_ips
+        reconcile_control_api_spoke_symmetry
         host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || exit 1
       done
       exit 0
@@ -567,7 +583,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: mubao-control-api-source-v3
+        networking.re8ch.com/config-revision: mubao-routeros-spoke-v4
     spec:
       hostPID: true
       hostNetwork: true
