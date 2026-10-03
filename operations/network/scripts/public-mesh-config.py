@@ -23,13 +23,18 @@ def validate(inv):
     for node in inv["nodes"]:
         for field in seen:
             value = str(node[field])
+            if field == "publicIp" and node[field] is None:
+                continue
             if value in seen[field]:
                 errors.append(f"duplicate {field}: {value}")
             seen[field].add(value)
         if ipaddress.ip_address(node["transportIp"]) not in network:
             errors.append(f'{node["name"]}: transportIp is outside transportPrefix')
-        if node["asn"] != 4200000000 + int(node["id"]):
+        expected_asn = 4200010000 + int(node["id"]) if node.get("publicMode") == "dial-only" else 4200000000 + int(node["id"])
+        if node["asn"] != expected_asn:
             errors.append(f'{node["name"]}: ASN does not match 4200000000 + id')
+        if node.get("publicMode") == "dial-only" and node["publicIp"] is not None:
+            errors.append(f'{node["name"]}: dial-only peer must not have publicIp')
         if node["ztIp"] != f'10.181.22.{node["id"]}':
             errors.append(f'{node["name"]}: ztIp does not match id')
         if node["transportIp"] != f'172.31.92.{node["id"]}':
@@ -109,7 +114,7 @@ def render_wireguard(inv, node, peers, stage):
         "[Interface]",
         f'Address = {node["transportIp"]}/32',
         f'ListenPort = {inv["listenPort"]}',
-        f'MTU = {inv["mtu"]}',
+        f'MTU = {node.get("mtu", inv["mtu"])}',
         "Table = off",
         "PostUp = wg set %i private-key /etc/wireguard/wg-public-mesh.key",
     ]
@@ -129,7 +134,7 @@ def render_wireguard(inv, node, peers, stage):
             f'# {peer["name"]}',
             f'PublicKey = {keys[peer["id"]]}',
             f'AllowedIPs = {", ".join(allowed)}',
-            f'Endpoint = {peer["publicIp"]}:{inv["listenPort"]}',
+            *([f'Endpoint = {peer["publicIp"]}:{inv["listenPort"]}'] if peer["publicIp"] else []),
             "PersistentKeepalive = 15",
         ]
     return "\n".join(lines) + "\n"

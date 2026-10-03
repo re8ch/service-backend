@@ -103,3 +103,21 @@ def test_expansion_rejects_unpaired_mesh_peer():
     PUBLIC_MESH.select(data, "overseas-la-2")["meshPeers"].remove("overseas-flk")
     with pytest.raises(ValueError, match="non-reciprocal mesh peer"):
         PUBLIC_MESH.validate(data)
+
+
+def test_mubao_dials_two_public_spines_without_advertising_zerotier():
+    data = inventory()
+    PUBLIC_MESH.validate(data)
+    keys = {node["id"]: f'key-{node["id"]}' for node in data["nodes"]}
+    mubao = PUBLIC_MESH.select(data, "restricted-node-abb3f27a69")
+    flk = PUBLIC_MESH.select(data, "overseas-flk")
+    mubao_wg = PUBLIC_MESH.render_wireguard(data, mubao, keys, stage=9)
+    flk_wg = PUBLIC_MESH.render_wireguard(data, flk, keys, stage=9)
+    mubao_frr = PUBLIC_MESH.render_frr(data, mubao, stage=9)
+    assert "MTU = 1120" in mubao_wg
+    assert "Endpoint = 192.0.2.101:51888" in mubao_wg
+    assert "Endpoint = 192.0.2.38:51888" in mubao_wg
+    assert "Endpoint = None" not in flk_wg
+    assert "AllowedIPs = 192.0.2.79/32, 192.0.2.114/32" in flk_wg
+    assert "network 192.0.2.114/32" in mubao_frr
+    assert "network 192.0.2.61/32" not in mubao_frr
