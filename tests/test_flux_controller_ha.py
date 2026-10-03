@@ -36,6 +36,10 @@ def test_flux_controllers_span_two_control_planes_and_use_local_dns():
         assert expression["key"] == "kubernetes.io/hostname"
         assert set(expression["values"]) == CONTROL_PLANES
         assert pod["dnsPolicy"] == "ClusterFirst"
+        env = {item["name"]: item for item in pod["containers"][0]["env"]}
+        assert env["KUBERNETES_SERVICE_HOST"]["valueFrom"]["fieldRef"]["fieldPath"] == "status.hostIP"
+        assert env["KUBERNETES_SERVICE_PORT"]["value"] == "6443"
+        assert env["KUBERNETES_SERVICE_PORT_HTTPS"]["value"] == "6443"
         assert "dnsConfig" not in pod
         assert {
             "key": "node-role.kubernetes.io/control-plane",
