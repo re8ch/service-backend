@@ -100,3 +100,17 @@ def test_relay_return_forwarding_is_exact_and_bidirectional():
                 "inInterface": rule["outInterface"], "outInterface": rule["inInterface"]} in rules
         assert rule["source"].startswith("10.42.") and rule["destination"].startswith("10.42.")
         assert "eth" not in rule["inInterface"] + rule["outInterface"]
+
+
+def test_host_sources_derive_only_declared_identity_and_remote_pod_destinations():
+    model = FABRIC.load_model()
+    output = FABRIC.validate(model)["clusters/re8ch/components/network/podcidr-fabric/inventory.json"]
+    policies = output["hostSourceIdentity"]
+    assert set(policies) == {"overseas-flk", "overseas-la-2"}
+    assert policies["overseas-flk"]["source"] == "192.0.2.48"
+    assert "192.0.2.113/24" in policies["overseas-flk"]["destinations"]
+    assert "192.0.2.165/24" not in policies["overseas-flk"]["destinations"]
+    assert all(p.startswith("10.42.") for p in policies["overseas-flk"]["destinations"])
+    model["routeIntent"]["hostSourceIdentity"]["source"] = "publicIp"
+    with pytest.raises(ValueError, match="source identity policy"):
+        FABRIC.validate(model)
