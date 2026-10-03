@@ -1,10 +1,16 @@
 {
-  "node": "restricted-node-abb3f27a69",
+  "node": "mubao-wsl",
   "scope": "control-transit-peer",
   "peerKeys": [
     "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
   ],
   "prefixLists": [],
   "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao",
-  "writerAudit": "control-pod-owner-handoff-v1"
+  "writerAudit": "control-pod-owner-handoff-v1",
+  "additionalPeerKeys": {
+    "wg-public-mesh": [
+      "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
+      "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
+    ]
+  }
 }

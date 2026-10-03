@@ -296,6 +296,22 @@ def outputs(model):
         result[base + "control-adoption.json"] = {"node": own["node"], "scope": "control-transit-peer",
             "peerKeys": [own["routerPublicKey"]], "prefixLists": [],
             "managementPath": controller["managementPath"], "writerAudit": "control-pod-owner-handoff-v1"}
+        if controller.get("publicReceivePeers"):
+            mesh = model["sections"]["publicMesh"]
+            own_mesh = next(n for n in mesh["nodes"] if n["name"] == own["node"])
+            pod_nodes = model["sections"]["podcidrFabric"]
+            pods = {n["name"]: n["podCIDR"] for group in ("routeServers", "nodes", "relayNodes") for n in pod_nodes.get(group, [])}
+            if set(controller["publicReceivePeers"]) != set(own_mesh["meshPeers"]):
+                raise ValueError("public receive adoption must match declared adjacency")
+            extra_peers = []
+            for name, key in controller["publicReceivePeers"].items():
+                peer = next(n for n in mesh["nodes"] if n["name"] == name)
+                extra_peers.append({"publicKey": key,
+                    "allowedIPs": [peer["transportIp"] + "/32", peer["acceleratedIp"] + "/32", pods[name]],
+                    "endpoint": f'{peer["publicIp"]}:{mesh["listenPort"]}', "keepalive": 15})
+            result[base + "control-package.json"]["additionalWireguard"] = [{
+                "interface": mesh["interface"], "mtu": own_mesh.get("mtu", mesh["mtu"]), "peers": extra_peers}]
+            result[base + "control-adoption.json"]["additionalPeerKeys"] = {mesh["interface"]: [p["publicKey"] for p in extra_peers]}
     fabric = model["sections"]["podcidrFabric"]
     controls = model["sections"]["routerosControlMesh"]
     source_nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])

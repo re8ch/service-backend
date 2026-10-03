@@ -1050,7 +1050,11 @@
       {
         "node": "restricted-node-abb3f27a69",
         "scope": "control-transit-peer",
-        "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao"
+        "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao",
+        "publicReceivePeers": {
+          "overseas-flk": "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
+          "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
+        }
       }
     ]
   }
