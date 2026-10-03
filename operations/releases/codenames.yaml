@@ -192,6 +192,8 @@ modules:
       digest: sha256:cdfbe52435faa521477cbea5f067e56ad2fae1802661d91d3632491928c56f8f
     - codename: chinook-silver
       digest: sha256:c85d5d538fa472eaeaf727fe272c7206443592a9311b9c204696855f7351c40e
+    - codename: etesian-silver
+      digest: sha256:ddfa595d5fa79b32f9825fcb735d7953c33769526998293d06e6b6fbfd89345d
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis

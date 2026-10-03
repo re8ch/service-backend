@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: chinook-silver
+    delivery.re8ch.com/codename: etesian-silver
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:c85d5d538fa472eaeaf727fe272c7206443592a9311b9c204696855f7351c40e
+    digest: sha256:ddfa595d5fa79b32f9825fcb735d7953c33769526998293d06e6b6fbfd89345d
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: chinook-silver
+    delivery.re8ch.com/codename: etesian-silver
 spec:
   interval: 1m
   retryInterval: 1m
