@@ -56,12 +56,17 @@ data:
       } > /run/re8ch-pod-source.vty
       policy_hash="$(sha256sum /run/re8ch-pod-source.vty)"
       [ "${binding}" = RE8CH-POD-SOURCE ] && [ "${source_policy_hash:-}" = "${policy_hash}" ] && return 0
+      # A rejected revision remains latched across container restarts. A changed
+      # declaration/script produces a new token and is eligible for a new trial.
+      trial_hash="$(printf '%s%s' "${loaded_revision}" "${policy_hash}" | sha256sum | awk '{print $1}')"
+      failed_file=/host/var/lib/re8ch/pod-source-rejected
+      [ "$(cat "${failed_file}" 2>/dev/null || true)" = "${trial_hash}" ] && return 0
       host vtysh < /run/re8ch-pod-source.vty
       # Validate the actual FIB source before persisting. On failure unbind only
       # this owned filter; learned routes remain under FRR and no host route is added.
       verified=false
       tries=0
-      while [ "${tries}" -lt 10 ]; do
+      while [ "${tries}" -lt 60 ]; do
         tries=$((tries + 1))
         sleep 1
         if host ip -j route show proto bgp | jq -e --arg src "${source_ip}" --argjson p "${source_policy}" '[.[] | select(.dst as $d | $p.destinations | index($d))] as $routes | ($routes | length > 0) and all($routes[]; .prefsrc == $src)' >/dev/null; then
@@ -70,10 +75,13 @@ data:
       done
       if [ "${verified}" != true ]; then
         host vtysh -c 'configure terminal' -c 'no ip protocol bgp route-map RE8CH-POD-SOURCE' -c 'end' -c 'write memory'
-        echo "${NODE_NAME}: source policy FIB verification failed; binding rolled back" >&2
-        return 1
+        mkdir -p /host/var/lib/re8ch
+        printf '%s\n' "${trial_hash}" > "${failed_file}"
+        echo "${NODE_NAME}: source policy FIB verification failed; binding rolled back and revision rejected" >&2
+        return 0
       fi
       host vtysh -c 'write memory'
+      rm -f "${failed_file}"
       source_policy_hash="${policy_hash}"
     }
 
