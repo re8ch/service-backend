@@ -891,7 +891,11 @@
     ],
     "ecmpMode": "per-flow",
     "controlPodFallbackTable": 15425,
-    "controlPodRuleBase": 11450
+    "controlPodRuleBase": 11450,
+    "routerosTransitIngress": [
+      "restricted-node-1eb0570f74",
+      "restricted-node-296f36f2fb"
+    ]
   },
   "hostNetwork": {
     "apiVersion": "networking.re8ch.com/v1alpha1",

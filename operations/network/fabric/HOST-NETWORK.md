@@ -113,3 +113,24 @@ The canary retains full pre-change and post-change health gates. The legacy
 assembler repairs unadopted source-prefix coverage before ownership transfer;
 no DNS baseline exception is needed. DNS probes bind the declared accelerated
 identity, rather than an arbitrary transport source chosen by the kernel.
+
+### RouterOS transit source authority
+
+`routeIntent.routerosTransitIngress` declares A1/B1 as forwarding ingresses.
+The compiler derives the exact other-node accelerated /32 and PodCIDR /24
+sources from PodCIDR ownership. `routeros-transit-controller` runs on a control
+plane (never requires restricted-node-6dc3f140f9 placement), uses the existing mounted RouterOS
+credential, and maintains only:
+
+- transit additions on the reviewed A1/B1 RouterOS WG peers;
+- its own source address-list;
+- four interface-pair/source-list/destination-PodCIDR firewall accepts.
+
+It verifies the interface's sole peer public key and preserved control baseline
+before mutation. It never changes routes, NAT, BGP, public IPs or listener state.
+The existing control-pod stage owns the local control sources; this controller
+owns only the additional declared transit sources. Spec shrink removes those
+owned sources while retaining control identities and PodCIDRs. It publishes
+readiness only after reconciliation succeeds. Host transactional rollback and
+this additive RouterOS ACL reconciler have distinct scopes; RouterOS is not
+claimed to use the host agent's offline rollback transaction.

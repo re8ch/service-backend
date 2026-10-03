@@ -199,6 +199,19 @@ def outputs(model):
         result[base + "adoption.json"] = {"node": controller["node"], "scope": controller["scope"],
             "peerKeys": [p["publicKey"] for p in peers], "prefixLists": list(lists),
             "managementPath": "public-ssh-independent-of-mesh", "writerAudit": "2026-10-04-flk-public-peers"}
+    fabric = model["sections"]["podcidrFabric"]
+    controls = model["sections"]["routerosControlMesh"]
+    source_nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])
+    ingress = model["routeIntent"].get("routerosTransitIngress", [])
+    if set(ingress) != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}:
+        raise ValueError("RouterOS transit ingress must be the two route servers")
+    identities = {link["identity"] for link in controls["links"]}
+    sources = sorted({prefix for node in source_nodes if node["acceleratedIp"] + "/32" not in identities
+                      for prefix in (node["acceleratedIp"] + "/32", node["podCIDR"])})
+    result["clusters/re8ch/components/network/host-network-controller/routeros-transit.json"] = {
+        "managementIp": controls["managementIp"], "publicEndpoint": controls["publicEndpoint"],
+        "commentPrefix": "RE8CH FABRIC TRANSIT", "addressList": "re8ch-fabric-transit-sources",
+        "sources": sources, "ingressNodes": ingress, "links": controls["links"]}
     return result
 
 

@@ -84,6 +84,7 @@ domains:
       - tests/test_private_transit_config.py
       - tests/test_public_mesh_config.py
       - tests/test_host_network_agent.py
+      - tests/test_routeros_transit_controller.py
       - tests/test_network_fabric_model.py
       - tests/test_public_mesh_identity_routes.py
       - tests/test_r640_public_authority.py
