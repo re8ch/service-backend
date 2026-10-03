@@ -136,6 +136,8 @@ modules:
       digest: sha256:681a0241acbf13248b25ff805ff3fa670ea85b855f49ca54087f158ff7a31d7c
     - codename: bora-indigo
       digest: sha256:27b78cfab74891334a00cc7fc6bace3929aa685093812d9509ca5d6b4b7a1c1f
+    - codename: chinook-indigo
+      digest: sha256:aae993d2b9e4f0be4286a63b6dcabb58d2124df0f6f67d918c9755db899c5938
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
