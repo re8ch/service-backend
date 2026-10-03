@@ -954,6 +954,8 @@ modules:
       digest: sha256:4869bba86f629d0d43e84c56f3e5a00c060e1f579d1d706ddd15a356e0334dde
     - codename: sirocco-coral
       digest: sha256:05ac0046ea6ab91af01e04f4c0d8cc683d689c35cbde0e3a48f5093df32bb040
+    - codename: tramontane-coral
+      digest: sha256:cc4300703f2a18ec65f7c524d4954fe9c0492f87cb980343b8135334dbbd32e4
   platform/adapter:
     releases:
     - codename: anchor
