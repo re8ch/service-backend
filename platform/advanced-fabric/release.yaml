@@ -8,12 +8,12 @@ spec:
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:9044b27f3f4d23b936091f52d203cde4336800da639a81d4397eccd0cbb90736
+    digest: sha256:9ccfa80203946025eef4a71e1b5cd54ffcf43b2430acc4f62968d4b7d0b37d9a
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.9$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.10$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -290,6 +290,10 @@ spec:
         # recovery domains for the NetworkPathAssessment freshness clock.
         replicas: 2
         pdbMinAvailable: 1
+        # Both eligible nodes run kube-apiserver. Reach the local instance
+        # directly so Lease renewal survives a cluster Service datapath fault.
+        useNodeLocalAPI: true
+        nodeLocalAPIPort: 6443
         tolerations:
           - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
