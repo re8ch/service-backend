@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: mistral-jade
+codename: sirocco-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:a37fe18c132e5d0d12e450799d31cdb451ece86431d22024db0a6ecf65d209c4
+  digest: sha256:2fb4faef0c1c8f13d6831823f0c9523f63611f285a962520c746be1efb87d05b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
