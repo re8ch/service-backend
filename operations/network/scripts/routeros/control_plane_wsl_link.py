@@ -39,6 +39,9 @@ def main():
     local_identity = link["identity"].split("/")[0]
     route_table = "15300" if args.node == "restricted-node-296f36f2fb" else "main"
     fallback_identities = link["fallbackIdentities"]
+    egress_routes = link.get("egressRoutes", [])
+    if egress_routes and (args.node != "restricted-node-abb3f27a69" or egress_routes != ["192.0.2.59/32"]):
+        raise ValueError("unreviewed control-plane egress route")
     if args.action in ("stage", "start"):
         if not key_file.is_file():
             raise RuntimeError(f"missing existing private key: {key_file}")
@@ -100,7 +103,22 @@ def main():
             f"PostDown = ip route del {management_ip}/32 dev %i || true\n",
             f"PostDown = ip route del {management_ip}/32 dev %i || true\n" + fallback_down,
         )
-        accepted = (old_content, middle_content, previous_content, management_content, content)
+        before_egress_content = content
+        egress_up = "".join(
+            f"PostUp = ip route replace {destination} via {router_ip} dev %i src {local_identity} table main\n"
+            for destination in egress_routes)
+        egress_down = "".join(
+            f"PostDown = ip route del {destination} via {router_ip} dev %i table main || true\n"
+            for destination in egress_routes)
+        content = content.replace(
+            f"PostUp = ip route replace {management_ip}/32 dev %i\n",
+            f"PostUp = ip route replace {management_ip}/32 dev %i\n" + egress_up,
+        ).replace(
+            f"PostDown = ip route del {management_ip}/32 dev %i || true\n",
+            f"PostDown = ip route del {management_ip}/32 dev %i || true\n" + egress_down,
+        )
+        accepted = (old_content, middle_content, previous_content, management_content,
+                    before_egress_content, content)
         if desired["mtu"] == 1200:
             accepted += tuple(value.replace("MTU = 1200", "MTU = 1280") for value in accepted)
         if conf.exists() and conf.read_text(encoding="ascii") not in accepted:
@@ -122,6 +140,9 @@ def main():
             for identity in fallback_identities:
                 run("ip", "route", "replace", identity, "via", router_ip,
                     "dev", interface, "src", local_identity, "table", route_table)
+            for destination in egress_routes:
+                run("ip", "route", "replace", destination, "via", router_ip,
+                    "dev", interface, "src", local_identity, "table", "main")
     elif args.action == "stop":
         run("systemctl", "disable", "--now", f"wg-quick@{interface}.service")
     if args.action in ("start", "inspect"):
