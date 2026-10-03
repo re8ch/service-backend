@@ -95,6 +95,7 @@ func (s *server) handler() http.Handler {
 	},
 		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /.well-known/openai-apps-challenge", openAIChallenge)
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"status": "ok", "profile": "tenant"})
 	})
