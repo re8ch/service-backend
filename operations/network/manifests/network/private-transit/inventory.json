@@ -14,6 +14,9 @@
     {"id": 38, "name": "amdwsl-zt", "ztIp": "192.0.2.249", "asn": 4200010038},
     {"id": 217, "name": "qianwen-test-nuclio-2", "ztIp": "192.0.2.91", "asn": 4200010217}
   ],
+  "controlPlaneRelays": [
+    {"name": "restricted-node-abb3f27a69", "acceleratedIp": "192.0.2.114", "podCIDR": "192.0.2.214/24"}
+  ],
   "publicNodes": [
     {"id": 16, "name": "rancher-panel", "ztIp": "192.0.2.79", "publicIp": "192.0.2.67", "asn": 4200000016, "region": "guangzhou"},
     {"id": 50, "name": "overseas-edge-50", "ztIp": "192.0.2.122", "publicIp": "192.0.2.3", "asn": 4200000050, "region": "overseas"},
