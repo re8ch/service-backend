@@ -210,15 +210,24 @@ def test_control_plane_reservations_are_declared_without_noexecute():
     assert "max-pods=32" in configs["mubao-k3s-config.yaml"]["kubelet-arg"]
 
 
-def test_advanced_fabric_controller_runs_on_always_on_control_node():
+def test_advanced_fabric_controller_spans_two_control_nodes():
     release = list(
         yaml.safe_load_all(
             (ROOT / "platform/advanced-fabric/release.yaml").read_text()
         )
     )
     helm_release = next(item for item in release if item and item.get("kind") == "HelmRelease")
-    selector = helm_release["spec"]["values"]["advancedFabric"]["controller"]["nodeSelector"]
-    assert selector == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    controller = helm_release["spec"]["values"]["advancedFabric"]["controller"]
+    assert controller["replicas"] == 2
+    assert controller["pdbMinAvailable"] == 1
+    expression = controller["affinity"]["nodeAffinity"][
+        "requiredDuringSchedulingIgnoredDuringExecution"
+    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+    assert expression == {
+        "key": "kubernetes.io/hostname",
+        "operator": "In",
+        "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"],
+    }
 
 
 def test_prefer_taint_stage_is_not_blocked_by_existing_pending_pods():
