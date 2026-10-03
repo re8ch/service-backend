@@ -132,6 +132,8 @@ modules:
       digest: sha256:32efdf316fd580ccdbd1786af3f674452f69ea4e590cfe27cd8c73bb36231631
     - codename: tramontane-copper
       digest: sha256:d83aded7abc4ecf246dbafee4731871b4e433e7041b5f904325bddc86976c038
+    - codename: zephyr-copper
+      digest: sha256:681a0241acbf13248b25ff805ff3fa670ea85b855f49ca54087f158ff7a31d7c
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
