@@ -76,7 +76,14 @@ def project(section, overlay):
 def outputs(model):
     result = {}
     for section_name, paths in OUTPUTS.items():
-        section = model["sections"][section_name]
+        section = copy.deepcopy(model["sections"][section_name])
+        if section_name == "routerosControlMesh":
+            intent = model["routeIntent"]
+            section["podRoutePolicy"] = {
+                "directPairs": intent["controlPodDirectPairs"],
+                "fallbackTable": intent["controlPodFallbackTable"],
+                "ruleBase": intent["controlPodRuleBase"],
+            }
         result[paths[0]] = section
         if len(paths) == 2:
             result[paths[1]] = project(
@@ -144,6 +151,8 @@ def validate(model):
         raise ValueError("public mesh must keep per-flow ECMP")
     if model["routeIntent"]["mubaoPodFallback"] != "RouterOS":
         raise ValueError("unverified MUBAO PodCIDR alternative")
+    if model["routeIntent"]["controlPodFallbackTable"] != 15425 or model["routeIntent"]["controlPodRuleBase"] != 11450:
+        raise ValueError("unreviewed control PodCIDR policy table or priority")
     pairs = {tuple(pair) for pair in model["routeIntent"]["controlPodDirectPairs"]}
     if pairs != {("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"), ("restricted-node-296f36f2fb", "restricted-node-1eb0570f74")}:
         raise ValueError("unverified control PodCIDR direct pair")

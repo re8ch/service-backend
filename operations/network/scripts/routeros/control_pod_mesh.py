@@ -23,12 +23,9 @@ PODS = {
 }
 ROUTE_SUFFIX = " PodCIDR via WireGuard"
 RULE_SUFFIX = " PodCIDR forward "
-FALLBACK_TABLE = "15425"
-
-
-def fallback_rule_priorities(pod):
+def fallback_rule_priorities(pod, base):
     octet = ipaddress.ip_network(pod).network_address.packed[2]
-    return 11450 + 2 * octet, 11451 + 2 * octet
+    return base + 2 * octet, base + 1 + 2 * octet
 
 
 def load_inventory(path):
@@ -43,6 +40,12 @@ def load_inventory(path):
             raise ValueError(f"unexpected PodCIDR for {name}")
         if ipaddress.ip_network(link["peerAddress"]).prefixlen != 32:
             raise ValueError("peer tunnel address must be /32")
+    policy = data["podRoutePolicy"]
+    if not 10000 <= int(policy["ruleBase"]) <= 20000 or not 10000 <= int(policy["fallbackTable"]) <= 20000:
+        raise ValueError("unreviewed PodCIDR policy rule/table")
+    pairs = [tuple(pair) for pair in policy["directPairs"]]
+    if len(pairs) != len(set(pairs)) or any(a == b or a not in links or b not in links for a, b in pairs):
+        raise ValueError("invalid PodCIDR directPairs")
     return data, links
 
 
@@ -129,7 +132,7 @@ def router_rollback(router, data, links):
     return {"rolledBack": True}
 
 
-def node_action(action, node, links):
+def node_action(action, node, links, policy):
     own = links[node]
     interface = own["interface"]
     router_ip = str(ipaddress.ip_interface(own["routerAddress"]).ip)
@@ -142,16 +145,19 @@ def node_action(action, node, links):
     if original and (len(original) < 2 or original[0] != own["routerPublicKey"]):
         raise RuntimeError("unexpected local WireGuard peer")
     base_allowed = original[1:]
-    remote_pods = [link["podCIDR"] for name, link in links.items() if name != node]
+    remote = [(name, link["podCIDR"]) for name, link in links.items() if name != node]
+    remote_pods = [pod for _, pod in remote]
+    direct_pairs = {tuple(pair) for pair in policy["directPairs"]}
+    fallback_table = str(policy["fallbackTable"])
     if action == "stage-node":
         allowed = list(dict.fromkeys(base_allowed + remote_pods))
     else:
         allowed = [item for item in base_allowed if item not in remote_pods]
     if original:
         run("wg", "set", interface, "peer", own["routerPublicKey"], "allowed-ips", ",".join(allowed))
-    for pod in remote_pods:
-        direct_priority, fallback_priority = fallback_rule_priorities(pod)
-        if node == "restricted-node-abb3f27a69" or pod == PODS["restricted-node-abb3f27a69"]:
+    for peer_name, pod in remote:
+        direct_priority, fallback_priority = fallback_rule_priorities(pod, int(policy["ruleBase"]))
+        if (node, peer_name) not in direct_pairs:
             # MUBAO's alternative FRR paths currently reach the PodCIDRs
             # through restricted-node-6dc3f140f9, but their cross-node forwarding is not healthy.
             # Keep these four verified RouterOS paths until the underlying
@@ -160,9 +166,9 @@ def node_action(action, node, links):
                             "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
                            check=False, capture_output=True)
             subprocess.run(("ip", "rule", "del", "pref", str(fallback_priority),
-                            "to", pod, "lookup", FALLBACK_TABLE),
+                            "to", pod, "lookup", fallback_table),
                            check=False, capture_output=True)
-            subprocess.run(("ip", "route", "del", pod, "table", FALLBACK_TABLE),
+            subprocess.run(("ip", "route", "del", pod, "table", fallback_table),
                            check=False, capture_output=True)
             if action == "stage-node":
                 run("ip", "route", "replace", pod, "via", router_ip, "dev", interface,
@@ -177,17 +183,17 @@ def node_action(action, node, links):
             # use the RouterOS route only when that route disappears.
             run("ip", "route", "replace", pod, "via", router_ip, "dev", interface,
                 "src", own["identity"].split("/")[0], "metric", "250",
-                "table", FALLBACK_TABLE)
+                "table", fallback_table)
             subprocess.run(("ip", "rule", "del", "pref", str(direct_priority),
                             "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
                            check=False, capture_output=True)
             subprocess.run(("ip", "rule", "del", "pref", str(fallback_priority),
-                            "to", pod, "lookup", FALLBACK_TABLE),
+                            "to", pod, "lookup", fallback_table),
                            check=False, capture_output=True)
             run("ip", "rule", "add", "pref", str(direct_priority), "to", pod,
                 "lookup", "main", "suppress_prefixlength", "23")
             run("ip", "rule", "add", "pref", str(fallback_priority), "to", pod,
-                "lookup", FALLBACK_TABLE)
+                "lookup", fallback_table)
             subprocess.run(("ip", "route", "del", pod, "via", router_ip,
                             "dev", interface), check=False, capture_output=True)
         else:
@@ -195,9 +201,9 @@ def node_action(action, node, links):
                             "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
                            check=False, capture_output=True)
             subprocess.run(("ip", "rule", "del", "pref", str(fallback_priority),
-                            "to", pod, "lookup", FALLBACK_TABLE),
+                            "to", pod, "lookup", fallback_table),
                            check=False, capture_output=True)
-            subprocess.run(("ip", "route", "del", pod, "table", FALLBACK_TABLE),
+            subprocess.run(("ip", "route", "del", pod, "table", fallback_table),
                            check=False, capture_output=True)
             subprocess.run(("ip", "route", "del", pod, "via", router_ip, "dev", interface),
                            check=False, capture_output=True)
@@ -270,7 +276,7 @@ def main():
         if not args.node or args.node not in links:
             parser.error("--node must belong to --nodes for node actions")
         result = (install_node(args.node, links, args.inventory) if args.action == "install-node"
-                  else node_action(args.action, args.node, links))
+                  else node_action(args.action, args.node, links, data["podRoutePolicy"]))
     else:
         if args.node:
             parser.error("--node is only valid for node actions")

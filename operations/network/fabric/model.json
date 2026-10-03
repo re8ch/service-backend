@@ -889,6 +889,8 @@
       "overseas-flk",
       "overseas-la-2"
     ],
-    "ecmpMode": "per-flow"
+    "ecmpMode": "per-flow",
+    "controlPodFallbackTable": 15425,
+    "controlPodRuleBase": 11450
   }
 }

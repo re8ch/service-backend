@@ -17,6 +17,11 @@ records current operations/runtime differences explicitly; remove a projection
 only when its runtime rollout is verified. Do not put WireGuard private keys,
 RouterOS credentials, or decrypted Kubernetes Secrets in the model.
 
+`routeIntent.controlPodDirectPairs`, `controlPodFallbackTable`, and
+`controlPodRuleBase` compile into the RouterOS control-mesh inventory consumed
+by the host's `re8ch-control-pod-mesh` service. The service no longer chooses
+A1/B1 versus MUBAO PodCIDR paths from its own hardcoded node list.
+
 The model currently records these verified route responsibilities:
 
 - restricted-node-6dc3f140f9 uses B1's FRR PodCIDR route, with A1 as a tested backup. Its historical

@@ -49,5 +49,10 @@
       "peerPublicKey": "mMWc4x4hIEtaG828eTBVhnNr/2EJfgs1PsvIxUU8Zjw=",
       "routerPublicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
     }
-  ]
+  ],
+  "podRoutePolicy": {
+    "directPairs": [["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"], ["restricted-node-296f36f2fb", "restricted-node-1eb0570f74"]],
+    "fallbackTable": 15425,
+    "ruleBase": 11450
+  }
 }
