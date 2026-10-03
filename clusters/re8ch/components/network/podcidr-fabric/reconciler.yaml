@@ -105,10 +105,13 @@ data:
       for fabric in 93 94; do
         if [ "${fabric}" = 93 ]; then iface=wg-pt-a1; else iface=wg-pt-b1; fi
         host ip link show "${iface}" >/dev/null 2>&1 || continue
-        for api_ip in $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
-          rule="ip saddr 172.31.${fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
-          host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
-            host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
+        # ECMP can send a socket sourced from either tunnel across this iface.
+        for source_fabric in 93 94; do
+          for api_ip in 192.0.2.220 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+            rule="ip saddr 172.31.${source_fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
+            host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
+              host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${source_fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
+          done
         done
       done
     }
@@ -698,7 +701,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: control-vip-all-nodes-v7
+        networking.re8ch.com/config-revision: control-api-cross-fabric-v8
     spec:
       hostPID: true
       hostNetwork: true
