@@ -49,7 +49,7 @@ spec:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:db500ca5c7504711209cd10188a75f6213390498394d1c93f8c497025bfacde5
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:c05719ba392cded6d18b627e77dd32da2c6dd22600c8a1d79815edc16a23d894
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
         platformSessionURL: https://api.re8ch.com/auth/v2/platform/session
@@ -66,6 +66,24 @@ spec:
       supplyChain:
         required: false
       tenants:
+        # Dedicated sample-only public plugin review identity. No service grants,
+        # namespace creation, bootstrap workload, or shared provider access.
+        - name: personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38
+          displayName: OpenAI Review Demo
+          lifecycle: Active
+          deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: openai-review-demo
+            allowedPrefixes: [openai-review-demo-]
+            maxNamespaces: 1
+            allowCreate: false
+            allowDelete: false
+            bootstrapNamespaces: []
+          imagePullSecretRef: openai-review-no-image-pull
+          harborProjectRef: openai-review-demo
+          identityBindings: []
+          grants: []
+          nativeAccess: false
         - name: admin
           displayName: RE8CH Platform Administration
           lifecycle: Active
