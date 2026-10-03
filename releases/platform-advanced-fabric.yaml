@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: etesian-jade
+codename: mistral-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:5a8fd8199125c4edda64a2b5add7069d22235f5dfcbd38c13d19431ac61556fe
+  digest: sha256:a37fe18c132e5d0d12e450799d31cdb451ece86431d22024db0a6ecf65d209c4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
