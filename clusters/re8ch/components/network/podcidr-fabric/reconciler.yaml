@@ -23,6 +23,60 @@ data:
       nsenter -t 1 -n chroot /host "$@"
     }
 
+    reconcile_host_source_identity() {
+      source_policy="$(jq -c --arg n "${NODE_NAME}" '.hostSourceIdentity[$n] // empty' /config/inventory.json)"
+      binding="$(host vtysh -c 'show running-config' | sed -n 's/^ip protocol bgp route-map //p')"
+      if [ -z "${source_policy}" ]; then
+        if [ "${binding}" = RE8CH-POD-SOURCE ]; then
+          host vtysh -c 'configure terminal' -c 'no ip protocol bgp route-map RE8CH-POD-SOURCE' -c 'end' -c 'write memory'
+        fi
+        return 0
+      fi
+      case "${binding}" in
+        ''|RE8CH-POD-SOURCE) ;;
+        *) echo "${NODE_NAME}: refusing to replace foreign zebra route policy ${binding}" >&2; return 1 ;;
+      esac
+      source_ip="$(printf '%s' "${source_policy}" | jq -r .source)"
+      host ip -j -4 address show | jq -e --arg ip "${source_ip}" '[.[].addr_info[]? | select(.local == $ip)] | length > 0' >/dev/null
+      desired_prefixes="$(printf '%s' "${source_policy}" | jq -r '.destinations[]')"
+      # Zebra preferred source changes locally originated packets only. Forwarded
+      # Pod packets retain their addresses; BGP next hops and ECMP stay intact.
+      {
+        echo 'configure terminal'
+        echo 'no ip prefix-list RE8CH-POD-SOURCE'
+        printf '%s\n' "${desired_prefixes}" | awk '{print "ip prefix-list RE8CH-POD-SOURCE seq " NR*10 " permit " $0}'
+        echo 'route-map RE8CH-POD-SOURCE permit 10'
+        echo 'match ip address prefix-list RE8CH-POD-SOURCE'
+        echo "set src ${source_ip}"
+        echo 'exit'
+        echo 'route-map RE8CH-POD-SOURCE permit 1000'
+        echo 'exit'
+        echo 'ip protocol bgp route-map RE8CH-POD-SOURCE'
+        echo 'end'
+      } > /run/re8ch-pod-source.vty
+      policy_hash="$(sha256sum /run/re8ch-pod-source.vty)"
+      [ "${binding}" = RE8CH-POD-SOURCE ] && [ "${source_policy_hash:-}" = "${policy_hash}" ] && return 0
+      host vtysh < /run/re8ch-pod-source.vty
+      # Validate the actual FIB source before persisting. On failure unbind only
+      # this owned filter; learned routes remain under FRR and no host route is added.
+      verified=false
+      tries=0
+      while [ "${tries}" -lt 10 ]; do
+        tries=$((tries + 1))
+        sleep 1
+        if host ip -j route show proto bgp | jq -e --arg src "${source_ip}" --argjson p "${source_policy}" '[.[] | select(.dst as $d | $p.destinations | index($d))] as $routes | ($routes | length > 0) and all($routes[]; .prefsrc == $src)' >/dev/null; then
+          verified=true; break
+        fi
+      done
+      if [ "${verified}" != true ]; then
+        host vtysh -c 'configure terminal' -c 'no ip protocol bgp route-map RE8CH-POD-SOURCE' -c 'end' -c 'write memory'
+        echo "${NODE_NAME}: source policy FIB verification failed; binding rolled back" >&2
+        return 1
+      fi
+      host vtysh -c 'write memory'
+      source_policy_hash="${policy_hash}"
+    }
+
     # Advertise that this running writer understands per-peer adoption.
     # Delivery waits for this marker before transferring ownership.
     host touch /run/re8ch-public-mesh-handoff-v1
@@ -718,6 +772,7 @@ data:
     }
 
     apply_fabric
+    reconcile_host_source_identity
     reconcile_transit_forwarding
     reconcile_relay_nodes
     reconcile_routeros_boundary
@@ -734,6 +789,7 @@ data:
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
       reload_if_changed
+      reconcile_host_source_identity
       reconcile_transit_forwarding
       reconcile_public_mesh_allowed_ips
       reconcile_r640_b1_podcidr_authority || {
