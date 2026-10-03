@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: tramontane-jade
+    delivery.re8ch.com/codename: zephyr-jade
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:66667ac75c52c129387a14ac96d307ac92b7401d2a56637c650913c1cb5f20e6
+    digest: sha256:6a33fdfcea556aa6ffb61a4e7d0a87512ddbad5359fb4228441a95cfa7098cff
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: tramontane-jade
+    delivery.re8ch.com/codename: zephyr-jade
 spec:
   interval: 1m
   retryInterval: 1m
