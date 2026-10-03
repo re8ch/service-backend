@@ -36,12 +36,29 @@ def main():
         if "route-map ROS-CP-PROBE-IN permit 20" not in running:
             raise RuntimeError("production identity shadow route-map is not staged")
         if args.action == "promote":
+            if ("ip protocol bgp route-map" in running and
+                    "ip protocol bgp route-map ROS-CP-FIB-SRC" not in running):
+                raise RuntimeError("an unrelated BGP FIB route-map is already configured")
             mtu = int(pathlib.Path(f"/sys/class/net/{iface}/mtu").read_text())
             if mtu > 1200:
                 raise RuntimeError("control-mesh MTU exceeds the validated path limit")
             route = run("ip", "route", "get", router_ip)
             if f"dev {iface}" not in route:
                 raise RuntimeError("RouterOS tunnel path is not active")
+            source_commands = ["configure terminal"]
+            for seq, identity in enumerate(others, 10):
+                source_commands.append(f"ip prefix-list ROS-CP-FIB-PEERS seq {seq} permit {identity}")
+            source_commands += [
+                "route-map ROS-CP-FIB-SRC permit 10",
+                "match ip address prefix-list ROS-CP-FIB-PEERS",
+                f"set src {ipaddress.ip_network(own).network_address}",
+                "exit",
+                "route-map ROS-CP-FIB-SRC permit 100",
+                "exit",
+                "ip protocol bgp route-map ROS-CP-FIB-SRC",
+                "end", "write memory",
+            ]
+            vtysh(source_commands)
         preference = 200 if args.action == "promote" else 50
         vtysh(["configure terminal", "route-map ROS-CP-PROBE-IN permit 20",
                f"set local-preference {preference}", "end", "write memory"])
@@ -75,6 +92,10 @@ def main():
             "address-family ipv4 unicast",
             f"neighbor {router_ip} maximum-prefix 2 90 restart 5",
             "exit-address-family", "exit",
+            "no ip protocol bgp route-map ROS-CP-FIB-SRC",
+            "no route-map ROS-CP-FIB-SRC permit 10",
+            "no route-map ROS-CP-FIB-SRC permit 100",
+            "no ip prefix-list ROS-CP-FIB-PEERS",
             "no route-map ROS-CP-PROBE-IN permit 20",
             "no route-map ROS-CP-PROBE-OUT permit 20",
             "no ip prefix-list ROS-CP-SHADOW-SELF",
