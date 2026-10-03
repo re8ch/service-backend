@@ -912,7 +912,7 @@
         "overseas-flk",
         "overseas-la-2"
       ],
-      "destinationClass": "declared-podcidrs",
+      "destinationClass": "admitted-fabric-routes",
       "protocol": "bgp",
       "source": "acceleratedIp"
     }

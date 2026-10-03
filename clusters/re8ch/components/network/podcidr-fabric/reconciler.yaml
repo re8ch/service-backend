@@ -38,7 +38,9 @@ data:
       esac
       source_ip="$(printf '%s' "${source_policy}" | jq -r .source)"
       host ip -j -4 address show | jq -e --arg ip "${source_ip}" '[.[].addr_info[]? | select(.local == $ip)] | length > 0' >/dev/null
-      desired_prefixes="$(printf '%s' "${source_policy}" | jq -r '.destinations[]')"
+      desired_prefixes="$(printf '%s' "${source_policy}" | jq -r '.prefixMatches[]')"
+      # Apply one identity to every admitted fabric BGP route. Pod and identity/
+      # VIP routes can share Zebra nexthop groups; their source intent must agree.
       # Zebra preferred source changes locally originated packets only. Forwarded
       # Pod packets retain their addresses; BGP next hops and ECMP stay intact.
       {
@@ -69,7 +71,7 @@ data:
       while [ "${tries}" -lt 60 ]; do
         tries=$((tries + 1))
         sleep 1
-        if host ip -j route show proto bgp | jq -e --arg src "${source_ip}" --argjson p "${source_policy}" '[.[] | select(.dst as $d | $p.destinations | index($d))] as $routes | ($routes | length > 0) and all($routes[]; .prefsrc == $src)' >/dev/null; then
+        if host ip -j route show proto bgp | jq -e --arg src "${source_ip}" --argjson p "${source_policy}" '[.[] | select(.dst | test("^10\\.(42\\.[0-9]+\\.0/24|250\\.0\\.[0-9]+(/32)?|251\\.0\\.[0-9]+(/32)?)$"))] as $routes | ($routes | length > 0) and all($routes[]; .prefsrc == $src)' >/dev/null; then
           verified=true; break
         fi
       done

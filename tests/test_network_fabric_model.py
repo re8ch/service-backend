@@ -111,6 +111,8 @@ def test_host_sources_derive_only_declared_identity_and_remote_pod_destinations(
     assert "192.0.2.214/24" in policies["overseas-flk"]["destinations"]
     assert "192.0.2.254/24" not in policies["overseas-flk"]["destinations"]
     assert all(p.startswith("10.42.") for p in policies["overseas-flk"]["destinations"])
+    assert policies["overseas-flk"]["prefixMatches"] == [
+        "192.0.2.224/16 ge 24 le 24", "192.0.2.106/24 ge 32 le 32", "192.0.2.215/24 ge 32 le 32"]
     model["routeIntent"]["hostSourceIdentity"]["source"] = "publicIp"
     with pytest.raises(ValueError, match="source identity policy"):
         FABRIC.validate(model)
