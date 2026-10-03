@@ -1,0 +1,95 @@
+{
+  "managementIp": "192.0.2.131",
+  "publicEndpoint": "192.0.2.79",
+  "commentPrefix": "RE8CH FABRIC TRANSIT",
+  "addressList": "re8ch-fabric-transit-sources",
+  "sources": [
+    "192.0.2.29/32",
+    "192.0.2.109/32",
+    "192.0.2.205/32",
+    "192.0.2.63/32",
+    "192.0.2.31/32",
+    "192.0.2.5/32",
+    "192.0.2.59/32",
+    "192.0.2.29/32",
+    "192.0.2.93/32",
+    "192.0.2.16/32",
+    "192.0.2.225/32",
+    "192.0.2.114/32",
+    "192.0.2.145/32",
+    "192.0.2.24/32",
+    "192.0.2.42/32",
+    "192.0.2.46/32",
+    "192.0.2.224/24",
+    "192.0.2.55/24",
+    "192.0.2.208/24",
+    "192.0.2.75/24",
+    "192.0.2.8/24",
+    "192.0.2.122/24",
+    "192.0.2.99/24",
+    "192.0.2.172/24",
+    "192.0.2.15/24",
+    "192.0.2.186/24",
+    "192.0.2.26/24",
+    "192.0.2.184/24",
+    "192.0.2.254/24",
+    "192.0.2.18/24",
+    "192.0.2.238/24",
+    "192.0.2.52/24"
+  ],
+  "ingressNodes": [
+    "restricted-node-1eb0570f74",
+    "restricted-node-296f36f2fb"
+  ],
+  "links": [
+    {
+      "node": "restricted-node-1eb0570f74",
+      "interface": "wg-cp-a1",
+      "listenPort": 51893,
+      "routerAddress": "192.0.2.190/30",
+      "peerAddress": "192.0.2.48/32",
+      "identity": "192.0.2.173/32",
+      "podCIDR": "192.0.2.109/24",
+      "fallbackIdentities": [
+        "192.0.2.114/32"
+      ],
+      "probeIdentity": "192.0.2.148/32",
+      "asn": 4200010147,
+      "peerPublicKey": "RyAp0lPekfg6w17DK7CbI6+YphPMlNhap+6dDMRqPiE=",
+      "routerPublicKey": "Zl6S03B5xdedeDrbS48biCM+EpOzRN/tOsoLS/Deano="
+    },
+    {
+      "node": "restricted-node-296f36f2fb",
+      "interface": "wg-cp-b1",
+      "listenPort": 51894,
+      "routerAddress": "192.0.2.228/30",
+      "peerAddress": "192.0.2.158/32",
+      "identity": "192.0.2.213/32",
+      "podCIDR": "192.0.2.26/24",
+      "fallbackIdentities": [
+        "192.0.2.114/32"
+      ],
+      "probeIdentity": "192.0.2.122/32",
+      "asn": 4200010125,
+      "peerPublicKey": "jFAsQtg6M+QLqf3KNCzwZMXj7T9X5UBI4trTjLXY2V0=",
+      "routerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk="
+    },
+    {
+      "node": "restricted-node-abb3f27a69",
+      "interface": "wg-cp-mubao",
+      "listenPort": 51895,
+      "routerAddress": "192.0.2.25/30",
+      "peerAddress": "192.0.2.183/32",
+      "identity": "192.0.2.114/32",
+      "podCIDR": "192.0.2.214/24",
+      "fallbackIdentities": [
+        "192.0.2.173/32",
+        "192.0.2.213/32"
+      ],
+      "probeIdentity": "192.0.2.6/32",
+      "asn": 4200010029,
+      "peerPublicKey": "mMWc4x4hIEtaG828eTBVhnNr/2EJfgs1PsvIxUU8Zjw=",
+      "routerPublicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
+    }
+  ]
+}
