@@ -232,7 +232,8 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 	var result struct {
 		Result struct {
 			Tools []struct {
-				Name string `json:"name"`
+				Name        string         `json:"name"`
+				Annotations map[string]any `json:"annotations"`
 			} `json:"tools"`
 		} `json:"result"`
 	}
@@ -246,6 +247,11 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 	names := map[string]bool{}
 	for _, item := range result.Result.Tools {
 		names[item.Name] = true
+		for _, key := range []string{"readOnlyHint", "destructiveHint", "openWorldHint"} {
+			if _, ok := item.Annotations[key].(bool); !ok {
+				t.Errorf("published tool %s is missing explicit boolean %s", item.Name, key)
+			}
+		}
 	}
 	for name := range legacy {
 		if !names[name] {

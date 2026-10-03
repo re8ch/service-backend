@@ -22,7 +22,7 @@ func (s *server) registerBYOCTools(ms *mcp.Server) {
 		if definition.Name == "" {
 			panic("missing tenant schema: " + name)
 		}
-		mcp.AddTool(ms, &mcp.Tool{Name: name, Description: definition.Description, InputSchema: definition.InputSchema},
+		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations(name), Name: name, Description: definition.Description, InputSchema: definition.InputSchema},
 			func(ctx context.Context, _ *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, any, error) {
 				id, err := identityFrom(ctx)
 				if err != nil {
