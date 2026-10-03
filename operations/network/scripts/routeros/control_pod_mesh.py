@@ -8,7 +8,9 @@ actions locally on each WSL host. The original wg-quick configs are untouched.
 import argparse
 import ipaddress
 import json
+import os
 import pathlib
+import shutil
 import subprocess
 
 from control_plane_mesh import RouterOS, comments, ensure
@@ -125,8 +127,13 @@ def node_action(action, node, links):
     own = links[node]
     interface = own["interface"]
     router_ip = str(ipaddress.ip_interface(own["routerAddress"]).ip)
-    original = run("wg", "show", interface, "allowed-ips").split()
-    if len(original) < 2 or original[0] != own["routerPublicKey"]:
+    try:
+        original = run("wg", "show", interface, "allowed-ips").split()
+    except subprocess.CalledProcessError:
+        if action == "stage-node":
+            raise
+        original = []  # wg-quick may have stopped before this unit's ExecStop.
+    if original and (len(original) < 2 or original[0] != own["routerPublicKey"]):
         raise RuntimeError("unexpected local WireGuard peer")
     base_allowed = original[1:]
     remote_pods = [link["podCIDR"] for name, link in links.items() if name != node]
@@ -134,7 +141,8 @@ def node_action(action, node, links):
         allowed = list(dict.fromkeys(base_allowed + remote_pods))
     else:
         allowed = [item for item in base_allowed if item not in remote_pods]
-    run("wg", "set", interface, "peer", own["routerPublicKey"], "allowed-ips", ",".join(allowed))
+    if original:
+        run("wg", "set", interface, "peer", own["routerPublicKey"], "allowed-ips", ",".join(allowed))
     for pod in remote_pods:
         if action == "stage-node":
             run("ip", "route", "replace", pod, "via", router_ip, "dev", interface,
@@ -145,11 +153,56 @@ def node_action(action, node, links):
     return {"node": node, "action": action, "remotePodCIDRs": remote_pods}
 
 
+def render_unit(node, interface):
+    command = ("/usr/bin/python3 /etc/re8ch/control-pod-mesh/control_pod_mesh.py "
+               "--inventory /etc/re8ch/control-pod-mesh/routeros-control-mesh.json "
+               f"--node {node}")
+    wireguard = f"wg-quick@{interface}.service"
+    return ("[Unit]\n"
+            f"Description=RE8CH symmetric Pod routes for {node}\n"
+            f"Requires={wireguard}\nAfter={wireguard}\nBindsTo={wireguard}\n"
+            f"PartOf={wireguard}\n\n"
+            "[Service]\nType=oneshot\nRemainAfterExit=yes\n"
+            f"ExecStart={command} --action stage-node\n"
+            f"ExecStop={command} --action rollback-node\n\n"
+            "[Install]\nWantedBy=multi-user.target\n"
+            f"WantedBy={wireguard}\n")
+
+
+def install_node(node, links, inventory_path):
+    if os.geteuid() != 0:
+        raise PermissionError("install-node requires root")
+    interface = links[node]["interface"]
+    if not pathlib.Path(f"/etc/wireguard/{interface}.conf").is_file():
+        raise RuntimeError("reviewed wg-quick interface is not installed")
+    source = pathlib.Path(__file__).resolve().parent
+    target = pathlib.Path("/etc/re8ch/control-pod-mesh")
+    target.mkdir(parents=True, exist_ok=True)
+    for name, original in (
+        ("control_pod_mesh.py", pathlib.Path(__file__)),
+        ("control_plane_mesh.py", source / "control_plane_mesh.py"),
+        ("routeros-control-mesh.json", pathlib.Path(inventory_path)),
+    ):
+        staged = target / (name + ".new")
+        shutil.copyfile(original, staged)
+        os.chmod(staged, 0o644)
+        os.replace(staged, target / name)
+    unit = pathlib.Path("/etc/systemd/system/re8ch-control-pod-mesh.service")
+    staged = unit.with_suffix(".service.new")
+    staged.write_text(render_unit(node, interface))
+    os.chmod(staged, 0o644)
+    os.replace(staged, unit)
+    run("systemctl", "daemon-reload")
+    run("systemctl", "enable", "--now", unit.name)
+    return {"node": node, "service": run("systemctl", "is-active", unit.name)}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True)
     parser.add_argument("--action", required=True,
-                        choices=("validate", "stage-router", "rollback-router", "stage-node", "rollback-node"))
+                        choices=("validate", "stage-router", "rollback-router", "stage-node",
+                                 "rollback-node", "install-node"))
     parser.add_argument("--node", choices=tuple(PODS))
     parser.add_argument("--nodes", default=",".join(PODS),
                         help="comma-separated canary set; defaults to all three")
@@ -165,7 +218,8 @@ def main():
     elif args.action.endswith("node"):
         if not args.node or args.node not in links:
             parser.error("--node must belong to --nodes for node actions")
-        result = node_action(args.action, args.node, links)
+        result = (install_node(args.node, links, args.inventory) if args.action == "install-node"
+                  else node_action(args.action, args.node, links))
     else:
         if args.node:
             parser.error("--node is only valid for node actions")
