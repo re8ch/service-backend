@@ -65,3 +65,24 @@ def test_routeros_pod_route_is_a_policy_fallback(monkeypatch):
                    for call in calls)
     assert ("ip", "route", "replace", "192.0.2.214/24", "via", "192.0.2.190",
             "dev", "wg-cp-a1", "src", "192.0.2.173", "metric", "10") in calls
+
+
+def test_mubao_accepts_forwarded_overseas_pod_sources(monkeypatch):
+    sys.path.insert(0, str(SCRIPT.parent))
+    spec = importlib.util.spec_from_file_location("control_pod_mesh", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    inventory = json.loads(INVENTORY.read_text())
+    links = {item["node"]: item for item in inventory["links"]}
+    calls = []
+    def fake_run(*args):
+        calls.append(args)
+        if args[:4] == ("wg", "show", "wg-cp-mubao", "allowed-ips"):
+            return links["restricted-node-abb3f27a69"]["routerPublicKey"] + " 192.0.2.178/28 192.0.2.106/24"
+        return ""
+    monkeypatch.setattr(module, "run", fake_run)
+    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: calls.append(args))
+    module.node_action("stage-node", "restricted-node-abb3f27a69", links, inventory["podRoutePolicy"])
+    update = next(call for call in calls if call[:3] == ("wg", "set", "wg-cp-mubao"))
+    assert {"192.0.2.254/24", "192.0.2.184/24", "192.0.2.26/24", "192.0.2.178/28"} <= set(update[-1].split(","))
+    assert "0.0.0.0/0" not in update[-1]
