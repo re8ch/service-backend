@@ -1058,6 +1058,8 @@ modules:
       digest: sha256:cc4300703f2a18ec65f7c524d4954fe9c0492f87cb980343b8135334dbbd32e4
     - codename: zephyr-coral
       digest: sha256:30efacfc503c9e761b43dde1cf1ae5330fc5b0b47ee5f4632dbacab5fd714d59
+    - codename: bora-onyx
+      digest: sha256:851c6aa2abbbabdc47db546ee9a575b567f84c1a11f1ec8f588066288c955964
   platform/adapter:
     releases:
     - codename: anchor
