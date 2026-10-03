@@ -140,6 +140,8 @@ modules:
       digest: sha256:aae993d2b9e4f0be4286a63b6dcabb58d2124df0f6f67d918c9755db899c5938
     - codename: etesian-indigo
       digest: sha256:c7cda840158585e183633cc9d4e0941bea62995c66be9ff67b5f5fa554e8836e
+    - codename: mistral-indigo
+      digest: sha256:81b94ac1e80a01adfd8c249741ac53e88abce01814529a792069f1ca797ccef3
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
