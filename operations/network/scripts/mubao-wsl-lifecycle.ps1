@@ -7,6 +7,7 @@ $pausePath = 'M:\WSL\pause-autostart'
 $anchor = [datetimeoffset]'2026-08-14T12:00:00+08:00'
 $periodicMarker = Join-Path $logDirectory 'mubao-wsl-last-periodic.txt'
 $fallbackMarker = Join-Path $logDirectory 'mubao-wsl-last-fallback.txt'
+$configApplyMarker = Join-Path $logDirectory 'mubao-wsl-apply-config-once'
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 
 function Invoke-WslBounded([string[]] $arguments, [int] $timeoutSeconds) {
@@ -67,6 +68,27 @@ while ($true) {
         Start-Sleep -Seconds 60
         continue
     }
+    if (Test-Path -LiteralPath $configApplyMarker) {
+        # A requested shared-VM restart applies .wslconfig only while both
+        # surviving APIs are reachable from MUBAO's node identity.
+        $a1 = Invoke-WslBounded @('-d', $distribution, '-u', 'root', '--exec', '/usr/bin/curl',
+            '--interface', '10.250.0.29', '--noproxy', '*', '-kfsS', '--max-time', '8',
+            'https://10.250.0.147:6443/readyz') 20
+        $b1 = Invoke-WslBounded @('-d', $distribution, '-u', 'root', '--exec', '/usr/bin/curl',
+            '--interface', '10.250.0.29', '--noproxy', '*', '-kfsS', '--max-time', '8',
+            'https://10.250.0.125:6443/readyz') 20
+        if ($a1 -and $b1) {
+            Write-LifecycleLog 'action=apply-wsl-config peerApis=healthy'
+            if (Invoke-WslBounded @('--shutdown') 120) {
+                Remove-Item -LiteralPath $configApplyMarker -Force
+                Start-Sleep -Seconds 15
+            }
+        } else {
+            Write-LifecycleLog 'action=defer-wsl-config reason=peer-api-unhealthy'
+            Start-Sleep -Seconds 60
+            continue
+        }
+    }
     $now = [datetimeoffset]::Now
     $minutes = ($now - $anchor).TotalMinutes
     if ($minutes -ge 0) {
@@ -76,11 +98,11 @@ while ($true) {
             # Do not transiently remove an etcd voter unless both surviving
             # control-plane APIs are ready through the declared relay path.
             $a1 = Invoke-WslBounded @('-d', $distribution, '-u', 'root', '--exec', '/usr/bin/curl',
-                '--interface', '192.0.2.223', '--noproxy', '*', '-kfsS', '--max-time', '8',
-                'https://192.0.2.242:6443/readyz') 20
+                '--interface', '10.250.0.29', '--noproxy', '*', '-kfsS', '--max-time', '8',
+                'https://10.250.0.147:6443/readyz') 20
             $b1 = Invoke-WslBounded @('-d', $distribution, '-u', 'root', '--exec', '/usr/bin/curl',
-                '--interface', '192.0.2.223', '--noproxy', '*', '-kfsS', '--max-time', '8',
-                'https://192.0.2.1:6443/readyz') 20
+                '--interface', '10.250.0.29', '--noproxy', '*', '-kfsS', '--max-time', '8',
+                'https://10.250.0.125:6443/readyz') 20
             if ($a1 -and $b1) {
                 Save-Marker $periodicMarker $boundary
                 Write-LifecycleLog 'action=periodic-shutdown intervalHours=36 peerApis=healthy'

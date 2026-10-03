@@ -1,0 +1,9 @@
+[wsl2]
+memory=10GB
+processors=7
+swap=3GB
+swapFile=M:\\WSL\\swap.vhdx
+
+[experimental]
+autoMemoryReclaim=gradual
+sparseVhd=true
