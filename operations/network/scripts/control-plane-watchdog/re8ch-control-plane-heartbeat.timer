@@ -1,0 +1,11 @@
+[Unit]
+Description=Publish B1 WSL control-plane health every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=re8ch-control-plane-heartbeat.service
+
+[Install]
+WantedBy=timers.target
