@@ -7,7 +7,6 @@ import socket
 import ssl
 import struct
 import time
-import sys
 import urllib.request
 
 
@@ -51,7 +50,7 @@ def main():
     if len(h['dnsReplicas']) < 4 or not h['tcpTargets']:
         raise RuntimeError('incomplete health target set')
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
-        jobs = [] if '--baseline-dns-repair' in sys.argv and h.get('repairBaselineDns') else [pool.submit(dns, ip, protocol, h['sourceIdentity']) for ip in h['dnsReplicas'] for protocol in (False, True)]
+        jobs = [pool.submit(dns, ip, protocol, h['sourceIdentity']) for ip in h['dnsReplicas'] for protocol in (False, True)]
         jobs += [pool.submit(tcp, target) for target in h['tcpTargets']]
         for job in jobs:
             job.result()

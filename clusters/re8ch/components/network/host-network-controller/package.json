@@ -1,7 +1,7 @@
 {
   "node": "overseas-flk",
   "scope": "public-mesh-peers",
-  "revision": "f508eae4bb4b10990c91637078a46617722815c5168582703dd5939b1b189a94",
+  "revision": "5af63c0c8c6ea59f69e5eece1decd2ed70621a8faa4f6f0985fbc3f7c0c8b7b3",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-public-mesh",
@@ -59,7 +59,6 @@
     "egressProxy": "http://192.0.2.205:17891",
     "egressURL": "https://www.gstatic.com/generate_204",
     "sourceIdentity": "192.0.2.109",
-    "repairBaselineDns": true,
     "bgpPeers": [
       "192.0.2.145",
       "192.0.2.81"
