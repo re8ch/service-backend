@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: canopy-amber
+codename: delta-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:f9b3b198c84d1db09aacdd000cd529101b8827e710073a3cdc55c445c21f6340
+  digest: sha256:8cdea89897b78fdf14480052f847eddb7c0067dbd9b9826e42587da83f02e0d3
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
