@@ -39,3 +39,9 @@ def test_platform_migration_reloads_the_read_only_schema_cache():
     _, deployment = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/identity-rest-ro.yaml').read_text()))
     # RO disables LISTEN, so the same migration revision must roll its process.
     assert deployment['spec']['template']['metadata']['annotations']['identity.re8ch.com/schema-revision'] == job['metadata']['name']
+
+
+def test_privacy_migration_reloads_the_read_only_schema_cache():
+    _, job = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/privacy-requests.yaml').read_text()))
+    _, deployment = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/identity-rest-ro.yaml').read_text()))
+    assert deployment['spec']['template']['metadata']['annotations']['identity.re8ch.com/privacy-schema-revision'] == job['metadata']['name']
