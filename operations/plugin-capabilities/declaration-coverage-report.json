@@ -42,6 +42,8 @@
       "definition": "plugins/cilium.yaml",
       "publicationEnabled": true,
       "implementedDirectoryTools": [
+        "cilium.cidrgroup.create",
+        "cilium.cidrgroup.delete",
         "cilium.ciliumbgpadvertisement.get.0f66f44058ee",
         "cilium.ciliumbgpadvertisement.get.6050ff99f93d",
         "cilium.ciliumbgpadvertisement.list.8ce4de5d7c3f",

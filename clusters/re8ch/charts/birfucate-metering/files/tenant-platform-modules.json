@@ -411,7 +411,9 @@
         "mihomos.configs.get": true,
         "mihomos.connections.snapshot": true,
         "anatomy.runtimediff.create": true,
-        "anatomy.runtimediff.delete": true
+        "anatomy.runtimediff.delete": true,
+        "cilium.cidrgroup.create": true,
+        "cilium.cidrgroup.delete": true
       }
     },
     "tenant_admin": {
