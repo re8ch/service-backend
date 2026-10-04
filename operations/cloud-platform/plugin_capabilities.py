@@ -292,7 +292,7 @@ def validate_response_body(document: dict, contract: dict, body: Any, watch: boo
     return {"mode": "watch_envelope_and_observed_objects", "validatedObjects": checked, "httpConformance": "not_run"}
 
 
-def read_operation(service: Any, group_version: str, operation_id: str, schema_hash: str, parameters: dict | None = None) -> dict:
+def prepare_read(service: Any, group_version: str, operation_id: str, schema_hash: str, parameters: dict | None = None) -> dict:
     from jsonschema import Draft202012Validator
     from urllib.parse import quote, urlencode
 
@@ -330,7 +330,14 @@ def read_operation(service: Any, group_version: str, operation_id: str, schema_h
     if watch and "timeoutSeconds" not in supported:
         raise OperationError("PLUGIN_SCHEMA_UNSUPPORTED", "Watch requires a bounded native timeout")
     suffix = urlencode({key: str(value).lower() if isinstance(value, bool) else value for key, value in sorted(query.items())})
-    result = service._kubectl(["get", "--raw", path + ("?" + suffix if suffix else "")])
+    return {"evidence": evidence, "contract": contract, "path": path + ("?" + suffix if suffix else ""),
+            "parameters": {"path": parameters.get("path", {}), "query": query}, "watch": watch}
+
+
+def read_operation(service: Any, group_version: str, operation_id: str, schema_hash: str, parameters: dict | None = None) -> dict:
+    prepared = prepare_read(service, group_version, operation_id, schema_hash, parameters)
+    evidence, contract, watch = prepared["evidence"], prepared["contract"], prepared["watch"]
+    result = service._kubectl(["get", "--raw", prepared["path"]])
     if result.get("exitCode") != 0 or result.get("truncated"):
         raise OperationError("PLUGIN_READ_FAILED", "Native resource read failed or was truncated; no partial response is returned")
     try:

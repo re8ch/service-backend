@@ -184,6 +184,10 @@ class CloudPlatform:
             argv += ["--watch-only"]
         return self._kubectl(argv)
 
+    def _plugin_http_get(self, path: str) -> dict[str, Any]:
+        from plugin_http_transport import get
+        return get(self.kubeconfig, path)
+
     def _kubectl(self, argv: list[str], stdin: str | None = None) -> dict[str, Any]:
         return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", stdin=stdin)
 
