@@ -42,6 +42,32 @@ def unpack_archive(archive, layout):
     return layout
 
 
+def worker_config_digest(archive, index_digest):
+    """Read the tested platform config from the verified OCI index, not exporter metadata."""
+    with tarfile.open(archive) as tar:
+        def read_blob(digest):
+            if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+                raise ValueError('Invalid OCI digest')
+            member = tar.getmember('blobs/sha256/' + digest.split(':')[1])
+            if not member.isfile():
+                raise ValueError('OCI blob must be a file')
+            with tar.extractfile(member) as stream:
+                data = stream.read()
+            if 'sha256:' + hashlib.sha256(data).hexdigest() != digest:
+                raise ValueError('OCI blob checksum differs')
+            return json.loads(data)
+        index = read_blob(index_digest)
+        candidates = [m for m in index['manifests'] if m.get('platform', {}).get('os') == 'linux' and m.get('platform', {}).get('architecture') == 'amd64']
+        if len(candidates) != 1:
+            raise ValueError('Expected exactly one Linux amd64 image')
+        manifest = read_blob(candidates[0]['digest'])
+        digest = manifest['config']['digest']
+        config = read_blob(digest)
+        if (config.get('os'), config.get('architecture')) != ('linux', 'amd64'):
+            raise ValueError('OCI config platform differs')
+        return digest
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--transfer', type=Path, required=True)

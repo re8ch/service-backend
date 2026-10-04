@@ -77,7 +77,7 @@ jobs:
             sha256sum "transfer/$target.oci.tar" | cut -d ' ' -f 1 > "transfer/$target.sha256"
           done
           docker buildx build --platform linux/amd64 --target worker -f product/toolkit/Dockerfile --load -t studio-worker:acceptance product
-          test "$(docker image inspect studio-worker:acceptance --format '{{.Id}}')" = "$(jq -r '."containerimage.config.digest"' transfer/worker-build.json)"
+          python operations/studio-toolkit/verify-worker-image.py --transfer transfer --config-digest "$(docker image inspect studio-worker:acceptance --format '{{.Id}}')"
           docker run --rm --network none -v "$PWD/product/tests:/app/tests:ro" studio-worker:acceptance python tests/toolkit-e2e.py --blender blender
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
