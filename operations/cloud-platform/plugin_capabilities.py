@@ -148,9 +148,42 @@ CILIUM_POLICY_READS = frozenset({
     ("apis/cilium.io/v2", "readCiliumIoV2NamespacedCiliumNetworkPolicyStatus"),
 })
 
+# These CRDs can carry Envoy resources and open-ended node configuration.
+# Their tools expose only identity and finite status summaries after validating
+# the complete native response against the captured OpenAPI contract.
+CILIUM_TOPOLOGY_READS = frozenset(
+    ("apis/cilium.io/" + version, operation_id)
+    for version, operation_ids in (
+        ("v2", (
+            "listCiliumIoV2CiliumClusterwideEnvoyConfig", "readCiliumIoV2CiliumClusterwideEnvoyConfig",
+            "listCiliumIoV2CiliumEndpointForAllNamespaces", "listCiliumIoV2CiliumEnvoyConfigForAllNamespaces",
+            "listCiliumIoV2CiliumIdentity", "readCiliumIoV2CiliumIdentity", "readCiliumIoV2CiliumIdentityStatus",
+            "listCiliumIoV2CiliumNodeConfigForAllNamespaces", "listCiliumIoV2CiliumNode",
+            "readCiliumIoV2CiliumNode", "readCiliumIoV2CiliumNodeStatus",
+            "listCiliumIoV2NamespacedCiliumEndpoint", "readCiliumIoV2NamespacedCiliumEndpoint",
+            "listCiliumIoV2NamespacedCiliumEnvoyConfig", "readCiliumIoV2NamespacedCiliumEnvoyConfig",
+            "listCiliumIoV2NamespacedCiliumNodeConfig", "readCiliumIoV2NamespacedCiliumNodeConfig",
+        )),
+        ("v2alpha1", (
+            "listCiliumIoV2alpha1CiliumDatapathPlugin", "readCiliumIoV2alpha1CiliumDatapathPlugin",
+            "listCiliumIoV2alpha1CiliumEndpointSlice", "readCiliumIoV2alpha1CiliumEndpointSlice",
+            "listCiliumIoV2alpha1CiliumGatewayClassConfigForAllNamespaces",
+            "listCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+            "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+            "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus",
+            "listCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+            "readCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+            "listCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+            "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+            "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus",
+        )),
+    )
+    for operation_id in operation_ids
+)
+
 
 def reviewed_read(group_version: str, operation_id: str) -> bool:
-    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS
+    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS | CILIUM_TOPOLOGY_READS
 
 
 def local_ref(document: dict, value: dict) -> dict:
@@ -256,6 +289,35 @@ def project_cilium_policy(value: Any) -> Any:
     if isinstance(value, list):
         return [project_cilium_policy(item) for item in value]
     return value
+
+
+def project_cilium_topology(value: Any) -> dict:
+    """Project only resource identity, pagination and bounded status signals."""
+    if not isinstance(value, dict):
+        raise OperationError("PLUGIN_RESPONSE_CONTRACT_FAILED", "Expected a Cilium resource object")
+    result = {key: value[key] for key in ("apiVersion", "kind") if key in value}
+    metadata = value.get("metadata")
+    if isinstance(metadata, dict):
+        result["metadata"] = {key: metadata[key] for key in
+                              ("name", "namespace", "uid", "resourceVersion", "generation", "continue")
+                              if key in metadata}
+    if "items" in value:
+        if not isinstance(value["items"], list):
+            raise OperationError("PLUGIN_RESPONSE_CONTRACT_FAILED", "Expected a Cilium resource list")
+        result["items"] = [project_cilium_topology(item) for item in value["items"]]
+    status = value.get("status")
+    if isinstance(status, dict):
+        summary = {key: status[key] for key in ("state", "phase", "observedGeneration")
+                   if isinstance(status.get(key), (str, int, bool))}
+        if isinstance(status.get("conditions"), list):
+            summary["conditions"] = [
+                {key: condition[key] for key in ("type", "status", "reason")
+                 if isinstance(condition.get(key), (str, bool))}
+                for condition in status["conditions"] if isinstance(condition, dict)
+            ]
+        if summary:
+            result["status"] = summary
+    return result
 
 
 STORAGE_PROJECTION = json.loads(Path(__file__).with_name("storage-read-projection.json").read_text())
@@ -406,4 +468,5 @@ def read_operation(service: Any, group_version: str, operation_id: str, schema_h
             "auditRef": result.get("auditRef"), "watch": watch, "bodyValidation": validation,
             "result": project_storage_resource(body) if group_version in STORAGE_PROJECTION["groups"]
             else project_cilium_policy(sanitize_resource(body)) if (group_version, operation_id) in CILIUM_POLICY_READS
+            else project_cilium_topology(body) if (group_version, operation_id) in CILIUM_TOPOLOGY_READS
             else sanitize_resource(body)}

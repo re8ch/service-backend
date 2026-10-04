@@ -9112,6 +9112,161 @@
       }
     },
     {
+      "name": "cilium.ciliumclusterwideenvoyconfig.get.bf92f1dd85e5",
+      "description": "Read CiliumClusterwideEnvoyConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumClusterwideEnvoyConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumClusterwideEnvoyConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumclusterwideenvoyconfig.list.a2bc5d373b89",
+      "description": "Read CiliumClusterwideEnvoyConfig through native apis/cilium.io/v2: listCiliumIoV2CiliumClusterwideEnvoyConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumClusterwideEnvoyConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "cilium.ciliumclusterwidenetworkpolicy.get.94cdf1bb87d8",
       "description": "Read CiliumClusterwideNetworkPolicy through native apis/cilium.io/v2: readCiliumIoV2CiliumClusterwideNetworkPolicyStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Omits HTTP match headers, annotations and credential fields from the policy response.",
       "plugin": "cilium",
@@ -9329,6 +9484,161 @@
       }
     },
     {
+      "name": "cilium.ciliumdatapathplugin.get.99b93e35fa1f",
+      "description": "Read CiliumDatapathPlugin through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumDatapathPlugin. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumDatapathPlugin",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumDatapathPlugin",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumdatapathplugin.list.7458759b734c",
+      "description": "Read CiliumDatapathPlugin through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumDatapathPlugin. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumDatapathPlugin",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumDatapathPlugin",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "cilium.ciliumegressgatewaypolicy.get.b7b9494ebd74",
       "description": "Read CiliumEgressGatewayPolicy through native apis/cilium.io/v2: readCiliumIoV2CiliumEgressGatewayPolicy. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "cilium",
@@ -9477,6 +9787,1231 @@
           "operationId": "listCiliumIoV2CiliumEgressGatewayPolicy",
           "method": "GET",
           "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumendpoint.get.f33630adacdd",
+      "description": "Read CiliumEndpoint through native apis/cilium.io/v2: readCiliumIoV2NamespacedCiliumEndpoint. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2NamespacedCiliumEndpoint",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name",
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2NamespacedCiliumEndpoint",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumendpoint.list.09d0b00c01fb",
+      "description": "Read CiliumEndpoint through native apis/cilium.io/v2: listCiliumIoV2CiliumEndpointForAllNamespaces. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumEndpointForAllNamespaces",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumEndpointForAllNamespaces",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumendpoints",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumendpoint.list.80f7e442dcbd",
+      "description": "Read CiliumEndpoint through native apis/cilium.io/v2: listCiliumIoV2NamespacedCiliumEndpoint. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2NamespacedCiliumEndpoint",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2NamespacedCiliumEndpoint",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumendpointslice.get.da3822f12e80",
+      "description": "Read CiliumEndpointSlice through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumEndpointSlice. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumEndpointSlice",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumEndpointSlice",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumendpointslice.list.2c422a9500dc",
+      "description": "Read CiliumEndpointSlice through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumEndpointSlice. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumEndpointSlice",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumEndpointSlice",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumenvoyconfig.get.6de323051d6c",
+      "description": "Read CiliumEnvoyConfig through native apis/cilium.io/v2: readCiliumIoV2NamespacedCiliumEnvoyConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2NamespacedCiliumEnvoyConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name",
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumenvoyconfig.list.51eb73b43443",
+      "description": "Read CiliumEnvoyConfig through native apis/cilium.io/v2: listCiliumIoV2NamespacedCiliumEnvoyConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2NamespacedCiliumEnvoyConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumenvoyconfig.list.6ce832791f13",
+      "description": "Read CiliumEnvoyConfig through native apis/cilium.io/v2: listCiliumIoV2CiliumEnvoyConfigForAllNamespaces. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumEnvoyConfigForAllNamespaces",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumEnvoyConfigForAllNamespaces",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumenvoyconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.get.8873d9ed0f85",
+      "description": "Read CiliumGatewayClassConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name",
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}/status",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.get.f744c0dbb9d7",
+      "description": "Read CiliumGatewayClassConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name",
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.list.a981932e3abc",
+      "description": "Read CiliumGatewayClassConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.list.ea3fb181b4ec",
+      "description": "Read CiliumGatewayClassConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumGatewayClassConfigForAllNamespaces. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumGatewayClassConfigForAllNamespaces",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumGatewayClassConfigForAllNamespaces",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumgatewayclassconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumidentity.get.29e8adf82d70",
+      "description": "Read CiliumIdentity through native apis/cilium.io/v2: readCiliumIoV2CiliumIdentityStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumIdentityStatus",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumIdentityStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}/status",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumidentity.get.75a0cbf0333d",
+      "description": "Read CiliumIdentity through native apis/cilium.io/v2: readCiliumIoV2CiliumIdentity. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumIdentity",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumIdentity",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumidentity.list.51a4a850ec5b",
+      "description": "Read CiliumIdentity through native apis/cilium.io/v2: listCiliumIoV2CiliumIdentity. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumIdentity",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumIdentity",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumidentities",
           "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -10397,6 +11932,378 @@
       }
     },
     {
+      "name": "cilium.ciliumnetworkdriverclusterconfig.get.41e430864804",
+      "description": "Read CiliumNetworkDriverClusterConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}/status",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnetworkdriverclusterconfig.get.4f7ceb883b23",
+      "description": "Read CiliumNetworkDriverClusterConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumNetworkDriverClusterConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnetworkdriverclusterconfig.list.b2fe2c384a28",
+      "description": "Read CiliumNetworkDriverClusterConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumNetworkDriverClusterConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnetworkdrivernodeconfig.get.7fa3a46201d4",
+      "description": "Read CiliumNetworkDriverNodeConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumNetworkDriverNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnetworkdrivernodeconfig.list.5a4fd66c4665",
+      "description": "Read CiliumNetworkDriverNodeConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumNetworkDriverNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "cilium.ciliumnetworkpolicy.get.319209ef562a",
       "description": "Read CiliumNetworkPolicy through native apis/cilium.io/v2: readCiliumIoV2NamespacedCiliumNetworkPolicyStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Omits HTTP match headers, annotations and credential fields from the policy response.",
       "plugin": "cilium",
@@ -10719,6 +12626,485 @@
           "operationId": "listCiliumIoV2CiliumNetworkPolicyForAllNamespaces",
           "method": "GET",
           "path": "/apis/cilium.io/v2/ciliumnetworkpolicies",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnode.get.d12cb0d70089",
+      "description": "Read CiliumNode through native apis/cilium.io/v2: readCiliumIoV2CiliumNode. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumNode",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumNode",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnode.get.ed15dedd3b4c",
+      "description": "Read CiliumNode through native apis/cilium.io/v2: readCiliumIoV2CiliumNodeStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumNodeStatus",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumNodeStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}/status",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnode.list.6f8a91cdcdd8",
+      "description": "Read CiliumNode through native apis/cilium.io/v2: listCiliumIoV2CiliumNode. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumNode",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumNode",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumnodes",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnodeconfig.get.5daa79e1bfe7",
+      "description": "Read CiliumNodeConfig through native apis/cilium.io/v2: readCiliumIoV2NamespacedCiliumNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2NamespacedCiliumNodeConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name",
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2NamespacedCiliumNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnodeconfig.list.7ddff6288047",
+      "description": "Read CiliumNodeConfig through native apis/cilium.io/v2: listCiliumIoV2NamespacedCiliumNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2NamespacedCiliumNodeConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "namespace": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "namespace"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2NamespacedCiliumNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumnodeconfig.list.c3fda608220d",
+      "description": "Read CiliumNodeConfig through native apis/cilium.io/v2: listCiliumIoV2CiliumNodeConfigForAllNamespaces. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted. Returns resource identity and selected status signals only; omits raw spec, Envoy resources and node configuration.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumNodeConfigForAllNamespaces",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumNodeConfigForAllNamespaces",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumnodeconfigs",
           "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
