@@ -15,7 +15,12 @@ export function configuration(env) {
   const target = new URL(env.RE8CH_DIRECTORY_DETAIL_URL);
   assert.equal(target.origin, 'https://tools.re8ch.com');
   assert.match(target.pathname, /^\/catalog\/[^/]+\/[^/]+\/[^/]+\/?$/);
-  assert.ok(!target.username && !target.password && !target.search && !target.hash);
+  assert.ok(!target.username && !target.password && !target.hash);
+  // The directory includes its source registry in server detail links.
+  // Permit that reviewed selector without accepting arbitrary query data.
+  const selectors = [...target.searchParams.entries()];
+  assert.ok(selectors.length === 0 || (selectors.length === 1
+    && selectors[0][0] === 'registryName' && selectors[0][1] === 'approved'));
   const cdp = new URL(env.STAGEHAND_CDP_URL);
   assert.ok(['http:', 'ws:'].includes(cdp.protocol));
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(cdp.hostname));

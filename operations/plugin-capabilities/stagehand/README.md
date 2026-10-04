@@ -24,7 +24,9 @@ It never updates the registry's acceptance flags.
   Stagehand receives directory page content through that model provider.
 - `RE8CH_DIRECTORY_DETAIL_URL`: actual authenticated catalog detail URL under
   `https://tools.re8ch.com/catalog/<repo>/<server>/<version>`; copy it from the
-  deployed directory. Do not invent a repository name or bypass login.
+  deployed directory. The optional `?registryName=approved` selector emitted by
+  that directory is supported; other query parameters and registries are rejected.
+  Do not invent a repository name or bypass login.
 
 ```sh
 cd operations/plugin-capabilities/stagehand

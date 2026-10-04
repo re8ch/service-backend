@@ -10,9 +10,14 @@ const inventory = inventoryFrom(JSON.parse(await readFile(new URL('../registry.r
 
 test('rejects unrelated targets, remote browsers and credentials in URLs', () => {
   assert.equal(configuration(env).target, env.RE8CH_DIRECTORY_DETAIL_URL);
+  const approved = 'https://tools.re8ch.com/catalog/com.re8ch/cluster-plugin-operations/0.1.0?registryName=approved';
+  assert.equal(configuration({ ...env, RE8CH_DIRECTORY_DETAIL_URL: approved }).target, approved);
   for (const target of ['https://example.com/catalog/a/b/c',
     'https://tools.re8ch.com/api/admin', 'https://tools.re8ch.com/catalog/a/b/c?token=x',
-    'https://user:password@tools.re8ch.com/catalog/a/b/c']) {
+    'https://user:password@tools.re8ch.com/catalog/a/b/c',
+    `${approved}&token=x`, `${approved}&registryName=approved`,
+    approved.replace('=approved', '=unreviewed'),
+    approved.replace('=approved', '='), `${approved}#fragment`]) {
     assert.throws(() => configuration({ ...env, RE8CH_DIRECTORY_DETAIL_URL: target }));
   }
   assert.throws(() => configuration({ ...env, STAGEHAND_CDP_URL: 'http://remote:9222' }));
