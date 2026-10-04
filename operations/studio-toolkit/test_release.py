@@ -30,6 +30,23 @@ class RegistryTransportTests(unittest.TestCase):
                 release.api('GET', 'health')
 
 
+class ScanEvidenceTests(unittest.TestCase):
+    def test_preserves_full_findings_even_when_critical(self):
+        overview = {'report': {'scan_status': 'Success', 'severity': 'Critical'}}
+        findings = {'report': {'vulnerabilities': [{'id': 'CVE-fixture', 'severity': 'Critical', 'package': 'fixture', 'fix_version': '2'}]}}
+        with tempfile.TemporaryDirectory() as root, patch.object(release, 'api', side_effect=[(202, None), (200, {'scan_overview': overview}), (200, findings)]) as api, patch.object(sys, 'argv', ['release', 'scan', '--image', 'worker', '--digest', 'sha256:' + 'a' * 64, '--output', root]):
+            release.main()
+            self.assertEqual(json.loads((Path(root) / 'worker-vulnerabilities.json').read_text()), findings)
+            self.assertTrue(api.call_args.args[1].endswith('/additions/vulnerabilities'))
+
+    def test_missing_report_does_not_pass_as_complete_evidence(self):
+        for response in [(404, None), (200, {}), (200, {'report': {'severity': 'Critical'}})]:
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as root, patch.object(release, 'api', side_effect=[(202, None), (200, {'scan_overview': {'report': {'scan_status': 'Success'}}}), response]), patch.object(sys, 'argv', ['release', 'scan', '--image', 'api', '--digest', 'sha256:' + 'a' * 64, '--output', root]):
+                with self.assertRaisesRegex(RuntimeError, 'complete vulnerability report'):
+                    release.main()
+                self.assertFalse((Path(root) / 'api-vulnerabilities.json').exists())
+
+
 class ReaderTests(unittest.TestCase):
     def run_reader(self, output, encrypt):
         robot = {'name': 'robot$studio', 'secret': 'fixture-only', 'id': 27}

@@ -17,7 +17,10 @@ image. Failed verification stops signature publication and runtime activation.
 
 Images remain private and are addressed by digest. BuildKit emits provenance and
 SBOM attestations; Cosign signs and verifies each digest; Harbor scan reports are
-retained in the release artifact. Review vulnerability findings before activation.
+retained in the release artifact, including per-package findings from Harbor’s
+[vulnerability addition API](https://github.com/goharbor/harbor/blob/main/api/v2.0/swagger.yaml).
+A missing detailed report fails publication; a successful scan is not a clean scan.
+Review affected packages, available fixes and exposure before activation.
 The optional initial-reader step creates a pull-only Harbor robot and emits two
 SOPS-encrypted Kubernetes Secrets, one for the runtime and one for the database
 migration namespace. Only encrypted secrets and the robot reference are uploaded.
