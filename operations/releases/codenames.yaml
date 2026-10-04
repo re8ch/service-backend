@@ -892,6 +892,8 @@ modules:
       digest: sha256:d28ad04b923775d632093a9b5353ad2604adf12a9cc4d7603ed9df977ef6417c
     - codename: cascade-ruby
       digest: sha256:4053a95feb4fbd5a6d85d447c7b2ba0af8013ac9c432bd79a2b8c0403ba1363f
+    - codename: confluence-ruby
+      digest: sha256:4adfa121c603e64af006f06c5b7e482fefc31fd19f80deae3c7f236be25eaaa3
   platform/hyperswitch:
     releases:
     - codename: anchor
