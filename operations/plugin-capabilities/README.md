@@ -61,10 +61,15 @@ table displays implementation/deployment, authority, schema provenance and HTTP/
 acceptance independently. Inventory rows never become callable tool definitions
 unless an adapter exists. Conditional Mihomo surfaces and other clusters remain
 outside this initial 618-operation inventory, as stated in the UI scope.
-`kustomization.yaml` and `registry-rollout-values.yaml` prepare a file-backed
-registry source but are deliberately not referenced by active GitOps resources.
-Promote them only with the corresponding tested native/UI image releases.
-No runtime deployment has happened for this change.
+`kustomization.yaml` is referenced by the root GitOps configuration, and
+`platform/connectool/release.yaml` mounts the generated catalog into the approved
+registry. `registry-rollout-values.yaml` documents the source configuration.
+`deployment-evidence.json` records the 2026-10-04 authenticated registration
+comparison for all 212 tools and representative named reads across eight
+Kubernetes groups plus Mihomo. The native and UI images each had two ready
+replicas. Registration badges use this historical evidence only while input
+schema hashes match; they are not a live health indicator. HTTP and semantic
+conformance remain `not_run`. Browser login and full acceptance remain pending.
 
 The discovery index preserves unknown groups as `unclassified`. The native
 schema fetch uses exact groupVersion and server-relative OpenAPI URLs; it cannot
@@ -162,7 +167,9 @@ using the authenticated Kubernetes Pod proxy. Caller URLs, namespaces, ports and
 credentials are not accepted. Native names are validated and encoded as single
 path segments. Responses are schema-validated and projected to declared fields;
 probe URLs, subscription information and extensible adapter fields are omitted.
-The packaged adapters are not yet deployed.
+The packaged adapters are deployed; see `deployment-evidence.json` for the
+limited registration and representative-call evidence. This does not establish
+complete controller operation or semantic acceptance.
 
 `operations/cloud-platform/mihomo-controller-openapi.json` is an authored, partial
 native contract derived from pinned upstream source, not an upstream-published

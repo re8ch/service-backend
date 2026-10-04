@@ -18,6 +18,7 @@ def canonical(value):
 
 def capability_inventory(matrix, tools):
     """Publish inventory separately from callable definitions; missing adapters stay visible."""
+    deployed = deployed_tools([*tools, *MIHOMOS_TOOLS])
     by_operation = {(tool["groupVersion"], tool["operationId"]): tool for tool in tools}
     rows = []
     for source in matrix["sources"]:
@@ -29,7 +30,7 @@ def capability_inventory(matrix, tools):
             tool = by_operation.get((source["groupVersion"], row["operationId"]))
             rows.append({"plugin": plugin, "groupVersion": source["groupVersion"],
                 "method": row["method"].upper(), "path": row["path"], "operationId": row["operationId"],
-                "registration": "implemented_not_deployed" if tool else "not_implemented",
+                "registration": ("deployed" if tool["name"] in deployed else "implemented_not_deployed") if tool else "not_implemented",
                 "disposition": "resource_read_review_required" if row["method"] == "get" and source["groupVersion"] not in READ_GROUPS else operation_disposition(source["groupVersion"], row["kind"], row["method"], row["path"]),
                 "schemaProvenance": "native_openapi", "httpConformance": "not_run", "semanticConformance": "not_run",
                 **({"tool": tool["name"]} if tool else {})})
@@ -39,9 +40,25 @@ def capability_inventory(matrix, tools):
             **{key: row[key] for key in ("method", "path", "registration", "disposition", "httpConformance", "semanticConformance")},
             "schemaProvenance": row.get("schemaProvenance", "source_route_only"),
             **{key: row[key] for key in ("operationId", "tool") if key in row}})
+    for row in rows:
+        if row.get("tool") in deployed:
+            row["registration"] = "deployed"
     return {"version": 1, "cluster": matrix["cluster"],
         "scope": matrix["scope"] + "; includes inventoried Mihomo routes, excludes conditional controller surfaces",
         "operations": sorted(rows, key=lambda row: (row["plugin"], row["groupVersion"], row["path"], row["method"]))}
+
+
+def deployed_tools(tools):
+    """Historical registration evidence applies only to matching input contracts."""
+    path = ROOT / "operations/plugin-capabilities/deployment-evidence.json"
+    if not path.exists():
+        return set()
+    evidence = json.loads(path.read_text())
+    if evidence.get("version") != 1 or evidence.get("cluster") != "re8ch-k3s":
+        raise ValueError("Unsupported deployment evidence")
+    hashes = {row["name"]: row["inputSchemaSha256"] for row in evidence["tools"]}
+    return {tool["name"] for tool in tools
+            if hashes.get(tool["name"]) == hashlib.sha256(canonical(tool["inputSchema"])).hexdigest()}
 
 
 def generate():

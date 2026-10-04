@@ -301,7 +301,7 @@ def test_directory_inventory_includes_every_native_operation_without_advertising
     assert len(rows) == len(actual) == len(expected) == 618
     assert actual == expected
     tools = {row['name'] for row in metadata['tool_definitions']}
-    implemented = [row for row in rows if row['registration'] == 'implemented_not_deployed']
+    implemented = [row for row in rows if row['registration'] == 'deployed']
     assert len(implemented) == 210
     assert all(row['tool'] in tools for row in implemented)
     assert all('tool' not in row for row in rows if row['registration'] == 'not_implemented')
@@ -577,3 +577,22 @@ def test_all_storage_tools_dispatch_through_native_contract_validation_and_proje
         assert result['bodyValidation']['mode'] == 'native_json_body'
         assert 'credential' not in json.dumps(result)
         assert len(service.calls) == 3
+
+
+def test_deployment_evidence_does_not_apply_to_changed_or_missing_contracts(tmp_path, monkeypatch):
+    import hashlib
+    import importlib.util
+    from pathlib import Path
+    root = Path(__file__).parents[1]
+    spec = importlib.util.spec_from_file_location('plugin_deployment_evidence', root / 'operations/plugin-capabilities/generate.py')
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+    monkeypatch.setattr(generator, 'ROOT', tmp_path)
+    tool = {'name': 'fixture.read', 'inputSchema': {'type': 'object'}}
+    assert generator.deployed_tools([tool]) == set()
+    path = tmp_path / 'operations/plugin-capabilities/deployment-evidence.json'
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({'version': 1, 'cluster': 're8ch-k3s', 'tools': [
+        {'name': tool['name'], 'inputSchemaSha256': hashlib.sha256(generator.canonical(tool['inputSchema'])).hexdigest()}]}))
+    assert generator.deployed_tools([tool]) == {tool['name']}
+    assert generator.deployed_tools([{**tool, 'inputSchema': {'type': 'string'}}]) == set()
