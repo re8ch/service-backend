@@ -443,6 +443,8 @@ modules:
       digest: sha256:f9b3b198c84d1db09aacdd000cd529101b8827e710073a3cdc55c445c21f6340
     - codename: delta-amber
       digest: sha256:8cdea89897b78fdf14480052f847eddb7c0067dbd9b9826e42587da83f02e0d3
+    - codename: grove-amber
+      digest: sha256:2bff8ccf68f42bd88df936abec63ef4a317dcdb0c4a8ad71dc73c75ac6e1d915
   platform/advanced-fabric:
     releases:
     - codename: bora
