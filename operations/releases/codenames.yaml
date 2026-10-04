@@ -868,6 +868,8 @@ modules:
       digest: sha256:4b5ffbdf69cd5b008abb0fe70c39724a86695ae739ac076e82d5d00238df7caf
     - codename: cascade-quartz
       digest: sha256:e0dbd8e9f78a9673b9cdc799fe32acfc15fe9c1ea36e0ec5123db5d0e8318e56
+    - codename: confluence-quartz
+      digest: sha256:07f1a6dcf8113f5a24ce18709803972a3752f52bb189543cfcdf7c879e172abd
   platform/hyperswitch:
     releases:
     - codename: anchor
