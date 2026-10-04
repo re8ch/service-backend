@@ -298,7 +298,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "14fe4fc855e1eb65f519d1b5882ab02661199ecb",
+    "commit": "7832f51762a9959d022d51be7e5b643e5271fa97",
     "id": "cloud-functions",
     "ownership": "owned",
     "projectType": "nuclio-functions",
@@ -433,7 +433,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "74739be0781d443b234559f16b732944b74c397f",
+    "commit": "6e67758c0acdd226495a05b02441516a0a2dbdb3",
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",
