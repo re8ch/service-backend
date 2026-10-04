@@ -31,7 +31,7 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(ro['PGRST_DB_CHANNEL_ENABLED']['value'], 'false')
             self.assertEqual(ro['PGOPTIONS']['value'], '-c default_transaction_read_only=on')
             worker = deployments['studio-worker-r640']
-            self.assertEqual(worker['nodeSelector'], {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'})
+            self.assertEqual(worker['nodeSelector'], {'kubernetes.io/hostname': 'r640'})
             self.assertFalse(any('persistentVolumeClaim' in v for v in worker['volumes']))
             api_env = deployments['studio-api']['containers'][0]['env']
             values = {e['name']: e.get('value') for e in api_env}
@@ -51,6 +51,23 @@ class RuntimeTests(unittest.TestCase):
                     self.assertIn('cpu', container['resources'][bound])
                     self.assertIn('memory', container['resources'][bound])
             self.assertNotIn('Secret', [d['kind'] for d in docs])
+
+    def test_upgrade_preserves_completed_bootstrap(self):
+        with tempfile.TemporaryDirectory() as temp:
+            old = 'registry.re8ch.com/studio-toolkit/api@sha256:' + 'a' * 64
+            new = 'registry.re8ch.com/studio-toolkit/api@sha256:' + 'b' * 64
+            worker = 'registry.re8ch.com/studio-toolkit/worker@sha256:' + 'c' * 64
+            def render(api, migration=None):
+                output = Path(temp) / ('runtime-' + api[-1] + '.yaml')
+                cmd = [sys.executable, str(RENDER), '--api-image', api, '--worker-image', worker, '--output', str(output)]
+                if migration:
+                    cmd += ['--migration-image', migration]
+                subprocess.run(cmd, check=True)
+                return list(yaml.safe_load_all(output.read_text()))
+            before, after = render(old), render(new, old)
+            self.assertEqual(next(d for d in before if d['kind'] == 'Job'), next(d for d in after if d['kind'] == 'Job'))
+            api = next(d for d in after if d['kind'] == 'Deployment' and d['metadata']['name'] == 'studio-api')
+            self.assertEqual(api['spec']['template']['spec']['containers'][0]['image'], new)
 
     def test_rejects_mutable_or_foreign_images(self):
         result = subprocess.run([sys.executable, str(RENDER), '--api-image', 'registry.re8ch.com/studio-toolkit/api:latest', '--worker-image', 'untrusted/worker:latest', '--output', '/tmp/should-not-render-studio.yaml'], capture_output=True)
