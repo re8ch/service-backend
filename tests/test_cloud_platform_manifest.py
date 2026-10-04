@@ -37,10 +37,10 @@ def test_cloud_platform_keeps_one_replica_during_voluntary_disruption():
     assert pdb["spec"]["selector"]["matchLabels"] == {"app": "re8ch-cloud-platform"}
 
 
-def test_rollout_can_replace_pods_with_old_required_anti_affinity():
+def test_rollout_preserves_ready_replicas_while_new_image_pulls():
     deployment = next(item for item in resources() if item["kind"] == "Deployment")
     assert deployment["spec"]["replicas"] == 2
-    assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 2
+    assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 0
 
 
 def test_http_acceptance_has_bounded_private_temporary_storage_with_readonly_root():
