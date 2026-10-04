@@ -52,3 +52,25 @@ HTTP status/header acceptance of mutations and dedicated self-service mutation
 adapters remain incomplete. Updating a terminal request's spec is not a supported
 reconciliation test. Stagehand UI semantics and other write operations need their
 own fixture, expected effect and cleanup contracts.
+
+## Authenticated host runner
+
+`runner.cjs` exports `runAcceptance({cases, catalog, call, checkpoint})` for the
+existing authenticated MCP host. Inject `catalog` as platform_tool_catalog and
+`call` as platform_tool_call; the runner opens no network connection and accepts
+no endpoint or credential. `checkpoint` must persist the sanitized report after
+every attempt and throw if persistence fails. The host must enforce its tool-call
+timeout and stop the run on cancellation; the runner never races a second request
+against a request still in flight.
+
+The v1 runner deliberately accepts only native `plugin.operation.http-check`
+finite GET cases. It verifies operation/schema/cluster/audit binding and all four
+checks before passing. Transient transport errors get at most two additional
+attempts, sequentially, with 1s/2s delays. Missing backend is blocked, contract
+failure is failed, and recovered cases retain every failed attempt plus
+`recoveredAfterRetry`. An empty suite never passes. This is not a mutation runner.
+The versioned report contains `cases[].attempts[]` and a summary; it is distinct
+from the raw-envelope input format accepted by `verify_report.py`.
+
+Run runner regression tests with:
+`node --test operations/plugin-capabilities/api-acceptance/runner.test.cjs`.
