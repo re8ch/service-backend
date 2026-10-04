@@ -46,3 +46,14 @@ def test_identity_data_routes_keep_ro_and_rw_separate():
     assert rw[0]["backendRefs"] == [{"name": "supabase-identity-rest", "port": 3000}]
     assert rw[1]["matches"][0]["path"]["value"] == "/realtime/v1"
     assert rw[1]["backendRefs"] == [{"name": "supabase-identity-kong", "port": 8000}]
+
+
+def test_rfc8414_discovery_reaches_auth_instead_of_postgrest():
+    route = yaml.safe_load((ROOT / "operations/supabase-identity/db-rw-auth-route.yaml").read_text())
+    rule = next(rule for rule in route["spec"]["rules"]
+                if rule["matches"][0]["path"]["value"] == "/.well-known/oauth-authorization-server/auth/v1")
+    assert rule["matches"][0]["path"]["type"] == "Exact"
+    assert rule["backendRefs"] == [{"name": "supabase-identity-auth", "port": 9999}]
+    assert rule["filters"][0]["urlRewrite"]["path"] == {
+        "type": "ReplaceFullPath", "replaceFullPath": "/.well-known/oauth-authorization-server"
+    }

@@ -48,3 +48,20 @@ absent from the live cluster. Do not add routes to those Service names until a
 current backend publication exists. The discovery checker remains a gate for
 the eventual publication. OAuth login must be tested in each client rather
 than presumed working.
+
+## WorkBuddy authentication entry
+
+In WorkBuddy, open Connectors → Custom connectors → Add MCP and merge this
+entry into `mcpServers`, then save, trust the server and select Connect:
+
+```json
+{"re8ch-tenant": {"type": "streamableHttp", "url": "https://tools.service.re8ch.com/tenant/mcp"}}
+```
+
+WorkBuddy uses RFC 8414 discovery at
+`https://db-rw.re8ch.com/.well-known/oauth-authorization-server/auth/v1`.
+The auth route rewrites this exact path to the GoTrue discovery endpoint.
+The public discovery checker tests this path rather than only the legacy
+issuer-appended metadata path. A successful discovery response is not proof
+of client registration, user consent or a successful tool call; verify those
+in the client before recording end-to-end compatibility.
