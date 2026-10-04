@@ -164,7 +164,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: studio-config
-              key: PGRST_DB_URI_RO
+              key: PGRST_DB_URI_RW
         - name: PGRST_DB_SCHEMAS
           value: studio
         - name: PGRST_JWT_SECRET
@@ -178,6 +178,10 @@ spec:
           value: '3001'
         - name: PGRST_ADMIN_SERVER_HOST
           value: 0.0.0.0
+        - name: PGOPTIONS
+          value: -c default_transaction_read_only=on
+        - name: PGRST_DB_TX_END
+          value: rollback
         resources:
           requests:
             cpu: 100m
