@@ -46,6 +46,31 @@ TOOL = {
                         "httpConformance": "not_run", "semanticConformance": "not_run"}},
 }
 
+DELETE_TOOL = {
+    "name": "anatomy.runtimediff.delete",
+    "plugin": "anatomy", "groupVersion": GROUP,
+    "operationId": "deleteAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
+    "schemaHash": SCHEMA_HASH,
+    "description": "Plan, delete, or inspect one tool-owned RuntimeDiff in the canary namespace. Administrator only.",
+    "inputSchema": {
+        "type": "object", "additionalProperties": False,
+        "properties": {
+            "phase": {"type": "string", "enum": ["plan", "execute", "status"]},
+            "namespace": {"type": "string", "const": NAMESPACE},
+            "name": {"type": "string", "pattern": NAME.pattern},
+            "idempotencyKey": {"type": "string", "minLength": 8, "maxLength": 128},
+            "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        },
+        "required": ["phase", "namespace", "name", "idempotencyKey"],
+    },
+    "annotations": {"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True},
+    "_meta": {"re8ch": {"plugin": "anatomy", "groupVersion": GROUP,
+                        "operationId": "deleteAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
+                        "method": "DELETE", "path": f"/{GROUP}/namespaces/{{namespace}}/runtimediffs/{{name}}",
+                        "schemaHash": SCHEMA_HASH,
+                        "httpConformance": "not_run", "semanticConformance": "not_run"}},
+}
+
 
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
@@ -154,3 +179,56 @@ def call(service, args):
         raise OperationError("PLUGIN_RESULT_UNKNOWN", "Create returned success but target could not be confirmed")
     return {"state": "created", "httpStatus": response["status"], "planHash": digest,
             "result": result_view(observed)}
+
+
+def delete(service, args):
+    from jsonschema import Draft202012Validator
+    from plugin_capabilities import openapi
+
+    if list(Draft202012Validator(DELETE_TOOL["inputSchema"]).iter_errors(args)):
+        raise OperationError("INVALID_ARGUMENT", "RuntimeDiff delete arguments do not match the tool schema")
+    if args["namespace"] != NAMESPACE or not NAME.fullmatch(args["name"]):
+        raise OperationError("AUTHORIZATION_DENIED", "RuntimeDiff delete is limited to a named canary target")
+    ns, name = (quote(args[field], safe="") for field in ("namespace", "name"))
+    path = f"/{GROUP}/namespaces/{ns}/runtimediffs/{name}"
+    existing = read(service, path)
+    if existing is None:
+        return {"state": "absent", "schemaHash": SCHEMA_HASH}
+    metadata = existing.get("metadata", {})
+    marker = hashlib.sha256(args["idempotencyKey"].encode()).hexdigest()
+    if metadata.get("annotations", {}).get(ANNOTATION) != marker:
+        raise OperationError("PLUGIN_OPERATION_CONFLICT", "RuntimeDiff is not owned by this request")
+    uid, resource_version = metadata.get("uid"), metadata.get("resourceVersion")
+    if not uid or not resource_version:
+        raise OperationError("PLUGIN_PRECONDITION_FAILED", "RuntimeDiff identity is incomplete")
+    if args["phase"] == "status":
+        return {"state": "deleting" if metadata.get("deletionTimestamp") else "present",
+                "schemaHash": SCHEMA_HASH, "result": result_view(existing)}
+    live = openapi(service, GROUP)
+    if live["sha256"] != SCHEMA_HASH:
+        raise OperationError("PLUGIN_SCHEMA_CHANGED", "Refresh the reviewed RuntimeDiff contract")
+    digest = hashlib.sha256(canonical({"schemaHash": SCHEMA_HASH, "method": "DELETE",
+                                      "path": path, "uid": uid, "resourceVersion": resource_version,
+                                      "marker": marker})).hexdigest()
+    if args["phase"] == "plan":
+        return {"state": "ready", "planHash": digest, "schemaHash": SCHEMA_HASH,
+                "target": {"namespace": args["namespace"], "name": args["name"],
+                           "uid": uid, "resourceVersion": resource_version}}
+    if args.get("planHash") != digest:
+        raise OperationError("PLUGIN_PRECONDITION_FAILED", "RuntimeDiff changed; plan deletion again")
+    body = {"apiVersion": "meta.k8s.io/v1", "kind": "DeleteOptions",
+            "preconditions": {"uid": uid, "resourceVersion": resource_version}}
+    try:
+        response = service._plugin_http_request("DELETE", path, canonical(body))
+    except OperationError:
+        observed = read(service, path)
+        if observed is None:
+            return {"state": "recovered_absent", "planHash": digest}
+        raise OperationError("PLUGIN_RESULT_UNKNOWN", "Delete response was lost; query status before retrying")
+    if response["status"] not in {200, 202}:
+        raise OperationError("PLUGIN_WRITE_FAILED", f"Native delete returned HTTP {response['status']}")
+    observed = read(service, path)
+    if observed and observed.get("metadata", {}).get("uid") != uid:
+        raise OperationError("PLUGIN_RESULT_UNKNOWN", "A different object now occupies the target name")
+    return {"state": "deleting" if observed else "deleted", "httpStatus": response["status"],
+            "planHash": digest, "targetUid": uid}

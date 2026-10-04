@@ -325,7 +325,8 @@
         "mihomos.controller.hello": true,
         "mihomos.configs.get": true,
         "mihomos.connections.snapshot": true,
-        "anatomy.runtimediff.create": true
+        "anatomy.runtimediff.create": true,
+        "anatomy.runtimediff.delete": true
       }
     },
     "tenant_admin": {
