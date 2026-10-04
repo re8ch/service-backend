@@ -17,6 +17,8 @@ class RuntimeTests(unittest.TestCase):
             docs = list(yaml.safe_load_all(output.read_text()))
             deployments = {d['metadata']['name']: d['spec']['template']['spec'] for d in docs if d['kind'] == 'Deployment'}
             self.assertEqual(len(deployments), 4)
+            pvc = next(d for d in docs if d['kind'] == 'PersistentVolumeClaim')
+            self.assertEqual(pvc['spec']['storageClassName'], 'cephfs-r640')
             for pod in deployments.values():
                 self.assertFalse(pod['automountServiceAccountToken'])
                 self.assertTrue(pod['securityContext']['runAsNonRoot'])

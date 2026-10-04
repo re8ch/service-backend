@@ -54,7 +54,7 @@ def service(name, port):
 
 
 obj('Namespace', ns, namespace=None)
-obj('PersistentVolumeClaim', 'studio-blobs', {'accessModes': ['ReadWriteMany'], 'storageClassName': 'cephfs-re8ch', 'resources': {'requests': {'storage': '20Gi'}}})
+obj('PersistentVolumeClaim', 'studio-blobs', {'accessModes': ['ReadWriteMany'], 'storageClassName': 'cephfs-r640', 'resources': {'requests': {'storage': '20Gi'}}})
 api_env = [env('STUDIO_MODE', 'production'), env('STUDIO_ROOT_PATH', '/studio'), env('STUDIO_BLOB_ROOT', '/data'), env('STUDIO_AUTH_FILE', '/config/auth.json'), env('STUDIO_POSTGREST_RO', 'https://db-ro.re8ch.com/studio'), env('STUDIO_POSTGREST_RW', 'https://db-rw.re8ch.com/studio'), env('STUDIO_POSTGREST_JWT_KEY')]
 deploy('studio-api', a.api_image, api_env, replicas=2,
        mounts=[{'name': 'blobs', 'mountPath': '/data'}, {'name': 'config', 'mountPath': '/config', 'readOnly': True}, {'name': 'tmp', 'mountPath': '/tmp'}],
