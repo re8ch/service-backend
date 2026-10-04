@@ -610,3 +610,18 @@ def test_runtime_registry_matches_pinned_file_source_schema():
     validator.validate(json.loads((root / 'registry.runtime.json').read_text()))
     # The previous bare payload is valid for our UI tooling but not a file source.
     assert list(validator.iter_errors(json.loads((root / 'registry.json').read_text())))
+
+
+def test_runtime_registry_publisher_extensions_match_pinned_schema():
+    from pathlib import Path
+    from jsonschema import Draft202012Validator
+    root = Path(__file__).parents[1] / 'operations/plugin-capabilities'
+    schema = json.loads((root / 'registry-schema/publisher-provided.schema.json').read_text())
+    validator = Draft202012Validator(schema)
+    runtime = json.loads((root / 'registry.runtime.json').read_text())
+    for server in runtime['data']['servers']:
+        extensions = server['_meta']['io.modelcontextprotocol.registry/publisher-provided']
+        validator.validate(extensions)
+        invalid = copy.deepcopy(extensions)
+        del invalid['io.github.stacklok']['streamable-http']['status']
+        assert list(validator.iter_errors(invalid))
