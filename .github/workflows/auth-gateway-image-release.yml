@@ -5,7 +5,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
   id-token: write
 
 jobs:
@@ -26,9 +25,9 @@ jobs:
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
       - id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -38,13 +37,13 @@ jobs:
           push: true
           provenance: true
           sbom: true
-          tags: ghcr.io/re8ch/re8ch-auth-gateway:link-session-ab350532
+          tags: registry.re8ch.com/auth/re8ch-auth-gateway:link-session-ab350532
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
       - name: Sign and verify immutable image
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          image="ghcr.io/re8ch/re8ch-auth-gateway@${DIGEST}"
+          image="registry.re8ch.com/auth/re8ch-auth-gateway@${DIGEST}"
           cosign sign --yes "$image"
           cosign verify --certificate-identity "https://github.com/re8ch/service-backend/.github/workflows/auth-gateway-image-release.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image"
           echo "$image" | tee auth-gateway.image
