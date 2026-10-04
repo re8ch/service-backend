@@ -21,7 +21,7 @@ class TransferTests(unittest.TestCase):
             root = Path(tmp)
             self.fixture(root)
             archive, digest = transfer.validate_archive(root, 'api')
-            self.assertEqual(archive, root / 'api.oci.tar')
+            self.assertEqual(archive, (root / 'api.oci.tar').resolve())
             self.assertEqual(digest, 'sha256:' + 'a' * 64)
 
     def test_refuses_modified_archive_before_registry_access(self):
