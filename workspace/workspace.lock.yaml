@@ -95,7 +95,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/career-ops.git
   cloud-functions:
-    commit: 14fe4fc855e1eb65f519d1b5882ab02661199ecb
+    commit: 7832f51762a9959d022d51be7e5b643e5271fa97
     defaultBranch: master
     dependencies: []
     repository: https://github.com/re8ch/cloud-functions.git
@@ -294,7 +294,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
   user-hub:
-    commit: 4d91325cbe76f8a80cad51d214d7d4d5ea042222
+    commit: 6e67758c0acdd226495a05b02441516a0a2dbdb3
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/user-hub.git
