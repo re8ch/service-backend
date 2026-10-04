@@ -106,6 +106,26 @@ READ_GROUPS = {
     "apis/networking.re8ch.com/v1alpha1", "apis/networking.re8ch.com/v1alpha2",
 }
 
+# Cilium's broad CRD groups also contain endpoint and Envoy configuration data.
+# Review these BGP reads individually rather than enabling every GET in a group.
+CILIUM_BGP_READS = frozenset(
+    (f"apis/cilium.io/{version}", f"{verb}CiliumIo{native_version}CiliumBGP{kind}{suffix}")
+    for version, native_version in (("v2", "V2"), ("v2alpha1", "V2alpha1"))
+    for kind, suffixes in (
+        ("Advertisement", ("",)),
+        ("ClusterConfig", ("", "Status")),
+        ("NodeConfigOverride", ("",)),
+        ("NodeConfig", ("", "Status")),
+        ("PeerConfig", ("", "Status")),
+    )
+    for suffix in suffixes
+    for verb in (("list", "read") if not suffix else ("read",))
+)
+
+
+def reviewed_read(group_version: str, operation_id: str) -> bool:
+    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS
+
 
 def local_ref(document: dict, value: dict) -> dict:
     seen = set()
@@ -182,7 +202,7 @@ def operations(service: Any, group_version: str) -> dict:
         except OperationError as exc:
             contracts.append({**row, "registration": "unsupported_schema", "reason": exc.code})
             continue
-        if group_version not in READ_GROUPS:
+        if not reviewed_read(group_version, row["operationId"]):
             contract["disposition"] = "unreviewed_group"
         contract["readTool"] = "plugin.operation.read" if contract["disposition"] == "read" else None
         contracts.append({**row, **contract, "registration": "implemented" if contract["readTool"] else "not_implemented",
@@ -297,7 +317,7 @@ def prepare_read(service: Any, group_version: str, operation_id: str, schema_has
     from jsonschema import Draft202012Validator
     from urllib.parse import quote, urlencode
 
-    if not isinstance(group_version, str) or group_version not in READ_GROUPS:
+    if not isinstance(group_version, str) or not isinstance(operation_id, str) or not reviewed_read(group_version, operation_id):
         raise OperationError("PLUGIN_GROUP_NOT_REVIEWED", "Resource reads are not enabled for this group/version")
     if not isinstance(operation_id, str) or not operation_id or not isinstance(schema_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", schema_hash):
         raise OperationError("INVALID_ARGUMENT", "operationId and schemaHash from plugin.operations.list are required")
