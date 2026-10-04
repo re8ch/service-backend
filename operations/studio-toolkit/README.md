@@ -27,7 +27,9 @@ migration namespace. Only encrypted secrets and the robot reference are uploaded
 Revoke an unused robot by its reference if activation is abandoned.
 
 Activation is a separate reviewed GitOps change, using the release digests and
-encrypted credentials. Intended runtime:
+encrypted credentials. Record the release-specific assessment using
+[the runtime exposure review](SECURITY-REVIEW.md), including residual findings.
+Intended runtime:
 
 - `api.re8ch.com/studio`: stateless API behind the existing HTTPS listener.
 - `db-ro.re8ch.com/studio` and `db-rw.re8ch.com/studio`: product PostgREST with

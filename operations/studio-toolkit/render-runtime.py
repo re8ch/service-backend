@@ -60,7 +60,7 @@ deploy('studio-api', a.api_image, api_env, replicas=2,
        mounts=[{'name': 'blobs', 'mountPath': '/data'}, {'name': 'config', 'mountPath': '/config', 'readOnly': True}, {'name': 'tmp', 'mountPath': '/tmp'}],
        volumes=[{'name': 'blobs', 'persistentVolumeClaim': {'claimName': 'studio-blobs'}}, {'name': 'config', 'secret': {'secretName': 'studio-config', 'items': [{'key': 'auth.json', 'path': 'auth.json'}]}}, {'name': 'tmp', 'emptyDir': {'sizeLimit': '1Gi'}}], probe={'path': '/healthz', 'port': 8080})
 service('studio-api', 8080)
-postgrest = 'docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2'
+postgrest = 'docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c'
 for mode in ['ro', 'rw']:
     name = 'studio-db-' + mode
     deploy(name, postgrest, [env('PGRST_DB_URI', key='PGRST_DB_URI_' + mode.upper()), env('PGRST_DB_SCHEMAS', 'studio'), env('PGRST_JWT_SECRET', key='STUDIO_POSTGREST_JWT_KEY'), env('PGRST_DB_POOL', '10'), env('PGRST_ADMIN_SERVER_PORT', '3001'), env('PGRST_ADMIN_SERVER_HOST', '0.0.0.0')], uid=10001, probe={'path': '/ready', 'port': 3001})
