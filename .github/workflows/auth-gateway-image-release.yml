@@ -1,0 +1,56 @@
+name: Release auth gateway image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: re8ch/cloud-functions
+          ref: ab350532260327f570db1f8a1e4a272362684363
+          ssh-key: ${{ secrets.CLOUD_FUNCTIONS_RELEASE_DEPLOY_KEY }}
+          persist-credentials: false
+      - name: Verify reviewed source
+        run: test "$(git rev-parse HEAD)" = ab350532260327f570db1f8a1e4a272362684363
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: functions/re8ch-auth-gateway/Dockerfile.server
+          platforms: linux/amd64
+          push: true
+          provenance: true
+          sbom: true
+          tags: ghcr.io/re8ch/re8ch-auth-gateway:link-session-ab350532
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - name: Sign and verify immutable image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          image="ghcr.io/re8ch/re8ch-auth-gateway@${DIGEST}"
+          cosign sign --yes "$image"
+          cosign verify --certificate-identity "https://github.com/re8ch/service-backend/.github/workflows/auth-gateway-image-release.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image"
+          echo "$image" | tee auth-gateway.image
+          echo "Published and verified: $image" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: auth-gateway-image
+          path: auth-gateway.image
+          if-no-files-found: error
