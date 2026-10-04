@@ -14,6 +14,7 @@
         "io.modelcontextprotocol.registry/publisher-provided": {
           "io.github.stacklok": {
             "streamable-http": {
+              "status": "active",
               "re8ch_capabilities": {
                 "version": 1,
                 "cluster": "re8ch-k3s",

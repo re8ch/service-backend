@@ -115,7 +115,7 @@ def generate():
         "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
         "remotes": [{"type": "streamable-http", "url": "https://operate.tools.re8ch.com/cloud/mcp"}],
         "_meta": {"io.modelcontextprotocol.registry/publisher-provided": {"io.github.stacklok": {
-            "streamable-http": {"re8ch_capabilities": capability_inventory(matrix, definitions), "tool_definitions": [{key: tool[key] for key in ("name", "description", "inputSchema", "_meta")} for tool in definitions] + MIHOMOS_TOOLS}}}}}]}
+            "streamable-http": {"status": "active", "re8ch_capabilities": capability_inventory(matrix, definitions), "tool_definitions": [{key: tool[key] for key in ("name", "description", "inputSchema", "_meta")} for tool in definitions] + MIHOMOS_TOOLS}}}}}]}
     (ROOT / "operations/plugin-capabilities/registry.json").write_text(json.dumps(registry, indent=2) + "\n")
     # The file source consumes ToolHive's registry envelope, not the MCP API's
     # bare servers response. Keep the readable payload used by UI tooling.
