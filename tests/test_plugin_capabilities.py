@@ -625,3 +625,16 @@ def test_runtime_registry_publisher_extensions_match_pinned_schema():
         invalid = copy.deepcopy(extensions)
         del invalid['io.github.stacklok']['streamable-http']['status']
         assert list(validator.iter_errors(invalid))
+
+
+def test_plugin_catalog_fits_configured_registry_storage_limit():
+    from pathlib import Path
+    import yaml
+    root = Path(__file__).parents[1]
+    release = list(yaml.safe_load_all((root / 'platform/connectool/release.yaml').read_text()))[1]
+    limit = release['spec']['values']['toolhive']['registry']['release']['values']['config']['database']['maxMetaSize']
+    assert limit == 1024 * 1024
+    runtime = json.loads((root / 'operations/plugin-capabilities/registry.runtime.json').read_text())
+    for server in runtime['data']['servers']:
+        metadata = server['_meta']['io.modelcontextprotocol.registry/publisher-provided']
+        assert len(json.dumps(metadata, separators=(',', ':'), ensure_ascii=False).encode()) < limit
