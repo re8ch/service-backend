@@ -73,7 +73,8 @@ class OCIPreservationTests(unittest.TestCase):
             policy = root / 'policy.json'
             policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci-archive': {str(archive): [{'type': 'insecureAcceptAnything'}]}}}))
             digestfile = root / 'digest'
-            subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--digestfile', str(digestfile), 'oci-archive:' + str(archive), 'oci:' + str(root / 'copied') + ':test'], check=True, capture_output=True)
+            result = subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--digestfile', str(digestfile), 'oci-archive:' + str(archive), 'oci:' + str(root / 'copied') + ':test'], capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
             self.assertEqual(digestfile.read_text().strip(), index['digest'])
             for file in blobs.iterdir():
                 self.assertEqual(file.read_bytes(), (root / 'copied' / 'blobs' / 'sha256' / file.name).read_bytes())
