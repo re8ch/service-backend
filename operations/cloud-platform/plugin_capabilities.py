@@ -135,9 +135,22 @@ CILIUM_NETWORK_READS = frozenset(
     for verb in (("list", "read") if not suffix else ("read",))
 )
 
+CILIUM_POLICY_READS = frozenset({
+    ("apis/cilium.io/v2", "listCiliumIoV2CiliumClusterwideNetworkPolicy"),
+    ("apis/cilium.io/v2", "readCiliumIoV2CiliumClusterwideNetworkPolicy"),
+    ("apis/cilium.io/v2", "readCiliumIoV2CiliumClusterwideNetworkPolicyStatus"),
+    ("apis/cilium.io/v2", "listCiliumIoV2CiliumLocalRedirectPolicyForAllNamespaces"),
+    ("apis/cilium.io/v2", "listCiliumIoV2CiliumNetworkPolicyForAllNamespaces"),
+    ("apis/cilium.io/v2", "listCiliumIoV2NamespacedCiliumLocalRedirectPolicy"),
+    ("apis/cilium.io/v2", "readCiliumIoV2NamespacedCiliumLocalRedirectPolicy"),
+    ("apis/cilium.io/v2", "listCiliumIoV2NamespacedCiliumNetworkPolicy"),
+    ("apis/cilium.io/v2", "readCiliumIoV2NamespacedCiliumNetworkPolicy"),
+    ("apis/cilium.io/v2", "readCiliumIoV2NamespacedCiliumNetworkPolicyStatus"),
+})
+
 
 def reviewed_read(group_version: str, operation_id: str) -> bool:
-    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS | CILIUM_NETWORK_READS
+    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS
 
 
 def local_ref(document: dict, value: dict) -> dict:
@@ -232,6 +245,16 @@ def sanitize_resource(value: Any) -> Any:
                 for key, item in value.items() if key not in {"managedFields", "annotations"}}
     if isinstance(value, list):
         return [sanitize_resource(item) for item in value]
+    return value
+
+
+def project_cilium_policy(value: Any) -> Any:
+    """Keep reviewed policy rules while omitting HTTP match headers."""
+    if isinstance(value, dict):
+        return {key: project_cilium_policy(item) for key, item in value.items()
+                if key.lower() not in {"headers", "headermatches"}}
+    if isinstance(value, list):
+        return [project_cilium_policy(item) for item in value]
     return value
 
 
@@ -380,4 +403,7 @@ def read_operation(service: Any, group_version: str, operation_id: str, schema_h
         raise OperationError("PLUGIN_READ_FAILED", "Invalid native JSON response") from exc
     validation = validate_response_body(evidence["openapi"], contract, body, watch)
     return {"cluster": evidence["cluster"], "operationId": operation_id, "schemaHash": schema_hash,
-            "auditRef": result.get("auditRef"), "watch": watch, "bodyValidation": validation, "result": project_storage_resource(body) if group_version in STORAGE_PROJECTION["groups"] else sanitize_resource(body)}
+            "auditRef": result.get("auditRef"), "watch": watch, "bodyValidation": validation,
+            "result": project_storage_resource(body) if group_version in STORAGE_PROJECTION["groups"]
+            else project_cilium_policy(sanitize_resource(body)) if (group_version, operation_id) in CILIUM_POLICY_READS
+            else sanitize_resource(body)}

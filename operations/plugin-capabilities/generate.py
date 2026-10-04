@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "operations/cloud-platform"))
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
 from plugin_capabilities import STORAGE_PROJECTION
-from plugin_capabilities import GROUP_PLUGINS, RESOURCE_PLUGINS, ADVFAB_KINDS, reviewed_read, operation_contract, operation_disposition
+from plugin_capabilities import GROUP_PLUGINS, RESOURCE_PLUGINS, ADVFAB_KINDS, CILIUM_POLICY_READS, reviewed_read, operation_contract, operation_disposition
 
 
 def canonical(value):
@@ -88,6 +88,8 @@ def generate():
                            "Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.")
             if source["groupVersion"] in STORAGE_PROJECTION["groups"]:
                 description += " Returns reviewed storage fields only; omits authentication, open-ended configuration, mount options and container overrides. Secret references are names only."
+            if (source["groupVersion"], row["operationId"]) in CILIUM_POLICY_READS:
+                description += " Omits HTTP match headers, annotations and credential fields from the policy response."
             tools[name] = {"name": name, "description": description, "plugin": plugin,
                            "groupVersion": source["groupVersion"], "operationId": row["operationId"],
                            "schemaHash": digest, "inputSchema": contract["inputSchema"],
