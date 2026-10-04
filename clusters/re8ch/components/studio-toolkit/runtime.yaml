@@ -178,6 +178,8 @@ spec:
           value: '3001'
         - name: PGRST_ADMIN_SERVER_HOST
           value: 0.0.0.0
+        - name: PGRST_DB_CHANNEL_ENABLED
+          value: 'false'
         - name: PGOPTIONS
           value: -c default_transaction_read_only=on
         - name: PGRST_DB_TX_END
