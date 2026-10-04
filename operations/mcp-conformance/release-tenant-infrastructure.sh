@@ -48,6 +48,12 @@ fi
 : "${TENANT_IMAGE_TAG:=${GITHUB_SHA:-$(git rev-parse HEAD)}}"
 : "${TENANT_IMAGE_DOCKERFILE:=clusters/re8ch/components/ai-operations/Dockerfile}"
 : "${TENANT_IMAGE_ARTIFACT_NAME:=tenant-infrastructure}"
+: "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS:=300}"
+if [[ ! "$TENANT_IMAGE_PUSH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]{1,2}$ ]] ||
+   (( TENANT_IMAGE_PUSH_TIMEOUT_SECONDS < 60 || TENANT_IMAGE_PUSH_TIMEOUT_SECONDS > 900 )); then
+  echo "TENANT_IMAGE_PUSH_TIMEOUT_SECONDS must be an integer from 60 through 900" >&2
+  exit 2
+fi
 dockerfile="$TENANT_IMAGE_DOCKERFILE"
 image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
@@ -82,7 +88,7 @@ fi
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 push_attempt=1
 push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
-while ! run_with_release_timeout 5m docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 --provenance=mode=max \
+while ! run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 --provenance=mode=max \
   --attest "type=sbom,generator=${sbom_generator}" \
   --progress plain --push --metadata-file "$metadata" -f "$dockerfile" -t "$image" .; do
   if (( push_attempt >= push_attempts )); then
