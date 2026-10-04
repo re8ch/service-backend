@@ -2955,11 +2955,12 @@
                     "method": "POST",
                     "path": "/apis/anatomy.re8ch.com/v1alpha1/namespaces/{namespace}/runtimediffs",
                     "operationId": "createAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
-                    "registration": "not_implemented",
+                    "registration": "implemented_not_deployed",
                     "disposition": "runtime_request_review_required",
                     "schemaProvenance": "native_openapi",
                     "httpConformance": "not_run",
-                    "semanticConformance": "not_run"
+                    "semanticConformance": "not_run",
+                    "tool": "anatomy.runtimediff.create"
                   },
                   {
                     "plugin": "anatomy",
@@ -16281,6 +16282,69 @@
                       "operationId": "listAnatomyRe8chComV1alpha1RuntimeCommitForAllNamespaces",
                       "method": "GET",
                       "path": "/apis/anatomy.re8ch.com/v1alpha1/runtimecommits",
+                      "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+                      "httpConformance": "not_run",
+                      "semanticConformance": "not_run"
+                    }
+                  }
+                },
+                {
+                  "name": "anatomy.runtimediff.create",
+                  "description": "Plan, create, or inspect one RuntimeDiff in the bounded canary namespace. Administrator only.",
+                  "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "phase": {
+                        "type": "string",
+                        "enum": [
+                          "plan",
+                          "execute",
+                          "status"
+                        ]
+                      },
+                      "namespace": {
+                        "type": "string",
+                        "const": "runtime-anatomy-canary"
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+                      },
+                      "baseCommit": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+                      },
+                      "targetCommit": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+                      },
+                      "idempotencyKey": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 128
+                      },
+                      "planHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "phase",
+                      "namespace",
+                      "name",
+                      "baseCommit",
+                      "targetCommit",
+                      "idempotencyKey"
+                    ]
+                  },
+                  "_meta": {
+                    "re8ch": {
+                      "plugin": "anatomy",
+                      "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+                      "operationId": "createAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
+                      "method": "POST",
+                      "path": "/apis/anatomy.re8ch.com/v1alpha1/namespaces/{namespace}/runtimediffs",
                       "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
                       "httpConformance": "not_run",
                       "semanticConformance": "not_run"

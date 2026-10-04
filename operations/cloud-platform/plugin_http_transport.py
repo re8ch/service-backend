@@ -1,4 +1,4 @@
-"""Private Unix-socket kubectl proxy for one bound GET; no local TCP listener."""
+"""Private Unix-socket kubectl proxy for one bound native request."""
 import http.client
 import os
 import re
@@ -26,18 +26,23 @@ class UnixConnection(http.client.HTTPConnection):
         self.sock.connect(self.socket_path)
 
 
-def get(kubeconfig, path):
+def request(kubeconfig, method, path, body=None):
+    if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+        raise OperationError("INVALID_ARGUMENT", "Unsupported native HTTP method")
     target = urlsplit(path)
     if target.scheme or target.netloc or target.fragment or not target.path.startswith('/apis/') or any(x in path for x in ('\r', '\n', '..')):
         raise OperationError("INVALID_ARGUMENT", "A bound Kubernetes API path is required")
+    if body is not None and (not isinstance(body, bytes) or len(body) > MAX_BODY):
+        raise OperationError("INVALID_ARGUMENT", "Native request body must be bounded bytes")
     connection = None
     with tempfile.TemporaryDirectory(prefix="re8ch-http-") as directory:
         os.chmod(directory, 0o700)
         endpoint = os.path.join(directory, "proxy.sock")
+        rejected = "|".join(sorted({"GET", "POST", "PUT", "PATCH", "DELETE", "CONNECT", "OPTIONS", "HEAD", "TRACE"} - {method}))
         process = subprocess.Popen([
             "kubectl", "--kubeconfig", kubeconfig, "proxy", "--unix-socket", endpoint,
             "--accept-hosts=^localhost$", "--accept-paths=^" + re.escape(target.path) + "$",
-            "--reject-paths=^$", "--reject-methods=^(POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|HEAD|TRACE)$",
+            "--reject-paths=^$", "--reject-methods=^(" + rejected + ")$",
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         timer = None
         try:
@@ -56,7 +61,10 @@ def get(kubeconfig, path):
             timer.daemon = True
             timer.start()
             connection = UnixConnection(endpoint)
-            connection.request("GET", path, headers={"Accept": "application/json", "Accept-Encoding": "identity"})
+            headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
+            if body is not None:
+                headers["Content-Type"] = "application/json"
+            connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
             body = response.read(MAX_BODY + 1)
             if time.monotonic() >= request_deadline:
@@ -84,3 +92,7 @@ def get(kubeconfig, path):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=2)
+
+
+def get(kubeconfig, path):
+    return request(kubeconfig, "GET", path)

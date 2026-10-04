@@ -18,7 +18,7 @@ def test_backlog_is_keyed_and_all_evidence_starts_unverified():
     assert Counter(row["plugin"] for row in rows)["anatomy"] == 49
     assert all(row["authorization"] == "platform_admin_required" for row in rows)
     assert all(row["httpEvidence"] is None and row["semanticEvidence"] is None for row in rows)
-    assert all(row["registration"] == "not_implemented" for row in rows)
+    assert all(row["tool"] for row in rows if row["registration"] != "not_implemented")
     assert all(row["schemaHash"] for row in rows if row["groupVersion"].startswith("apis/"))
 
 

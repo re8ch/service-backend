@@ -8,6 +8,7 @@ TOOLS = {
     "plugin.operation.read": "plugin_capabilities.read_operation",
     "plugin.capabilities.list": "plugin_capabilities.catalog",
     "plugin.openapi.get": "plugin_capabilities.openapi",
+    "anatomy.runtimediff.create": "anatomy_diff_operation.call",
     "nodes.list": "nodes_list",
     "nodes.get": "nodes_get",
     "nodes.reachability": "node_reachability",
