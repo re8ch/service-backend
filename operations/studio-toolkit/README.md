@@ -61,3 +61,12 @@ scan/signature/digest and encrypted reader evidence is uploaded to a **draft**
 private GitHub release `studio-toolkit-<source SHA>`. The `studio-oci` workflow
 artifact retains the portable source build for three days. A draft release does
 not activate a deployment. Inspect both API and worker scans before GitOps rollout.
+
+Publisher Skopeo is pinned to v1.24.1, built without CGO using upstream's
+`containers_image_openpgp` build tag, installed under
+`/Volumes/A1/tools/studio-publisher/bin`. The same version is built in PR CI and
+exercised with a real OCI archive containing both a Linux image and an attestation.
+The test compares the copied index digest and every blob; it cannot pass by
+dropping attestations or selecting only the host platform. Reproduce installation
+with `CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1`
+using Go 1.26.8 and a dedicated GOBIN.
