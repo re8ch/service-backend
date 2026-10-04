@@ -3,6 +3,7 @@ import argparse
 import base64
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import time
@@ -69,7 +70,7 @@ def main():
             raise RuntimeError('Refusing to publish proprietary runtime source to a public project')
         print('Private Studio project ready')
     elif args.action == 'scan':
-        if not args.image or not args.digest or not args.digest.startswith('sha256:'):
+        if not args.image or not args.digest or not re.fullmatch(r'sha256:[0-9a-f]{64}', args.digest):
             raise ValueError('Image name and immutable digest are required')
         path = f'projects/{PROJECT}/repositories/{args.image}/artifacts/' + urllib.parse.quote(args.digest, safe='')
         api('POST', path + '/scan')
@@ -80,7 +81,11 @@ def main():
             if scans and all(s.get('scan_status') == 'Success' for s in scans):
                 args.output.mkdir(parents=True, exist_ok=True)
                 (args.output / (args.image + '-scan.json')).write_text(json.dumps(artifact['scan_overview'], indent=2))
-                print(args.image + ': scan completed; review the attached severity report before activation')
+                status, report = api('GET', path + '/additions/vulnerabilities')
+                if status != 200 or not isinstance(report, dict) or not any(isinstance(value, dict) and isinstance(value.get('vulnerabilities'), list) for value in report.values()):
+                    raise RuntimeError('Harbor did not return a complete vulnerability report')
+                (args.output / (args.image + '-vulnerabilities.json')).write_text(json.dumps(report, indent=2))
+                print(args.image + ': scan completed; review full vulnerability findings before activation')
                 return
             if any(s.get('scan_status') in ('Error', 'Stopped') for s in scans):
                 raise RuntimeError('Harbor image scan failed')
