@@ -134,3 +134,9 @@ This is an explicit primary-backed read service, not replica availability.
 Restore replica routing only after receiver/replay health, role/database presence,
 and Studio read-after-write acceptance have been verified. No shared database
 replication configuration is changed by this application deployment.
+
+The RO instance disables the PostgreSQL notification listener, which PostgREST
+forces onto a read-write session and cannot start with PGOPTIONS read-only.
+After schema migrations, roll the RO deployment through GitOps to reload its
+schema cache; the RW listener continues to receive NOTIFY. See the upstream
+[listener behavior](https://postgrest.org/en/stable/references/listener.html).
