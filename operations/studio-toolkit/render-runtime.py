@@ -93,9 +93,9 @@ NOTIFY pgrst, 'reload schema';
 SQL
 """
 pod = {'automountServiceAccountToken': False, 'restartPolicy': 'OnFailure', 'nodeSelector': {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'}, 'imagePullSecrets': [{'name': 'studio-registry-reader'}], 'securityContext': {'runAsNonRoot': True, 'runAsUser': 999, 'runAsGroup': 999, 'fsGroup': 999, 'seccompProfile': {'type': 'RuntimeDefault'}}, 'volumes': [{'name': 'migrations', 'emptyDir': {}}],
- 'initContainers': [{'name': 'source-migration', 'image': a.api_image, 'command': ['python', '-c', 'import shutil; shutil.copyfile("/app/toolkit/sql/001_studio.sql", "/migrations/001_studio.sql")'], 'securityContext': security, 'volumeMounts': [{'name': 'migrations', 'mountPath': '/migrations'}]}],
+ 'initContainers': [{'name': 'source-migration', 'image': a.api_image, 'resources': {'requests': {'cpu': '25m', 'memory': '16Mi'}, 'limits': {'cpu': '250m', 'memory': '128Mi'}}, 'command': ['python', '-c', 'import shutil; shutil.copyfile("/app/toolkit/sql/001_studio.sql", "/migrations/001_studio.sql")'], 'securityContext': security, 'volumeMounts': [{'name': 'migrations', 'mountPath': '/migrations'}]}],
  'containers': [{'name': 'migrate', 'image': 'docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7', 'command': ['/bin/sh', '-ec'], 'args': [script], 'securityContext': security, 'env': [env('POSTGRES_ADMIN_USER', key='POSTGRES_USER_READ_WRITE', secret='supabase-pg-re8ch-secrets'), env('POSTGRES_ADMIN_PASSWORD', key='POSTGRES_PASSWORD', secret='supabase-pg-re8ch-secrets'), env('STUDIO_DATABASE_PASSWORD', secret='studio-db-bootstrap')], 'volumeMounts': [{'name': 'migrations', 'mountPath': '/migrations', 'readOnly': True}], 'resources': {'requests': {'cpu': '25m', 'memory': '32Mi'}, 'limits': {'cpu': '250m', 'memory': '256Mi'}}}]}
-obj('Job', 'studio-database-bootstrap-v1', {'backoffLimit': 6, 'activeDeadlineSeconds': 600, 'template': {'spec': pod}}, namespace='supabase-pg-re8ch', api='batch/v1')
+obj('Job', 'studio-database-bootstrap-v2', {'backoffLimit': 6, 'activeDeadlineSeconds': 600, 'template': {'spec': pod}}, namespace='supabase-pg-re8ch', api='batch/v1')
 a.output.parent.mkdir(parents=True, exist_ok=True)
 a.output.write_text(yaml.safe_dump_all(docs, sort_keys=False))
 print('Rendered digest-pinned runtime without secret values')
