@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: eddy-quartz
+codename: gulfstream-quartz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:8fba35799545c8acb531eaca490260506a457ca3ec90a9d49f8cb9ceb4f0d52b
+  digest: sha256:ed0e4a59481e5bb478e9b8b632158b282bb0d98c39555fabef8c8d816ad977b9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

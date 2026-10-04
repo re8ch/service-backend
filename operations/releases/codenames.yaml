@@ -874,6 +874,8 @@ modules:
       digest: sha256:07f1a6dcf8113f5a24ce18709803972a3752f52bb189543cfcdf7c879e172abd
     - codename: eddy-quartz
       digest: sha256:8fba35799545c8acb531eaca490260506a457ca3ec90a9d49f8cb9ceb4f0d52b
+    - codename: gulfstream-quartz
+      digest: sha256:ed0e4a59481e5bb478e9b8b632158b282bb0d98c39555fabef8c8d816ad977b9
   platform/hyperswitch:
     releases:
     - codename: anchor
