@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "description": "Administrator-only resource reads. Explicit field projection excludes credential-bearing arbitrary maps, mount options, container arguments, volume definitions, annotations and unreviewed extension fields. Secret references contain names only; values are never fetched.",
+  "groups": [
+    "apis/csi.ceph.io/v1",
+    "apis/objectbucket.io/v1alpha1"
+  ],
+  "metadata": {
+    "name": true,
+    "namespace": true,
+    "uid": true,
+    "resourceVersion": true,
+    "generation": true,
+    "creationTimestamp": true,
+    "deletionTimestamp": true,
+    "continue": true,
+    "remainingItemCount": true
+  },
+  "status": {
+    "phase": true,
+    "observedGeneration": true
+  },
+  "specByKind": {
+    "CephConnection": {
+      "monitors": true,
+      "rbdMirrorDaemonCount": true,
+      "readAffinity": {
+        "crushLocationLabels": true
+      }
+    },
+    "ClientProfile": {
+      "cephConnectionRef": {
+        "name": true
+      },
+      "cephFs": {
+        "cephCsiSecrets": {
+          "controllerPublishSecret": {
+            "name": true,
+            "namespace": true
+          }
+        },
+        "radosNamespace": true,
+        "subVolumeGroup": true
+      },
+      "rbd": {
+        "cephCsiSecrets": {
+          "controllerPublishSecret": {
+            "name": true,
+            "namespace": true
+          }
+        },
+        "radosNamespace": true
+      },
+      "nvmeof": {
+        "cephCsiSecrets": {
+          "controllerPublishSecret": {
+            "name": true,
+            "namespace": true
+          }
+        },
+        "radosNamespace": true
+      }
+    },
+    "ClientProfileMapping": {
+      "mappings": {
+        "localClientProfile": true,
+        "remoteClientProfile": true,
+        "blockPoolIdMapping": true
+      }
+    },
+    "Driver": {
+      "attachRequired": true,
+      "cephFsClientType": true,
+      "clusterName": true,
+      "deployCsiAddons": true,
+      "enableFencing": true,
+      "enableMetadata": true,
+      "fsGroupPolicy": true,
+      "generateOMapInfo": true,
+      "grpcTimeout": true,
+      "snapshotPolicy": true,
+      "controllerPlugin": {
+        "hostNetwork": true,
+        "imagePullPolicy": true,
+        "priorityClassName": true,
+        "privileged": true,
+        "replicas": true,
+        "serviceAccountName": true,
+        "enableSeLinuxHostMount": true,
+        "kubeletDirPath": true
+      },
+      "nodePlugin": {
+        "hostNetwork": true,
+        "imagePullPolicy": true,
+        "priorityClassName": true,
+        "privileged": true,
+        "replicas": true,
+        "serviceAccountName": true,
+        "enableSeLinuxHostMount": true,
+        "kubeletDirPath": true
+      },
+      "imageSet": {
+        "name": true
+      },
+      "encryption": {
+        "configMapName": true
+      },
+      "leaderElection": {
+        "leaseDuration": true,
+        "renewDeadline": true,
+        "retryPeriod": true
+      },
+      "liveness": {
+        "metricsPort": true
+      },
+      "log": {
+        "verbosity": true
+      }
+    },
+    "OperatorConfig": {
+      "driverSpecDefaults": {
+        "attachRequired": true,
+        "cephFsClientType": true,
+        "clusterName": true,
+        "deployCsiAddons": true,
+        "enableFencing": true,
+        "enableMetadata": true,
+        "fsGroupPolicy": true,
+        "generateOMapInfo": true,
+        "grpcTimeout": true,
+        "snapshotPolicy": true,
+        "controllerPlugin": {
+          "hostNetwork": true,
+          "imagePullPolicy": true,
+          "priorityClassName": true,
+          "privileged": true,
+          "replicas": true,
+          "serviceAccountName": true,
+          "enableSeLinuxHostMount": true,
+          "kubeletDirPath": true
+        },
+        "nodePlugin": {
+          "hostNetwork": true,
+          "imagePullPolicy": true,
+          "priorityClassName": true,
+          "privileged": true,
+          "replicas": true,
+          "serviceAccountName": true,
+          "enableSeLinuxHostMount": true,
+          "kubeletDirPath": true
+        },
+        "imageSet": {
+          "name": true
+        },
+        "encryption": {
+          "configMapName": true
+        },
+        "leaderElection": {
+          "leaseDuration": true,
+          "renewDeadline": true,
+          "retryPeriod": true
+        },
+        "liveness": {
+          "metricsPort": true
+        },
+        "log": {
+          "verbosity": true
+        }
+      },
+      "log": {
+        "verbosity": true
+      }
+    },
+    "ObjectBucket": {
+      "claimRef": {
+        "name": true,
+        "namespace": true
+      },
+      "endpoint": {
+        "bucketHost": true,
+        "bucketName": true,
+        "bucketPort": true,
+        "region": true,
+        "subRegion": true
+      },
+      "reclaimPolicy": true,
+      "storageClassName": true
+    },
+    "ObjectBucketClaim": {
+      "bucketName": true,
+      "generateBucketName": true,
+      "objectBucketName": true,
+      "storageClassName": true
+    }
+  }
+}

@@ -1,0 +1,10 @@
+# Staged catalog resource. Include from the runtime promotion, not before the
+# matching native server image has passed live acceptance.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+  - name: re8ch-plugin-operation-catalog
+    namespace: toolhive-system
+    files: [registry.json=registry.runtime.json]
+generatorOptions:
+  disableNameSuffixHash: true

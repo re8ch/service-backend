@@ -142,3 +142,11 @@ and no caching. Empty/invalid configuration returns 404. This is a public
 ownership challenge, never an OAuth client secret or API credential. Verify
 the URL before clicking Verify Domain in the OpenAI draft. The default remains
 empty; this change alone does not verify a domain or publish a plugin.
+
+### Registration completeness
+
+`platform_tool_catalog` returns `missingTools` alongside callable `tools` and
+`unavailableBackends`. Each missing entry identifies an allowlisted operation
+that a successfully discovered backend did not publish. Unavailable backends
+remain unknown, not proof of missing operations. These fields measure registry
+publication only; they do not prove native API or semantic workflow coverage.

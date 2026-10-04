@@ -7,9 +7,10 @@ RUN git init . \
     && git fetch --depth 1 origin "${TOOLHIVE_CLOUD_UI_REF}" \
     && git checkout --detach FETCH_HEAD
 COPY re8ch-codex.patch /tmp/re8ch-codex.patch
-RUN git apply /tmp/re8ch-codex.patch
+COPY re8ch-capabilities.patch /tmp/re8ch-capabilities.patch
+RUN git apply /tmp/re8ch-codex.patch && git apply /tmp/re8ch-capabilities.patch
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm build
+RUN pnpm exec vitest run && pnpm type-check && pnpm lint && pnpm build
 
 FROM node:24.18.0-alpine
 LABEL org.opencontainers.image.source="https://github.com/re8ch/service-backend"

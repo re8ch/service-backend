@@ -1,0 +1,564 @@
+{
+  "plugin": "mihomos-cluster",
+  "nativeController": "MetaCubeX/mihomo",
+  "version": "v1.19.29",
+  "source": "https://github.com/MetaCubeX/mihomo/tree/e26714a181ac0e2fa803453c0a8e9a9ce94e31cb/hub/route",
+  "clusterEvidence": "audit://operations/op_1f912da7ce544547b991dc8e1f63bbdc",
+  "sourceKind": "reviewed-source-route-inventory-not-openapi",
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/",
+      "sourceFile": "hub/route/server.go",
+      "sourceSha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.controller.hello",
+      "operationId": "getMihomoHello",
+      "sourceEvidence": [
+        {
+          "path": "hub/route/server.go",
+          "sha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/logs",
+      "sourceFile": "hub/route/server.go",
+      "sourceSha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required"
+    },
+    {
+      "method": "GET",
+      "path": "/traffic",
+      "sourceFile": "hub/route/server.go",
+      "sourceSha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required"
+    },
+    {
+      "method": "GET",
+      "path": "/memory",
+      "sourceFile": "hub/route/server.go",
+      "sourceSha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "sourceFile": "hub/route/server.go",
+      "sourceSha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.controller.version",
+      "nativeReadAuditRef": "audit://operations/op_00ff6b494823427b8241a049bf3566cb",
+      "operationId": "getMihomoVersion"
+    },
+    {
+      "method": "GET",
+      "path": "/configs",
+      "sourceFile": "hub/route/configs.go",
+      "sourceSha256": "039f1624b98089706d50b405956b91eba799f97aad7e0f4ac82bb92c9b9833cd",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.configs.get",
+      "operationId": "getMihomoConfigSummary",
+      "sourceEvidence": [
+        {
+          "path": "hub/route/configs.go",
+          "sha256": "039f1624b98089706d50b405956b91eba799f97aad7e0f4ac82bb92c9b9833cd"
+        },
+        {
+          "path": "hub/executor/executor.go",
+          "sha256": "e28e7d73ee257f76a090cb2810d034d5ca3e503fa4ee9cb739f2bb6bc0662e18"
+        },
+        {
+          "path": "config/config.go",
+          "sha256": "7f5d6202bc741985ba2c05d2dbafb3e284cb0e51960b9e407033bd9b2eb3207f"
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/configs",
+      "sourceFile": "hub/route/configs.go",
+      "sourceSha256": "039f1624b98089706d50b405956b91eba799f97aad7e0f4ac82bb92c9b9833cd",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "PATCH",
+      "path": "/configs",
+      "sourceFile": "hub/route/configs.go",
+      "sourceSha256": "039f1624b98089706d50b405956b91eba799f97aad7e0f4ac82bb92c9b9833cd",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/configs/geo",
+      "sourceFile": "hub/route/configs.go",
+      "sourceSha256": "039f1624b98089706d50b405956b91eba799f97aad7e0f4ac82bb92c9b9833cd",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "GET",
+      "path": "/proxies",
+      "sourceFile": "hub/route/proxies.go",
+      "sourceSha256": "c7c9dda23ca63c046377a987bf98d31e3351127e2cd9de56015c47e680a3661c",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.proxies.list",
+      "operationId": "listMihomoProxies"
+    },
+    {
+      "method": "GET",
+      "path": "/proxies/{name}",
+      "sourceFile": "hub/route/proxies.go",
+      "sourceSha256": "c7c9dda23ca63c046377a987bf98d31e3351127e2cd9de56015c47e680a3661c",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.proxies.get",
+      "operationId": "getMihomoProxy"
+    },
+    {
+      "method": "GET",
+      "path": "/proxies/{name}/delay",
+      "sourceFile": "hub/route/proxies.go",
+      "sourceSha256": "c7c9dda23ca63c046377a987bf98d31e3351127e2cd9de56015c47e680a3661c",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "active_probe_review"
+    },
+    {
+      "method": "PUT",
+      "path": "/proxies/{name}",
+      "sourceFile": "hub/route/proxies.go",
+      "sourceSha256": "c7c9dda23ca63c046377a987bf98d31e3351127e2cd9de56015c47e680a3661c",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/proxies/{name}",
+      "sourceFile": "hub/route/proxies.go",
+      "sourceSha256": "c7c9dda23ca63c046377a987bf98d31e3351127e2cd9de56015c47e680a3661c",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "GET",
+      "path": "/group",
+      "sourceFile": "hub/route/groups.go",
+      "sourceSha256": "01115691bda9a8bb0901f8ea6b1169403990f805cf9dd7f8ddfcca7972745d56",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.groups.list",
+      "operationId": "listMihomoGroups"
+    },
+    {
+      "method": "GET",
+      "path": "/group/{name}",
+      "sourceFile": "hub/route/groups.go",
+      "sourceSha256": "01115691bda9a8bb0901f8ea6b1169403990f805cf9dd7f8ddfcca7972745d56",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.groups.get",
+      "operationId": "getMihomoGroup"
+    },
+    {
+      "method": "GET",
+      "path": "/group/{name}/delay",
+      "sourceFile": "hub/route/groups.go",
+      "sourceSha256": "01115691bda9a8bb0901f8ea6b1169403990f805cf9dd7f8ddfcca7972745d56",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "active_probe_review"
+    },
+    {
+      "method": "GET",
+      "path": "/rules",
+      "sourceFile": "hub/route/rules.go",
+      "sourceSha256": "0879773fb52d93f987008ac457d77ff76b1ffedd2d3f5ac4c45ac770f1875b90",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.rules.list",
+      "operationId": "listMihomoRules"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rules/disable",
+      "sourceFile": "hub/route/rules.go",
+      "sourceSha256": "0879773fb52d93f987008ac457d77ff76b1ffedd2d3f5ac4c45ac770f1875b90",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "GET",
+      "path": "/connections",
+      "sourceFile": "hub/route/connections.go",
+      "sourceSha256": "24d5b4fbbda6d115eb3c18b2d33318c5a78af678c94f3a1e7dddca8cea9adfd1",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.connections.snapshot",
+      "operationId": "getMihomoConnectionSnapshot",
+      "sourceEvidence": [
+        {
+          "path": "hub/route/connections.go",
+          "sha256": "24d5b4fbbda6d115eb3c18b2d33318c5a78af678c94f3a1e7dddca8cea9adfd1"
+        },
+        {
+          "path": "tunnel/statistic/manager.go",
+          "sha256": "508daa254d05b6414e899e4eb154cb3b83572d6223e5662da9463728cb588886"
+        },
+        {
+          "path": "tunnel/statistic/tracker.go",
+          "sha256": "80e8cc0df115c35a62baea5aec4c3ad4a28c1cf9c47c52a78e76523520c83a6f"
+        },
+        {
+          "path": "constant/metadata.go",
+          "sha256": "ea17eb033f6b82ec8d7882a7608a04db2edd785eef9c2a50ffe191cb2674afc4"
+        }
+      ],
+      "transport": "finite_json_without_upgrade",
+      "streamingConformance": "not_run"
+    },
+    {
+      "method": "DELETE",
+      "path": "/connections",
+      "sourceFile": "hub/route/connections.go",
+      "sourceSha256": "24d5b4fbbda6d115eb3c18b2d33318c5a78af678c94f3a1e7dddca8cea9adfd1",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/connections/{id}",
+      "sourceFile": "hub/route/connections.go",
+      "sourceSha256": "24d5b4fbbda6d115eb3c18b2d33318c5a78af678c94f3a1e7dddca8cea9adfd1",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "GET",
+      "path": "/providers/proxies",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.proxy-providers.list",
+      "operationId": "listMihomoProxyProviders"
+    },
+    {
+      "method": "GET",
+      "path": "/providers/proxies/{providerName}",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.proxy-providers.get",
+      "operationId": "getMihomoProxyProvider"
+    },
+    {
+      "method": "PUT",
+      "path": "/providers/proxies/{providerName}",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "GET",
+      "path": "/providers/proxies/{providerName}/healthcheck",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "active_probe_review"
+    },
+    {
+      "method": "GET",
+      "path": "/providers/proxies/{providerName}/{name}",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.provider-proxies.get",
+      "operationId": "getMihomoProviderProxy"
+    },
+    {
+      "method": "GET",
+      "path": "/providers/proxies/{providerName}/{name}/healthcheck",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "active_probe_review"
+    },
+    {
+      "method": "GET",
+      "path": "/providers/rules",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "implemented_not_deployed",
+      "openapiSchema": "../cloud-platform/mihomo-controller-openapi.json",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required",
+      "schemaProvenance": "source-derived-partial-native-contract",
+      "tool": "mihomos.rule-providers.list",
+      "operationId": "listMihomoRuleProviders"
+    },
+    {
+      "method": "PUT",
+      "path": "/providers/rules/{name}",
+      "sourceFile": "hub/route/provider.go",
+      "sourceSha256": "b741603fb84f9f559d3fce07f917b1f66ad72908dbb77104297ec6418e57627a",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/cache/fakeip/flush",
+      "sourceFile": "hub/route/cache.go",
+      "sourceSha256": "f536016a902c1377d01bed23e58a561c84f0ff4beff71bed1de9b2026b5c5af4",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/cache/dns/flush",
+      "sourceFile": "hub/route/cache.go",
+      "sourceSha256": "f536016a902c1377d01bed23e58a561c84f0ff4beff71bed1de9b2026b5c5af4",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "GET",
+      "path": "/dns/query",
+      "sourceFile": "hub/route/dns.go",
+      "sourceSha256": "764f108e722683aa97af8e147f8847d6d4fe8147bfd8ea8c0d5bba1368f197c8",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "active_probe_review"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/{key}",
+      "sourceFile": "hub/route/storage.go",
+      "sourceSha256": "cb44ceaabf37ad5eaf1de52b39621e93a9ff5ed174abd942e4218699c222a60f",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "read_adapter_required"
+    },
+    {
+      "method": "PUT",
+      "path": "/storage/{key}",
+      "sourceFile": "hub/route/storage.go",
+      "sourceSha256": "cb44ceaabf37ad5eaf1de52b39621e93a9ff5ed174abd942e4218699c222a60f",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/storage/{key}",
+      "sourceFile": "hub/route/storage.go",
+      "sourceSha256": "cb44ceaabf37ad5eaf1de52b39621e93a9ff5ed174abd942e4218699c222a60f",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/restart",
+      "sourceFile": "hub/route/restart.go",
+      "sourceSha256": "71f7d35c85012cf6e7f4654491d2c35e6949ff5a6ae920318cd0f3e10518e0a9",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/upgrade",
+      "sourceFile": "hub/route/upgrade.go",
+      "sourceSha256": "9de15331fb21f3952a14fdc885411d9a29764308a3f221ae41a8b20c4a8c1012",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/upgrade/ui",
+      "sourceFile": "hub/route/upgrade.go",
+      "sourceSha256": "9de15331fb21f3952a14fdc885411d9a29764308a3f221ae41a8b20c4a8c1012",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    },
+    {
+      "method": "POST",
+      "path": "/upgrade/geo",
+      "sourceFile": "hub/route/upgrade.go",
+      "sourceSha256": "9de15331fb21f3952a14fdc885411d9a29764308a3f221ae41a8b20c4a8c1012",
+      "registration": "not_implemented",
+      "openapiSchema": "not_extracted",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "disposition": "authority_review_required"
+    }
+  ],
+  "conditionalSurfaces": [
+    {
+      "surface": "/debug/*",
+      "condition": "debug enabled",
+      "status": "not_enumerated"
+    },
+    {
+      "surface": "/ui and /ui/*",
+      "condition": "uiPath configured",
+      "status": "not_enumerated"
+    },
+    {
+      "surface": "configured DoH path",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "condition": "dohServer configured",
+      "status": "schema_not_extracted"
+    },
+    {
+      "surface": "external routers",
+      "condition": "addExternalRouters build-specific registration",
+      "status": "not_enumerated"
+    }
+  ],
+  "constraints": [
+    "Restart, config mutation, rule disable and core/geo upgrades are disabled in embed mode.",
+    "Logs, traffic and memory require streaming/WebSocket-aware validation. Connections has a finite JSON snapshot adapter; its separate WebSocket mode remains unimplemented and untested.",
+    "GET delay, healthcheck and DNS operations cause network activity; GET alone does not establish a safe read.",
+    "Controller targets must come from authenticated cluster inventory, not arbitrary URLs.",
+    "Workload status registration does not imply any controller operation is callable."
+  ],
+  "sourceRevision": "e26714a181ac0e2fa803453c0a8e9a9ce94e31cb"
+}

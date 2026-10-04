@@ -26,3 +26,19 @@ def test_cloud_ui_release_is_remote_pinned_and_signed():
     assert "IMAGE: ghcr.io/re8ch/toolhive-cloud-ui-re8ch" in workflow
     assert 'cosign sign --yes "$IMAGE@$digest"' in workflow
     assert "workflow_dispatch:" in workflow
+
+
+def test_directory_pr_validation_builds_the_same_tested_image_without_publishing():
+    import yaml
+    workflow = yaml.safe_load((ROOT / '.github/workflows/toolhive-cloud-ui-release.yml').read_text())
+    assert workflow['permissions'] == {'contents': 'read'}
+    jobs = workflow['jobs']
+    assert jobs['release']['needs'] == 'validate'
+    assert "github.event_name != 'pull_request'" in jobs['release']['if']
+    assert "github.ref == 'refs/heads/main'" in jobs['release']['if']
+    assert 'environment' not in jobs['validate']
+    steps = jobs['validate']['steps']
+    assert any('docker build' in step.get('run', '') for step in steps)
+    assert not any('--push' in step.get('run', '') for step in steps)
+    dockerfile = (ROOT / 'clusters/re8ch/components/toolhive/cloud-ui-re8ch/Dockerfile').read_text()
+    assert 'pnpm exec vitest run && pnpm type-check && pnpm lint && pnpm build' in dockerfile

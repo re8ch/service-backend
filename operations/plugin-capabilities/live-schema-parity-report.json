@@ -1,0 +1,59 @@
+{
+  "capturedAt": "2026-10-04 02:54:07 UTC",
+  "cluster": "re8ch-k3s",
+  "indexAuditRef": "audit://operations/op_d0769e04eae040da859a0c960e61720a",
+  "scope": "Exact normalized comparison of the six captured native schemas with current live documents; not HTTP or semantic conformance.",
+  "schemaParity": "passed",
+  "httpConformance": "not_run",
+  "semanticConformance": "not_run",
+  "operations": [
+    {
+      "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+      "liveHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+      "capturedHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+      "matches": true,
+      "auditRef": "audit://operations/op_a986dfab4ebf405291b8ab10be234384",
+      "source": "/openapi/v3/apis/anatomy.re8ch.com/v1alpha1?hash=9061582A63E2CA5B68825804048E2EFCE8653021090E83EC9FB5364FB3B570EB363BEC1569BC941C1E458417D8F1D557DCA05620210F8B49173427660C6DF12D"
+    },
+    {
+      "groupVersion": "apis/ceph.rook.io/v1",
+      "liveHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+      "capturedHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+      "matches": true,
+      "auditRef": "audit://operations/op_76893e7e064d4a12826c6b64082ddadf",
+      "source": "/openapi/v3/apis/ceph.rook.io/v1?hash=DB8F846CAA295EA2289096B5BB9770FD342A8AA8A5D6C20031C80061C03E057F90DAEDB667E2ECFAF540DD975B3BAE03D098EDE2B62E9E7CE33805582BC499EE"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "liveHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "capturedHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "matches": true,
+      "auditRef": "audit://operations/op_b95513f0b6eb4486ba21d686790f3fcb",
+      "source": "/openapi/v3/apis/networking.advfab.org/v1alpha1?hash=2E4E99D7D6B431DF4DB74EB8ECFAEA0D45F63E406C78C794980EEB36CFFD88CA73994951984AD781014EC8F31118305789E574A1A8E1ABC18C342E5B7BA3FC79"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "liveHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "capturedHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "matches": true,
+      "auditRef": "audit://operations/op_df1fa449b59a42eba328dcf7da60cb60",
+      "source": "/openapi/v3/apis/networking.advfab.org/v1alpha2?hash=8344B1EEBBEE1F68370385FD9F0ACF3C8E521FF2E12B911F3DE684C36ADFDB9F97B60B953CD7D599B15CCEE1E659D74E34522DEAFE516745ECAE45C053E9F20F"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "liveHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "capturedHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "matches": true,
+      "auditRef": "audit://operations/op_27bd247140724116b5b9d9469f41e66d",
+      "source": "/openapi/v3/apis/networking.re8ch.com/v1alpha1?hash=DC5BE1D59FD2E562A3A8BF2E77C6CADF77C63A2009D48A0FA4BCBFD23345F159AAFC2526E77843306B96C0E58A44E2442977D40C5EB83F53BBEBFA2CBCA081EC"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "liveHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "capturedHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "matches": true,
+      "auditRef": "audit://operations/op_85add717c3754d0baa70cf5033fe19a6",
+      "source": "/openapi/v3/apis/networking.re8ch.com/v1alpha2?hash=9C639DDEFE1FC057C493B93DC2CBB742D32BBC0BDF40FD570A511D9DD3B2E571DEA32F9270388E0C279BF68A1481BB62D412136515F818480A9CE1F0087E3115"
+    }
+  ]
+}

@@ -26,6 +26,10 @@ ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
+    "plugin.capabilities.list": {},
+    "plugin.operations.list": {"groupVersion": {"type": "string"}},
+    "plugin.operation.read": {"groupVersion": {"type": "string"}, "operationId": {"type": "string"}, "schemaHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "parameters": {"type": "object"}},
+    "plugin.openapi.get": {"groupVersion": {"type": "string", "pattern": r"^(?:api/[a-z0-9]+|apis/[a-z0-9.-]+/[a-z0-9]+)$"}},
     "nodes.list": {},
     "nodes.get": {"name": {"type": "string"}},
     "nodes.reachability": {"name": {"type": "string"}},
@@ -45,10 +49,23 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "workspace.memory-audit": {},
 }
 
+from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
+MIHOMOS_BY_NAME = {tool["name"]: tool for tool in MIHOMOS_TOOLS}
+
+GENERATED_PLUGIN_TOOLS = {
+    item["name"]: item for item in json.loads(
+        Path(__file__).with_name("plugin-operation-tools.json").read_text()
+    )["tools"]
+}
+PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, "plugin.operation.read", *GENERATED_PLUGIN_TOOLS}
+
 WRITE_TOOLS = {"node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
 
 REQUIRED = {
+    "plugin.operations.list": ["groupVersion"],
+    "plugin.operation.read": ["groupVersion", "operationId", "schemaHash"],
+    "plugin.openapi.get": ["groupVersion"],
     "nodes.get": ["name"], "nodes.reachability": ["name"], "node.ssh.exec": ["name", "argv"], "kubectl.exec": ["argv"],
     **{f"kube.resource.{verb}": ["resource"] for verb in ("get", "list", "watch", "apply", "patch", "delete")},
 }
@@ -62,9 +79,13 @@ def tool_list(identity: Identity) -> list[dict[str, Any]]:
     writable = ADMIN_GROUP in identity.groups
     result = []
     for name, properties in SCHEMAS.items():
-        if name in WRITE_TOOLS and not writable:
+        if name in WRITE_TOOLS | PRIVILEGED_TOOLS and not writable:
             continue
         result.append({"name": name, "description": f"RE8CH typed operation {name}", "inputSchema": schema(properties, REQUIRED.get(name))})
+    if writable:
+        result.extend(MIHOMOS_TOOLS)
+        result.extend({key: item[key] for key in ("name", "description", "inputSchema", "annotations", "_meta")}
+                      for item in GENERATED_PLUGIN_TOOLS.values())
     return result
 
 
@@ -97,8 +118,31 @@ def authenticate(header: str) -> Identity | None:
 
 
 def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
-    if name in WRITE_TOOLS and ADMIN_GROUP not in identity.groups:
+    if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
+    if name in MIHOMOS_BY_NAME:
+        from jsonschema import Draft202012Validator
+        import mihomos_capabilities
+        if list(Draft202012Validator(MIHOMOS_BY_NAME[name]["inputSchema"]).iter_errors(args)):
+            raise OperationError("INVALID_ARGUMENT", "Arguments do not match the Mihomos tool schema")
+        if name == "mihomos.workloads.list":
+            return mihomos_capabilities.workloads(service)
+        if name == "mihomos.controllers.list":
+            return mihomos_capabilities.controllers(service)
+        return mihomos_capabilities.controller_read(service, args["pod"], args["uid"], MIHOMOS_BY_NAME[name]["_meta"]["re8ch"]["operationId"], args.get("path"))
+    if name in GENERATED_PLUGIN_TOOLS:
+        import plugin_capabilities
+        item = GENERATED_PLUGIN_TOOLS[name]
+        return plugin_capabilities.read_operation(service, item["groupVersion"], item["operationId"], item["schemaHash"], args)
+    if name in {"plugin.capabilities.list", "plugin.openapi.get", "plugin.operations.list", "plugin.operation.read"}:
+        import plugin_capabilities
+        if name == "plugin.capabilities.list":
+            return plugin_capabilities.catalog(service)
+        if name == "plugin.operations.list":
+            return plugin_capabilities.operations(service, args.get("groupVersion"))
+        if name == "plugin.operation.read":
+            return plugin_capabilities.read_operation(service, args.get("groupVersion"), args.get("operationId"), args.get("schemaHash"), args.get("parameters"))
+        return plugin_capabilities.openapi(service, args.get("groupVersion"))
     if name == "nodes.list":
         return service.nodes_list()
     if name == "nodes.get":
