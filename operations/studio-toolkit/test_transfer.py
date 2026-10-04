@@ -70,6 +70,19 @@ class OCIPreservationTests(unittest.TestCase):
             with tarfile.open(archive, 'w') as tar:
                 for file in layout.rglob('*'):
                     if file.is_file(): tar.add(file, arcname=str(file.relative_to(layout)))
+            self.assertEqual(transfer.worker_config_digest(archive, index['digest']), cfg['digest'])
+            (root / 'worker.oci.tar').write_bytes(archive.read_bytes())
+            (root / 'worker.sha256').write_text(hashlib.sha256(archive.read_bytes()).hexdigest())
+            # OCI exporter metadata may omit containerimage.config.digest entirely.
+            (root / 'worker-build.json').write_text(json.dumps({'containerimage.digest': index['digest']}))
+            command = [__import__('sys').executable, str(Path(__file__).with_name('verify-worker-image.py')), '--transfer', str(root), '--config-digest']
+            good = subprocess.run(command + [cfg['digest']], capture_output=True)
+            self.assertEqual(good.returncode, 0, good.stderr.decode())
+            bad = subprocess.run(command + ['sha256:' + '0' * 64], capture_output=True)
+            self.assertNotEqual(bad.returncode, 0)
+
+            with self.assertRaises((KeyError, ValueError)):
+                transfer.worker_config_digest(archive, 'sha256:' + '0' * 64)
             extracted = transfer.unpack_archive(archive, root / 'extracted')
             policy = root / 'policy.json'
             policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci': {str(extracted): [{'type': 'insecureAcceptAnything'}]}}}))
