@@ -90,7 +90,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, macOS, ARM64, macmini-a1]
     environment: production
-    timeout-minutes: 40
+    timeout-minutes: 180
     permissions: {contents: write, actions: read, id-token: write}
     # No external actions in this job: the host's direct GitHub TLS path is unavailable.
     # Native commands use a short-lived loopback SSH proxy, without changing host networking.
@@ -122,7 +122,11 @@ jobs:
           for file in .sops.yaml operations/studio-toolkit/release.py operations/studio-toolkit/publish-transfer.py; do
             ghp api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$GITHUB_SHA" --jq .content | python3 -c 'import base64,sys; sys.stdout.buffer.write(base64.b64decode(sys.stdin.buffer.read()))' > "$stage/$file"
           done
-          ghp run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name studio-oci --dir "$stage/transfer"
+          # Large GitHub artifacts use the host's direct path; the scoped proxy is a fallback.
+          if ! HTTPS_PROXY='' HTTP_PROXY='' ALL_PROXY='' gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name studio-oci --dir "$stage/transfer"; then
+            rm -rf "$stage/transfer"
+            ghp run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name studio-oci --dir "$stage/transfer"
+          fi
           cd "$stage"
           python3 -m venv venv
           venv/bin/pip install PyYAML==6.0.2

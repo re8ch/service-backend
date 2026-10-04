@@ -89,14 +89,14 @@ def main():
         policy = root / 'policy.json'
         policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci': {str(layout): [{'type': 'insecureAcceptAnything'}] for layout in layouts.values()}}}))
         env = dict(os.environ, DOCKER_CONFIG=str(root))
-        # GitHub/Sigstore traffic may use the host's scoped outbound proxy; Harbor stays local.
+        # All registry and signing requests share the scoped R640 egress transport.
         if os.environ.get('STUDIO_PUBLISH_PROXY'):
             env['HTTPS_PROXY'] = os.environ['STUDIO_PUBLISH_PROXY']
-            env['NO_PROXY'] = 'registry.re8ch.com,localhost,127.0.0.1'
+            env['NO_PROXY'] = 'localhost,127.0.0.1'
         for target, (archive, expected) in archives.items():
             image = 'registry.re8ch.com/studio-toolkit/' + target
             digestfile = args.output / (target + '-digest.txt')
-            subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--retry-times', '2', '--dest-authfile', str(config), '--digestfile', str(digestfile), 'oci:' + str(layouts[target]), 'docker://' + image + ':' + args.source_sha], check=True, timeout=900)
+            subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--retry-times', '2', '--dest-authfile', str(config), '--digestfile', str(digestfile), 'oci:' + str(layouts[target]), 'docker://' + image + ':' + args.source_sha], env=env, check=True, timeout=900)
             if digestfile.read_text().strip() != expected:
                 raise RuntimeError('Published manifest differs from the tested OCI build')
             (args.output / (target + '-build.json')).write_bytes((args.transfer / (target + '-build.json')).read_bytes())
