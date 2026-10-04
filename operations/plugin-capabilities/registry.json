@@ -3958,11 +3958,12 @@
                     "method": "POST",
                     "path": "/apis/cilium.io/v2/ciliumcidrgroups",
                     "operationId": "createCiliumIoV2CiliumCIDRGroup",
-                    "registration": "not_implemented",
+                    "registration": "implemented_not_deployed",
                     "disposition": "authority_review_required",
                     "schemaProvenance": "native_openapi",
                     "httpConformance": "not_run",
-                    "semanticConformance": "not_run"
+                    "semanticConformance": "not_run",
+                    "tool": "cilium.cidrgroup.create"
                   },
                   {
                     "plugin": "cilium",
@@ -3970,11 +3971,12 @@
                     "method": "DELETE",
                     "path": "/apis/cilium.io/v2/ciliumcidrgroups/{name}",
                     "operationId": "deleteCiliumIoV2CiliumCIDRGroup",
-                    "registration": "not_implemented",
+                    "registration": "implemented_not_deployed",
                     "disposition": "authority_review_required",
                     "schemaProvenance": "native_openapi",
                     "httpConformance": "not_run",
-                    "semanticConformance": "not_run"
+                    "semanticConformance": "not_run",
+                    "tool": "cilium.cidrgroup.delete"
                   },
                   {
                     "plugin": "cilium",
@@ -17071,6 +17073,102 @@
                       "method": "GET",
                       "path": "/apis/anatomy.re8ch.com/v1alpha1/runtimegarbagecollections",
                       "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+                      "httpConformance": "not_run",
+                      "semanticConformance": "not_run"
+                    }
+                  }
+                },
+                {
+                  "name": "cilium.cidrgroup.create",
+                  "description": "Plan, post, or inspect one tool-owned CiliumCIDRGroup canary. Fixed documentation CIDR; administrator only.",
+                  "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "phase": {
+                        "type": "string",
+                        "enum": [
+                          "plan",
+                          "execute",
+                          "status"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^tool-cidr-canary-[a-z0-9]{8,24}$"
+                      },
+                      "idempotencyKey": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 128
+                      },
+                      "planHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "phase",
+                      "name",
+                      "idempotencyKey"
+                    ]
+                  },
+                  "_meta": {
+                    "re8ch": {
+                      "plugin": "cilium",
+                      "groupVersion": "apis/cilium.io/v2",
+                      "operationId": "createCiliumIoV2CiliumCIDRGroup",
+                      "method": "POST",
+                      "path": "/apis/cilium.io/v2/ciliumcidrgroups",
+                      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+                      "httpConformance": "not_run",
+                      "semanticConformance": "not_run"
+                    }
+                  }
+                },
+                {
+                  "name": "cilium.cidrgroup.delete",
+                  "description": "Plan, delete, or inspect one tool-owned CiliumCIDRGroup canary. Fixed documentation CIDR; administrator only.",
+                  "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "phase": {
+                        "type": "string",
+                        "enum": [
+                          "plan",
+                          "execute",
+                          "status"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^tool-cidr-canary-[a-z0-9]{8,24}$"
+                      },
+                      "idempotencyKey": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 128
+                      },
+                      "planHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "phase",
+                      "name",
+                      "idempotencyKey"
+                    ]
+                  },
+                  "_meta": {
+                    "re8ch": {
+                      "plugin": "cilium",
+                      "groupVersion": "apis/cilium.io/v2",
+                      "operationId": "deleteCiliumIoV2CiliumCIDRGroup",
+                      "method": "DELETE",
+                      "path": "/apis/cilium.io/v2/ciliumcidrgroups/{name}",
+                      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
                       "httpConformance": "not_run",
                       "semanticConformance": "not_run"
                     }

@@ -265,7 +265,7 @@ def test_generated_tools_are_callable_and_match_directory_and_self_service():
     spec.loader.exec_module(module)
     generated = json.loads((root / "operations/cloud-platform/plugin-operation-tools.json").read_text())["tools"]
     names = {item["name"] for item in generated}
-    assert len(names) == len(generated) == 284
+    assert len(names) == len(generated) == 286
     assert sum(item["_meta"]["re8ch"]["method"] == "GET" for item in generated) == 282
     assert all(len(name) <= 64 for name in names)
     admin = Identity("admin", (module.ADMIN_GROUP,))
@@ -652,11 +652,14 @@ def test_cilium_inventory_grants_only_reviewed_bgp_reads():
     assert {row['groupVersion'] for row in rows}.isdisjoint(READ_GROUPS)
     enabled = [row for row in rows if row['registration'] == 'implemented_not_deployed']
     reviewed = CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS | CILIUM_TOPOLOGY_READS
-    assert len(enabled) == len(reviewed) == 85
+    assert len(enabled) == 87 and len(reviewed) == 85
     assert len(CILIUM_BGP_READS) == 26 and len(CILIUM_NETWORK_READS) == 19 and len(CILIUM_POLICY_READS) == 10 and len(CILIUM_TOPOLOGY_READS) == 30
-    assert {(row['groupVersion'], row['operationId']) for row in enabled} == reviewed
-    assert all(row['method'] == 'GET' and row['disposition'] == 'read' and row['tool'] for row in enabled)
-    assert all(row['registration'] == 'not_implemented' and 'tool' not in row for row in rows if not reviewed_read(row['groupVersion'], row['operationId']))
+    reads = [row for row in enabled if row['method'] == 'GET']
+    writes = [row for row in enabled if row['method'] != 'GET']
+    assert {(row['groupVersion'], row['operationId']) for row in reads} == reviewed
+    assert all(row['disposition'] == 'read' and row['tool'] for row in reads)
+    assert {(row['method'], row['tool']) for row in writes} == {('POST', 'cilium.cidrgroup.create'), ('DELETE', 'cilium.cidrgroup.delete')}
+    assert all(row['registration'] == 'not_implemented' and 'tool' not in row for row in rows if not reviewed_read(row['groupVersion'], row['operationId']) and row not in writes)
     assert all(row['disposition'] == 'resource_read_review_required' for row in rows if row['method'] == 'GET' and not reviewed_read(row['groupVersion'], row['operationId']))
     assert all(row['disposition'] == 'controller_owned' for row in rows if row['method'] != 'GET' and row['path'].endswith('/status'))
 

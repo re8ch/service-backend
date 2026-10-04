@@ -53,13 +53,14 @@ SCHEMAS: dict[str, dict[str, Any]] = {
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 MIHOMOS_BY_NAME = {tool["name"]: tool for tool in MIHOMOS_TOOLS}
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
+from cilium_cidr_operation import TOOL as CILIUM_CIDR_TOOL, DELETE_TOOL as CILIUM_CIDR_DELETE_TOOL
 
 GENERATED_PLUGIN_TOOLS = {
     item["name"]: item for item in json.loads(
         Path(__file__).with_name("plugin-operation-tools.json").read_text()
     )["tools"]
 }
-PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
+PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
 WRITE_TOOLS = {"node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
@@ -145,6 +146,12 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
         return call(service, args)
     if name == ANATOMY_DIFF_DELETE_TOOL["name"]:
         from anatomy_diff_operation import delete
+        return delete(service, args)
+    if name == CILIUM_CIDR_TOOL["name"]:
+        from cilium_cidr_operation import create
+        return create(service, args)
+    if name == CILIUM_CIDR_DELETE_TOOL["name"]:
+        from cilium_cidr_operation import delete
         return delete(service, args)
     if name in GENERATED_PLUGIN_TOOLS:
         import plugin_capabilities

@@ -58,6 +58,7 @@ jobs:
           assert {"plugin.operations.list", "plugin.operation.read", "plugin.operation.http-check", "mihomos.workloads.list"} <= tools
           assert "anatomy.runtimediff.create" in tools
           assert "anatomy.runtimediff.delete" in tools
+          assert {"cilium.cidrgroup.create", "cilium.cidrgroup.delete"} <= tools
           viewer = {tool["name"] for tool in server.tool_list(Identity("viewer", ()))}
           assert not (server.PRIVILEGED_TOOLS & viewer)
           print("Packaged tool discovery and privilege filtering passed")
