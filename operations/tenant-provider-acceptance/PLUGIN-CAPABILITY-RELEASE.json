@@ -2,7 +2,7 @@
   "version": 1,
   "sourceCommit": "9ef274651871d6e630b62e2d531845dc812868a0",
   "implementationPR": "https://github.com/re8ch/service-backend/pull/1349",
-  "state": "promotion_prepared_not_deployed",
+  "state": "rollout_incomplete_tenant_rollback_requested",
   "components": [
     {
       "component": "native",
@@ -36,7 +36,8 @@
         "certificateIdentity": "https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main"
       },
       "sbomSha256": "4b13339e0669e09dbb1058c8521b8f40e7ba14ed79e71423fde31ea204b85e3b",
-      "localVerification": "unavailable_registry_transport_eof"
+      "localVerification": "unavailable_registry_transport_eof",
+      "desiredImageAfterRollback": "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:c05719ba392cded6d18b627e77dd32da2c6dd22600c8a1d79815edc16a23d894"
     },
     {
       "component": "ui",
@@ -82,5 +83,17 @@
     "quotaImpact": "none",
     "retention": "until_superseded_by_signed_GitOps_change",
     "approvalState": "user_authorized_task_scope_pending_PR_checks"
+  },
+  "rolloutObservations": {
+    "capturedAt": "2026-10-04T04:03:02.882713+00:00",
+    "source": "authenticated re8ch-tenant platform_tool_catalog/platform_tool_call",
+    "errors": [
+      "HTTP 503 no healthy upstream",
+      "HTTP 403 forbidden",
+      "HTTP 503 identity_unavailable"
+    ],
+    "causality": "Observed after promotion; runtime and identity-authority state could not be inspected through the unavailable authenticated entry point.",
+    "action": "Restore the previously observed Ready tenant-api image through GitOps; retain native and UI image promotion.",
+    "recovery": "not_verified"
   }
 }
