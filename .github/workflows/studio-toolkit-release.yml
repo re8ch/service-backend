@@ -13,7 +13,7 @@ on:
         type: boolean
         default: false
 permissions: {contents: read, id-token: write}
-concurrency: {group: studio-toolkit-release, cancel-in-progress: false}
+concurrency: {group: 'studio-toolkit-release-${{ github.event_name }}-${{ github.ref }}', cancel-in-progress: false}
 jobs:
   verify-release:
     runs-on: ubuntu-latest
@@ -23,8 +23,13 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: pip install PyYAML==6.0.2
-      - run: python operations/studio-toolkit/test_release.py
-  publish:
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with: {go-version: '1.26.8'}
+      - run: |
+          GOBIN="$RUNNER_TEMP/studio-tools" CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1
+          echo "$RUNNER_TEMP/studio-tools" >> "$GITHUB_PATH"
+      - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_transfer.py
+  build-hosted:
     needs: verify-release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -62,54 +67,79 @@ jobs:
           python tests/toolkit-postgrest.py
           python tests/toolkit-e2e.py
       - run: pip install PyYAML==6.0.2
-      - name: Prepare private project
-        env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        run: python operations/studio-toolkit/release.py prepare
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
-        with:
-          registry: registry.re8ch.com
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
-      - name: Build, publish and sign immutable images with provenance and SBOM
+      - name: Build portable OCI archives and test the Linux worker
         env: {SOURCE_SHA: '${{ inputs.source_sha }}'}
         run: |
-          mkdir -p release
+          mkdir -p transfer
           docker buildx create --use
           for target in api worker; do
-            image="registry.re8ch.com/studio-toolkit/$target"
-            docker buildx build --platform linux/amd64 --target "$target" -f product/toolkit/Dockerfile --provenance=mode=max --sbom=true --push -t "$image:$SOURCE_SHA" --metadata-file "release/$target-build.json" product
-            if [ "$target" = worker ]; then
-              docker pull "$image:$SOURCE_SHA"
-              docker run --rm --network none -v "$PWD/product/tests:/app/tests:ro" "$image:$SOURCE_SHA" python tests/toolkit-e2e.py --blender blender
-            fi
-            digest=$(jq -r '."containerimage.digest"' "release/$target-build.json")
-            cosign sign --yes "$image@$digest"
-            cosign verify --certificate-identity "https://github.com/re8ch/service-backend/.github/workflows/studio-toolkit-release.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image@$digest" > "release/$target-signature.json"
+            docker buildx build --platform linux/amd64 --target "$target" -f product/toolkit/Dockerfile --provenance=mode=max --sbom=true --output "type=oci,dest=transfer/$target.oci.tar" --metadata-file "transfer/$target-build.json" product
+            sha256sum "transfer/$target.oci.tar" | cut -d ' ' -f 1 > "transfer/$target.sha256"
           done
-      - name: Scan immutable images
-        env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        run: |
-          for target in api worker; do
-            python operations/studio-toolkit/release.py scan --image "$target" --digest "$(jq -r '."containerimage.digest"' "release/$target-build.json")" --output release
-          done
-      - name: Install pinned SOPS
-        if: inputs.create_reader
-        run: |
-          curl -fsSL https://github.com/getsops/sops/releases/download/v3.13.1/sops-v3.13.1.linux.amd64 -o "$RUNNER_TEMP/sops"
-          echo "620a9d7e3352ababeca6908cea24a6e8b14ce89a448ddbd3f94f1ef3398f470a  $RUNNER_TEMP/sops" | sha256sum --check
-          chmod +x "$RUNNER_TEMP/sops"
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
-      - name: Produce encrypted reader bootstrap
-        if: inputs.create_reader
-        env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        run: python operations/studio-toolkit/release.py reader --output release
+          docker buildx build --platform linux/amd64 --target worker -f product/toolkit/Dockerfile --load -t studio-worker:acceptance product
+          test "$(docker image inspect studio-worker:acceptance --format '{{.Id}}')" = "$(jq -r '."containerimage.config.digest"' transfer/worker-build.json)"
+          docker run --rm --network none -v "$PWD/product/tests:/app/tests:ro" studio-worker:acceptance python tests/toolkit-e2e.py --blender blender
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: always()
-        with: {name: studio-toolkit-release, path: release, retention-days: 14}
+        with:
+          name: studio-oci
+          path: transfer
+          compression-level: 0
+          retention-days: 3
+  publish:
+    needs: build-hosted
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    environment: production
+    timeout-minutes: 40
+    permissions: {contents: write, actions: read, id-token: write}
+    # No external actions in this job: the host's direct GitHub TLS path is unavailable.
+    # Native commands use a short-lived loopback SSH proxy, without changing host networking.
+    steps:
+      - name: Transfer hosted build, publish near Harbor and save release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          CREATE_READER: ${{ inputs.create_reader }}
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: |
+          export PATH="/Volumes/A1/tools/studio-publisher/bin:/opt/homebrew/bin:$PATH"
+          for tool in gh python3 skopeo sops cosign; do command -v "$tool"; done
+          stage=$(mktemp -d "$RUNNER_TEMP/studio-publish.XXXXXX")
+          mkdir -p "$stage/private" "$stage/release" "$stage/operations/studio-toolkit"
+          export TMPDIR="$stage/private"
+          port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')
+          ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -N -D "127.0.0.1:$port" restricted-node-6dc3f140f9 &
+          proxy_pid=$!
+          trap 'kill "$proxy_pid" 2>/dev/null || true; rm -rf "$stage/private"' EXIT
+          export STUDIO_PUBLISH_PROXY="socks5h://127.0.0.1:$port"
+          for attempt in 1 2 3 4; do
+            if curl --fail --silent --show-error --max-time 10 --proxy "$STUDIO_PUBLISH_PROXY" https://api.github.com >/dev/null; then break; fi
+            echo "Waiting for scoped GitHub transport ($attempt)"
+            sleep 1
+          done
+          ghp() { HTTPS_PROXY="$STUDIO_PUBLISH_PROXY" gh "$@"; }
+          for file in .sops.yaml operations/studio-toolkit/release.py operations/studio-toolkit/publish-transfer.py; do
+            ghp api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$GITHUB_SHA" --jq .content | python3 -c 'import base64,sys; sys.stdout.buffer.write(base64.b64decode(sys.stdin.buffer.read()))' > "$stage/$file"
+          done
+          ghp run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name studio-oci --dir "$stage/transfer"
+          cd "$stage"
+          python3 -m venv venv
+          venv/bin/pip install PyYAML==6.0.2
+          python=venv/bin/python
+          "$python" operations/studio-toolkit/release.py prepare
+          "$python" operations/studio-toolkit/publish-transfer.py --transfer transfer --output release --source-sha "$SOURCE_SHA"
+          for target in api worker; do
+            digest=$(cat "release/$target-digest.txt")
+            "$python" operations/studio-toolkit/release.py scan --image "$target" --digest "$digest" --output release
+          done
+          if [ "$CREATE_READER" = true ]; then
+            "$python" operations/studio-toolkit/release.py reader --output release
+          fi
+          tag="studio-toolkit-$SOURCE_SHA"
+          if ! ghp release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            ghp release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "Studio Toolkit $SOURCE_SHA" --notes "Verified hosted Linux build, Harbor-near transfer, signatures and scan evidence. Runtime activation remains a separate GitOps PR."
+          fi
+          test "$(ghp release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true
+          ghp release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber release/*
+          ghp release view "$tag" --repo "$GITHUB_REPOSITORY" --json url --jq .url

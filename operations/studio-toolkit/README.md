@@ -38,3 +38,35 @@ No claim of a deployed endpoint or cross-region acceptance is made by publishing
 images. Acceptance must upload a storyboard through the public HTTPS API, observe
 an restricted-node-6dc3f140f9 lease, download and verify the rendered video/audio and editable outputs,
 and check tenant isolation, cancellation and offline recovery.
+
+## Hosted build and Harbor-near transfer
+
+Hosted runners build and test Linux/amd64 images, preserve OCI indexes (including
+SBOM/provenance manifests), and upload checksummed private workflow artifacts.
+The Macmini publisher checks every archive checksum and uses Skopeo with
+`--all --preserve-digests`; a digest mismatch stops signing. It does not need a
+Docker daemon. Copy semantics follow the [upstream Skopeo documentation](https://github.com/podman-container-tools/skopeo/blob/main/docs/skopeo-copy.1.md).
+
+The existing Macmini runner needs `gh`, Python 3.11+, Skopeo, SOPS and Cosign, plus
+its existing batch SSH alias `restricted-node-6dc3f140f9`. Direct GitHub TLS on this host has failed;
+the job opens its own temporary loopback SOCKS tunnel and closes it on exit.
+Harbor traffic remains direct. No host route, DNS setting or runner-global
+configuration changes. All publisher commands run in an isolated RUNNER_TEMP
+directory and temporary registry authorization is removed on exit.
+
+Because action-download setup uses the host's broken direct GitHub path, the
+publisher has no `uses:` steps. It retrieves only the helper files at its exact
+workflow commit and same-run build artifact through its scoped transport. Final
+scan/signature/digest and encrypted reader evidence is uploaded to a **draft**
+private GitHub release `studio-toolkit-<source SHA>`. The `studio-oci` workflow
+artifact retains the portable source build for three days. A draft release does
+not activate a deployment. Inspect both API and worker scans before GitOps rollout.
+
+Publisher Skopeo is pinned to v1.24.1, built without CGO using upstream's
+`containers_image_openpgp` build tag, installed under
+`/Volumes/A1/tools/studio-publisher/bin`. The same version is built in PR CI and
+exercised with a real OCI archive containing both a Linux image and an attestation.
+The test compares the copied index digest and every blob; it cannot pass by
+dropping attestations or selecting only the host platform. Reproduce installation
+with `CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1`
+using Go 1.26.8 and a dedicated GOBIN.
