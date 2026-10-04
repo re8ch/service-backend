@@ -1,0 +1,941 @@
+{
+  "version": 1,
+  "scope": "55 finite collection GET cases; excludes mutations, watch, named reads, Mihomo HTTP and Stagehand semantics",
+  "cases": [
+    {
+      "id": "listNetworkingRe8chComV1alpha1AdvancedFabric",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1AdvancedFabric",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1NetworkIntervention",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1NetworkIntervention",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+        "operationId": "listNetworkingRe8chComV1alpha2NetworkPathAssessment",
+        "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1NetworkPathAssessment",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1NetworkPathAssessment",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha2RouterOSNode",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+        "operationId": "listNetworkingRe8chComV1alpha2RouterOSNode",
+        "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1RouterOSNode",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1RouterOSNode",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1TradeoffTriangle",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1TradeoffTriangle",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1TrafficPolicyForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1TrafficPolicyForAllNamespaces",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha2",
+        "operationId": "listNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+        "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1RouterOSNode",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1RouterOSNode",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha2RouterOSNode",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha2",
+        "operationId": "listNetworkingAdvfabOrgV1alpha2RouterOSNode",
+        "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingAdvfabOrgV1alpha1TrafficPolicyForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.advfab.org/v1alpha1",
+        "operationId": "listNetworkingAdvfabOrgV1alpha1TrafficPolicyForAllNamespaces",
+        "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeAnalysisForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeAnalysisForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeBranchForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeBranchForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeCheckoutForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeCheckoutForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeCommitForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeCommitForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeDiffForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeDiffForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listAnatomyRe8chComV1alpha1RuntimeGarbageCollectionForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+        "operationId": "listAnatomyRe8chComV1alpha1RuntimeGarbageCollectionForAllNamespaces",
+        "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1MobileEgress",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1MobileEgress",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listObjectbucketIoV1alpha1ObjectBucket",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/objectbucket.io/v1alpha1",
+        "operationId": "listObjectbucketIoV1alpha1ObjectBucket",
+        "schemaHash": "e484b17d1d677ca7afd288af2dc895aa9ea0eccf7a4f6065d02a4729cd68bfe2",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listObjectbucketIoV1alpha1ObjectBucketClaimForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/objectbucket.io/v1alpha1",
+        "operationId": "listObjectbucketIoV1alpha1ObjectBucketClaimForAllNamespaces",
+        "schemaHash": "e484b17d1d677ca7afd288af2dc895aa9ea0eccf7a4f6065d02a4729cd68bfe2",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listNetworkingRe8chComV1alpha1PublicEdge",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+        "operationId": "listNetworkingRe8chComV1alpha1PublicEdge",
+        "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCsiCephIoV1CephConnectionForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/csi.ceph.io/v1",
+        "operationId": "listCsiCephIoV1CephConnectionForAllNamespaces",
+        "schemaHash": "ccf8596f348b817071a5d84a0de3e92424e9c4e8f251f4c47694251a6ef0de51",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCsiCephIoV1ClientProfileForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/csi.ceph.io/v1",
+        "operationId": "listCsiCephIoV1ClientProfileForAllNamespaces",
+        "schemaHash": "ccf8596f348b817071a5d84a0de3e92424e9c4e8f251f4c47694251a6ef0de51",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCsiCephIoV1ClientProfileMappingForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/csi.ceph.io/v1",
+        "operationId": "listCsiCephIoV1ClientProfileMappingForAllNamespaces",
+        "schemaHash": "ccf8596f348b817071a5d84a0de3e92424e9c4e8f251f4c47694251a6ef0de51",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCsiCephIoV1DriverForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/csi.ceph.io/v1",
+        "operationId": "listCsiCephIoV1DriverForAllNamespaces",
+        "schemaHash": "ccf8596f348b817071a5d84a0de3e92424e9c4e8f251f4c47694251a6ef0de51",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCsiCephIoV1OperatorConfigForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/csi.ceph.io/v1",
+        "operationId": "listCsiCephIoV1OperatorConfigForAllNamespaces",
+        "schemaHash": "ccf8596f348b817071a5d84a0de3e92424e9c4e8f251f4c47694251a6ef0de51",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephBlockPoolForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephBlockPoolForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephBlockPoolRadosNamespaceForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephBlockPoolRadosNamespaceForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephBucketNotificationForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephBucketNotificationForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephBucketTopicForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephBucketTopicForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephClientForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephClientForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephClusterForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephClusterForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephCOSIDriverForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephCOSIDriverForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephFilesystemForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephFilesystemForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephFilesystemMirrorForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephFilesystemMirrorForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephFilesystemSubVolumeGroupForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephFilesystemSubVolumeGroupForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephNFSForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephNFSForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephNVMeOFGatewayForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephNVMeOFGatewayForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephObjectRealmForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephObjectRealmForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephObjectStoreForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephObjectStoreForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephObjectStoreAccountForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephObjectStoreAccountForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephObjectStoreUserForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephObjectStoreUserForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephObjectZoneForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephObjectZoneForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephObjectZoneGroupForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephObjectZoneGroupForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    },
+    {
+      "id": "listCephRookIoV1CephRBDMirrorForAllNamespaces",
+      "backend": "native",
+      "toolName": "plugin.operation.http-check",
+      "arguments": {
+        "groupVersion": "apis/ceph.rook.io/v1",
+        "operationId": "listCephRookIoV1CephRBDMirrorForAllNamespaces",
+        "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+        "parameters": {
+          "query": {
+            "limit": 1
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "cleanup": "none; read-only"
+    }
+  ]
+}
