@@ -14,6 +14,22 @@ release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 
 
+class RegistryTransportTests(unittest.TestCase):
+    def test_scoped_proxy_does_not_put_credentials_on_argv(self):
+        with patch.dict(os.environ, {'HARBOR_USERNAME': 'test-user', 'HARBOR_PASSWORD': 'fixture-only', 'STUDIO_PUBLISH_PROXY': 'socks5h://127.0.0.1:1234'}), patch.object(release.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, b'{"ok":true}\n200')) as run:
+            self.assertEqual(release.api('GET', 'health'), (200, {'ok': True}))
+            command = run.call_args.args[0]
+            self.assertIn('socks5h://127.0.0.1:1234', command)
+            self.assertNotIn('fixture-only', ' '.join(command))
+            self.assertIn(b'Authorization: Basic ', run.call_args.kwargs['input'])
+            self.assertNotIn('--insecure', command)
+
+    def test_transport_errors_do_not_expose_response_or_credentials(self):
+        with patch.dict(os.environ, {'HARBOR_USERNAME': 'test-user', 'HARBOR_PASSWORD': 'fixture-only', 'STUDIO_PUBLISH_PROXY': 'socks5h://127.0.0.1:1234'}), patch.object(release.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, b'private response\n403')):
+            with self.assertRaisesRegex(RuntimeError, '^Harbor operation failed: HTTP 403$'):
+                release.api('GET', 'health')
+
+
 class ReaderTests(unittest.TestCase):
     def run_reader(self, output, encrypt):
         robot = {'name': 'robot$studio', 'secret': 'fixture-only', 'id': 27}
