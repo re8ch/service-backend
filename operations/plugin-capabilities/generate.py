@@ -112,12 +112,15 @@ def generate():
         allowed.update({tool["name"]: True for tool in MIHOMOS_TOOLS})
         path.write_text(json.dumps(registry, indent=2) + "\n")
     registry = {"servers": [{"name": "com.re8ch/cluster-plugin-operations", "version": "0.1.0",
-        "description": "RE8CH cluster plugin operations: reviewed native reads for advfab, public edge, Rook/Ceph and anatomy, plus Mihomos workload and controller queries. Platform administrator authorization is required. Mutation and non-Kubernetes API coverage are in progress.",
+        "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
         "remotes": [{"type": "streamable-http", "url": "https://operate.tools.re8ch.com/cloud/mcp"}],
         "_meta": {"io.modelcontextprotocol.registry/publisher-provided": {"io.github.stacklok": {
             "streamable-http": {"re8ch_capabilities": capability_inventory(matrix, definitions), "tool_definitions": [{key: tool[key] for key in ("name", "description", "inputSchema", "_meta")} for tool in definitions] + MIHOMOS_TOOLS}}}}}]}
     (ROOT / "operations/plugin-capabilities/registry.json").write_text(json.dumps(registry, indent=2) + "\n")
-    (ROOT / "operations/plugin-capabilities/registry.runtime.json").write_text(json.dumps(registry, separators=(",", ":")) + "\n")
+    # The file source consumes ToolHive's registry envelope, not the MCP API's
+    # bare servers response. Keep the readable payload used by UI tooling.
+    runtime_registry = {"version": "1.0.0", "meta": {"last_updated": "2026-10-04T00:00:00Z"}, "data": registry}
+    (ROOT / "operations/plugin-capabilities/registry.runtime.json").write_text(json.dumps(runtime_registry, separators=(",", ":")) + "\n")
     return len(tools)
 
 

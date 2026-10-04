@@ -265,6 +265,13 @@ no Secret lookup occurs. Native body validation precedes projection. These
 adapters remain pending deployment and live invocation acceptance.
 
 The readable `registry.json` remains the review artifact. Kustomize mounts the
-JSON-equivalent compact `registry.runtime.json` under the same `registry.json`
+compact ToolHive file-source envelope `registry.runtime.json` under the same `registry.json`
 volume key to keep the ConfigMap below its 1 MiB data limit. Generation and CI
 check both artifacts; compaction does not drop tools or operation rows.
+
+
+The runtime file wraps the readable payload as `data`, with registry `version`
+and `meta.last_updated`. File-source validation uses the pinned ToolHive Core
+v0.0.28 schema required by registry-server v1.5.0 and the MCP 2025-12-11 server
+schema, stored under `registry-schema/`. This includes the 100-character server
+description limit. The schemas are validated offline without network resolution.
