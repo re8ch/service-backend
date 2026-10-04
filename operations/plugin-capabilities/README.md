@@ -275,3 +275,8 @@ and `meta.last_updated`. File-source validation uses the pinned ToolHive Core
 v0.0.28 schema required by registry-server v1.5.0 and the MCP 2025-12-11 server
 schema, stored under `registry-schema/`. This includes the 100-character server
 description limit. The schemas are validated offline without network resolution.
+
+The registry database metadata limit is explicitly 1 MiB (`database.maxMetaSize`),
+covering the combined native inventory and tool definitions. CI checks each
+entry against this bound as well as the ConfigMap size bound. This changes no
+replica count or resource requests/limits.
