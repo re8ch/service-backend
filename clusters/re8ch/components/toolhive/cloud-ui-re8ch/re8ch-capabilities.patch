@@ -1,0 +1,546 @@
+diff --git a/src/app/catalog/[repoName]/[serverName]/[version]/components/__tests__/native-capabilities-table.test.tsx b/src/app/catalog/[repoName]/[serverName]/[version]/components/__tests__/native-capabilities-table.test.tsx
+new file mode 100644
+index 0000000..af494e3
+--- /dev/null
++++ b/src/app/catalog/[repoName]/[serverName]/[version]/components/__tests__/native-capabilities-table.test.tsx
+@@ -0,0 +1,145 @@
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { describe, expect, it } from "vitest";
++import {
++  nativeCapabilityInventorySchema,
++  parseNativeCapabilities,
++} from "@/lib/schemas/server-meta";
++import { ServerDetailTabs } from "../server-detail-tabs";
++
++const inventory = nativeCapabilityInventorySchema.parse({
++  version: 1,
++  cluster: "re8ch-k3s",
++  scope: "Selected APIs; other clusters not verified",
++  operations: [
++    {
++      plugin: "anatomy",
++      groupVersion: "apis/anatomy/v1",
++      method: "GET",
++      path: "/runtimecommits",
++      operationId: "listCommits",
++      tool: "anatomy.list",
++      registration: "implemented_not_deployed",
++      disposition: "read",
++      schemaProvenance: "native_openapi",
++      httpConformance: "not_run",
++      semanticConformance: "not_run",
++    },
++    {
++      plugin: "anatomy",
++      groupVersion: "apis/anatomy/v1",
++      method: "PATCH",
++      path: "/runtimecommits/{name}/status",
++      operationId: "patchStatus",
++      registration: "not_implemented",
++      disposition: "controller_owned",
++      schemaProvenance: "native_openapi",
++      httpConformance: "not_run",
++      semanticConformance: "not_run",
++    },
++    {
++      plugin: "mihomos-cluster",
++      groupVersion: "controller/v1",
++      method: "POST",
++      path: "/restart",
++      registration: "not_implemented",
++      disposition: "authority_review_required",
++      schemaProvenance: "source_route_only",
++      httpConformance: "not_run",
++      semanticConformance: "not_run",
++    },
++  ],
++});
++
++function serverWithInventory(value: unknown) {
++  return {
++    _meta: {
++      "io.modelcontextprotocol.registry/publisher-provided": {
++        "io.github.stacklok": {
++          "streamable-http": {
++            re8ch_capabilities: value,
++            tool_definitions: [{ name: "anatomy.list" }],
++          },
++        },
++      },
++    },
++  };
++}
++
++describe("native operation inventory", () => {
++  it("preserves unimplemented operations outside callable tool definitions", () => {
++    const parsed = parseNativeCapabilities(serverWithInventory(inventory));
++    expect(parsed?.success && parsed.data.operations).toEqual(
++      inventory.operations,
++    );
++    expect(parseNativeCapabilities({})).toBeNull();
++    expect(
++      parseNativeCapabilities(serverWithInventory({ ...inventory, version: 2 }))
++        ?.success,
++    ).toBe(false);
++  });
++
++  it("shows all operation states and filters the native capability tab", async () => {
++    render(
++      <ServerDetailTabs
++        tools={[{ name: "anatomy.list" }]}
++        capabilities={inventory}
++      >
++        <p>About</p>
++      </ServerDetailTabs>,
++    );
++    await userEvent.click(
++      screen.getByRole("tab", { name: "Native capabilities" }),
++    );
++    expect(
++      screen.getByText("Showing 3 of 3 inventoried operations"),
++    ).toBeVisible();
++    expect(screen.getByText("controller owned")).toBeVisible();
++    expect(screen.getByText("source route only")).toBeVisible();
++    expect(screen.getByText("implemented not deployed")).toBeVisible();
++    expect(screen.queryByText(/passed/i)).not.toBeInTheDocument();
++    await userEvent.type(
++      screen.getByRole("textbox", { name: "Filter native capabilities" }),
++      "PATCH",
++    );
++    expect(
++      screen.getByText("Showing 1 of 3 inventoried operations"),
++    ).toBeVisible();
++    expect(screen.getByText("patchStatus")).toBeVisible();
++    expect(screen.queryByText("listCommits")).not.toBeInTheDocument();
++    await userEvent.clear(screen.getByRole("textbox"));
++    await userEvent.type(screen.getByRole("textbox"), "absent");
++    expect(screen.getByText("No operations match this filter.")).toBeVisible();
++    await userEvent.click(screen.getByRole("tab", { name: "Tools" }));
++    expect(screen.getByText("anatomy.list")).toBeVisible();
++    expect(screen.queryByText("patchStatus")).not.toBeInTheDocument();
++  });
++
++  it("does not interpret missing inventory as complete coverage", async () => {
++    render(
++      <ServerDetailTabs tools={[]}>
++        <p>About</p>
++      </ServerDetailTabs>,
++    );
++    await userEvent.click(
++      screen.getByRole("tab", { name: "Native capabilities" }),
++    );
++    expect(
++      screen.getByText("No native capability inventory supplied."),
++    ).toBeVisible();
++  });
++
++  it("surfaces invalid metadata instead of showing zero missing operations", async () => {
++    render(
++      <ServerDetailTabs tools={[]} capabilitiesInvalid>
++        <p>About</p>
++      </ServerDetailTabs>,
++    );
++    await userEvent.click(
++      screen.getByRole("tab", { name: "Native capabilities" }),
++    );
++    expect(screen.getByRole("alert")).toHaveTextContent(
++      "Coverage cannot be assessed",
++    );
++  });
++});
+diff --git a/src/app/catalog/[repoName]/[serverName]/[version]/components/__tests__/server-tools-table.test.tsx b/src/app/catalog/[repoName]/[serverName]/[version]/components/__tests__/server-tools-table.test.tsx
+new file mode 100644
+index 0000000..d22a17d
+--- /dev/null
++++ b/src/app/catalog/[repoName]/[serverName]/[version]/components/__tests__/server-tools-table.test.tsx
+@@ -0,0 +1,51 @@
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { describe, expect, it } from "vitest";
++import { toolDefinitionSchema } from "@/lib/schemas/server-meta";
++import { ServerToolsTable } from "../server-tools-table";
++
++describe("RE8CH native capability tools", () => {
++  it("shows the native contract and expands parameters without claiming acceptance", async () => {
++    const tool = toolDefinitionSchema.parse({
++      name: "anatomy.runtimecommit.list.test",
++      description: "List RuntimeCommits",
++      inputSchema: {
++        type: "object",
++        properties: { namespace: { type: "string" } },
++      },
++      _meta: {
++        re8ch: {
++          plugin: "anatomy",
++          groupVersion: "anatomy.re8ch.com/v1alpha1",
++          operationId: "listRuntimeCommit",
++          method: "GET",
++          path: "/apis/anatomy.re8ch.com/v1alpha1/runtimecommits",
++          schemaHash: "sha256:test",
++          httpConformance: "not_run",
++          semanticConformance: "not_run",
++        },
++      },
++    });
++    render(<ServerToolsTable tools={[tool]} />);
++    expect(screen.getByText("listRuntimeCommit")).toBeVisible();
++    expect(screen.getByText("HTTP: not run")).toBeVisible();
++    expect(screen.getByText("UI semantics: not run")).toBeVisible();
++    expect(screen.queryByText(/passed/i)).not.toBeInTheDocument();
++    const schema = screen.getByText(/"namespace"/);
++    expect(schema).not.toBeVisible();
++    await userEvent.click(screen.getByText("Parameter schema"));
++    expect(schema).toBeVisible();
++  });
++
++  it("keeps legacy tools visible when contract metadata is absent", () => {
++    render(<ServerToolsTable tools={[{ name: "legacy.tool" }]} />);
++    expect(screen.getByText("legacy.tool")).toBeVisible();
++    expect(screen.getAllByText("Not supplied")).toHaveLength(2);
++    expect(screen.queryByText("Parameter schema")).not.toBeInTheDocument();
++  });
++
++  it("shows the empty state", () => {
++    render(<ServerToolsTable tools={[]} />);
++    expect(screen.getByText("No tools available")).toBeVisible();
++  });
++});
+diff --git a/src/app/catalog/[repoName]/[serverName]/[version]/components/native-capabilities-table.tsx b/src/app/catalog/[repoName]/[serverName]/[version]/components/native-capabilities-table.tsx
+new file mode 100644
+index 0000000..3a4d94c
+--- /dev/null
++++ b/src/app/catalog/[repoName]/[serverName]/[version]/components/native-capabilities-table.tsx
+@@ -0,0 +1,100 @@
++"use client";
++
++import { useState } from "react";
++import { Input } from "@/components/ui/input";
++import {
++  Table,
++  TableBody,
++  TableCell,
++  TableHead,
++  TableHeader,
++  TableRow,
++} from "@/components/ui/table";
++import type { NativeCapabilityInventory } from "@/lib/schemas/server-meta";
++
++export function NativeCapabilitiesTable({
++  inventory,
++  invalid = false,
++}: {
++  inventory?: NativeCapabilityInventory;
++  invalid?: boolean;
++}) {
++  const [filter, setFilter] = useState("");
++  if (invalid)
++    return (
++      <p role="alert">
++        Capability metadata is invalid. Coverage cannot be assessed.
++      </p>
++    );
++  if (!inventory) return <p>No native capability inventory supplied.</p>;
++  const needle = filter.trim().toLowerCase();
++  const rows = inventory.operations.filter((row) =>
++    Object.values(row).some((value) => value.toLowerCase().includes(needle)),
++  );
++  return (
++    <section className="space-y-4" aria-label="Native capability inventory">
++      <p>Cluster: {inventory.cluster}</p>
++      <p className="text-sm text-muted-foreground">{inventory.scope}</p>
++      <Input
++        aria-label="Filter native capabilities"
++        placeholder="Filter plugin, method, path or status"
++        value={filter}
++        onChange={(event) => setFilter(event.target.value)}
++      />
++      <p role="status">
++        Showing {rows.length} of {inventory.operations.length} inventoried
++        operations
++      </p>
++      <Table>
++        <TableHeader>
++          <TableRow>
++            <TableHead>Native operation</TableHead>
++            <TableHead>Registration</TableHead>
++            <TableHead>Authority and schema</TableHead>
++            <TableHead>Acceptance evidence</TableHead>
++          </TableRow>
++        </TableHeader>
++        <TableBody>
++          {rows.map((row) => (
++            <TableRow key={`${row.groupVersion}:${row.method}:${row.path}`}>
++              <TableCell className="whitespace-normal">
++                <p>
++                  {row.plugin} · {row.groupVersion}
++                </p>
++                <code className="break-all">
++                  {row.method} {row.path}
++                </code>
++                <p className="text-xs break-all">
++                  {row.operationId ?? "Operation ID not extracted"}
++                </p>
++              </TableCell>
++              <TableCell className="whitespace-normal">
++                <p>{row.registration.replaceAll("_", " ")}</p>
++                {row.tool && (
++                  <code className="text-xs break-all">{row.tool}</code>
++                )}
++              </TableCell>
++              <TableCell className="whitespace-normal">
++                <p>{row.disposition.replaceAll("_", " ")}</p>
++                <p>{row.schemaProvenance.replaceAll("_", " ")}</p>
++              </TableCell>
++              <TableCell className="whitespace-normal">
++                <p>HTTP: {row.httpConformance.replaceAll("_", " ")}</p>
++                <p>
++                  UI semantics: {row.semanticConformance.replaceAll("_", " ")}
++                </p>
++              </TableCell>
++            </TableRow>
++          ))}
++          {rows.length === 0 && (
++            <TableRow>
++              <TableCell colSpan={4}>
++                No operations match this filter.
++              </TableCell>
++            </TableRow>
++          )}
++        </TableBody>
++      </Table>
++    </section>
++  );
++}
+diff --git a/src/app/catalog/[repoName]/[serverName]/[version]/components/server-detail-tabs.tsx b/src/app/catalog/[repoName]/[serverName]/[version]/components/server-detail-tabs.tsx
+index 4581d2b..d745878 100644
+--- a/src/app/catalog/[repoName]/[serverName]/[version]/components/server-detail-tabs.tsx
++++ b/src/app/catalog/[repoName]/[serverName]/[version]/components/server-detail-tabs.tsx
+@@ -2,20 +2,32 @@
+
+ import type { ReactNode } from "react";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+-import type { ServerTool } from "@/lib/schemas/server-meta";
++import type {
++  NativeCapabilityInventory,
++  ServerTool,
++} from "@/lib/schemas/server-meta";
++import { NativeCapabilitiesTable } from "./native-capabilities-table";
+ import { ServerToolsTable } from "./server-tools-table";
+
+ interface ServerDetailTabsProps {
+   children: ReactNode;
+   tools: ServerTool[];
++  capabilities?: NativeCapabilityInventory;
++  capabilitiesInvalid?: boolean;
+ }
+
+ const tabs = [
+   { value: "about", label: "About" },
+   { value: "tools", label: "Tools" },
++  { value: "capabilities", label: "Native capabilities" },
+ ] as const;
+
+-export function ServerDetailTabs({ children, tools }: ServerDetailTabsProps) {
++export function ServerDetailTabs({
++  children,
++  tools,
++  capabilities,
++  capabilitiesInvalid,
++}: ServerDetailTabsProps) {
+   return (
+     <Tabs defaultValue="about" className="gap-4">
+       <TabsList className="h-11 rounded-xl p-1">
+@@ -33,6 +45,12 @@ export function ServerDetailTabs({ children, tools }: ServerDetailTabsProps) {
+       <TabsContent value="tools">
+         <ServerToolsTable tools={tools} />
+       </TabsContent>
++      <TabsContent value="capabilities">
++        <NativeCapabilitiesTable
++          inventory={capabilities}
++          invalid={capabilitiesInvalid}
++        />
++      </TabsContent>
+     </Tabs>
+   );
+ }
+diff --git a/src/app/catalog/[repoName]/[serverName]/[version]/components/server-tools-table.tsx b/src/app/catalog/[repoName]/[serverName]/[version]/components/server-tools-table.tsx
+index 3f892bb..d137cbe 100644
+--- a/src/app/catalog/[repoName]/[serverName]/[version]/components/server-tools-table.tsx
++++ b/src/app/catalog/[repoName]/[serverName]/[version]/components/server-tools-table.tsx
+@@ -14,7 +14,7 @@ import type { ServerTool } from "@/lib/schemas/server-meta";
+ function EmptyToolsTable() {
+   return (
+     <TableRow>
+-      <TableCell colSpan={2} className="py-12">
++      <TableCell colSpan={4} className="py-12">
+         <div className="flex flex-col items-center gap-3">
+           <IllustrationEmptyInbox className="size-24" />
+           <p className="text-sm text-muted-foreground">No tools available</p>
+@@ -36,6 +36,8 @@ export function ServerToolsTable({ tools }: ServerToolsTableProps) {
+           <TableRow className="h-12">
+             <TableHead className="w-56 p-3">Tools</TableHead>
+             <TableHead className="p-3">Description</TableHead>
++            <TableHead className="p-3">Native contract</TableHead>
++            <TableHead className="p-3">Acceptance evidence</TableHead>
+           </TableRow>
+         </TableHeader>
+         <TableBody>
+@@ -48,6 +50,53 @@ export function ServerToolsTable({ tools }: ServerToolsTableProps) {
+                 <TableCell className="p-3 text-muted-foreground whitespace-normal">
+                   {tool.description ?? "No description"}
+                 </TableCell>
++                <TableCell className="p-3 whitespace-normal">
++                  {tool._meta?.re8ch ? (
++                    <div className="space-y-2">
++                      <p>
++                        {tool._meta.re8ch.plugin} ·{" "}
++                        {tool._meta.re8ch.groupVersion}
++                      </p>
++                      <code className="text-xs break-all">
++                        {tool._meta.re8ch.method} {tool._meta.re8ch.path}
++                      </code>
++                      <p className="text-xs break-all">
++                        {tool._meta.re8ch.operationId}
++                      </p>
++                      {tool.inputSchema && (
++                        <details>
++                          <summary className="cursor-pointer">
++                            Parameter schema
++                          </summary>
++                          <pre className="text-xs whitespace-pre-wrap">
++                            {JSON.stringify(tool.inputSchema, null, 2)}
++                          </pre>
++                        </details>
++                      )}
++                    </div>
++                  ) : (
++                    <span className="text-muted-foreground">Not supplied</span>
++                  )}
++                </TableCell>
++                <TableCell className="p-3 whitespace-normal">
++                  {tool._meta?.re8ch ? (
++                    <div>
++                      <p>
++                        HTTP:{" "}
++                        {tool._meta.re8ch.httpConformance.replaceAll("_", " ")}
++                      </p>
++                      <p>
++                        UI semantics:{" "}
++                        {tool._meta.re8ch.semanticConformance.replaceAll(
++                          "_",
++                          " ",
++                        )}
++                      </p>
++                    </div>
++                  ) : (
++                    <span className="text-muted-foreground">Not supplied</span>
++                  )}
++                </TableCell>
+               </TableRow>
+             ))
+           )}
+diff --git a/src/app/catalog/[repoName]/[serverName]/[version]/page.tsx b/src/app/catalog/[repoName]/[serverName]/[version]/page.tsx
+index 315b5ce..656bc9b 100644
+--- a/src/app/catalog/[repoName]/[serverName]/[version]/page.tsx
++++ b/src/app/catalog/[repoName]/[serverName]/[version]/page.tsx
+@@ -1,4 +1,5 @@
+ import { notFound } from "next/navigation";
++import { parseNativeCapabilities } from "@/lib/schemas/server-meta";
+ import { getTools } from "@/lib/utils";
+ import { getServerDetails } from "./actions";
+ import { ServerDetail } from "./components/server-detail";
+@@ -39,12 +40,17 @@ export default async function CatalogDetailPage({
+   const server = serverResponse?.server ?? {};
+   const remote = server.remotes?.[0];
+   const tools = getTools(server);
++  const inventory = parseNativeCapabilities(server);
+
+   return (
+     <div className="flex flex-col gap-5">
+       <ServerDetailTitle server={server} version={version} />
+
+-      <ServerDetailTabs tools={tools}>
++      <ServerDetailTabs
++        tools={tools}
++        capabilities={inventory?.success ? inventory.data : undefined}
++        capabilitiesInvalid={inventory !== null && !inventory.success}
++      >
+         <ServerDetail
+           description={server.description}
+           serverName={server.name ?? serverName}
+diff --git a/src/lib/schemas/server-meta.ts b/src/lib/schemas/server-meta.ts
+index 79e47a3..df02e9b 100644
+--- a/src/lib/schemas/server-meta.ts
++++ b/src/lib/schemas/server-meta.ts
+@@ -4,6 +4,24 @@ import type { V0ServerJson } from "@/generated/types.gen";
+ export const toolDefinitionSchema = z.object({
+   name: z.string(),
+   description: z.string().optional(),
++  inputSchema: z.record(z.string(), z.unknown()).optional(),
++  _meta: z
++    .object({
++      re8ch: z
++        .object({
++          plugin: z.string(),
++          groupVersion: z.string(),
++          operationId: z.string(),
++          method: z.string(),
++          path: z.string(),
++          schemaHash: z.string(),
++          httpConformance: z.enum(["not_run", "passed", "failed"]),
++          semanticConformance: z.enum(["not_run", "passed", "failed"]),
++        })
++        .optional(),
++    })
++    .passthrough()
++    .optional(),
+ });
+
+ export const transportDataSchema = z
+@@ -36,3 +54,45 @@ export function parseStacklokMeta(server: V0ServerJson) {
+
+   return stacklokMetaSchema.safeParse(raw);
+ }
++
++export const nativeCapabilitySchema = z.object({
++  plugin: z.string(),
++  groupVersion: z.string(),
++  method: z.string(),
++  path: z.string(),
++  operationId: z.string().optional(),
++  tool: z.string().optional(),
++  registration: z.enum([
++    "implemented_not_deployed",
++    "not_implemented",
++    "deployed",
++  ]),
++  disposition: z.string(),
++  schemaProvenance: z.string(),
++  httpConformance: z.enum(["not_run", "passed", "failed"]),
++  semanticConformance: z.enum(["not_run", "passed", "failed"]),
++});
++
++export const nativeCapabilityInventorySchema = z.object({
++  version: z.literal(1),
++  cluster: z.string(),
++  scope: z.string(),
++  operations: z.array(nativeCapabilitySchema),
++});
++
++export type NativeCapabilityInventory = z.infer<
++  typeof nativeCapabilityInventorySchema
++>;
++
++export function parseNativeCapabilities(server: V0ServerJson) {
++  const metadata = parseStacklokMeta(server);
++  if (!metadata?.success) return null;
++  const inventories = Object.values(metadata.data)
++    .map((transport) => transport.re8ch_capabilities)
++    .filter((value) => value !== undefined);
++  if (inventories.length === 0) return null;
++  // Refuse ambiguous inventories instead of silently dropping a transport.
++  return nativeCapabilityInventorySchema.safeParse(
++    inventories.length === 1 ? inventories[0] : null,
++  );
++}

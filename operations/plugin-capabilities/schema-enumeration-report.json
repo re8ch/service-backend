@@ -1,0 +1,131 @@
+{
+  "schemathesisVersion": "4.29.1",
+  "mode": "offline-schema-enumeration",
+  "networkRequests": 0,
+  "sources": [
+    {
+      "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+      "operations": 77,
+      "methods": {
+        "delete": 14,
+        "get": 28,
+        "patch": 14,
+        "post": 7,
+        "put": 14
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/ceph.rook.io/v1",
+      "operations": 209,
+      "methods": {
+        "delete": 38,
+        "get": 76,
+        "patch": 38,
+        "post": 19,
+        "put": 38
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "operations": 78,
+      "methods": {
+        "delete": 16,
+        "get": 24,
+        "patch": 15,
+        "post": 8,
+        "put": 15
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "operations": 20,
+      "methods": {
+        "delete": 4,
+        "get": 6,
+        "patch": 4,
+        "post": 2,
+        "put": 4
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "operations": 98,
+      "methods": {
+        "delete": 20,
+        "get": 30,
+        "patch": 19,
+        "post": 10,
+        "put": 19
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "operations": 20,
+      "methods": {
+        "delete": 4,
+        "get": 6,
+        "patch": 4,
+        "post": 2,
+        "put": 4
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/csi.ceph.io/v1",
+      "operations": 55,
+      "methods": {
+        "delete": 10,
+        "get": 20,
+        "patch": 10,
+        "post": 5,
+        "put": 10
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/objectbucket.io/v1alpha1",
+      "operations": 21,
+      "methods": {
+        "delete": 4,
+        "get": 7,
+        "patch": 4,
+        "post": 2,
+        "put": 4
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    }
+  ],
+  "totalOperations": 578,
+  "sourceDerivedControllerSchemas": [
+    {
+      "plugin": "mihomos-cluster",
+      "version": "v1.19.29",
+      "operations": 13,
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run",
+      "coverage": "partial"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "capturedAt": "2026-10-04T03:28:11.143036+00:00",
+  "source": "authenticated-tenant-platform-native-kubectl-pod-proxy",
+  "schemaSha256": "6932f15d3d605b425f7b8876370b54175d5a89c547473b7145d9d5f5e687c9dc",
+  "schemaProvenance": "source-derived-partial-native-contract",
+  "samples": [
+    {
+      "method": "GET",
+      "path": "/",
+      "operationId": "getMihomoHello",
+      "auditRef": "audit://operations/op_f0eea2c7b1aa4fabb55b0c71ebb2fd23",
+      "bodyValidation": "passed",
+      "projection": "passed",
+      "truncated": false
+    },
+    {
+      "method": "GET",
+      "path": "/connections",
+      "operationId": "getMihomoConnectionSnapshot",
+      "auditRef": "audit://operations/op_fda6f2586dc54340a1f1bf6e8ce740b4",
+      "bodyValidation": "passed",
+      "projection": "passed",
+      "truncated": false,
+      "connectionSample": "empty-null-slice",
+      "connectionCount": 0
+    }
+  ],
+  "limitations": [
+    "Sampled JSON bodies only; kubectl does not retain HTTP status/headers.",
+    "Connection snapshot is empty and does not establish live nonempty tracker validation.",
+    "Config summary is covered by synthetic credential-projection tests only; no raw live configuration fetched."
+  ],
+  "deployedAdapterInvocation": "not_run",
+  "httpConformance": "not_run",
+  "semanticConformance": "not_run"
+}

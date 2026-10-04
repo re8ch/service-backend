@@ -1,0 +1,926 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mihomo controller native API (partial source-derived contract)",
+    "version": "v1.19.29",
+    "description": "Partial source-derived native contracts for reviewed controller reads. Common proxy/provider fields are typed; adapter-specific extra properties remain extensible. Remaining routes are tracked in mihomos-native-surfaces.json. No upstream-published OpenAPI is claimed."
+  },
+  "externalDocs": {
+    "url": "https://github.com/MetaCubeX/mihomo/blob/e26714a181ac0e2fa803453c0a8e9a9ce94e31cb/hub/route/server.go"
+  },
+  "paths": {
+    "/version": {
+      "get": {
+        "operationId": "getMihomoVersion",
+        "responses": {
+          "200": {
+            "description": "Native controller version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "meta",
+                    "version"
+                  ],
+                  "properties": {
+                    "meta": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-re8ch-tool": "mihomos.controller.version"
+      }
+    },
+    "/proxies": {
+      "get": {
+        "operationId": "listMihomoProxies",
+        "x-re8ch-tool": "mihomos.proxies.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "proxies": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/Proxy"
+                      }
+                    }
+                  },
+                  "required": [
+                    "proxies"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proxies/{name}": {
+      "get": {
+        "operationId": "getMihomoProxy",
+        "x-re8ch-tool": "mihomos.proxies.get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proxy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/group": {
+      "get": {
+        "operationId": "listMihomoGroups",
+        "x-re8ch-tool": "mihomos.groups.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "proxies": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Proxy"
+                          }
+                        },
+                        {
+                          "enum": [
+                            null
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "proxies"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/group/{name}": {
+      "get": {
+        "operationId": "getMihomoGroup",
+        "x-re8ch-tool": "mihomos.groups.get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proxy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules": {
+      "get": {
+        "operationId": "listMihomoRules",
+        "x-re8ch-tool": "mihomos.rules.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rules": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Rule"
+                      }
+                    }
+                  },
+                  "required": [
+                    "rules"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/proxies": {
+      "get": {
+        "operationId": "listMihomoProxyProviders",
+        "x-re8ch-tool": "mihomos.proxy-providers.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/ProxyProvider"
+                      }
+                    }
+                  },
+                  "required": [
+                    "providers"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/proxies/{providerName}": {
+      "get": {
+        "operationId": "getMihomoProxyProvider",
+        "x-re8ch-tool": "mihomos.proxy-providers.get",
+        "parameters": [
+          {
+            "name": "providerName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProxyProvider"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/proxies/{providerName}/{name}": {
+      "get": {
+        "operationId": "getMihomoProviderProxy",
+        "x-re8ch-tool": "mihomos.provider-proxies.get",
+        "parameters": [
+          {
+            "name": "providerName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proxy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/rules": {
+      "get": {
+        "operationId": "listMihomoRuleProviders",
+        "x-re8ch-tool": "mihomos.rule-providers.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native controller response; adapter-specific extra properties are allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/components/schemas/RuleProvider"
+                      }
+                    }
+                  },
+                  "required": [
+                    "providers"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "operationId": "getMihomoHello",
+        "x-re8ch-tool": "mihomos.controller.hello",
+        "description": "Returns the native controller greeting; no health or data-plane readiness claim.",
+        "x-re8ch-source-evidence": [
+          {
+            "path": "hub/route/server.go",
+            "sha256": "01724bd82002cf80b85448ef664ca53a7cb82f529ccf2b7f4a6383282768d256"
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native JSON body with reviewed fields typed; additional properties are projected out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hello": {
+                      "type": "string",
+                      "enum": [
+                        "mihomo"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "hello"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/configs": {
+      "get": {
+        "operationId": "getMihomoConfigSummary",
+        "x-re8ch-tool": "mihomos.configs.get",
+        "description": "Returns selected scalar runtime configuration. Omits authentication, TUIC/TUN settings, ss/vmess config, updater URLs and unknown fields. This is not a full configuration export.",
+        "x-re8ch-source-evidence": [
+          {
+            "path": "hub/route/configs.go",
+            "sha256": "039f1624b98089706d50b405956b91eba799f97aad7e0f4ac82bb92c9b9833cd"
+          },
+          {
+            "path": "hub/executor/executor.go",
+            "sha256": "e28e7d73ee257f76a090cb2810d034d5ca3e503fa4ee9cb739f2bb6bc0662e18"
+          },
+          {
+            "path": "config/config.go",
+            "sha256": "7f5d6202bc741985ba2c05d2dbafb3e284cb0e51960b9e407033bd9b2eb3207f"
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native JSON body with reviewed fields typed; additional properties are projected out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneralSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections": {
+      "get": {
+        "operationId": "getMihomoConnectionSnapshot",
+        "x-re8ch-tool": "mihomos.connections.snapshot",
+        "description": "One finite JSON snapshot without WebSocket upgrade or interval. Returns connection IDs, counters, routing chains and selected network metadata; omits process paths, user identity, geolocation and unknown fields. Truncated snapshots fail; no stream or connection-close operation is enabled.",
+        "x-re8ch-source-evidence": [
+          {
+            "path": "hub/route/connections.go",
+            "sha256": "24d5b4fbbda6d115eb3c18b2d33318c5a78af678c94f3a1e7dddca8cea9adfd1"
+          },
+          {
+            "path": "tunnel/statistic/manager.go",
+            "sha256": "508daa254d05b6414e899e4eb154cb3b83572d6223e5662da9463728cb588886"
+          },
+          {
+            "path": "tunnel/statistic/tracker.go",
+            "sha256": "80e8cc0df115c35a62baea5aec4c3ad4a28c1cf9c47c52a78e76523520c83a6f"
+          },
+          {
+            "path": "constant/metadata.go",
+            "sha256": "ea17eb033f6b82ec8d7882a7608a04db2edd785eef9c2a50ffe191cb2674afc4"
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Native JSON body with reviewed fields typed; additional properties are projected out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Proxy": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "alive": {
+            "type": "boolean"
+          },
+          "udp": {
+            "type": "boolean"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": {
+                  "type": "string"
+                },
+                "delay": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "time",
+                "delay"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "now": {
+            "type": "string"
+          },
+          "all": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "alive",
+          "udp",
+          "history"
+        ],
+        "additionalProperties": true
+      },
+      "ProxyProvider": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "string"
+          },
+          "proxies": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Proxy"
+                }
+              },
+              {
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "testUrl": {
+            "type": "string"
+          },
+          "expectedStatus": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "vehicleType",
+          "proxies",
+          "testUrl",
+          "expectedStatus"
+        ],
+        "additionalProperties": true
+      },
+      "Rule": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "proxy": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "extra": {
+            "type": "object",
+            "properties": {
+              "disabled": {
+                "type": "boolean"
+              },
+              "hitCount": {
+                "type": "integer"
+              },
+              "hitAt": {
+                "type": "string"
+              },
+              "missCount": {
+                "type": "integer"
+              },
+              "missAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "disabled",
+              "hitCount",
+              "hitAt",
+              "missCount",
+              "missAt"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "index",
+          "type",
+          "payload",
+          "proxy",
+          "size"
+        ],
+        "additionalProperties": true
+      },
+      "RuleProvider": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "string"
+          },
+          "behavior": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "ruleCount": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "vehicleType",
+          "behavior",
+          "format",
+          "ruleCount"
+        ],
+        "additionalProperties": true
+      },
+      "GeneralSummary": {
+        "type": "object",
+        "properties": {
+          "port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "socks-port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "redir-port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "tproxy-port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "mixed-port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "allow-lan": {
+            "type": "boolean"
+          },
+          "inbound-tfo": {
+            "type": "boolean"
+          },
+          "inbound-mptcp": {
+            "type": "boolean"
+          },
+          "unified-delay": {
+            "type": "boolean"
+          },
+          "ipv6": {
+            "type": "boolean"
+          },
+          "geo-auto-update": {
+            "type": "boolean"
+          },
+          "geodata-mode": {
+            "type": "boolean"
+          },
+          "tcp-concurrent": {
+            "type": "boolean"
+          },
+          "sniffing": {
+            "type": "boolean"
+          },
+          "etag-support": {
+            "type": "boolean"
+          },
+          "disable-keep-alive": {
+            "type": "boolean"
+          },
+          "bind-address": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "log-level": {
+            "type": "string"
+          },
+          "interface-name": {
+            "type": "string"
+          },
+          "geodata-loader": {
+            "type": "string"
+          },
+          "geosite-matcher": {
+            "type": "string"
+          },
+          "find-process-mode": {
+            "type": "string"
+          },
+          "routing-mark": {
+            "type": "integer"
+          },
+          "geo-update-interval": {
+            "type": "integer"
+          },
+          "keep-alive-idle": {
+            "type": "integer"
+          },
+          "keep-alive-interval": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "port",
+          "socks-port",
+          "redir-port",
+          "tproxy-port",
+          "mixed-port",
+          "allow-lan",
+          "inbound-tfo",
+          "inbound-mptcp",
+          "unified-delay",
+          "ipv6",
+          "geo-auto-update",
+          "geodata-mode",
+          "tcp-concurrent",
+          "sniffing",
+          "etag-support",
+          "disable-keep-alive",
+          "bind-address",
+          "mode",
+          "log-level",
+          "interface-name",
+          "geodata-loader",
+          "geosite-matcher",
+          "find-process-mode",
+          "routing-mark",
+          "geo-update-interval",
+          "keep-alive-idle",
+          "keep-alive-interval"
+        ],
+        "additionalProperties": true
+      },
+      "Connection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "upload": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "download": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "start": {
+            "type": "string"
+          },
+          "chains": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "providerChains": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "rule": {
+            "type": "string"
+          },
+          "rulePayload": {
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "network": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "sourceIP": {
+                    "type": "string"
+                  },
+                  "destinationIP": {
+                    "type": "string"
+                  },
+                  "sourcePort": {
+                    "type": "string"
+                  },
+                  "destinationPort": {
+                    "type": "string"
+                  },
+                  "inboundIP": {
+                    "type": "string"
+                  },
+                  "inboundPort": {
+                    "type": "string"
+                  },
+                  "inboundName": {
+                    "type": "string"
+                  },
+                  "host": {
+                    "type": "string"
+                  },
+                  "dnsMode": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "network",
+                  "type",
+                  "sourceIP",
+                  "destinationIP",
+                  "sourcePort",
+                  "destinationPort",
+                  "inboundIP",
+                  "inboundPort",
+                  "inboundName",
+                  "host",
+                  "dnsMode"
+                ],
+                "additionalProperties": true
+              },
+              {
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "upload",
+          "download",
+          "start",
+          "chains",
+          "providerChains",
+          "rule",
+          "rulePayload",
+          "metadata"
+        ],
+        "additionalProperties": true
+      },
+      "ConnectionSnapshot": {
+        "type": "object",
+        "properties": {
+          "downloadTotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uploadTotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "memory": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "connections": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Connection"
+                }
+              },
+              {
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "downloadTotal",
+          "uploadTotal",
+          "memory",
+          "connections"
+        ],
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "capturedAt": "2026-10-04 02:50:20 UTC",
+  "mode": "live-native-body-sample-validation",
+  "cluster": "re8ch-k3s",
+  "transport": "authenticated re8ch-tenant platform_tool_call -> native kubectl.exec",
+  "validatorCommit": "818c3b0b8",
+  "scope": "One bounded list response from each of six captured native API groups, validated locally against captured schemas. Not full operation coverage.",
+  "nativeReads": 6,
+  "liveSchemaParity": "not_verified",
+  "deployedAdapterInvocation": "not_run",
+  "httpConformance": "not_run",
+  "semanticConformance": "not_run",
+  "rawBodiesRetained": false,
+  "operations": [
+    {
+      "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+      "operationId": "listAnatomyRe8chComV1alpha1RuntimeCommitForAllNamespaces",
+      "path": "/apis/anatomy.re8ch.com/v1alpha1/runtimecommits",
+      "auditRef": "audit://operations/op_6101116b300840d6be87c4778a78a2af",
+      "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+      "bodyValidation": {
+        "mode": "native_json_body",
+        "validatedObjects": 1,
+        "httpConformance": "not_run"
+      },
+      "sampleItems": 1,
+      "result": "passed"
+    },
+    {
+      "groupVersion": "apis/ceph.rook.io/v1",
+      "operationId": "listCephRookIoV1CephClusterForAllNamespaces",
+      "path": "/apis/ceph.rook.io/v1/cephclusters",
+      "auditRef": "audit://operations/op_d9c28b96f24a4204b264e5e8475331b4",
+      "schemaHash": "973bae2ef4300a5b2daa58f6be4e876ca20350c7abdf0e4ad0731cf9af2ade1c",
+      "bodyValidation": {
+        "mode": "native_json_body",
+        "validatedObjects": 1,
+        "httpConformance": "not_run"
+      },
+      "sampleItems": 1,
+      "result": "passed"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "operationId": "listNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+      "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics",
+      "auditRef": "audit://operations/op_fb1f79d2ba1e4859b828aeb6f05ccd1d",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "bodyValidation": {
+        "mode": "native_json_body",
+        "validatedObjects": 1,
+        "httpConformance": "not_run"
+      },
+      "sampleItems": 1,
+      "result": "passed"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "operationId": "listNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+      "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments",
+      "auditRef": "audit://operations/op_9faa090522864d8fb0d58484a48730e2",
+      "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "bodyValidation": {
+        "mode": "native_json_body",
+        "validatedObjects": 1,
+        "httpConformance": "not_run"
+      },
+      "sampleItems": 1,
+      "result": "passed"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "operationId": "listNetworkingRe8chComV1alpha1PublicEdge",
+      "path": "/apis/networking.re8ch.com/v1alpha1/publicedges",
+      "auditRef": "audit://operations/op_acd493a0c0b84ef69d0f5d47c90a6494",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "bodyValidation": {
+        "mode": "native_json_body",
+        "validatedObjects": 1,
+        "httpConformance": "not_run"
+      },
+      "sampleItems": 1,
+      "result": "passed"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "operationId": "listNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments",
+      "auditRef": "audit://operations/op_7dfb7cbdaad04dda8d271e0eceefc803",
+      "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "bodyValidation": {
+        "mode": "native_json_body",
+        "validatedObjects": 1,
+        "httpConformance": "not_run"
+      },
+      "sampleItems": 1,
+      "result": "passed"
+    }
+  ]
+}

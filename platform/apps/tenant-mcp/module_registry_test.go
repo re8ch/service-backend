@@ -164,3 +164,30 @@ func TestModuleSessionsAreReusedAndWritesAreNotRetried(t *testing.T) {
 		t.Fatal("write invocation duplicated")
 	}
 }
+
+func TestCatalogReportsMissingAllowedTools(t *testing.T) {
+	t.Setenv("SERVICE_API_TOKEN", "fixture")
+	healthy, _ := registryFixture(t, func(context.Context) (any, error) { return map[string]bool{"ok": true}, nil })
+	backend := fixtureBackend(healthy.URL)
+	backend.Allowed = names("tenant_list absent_z absent_a")
+	path := filepath.Join(t.TempDir(), "modules.json")
+	writeRegistry(t, path, map[string]platformBackend{"fixture": backend})
+	registry := newPlatformRegistry(path)
+	defer registry.close()
+	result := registry.catalog(context.Background())
+	missing := result["missingTools"].([]map[string]any)
+	if len(missing) != 2 || missing[0]["name"] != "absent_a" || missing[1]["name"] != "absent_z" || missing[0]["backend"] != "fixture" || missing[0]["status"] != "not_published" {
+		t.Fatalf("missing registration evidence: %#v", result)
+	}
+	items := result["tools"].([]map[string]any)
+	if len(items) != 1 || items[0]["name"] != "tenant_list" {
+		t.Fatalf("unpublished tools advertised as callable: %#v", result)
+	}
+	backend.Allowed = names("tenant_list")
+	writeRegistry(t, path, map[string]platformBackend{"fixture": backend})
+	reloadRegistry(registry)
+	result = registry.catalog(context.Background())
+	if len(result["missingTools"].([]map[string]any)) != 0 {
+		t.Fatalf("stale missing tools after registry reload: %#v", result)
+	}
+}

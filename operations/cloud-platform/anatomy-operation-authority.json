@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "scope": "Source-reviewed Anatomy mutation classification; does not authorize execution or assert deployed controller parity.",
+  "source": "clusters/re8ch/charts/runtime-anatomy/files/controller.py",
+  "sourceSha256": "303f084cfea22b05f6aa30c1967a8bfcaf53700c0b33471c12338d7106717d03",
+  "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+  "statusDisposition": "controller_owned",
+  "defaultDisposition": "authority_review_required",
+  "kinds": {
+    "Runtime": {
+      "disposition": "gitops_pr_required",
+      "reconciler": "reconcile_runtime",
+      "semantics": "Desired runtime identity and component graph. Ready objects are not reconciled again by this controller.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    },
+    "RuntimeCommit": {
+      "disposition": "runtime_capture_review_required",
+      "reconciler": "reconcile_commit",
+      "semantics": "Creates VolumeSnapshot, snapshot PVC and manifest Job. Sealed or Failed requests are terminal; corrections require a new request.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    },
+    "RuntimeDiff": {
+      "disposition": "runtime_request_review_required",
+      "reconciler": "reconcile_diff",
+      "semantics": "Compares two Sealed commit manifests and writes result status. Ready or Failed requests are terminal.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    },
+    "RuntimeBranch": {
+      "disposition": "runtime_branch_cas_review_required",
+      "reconciler": "reconcile_branch",
+      "semantics": "Checks expectedHead against status.head before advancing to a Sealed commit. Active or Failed requests return early; patching an Active object does not advance its head.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    },
+    "RuntimeCheckout": {
+      "disposition": "runtime_restore_review_required",
+      "reconciler": "reconcile_checkout",
+      "semantics": "Plan returns a planned status. Every other mode enters materialization in this implementation, creating a target PVC and manifest Job. Planned, Ready, Failed and Blocked requests are terminal.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    },
+    "RuntimeGarbageCollection": {
+      "disposition": "runtime_request_review_required",
+      "reconciler": "reconcile_gc",
+      "semantics": "Computes roots and candidates, reports mode DryRun and deleted=[]; does not implement artifact deletion. Ready requests are terminal.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    },
+    "RuntimeAnalysis": {
+      "disposition": "runtime_capture_review_required",
+      "reconciler": "reconcile_analysis",
+      "semantics": "Starts a bounded observer capture window with possible text snippets. spec.stop is honored while active; terminal requests are not restarted by spec edits.",
+      "execution": "not_implemented",
+      "liveSourceParity": "not_verified"
+    }
+  }
+}

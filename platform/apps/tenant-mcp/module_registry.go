@@ -364,12 +364,27 @@ func (r *platformRegistry) catalog(ctx context.Context) map[string]any {
 	wg.Wait()
 	items := []map[string]any{}
 	unavailable := []string{}
+	missing := []map[string]any{}
 	for i, name := range names {
 		if results[i].err != nil {
 			unavailable = append(unavailable, name)
 		} else {
 			items = append(items, results[i].items...)
+			published := map[string]bool{}
+			for _, tool := range results[i].items {
+				published[tool["name"].(string)] = true
+			}
+			allowed := make([]string, 0, len(entries[name].backend.Allowed))
+			for tool := range entries[name].backend.Allowed {
+				allowed = append(allowed, tool)
+			}
+			sort.Strings(allowed)
+			for _, tool := range allowed {
+				if !published[tool] {
+					missing = append(missing, map[string]any{"backend": name, "name": tool, "status": "not_published"})
+				}
+			}
 		}
 	}
-	return map[string]any{"tools": items, "unavailableBackends": unavailable}
+	return map[string]any{"tools": items, "unavailableBackends": unavailable, "missingTools": missing}
 }

@@ -6,15 +6,41 @@ on:
     paths:
       - .github/workflows/toolhive-cloud-ui-release.yml
       - clusters/re8ch/components/toolhive/cloud-ui-re8ch/**
+      - operations/plugin-capabilities/stagehand/**
+      - operations/plugin-capabilities/registry.runtime.json
+  pull_request:
+    paths:
+      - .github/workflows/toolhive-cloud-ui-release.yml
+      - clusters/re8ch/components/toolhive/cloud-ui-re8ch/**
+      - operations/plugin-capabilities/stagehand/**
+      - operations/plugin-capabilities/registry.runtime.json
 permissions:
   contents: read
-  packages: write
-  id-token: write
 concurrency:
-  group: toolhive-cloud-ui-release
+  group: toolhive-cloud-ui-release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate the Stagehand runner offline (no semantic acceptance)
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace/operations/plugin-capabilities/stagehand \
+            node:24.18.0-bookworm-slim \
+            sh -c 'npm ci --ignore-scripts --no-audit --no-fund && npm test'
+      - name: Test and build the patched management directory
+        run: docker build -t re8ch-toolhive-ui:pr clusters/re8ch/components/toolhive/cloud-ui-re8ch
   release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     runs-on: ubuntu-latest
     environment: production
     steps:

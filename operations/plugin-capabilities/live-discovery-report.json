@@ -1,0 +1,537 @@
+{
+  "capturedAt": "2026-10-04 02:54:07 UTC",
+  "cluster": "re8ch-k3s",
+  "source": "/openapi/v3",
+  "auditRef": "audit://operations/op_d0769e04eae040da859a0c960e61720a",
+  "indexEntries": 125,
+  "groupVersionEntries": 98,
+  "scope": "Native API discovery only; API groups do not prove installed plugin identity, permissions or complete native non-Kubernetes coverage.",
+  "schemas": [
+    {
+      "groupVersion": "api/v1",
+      "serverRelativeURL": "/openapi/v3/api/v1?hash=B6B6A956CCCED3FDC486FF34C55C9A4774383F78F86F81024EF5F1A590EA4FEC3DA5B3B8C23EFE56DFBF627AF6B93D4AFEE4CBF05045CFC6EA3B33E85B73B054",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/acme.cert-manager.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/acme.cert-manager.io/v1?hash=399177B4378A5867255E38BB4D269EF02884BB708CDD6F95675F193FEA355B77CCBBA074F96A50A89A6ACB386D71812825358BBED04191D86E38D8F8173FE2B0",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/admissionregistration.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/admissionregistration.k8s.io/v1?hash=673F7AAFC9AC0CCF6FA983FC8A89E1A4B5F9F6330125CB2A2020E23A09A2702D4DAB5E1831528131311A54B55A4853BCDC8941E8D609CAE5FA33A8F48DCF825C",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/anatomy.re8ch.com/v1alpha1?hash=9061582A63E2CA5B68825804048E2EFCE8653021090E83EC9FB5364FB3B570EB363BEC1569BC941C1E458417D8F1D557DCA05620210F8B49173427660C6DF12D",
+      "coverage": "captured_schema"
+    },
+    {
+      "groupVersion": "apis/apiextensions.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/apiextensions.k8s.io/v1?hash=A3A5323EB79FB43596EE41FFBF81BE5BBAE396B138CBAB6A6CF89AEBF4EB22C8A999A9877041764EF27F47F96BA4A3E88984A08F9286D7CEF8301DD8E1C648F3",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/apiregistration.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/apiregistration.k8s.io/v1?hash=885824ECA1118072CBD0CF1D55ACAE2975F4BD27CBD5B072403CE532134DECBAE39AC365F990D45E41C7A55BC8EFFA7130E146BF500920BD3A2ACAD3BC4C1D68",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/apps/v1",
+      "serverRelativeURL": "/openapi/v3/apis/apps/v1?hash=E6837BF046F7D2603C949276F19DA2050C7521B0E5FA9FC64556E8AA9C500719EB5CE97EB6FDF85ABEDA04A50BDA5D2B5F59DA2B283D8B76A82BA2A256AFD626",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/authentication.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/authentication.k8s.io/v1?hash=AEB8455EAF84DB1DB277566F6D159E3DAC91A3D54127F80F0315E1E1ACC4FD1E5A0E9D4D07927B5891DDDCA5CCF644D9DD05ADE1CCB1FD3FC5508B6316EB9C7D",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/authorization.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/authorization.k8s.io/v1?hash=F74B50ED6CE9356CDD36CC494DE79C803957CF1070F530367D96283F2E0883C30A5D3110EBB48BEA80CB3CBB7CE0C502D9ECBFF93FBF45BB0B26F26759F8E45C",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/autoscaling/v1",
+      "serverRelativeURL": "/openapi/v3/apis/autoscaling/v1?hash=0234E812866E848F66C838987D42274FCD6727096765FB459623AB83A3EC093BB5C04FAAFA8B4833CB279136EACDF27A2291915646068E91D47BFA5618C4E0EB",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/autoscaling/v2",
+      "serverRelativeURL": "/openapi/v3/apis/autoscaling/v2?hash=D4ED7F37F5DD1FFAD10B2A8D5938F3A3AD0DD1706B7D8B6C52A950728C5D3A00C50CFF850277ECF1D37964A517CA51124D48733CD4086096C0006924CA4C870D",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/batch/v1",
+      "serverRelativeURL": "/openapi/v3/apis/batch/v1?hash=5664119A513C767EB38D7A749E466F5C72819EC1344DFDCD7513E8E611F7ABB8B5BD28AA937EADD92AC827C51ECFA0E63575A4B06E2F531F6CAB41D533A25B3E",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/ceph.rook.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/ceph.rook.io/v1?hash=DB8F846CAA295EA2289096B5BB9770FD342A8AA8A5D6C20031C80061C03E057F90DAEDB667E2ECFAF540DD975B3BAE03D098EDE2B62E9E7CE33805582BC499EE",
+      "coverage": "captured_schema"
+    },
+    {
+      "groupVersion": "apis/cert-manager.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/cert-manager.io/v1?hash=A2502152EF917CC9DEEC2F16144CAA0572357AB5B2C636238412FCEC9C3E32720A95486BEE2B742A0F9B33F2961B433F1CE5EAC8B0405EB760DE5E8BF90D66D9",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/certificates.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/certificates.k8s.io/v1?hash=4A969F933C2FF13B2A64FD587DF62BB0686D7138D59C2D07A58B580C4670FC232B97DBC6F774ACC4E82FE329920062FE02FB21C6EB70545CB53E444AACCAD131",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/cilium.io/v2",
+      "serverRelativeURL": "/openapi/v3/apis/cilium.io/v2?hash=2D3AB553B6E40A0B22907BBEBBB602856215C78D5C81B40AC8F25B1134607F92436FB3EC2B7C1E309B0F4AEA1CE070F34575CF5BED1C6EEC079BF0D1BBC3D9A2",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/cilium.io/v2alpha1?hash=07C5DEFC566A9D0FCD647A09809512F045EE6DF4C5AF079AC2172D11FD319472244F2AAB5675BF1D804C89267BA2D0832A14E9C8E5DBD3D9755801DC0644CC44",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/codex.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/codex.re8ch.com/v1alpha1?hash=AA79053BB7C4F7DE5C07C8576764F449EE2EE81C2B69C5AF677195A245B8D834E1F39F4315F0E9AEB33A3BE75CC31AB664C11BF04A384461AF14BEF1064A149F",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/coordination.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/coordination.k8s.io/v1?hash=7A32931036A041A6104F019AA5F9EEAE35773229CC260C7EA0B122D9DB06D3922A0360D8517008CFC32A5759EACF183CB338164015CC7C9BFFEB58331D9FF19D",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/csi.ceph.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/csi.ceph.io/v1?hash=8DF00B48FCC2D1BBCA9C2FBEFBA8A2F1B789D2037220B9E472D2600F8B5AAE9B4773B6D9F4BE239A24592727876DFA45B453DB44EEAB3C435AA660DF41B61062",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/dataspace.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/dataspace.re8ch.com/v1alpha1?hash=E3F6F365D2F1CA8BA5E07882E2C1CBAE1C20F136D44A3DC6870F32281C5362C10F3B20873FCF742B35828C295835F506FDFC9BD4677BB9BABFB45CB6FC6DDE83",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/devices.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/devices.re8ch.com/v1alpha1?hash=163A5E7D34A0B0A085D553F19AC6791E2E02F9DDD5C4E3F316592BCA8197D02697F968D4776D1A3C9E1FF87C27B2EBD73E9E76C3A819E4C651C7FC6012688B78",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/discovery.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/discovery.k8s.io/v1?hash=51233C00FB6F5A4C9AABE6627C7A61257764511D721A8DC1967836E665A151A8BD0CAF0DB10A41D537B4EE0B714415D50802C34AA0CC9222BC480695E6EC9EF1",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/events.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/events.k8s.io/v1?hash=09A60AB2DCF9BBF0EB4B8692E92A1873B915D0BA4381F71C6363CCEB677C9F7D52FE95910A241EAD7E511EC38B2CFB9EE33F2A7AC80043C3468D778B6F0DD1EB",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/finops.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/finops.re8ch.com/v1alpha1?hash=49F737C5C4C3C00EE6C3C5A79673976B741D31472B720E3D33FDBEDD499B282BB38587B8012BE7911CFA87A29BF0BBC1104150FB6B3D4E9AD68314647C434FD6",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/flowcontrol.apiserver.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/flowcontrol.apiserver.k8s.io/v1?hash=521D9553240B7BCA9E0F8CE28C7C9E33CD1B37F4DD9CED7FEAB104F9086E87BFC4D1349665D9A3E7CD9DD8719C0E4B0C6C586F2479FE755D1596F8ACBB41FEE0",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/functions.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/functions.re8ch.com/v1alpha1?hash=847CDC3C123C1EEFF345B60786BC3411C7D9284EFA49F3C863CF9B433680D39227CEF092B4D89F438F6F808D86AAB79ACD8195CFA275F96EDB0EA18056B728ED",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/gateway.networking.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/gateway.networking.k8s.io/v1?hash=598A4E9FAB4D52FE0AE862AC34D6009820C55D8E62DABA392870E371D284889EBA9FE1516B3D84F9635F3D6E0826017B66D1A4DF3FD7943C0E1F9DF5F434F571",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/gateway.networking.k8s.io/v1alpha2",
+      "serverRelativeURL": "/openapi/v3/apis/gateway.networking.k8s.io/v1alpha2?hash=0DBB08255066209A7BC9693ED9EBB1C31ADABE58E6EF5D872D2B170093EFA7D9250C5D11237C61F478689DE26FB79ECA8A1BC6A79CF0EAE66BF6BC4BA77311D0",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/gateway.networking.k8s.io/v1alpha3",
+      "serverRelativeURL": "/openapi/v3/apis/gateway.networking.k8s.io/v1alpha3?hash=B6747C91461D0CC18647C2063C5EA0038A501C89FF8EA0CF88C654DF833AC0A81EF3BD7D66A6B65AF99A0086A55D28182744C8FDB64585233BB4447E9E8C8248",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/gateway.networking.k8s.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/gateway.networking.k8s.io/v1beta1?hash=D59DF3646EDEA9E621FF81867F5DC4462F1BE90AD186DB0CD2B1A47B0C3AD41E81CFC62C8FFFDBCEF6E90E564836ADBBCC78FD1A0E1981203BC30F89DFACFF08",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/gateway.networking.x-k8s.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/gateway.networking.x-k8s.io/v1alpha1?hash=AED3C996F3BCF39C30EF30225382495B66CC6C64851CE939DBCAAE542611498897C6B6A081C49064954E15F9D3923FFFF3C9DD7515BE5CBDA30D58B757290FEE",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/governance.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/governance.re8ch.com/v1alpha1?hash=8ACC088A2814D6711EFBF359A586F8D1A249BC6E02F788631D08E495D4734B9BE78BF5A84F6B5CECAAE08C39EE67040465CCBFE5414EF009BA688AF8412C5429",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/groupsnapshot.storage.k8s.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/groupsnapshot.storage.k8s.io/v1beta1?hash=EDC989F7E43FB85061C60CCF3366F41C0902AFAB9FDE82F8E37D663752D5B4C3381404B986B712B71F8B6D7B4B642B984C8A470D6FC1F03C2B6432ACD316BFA3",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/groupsnapshot.storage.k8s.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/groupsnapshot.storage.k8s.io/v1beta2?hash=6162912F8E49F9FBFF08F8EA09EC760C5D3F0E5FFFC2BA20D129C09A98FB866E145B1D827D5291F807817B4A31D0E668824824DC4F7AFB666D55393C8E48B6D5",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/helm.cattle.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/helm.cattle.io/v1?hash=E795FD2506C5E8CF0A850E85615EC79B3E658CDE7EC4472C023A37BA54CE2BEA67301B367AEA937BCF7184D4DBB8A136695C102C23548AEA7D6FC230D5C5AB20",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/helm.toolkit.fluxcd.io/v2",
+      "serverRelativeURL": "/openapi/v3/apis/helm.toolkit.fluxcd.io/v2?hash=C83466FAFC2ABF73B73490F31BCDDFB354B705380B7C730E73295679933D1DB58FC5445F6E0FB0986FD2DA8D2C0529929D69AAE70CC7ED4B2A4550D784E4DA94",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/helm.toolkit.fluxcd.io/v2beta1",
+      "serverRelativeURL": "/openapi/v3/apis/helm.toolkit.fluxcd.io/v2beta1?hash=1D740D7680CE31CB481851B7AE008D361E15E42B5ECDAE8F659EF2FB1AB8A5BFB6D6A29524065AC64288DE817676A87FCA2D11DA08775228FD5D9EB3B182E50E",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/helm.toolkit.fluxcd.io/v2beta2",
+      "serverRelativeURL": "/openapi/v3/apis/helm.toolkit.fluxcd.io/v2beta2?hash=44D4D3D1AF60F0C800A79B85A3ADD825B52997148368AF20E63F8082A3B52802B76351DDAF8A8F4AD9267350B89602F557AD95AB8D841252F36CFD85B931E263",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/hub.traefik.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/hub.traefik.io/v1alpha1?hash=531BB2B33579EF41512AF223B38D0E99D330855E0402BB8FE8BAE86764F6B19BA98B6C48F01AAA57FCD15456251516630D8C53C9F0CFE1B736DC7EFD00ED7BC6",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/image.toolkit.fluxcd.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/image.toolkit.fluxcd.io/v1beta1?hash=D92D9FEE3B2577CC6599E65BED0E485EB40E8F3BC487A2F96F5E05A8C9C545184D1B71B0E0B035BE6E324C3267484D3D9D8491973AED47285B49E013F3D2A2C0",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/image.toolkit.fluxcd.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/image.toolkit.fluxcd.io/v1beta2?hash=73A49AB3F9740D1AA51CC4DB5D73B852F75CD7556ADD16566812E54CDA2E9B88340FECAEF1E3E37A6054AD84B7A7D6497D4AFBF3C798DF5C55BDDAC121503967",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/k3s.cattle.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/k3s.cattle.io/v1?hash=90529C71D77033811BCAB94B03CD9739D6592DBCFAFC4A1DBBF89BEDEBDF4ADFE25E1C2B4A4B5B7AB4D2460A82CA303BC69663D0CBA44B01A0FA47F348E03245",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kueue.x-k8s.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/kueue.x-k8s.io/v1beta1?hash=374D35228218C2DFBA21F9397A66C6B0504F61A54972052FE492D3C8A8B1BB0F3BC255FCCDA10F5A69CEFAAEEFB90BB540FBFD495720C11ADDAED41F3D143A38",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kueue.x-k8s.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/kueue.x-k8s.io/v1beta2?hash=0EA55E4BEB00B90D1E66933D45640A12D3C316819781FF8A6B742DF730A8B9608AECE421ACB89B0FF5CC9DE047B668F3380E9FB5D4B0B3A35CFE350F24F4DD89",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kustomize.toolkit.fluxcd.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/kustomize.toolkit.fluxcd.io/v1?hash=3A74D96AA603F280C5F99D8853073BC13E30EAC2BA560B3AC9F28F2E5E5B6DD715F683196162A9EB54462FB4C19F013848876ADADC61C7651B0C08C7E61C6C74",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kustomize.toolkit.fluxcd.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/kustomize.toolkit.fluxcd.io/v1beta1?hash=CF7A80258D7FA0CF4C4BA5C8B7DD8951B987D5E743A186F2437EF2B0055207CC15C7D2889AEAF1A837BF1F957B8A16810F9811AF4D85ED15A9C535C5F9F37EE0",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kustomize.toolkit.fluxcd.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/kustomize.toolkit.fluxcd.io/v1beta2?hash=5EFEE00BB6353E9392E0F5A86252D02F22F6CF83EAFF4B0466F80091427A6D2B9CEC232BBAA4C541B351BE05CE28BB975B4524D99826291274E118276EAF4F84",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kyverno.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/kyverno.io/v1?hash=07BD127189C17F33E450C781C60E7B89A9A5DFA605373C9DAC889013B3073103DFF20B86E2F87A02A8FA26D01BC378C6471015C90A7469621C8F57BE5C562AEA",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kyverno.io/v2",
+      "serverRelativeURL": "/openapi/v3/apis/kyverno.io/v2?hash=31BF3EF8E9E03CEDD4DB05E92E92C081A0D0B7BBA2DDF67A955B297F256DA9A956982492CDE3992137902EC8830E5F045A927A058615992A056112C1BA4BB528",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kyverno.io/v2alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/kyverno.io/v2alpha1?hash=0B165EAE5F2B3E4E5F416D742F0D2091BE50EAD734DC224CED9BC20983B3931F68E7C95568C8F3AC41C61858DE772CB0B68DFD06720C5A8CA6FB340673E6356B",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/kyverno.io/v2beta1",
+      "serverRelativeURL": "/openapi/v3/apis/kyverno.io/v2beta1?hash=E031FC715DFBC202F844C48273005ED11266E8163E37CA776043A1C40B263A36542C73C16ADB83217C4156361B04FC1BE00AB7FE55A893FEDB3557441F1803D4",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/metrics.k8s.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/metrics.k8s.io/v1beta1?hash=A980B1410F8AB257D404260D27532DBB4ABE7008D5A6E7EDF78F9C02DFF2D5033CFEC21AE2F0DD2051D3612E290986A8DBB348C21B222A1241354F1453219452",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/mitos.run/v1",
+      "serverRelativeURL": "/openapi/v3/apis/mitos.run/v1?hash=F48A344B1A7AD7EA6BF22DCDF9D69B5DF10ED634A7D76D57D80A028348A62D2B3D2DA192A5F4BCE7A56FFC2A13CAE2C610F71E661DA0141DDE589451EAC284B9",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/networking.advfab.org/v1alpha1?hash=2E4E99D7D6B431DF4DB74EB8ECFAEA0D45F63E406C78C794980EEB36CFFD88CA73994951984AD781014EC8F31118305789E574A1A8E1ABC18C342E5B7BA3FC79",
+      "coverage": "captured_schema"
+    },
+    {
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "serverRelativeURL": "/openapi/v3/apis/networking.advfab.org/v1alpha2?hash=8344B1EEBBEE1F68370385FD9F0ACF3C8E521FF2E12B911F3DE684C36ADFDB9F97B60B953CD7D599B15CCEE1E659D74E34522DEAFE516745ECAE45C053E9F20F",
+      "coverage": "captured_schema"
+    },
+    {
+      "groupVersion": "apis/networking.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/networking.k8s.io/v1?hash=ADE0DC6AB67328D429E512168016F8E86F6F0F896427D2FC75E865AD9180B1CE96FF060548724AFD85DB04B161F2EFAECE634A42FCAB93C12E9236BC1D93EBB1",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/networking.re8ch.com/v1alpha1?hash=DC5BE1D59FD2E562A3A8BF2E77C6CADF77C63A2009D48A0FA4BCBFD23345F159AAFC2526E77843306B96C0E58A44E2442977D40C5EB83F53BBEBFA2CBCA081EC",
+      "coverage": "captured_schema"
+    },
+    {
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "serverRelativeURL": "/openapi/v3/apis/networking.re8ch.com/v1alpha2?hash=9C639DDEFE1FC057C493B93DC2CBB742D32BBC0BDF40FD570A511D9DD3B2E571DEA32F9270388E0C279BF68A1481BB62D412136515F818480A9CE1F0087E3115",
+      "coverage": "captured_schema"
+    },
+    {
+      "groupVersion": "apis/node.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/node.k8s.io/v1?hash=924F228FEB243C808170C9C3EF67D7AA954E6DCA49CF98DA3C7F95B4E8CEFD114A85101E8F4AE6BD5DFCC7ED2992BFDB0B145DCABA947D7881E0BF2E0D2C1849",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/notification.toolkit.fluxcd.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/notification.toolkit.fluxcd.io/v1?hash=BEDDA294BDCDAF8C1DCD24248B2022CB4B6FA8914C6EB6AFA1785FAA11788A1E2CD835A672C31BAE2287576B111C711C575880951B26107F37AD16C2CFED992B",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/notification.toolkit.fluxcd.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/notification.toolkit.fluxcd.io/v1beta1?hash=2CF024ABE137D929BFEC9F467AEEBEB27E5A1D0452119C886E338F914B39A1975A037FAAF258AE16DA694E186A02D501D15192E6503F4A347B89AADA6BB8AF00",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/notification.toolkit.fluxcd.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/notification.toolkit.fluxcd.io/v1beta2?hash=9ECBB9BA2AF21C465C3A0D9EB32306C3C7D4ADD78E8E3E67A6AC04023B0517ED6C64AC1923D8FE6E41001123C7227120756805B18AACCBE37052DDCED40C55E9",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/notification.toolkit.fluxcd.io/v1beta3",
+      "serverRelativeURL": "/openapi/v3/apis/notification.toolkit.fluxcd.io/v1beta3?hash=9D00012337192FF92280DA1C256EFF9D7C6B53FE6221483C85B0537E43B38B74E2CF3C1B047A39A04085829F65A2E2EC3DC827B7800105E776EDFD8CFB4D2C86",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/nuclio.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/nuclio.io/v1beta1?hash=FC860A2BA87F5E8E6997C5A5D7AB8FFFFB7BE35B486C8ED33E29FBAD616CF4A60E43F640DE95A1C12F7181654D5366340B30F28A95BEF12CA5AE46B4F7EB0F33",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/objectbucket.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/objectbucket.io/v1alpha1?hash=D486A50658AD1E89508536D2DD435356E2461A179334DCD1945245777DD43EA9CDAD84D0E6F7FECB8850A7D0B675B4F83AEE647EDDFF7AC1A2258510C4C6BA3A",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/opentelemetry.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/opentelemetry.io/v1alpha1?hash=F93BF0CEED41FDB6208338F2F3BFF7CC32D9BCAEAF3FF9ABD2979641B099B1C5F558052F5615F2FE15AB2AC46D9BFB775AE63BA037DC8D700D36051EED743D45",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/opentelemetry.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/opentelemetry.io/v1beta1?hash=D9F662B02D0ED9D01710963F4311DCFACED75BA1E9AB852F6CF291C4526DF0B207F7A4BD1ECC551BD64082FFC4D97CFC4831E558D6A2D48C63533E9D895D93B5",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/operator.victoriametrics.com/v1",
+      "serverRelativeURL": "/openapi/v3/apis/operator.victoriametrics.com/v1?hash=A096D1D6E0A9B51AA8AD941028681DF8A51DEF7B835C647226848176946CA2FE7BB7468729EF89D4004DE9C9F2A4F7DD3FFC2BB26569ABE636F11156C8515A59",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/operator.victoriametrics.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/operator.victoriametrics.com/v1alpha1?hash=D9ADE87A124FD67FB8F66D7137E25F89D7FB33DA18918A053F89BB9E74B63776163DB19BEEB35EF3395470CE674CD9C74308BFC6BCD6BC681F52275BB0F3BA3E",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/operator.victoriametrics.com/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/operator.victoriametrics.com/v1beta1?hash=5F1A79412053B62343150CC4B8A07680A387C99CC87EC42359C071B1F30C00529B021FDA3E6D89B05793D628EA8B9D73F18829B18D3F0F41DCFBB92D87DAF730",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/peering.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/peering.re8ch.com/v1alpha1?hash=9191499A87395DF875EEB3F2B97E38409C41DADE84AB72E55B3E23B1C0CA0931D2A74C869049C576E28D88D47715F751292D295DFBF1659A0DA2CF5E571267AF",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/policies.kyverno.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/policies.kyverno.io/v1?hash=0DFB1FD0FBF96B831B296BFDDB525D7E54472BFA1C6516241455A3F08BB061F627005A3C448F3D89EF7E9A0B7601043A59F3EB693F013AB950423E981A8E5010",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/policies.kyverno.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/policies.kyverno.io/v1alpha1?hash=371D986CB053465E709A252C530F0D3CB79AC23F36CCE102BD01D5F3F598EC984EE1249BAD4F6B3867405187B951A9FEDD9EC97E451D0F14AE537996411B1DF8",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/policies.kyverno.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/policies.kyverno.io/v1beta1?hash=B44FDBAAEB084276ED08C7E3E6B5C0A6506F6CBF542BE16C88881EB8FAD6B73CA42991562B7BCD5CD2C170533D09B0A8828BE0A7EFFFE5C5B8DEBD438FE7743B",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/policy/v1",
+      "serverRelativeURL": "/openapi/v3/apis/policy/v1?hash=FFA6426B2D8DA63049037D7AA6C42896AF5718D4D6E9E3098AEBB8FF33B5B4DF782DAF2ADE2E8FCAAAEC297C9B06ED1158A6A831202D4D5CA74CFFC2916CA582",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/projectcontour.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/projectcontour.io/v1?hash=88F1604B538D6F82AB9CD0D28977C7D695983A0D8FC5468E3CEAB13CFDBFE0EA8447FEF9847D6BBC5D8254DCE7AE68E8D93CB3A45DCA5E65530567811023A362",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/projectcontour.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/projectcontour.io/v1alpha1?hash=A47BF2BEC1E6C14A7D8BD18AD8E0B5D9C30D50E013A0C3F1952E27F8AE8DBCB8809612D07EA789A2BD98ED6269CCE283D5FC3E89FB38D90451842A126C07A383",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/rbac.authorization.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/rbac.authorization.k8s.io/v1?hash=84397C72324982549DEB1DDA85700F6B68707579A72C17854D0A35E4FA31B4E96BF5C938813556207AC4FCBE11D982A15BFCCEFEA942766FA40512A90F6912A7",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/reports.kyverno.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/reports.kyverno.io/v1?hash=591AD56B0F010EF53187911A954B48F61A1B762129064B49A2097C5951371E849D543438E66A463A7C171F23564796410FAA76508A1664416DAC4B0620286080",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/resource.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/resource.k8s.io/v1?hash=091C281072F39C85C649E408F857500142DF5C971ADF008E2052E6162044D52D50B08A97114B153F4B4435F8ADEBD42F63D9CCF787166FC19E1ED0E71AC06965",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/sandbox.opensandbox.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/sandbox.opensandbox.io/v1alpha1?hash=73E9873DB15C46DB887EADADEAD24B778788119E7E5D234A4C96F2119691ADA1BCF4384DE86C9E1004F49650DA86FA041F8743628B38568244D89B61DC2D308B",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/scheduling.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/scheduling.k8s.io/v1?hash=15BA88624BFB0AE521EDE59299F530F25A896ED335B62E00A586B8BECB6545E96517A38CF63788C24760D8A0248AE1FD924391B655FC102C72150DB97AF0B7B3",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/scheduling.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/scheduling.re8ch.com/v1alpha1?hash=A77DA250BF2320A2381C734B5009DCE979C8FAA0A651BD221CF9933593462807FF2A45E294F9D17AB6BF3EDCEF0DF89689959914432A1E00074D499271B0742C",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/snapshot.storage.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/snapshot.storage.k8s.io/v1?hash=926A5A92E7D06059309722E83774F1E99D14974D18762AF03178BFE48FD881683741E2AEA360188221F34AF25050D6CF7413FC8D229FDE28E9925FF21CFEA709",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/source.toolkit.fluxcd.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/source.toolkit.fluxcd.io/v1?hash=C27226E5623242D673FC6B1E4896E52E94B773EB0D60733642E7A99A4BC1FBE804DFC7B5FAA7DE0053DF5E87132D6A35CB59484AFD5E53FBBFB48F082201F7C1",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/source.toolkit.fluxcd.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/source.toolkit.fluxcd.io/v1beta1?hash=DD964327C6166A13D89EFCF6F99F2EA09C6BE2AFB1AF40915D8C14654BBEC3326ED7E3E9F0669EBD823467106B01B94B6DB7787DCF4827F849816FEFD17290D4",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/source.toolkit.fluxcd.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/source.toolkit.fluxcd.io/v1beta2?hash=1F19F7A8E0C790AA1722471F7713BF36D7074E52F10A6EC0E4D52CE450B9A0367A43263CBD46B98280D6382B85B790801C5FD7DA7759A130B3FDE5446FE9B994",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/storage.k8s.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/storage.k8s.io/v1?hash=F1C7D1D65D08656D2C907CEDE00B93FB9E6E95A1FC945025247000ADE4B711C46408D34B607B0BFFC76E8EE2D80B500ADD4A4E186A890A20DFF2D457DCDAB60B",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/tenancy.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/tenancy.re8ch.com/v1alpha1?hash=D6F0CB7E0C5169729A5BB729D771E6BC84DDA495FEC46AD0355DED84D92BF74827B59E678341838A20D10CC062BCF0BDD431BB021C9F920551167E2134F6EE72",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/toolhive.stacklok.dev/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/toolhive.stacklok.dev/v1alpha1?hash=5E893B5767980C50E8E22F9F4A3FAE11E871FCC5FCC67247160938E004C5520CBFA404129517F56C9295119422BEFAE666F9C70964120812CD1D61A17E5FF280",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/toolhive.stacklok.dev/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/toolhive.stacklok.dev/v1beta1?hash=4B378E31B6AB100A72EC07FC8DADEB3DC92B4BC6D7E71824AF3B5C3021C8A32F5760684315EFD556544CD711695014D0CCE198CBED640126C68B6E43DBB3B5C0",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/traefik.io/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/traefik.io/v1alpha1?hash=11E46CD9FC087DA74C5CA01121D5AB3F74DC5591F19845990356363FA98443BDABEBF54569D9F3435C6CF7A1626408F4E8EA0460184886531575634D92013BAF",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/upgrade.cattle.io/v1",
+      "serverRelativeURL": "/openapi/v3/apis/upgrade.cattle.io/v1?hash=3A93CE37FF91CFD6DC96438C3FEF344E6469C97612CCE226023A133B0431E2C139E14CE4FB90BA22A35639792C31BD885326F3143D2CFEA0ADEBF35BEB7EC14B",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/visibility.kueue.x-k8s.io/v1beta1",
+      "serverRelativeURL": "/openapi/v3/apis/visibility.kueue.x-k8s.io/v1beta1?hash=742FE18DBCF0938EB01097AA46CC62DD937062557B9A90D305E7E297015413B1F044F1270574F944596A57F09BF746679F033DFB9D6F1E36677F57955DD4C0EF",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/visibility.kueue.x-k8s.io/v1beta2",
+      "serverRelativeURL": "/openapi/v3/apis/visibility.kueue.x-k8s.io/v1beta2?hash=102647D757A8E4E73A5BA760831EF0EECD96024E96DB1618FE84F1EAD98804D10BB5339DCC34A88572B240EA4C6E626A9747676DE8DFD01AA0E6CFD0DE9688A6",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/wgpolicyk8s.io/v1alpha2",
+      "serverRelativeURL": "/openapi/v3/apis/wgpolicyk8s.io/v1alpha2?hash=493E69DBC964D06CFE6C93478890EBEE6112EFAE48ED05C12E7AC8E8784E7BAEEFE1EA7FD21B13EAC45F750E5FD4EA8BD1DAFFDF17A7F023B5C06BAC2A773DA5",
+      "coverage": "not_captured"
+    },
+    {
+      "groupVersion": "apis/workspace.re8ch.com/v1alpha1",
+      "serverRelativeURL": "/openapi/v3/apis/workspace.re8ch.com/v1alpha1?hash=7B8C18D77205E3E240AFD579B201BE63E0ECD0E8DDBB3A441ECBE8570EA022C5128FC118045E23BAADAAC6CB2B8987924C02647E39E20EC34E7E71CFB2A2EABC",
+      "coverage": "not_captured"
+    }
+  ],
+  "nonGroupVersionEntries": [
+    ".well-known/openid-configuration",
+    "api",
+    "apis",
+    "apis/admissionregistration.k8s.io",
+    "apis/apiextensions.k8s.io",
+    "apis/apiregistration.k8s.io",
+    "apis/apps",
+    "apis/authentication.k8s.io",
+    "apis/authorization.k8s.io",
+    "apis/autoscaling",
+    "apis/batch",
+    "apis/certificates.k8s.io",
+    "apis/coordination.k8s.io",
+    "apis/discovery.k8s.io",
+    "apis/events.k8s.io",
+    "apis/flowcontrol.apiserver.k8s.io",
+    "apis/metrics.k8s.io",
+    "apis/networking.k8s.io",
+    "apis/node.k8s.io",
+    "apis/policy",
+    "apis/rbac.authorization.k8s.io",
+    "apis/resource.k8s.io",
+    "apis/scheduling.k8s.io",
+    "apis/storage.k8s.io",
+    "apis/visibility.kueue.x-k8s.io",
+    "openid/v1/jwks",
+    "version"
+  ],
+  "byocDiscovery": {
+    "observedAt": "2026-10-04 02:55:48 UTC",
+    "backend": "tenant_admin",
+    "tool": "byoc_registration_list",
+    "registrationCount": 0,
+    "scope": "Current authenticated plane returned no BYOC registrations. This does not prove no external clusters exist or authorize access to proposed owner clusters."
+  }
+}

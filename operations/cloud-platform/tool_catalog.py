@@ -1,6 +1,13 @@
 """Stable public tool catalog; transport code delegates to these methods."""
 
 TOOLS = {
+    "mihomos.controllers.list": "mihomos_capabilities.controllers",
+    "mihomos.controller.version": "mihomos_capabilities.controller_version",
+    "mihomos.workloads.list": "mihomos_capabilities.workloads",
+    "plugin.operations.list": "plugin_capabilities.operations",
+    "plugin.operation.read": "plugin_capabilities.read_operation",
+    "plugin.capabilities.list": "plugin_capabilities.catalog",
+    "plugin.openapi.get": "plugin_capabilities.openapi",
     "nodes.list": "nodes_list",
     "nodes.get": "nodes_get",
     "nodes.reachability": "node_reachability",
@@ -33,3 +40,9 @@ SSH_STREAM_TOOLS = {
     "node.ssh.upload",
     "node.ssh.download",
 }
+
+# Controller tools derive their exact native routes from the reviewed contract.
+from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
+for tool in MIHOMOS_TOOLS:
+    if tool["name"] not in TOOLS:
+        TOOLS[tool["name"]] = "mihomos_capabilities.controller_read"
