@@ -5838,6 +5838,2770 @@
           "semanticConformance": "not_run"
         }
       ]
+    },
+    {
+      "groupVersion": "apis/cilium.io/v2",
+      "auditRef": "audit://operations/op_51b1de6552fc483ab043646558e8dc4b",
+      "schemaFile": "openapi/apis_cilium.io_v2.json",
+      "operations": [
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements",
+          "operationId": "deleteCiliumIoV2CollectionCiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements",
+          "operationId": "listCiliumIoV2CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements",
+          "operationId": "createCiliumIoV2CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements/{name}",
+          "operationId": "deleteCiliumIoV2CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements/{name}",
+          "operationId": "readCiliumIoV2CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements/{name}",
+          "operationId": "patchCiliumIoV2CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements/{name}",
+          "operationId": "replaceCiliumIoV2CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs",
+          "operationId": "deleteCiliumIoV2CollectionCiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs",
+          "operationId": "listCiliumIoV2CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs",
+          "operationId": "createCiliumIoV2CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}",
+          "operationId": "deleteCiliumIoV2CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}",
+          "operationId": "readCiliumIoV2CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}",
+          "operationId": "patchCiliumIoV2CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}",
+          "operationId": "replaceCiliumIoV2CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}/status",
+          "operationId": "readCiliumIoV2CiliumBGPClusterConfigStatus",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumBGPClusterConfigStatus",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumBGPClusterConfigStatus",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides",
+          "operationId": "deleteCiliumIoV2CollectionCiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides",
+          "operationId": "listCiliumIoV2CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides",
+          "operationId": "createCiliumIoV2CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "deleteCiliumIoV2CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "readCiliumIoV2CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "patchCiliumIoV2CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "replaceCiliumIoV2CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs",
+          "operationId": "deleteCiliumIoV2CollectionCiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs",
+          "operationId": "listCiliumIoV2CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs",
+          "operationId": "createCiliumIoV2CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}",
+          "operationId": "deleteCiliumIoV2CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}",
+          "operationId": "readCiliumIoV2CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}",
+          "operationId": "patchCiliumIoV2CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}",
+          "operationId": "replaceCiliumIoV2CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}/status",
+          "operationId": "readCiliumIoV2CiliumBGPNodeConfigStatus",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumBGPNodeConfigStatus",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumBGPNodeConfigStatus",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs",
+          "operationId": "deleteCiliumIoV2CollectionCiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs",
+          "operationId": "listCiliumIoV2CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs",
+          "operationId": "createCiliumIoV2CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}",
+          "operationId": "deleteCiliumIoV2CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}",
+          "operationId": "readCiliumIoV2CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}",
+          "operationId": "patchCiliumIoV2CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}",
+          "operationId": "replaceCiliumIoV2CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}/status",
+          "operationId": "readCiliumIoV2CiliumBGPPeerConfigStatus",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumBGPPeerConfigStatus",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumBGPPeerConfigStatus",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups",
+          "operationId": "deleteCiliumIoV2CollectionCiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups",
+          "operationId": "listCiliumIoV2CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups",
+          "operationId": "createCiliumIoV2CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups/{name}",
+          "operationId": "deleteCiliumIoV2CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups/{name}",
+          "operationId": "readCiliumIoV2CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups/{name}",
+          "operationId": "patchCiliumIoV2CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumcidrgroups/{name}",
+          "operationId": "replaceCiliumIoV2CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs",
+          "operationId": "deleteCiliumIoV2CollectionCiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs",
+          "operationId": "listCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs",
+          "operationId": "createCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs/{name}",
+          "operationId": "deleteCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs/{name}",
+          "operationId": "readCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs/{name}",
+          "operationId": "patchCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumclusterwideenvoyconfigs/{name}",
+          "operationId": "replaceCiliumIoV2CiliumClusterwideEnvoyConfig",
+          "kind": "CiliumClusterwideEnvoyConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies",
+          "operationId": "deleteCiliumIoV2CollectionCiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies",
+          "operationId": "listCiliumIoV2CiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies",
+          "operationId": "createCiliumIoV2CiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}",
+          "operationId": "deleteCiliumIoV2CiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}",
+          "operationId": "readCiliumIoV2CiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}",
+          "operationId": "patchCiliumIoV2CiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}",
+          "operationId": "replaceCiliumIoV2CiliumClusterwideNetworkPolicy",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}/status",
+          "operationId": "readCiliumIoV2CiliumClusterwideNetworkPolicyStatus",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumClusterwideNetworkPolicyStatus",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumclusterwidenetworkpolicies/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumClusterwideNetworkPolicyStatus",
+          "kind": "CiliumClusterwideNetworkPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies",
+          "operationId": "deleteCiliumIoV2CollectionCiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies",
+          "operationId": "listCiliumIoV2CiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies",
+          "operationId": "createCiliumIoV2CiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies/{name}",
+          "operationId": "deleteCiliumIoV2CiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies/{name}",
+          "operationId": "readCiliumIoV2CiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies/{name}",
+          "operationId": "patchCiliumIoV2CiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumegressgatewaypolicies/{name}",
+          "operationId": "replaceCiliumIoV2CiliumEgressGatewayPolicy",
+          "kind": "CiliumEgressGatewayPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumendpoints",
+          "operationId": "listCiliumIoV2CiliumEndpointForAllNamespaces",
+          "kind": "CiliumEndpoint",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumenvoyconfigs",
+          "operationId": "listCiliumIoV2CiliumEnvoyConfigForAllNamespaces",
+          "kind": "CiliumEnvoyConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumidentities",
+          "operationId": "deleteCiliumIoV2CollectionCiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumidentities",
+          "operationId": "listCiliumIoV2CiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumidentities",
+          "operationId": "createCiliumIoV2CiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}",
+          "operationId": "deleteCiliumIoV2CiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}",
+          "operationId": "readCiliumIoV2CiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}",
+          "operationId": "patchCiliumIoV2CiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}",
+          "operationId": "replaceCiliumIoV2CiliumIdentity",
+          "kind": "CiliumIdentity",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}/status",
+          "operationId": "readCiliumIoV2CiliumIdentityStatus",
+          "kind": "CiliumIdentity",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumIdentityStatus",
+          "kind": "CiliumIdentity",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumidentities/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumIdentityStatus",
+          "kind": "CiliumIdentity",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools",
+          "operationId": "deleteCiliumIoV2CollectionCiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools",
+          "operationId": "listCiliumIoV2CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools",
+          "operationId": "createCiliumIoV2CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}",
+          "operationId": "deleteCiliumIoV2CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}",
+          "operationId": "readCiliumIoV2CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}",
+          "operationId": "patchCiliumIoV2CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}",
+          "operationId": "replaceCiliumIoV2CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}/status",
+          "operationId": "readCiliumIoV2CiliumLoadBalancerIPPoolStatus",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumLoadBalancerIPPoolStatus",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumloadbalancerippools/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumLoadBalancerIPPoolStatus",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumlocalredirectpolicies",
+          "operationId": "listCiliumIoV2CiliumLocalRedirectPolicyForAllNamespaces",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumnetworkpolicies",
+          "operationId": "listCiliumIoV2CiliumNetworkPolicyForAllNamespaces",
+          "kind": "CiliumNetworkPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumnodeconfigs",
+          "operationId": "listCiliumIoV2CiliumNodeConfigForAllNamespaces",
+          "kind": "CiliumNodeConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumnodes",
+          "operationId": "deleteCiliumIoV2CollectionCiliumNode",
+          "kind": "CiliumNode",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumnodes",
+          "operationId": "listCiliumIoV2CiliumNode",
+          "kind": "CiliumNode",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/ciliumnodes",
+          "operationId": "createCiliumIoV2CiliumNode",
+          "kind": "CiliumNode",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}",
+          "operationId": "deleteCiliumIoV2CiliumNode",
+          "kind": "CiliumNode",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}",
+          "operationId": "readCiliumIoV2CiliumNode",
+          "kind": "CiliumNode",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}",
+          "operationId": "patchCiliumIoV2CiliumNode",
+          "kind": "CiliumNode",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}",
+          "operationId": "replaceCiliumIoV2CiliumNode",
+          "kind": "CiliumNode",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}/status",
+          "operationId": "readCiliumIoV2CiliumNodeStatus",
+          "kind": "CiliumNode",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}/status",
+          "operationId": "patchCiliumIoV2CiliumNodeStatus",
+          "kind": "CiliumNode",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/ciliumnodes/{name}/status",
+          "operationId": "replaceCiliumIoV2CiliumNodeStatus",
+          "kind": "CiliumNode",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints",
+          "operationId": "deleteCiliumIoV2CollectionNamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints",
+          "operationId": "listCiliumIoV2NamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints",
+          "operationId": "createCiliumIoV2NamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints/{name}",
+          "operationId": "deleteCiliumIoV2NamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints/{name}",
+          "operationId": "readCiliumIoV2NamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints/{name}",
+          "operationId": "patchCiliumIoV2NamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumendpoints/{name}",
+          "operationId": "replaceCiliumIoV2NamespacedCiliumEndpoint",
+          "kind": "CiliumEndpoint",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs",
+          "operationId": "deleteCiliumIoV2CollectionNamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs",
+          "operationId": "listCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs",
+          "operationId": "createCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs/{name}",
+          "operationId": "deleteCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs/{name}",
+          "operationId": "readCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs/{name}",
+          "operationId": "patchCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumenvoyconfigs/{name}",
+          "operationId": "replaceCiliumIoV2NamespacedCiliumEnvoyConfig",
+          "kind": "CiliumEnvoyConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies",
+          "operationId": "deleteCiliumIoV2CollectionNamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies",
+          "operationId": "listCiliumIoV2NamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies",
+          "operationId": "createCiliumIoV2NamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies/{name}",
+          "operationId": "deleteCiliumIoV2NamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies/{name}",
+          "operationId": "readCiliumIoV2NamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies/{name}",
+          "operationId": "patchCiliumIoV2NamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumlocalredirectpolicies/{name}",
+          "operationId": "replaceCiliumIoV2NamespacedCiliumLocalRedirectPolicy",
+          "kind": "CiliumLocalRedirectPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies",
+          "operationId": "deleteCiliumIoV2CollectionNamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies",
+          "operationId": "listCiliumIoV2NamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies",
+          "operationId": "createCiliumIoV2NamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}",
+          "operationId": "deleteCiliumIoV2NamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}",
+          "operationId": "readCiliumIoV2NamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}",
+          "operationId": "patchCiliumIoV2NamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}",
+          "operationId": "replaceCiliumIoV2NamespacedCiliumNetworkPolicy",
+          "kind": "CiliumNetworkPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}/status",
+          "operationId": "readCiliumIoV2NamespacedCiliumNetworkPolicyStatus",
+          "kind": "CiliumNetworkPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}/status",
+          "operationId": "patchCiliumIoV2NamespacedCiliumNetworkPolicyStatus",
+          "kind": "CiliumNetworkPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnetworkpolicies/{name}/status",
+          "operationId": "replaceCiliumIoV2NamespacedCiliumNetworkPolicyStatus",
+          "kind": "CiliumNetworkPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs",
+          "operationId": "deleteCiliumIoV2CollectionNamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs",
+          "operationId": "listCiliumIoV2NamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs",
+          "operationId": "createCiliumIoV2NamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs/{name}",
+          "operationId": "deleteCiliumIoV2NamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs/{name}",
+          "operationId": "readCiliumIoV2NamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs/{name}",
+          "operationId": "patchCiliumIoV2NamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2/namespaces/{namespace}/ciliumnodeconfigs/{name}",
+          "operationId": "replaceCiliumIoV2NamespacedCiliumNodeConfig",
+          "kind": "CiliumNodeConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      ]
+    },
+    {
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "auditRef": "audit://operations/op_d2be6daf08d34c67add3a6ded95c944a",
+      "schemaFile": "openapi/apis_cilium.io_v2alpha1.json",
+      "operations": [
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements",
+          "operationId": "createCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "kind": "CiliumBGPAdvertisement",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs",
+          "operationId": "createCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}/status",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPClusterConfigStatus",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPClusterConfigStatus",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPClusterConfigStatus",
+          "kind": "CiliumBGPClusterConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides",
+          "operationId": "createCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "kind": "CiliumBGPNodeConfigOverride",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs",
+          "operationId": "createCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}/status",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfigStatus",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPNodeConfigStatus",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPNodeConfigStatus",
+          "kind": "CiliumBGPNodeConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs",
+          "operationId": "createCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}/status",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPPeerConfigStatus",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1CiliumBGPPeerConfigStatus",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1CiliumBGPPeerConfigStatus",
+          "kind": "CiliumBGPPeerConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups",
+          "operationId": "listCiliumIoV2alpha1CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups",
+          "operationId": "createCiliumIoV2alpha1CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumcidrgroups/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumCIDRGroup",
+          "kind": "CiliumCIDRGroup",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins",
+          "operationId": "listCiliumIoV2alpha1CiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins",
+          "operationId": "createCiliumIoV2alpha1CiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumdatapathplugins/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumDatapathPlugin",
+          "kind": "CiliumDatapathPlugin",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices",
+          "operationId": "listCiliumIoV2alpha1CiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices",
+          "operationId": "createCiliumIoV2alpha1CiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumendpointslices/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumEndpointSlice",
+          "kind": "CiliumEndpointSlice",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumgatewayclassconfigs",
+          "operationId": "listCiliumIoV2alpha1CiliumGatewayClassConfigForAllNamespaces",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies",
+          "operationId": "listCiliumIoV2alpha1CiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies",
+          "operationId": "createCiliumIoV2alpha1CiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumL2AnnouncementPolicy",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}/status",
+          "operationId": "readCiliumIoV2alpha1CiliumL2AnnouncementPolicyStatus",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1CiliumL2AnnouncementPolicyStatus",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliuml2announcementpolicies/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1CiliumL2AnnouncementPolicyStatus",
+          "kind": "CiliumL2AnnouncementPolicy",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools",
+          "operationId": "listCiliumIoV2alpha1CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools",
+          "operationId": "createCiliumIoV2alpha1CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumLoadBalancerIPPool",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}/status",
+          "operationId": "readCiliumIoV2alpha1CiliumLoadBalancerIPPoolStatus",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1CiliumLoadBalancerIPPoolStatus",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumloadbalancerippools/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1CiliumLoadBalancerIPPoolStatus",
+          "kind": "CiliumLoadBalancerIPPool",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs",
+          "operationId": "listCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs",
+          "operationId": "createCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumNetworkDriverClusterConfig",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}/status",
+          "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdriverclusterconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1CiliumNetworkDriverClusterConfigStatus",
+          "kind": "CiliumNetworkDriverClusterConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs",
+          "operationId": "listCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs",
+          "operationId": "createCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumnetworkdrivernodeconfigs/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumNetworkDriverNodeConfig",
+          "kind": "CiliumNetworkDriverNodeConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools",
+          "operationId": "listCiliumIoV2alpha1CiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools",
+          "operationId": "createCiliumIoV2alpha1CiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumpodippools/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumPodIPPool",
+          "kind": "CiliumPodIPPool",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools",
+          "operationId": "deleteCiliumIoV2alpha1CollectionCiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools",
+          "operationId": "listCiliumIoV2alpha1CiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools",
+          "operationId": "createCiliumIoV2alpha1CiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools/{name}",
+          "operationId": "deleteCiliumIoV2alpha1CiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools/{name}",
+          "operationId": "readCiliumIoV2alpha1CiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools/{name}",
+          "operationId": "patchCiliumIoV2alpha1CiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/ciliumresourceippools/{name}",
+          "operationId": "replaceCiliumIoV2alpha1CiliumResourceIPPool",
+          "kind": "CiliumResourceIPPool",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs",
+          "operationId": "deleteCiliumIoV2alpha1CollectionNamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "deletecollection",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs",
+          "operationId": "listCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "list",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "post",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs",
+          "operationId": "createCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "post",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "delete",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}",
+          "operationId": "deleteCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "delete",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}",
+          "operationId": "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}",
+          "operationId": "patchCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}",
+          "operationId": "replaceCiliumIoV2alpha1NamespacedCiliumGatewayClassConfig",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "get",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}/status",
+          "operationId": "readCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "get",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "patch",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}/status",
+          "operationId": "patchCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "patch",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        },
+        {
+          "method": "put",
+          "path": "/apis/cilium.io/v2alpha1/namespaces/{namespace}/ciliumgatewayclassconfigs/{name}/status",
+          "operationId": "replaceCiliumIoV2alpha1NamespacedCiliumGatewayClassConfigStatus",
+          "kind": "CiliumGatewayClassConfig",
+          "action": "put",
+          "registration": "not_verified",
+          "schemaConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      ]
     }
   ]
 }

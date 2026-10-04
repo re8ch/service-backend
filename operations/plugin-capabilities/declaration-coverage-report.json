@@ -7,8 +7,8 @@
     "groupVersionEntries": 98,
     "capturedSchemas": 6,
     "uncapturedSchemas": 92,
-    "currentCapturedSchemas": 8,
-    "currentUncapturedSchemas": 90,
+    "currentCapturedSchemas": 10,
+    "currentUncapturedSchemas": 88,
     "pluginIdentityCoverage": "not_proven"
   },
   "mode": "offline-declaration-reconciliation",

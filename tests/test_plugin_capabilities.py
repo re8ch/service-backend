@@ -228,7 +228,7 @@ def test_every_captured_operation_has_a_contract_without_dropping_mutations():
             assert contract["method"].lower() == row["method"]
             assert contract["pathTemplate"] == row["path"]
             count += 1
-    assert count == 578
+    assert count == 853
 
 
 def test_object_reads_require_admin_before_any_backend_access():
@@ -298,7 +298,7 @@ def test_directory_inventory_includes_every_native_operation_without_advertising
     expected = {(source['groupVersion'], row['method'].upper(), row['path']) for source in matrix['sources'] for row in source['operations']}
     expected |= {('controller/' + controller['version'], row['method'], row['path']) for row in controller['operations']}
     actual = {(row['groupVersion'], row['method'], row['path']) for row in rows}
-    assert len(rows) == len(actual) == len(expected) == 618
+    assert len(rows) == len(actual) == len(expected) == 893
     assert actual == expected
     tools = {row['name'] for row in metadata['tool_definitions']}
     implemented = [row for row in rows if row['registration'] == 'deployed']
@@ -638,3 +638,17 @@ def test_plugin_catalog_fits_configured_registry_storage_limit():
     for server in runtime['data']['servers']:
         metadata = server['_meta']['io.modelcontextprotocol.registry/publisher-provided']
         assert len(json.dumps(metadata, separators=(',', ':'), ensure_ascii=False).encode()) < limit
+
+
+def test_cilium_inventory_does_not_grant_unreviewed_operations():
+    from pathlib import Path
+    from plugin_capabilities import READ_GROUPS
+    root = Path(__file__).parents[1] / 'operations/plugin-capabilities'
+    registry = json.loads((root / 'registry.json').read_text())
+    metadata = registry['servers'][0]['_meta']['io.modelcontextprotocol.registry/publisher-provided']['io.github.stacklok']['streamable-http']
+    rows = [row for row in metadata['re8ch_capabilities']['operations'] if row['plugin'] == 'cilium']
+    assert len(rows) == 275
+    assert {row['groupVersion'] for row in rows}.isdisjoint(READ_GROUPS)
+    assert all(row['registration'] == 'not_implemented' and 'tool' not in row for row in rows)
+    assert all(row['disposition'] == 'resource_read_review_required' for row in rows if row['method'] == 'GET')
+    assert all(row['disposition'] == 'controller_owned' for row in rows if row['method'] != 'GET' and row['path'].endswith('/status'))

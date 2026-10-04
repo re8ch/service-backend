@@ -3,18 +3,20 @@
 Target UI: **RE8CH management tools directory**, as confirmed by the user.
 This work is not a Headlamp-only or Codex-only catalog change.
 
-The captured native contracts contain **578 HTTP operations**. These are actual
+The captured native contracts contain **853 HTTP operations**. These are actual
 Kubernetes OpenAPI 3 documents, including schema references and controller status
 subresources. They are not synthesized REST wrappers around MCP. The live
 `/openapi/v3` index contained 125 entries on 2026-10-04, of which 98 are
-API group/version documents and 27 are discovery/metadata entries. The eight
-captured here include the initial named-plugin set plus Ceph CSI and ObjectBucket;
-90 other group/version schemas are not captured. The discovery report preserves
+API group/version documents and 27 are discovery/metadata entries. The ten
+captured here include the initial named-plugin set plus Ceph CSI, ObjectBucket and Cilium;
+88 other group/version schemas are not captured. The discovery report preserves
 the earlier six-schema snapshot; the declaration audit also computes current coverage. `live-discovery-report.json` preserves this full distinction,
 without equating an API group with an installed plugin or granted permission.
 
 | Native group/version | Operations | Plugin coverage | Schemathesis enumeration | Live HTTP / UI semantics |
 | --- | ---: | --- | --- | --- |
+| cilium.io/v2 | 148 | Cilium stable resource kinds; adapters pending | Passed | Not run |
+| cilium.io/v2alpha1 | 127 | Cilium experimental resource kinds; adapters pending | Passed | Not run |
 | csi.ceph.io/v1 | 55 | Five Ceph CSI resource kinds | Passed | Not run |
 | objectbucket.io/v1alpha1 | 21 | ObjectBucket and ObjectBucketClaim | Passed | Not run |
 | anatomy.re8ch.com/v1alpha1 | 77 | Seven Runtime resource kinds | Passed | Not run |
@@ -34,7 +36,8 @@ snapshots describe APIs; they contain no live resource objects or telemetry.
 The native backend implements four discovery/read entry points:
 `plugin.capabilities.list`, `plugin.openapi.get`, `plugin.operations.list`, and
 `plugin.operation.read`. The generator also registers **197 individually named
-GET tools** from the eight captured schemas. The same definitions drive backend
+GET tools** from eight reviewed schemas. The two Cilium schemas currently contribute
+inventory only; reads require a projection review, including Envoy inline credentials. The same definitions drive backend
 MCP schemas, the two self-service allowlists, and management directory metadata.
 Run `python operations/plugin-capabilities/generate.py` to regenerate them.
 
@@ -47,7 +50,9 @@ Watch validates event envelopes and observed resource bodies; ERROR events fail
 the call without returning partial success. `bodyValidation` reports its scope
 and object count, independently of HTTP conformance (headers/status are not
 retained by the kubectl transport). Schema changes, truncated output, unsafe paths, and writes fail
-closed. The **381 mutation operations are not implemented**. Status
+closed. The original **381 mutation operations are not implemented**. The 275 newly
+inventoried Cilium operations also have no adapters; their status writes remain
+controller-owned and other writes require authority review. Status
 writes are controller-owned; other mutations need an explicit authority review,
 including distinguishing transient requests from GitOps desired-state changes.
 
@@ -55,12 +60,12 @@ including distinguishing transient requests from GitOps desired-state changes.
 format, including operation, parameters and explicit `not_run` acceptance states.
 The owned UI patch displays those fields and expandable parameter schemas.
 A separate `re8ch_capabilities` inventory drives the Native capabilities tab:
-all 578 captured Kubernetes operations and all 40 inventoried Mihomo routes stay
+all 853 captured Kubernetes operations and all 40 inventoried Mihomo routes stay
 visible, including missing adapters and controller-owned writes. The searchable
 table displays implementation/deployment, authority, schema provenance and HTTP/UI
 acceptance independently. Inventory rows never become callable tool definitions
 unless an adapter exists. Conditional Mihomo surfaces and other clusters remain
-outside this initial 618-operation inventory, as stated in the UI scope.
+outside this 893-operation inventory, as stated in the UI scope.
 `kustomization.yaml` is referenced by the root GitOps configuration, and
 `platform/connectool/release.yaml` mounts the generated catalog into the approved
 registry. `registry-rollout-values.yaml` documents the source configuration.
@@ -174,7 +179,7 @@ complete controller operation or semantic acceptance.
 `operations/cloud-platform/mihomo-controller-openapi.json` is an authored, partial
 native contract derived from pinned upstream source, not an upstream-published
 document. Schemathesis enumeration checks its 13 operations separately from the
-578 Kubernetes operations. HTTP response conformance and Stagehand remain not
+853 Kubernetes operations. HTTP response conformance and Stagehand remain not
 run; 27 inventoried controller routes and the conditional surfaces still need
 adapters, contracts and acceptance. The generated directory currently contains
 212 tools (197 Kubernetes reads and 15 Mihomos tools), pending deployment.

@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from runtime import OperationError
 
 GROUP_PLUGINS = {
+    "cilium.io": "cilium",
     "networking.advfab.org": "advfab",
     "anatomy.re8ch.com": "anatomy",
     "ceph.rook.io": "rook-ceph",

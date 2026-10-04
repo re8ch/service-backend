@@ -114,9 +114,37 @@
       "schemaEnumeration": "passed",
       "httpConformance": "not_run",
       "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/cilium.io/v2",
+      "operations": 148,
+      "methods": {
+        "delete": 34,
+        "get": 47,
+        "patch": 25,
+        "post": 17,
+        "put": 25
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
+    },
+    {
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operations": 127,
+      "methods": {
+        "delete": 30,
+        "get": 38,
+        "patch": 22,
+        "post": 15,
+        "put": 22
+      },
+      "schemaEnumeration": "passed",
+      "httpConformance": "not_run",
+      "semanticConformance": "not_run"
     }
   ],
-  "totalOperations": 578,
+  "totalOperations": 853,
   "sourceDerivedControllerSchemas": [
     {
       "plugin": "mihomos-cluster",
