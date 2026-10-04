@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: cascade-ruby
+    delivery.re8ch.com/codename: confluence-ruby
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:4053a95feb4fbd5a6d85d447c7b2ba0af8013ac9c432bd79a2b8c0403ba1363f
+    digest: sha256:4adfa121c603e64af006f06c5b7e482fefc31fd19f80deae3c7f236be25eaaa3
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: cascade-ruby
+    delivery.re8ch.com/codename: confluence-ruby
 spec:
   interval: 1m
   retryInterval: 1m
