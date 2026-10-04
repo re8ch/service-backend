@@ -441,6 +441,8 @@ modules:
       digest: sha256:4dfc1b2ba987383ed3b89daa39b4742b2505af0cdf6acb9ed80a6e9584c39be5
     - codename: canopy-amber
       digest: sha256:f9b3b198c84d1db09aacdd000cd529101b8827e710073a3cdc55c445c21f6340
+    - codename: delta-amber
+      digest: sha256:8cdea89897b78fdf14480052f847eddb7c0067dbd9b9826e42587da83f02e0d3
   platform/advanced-fabric:
     releases:
     - codename: bora
