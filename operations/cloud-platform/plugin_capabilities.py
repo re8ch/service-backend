@@ -122,9 +122,22 @@ CILIUM_BGP_READS = frozenset(
     for verb in (("list", "read") if not suffix else ("read",))
 )
 
+# Network address-policy evidence is reviewed separately from datapath,
+# endpoint, identity, policy and Envoy resources in the same API groups.
+CILIUM_NETWORK_READS = frozenset(
+    (f"apis/cilium.io/{version}", f"{verb}CiliumIo{native_version}Cilium{kind}{suffix}")
+    for version, native_version, kinds in (
+        ("v2", "V2", ("CIDRGroup", "EgressGatewayPolicy", "LoadBalancerIPPool")),
+        ("v2alpha1", "V2alpha1", ("CIDRGroup", "L2AnnouncementPolicy", "LoadBalancerIPPool", "PodIPPool", "ResourceIPPool")),
+    )
+    for kind in kinds
+    for suffix in (("", "Status") if kind in {"L2AnnouncementPolicy", "LoadBalancerIPPool"} else ("",))
+    for verb in (("list", "read") if not suffix else ("read",))
+)
+
 
 def reviewed_read(group_version: str, operation_id: str) -> bool:
-    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS
+    return group_version in READ_GROUPS or (group_version, operation_id) in CILIUM_BGP_READS | CILIUM_NETWORK_READS
 
 
 def local_ref(document: dict, value: dict) -> dict:
