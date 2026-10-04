@@ -70,3 +70,32 @@ The test compares the copied index digest and every blob; it cannot pass by
 dropping attestations or selecting only the host platform. Reproduce installation
 with `CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1`
 using Go 1.26.8 and a dedicated GOBIN.
+
+## Runtime activation and acceptance
+
+`render-runtime.py` accepts only the private Studio API and worker repositories
+with immutable SHA-256 digests. After reviewing the release's signatures, build
+metadata and Harbor scan findings, render the runtime and include it together
+with the encrypted configuration and both encrypted registry readers in
+`clusters/re8ch/kustomization.yaml`. The rendered database bootstrap job is an
+operator migration; application requests continue through the HTTPS PostgREST
+routes. The API and worker may retry while the initial migration completes.
+
+The restricted-node-6dc3f140f9 worker advertises Blender and editable export capabilities. It does not
+advertise native After Effects or PowerPoint execution on Linux. Those outputs
+are editable JSX and PPTX files generated from the same scene and animation
+model; desktop playback requires the corresponding licensed application.
+
+The daily retention job uses a separate client identity with no worker-region
+grants. Blob data is shared by the API replicas on CephFS, while worker staging
+and render frames are ephemeral. Keep the production client credential outside
+Git and use the dedicated `STUDIO_ACCEPTANCE_TOKEN` repository secret for the
+product's `Studio external acceptance` workflow.
+
+After Flux reconciles the activation commit, verify the migration job completed,
+PostgREST is ready, all HTTPRoutes are accepted, and the worker claims jobs from
+`cn-r640`. Dispatch the external acceptance workflow in the product repository.
+It records the hosted runner's egress country, submits through the public HTTPS
+API, checks an actual 90-frame video and audio timing, and preserves the archive,
+preview frames and machine-readable evidence. A published image, ready Pod or
+HTTP health response alone is not end-to-end acceptance.
