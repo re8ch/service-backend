@@ -265,8 +265,8 @@ def test_generated_tools_are_callable_and_match_directory_and_self_service():
     spec.loader.exec_module(module)
     generated = json.loads((root / "operations/cloud-platform/plugin-operation-tools.json").read_text())["tools"]
     names = {item["name"] for item in generated}
-    assert len(names) == len(generated) == 254
-    assert sum(item["_meta"]["re8ch"]["method"] == "GET" for item in generated) == 252
+    assert len(names) == len(generated) == 284
+    assert sum(item["_meta"]["re8ch"]["method"] == "GET" for item in generated) == 282
     assert all(len(name) <= 64 for name in names)
     admin = Identity("admin", (module.ADMIN_GROUP,))
     assert names <= {tool["name"] for tool in module.tool_list(admin)}
@@ -643,7 +643,7 @@ def test_plugin_catalog_fits_configured_registry_storage_limit():
 
 def test_cilium_inventory_grants_only_reviewed_bgp_reads():
     from pathlib import Path
-    from plugin_capabilities import CILIUM_BGP_READS, CILIUM_NETWORK_READS, CILIUM_POLICY_READS, READ_GROUPS, reviewed_read
+    from plugin_capabilities import CILIUM_BGP_READS, CILIUM_NETWORK_READS, CILIUM_POLICY_READS, CILIUM_TOPOLOGY_READS, READ_GROUPS, reviewed_read
     root = Path(__file__).parents[1] / 'operations/plugin-capabilities'
     registry = json.loads((root / 'registry.json').read_text())
     metadata = registry['servers'][0]['_meta']['io.modelcontextprotocol.registry/publisher-provided']['io.github.stacklok']['streamable-http']
@@ -651,9 +651,10 @@ def test_cilium_inventory_grants_only_reviewed_bgp_reads():
     assert len(rows) == 275
     assert {row['groupVersion'] for row in rows}.isdisjoint(READ_GROUPS)
     enabled = [row for row in rows if row['registration'] == 'implemented_not_deployed']
-    assert len(enabled) == len(CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS) == 55
-    assert len(CILIUM_BGP_READS) == 26 and len(CILIUM_NETWORK_READS) == 19 and len(CILIUM_POLICY_READS) == 10
-    assert {(row['groupVersion'], row['operationId']) for row in enabled} == CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS
+    reviewed = CILIUM_BGP_READS | CILIUM_NETWORK_READS | CILIUM_POLICY_READS | CILIUM_TOPOLOGY_READS
+    assert len(enabled) == len(reviewed) == 85
+    assert len(CILIUM_BGP_READS) == 26 and len(CILIUM_NETWORK_READS) == 19 and len(CILIUM_POLICY_READS) == 10 and len(CILIUM_TOPOLOGY_READS) == 30
+    assert {(row['groupVersion'], row['operationId']) for row in enabled} == reviewed
     assert all(row['method'] == 'GET' and row['disposition'] == 'read' and row['tool'] for row in enabled)
     assert all(row['registration'] == 'not_implemented' and 'tool' not in row for row in rows if not reviewed_read(row['groupVersion'], row['operationId']))
     assert all(row['disposition'] == 'resource_read_review_required' for row in rows if row['method'] == 'GET' and not reviewed_read(row['groupVersion'], row['operationId']))
@@ -664,6 +665,7 @@ def test_cilium_inventory_grants_only_reviewed_bgp_reads():
     ('listCiliumIoV2CiliumBGPClusterConfig', 'ciliumbgpclusterconfigs', 'CiliumBGPClusterConfigList'),
     ('listCiliumIoV2CiliumLoadBalancerIPPool', 'ciliumloadbalancerippools', 'CiliumLoadBalancerIPPoolList'),
     ('listCiliumIoV2CiliumClusterwideNetworkPolicy', 'ciliumclusterwidenetworkpolicies', 'CiliumClusterwideNetworkPolicyList'),
+    ('listCiliumIoV2CiliumIdentity', 'ciliumidentities', 'CiliumIdentityList'),
 ])
 def test_cilium_reviewed_read_is_bound_to_native_schema_and_other_reads_fail_closed(operation_id, resource, kind):
     from pathlib import Path
@@ -691,7 +693,7 @@ def test_cilium_reviewed_read_is_bound_to_native_schema_and_other_reads_fail_clo
     assert service.calls[-1].startswith('/apis/cilium.io/v2/' + resource + '?')
     service.calls.clear()
     with pytest.raises(OperationError) as exc:
-        read_operation(service, key, 'listCiliumIoV2CiliumIdentity', digest)
+        read_operation(service, key, 'createCiliumIoV2CiliumBGPAdvertisement', digest)
     assert exc.value.code == 'PLUGIN_GROUP_NOT_REVIEWED'
     assert service.calls == []
 
@@ -707,4 +709,22 @@ def test_cilium_policy_projection_drops_http_header_matches_and_credentials():
     result = project_cilium_policy(sanitize_resource(raw))
     assert result['spec']['egress'][0]['toFQDNs'][0]['matchName'] == 'example.org'
     assert result['spec']['egress'][0]['toPorts'][0]['rules']['http'] == [{'method': 'GET'}]
+    assert 'sensitive' not in json.dumps(result)
+
+
+def test_cilium_topology_projection_keeps_identity_and_state_without_raw_config():
+    from plugin_capabilities import project_cilium_topology
+    raw = {'apiVersion': 'cilium.io/v2', 'kind': 'CiliumEnvoyConfigList',
+           'metadata': {'resourceVersion': '42', 'continue': 'next-page', 'annotations': {'token': 'sensitive'}},
+           'items': [{'kind': 'CiliumEnvoyConfig',
+                      'metadata': {'name': 'edge', 'namespace': 'system', 'uid': 'uid-1', 'resourceVersion': '43',
+                                   'labels': {'token': 'sensitive'}},
+                      'spec': {'resources': [{'inlineBytes': 'sensitive'}]},
+                      'status': {'state': 'Ready', 'conditions': [{'type': 'Accepted', 'status': 'True',
+                                                                  'reason': 'Programmed', 'message': 'sensitive'}],
+                                 'configuration': {'token': 'sensitive'}}}]}
+    result = project_cilium_topology(raw)
+    assert result['metadata'] == {'resourceVersion': '42', 'continue': 'next-page'}
+    assert result['items'][0]['metadata'] == {'name': 'edge', 'namespace': 'system', 'uid': 'uid-1', 'resourceVersion': '43'}
+    assert result['items'][0]['status'] == {'state': 'Ready', 'conditions': [{'type': 'Accepted', 'status': 'True', 'reason': 'Programmed'}]}
     assert 'sensitive' not in json.dumps(result)
