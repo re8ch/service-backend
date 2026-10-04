@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-identity-privacy-v1
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    do $$ begin if to_regprocedure('api.platform_user_update(uuid,text)') is null then raise exception 'identity migration 048 is required'; end if; end $$;
+    -- Source: re8ch/cloud-functions@7832f51762a9959d022d51be7e5b643e5271fa97
+    -- Request handling is not erasure: completion records an operator's evidence.
+    -- Identity exports are generated on demand and never persisted as bearer URLs.
+    begin;
+    alter table core.account_requests drop constraint if exists account_requests_status_check;
+    alter table core.account_requests add constraint account_requests_status_check
+     check(status in ('pending','in_progress','completed','rejected','cancelled'));
+    alter table core.account_requests add column if not exists version integer not null default 1;
+    alter table core.account_requests add column if not exists evidence_ref text;
+    create table if not exists core.account_request_events (
+     id bigint generated always as identity primary key,
+     request_id uuid not null references core.account_requests(id) on delete restrict,
+     actor_id uuid references auth.users(id) on delete set null,
+     status text not null, note text, evidence_ref text,
+     created_at timestamptz not null default now()
+    );
+    alter table core.account_request_events owner to supabase_admin;
+    revoke all on core.account_request_events from public,anon,authenticated;
+
+    create or replace function core.require_privacy_session()
+    returns uuid language plpgsql stable security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := api.current_user_id();
+    begin
+     if u is null or not auth.platform_session_active() or not exists(
+      select 1 from auth.users where id=u and deleted_at is null) then
+      raise exception 'active login session required' using errcode='28000';
+     end if;
+     return u;
+    end $$;
+    alter function core.require_privacy_session() owner to supabase_admin;
+    revoke all on function core.require_privacy_session() from public,anon,authenticated;
+
+    create or replace function core.privacy_request_json(r core.account_requests)
+    returns jsonb language sql stable security definer set search_path=pg_catalog,pg_temp as $$
+     select jsonb_build_object('id',r.id,'type',r.request_type,'status',r.status,
+     'createdAt',r.created_at,'updatedAt',r.updated_at,'version',r.version,'note',r.note,
+     'history',coalesce((select jsonb_agg(jsonb_build_object('status',e.status,'note',e.note,
+     'createdAt',e.created_at) order by e.id) from core.account_request_events e where e.request_id=r.id),'[]'::jsonb))
+    $$;
+    alter function core.privacy_request_json(core.account_requests) owner to supabase_admin;
+    revoke all on function core.privacy_request_json(core.account_requests) from public,anon,authenticated;
+
+    create or replace function api.request_account_action(p_request_type text)
+    returns jsonb language plpgsql volatile security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := core.require_privacy_session(); r core.account_requests;
+    begin
+     if p_request_type is null or p_request_type not in ('export','delete') then
+      raise exception 'invalid request type' using errcode='22023';
+     end if;
+     perform pg_advisory_xact_lock(hashtextextended('privacy:'||u::text||':'||p_request_type,0));
+     select * into r from core.account_requests where user_id=u and request_type=p_request_type and status in ('pending','in_progress');
+     if not found then
+      insert into core.account_requests(user_id,request_type) values(u,p_request_type) returning * into r;
+      insert into core.account_request_events(request_id,actor_id,status) values(r.id,u,r.status);
+     end if;
+     return core.privacy_request_json(r);
+    end $$;
+
+    create or replace function api.my_account_requests()
+    returns jsonb language plpgsql stable security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := core.require_privacy_session(); result jsonb;
+    begin
+     select coalesce(jsonb_agg(core.privacy_request_json(r) order by r.created_at desc,r.id),'[]'::jsonb)
+     into result from core.account_requests r where r.user_id=u;
+     return result;
+    end $$;
+
+    create or replace function api.cancel_account_request(p_request_id uuid,p_version integer)
+    returns jsonb language plpgsql volatile security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := core.require_privacy_session(); r core.account_requests;
+    begin
+     select * into r from core.account_requests where id=p_request_id and user_id=u for update;
+     if not found then raise exception 'request not found' using errcode='PT404';end if;
+     if p_version is distinct from r.version or r.status<>'pending' then
+      raise exception 'request changed or processing already started; refresh the list' using errcode='23505';end if;
+     update core.account_requests set status='cancelled',updated_at=clock_timestamp(),version=version+1 where id=r.id returning * into r;
+     insert into core.account_request_events(request_id,actor_id,status) values(r.id,u,r.status);
+     return core.privacy_request_json(r);
+    end $$;
+
+    create or replace function api.admin_account_requests()
+    returns jsonb language plpgsql stable security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := core.require_privacy_session(); result jsonb;
+    begin
+     if not core.is_platform_admin(u) then raise exception 'permission denied' using errcode='42501';end if;
+     perform core.require_admin_step_up();
+     select coalesce(jsonb_agg(core.privacy_request_json(r)||jsonb_build_object('userId',r.user_id,
+     'email',a.email,'evidenceRef',r.evidence_ref) order by r.created_at,r.id),'[]'::jsonb)
+     into result from core.account_requests r join auth.users a on a.id=r.user_id
+     where r.status in ('pending','in_progress');
+     return result;
+    end $$;
+
+    create or replace function api.admin_update_account_request(p_request_id uuid,p_version integer,p_status text,p_note text,p_evidence_ref text default null)
+    returns jsonb language plpgsql volatile security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := core.require_privacy_session(); r core.account_requests;
+    begin
+     if not core.is_platform_admin(u) then raise exception 'permission denied' using errcode='42501';end if;
+     perform core.require_admin_step_up();
+     if p_status is null or p_status not in ('in_progress','completed','rejected') or
+     p_note is null or length(btrim(p_note)) not between 1 and 2000 or
+     (p_evidence_ref is not null and length(btrim(p_evidence_ref)) not between 1 and 500) then
+      raise exception 'invalid status, note or evidence reference' using errcode='22023';end if;
+     if p_status='completed' and nullif(btrim(p_evidence_ref),'') is null then
+      raise exception 'completion requires a fulfillment evidence reference' using errcode='22023';end if;
+     select * into r from core.account_requests where id=p_request_id for update;
+     if not found then raise exception 'request not found' using errcode='PT404';end if;
+     if p_version is distinct from r.version or not (
+      (r.status='pending' and p_status in ('in_progress','rejected')) or
+      (r.status='in_progress' and p_status in ('in_progress','completed','rejected'))) then
+      raise exception 'request changed or transition is not allowed' using errcode='23505';end if;
+     update core.account_requests set status=p_status,note=btrim(p_note),evidence_ref=nullif(btrim(p_evidence_ref),''),
+     handled_by=u,updated_at=clock_timestamp(),version=version+1 where id=r.id returning * into r;
+     insert into core.account_request_events(request_id,actor_id,status,note,evidence_ref)
+     values(r.id,u,r.status,r.note,r.evidence_ref);
+     return core.privacy_request_json(r);
+    end $$;
+
+    create or replace function api.my_identity_export()
+    returns jsonb language plpgsql stable security definer set search_path=pg_catalog,pg_temp as $$
+    declare u uuid := core.require_privacy_session();
+    begin
+     return jsonb_build_object('schemaVersion',1,'generatedAt',statement_timestamp(),'userId',u,
+     'scope','identity-only','excludes',jsonb_build_array('authentication secrets','other users','product data','billing records','infrastructure resources'),
+     'profile',api.my_profile(),
+     'memberships',coalesce((select jsonb_agg(jsonb_build_object('tenantRef',tenant_ref,'role',role,'status',status,'permissions',permissions) order by tenant_ref)
+     from core.organization_members where user_id=u),'[]'::jsonb),
+     'devices',coalesce((select jsonb_agg(jsonb_build_object('label',label,'firstSeenAt',first_seen_at,'lastSeenAt',last_seen_at) order by id)
+     from core.user_devices where user_id=u),'[]'::jsonb),
+     'requests',api.my_account_requests());
+    end $$;
+
+    alter function api.request_account_action(text) owner to supabase_admin;
+    alter function api.my_account_requests() owner to supabase_admin;
+    alter function api.cancel_account_request(uuid,integer) owner to supabase_admin;
+    alter function api.admin_account_requests() owner to supabase_admin;
+    alter function api.admin_update_account_request(uuid,integer,text,text,text) owner to supabase_admin;
+    alter function api.my_identity_export() owner to supabase_admin;
+    revoke all on function api.request_account_action(text),api.my_account_requests(),api.cancel_account_request(uuid,integer),
+     api.admin_account_requests(),api.admin_update_account_request(uuid,integer,text,text,text),api.my_identity_export() from public,anon;
+    grant execute on function api.request_account_action(text),api.my_account_requests(),api.cancel_account_request(uuid,integer),
+     api.admin_account_requests(),api.admin_update_account_request(uuid,integer,text,text,text),api.my_identity_export() to authenticated;
+    notify pgrst,'reload schema';
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-identity-privacy-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: pg-re8ch
+        effect: NoSchedule
+      containers:
+      - name: migrate
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        command:
+        - /bin/sh
+        - -ceu
+        args:
+        - psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql
+        env:
+        - name: PGHOST
+          value: pg-re8ch-primary.pigsty-external.svc.cluster.local
+        - name: PGDATABASE
+          value: re8ch_identity
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: POSTGRES_USER_READ_WRITE
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: supabase-identity-secrets
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: sql
+          mountPath: /sql
+          readOnly: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+      volumes:
+      - name: sql
+        configMap:
+          name: supabase-identity-privacy-v1

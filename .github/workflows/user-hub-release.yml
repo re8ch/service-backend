@@ -8,11 +8,12 @@ on:
         required: true
         type: string
 
-permissions: {contents: read}
+permissions: {contents: read, id-token: write}
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Initialize pinned User Hub source
@@ -42,5 +43,19 @@ jobs:
           platforms: linux/amd64
           provenance: mode=max
           sbom: true
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - name: Sign and verify immutable User Hub digest
+        env:
+          IMAGE: registry.re8ch.com/auth/user-hub@${{ steps.build.outputs.digest }}
+          IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/user-hub-release.yml@refs/heads/main
+        run: |
+          cosign sign --yes "$IMAGE"
+          cosign verify --certificate-identity "$IDENTITY" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$IMAGE"
+          printf '%s\n' "$IMAGE" > user-hub.image
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: user-hub-release-${{ inputs.revision }}
+          path: user-hub.image
+          if-no-files-found: error
       - name: Publish digest
         run: echo "registry.re8ch.com/auth/user-hub:ui-${{ inputs.revision }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"

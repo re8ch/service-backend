@@ -59,7 +59,7 @@ spec:
         - name: ghcr-re8ch
       containers:
         - name: gateway
-          image: ghcr.io/re8ch/re8ch-auth-gateway@sha256:b8e8ec92b371b51a177ee2c2094e87d9a9f548f6673c919da4e01b14ffa68772
+          image: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:c23744cf928ffcf73565fd850c0b0aa0f1349ffbb15b164ce302a2db578b05cd
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
