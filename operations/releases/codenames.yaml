@@ -890,6 +890,8 @@ modules:
       digest: sha256:b660ed3f3e0d426012a0b8c7748c389101da30dc5aabdbd97b76affb32254e42
     - codename: tideway-quartz
       digest: sha256:d28ad04b923775d632093a9b5353ad2604adf12a9cc4d7603ed9df977ef6417c
+    - codename: cascade-ruby
+      digest: sha256:4053a95feb4fbd5a6d85d447c7b2ba0af8013ac9c432bd79a2b8c0403ba1363f
   platform/hyperswitch:
     releases:
     - codename: anchor
