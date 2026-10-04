@@ -659,6 +659,8 @@ spec:
             configMapKeyRef:
               name: supabase-identity-env
               key: JWT_EXPIRY
+        - name: GOTRUE_SESSIONS_TIMEBOX
+          value: 168h
         - name: GOTRUE_JWT_SECRET
           valueFrom:
             secretKeyRef:
