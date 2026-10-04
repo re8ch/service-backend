@@ -120,3 +120,17 @@ It records the hosted runner's egress country, submits through the public HTTPS
 API, checks an actual 90-frame video and audio timing, and preserves the archive,
 preview frames and machine-readable evidence. A published image, ready Pod or
 HTTP health response alone is not end-to-end acceptance.
+
+## Initial read service placement
+
+On 2026-10-05 both declared PostgreSQL replicas had no WAL receiver and their
+last replay timestamp was 2026-09-17 02:31:02 UTC. Neither contained the Studio
+role or database; the primary had both and no active replication connections.
+Therefore both Studio PostgREST instances use the primary connection reference.
+The separate HTTPS RO/RW routes and JWT/RLS roles remain intact. The RO instance
+sets PGOPTIONS default_transaction_read_only=on and PGRST_DB_TX_END=rollback
+(without client override) so requests cannot commit writes through this endpoint.
+This is an explicit primary-backed read service, not replica availability.
+Restore replica routing only after receiver/replay health, role/database presence,
+and Studio read-after-write acceptance have been verified. No shared database
+replication configuration is changed by this application deployment.
