@@ -66,7 +66,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     environment: production
     permissions:
       contents: read
@@ -85,9 +85,9 @@ jobs:
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/functions-shared/re8ch-cloud-platform
           TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: cloud-platform
-          # OSS-backed layer uploads exceeded the shared five-minute bound.
-          # Two bounded attempts leave ten minutes for SBOM/signature work.
-          TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
+          # Layer pushes have taken 828-900 seconds. Keep two bounded attempts
+          # while reserving time for SBOM, signature, and artifact upload.
+          TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "1200"
           TENANT_IMAGE_PUSH_ATTEMPTS: "2"
           SIGSTORE_CERTIFICATE_IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/cloud-platform-release.yml@${{ github.ref }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
