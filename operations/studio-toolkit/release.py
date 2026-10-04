@@ -17,6 +17,29 @@ REGISTRY = 'registry.re8ch.com'
 
 def api(method, path, payload=None):
     auth = base64.b64encode((os.environ['HARBOR_USERNAME'] + ':' + os.environ['HARBOR_PASSWORD']).encode()).decode()
+    proxy = os.environ.get('STUDIO_PUBLISH_PROXY')
+    if proxy:
+        # Keep credentials off argv/logs; curl validates the original registry TLS name.
+        config = 'header = "Authorization: Basic ' + auth + '"\n'
+        with __import__('tempfile').TemporaryDirectory(prefix='studio-registry-request-') as temp:
+            command = ['curl', '--silent', '--show-error', '--max-time', '30', '--proxy', proxy,
+                       '--config', '-', '--request', method, '--write-out', '\n%{http_code}',
+                       'https://' + REGISTRY + '/api/v2.0/' + path]
+            if payload is not None:
+                bodyfile = Path(temp) / 'body.json'
+                bodyfile.write_text(json.dumps(payload))
+                bodyfile.chmod(0o600)
+                command += ['--header', 'Content-Type: application/json', '--data-binary', '@' + str(bodyfile)]
+            result = subprocess.run(command, input=config.encode(), capture_output=True, timeout=35)
+        if result.returncode:
+            raise RuntimeError('Harbor transport failed: curl exit ' + str(result.returncode))
+        body, status = result.stdout.rsplit(b'\n', 1)
+        status = int(status)
+        if status in (404, 409):
+            return status, None
+        if not 200 <= status < 300:
+            raise RuntimeError(f'Harbor operation failed: HTTP {status}')
+        return status, json.loads(body) if body else None
     request = urllib.request.Request('https://' + REGISTRY + '/api/v2.0/' + path, method=method,
         data=json.dumps(payload).encode() if payload is not None else None,
         headers={'Authorization': 'Basic ' + auth, 'Content-Type': 'application/json'})
