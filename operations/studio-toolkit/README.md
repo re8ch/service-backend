@@ -21,13 +21,22 @@ retained in the release artifact, including per-package findings from Harbor’s
 [vulnerability addition API](https://github.com/goharbor/harbor/blob/main/api/v2.0/swagger.yaml).
 A missing detailed report fails publication; a successful scan is not a clean scan.
 Review affected packages, available fixes and exposure before activation.
+The `studio-toolkit` Harbor project has a 5 GiB storage quota, increased from
+512 MiB through the Harbor quota API on 2026-10-05 with administrator approval.
+The change was read back from quota ID 35 as 5,368,709,120 bytes; existing images
+were retained. Release run `37226737325`, attempt 2, reuses the successful hosted
+build after attempt 1 exhausted the previous quota. Before subsequent releases,
+check project storage usage and available capacity; `prepare` currently verifies
+project privacy but does not automatically increase or preflight the quota.
 The optional initial-reader step creates a pull-only Harbor robot and emits two
 SOPS-encrypted Kubernetes Secrets, one for the runtime and one for the database
 migration namespace. Only encrypted secrets and the robot reference are uploaded.
 Revoke an unused robot by its reference if activation is abandoned.
 
 Activation is a separate reviewed GitOps change, using the release digests and
-encrypted credentials. Intended runtime:
+encrypted credentials. Record the release-specific assessment using
+[the runtime exposure review](SECURITY-REVIEW.md), including residual findings.
+Intended runtime:
 
 - `api.re8ch.com/studio`: stateless API behind the existing HTTPS listener.
 - `db-ro.re8ch.com/studio` and `db-rw.re8ch.com/studio`: product PostgREST with
@@ -53,17 +62,20 @@ Docker daemon. Copy semantics follow the [upstream Skopeo documentation](https:/
 The existing Macmini runner needs `gh`, Python 3.11+, Skopeo, SOPS and Cosign, plus
 its existing batch SSH alias `restricted-node-6dc3f140f9`. Direct GitHub TLS on this host has failed;
 the job opens its own temporary loopback SOCKS tunnel and closes it on exit.
-Harbor API, image transfer and signing traffic use that scoped restricted-node-6dc3f140f9 tunnel.
+Harbor API, image transfer and signing traffic use that scoped restricted-node-6dc3f140f9 tunnel;
+Macmini direct Harbor TLS failed while the same URL through restricted-node-6dc3f140f9 was healthy.
 No host route, DNS setting or runner-global configuration changes. All publisher commands run in an isolated RUNNER_TEMP
 directory and temporary registry authorization is removed on exit.
 
 Because action-download setup uses the host's broken direct GitHub path, the
 publisher has no `uses:` steps. It retrieves only the helper files at its exact
 workflow commit through its scoped transport. Eight download workers dynamically
-claim bounded 8 MiB HTTPS ranges from the same-run build artifact, with scoped
-proxy fallback. Range headers, byte counts and ZIP integrity are checked before
-OCI verification. Small ranges prevent a slow connection from owning a large
-fraction of the archive until its request timeout. Final
+claim bounded 8 MiB HTTPS ranges from the same-run build artifact, preferring
+direct transfer with scoped proxy fallback. Range headers, byte counts, allowed
+ZIP entries and archive checksums are checked before OCI verification. Small
+ranges prevent a slow connection from owning a large fraction of the archive
+until its request timeout. The publisher allows up to 180 minutes for constrained
+cross-region transfers. Final
 scan/signature/digest and encrypted reader evidence is uploaded to a **draft**
 private GitHub release `studio-toolkit-<source SHA>`. The `studio-oci` workflow
 artifact retains the portable source build for three days. A draft release does
@@ -77,3 +89,32 @@ The test compares the copied index digest and every blob; it cannot pass by
 dropping attestations or selecting only the host platform. Reproduce installation
 with `CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1`
 using Go 1.26.8 and a dedicated GOBIN.
+
+## Runtime activation and acceptance
+
+`render-runtime.py` accepts only the private Studio API and worker repositories
+with immutable SHA-256 digests. After reviewing the release's signatures, build
+metadata and Harbor scan findings, render the runtime and include it together
+with the encrypted configuration and both encrypted registry readers in
+`clusters/re8ch/kustomization.yaml`. The rendered database bootstrap job is an
+operator migration; application requests continue through the HTTPS PostgREST
+routes. The API and worker may retry while the initial migration completes.
+
+The restricted-node-6dc3f140f9 worker advertises Blender and editable export capabilities. It does not
+advertise native After Effects or PowerPoint execution on Linux. Those outputs
+are editable JSX and PPTX files generated from the same scene and animation
+model; desktop playback requires the corresponding licensed application.
+
+The daily retention job uses a separate client identity with no worker-region
+grants. Blob data is shared by the API replicas on CephFS, while worker staging
+and render frames are ephemeral. Keep the production client credential outside
+Git and use the dedicated `STUDIO_ACCEPTANCE_TOKEN` repository secret for the
+product's `Studio external acceptance` workflow.
+
+After Flux reconciles the activation commit, verify the migration job completed,
+PostgREST is ready, all HTTPRoutes are accepted, and the worker claims jobs from
+`cn-r640`. Dispatch the external acceptance workflow in the product repository.
+It records the hosted runner's egress country, submits through the public HTTPS
+API, checks an actual 90-frame video and audio timing, and preserves the archive,
+preview frames and machine-readable evidence. A published image, ready Pod or
+HTTP health response alone is not end-to-end acceptance.

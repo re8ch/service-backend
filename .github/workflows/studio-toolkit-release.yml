@@ -28,7 +28,7 @@ jobs:
       - run: |
           GOBIN="$RUNNER_TEMP/studio-tools" CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1
           echo "$RUNNER_TEMP/studio-tools" >> "$GITHUB_PATH"
-      - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_transfer.py && python operations/studio-toolkit/test_download.py
+      - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_transfer.py && python operations/studio-toolkit/test_download.py && python operations/studio-toolkit/test_runtime.py
   build-hosted:
     needs: verify-release
     if: github.ref == 'refs/heads/main'

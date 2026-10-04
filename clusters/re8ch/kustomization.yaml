@@ -103,6 +103,13 @@ resources:
 - ../../platform/paralus
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources
+- components/studio-toolkit/runtime.yaml
+- secrets/studio-config.sops.yaml
+- secrets/studio-db-bootstrap.sops.yaml
+- secrets/studio-registry-reader-studio-toolkit.sops.yaml
+- secrets/studio-registry-reader-supabase-pg-re8ch.sops.yaml
+- secrets/studio-retention.sops.yaml
+- secrets/studio-worker.sops.yaml
 patchesStrategicMerge:
 - retire-legacy-mcp.patch.yaml
 patches:

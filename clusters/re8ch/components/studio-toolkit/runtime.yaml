@@ -1,0 +1,633 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: studio-toolkit
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: studio-blobs
+  namespace: studio-toolkit
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: cephfs-re8ch
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: studio-api
+  namespace: studio-toolkit
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: studio-api
+  template:
+    metadata:
+      labels:
+        app: studio-api
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      imagePullSecrets:
+      - name: studio-registry-reader
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: studio-api
+        image: registry.re8ch.com/studio-toolkit/api@sha256:8eb7d0c6a7702f3739bb729ddf284ca193f25dd2edfbc11ff8e6e587d4514e0e
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: STUDIO_MODE
+          value: production
+        - name: STUDIO_ROOT_PATH
+          value: /studio
+        - name: STUDIO_BLOB_ROOT
+          value: /data
+        - name: STUDIO_AUTH_FILE
+          value: /config/auth.json
+        - name: STUDIO_POSTGREST_RO
+          value: https://db-ro.re8ch.com/studio
+        - name: STUDIO_POSTGREST_RW
+          value: https://db-rw.re8ch.com/studio
+        - name: STUDIO_POSTGREST_JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: studio-config
+              key: STUDIO_POSTGREST_JWT_KEY
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: blobs
+          mountPath: /data
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet: &id001
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: *id001
+          initialDelaySeconds: 30
+          periodSeconds: 20
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: blobs
+        persistentVolumeClaim:
+          claimName: studio-blobs
+      - name: config
+        secret:
+          secretName: studio-config
+          items:
+          - key: auth.json
+            path: auth.json
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: studio-api
+  namespace: studio-toolkit
+spec:
+  selector:
+    app: studio-api
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: studio-db-ro
+  namespace: studio-toolkit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: studio-db-ro
+  template:
+    metadata:
+      labels:
+        app: studio-db-ro
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      imagePullSecrets:
+      - name: studio-registry-reader
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: studio-db-ro
+        image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: PGRST_DB_URI
+          valueFrom:
+            secretKeyRef:
+              name: studio-config
+              key: PGRST_DB_URI_RO
+        - name: PGRST_DB_SCHEMAS
+          value: studio
+        - name: PGRST_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: studio-config
+              key: STUDIO_POSTGREST_JWT_KEY
+        - name: PGRST_DB_POOL
+          value: '10'
+        - name: PGRST_ADMIN_SERVER_PORT
+          value: '3001'
+        - name: PGRST_ADMIN_SERVER_HOST
+          value: 0.0.0.0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        readinessProbe:
+          httpGet: &id001
+            path: /ready
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: *id001
+          initialDelaySeconds: 30
+          periodSeconds: 20
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: studio-db-ro
+  namespace: studio-toolkit
+spec:
+  selector:
+    app: studio-db-ro
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: studio-db-rw
+  namespace: studio-toolkit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: studio-db-rw
+  template:
+    metadata:
+      labels:
+        app: studio-db-rw
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      imagePullSecrets:
+      - name: studio-registry-reader
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: studio-db-rw
+        image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: PGRST_DB_URI
+          valueFrom:
+            secretKeyRef:
+              name: studio-config
+              key: PGRST_DB_URI_RW
+        - name: PGRST_DB_SCHEMAS
+          value: studio
+        - name: PGRST_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: studio-config
+              key: STUDIO_POSTGREST_JWT_KEY
+        - name: PGRST_DB_POOL
+          value: '10'
+        - name: PGRST_ADMIN_SERVER_PORT
+          value: '3001'
+        - name: PGRST_ADMIN_SERVER_HOST
+          value: 0.0.0.0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        readinessProbe:
+          httpGet: &id001
+            path: /ready
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: *id001
+          initialDelaySeconds: 30
+          periodSeconds: 20
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: studio-db-rw
+  namespace: studio-toolkit
+spec:
+  selector:
+    app: studio-db-rw
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: studio-worker-r640
+  namespace: studio-toolkit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: studio-worker-r640
+  template:
+    metadata:
+      labels:
+        app: studio-worker-r640
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      imagePullSecrets:
+      - name: studio-registry-reader
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: studio-worker-r640
+        image: registry.re8ch.com/studio-toolkit/worker@sha256:f237866b1ab6e51c1dee62298d0ce6a03fe3e11a2ba7f1cb719e467e012319ac
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: STUDIO_URL
+          value: http://studio-api:8080
+        - name: STUDIO_WORKER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: studio-worker
+              key: STUDIO_WORKER_TOKEN
+        resources:
+          requests:
+            cpu: '1'
+            memory: 1Gi
+          limits:
+            cpu: '4'
+            memory: 4Gi
+            ephemeral-storage: 10Gi
+        volumeMounts:
+        - name: work
+          mountPath: /work
+        - name: tmp
+          mountPath: /tmp
+        - name: home
+          mountPath: /home/studio
+        command:
+        - python
+        - -m
+        - toolkit.worker
+        args:
+        - --region
+        - cn-r640
+        - --work
+        - /work
+        - --allow-private-http
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: work
+        emptyDir:
+          sizeLimit: 8Gi
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: home
+        emptyDir:
+          sizeLimit: 128Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: studio-retention
+  namespace: studio-toolkit
+spec:
+  schedule: 17 3 * * *
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 120
+      template:
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: restricted-node-6dc3f140f9
+          imagePullSecrets:
+          - name: studio-registry-reader
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: collect
+            image: registry.re8ch.com/studio-toolkit/api@sha256:8eb7d0c6a7702f3739bb729ddf284ca193f25dd2edfbc11ff8e6e587d4514e0e
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            env:
+            - name: STUDIO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: studio-retention
+                  key: STUDIO_TOKEN
+            command:
+            - python
+            - -c
+            - import os,httpx; r=httpx.post("http://studio-api:8080/v1/retention/collect",headers={"Authorization":"Bearer
+              "+os.environ["STUDIO_TOKEN"]},timeout=60); r.raise_for_status(); print(r.text)
+            resources:
+              requests:
+                cpu: 25m
+                memory: 64Mi
+              limits:
+                cpu: 250m
+                memory: 256Mi
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: studio-api
+  namespace: studio-toolkit
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: api-https
+  hostnames:
+  - api.re8ch.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /studio
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: studio-api
+      port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: studio-db-ro
+  namespace: studio-toolkit
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: db-ro-https
+  hostnames:
+  - db-ro.re8ch.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /studio
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: studio-db-ro
+      port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: studio-db-rw
+  namespace: studio-toolkit
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: db-rw-https
+  hostnames:
+  - db-rw.re8ch.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /studio
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: studio-db-rw
+      port: 3000
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: studio-database-bootstrap-v1
+  namespace: supabase-pg-re8ch
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: OnFailure
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      imagePullSecrets:
+      - name: studio-registry-reader
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: migrations
+        emptyDir: {}
+      initContainers:
+      - name: source-migration
+        image: registry.re8ch.com/studio-toolkit/api@sha256:8eb7d0c6a7702f3739bb729ddf284ca193f25dd2edfbc11ff8e6e587d4514e0e
+        command:
+        - python
+        - -c
+        - import shutil; shutil.copyfile("/app/toolkit/sql/001_studio.sql", "/migrations/001_studio.sql")
+        securityContext: &id001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: migrations
+          mountPath: /migrations
+      containers:
+      - name: migrate
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        command:
+        - /bin/sh
+        - -ec
+        args:
+        - 'export PGPASSWORD="$POSTGRES_ADMIN_PASSWORD"
+
+          export PGHOST=pg-re8ch-primary.pigsty-external.svc.cluster.local PGPORT=5432
+          PGUSER="$POSTGRES_ADMIN_USER"
+
+          until pg_isready; do sleep 5; done
+
+          psql -d postgres -v ON_ERROR_STOP=1 -v password="$STUDIO_DATABASE_PASSWORD"
+          <<''SQL''
+
+          SELECT format(''CREATE ROLE studio_authenticator LOGIN NOINHERIT PASSWORD
+          %L'', :''password'') WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname=''studio_authenticator'')\gexec
+
+          SELECT format(''ALTER ROLE studio_authenticator LOGIN NOINHERIT PASSWORD
+          %L'', :''password'')\gexec
+
+          SELECT ''CREATE DATABASE studio_toolkit TEMPLATE template0 ENCODING ''''UTF8''''''
+          WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname=''studio_toolkit'')\gexec
+
+          REVOKE ALL ON DATABASE studio_toolkit FROM PUBLIC;
+
+          GRANT CONNECT ON DATABASE studio_toolkit TO studio_authenticator;
+
+          SQL
+
+          psql -d studio_toolkit -v ON_ERROR_STOP=1 -f /migrations/001_studio.sql
+
+          psql -d studio_toolkit -v ON_ERROR_STOP=1 <<''SQL''
+
+          GRANT studio_app_ro,studio_app_rw,studio_identity_ro TO studio_authenticator;
+
+          REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+
+          NOTIFY pgrst, ''reload schema'';
+
+          SQL
+
+          '
+        securityContext: *id001
+        env:
+        - name: POSTGRES_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: supabase-pg-re8ch-secrets
+              key: POSTGRES_USER_READ_WRITE
+        - name: POSTGRES_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: supabase-pg-re8ch-secrets
+              key: POSTGRES_PASSWORD
+        - name: STUDIO_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: studio-db-bootstrap
+              key: STUDIO_DATABASE_PASSWORD
+        volumeMounts:
+        - name: migrations
+          mountPath: /migrations
+          readOnly: true
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
