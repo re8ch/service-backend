@@ -439,6 +439,8 @@ modules:
       digest: sha256:b696c72cd8b768b017156d5cbf0b5c871b47382c92733ed40af43a925b4e3bbe
     - codename: atoll-amber
       digest: sha256:4dfc1b2ba987383ed3b89daa39b4742b2505af0cdf6acb9ed80a6e9584c39be5
+    - codename: canopy-amber
+      digest: sha256:f9b3b198c84d1db09aacdd000cd529101b8827e710073a3cdc55c445c21f6340
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -870,6 +872,8 @@ modules:
       digest: sha256:e0dbd8e9f78a9673b9cdc799fe32acfc15fe9c1ea36e0ec5123db5d0e8318e56
     - codename: confluence-quartz
       digest: sha256:07f1a6dcf8113f5a24ce18709803972a3752f52bb189543cfcdf7c879e172abd
+    - codename: eddy-quartz
+      digest: sha256:8fba35799545c8acb531eaca490260506a457ca3ec90a9d49f8cb9ceb4f0d52b
   platform/hyperswitch:
     releases:
     - codename: anchor

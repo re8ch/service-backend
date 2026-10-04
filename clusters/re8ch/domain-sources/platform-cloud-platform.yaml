@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: atoll-amber
+    delivery.re8ch.com/codename: canopy-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:4dfc1b2ba987383ed3b89daa39b4742b2505af0cdf6acb9ed80a6e9584c39be5
+    digest: sha256:f9b3b198c84d1db09aacdd000cd529101b8827e710073a3cdc55c445c21f6340
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: atoll-amber
+    delivery.re8ch.com/codename: canopy-amber
 spec:
   interval: 1m
   retryInterval: 1m
