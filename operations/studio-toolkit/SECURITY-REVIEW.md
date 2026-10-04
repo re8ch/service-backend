@@ -9,14 +9,13 @@ change. The original Debian 12 release is superseded for activation.
 
 Product PR 9 moves the runtime to Debian 13 with available distribution updates,
 removes pip/ensurepip after dependency installation, and constrains media inputs.
-The intermediate signed source `ed95c39f0e7e15ec8d74de29a5f2cf5094feb380` passed
-[Linux Blender/MCP rendering and scanning](https://github.com/baozou-ppt-studio/baozou-ppt-studio/actions/runs/37226193542).
+The signed source `718e4bb77727081f7f5f381a0ec291249ce90570` passed
+[Linux Blender/MCP rendering and scanning](https://github.com/baozou-ppt-studio/baozou-ppt-studio/actions/runs/37226488370).
 Its Trivy report has 13 Critical, 289 High, 386 Medium, 385 Low and 61 Unknown
 package findings, with **zero High/Critical findings having an available
 Debian/Python package fix**. These are package findings, not unique CVE counts.
 
-Media constraints are a subsequent source change and must pass the same checks
-before release. Activation additionally requires the final source's hosted native
+Media constraints passed in this same source revision. Activation additionally requires the final source's hosted native
 render test, matching OCI digests, verified GitHub OIDC signatures, complete
 Harbor reports, encrypted registry readers and successful GitOps CI. No scan
 finding is hidden with an ignore file. A new fixable High/Critical finding fails
