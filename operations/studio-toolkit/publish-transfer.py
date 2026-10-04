@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import tarfile
+import shutil
 
 
 def validate_archive(root, target):
@@ -22,6 +24,22 @@ def validate_archive(root, target):
     if not re.fullmatch('[0-9a-f]{64}', expected) or expected != checksum:
         raise ValueError('Transferred OCI archive checksum differs from the hosted build')
     return archive, digest
+
+
+def unpack_archive(archive, layout):
+    layout.mkdir()
+    with tarfile.open(archive) as tar:
+        for member in tar:
+            name = member.name.removeprefix('./')
+            if member.isdir() and name in ('.', 'blobs', 'blobs/sha256'):
+                continue
+            if not member.isfile() or not (name in ('index.json', 'oci-layout') or re.fullmatch(r'blobs/sha256/[0-9a-f]{64}', name)):
+                raise ValueError('Unexpected OCI archive entry')
+            target = layout / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with tar.extractfile(member) as source, target.open('xb') as dest:
+                shutil.copyfileobj(source, dest)
+    return layout
 
 
 def main():
@@ -40,9 +58,10 @@ def main():
         config = root / 'config.json'
         config.write_text(json.dumps({'auths': {'registry.re8ch.com': {'auth': auth}}}))
         config.chmod(0o600)
-        # Only these verified local CI archives are admitted by this process policy.
+        layouts = {target: unpack_archive(archive, root / target) for target, (archive, _) in archives.items()}
+        # Only these verified local CI layouts are admitted by this process policy.
         policy = root / 'policy.json'
-        policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci-archive': {str(archive): [{'type': 'insecureAcceptAnything'}] for archive, _ in archives.values()}}}))
+        policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci': {str(layout): [{'type': 'insecureAcceptAnything'}] for layout in layouts.values()}}}))
         env = dict(os.environ, DOCKER_CONFIG=str(root))
         # GitHub/Sigstore traffic may use the host's scoped outbound proxy; Harbor stays local.
         if os.environ.get('STUDIO_PUBLISH_PROXY'):
@@ -51,7 +70,7 @@ def main():
         for target, (archive, expected) in archives.items():
             image = 'registry.re8ch.com/studio-toolkit/' + target
             digestfile = args.output / (target + '-digest.txt')
-            subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--retry-times', '2', '--dest-authfile', str(config), '--digestfile', str(digestfile), 'oci-archive:' + str(archive), 'docker://' + image + ':' + args.source_sha], check=True, timeout=900)
+            subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--retry-times', '2', '--dest-authfile', str(config), '--digestfile', str(digestfile), 'oci:' + str(layouts[target]), 'docker://' + image + ':' + args.source_sha], check=True, timeout=900)
             if digestfile.read_text().strip() != expected:
                 raise RuntimeError('Published manifest differs from the tested OCI build')
             (args.output / (target + '-build.json')).write_bytes((args.transfer / (target + '-build.json')).read_bytes())

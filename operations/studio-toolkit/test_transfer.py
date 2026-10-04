@@ -70,10 +70,11 @@ class OCIPreservationTests(unittest.TestCase):
             with tarfile.open(archive, 'w') as tar:
                 for file in layout.rglob('*'):
                     if file.is_file(): tar.add(file, arcname=str(file.relative_to(layout)))
+            extracted = transfer.unpack_archive(archive, root / 'extracted')
             policy = root / 'policy.json'
-            policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci-archive': {str(archive): [{'type': 'insecureAcceptAnything'}]}}}))
+            policy.write_text(json.dumps({'default': [{'type': 'reject'}], 'transports': {'oci': {str(extracted): [{'type': 'insecureAcceptAnything'}]}}}))
             digestfile = root / 'digest'
-            result = subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--digestfile', str(digestfile), 'oci-archive:' + str(archive), 'oci:' + str(root / 'copied') + ':test'], capture_output=True)
+            result = subprocess.run(['skopeo', '--policy', str(policy), 'copy', '--all', '--preserve-digests', '--digestfile', str(digestfile), 'oci:' + str(extracted), 'oci:' + str(root / 'copied') + ':test'], capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
             self.assertEqual(digestfile.read_text().strip(), index['digest'])
             for file in blobs.iterdir():
