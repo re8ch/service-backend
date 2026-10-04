@@ -2968,11 +2968,12 @@
                     "method": "DELETE",
                     "path": "/apis/anatomy.re8ch.com/v1alpha1/namespaces/{namespace}/runtimediffs/{name}",
                     "operationId": "deleteAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
-                    "registration": "not_implemented",
+                    "registration": "implemented_not_deployed",
                     "disposition": "runtime_request_review_required",
                     "schemaProvenance": "native_openapi",
                     "httpConformance": "not_run",
-                    "semanticConformance": "not_run"
+                    "semanticConformance": "not_run",
+                    "tool": "anatomy.runtimediff.delete"
                   },
                   {
                     "plugin": "anatomy",
@@ -16345,6 +16346,59 @@
                       "operationId": "createAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
                       "method": "POST",
                       "path": "/apis/anatomy.re8ch.com/v1alpha1/namespaces/{namespace}/runtimediffs",
+                      "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
+                      "httpConformance": "not_run",
+                      "semanticConformance": "not_run"
+                    }
+                  }
+                },
+                {
+                  "name": "anatomy.runtimediff.delete",
+                  "description": "Plan, delete, or inspect one tool-owned RuntimeDiff in the canary namespace. Administrator only.",
+                  "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "phase": {
+                        "type": "string",
+                        "enum": [
+                          "plan",
+                          "execute",
+                          "status"
+                        ]
+                      },
+                      "namespace": {
+                        "type": "string",
+                        "const": "runtime-anatomy-canary"
+                      },
+                      "name": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+                      },
+                      "idempotencyKey": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 128
+                      },
+                      "planHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "phase",
+                      "namespace",
+                      "name",
+                      "idempotencyKey"
+                    ]
+                  },
+                  "_meta": {
+                    "re8ch": {
+                      "plugin": "anatomy",
+                      "groupVersion": "apis/anatomy.re8ch.com/v1alpha1",
+                      "operationId": "deleteAnatomyRe8chComV1alpha1NamespacedRuntimeDiff",
+                      "method": "DELETE",
+                      "path": "/apis/anatomy.re8ch.com/v1alpha1/namespaces/{namespace}/runtimediffs/{name}",
                       "schemaHash": "2c17682f437b24315c69abd3495926cbec9046c899ff9e22a9c13ed137d53fee",
                       "httpConformance": "not_run",
                       "semanticConformance": "not_run"

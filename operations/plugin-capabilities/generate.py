@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "operations/cloud-platform"))
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
-from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL
+from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
 from plugin_capabilities import STORAGE_PROJECTION
 from plugin_capabilities import GROUP_PLUGINS, RESOURCE_PLUGINS, ADVFAB_KINDS, READ_GROUPS, operation_contract, operation_disposition
 
@@ -19,7 +19,7 @@ def canonical(value):
 
 def capability_inventory(matrix, tools):
     """Publish inventory separately from callable definitions; missing adapters stay visible."""
-    deployed = deployed_tools([*tools, *MIHOMOS_TOOLS, ANATOMY_DIFF_TOOL])
+    deployed = deployed_tools([*tools, *MIHOMOS_TOOLS, ANATOMY_DIFF_TOOL, ANATOMY_DIFF_DELETE_TOOL])
     by_operation = {(tool["groupVersion"], tool["operationId"]): tool for tool in tools}
     rows = []
     for source in matrix["sources"]:
@@ -95,7 +95,7 @@ def generate():
                            "_meta": {"re8ch": {"plugin": plugin, "groupVersion": source["groupVersion"],
                                       "operationId": row["operationId"], "method": "GET", "path": row["path"],
                                       "schemaHash": digest, "httpConformance": "not_run", "semanticConformance": "not_run"}}}
-    definitions = sorted([*tools.values(), ANATOMY_DIFF_TOOL], key=lambda tool: tool["name"])
+    definitions = sorted([*tools.values(), ANATOMY_DIFF_TOOL, ANATOMY_DIFF_DELETE_TOOL], key=lambda tool: tool["name"])
     generated = {"version": 1, "cluster": matrix["cluster"], "tools": definitions}
     (ROOT / "operations/cloud-platform/plugin-operation-tools.json").write_text(json.dumps(generated, indent=2) + "\n")
     for relative in ["platform/apps/tenant-mcp/platform-modules.json", "clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json"]:
@@ -105,13 +105,14 @@ def generate():
         # Remove every currently owned entry before inserting in stable order.
         # Otherwise new Mihomos entries move across Kubernetes entries on the
         # second run because dict.update preserves existing key positions.
-        owned_names = previous_names | {tool["name"] for tool in MIHOMOS_TOOLS} | {ANATOMY_DIFF_TOOL["name"]}
+        owned_names = previous_names | {tool["name"] for tool in MIHOMOS_TOOLS} | {ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"]}
         for name in list(allowed):
             if name in owned_names:
                 del allowed[name]
         allowed.update({name: True for name in sorted(tools)})
         allowed.update({tool["name"]: True for tool in MIHOMOS_TOOLS})
         allowed[ANATOMY_DIFF_TOOL["name"]] = True
+        allowed[ANATOMY_DIFF_DELETE_TOOL["name"]] = True
         path.write_text(json.dumps(registry, indent=2) + "\n")
     registry = {"servers": [{"name": "com.re8ch/cluster-plugin-operations", "version": "0.1.0",
         "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
