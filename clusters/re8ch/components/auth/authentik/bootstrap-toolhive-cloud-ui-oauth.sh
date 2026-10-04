@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${KUBE_SERVER:=https://192.0.2.176:6443}"
+: "${KUBE_SERVER:=https://10.181.22.147:6443}"
 K=(kubectl --server="$KUBE_SERVER" --insecure-skip-tls-verify=true)
 PORT="${AUTHENTIK_API_PORT:-29001}"
 API="http://127.0.0.1:${PORT}/api/v3"
@@ -40,13 +40,13 @@ if [[ "$provider" == "null" ]]; then
       issuer_mode: "per_provider",
       include_claims_in_id_token: true,
       property_mappings: $property_mappings,
-      redirect_uris: [{matching_mode: "strict", url: "https://tools.service.re8ch.com/api/auth/oauth2/callback/oidc"}]
+      redirect_uris: [{matching_mode: "strict", url: "https://tools.re8ch.com/api/auth/oauth2/callback/oidc"}]
     }' | curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
       -d @- "$API/providers/oauth2/")
 fi
 
 provider_pk=$(jq -r .pk <<<"$provider")
-provider=$(jq -n '{redirect_uris: [{matching_mode: "strict", url: "https://tools.service.re8ch.com/api/auth/oauth2/callback/oidc"}]}' |
+provider=$(jq -n '{redirect_uris: [{matching_mode: "strict", url: "https://tools.re8ch.com/api/auth/oauth2/callback/oidc"}]}' |
   curl -fsS -X PATCH -H "$auth_header" -H 'Content-Type: application/json' \
     -d @- "$API/providers/oauth2/${provider_pk}/")
 client_secret=$(jq -r .client_secret <<<"$provider")
@@ -60,13 +60,13 @@ if [[ -z "$application_pk" ]]; then
       slug: "toolhive-cloud-ui",
       provider: $provider,
       meta_description: "Official ToolHive visualization for the RE8CH MCP catalog",
-      meta_launch_url: "https://tools.service.re8ch.com/",
+      meta_launch_url: "https://tools.re8ch.com/",
       open_in_new_tab: true
     }' | curl -fsS -H "$auth_header" -H 'Content-Type: application/json' \
       -d @- "$API/core/applications/" | jq -r .pk)
 fi
 curl -fsS -X PATCH -H "$auth_header" -H 'Content-Type: application/json' \
-  -d '{"meta_launch_url":"https://tools.service.re8ch.com/"}' \
+  -d '{"meta_launch_url":"https://tools.re8ch.com/"}' \
   "$API/core/applications/${application_pk}/" >/dev/null
 
 better_auth_secret=$(${K[@]} -n toolhive-system get secret toolhive-cloud-ui-auth \
