@@ -42,15 +42,15 @@ Intended runtime:
 - `db-ro.re8ch.com/studio` and `db-rw.re8ch.com/studio`: product PostgREST with
   RLS roles; runtime APIs never connect using PostgreSQL wire protocol.
 - Shared `cephfs-r640` holds bounded source media and result archives. This
-  intentionally shares the restricted-node-6dc3f140f9 failure domain and is not cross-node HA; it
+  intentionally shares the R640 failure domain and is not cross-node HA; it
   follows the cluster default policy without a replicated-storage exception.
-- An outbound-only worker pinned to restricted-node-6dc3f140f9 renders with CPU Cycles and FFmpeg.
+- An outbound-only worker pinned to R640 renders with CPU Cycles and FFmpeg.
 - Operator migration jobs provision the dedicated database using the established
   `supabase-pg-re8ch` bootstrap pattern. Runtime roles cannot administer databases.
 
 No claim of a deployed endpoint or cross-region acceptance is made by publishing
 images. Acceptance must upload a storyboard through the public HTTPS API, observe
-an restricted-node-6dc3f140f9 lease, download and verify the rendered video/audio and editable outputs,
+an R640 lease, download and verify the rendered video/audio and editable outputs,
 and check tenant isolation, cancellation and offline recovery.
 
 ## Hosted build and Harbor-near transfer
@@ -62,10 +62,10 @@ The Macmini publisher checks every archive checksum and uses Skopeo with
 Docker daemon. Copy semantics follow the [upstream Skopeo documentation](https://github.com/podman-container-tools/skopeo/blob/main/docs/skopeo-copy.1.md).
 
 The existing Macmini runner needs `gh`, Python 3.11+, Skopeo, SOPS and Cosign, plus
-its existing batch SSH alias `restricted-node-6dc3f140f9`. Direct GitHub TLS on this host has failed;
+its existing batch SSH alias `r640`. Direct GitHub TLS on this host has failed;
 the job opens its own temporary loopback SOCKS tunnel and closes it on exit.
-Harbor API, image transfer and signing traffic use that scoped restricted-node-6dc3f140f9 tunnel;
-Macmini direct Harbor TLS failed while the same URL through restricted-node-6dc3f140f9 was healthy.
+Harbor API, image transfer and signing traffic use that scoped R640 tunnel;
+Macmini direct Harbor TLS failed while the same URL through R640 was healthy.
 No host route, DNS setting or runner-global configuration changes. All publisher commands run in an isolated RUNNER_TEMP
 directory and temporary registry authorization is removed on exit.
 
@@ -102,7 +102,14 @@ with the encrypted configuration and both encrypted registry readers in
 operator migration; application requests continue through the HTTPS PostgREST
 routes. The API and worker may retry while the initial migration completes.
 
-The restricted-node-6dc3f140f9 worker advertises Blender and editable export capabilities. It does not
+For an image-only upgrade with unchanged schema SQL, pass `--migration-image`
+with the digest already recorded in the completed bootstrap Job. This preserves
+the Job template, which Kubernetes treats as immutable, while updating the API
+and worker images. Compare the old and new SQL before using this option. A schema
+change needs a separately reviewed migration Job and RO schema-cache reload;
+changing an application image does not rerun the completed bootstrap.
+
+The R640 worker advertises Blender and editable export capabilities. It does not
 advertise native After Effects or PowerPoint execution on Linux. Those outputs
 are editable JSX and PPTX files generated from the same scene and animation
 model; desktop playback requires the corresponding licensed application.
