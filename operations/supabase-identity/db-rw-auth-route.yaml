@@ -21,3 +21,12 @@ spec:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
       backendRefs:
         - {name: supabase-identity-auth, port: 9999}
+    # RFC 8414 inserts discovery before the issuer path (/auth/v1).
+    - matches:
+        - {path: {type: Exact, value: /.well-known/oauth-authorization-server/auth/v1}}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: {type: ReplaceFullPath, replaceFullPath: /.well-known/oauth-authorization-server}
+      backendRefs:
+        - {name: supabase-identity-auth, port: 9999}
