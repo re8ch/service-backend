@@ -1,0 +1,92 @@
+{
+  "snapshotDate": "2026-10-04",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "ece9112dda4a6fc6736c09881b3d40abd1d406cd",
+  "registrySha256": "648a4b5d77c2f0977f2983a4dab07ea7d74bfdb4a8f565a861caab87d50634f3",
+  "scope": "Selected API inventory; not complete Headlamp or multi-cluster coverage",
+  "operationCounts": {
+    "not_implemented": 683,
+    "deployed": 210
+  },
+  "missingByPlugin": {
+    "advfab": 68,
+    "advfab-legacy": 68,
+    "anatomy": 49,
+    "cilium": 275,
+    "mihomos-cluster": 27,
+    "mobile-egress": 7,
+    "object-bucket": 14,
+    "public-edge": 7,
+    "rook-ceph": 133,
+    "rook-ceph-csi": 35
+  },
+  "missingByDisposition": {
+    "authority_review_required": 420,
+    "controller_owned": 134,
+    "runtime_capture_review_required": 10,
+    "runtime_branch_cas_review_required": 5,
+    "runtime_restore_review_required": 5,
+    "runtime_request_review_required": 10,
+    "gitops_pr_required": 5,
+    "resource_read_review_required": 85,
+    "active_probe_review": 5,
+    "read_adapter_required": 4
+  },
+  "liveRun": {
+    "startedAt": "2026-10-04T10:07:37.131Z",
+    "finishedAt": "2026-10-04T10:13:42.640Z",
+    "summary": {
+      "passed": 52,
+      "failed": 3,
+      "blocked": 0,
+      "not_run": 0
+    },
+    "failedCaseIds": [
+      "listNetworkingRe8chComV1alpha1AdvancedFabric",
+      "listNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "listNetworkingRe8chComV1alpha2RouterOSNode"
+    ],
+    "recheckPassedCaseIds": [
+      "listNetworkingRe8chComV1alpha1AdvancedFabric",
+      "listNetworkingRe8chComV1alpha2NetworkPathAssessment"
+    ],
+    "remainingContractFailure": "listNetworkingRe8chComV1alpha2RouterOSNode"
+  },
+  "evidenceFiles": {
+    "standard-api-run-20261004.json": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/standard-api-run-20261004.json",
+      "sha256": "c0e1609acbd2675a738b546633eb067fbe962d3c20132e626988d512fd8d40b1",
+      "bytes": 69329
+    },
+    "standard-api-rechecks-20261004.json": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/standard-api-rechecks-20261004.json",
+      "sha256": "c3a88a2ce479a12dfa678722f643ee780d23d8575ba816e91ae219460f361a75",
+      "bytes": 2167
+    },
+    "anatomy-write-acceptance-20261004.json": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/anatomy-write-acceptance-20261004.json",
+      "sha256": "6649aa42fd970f173a89a8e030b9fb60a90dee52755d1d067fef2d7405f0d3c4",
+      "bytes": 9665
+    },
+    "implemented-read-http-plan.json": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/implemented-read-http-plan.json",
+      "sha256": "2e4eed21bb7610f5740105cb62dc85009be3841555f0787a9fd029a753ff7077",
+      "bytes": 121884
+    },
+    "routeros-v1alpha2-contract-gap.json": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/routeros-v1alpha2-contract-gap.json",
+      "sha256": "b4b7b102a6d95621b4d8423aaf3d5e141e864097ae166d10c7da45bbd41426bc",
+      "bytes": 945
+    },
+    "api-runner-1372.bundle": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/api-runner-1372.bundle",
+      "sha256": "c758f5cd8bf0098855c02467092ca694d9a09ff385c49e94f5ba9e39c309a40e",
+      "bytes": 4985
+    },
+    "runtime-1367.bundle": {
+      "localPath": "/Volumes/A1/worktree-archives/plugin-http-conformance-1362/runtime-1367.bundle",
+      "sha256": "6970013a4ee3d43d9a3c8422df5f3fae02df16388f7afadaa40cb2e7c824add1",
+      "bytes": 1653
+    }
+  }
+}
