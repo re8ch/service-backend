@@ -13,7 +13,8 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert "github.ref == 'refs/heads/main'" in release['if']
     assert release['environment'] == 'production'
     assert release['permissions']['id-token'] == 'write'
-    assert jobs['validate']['runs-on'] == release['runs-on'] == 'ubuntu-latest'
+    assert jobs['validate']['runs-on'] == 'ubuntu-latest'
+    assert release['runs-on'] == ['self-hosted', 'macOS', 'ARM64', 'macmini-a1']
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker build -f operations/cloud-platform/Dockerfile' in validation
     assert 'docker run --rm --network none' in validation
@@ -22,6 +23,8 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     publisher = next(step for step in release['steps'] if step.get('run') == './operations/mcp-conformance/release-tenant-infrastructure.sh')
     assert publisher['env']['TENANT_IMAGE_REPOSITORY'] == 'registry.re8ch.com/functions-shared/re8ch-cloud-platform'
     assert publisher['env']['TENANT_IMAGE_DOCKERFILE'] == 'operations/cloud-platform/Dockerfile'
+    assert publisher['env']['TENANT_IMAGE_INLINE_AUTH'] == '1'
+    assert any('docker buildx create' in step.get('run', '') for step in release['steps'])
     assert 'cloud-platform-release.yml@' in publisher['env']['SIGSTORE_CERTIFICATE_IDENTITY']
 
 
@@ -32,6 +35,6 @@ def test_native_upload_attempts_fit_the_release_budget():
     settings = publisher['env']
     attempts = int(settings['TENANT_IMAGE_PUSH_ATTEMPTS'])
     duration = int(settings['TENANT_IMAGE_PUSH_TIMEOUT_SECONDS'])
-    assert 1 <= attempts <= 3 and 60 <= duration <= 1200
+    assert 1 <= attempts <= 3 and 60 <= duration <= 900
     # Includes hard-kill grace and retry delay, with time for signing and SBOM.
     assert release['timeout-minutes'] * 60 - attempts * (duration + 30) - 30 >= 8 * 60
