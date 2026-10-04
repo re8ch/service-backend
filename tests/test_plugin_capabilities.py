@@ -265,8 +265,8 @@ def test_generated_tools_are_callable_and_match_directory_and_self_service():
     spec.loader.exec_module(module)
     generated = json.loads((root / "operations/cloud-platform/plugin-operation-tools.json").read_text())["tools"]
     names = {item["name"] for item in generated}
-    assert len(names) == len(generated) == 225
-    assert sum(item["_meta"]["re8ch"]["method"] == "GET" for item in generated) == 223
+    assert len(names) == len(generated) == 244
+    assert sum(item["_meta"]["re8ch"]["method"] == "GET" for item in generated) == 242
     assert all(len(name) <= 64 for name in names)
     admin = Identity("admin", (module.ADMIN_GROUP,))
     assert names <= {tool["name"] for tool in module.tool_list(admin)}
@@ -643,7 +643,7 @@ def test_plugin_catalog_fits_configured_registry_storage_limit():
 
 def test_cilium_inventory_grants_only_reviewed_bgp_reads():
     from pathlib import Path
-    from plugin_capabilities import CILIUM_BGP_READS, READ_GROUPS, reviewed_read
+    from plugin_capabilities import CILIUM_BGP_READS, CILIUM_NETWORK_READS, READ_GROUPS, reviewed_read
     root = Path(__file__).parents[1] / 'operations/plugin-capabilities'
     registry = json.loads((root / 'registry.json').read_text())
     metadata = registry['servers'][0]['_meta']['io.modelcontextprotocol.registry/publisher-provided']['io.github.stacklok']['streamable-http']
@@ -651,22 +651,27 @@ def test_cilium_inventory_grants_only_reviewed_bgp_reads():
     assert len(rows) == 275
     assert {row['groupVersion'] for row in rows}.isdisjoint(READ_GROUPS)
     enabled = [row for row in rows if row['registration'] == 'implemented_not_deployed']
-    assert len(enabled) == len(CILIUM_BGP_READS) == 26
-    assert {(row['groupVersion'], row['operationId']) for row in enabled} == CILIUM_BGP_READS
+    assert len(enabled) == len(CILIUM_BGP_READS | CILIUM_NETWORK_READS) == 45
+    assert len(CILIUM_BGP_READS) == 26 and len(CILIUM_NETWORK_READS) == 19
+    assert {(row['groupVersion'], row['operationId']) for row in enabled} == CILIUM_BGP_READS | CILIUM_NETWORK_READS
     assert all(row['method'] == 'GET' and row['disposition'] == 'read' and row['tool'] for row in enabled)
     assert all(row['registration'] == 'not_implemented' and 'tool' not in row for row in rows if not reviewed_read(row['groupVersion'], row['operationId']))
     assert all(row['disposition'] == 'resource_read_review_required' for row in rows if row['method'] == 'GET' and not reviewed_read(row['groupVersion'], row['operationId']))
     assert all(row['disposition'] == 'controller_owned' for row in rows if row['method'] != 'GET' and row['path'].endswith('/status'))
 
 
-def test_cilium_bgp_read_is_bound_to_native_schema_and_other_cilium_reads_fail_closed():
+@pytest.mark.parametrize('operation_id,resource,kind', [
+    ('listCiliumIoV2CiliumBGPClusterConfig', 'ciliumbgpclusterconfigs', 'CiliumBGPClusterConfigList'),
+    ('listCiliumIoV2CiliumLoadBalancerIPPool', 'ciliumloadbalancerippools', 'CiliumLoadBalancerIPPoolList'),
+])
+def test_cilium_reviewed_read_is_bound_to_native_schema_and_other_reads_fail_closed(operation_id, resource, kind):
     from pathlib import Path
     from plugin_capabilities import read_operation
     root = Path(__file__).parents[1]
     key = 'apis/cilium.io/v2'
     document = json.loads((root / 'operations/plugin-capabilities/openapi/apis_cilium.io_v2.json').read_text())
     location = '/openapi/v3/' + key + '?hash=fixture'
-    body = {'apiVersion': 'cilium.io/v2', 'kind': 'CiliumBGPClusterConfigList', 'metadata': {'resourceVersion': '1'}, 'items': []}
+    body = {'apiVersion': 'cilium.io/v2', 'kind': kind, 'metadata': {'resourceVersion': '1'}, 'items': []}
 
     class CiliumService:
         def __init__(self):
@@ -679,10 +684,10 @@ def test_cilium_bgp_read_is_bound_to_native_schema_and_other_cilium_reads_fail_c
 
     service = CiliumService()
     digest = __import__('hashlib').sha256(json.dumps(document, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-    result = read_operation(service, key, 'listCiliumIoV2CiliumBGPClusterConfig', digest)
+    result = read_operation(service, key, operation_id, digest)
     assert result['result']['items'] == []
     assert result['bodyValidation']['validatedObjects'] == 1
-    assert service.calls[-1].startswith('/apis/cilium.io/v2/ciliumbgpclusterconfigs?')
+    assert service.calls[-1].startswith('/apis/cilium.io/v2/' + resource + '?')
     service.calls.clear()
     with pytest.raises(OperationError) as exc:
         read_operation(service, key, 'listCiliumIoV2CiliumIdentity', digest)
