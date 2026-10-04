@@ -898,6 +898,8 @@ modules:
       digest: sha256:ef7c0ca15c32ef1d4c25445677a03d8f0f8cca1ff0a6d3a895c12cebfe92b647
     - codename: gulfstream-ruby
       digest: sha256:1578ca1b0b07421fed39be2a139c8aee70086018614eb430153dfba043aae780
+    - codename: riptide-ruby
+      digest: sha256:d645056456733ee14b674d8d963db72b1a7d6cac0bb26aa38a3979e111e0f5d7
   platform/hyperswitch:
     releases:
     - codename: anchor
