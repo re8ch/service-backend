@@ -886,6 +886,8 @@ modules:
       digest: sha256:ed0e4a59481e5bb478e9b8b632158b282bb0d98c39555fabef8c8d816ad977b9
     - codename: riptide-quartz
       digest: sha256:981c047efea54e7f1cd75f9ab427ee9d191e8bc9f8aca599ef9da0480595040a
+    - codename: springtide-quartz
+      digest: sha256:b660ed3f3e0d426012a0b8c7748c389101da30dc5aabdbd97b76affb32254e42
   platform/hyperswitch:
     releases:
     - codename: anchor
