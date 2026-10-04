@@ -21,6 +21,14 @@ Harbor reports, encrypted registry readers and successful GitOps CI. No scan
 finding is hidden with an ignore file. A new fixable High/Critical finding fails
 product CI; a missing full Harbor report fails publication.
 
+Release [37226737325, attempt 2](https://github.com/re8ch/service-backend/actions/runs/37226737325)
+completed successfully. Both OCI digests match their hosted build and verified
+GitHub OIDC signatures. Harbor's complete package reports reproduce the worker
+counts above; the API reports 1 Critical, 212 High, 236 Medium, 167 Low and
+20 Unknown findings. Both reports contain zero fixable High/Critical findings.
+The rendered runtime pins these released digests; activation still requires
+successful GitOps CI and subsequent live acceptance.
+
 ## Remaining Critical package groups
 
 | Package group | Reported issue family | Exposure controls and limits |
