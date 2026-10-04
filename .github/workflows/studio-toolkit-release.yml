@@ -1,0 +1,103 @@
+name: Studio Toolkit Harbor release
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Tested signed commit in baozou-ppt-studio/baozou-ppt-studio
+        required: true
+        type: string
+      create_reader:
+        description: Create an encrypted pull-only credential for initial activation
+        type: boolean
+        default: false
+permissions: {contents: read, id-token: write}
+concurrency: {group: studio-toolkit-release, cancel-in-progress: false}
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Validate source revision
+        env: {SOURCE_SHA: '${{ inputs.source_sha }}'}
+        run: '[[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: baozou-ppt-studio/baozou-ppt-studio
+          ref: ${{ inputs.source_sha }}
+          path: product
+          fetch-depth: 0
+          ssh-key: ${{ secrets.STUDIO_RELEASE_DEPLOY_KEY }}
+          persist-credentials: false
+      - name: Require signed merged source
+        env: {SOURCE_SHA: '${{ inputs.source_sha }}'}
+        run: |
+          test "$(git -C product rev-parse HEAD)" = "$SOURCE_SHA"
+          git -C product merge-base --is-ancestor "$SOURCE_SHA" origin/main
+          git -C product -c gpg.ssh.allowedSignersFile="$PWD/operations/studio-toolkit/allowed-signers" verify-commit "$SOURCE_SHA"
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Recheck source contracts
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install -r product/toolkit/requirements.txt
+          cd product
+          python tests/creative.py
+          python tests/creative-motion.py
+          python tests/toolkit.py
+          python tests/toolkit-postgrest.py
+          python tests/toolkit-e2e.py
+      - run: pip install PyYAML==6.0.2
+      - name: Prepare private project
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: python operations/studio-toolkit/release.py prepare
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+      - name: Build, publish and sign immutable images with provenance and SBOM
+        env: {SOURCE_SHA: '${{ inputs.source_sha }}'}
+        run: |
+          mkdir -p release
+          docker buildx create --use
+          for target in api worker; do
+            image="registry.re8ch.com/studio-toolkit/$target"
+            docker buildx build --platform linux/amd64 --target "$target" -f product/toolkit/Dockerfile --provenance=mode=max --sbom=true --push -t "$image:$SOURCE_SHA" --metadata-file "release/$target-build.json" product
+            if [ "$target" = worker ]; then
+              docker pull "$image:$SOURCE_SHA"
+              docker run --rm --network none -v "$PWD/product/tests:/app/tests:ro" "$image:$SOURCE_SHA" python tests/toolkit-e2e.py --blender blender
+            fi
+            digest=$(jq -r '."containerimage.digest"' "release/$target-build.json")
+            cosign sign --yes "$image@$digest"
+            cosign verify --certificate-identity "https://github.com/re8ch/service-backend/.github/workflows/studio-toolkit-release.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image@$digest" > "release/$target-signature.json"
+          done
+      - name: Scan immutable images
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: |
+          for target in api worker; do
+            python operations/studio-toolkit/release.py scan --image "$target" --digest "$(jq -r '."containerimage.digest"' "release/$target-build.json")" --output release
+          done
+      - name: Install pinned SOPS
+        if: inputs.create_reader
+        run: |
+          curl -fsSL https://github.com/getsops/sops/releases/download/v3.13.1/sops-v3.13.1.linux.amd64 -o "$RUNNER_TEMP/sops"
+          echo "620a9d7e3352ababeca6908cea24a6e8b14ce89a448ddbd3f94f1ef3398f470a  $RUNNER_TEMP/sops" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/sops"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Produce encrypted reader bootstrap
+        if: inputs.create_reader
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        run: python operations/studio-toolkit/release.py reader --output release
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with: {name: studio-toolkit-release, path: release, retention-days: 14}
