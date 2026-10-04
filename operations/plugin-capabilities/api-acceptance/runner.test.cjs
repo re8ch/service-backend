@@ -1,0 +1,15 @@
+const {test} = require('node:test');
+const assert = require('node:assert/strict');
+const {runAcceptance} = require('./runner.cjs');
+const c = require('./cases.json').cases[0];
+const names = ['status_code_conformance','content_type_conformance','response_headers_conformance','response_schema_conformance'];
+const good = () => ({structuredContent:{cluster:'re8ch-k3s',operationId:c.id,schemaHash:c.arguments.schemaHash,engine:'schemathesis',scope:'one_finite_GET_response',networkRequests:1,bodyReturned:false,auditRef:'audit://operations/op_123',statusCode:200,httpConformance:'passed',checks:names.map(check=>({check,status:'passed'})),secret:'must-not-persist'}});
+const catalog = async () => ({structuredContent:{tools:[{backend:'native',name:c.toolName}],unavailableBackends:[]}});
+const run = (call, extra={}) => runAcceptance({cases:[c],catalog,call,checkpoint:async()=>{},wait:async()=>{},...extra});
+test('passes real-shaped reports and projects output',async()=>{const r=await run(async()=>good());assert.equal(r.complete,true);assert.ok(!JSON.stringify(r).includes('must-not-persist'));});
+test('retains transient failure and bounded recovery',async()=>{let n=0;const r=await run(async()=>++n===1?{isError:true,content:[{type:'text',text:'HTTP 503 secret-value'}]}:good());assert.equal(n,2);assert.equal(r.cases[0].attempts[0].status,'blocked');assert.equal(r.cases[0].recoveredAfterRetry,true);assert.ok(!JSON.stringify(r).includes('secret-value'));});
+test('exhausted retries are blocked',async()=>{let n=0;const r=await run(async()=>{n++;throw Error('connection refused');});assert.equal(n,3);assert.equal(r.summary.blocked,1);assert.equal(r.complete,false);});
+test('schema mismatch and missing checks fail without retry',async()=>{for(const mutate of [x=>x.schemaHash='wrong',x=>x.checks.pop(),x=>x.statusCode=401]){let n=0;const r=await run(async()=>{n++;const e=good();mutate(e.structuredContent);return e;});assert.equal(n,1);assert.equal(r.summary.failed,1);}});
+test('unavailable backend never calls tool',async()=>{const r=await run(async()=>{throw Error('must not call');},{catalog:async()=>({isError:true})});assert.equal(r.summary.blocked,1);assert.equal(r.cases[0].attempts.length,0);});
+test('mutations and duplicate IDs rejected before catalog',async()=>{for(const cases of [[{...c,toolName:'kubectl.exec'}],[c,c]])await assert.rejects(run(async()=>good(),{cases}));});
+test('checkpoint failure aborts rather than losing evidence',async()=>{await assert.rejects(run(async()=>good(),{checkpoint:async()=>{throw Error('disk full');}}),/disk full/);});
