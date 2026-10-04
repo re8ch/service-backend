@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: pip install PyYAML==6.0.2
+      - run: sudo apt-get update && sudo apt-get install -y skopeo
       - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_transfer.py
   build-hosted:
     needs: verify-release
