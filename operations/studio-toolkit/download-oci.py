@@ -88,7 +88,9 @@ def main():
         if len(locations) != 1:
             raise ValueError('Expected one artifact redirect')
         url = locations[0]
-        chunk = (size + 7) // 8
+        # Small ranges let fast connections keep working instead of waiting for
+        # one 90 MiB straggler to hit the per-request timeout and restart.
+        chunk = 8 * 1024**2
         parts = [(start, min(size - 1, start + chunk - 1), root / f'part-{n}') for n, start in enumerate(range(0, size, chunk))]
         def fetch(part):
             start, end, path = part
