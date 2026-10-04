@@ -25,13 +25,14 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:bed9c7754a5df5b1ceb63e5ccf26801a6bee268bf9fd54ebea9bdb2c7aa2a858
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:41841bac44d7ef73adae77e2f7af7884337f9b4bd771f42a684d83b6ca2bae6d
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
             - {name: SSH_CONFIG, value: /etc/re8ch-platform/ssh/ssh-config}
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
+            - {name: HYPOTHESIS_STORAGE_DIRECTORY, value: /tmp/hypothesis}
             - {name: OAUTH_AUDIENCE, value: re8ch-cloud-platform-tool}
             - {name: PUBLIC_MCP_URL, value: "https://operate.tools.re8ch.com/cloud/mcp"}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
@@ -40,9 +41,11 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
           volumeMounts:
+            - {name: http-acceptance-tmp, mountPath: /tmp}
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
             - {name: ssh-projected, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
       volumes:
+        - {name: http-acceptance-tmp, emptyDir: {medium: Memory, sizeLimit: 16Mi}}
         - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}
         # A new name is required when migrating the live volume from Secret to
         # Projected; Kubernetes union volume sources cannot be changed in-place

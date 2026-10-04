@@ -41,3 +41,17 @@ def test_rollout_can_replace_pods_with_old_required_anti_affinity():
     deployment = next(item for item in resources() if item["kind"] == "Deployment")
     assert deployment["spec"]["replicas"] == 2
     assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 2
+
+
+def test_http_acceptance_has_bounded_private_temporary_storage_with_readonly_root():
+    from pathlib import Path
+    import yaml
+    root = Path(__file__).parents[1]
+    deployment = next(doc for doc in yaml.safe_load_all((root / 'platform/cloud-platform/runtime.yaml').read_text()) if doc and doc['kind'] == 'Deployment')
+    pod = deployment['spec']['template']['spec']
+    container = pod['containers'][0]
+    assert container['securityContext']['readOnlyRootFilesystem'] is True
+    assert container['resources']['limits']['memory'] == '512Mi'
+    volume = next(item for item in pod['volumes'] if item['name'] == 'http-acceptance-tmp')
+    assert volume['emptyDir'] == {'medium': 'Memory', 'sizeLimit': '16Mi'}
+    assert {'name': 'http-acceptance-tmp', 'mountPath': '/tmp'} in container['volumeMounts']
