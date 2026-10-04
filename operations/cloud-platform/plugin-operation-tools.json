@@ -6880,6 +6880,1928 @@
       }
     },
     {
+      "name": "cilium.ciliumbgpadvertisement.get.0f66f44058ee",
+      "description": "Read CiliumBGPAdvertisement through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPAdvertisement. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPAdvertisement",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPAdvertisement",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.get.6050ff99f93d",
+      "description": "Read CiliumBGPAdvertisement through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPAdvertisement. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPAdvertisement",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.list.8ce4de5d7c3f",
+      "description": "Read CiliumBGPAdvertisement through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumBGPAdvertisement. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumBGPAdvertisement",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPAdvertisement",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpadvertisements",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.list.d829993dea2f",
+      "description": "Read CiliumBGPAdvertisement through native apis/cilium.io/v2: listCiliumIoV2CiliumBGPAdvertisement. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumBGPAdvertisement",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumBGPAdvertisement",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpadvertisements",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.4134d9f9609b",
+      "description": "Read CiliumBGPClusterConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPClusterConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPClusterConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.598bb080df43",
+      "description": "Read CiliumBGPClusterConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPClusterConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPClusterConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPClusterConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.873d7eb7aa8a",
+      "description": "Read CiliumBGPClusterConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPClusterConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPClusterConfigStatus",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPClusterConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs/{name}/status",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.d01cdf6e326e",
+      "description": "Read CiliumBGPClusterConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPClusterConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPClusterConfigStatus",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPClusterConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs/{name}/status",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.list.7f864027628f",
+      "description": "Read CiliumBGPClusterConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumBGPClusterConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumBGPClusterConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPClusterConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpclusterconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.list.87db6a1d50b3",
+      "description": "Read CiliumBGPClusterConfig through native apis/cilium.io/v2: listCiliumIoV2CiliumBGPClusterConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumBGPClusterConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumBGPClusterConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpclusterconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.03b1dbbdf36b",
+      "description": "Read CiliumBGPNodeConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPNodeConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPNodeConfigStatus",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPNodeConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}/status",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.211c6ac4411f",
+      "description": "Read CiliumBGPNodeConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPNodeConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfigStatus",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}/status",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.96a9ee5012eb",
+      "description": "Read CiliumBGPNodeConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.df59a3a94155",
+      "description": "Read CiliumBGPNodeConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPNodeConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.list.8f2829242771",
+      "description": "Read CiliumBGPNodeConfig through native apis/cilium.io/v2: listCiliumIoV2CiliumBGPNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumBGPNodeConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumBGPNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.list.d64f5557c209",
+      "description": "Read CiliumBGPNodeConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumBGPNodeConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumBGPNodeConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPNodeConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.get.79b49268d1c6",
+      "description": "Read CiliumBGPNodeConfigOverride through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPNodeConfigOverride. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPNodeConfigOverride",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPNodeConfigOverride",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.get.e832a0fb6bc4",
+      "description": "Read CiliumBGPNodeConfigOverride through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPNodeConfigOverride. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.list.0719f79cc205",
+      "description": "Read CiliumBGPNodeConfigOverride through native apis/cilium.io/v2: listCiliumIoV2CiliumBGPNodeConfigOverride. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumBGPNodeConfigOverride",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumBGPNodeConfigOverride",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgpnodeconfigoverrides",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.list.60b2edcd2b77",
+      "description": "Read CiliumBGPNodeConfigOverride through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumBGPNodeConfigOverride. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPNodeConfigOverride",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgpnodeconfigoverrides",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.04b4b78218d1",
+      "description": "Read CiliumBGPPeerConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPPeerConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPPeerConfigStatus",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPPeerConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}/status",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.4e1d7f8b6f5a",
+      "description": "Read CiliumBGPPeerConfig through native apis/cilium.io/v2alpha1: readCiliumIoV2alpha1CiliumBGPPeerConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "readCiliumIoV2alpha1CiliumBGPPeerConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "readCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs/{name}",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.87e0f371a6dd",
+      "description": "Read CiliumBGPPeerConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPPeerConfigStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPPeerConfigStatus",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPPeerConfigStatus",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}/status",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.9adc58cdb536",
+      "description": "Read CiliumBGPPeerConfig through native apis/cilium.io/v2: readCiliumIoV2CiliumBGPPeerConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "readCiliumIoV2CiliumBGPPeerConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "readCiliumIoV2CiliumBGPPeerConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs/{name}",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.list.0c40b9f1941b",
+      "description": "Read CiliumBGPPeerConfig through native apis/cilium.io/v2alpha1: listCiliumIoV2alpha1CiliumBGPPeerConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2alpha1",
+      "operationId": "listCiliumIoV2alpha1CiliumBGPPeerConfig",
+      "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2alpha1",
+          "operationId": "listCiliumIoV2alpha1CiliumBGPPeerConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2alpha1/ciliumbgppeerconfigs",
+          "schemaHash": "e1d3c337b1c46ed83ac5d6ea16678cd3026b8470db3487d8709aa9645f914399",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.list.6eb4f1d5f773",
+      "description": "Read CiliumBGPPeerConfig through native apis/cilium.io/v2: listCiliumIoV2CiliumBGPPeerConfig. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
+      "plugin": "cilium",
+      "groupVersion": "apis/cilium.io/v2",
+      "operationId": "listCiliumIoV2CiliumBGPPeerConfig",
+      "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "pretty": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "allowWatchBookmarks": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "continue": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "fieldSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "labelSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "limit": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "resourceVersion": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "resourceVersionMatch": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "sendInitialEvents": {
+                "type": "boolean",
+                "uniqueItems": true
+              },
+              "shardSelector": {
+                "type": "string",
+                "uniqueItems": true
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "uniqueItems": true
+              },
+              "watch": {
+                "type": "boolean",
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "required": []
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "cilium",
+          "groupVersion": "apis/cilium.io/v2",
+          "operationId": "listCiliumIoV2CiliumBGPPeerConfig",
+          "method": "GET",
+          "path": "/apis/cilium.io/v2/ciliumbgppeerconfigs",
+          "schemaHash": "31177d1f4f03668959f255bc8abce9d1cf8983a204296b6bfca7b633a2679049",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "mobile-egress.mobileegress.get.98aafa994029",
       "description": "Read MobileEgress through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1MobileEgress. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "mobile-egress",

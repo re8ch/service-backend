@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "operations/cloud-platform"))
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
 from plugin_capabilities import STORAGE_PROJECTION
-from plugin_capabilities import GROUP_PLUGINS, RESOURCE_PLUGINS, ADVFAB_KINDS, READ_GROUPS, operation_contract, operation_disposition
+from plugin_capabilities import GROUP_PLUGINS, RESOURCE_PLUGINS, ADVFAB_KINDS, reviewed_read, operation_contract, operation_disposition
 
 
 def canonical(value):
@@ -32,7 +32,7 @@ def capability_inventory(matrix, tools):
             rows.append({"plugin": plugin, "groupVersion": source["groupVersion"],
                 "method": row["method"].upper(), "path": row["path"], "operationId": row["operationId"],
                 "registration": ("deployed" if tool["name"] in deployed else "implemented_not_deployed") if tool else "not_implemented",
-                "disposition": "resource_read_review_required" if row["method"] == "get" and source["groupVersion"] not in READ_GROUPS else operation_disposition(source["groupVersion"], row["kind"], row["method"], row["path"]),
+                "disposition": "resource_read_review_required" if row["method"] == "get" and not reviewed_read(source["groupVersion"], row["operationId"]) else operation_disposition(source["groupVersion"], row["kind"], row["method"], row["path"]),
                 "schemaProvenance": "native_openapi", "httpConformance": "not_run", "semanticConformance": "not_run",
                 **({"tool": tool["name"]} if tool else {})})
     controller = json.loads((ROOT / "operations/plugin-capabilities/mihomos-native-surfaces.json").read_text())
@@ -72,7 +72,7 @@ def generate():
         digest = hashlib.sha256(canonical(doc)).hexdigest()
         group = source["groupVersion"].split("/")[1]
         for row in source["operations"]:
-            if row["method"] != "get" or source["groupVersion"] not in READ_GROUPS:
+            if row["method"] != "get" or not reviewed_read(source["groupVersion"], row["operationId"]):
                 continue
             contract = operation_contract(doc, row["operationId"])
             plugin = GROUP_PLUGINS.get(group, RESOURCE_PLUGINS.get(row["kind"], "unclassified"))
