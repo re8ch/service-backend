@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: pip install PyYAML==6.0.2
-      - run: python operations/studio-toolkit/test_release.py
+      - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_runtime.py
   publish:
     needs: verify-release
     if: github.ref == 'refs/heads/main'
