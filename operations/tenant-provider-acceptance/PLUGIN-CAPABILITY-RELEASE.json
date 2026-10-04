@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "sourceCommit": "9ef274651871d6e630b62e2d531845dc812868a0",
+  "implementationPR": "https://github.com/re8ch/service-backend/pull/1349",
+  "state": "promotion_prepared_not_deployed",
+  "components": [
+    {
+      "component": "native",
+      "manifest": "platform/cloud-platform/runtime.yaml",
+      "previousImage": "registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:43c9fd89c2b2cc14d16da9a4ce6d433e142560cc3e3589a38fcd0f285e1b46d5",
+      "image": "registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:bed9c7754a5df5b1ceb63e5ccf26801a6bee268bf9fd54ebea9bdb2c7aa2a858",
+      "releaseRun": "https://github.com/re8ch/service-backend/actions/runs/37174677345",
+      "artifactId": 11292663892,
+      "artifactDigest": "sha256:1f246dbbb2a7ca397dc5762acf6876da791fcba53aa184c36731fc9f9731e777",
+      "signatureVerification": {
+        "result": "passed",
+        "evidence": "release-workflow-cosign-verify",
+        "oidcIssuer": "https://token.actions.githubusercontent.com",
+        "certificateIdentity": "https://github.com/re8ch/service-backend/.github/workflows/cloud-platform-release.yml@refs/heads/main"
+      },
+      "sbomSha256": "d9695b7aff7c68600ffae67451a113c2ab6a25268d070cad2ff7d7d368910b81",
+      "localVerification": "unavailable_registry_transport_eof"
+    },
+    {
+      "component": "tenant",
+      "manifest": "platform/birfucate-metering/release.yaml",
+      "previousImage": "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:c05719ba392cded6d18b627e77dd32da2c6dd22600c8a1d79815edc16a23d894",
+      "image": "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:42c4afd1f16b2188fac2c203b4386a5ac62879309790484af94d7bbee0c9f5f6",
+      "releaseRun": "https://github.com/re8ch/service-backend/actions/runs/37174677397",
+      "artifactId": 11293225399,
+      "artifactDigest": "sha256:50f73f9f07071df9204b397589ff7da26d857d2b7b3687b6480e93e4ff5dc373",
+      "signatureVerification": {
+        "result": "passed",
+        "evidence": "release-workflow-cosign-verify",
+        "oidcIssuer": "https://token.actions.githubusercontent.com",
+        "certificateIdentity": "https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main"
+      },
+      "sbomSha256": "4b13339e0669e09dbb1058c8521b8f40e7ba14ed79e71423fde31ea204b85e3b",
+      "localVerification": "unavailable_registry_transport_eof"
+    },
+    {
+      "component": "ui",
+      "manifest": "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
+      "previousImage": "ghcr.io/re8ch/toolhive-cloud-ui-re8ch@sha256:31c2230e14a02833f31f2853dd3abd166eb0ab3c9ee4bc297d06c97c52187eae",
+      "image": "ghcr.io/re8ch/toolhive-cloud-ui-re8ch@sha256:9d75db88b6ff8987e55c68f90ce7b925c582bd6b414630427406c9eb3e2a20df",
+      "releaseRun": "https://github.com/re8ch/service-backend/actions/runs/37174677400",
+      "artifactId": 11292623934,
+      "artifactDigest": "sha256:d66b6c0a4cff0f33875d7e183750e6f3916947bb6700a17277545e146fdd8e48",
+      "signatureVerification": {
+        "result": "passed",
+        "evidence": "independent-cosign-verify",
+        "oidcIssuer": "https://token.actions.githubusercontent.com",
+        "certificateIdentity": "https://github.com/re8ch/service-backend/.github/workflows/toolhive-cloud-ui-release.yml@refs/heads/main"
+      }
+    }
+  ],
+  "registration": {
+    "nativeKubernetesTools": 197,
+    "mihomosTools": 15,
+    "directoryToolDefinitions": 212,
+    "directoryInventoryOperations": 618,
+    "directoryFileSource": "inactive_pending_authenticated_native_acceptance"
+  },
+  "acceptance": {
+    "deployedAdapterInvocation": "not_run",
+    "httpConformance": "not_run",
+    "semanticConformance": "not_run"
+  },
+  "rollout": {
+    "cloudPlatformReplicas": 2,
+    "tenantAPIReplicas": 1,
+    "tenantAPIStrategy": "Recreate",
+    "directoryUIReplicas": 2,
+    "capacityAndPlacement": "existing_requests_limits_and_scheduling",
+    "tenantImpact": "Existing Recreate policy can briefly interrupt MCP connections while the replacement tenant-api starts.",
+    "rollback": "Revert the three image references through a signed GitOps PR to the recorded previousImage values.",
+    "requestedCapacityDelta": {
+      "cpuMillicores": 0,
+      "memoryBytes": 0,
+      "replicas": 0
+    },
+    "quotaImpact": "none",
+    "retention": "until_superseded_by_signed_GitOps_change",
+    "approvalState": "user_authorized_task_scope_pending_PR_checks"
+  }
+}
