@@ -50,13 +50,18 @@ Docker daemon. Copy semantics follow the [upstream Skopeo documentation](https:/
 The existing Macmini runner needs `gh`, Python 3.11+, Skopeo, SOPS and Cosign, plus
 its existing batch SSH alias `restricted-node-6dc3f140f9`. Direct GitHub TLS on this host has failed;
 the job opens its own temporary loopback SOCKS tunnel and closes it on exit.
-Harbor traffic remains direct. No host route, DNS setting or runner-global
-configuration changes. All publisher commands run in an isolated RUNNER_TEMP
+Harbor API, image transfer and signing traffic use that scoped restricted-node-6dc3f140f9 tunnel;
+Macmini direct Harbor TLS failed while the same URL through restricted-node-6dc3f140f9 was healthy.
+No host route, DNS setting or runner-global configuration changes. All publisher commands run in an isolated RUNNER_TEMP
 directory and temporary registry authorization is removed on exit.
 
 Because action-download setup uses the host's broken direct GitHub path, the
 publisher has no `uses:` steps. It retrieves only the helper files at its exact
-workflow commit and same-run build artifact through its scoped transport. Final
+workflow commit through its scoped transport. The same-run build artifact uses
+eight bounded parallel HTTPS ranges, preferring direct transfer with scoped proxy
+fallback. Range offsets, sizes, allowed ZIP entries and archive checksums must
+match before image publication. The publisher allows up to 180 minutes for
+constrained cross-region transfers. Final
 scan/signature/digest and encrypted reader evidence is uploaded to a **draft**
 private GitHub release `studio-toolkit-<source SHA>`. The `studio-oci` workflow
 artifact retains the portable source build for three days. A draft release does
