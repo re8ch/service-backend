@@ -308,7 +308,7 @@ def test_directory_inventory_includes_every_native_operation_without_advertising
     assert all(row['httpConformance'] == row['semanticConformance'] == 'not_run' for row in rows)
     assert all(row['disposition'] == 'controller_owned' for row in rows if row['path'].endswith('/status') and row['method'] != 'GET')
     runtime = registry_path.with_name('registry.runtime.json')
-    assert json.loads(runtime.read_text()) == registry
+    assert json.loads(runtime.read_text())['data'] == registry
     assert runtime.stat().st_size < 1024 * 1024
 
 
@@ -596,3 +596,17 @@ def test_deployment_evidence_does_not_apply_to_changed_or_missing_contracts(tmp_
         {'name': tool['name'], 'inputSchemaSha256': hashlib.sha256(generator.canonical(tool['inputSchema'])).hexdigest()}]}))
     assert generator.deployed_tools([tool]) == {tool['name']}
     assert generator.deployed_tools([{**tool, 'inputSchema': {'type': 'string'}}]) == set()
+
+
+def test_runtime_registry_matches_pinned_file_source_schema():
+    from pathlib import Path
+    from jsonschema import Draft202012Validator, FormatChecker
+    from referencing import Registry, Resource
+    root = Path(__file__).parents[1] / 'operations/plugin-capabilities'
+    schema = json.loads((root / 'registry-schema/upstream-registry.schema.json').read_text())
+    server = json.loads((root / 'registry-schema/server.schema.json').read_text())
+    resolver = Registry().with_resource(server['$id'], Resource.from_contents(server))
+    validator = Draft202012Validator(schema, registry=resolver, format_checker=FormatChecker())
+    validator.validate(json.loads((root / 'registry.runtime.json').read_text()))
+    # The previous bare payload is valid for our UI tooling but not a file source.
+    assert list(validator.iter_errors(json.loads((root / 'registry.json').read_text())))

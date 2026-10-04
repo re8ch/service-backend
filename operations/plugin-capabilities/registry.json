@@ -3,7 +3,7 @@
     {
       "name": "com.re8ch/cluster-plugin-operations",
       "version": "0.1.0",
-      "description": "RE8CH cluster plugin operations: reviewed native reads for advfab, public edge, Rook/Ceph and anatomy, plus Mihomos workload and controller queries. Platform administrator authorization is required. Mutation and non-Kubernetes API coverage are in progress.",
+      "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
       "remotes": [
         {
           "type": "streamable-http",

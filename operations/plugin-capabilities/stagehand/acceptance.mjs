@@ -25,7 +25,8 @@ export function configuration(env) {
 }
 
 export function inventoryFrom(registry) {
-  const server = registry.servers.find(row => row.name === 'com.re8ch/cluster-plugin-operations');
+  const payload = registry.version === '1.0.0' ? registry.data : registry;
+  const server = payload.servers.find(row => row.name === 'com.re8ch/cluster-plugin-operations');
   const inventory = server?._meta?.['io.modelcontextprotocol.registry/publisher-provided']
     ?.['io.github.stacklok']?.['streamable-http']?.re8ch_capabilities;
   assert.equal(inventory?.version, 1);
