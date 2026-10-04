@@ -25,6 +25,10 @@ class RuntimeTests(unittest.TestCase):
                 for container in pod['containers']:
                     self.assertIn('@sha256:', container['image'])
                     self.assertTrue(container['securityContext']['readOnlyRootFilesystem'])
+            ro = {e['name']: e for e in deployments['studio-db-ro']['containers'][0]['env']}
+            self.assertEqual(ro['PGRST_DB_URI']['valueFrom']['secretKeyRef']['key'], 'PGRST_DB_URI_RW')
+            self.assertEqual(ro['PGRST_DB_TX_END']['value'], 'rollback')
+            self.assertEqual(ro['PGOPTIONS']['value'], '-c default_transaction_read_only=on')
             worker = deployments['studio-worker-r640']
             self.assertEqual(worker['nodeSelector'], {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'})
             self.assertFalse(any('persistentVolumeClaim' in v for v in worker['volumes']))
