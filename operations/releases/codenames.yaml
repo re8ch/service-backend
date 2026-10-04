@@ -888,6 +888,8 @@ modules:
       digest: sha256:981c047efea54e7f1cd75f9ab427ee9d191e8bc9f8aca599ef9da0480595040a
     - codename: springtide-quartz
       digest: sha256:b660ed3f3e0d426012a0b8c7748c389101da30dc5aabdbd97b76affb32254e42
+    - codename: tideway-quartz
+      digest: sha256:d28ad04b923775d632093a9b5353ad2604adf12a9cc4d7603ed9df977ef6417c
   platform/hyperswitch:
     releases:
     - codename: anchor
