@@ -28,7 +28,7 @@ jobs:
       - run: |
           GOBIN="$RUNNER_TEMP/studio-tools" CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1
           echo "$RUNNER_TEMP/studio-tools" >> "$GITHUB_PATH"
-      - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_transfer.py
+      - run: python operations/studio-toolkit/test_release.py && python operations/studio-toolkit/test_transfer.py && python operations/studio-toolkit/test_download.py
   build-hosted:
     needs: verify-release
     if: github.ref == 'refs/heads/main'
@@ -119,14 +119,10 @@ jobs:
             sleep 1
           done
           ghp() { HTTPS_PROXY="$STUDIO_PUBLISH_PROXY" gh "$@"; }
-          for file in .sops.yaml operations/studio-toolkit/release.py operations/studio-toolkit/publish-transfer.py; do
+          for file in .sops.yaml operations/studio-toolkit/release.py operations/studio-toolkit/publish-transfer.py operations/studio-toolkit/download-oci.py; do
             ghp api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$GITHUB_SHA" --jq .content | python3 -c 'import base64,sys; sys.stdout.buffer.write(base64.b64decode(sys.stdin.buffer.read()))' > "$stage/$file"
           done
-          # Large GitHub artifacts use the host's direct path; the scoped proxy is a fallback.
-          if ! HTTPS_PROXY='' HTTP_PROXY='' ALL_PROXY='' gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name studio-oci --dir "$stage/transfer"; then
-            rm -rf "$stage/transfer"
-            ghp run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name studio-oci --dir "$stage/transfer"
-          fi
+          python3 "$stage/operations/studio-toolkit/download-oci.py" --repo "$GITHUB_REPOSITORY" --run-id "$GITHUB_RUN_ID" --output "$stage/transfer"
           cd "$stage"
           python3 -m venv venv
           venv/bin/pip install PyYAML==6.0.2
