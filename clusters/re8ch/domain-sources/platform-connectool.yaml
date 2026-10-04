@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: compass-silver
+    delivery.re8ch.com/codename: harbor-silver
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:6494e819d2c46adb640f3940554c71ec90b8d50132ac072bee0da63360521f9e
+    digest: sha256:f3d1b198b3216df879582204a9c8d284f4700f920110287885e08765e743a1e3
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: compass-silver
+    delivery.re8ch.com/codename: harbor-silver
 spec:
   interval: 1m
   retryInterval: 1m
