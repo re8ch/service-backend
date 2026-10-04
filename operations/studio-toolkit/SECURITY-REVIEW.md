@@ -50,7 +50,7 @@ project creation.
 
 Only granted tenant clients can upload or submit jobs. Workers have separate,
 region-scoped credentials and execute generated templates, not caller code.
-restricted-node-6dc3f140f9 pods run as non-root with all Linux capabilities dropped, seccomp enabled,
+R640 pods run as non-root with all Linux capabilities dropped, seccomp enabled,
 read-only root filesystems, bounded ephemeral storage and no service-account
 token. Workers do not mount the shared API blob volume. API credentials and
 short-lived PostgREST JWTs remain separate from operator database credentials.
@@ -61,3 +61,19 @@ user-supplied scripts, native project import or distributing the worker credenti
 Any expansion of those inputs requires a fresh exposure assessment. All residual
 High/Medium findings remain in the full scan artifact; they are not classified as
 fixed by this review. Keep this review alongside the final release digest record.
+
+## Bounded audio update
+
+Signed product revision `d7e812ffb3276d920ad4c5864728104e258325d4`
+(product PR #10) bounds mixed audio by sample count and output bytes and checks
+the resulting PCM frame count. Its [Linux rendering and scan checks](https://github.com/baozou-ppt-studio/baozou-ppt-studio/actions/runs/37231406089) passed.
+Release [37231677589](https://github.com/re8ch/service-backend/actions/runs/37231677589)
+produced these matching hosted-build, Harbor and verified OIDC signature digests:
+
+- API: `sha256:464849d200f577041cf55c3d67c5ea12a04c718601b88513a2db9d944c52c03a`
+- Worker: `sha256:bdeb2ea3da8be388802058840ae05cbc7bc062d1d811643991d0ce385b42c475`
+
+Full Harbor reports retain exactly the API and worker severity counts recorded
+above, with zero fixable High/Critical findings. Input formats and runtime
+privileges are unchanged. Schema SQL is unchanged, so the completed bootstrap
+Job retains its original image. Public acceptance must be repeated after rollout.

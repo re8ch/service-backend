@@ -33,7 +33,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       imagePullSecrets:
       - name: studio-registry-reader
       securityContext:
@@ -45,7 +45,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: studio-api
-        image: registry.re8ch.com/studio-toolkit/api@sha256:8eb7d0c6a7702f3739bb729ddf284ca193f25dd2edfbc11ff8e6e587d4514e0e
+        image: registry.re8ch.com/studio-toolkit/api@sha256:464849d200f577041cf55c3d67c5ea12a04c718601b88513a2db9d944c52c03a
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -140,7 +140,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       imagePullSecrets:
       - name: studio-registry-reader
       securityContext:
@@ -233,7 +233,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       imagePullSecrets:
       - name: studio-registry-reader
       securityContext:
@@ -320,7 +320,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       imagePullSecrets:
       - name: studio-registry-reader
       securityContext:
@@ -332,7 +332,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: studio-worker-r640
-        image: registry.re8ch.com/studio-toolkit/worker@sha256:f237866b1ab6e51c1dee62298d0ce6a03fe3e11a2ba7f1cb719e467e012319ac
+        image: registry.re8ch.com/studio-toolkit/worker@sha256:bdeb2ea3da8be388802058840ae05cbc7bc062d1d811643991d0ce385b42c475
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -404,7 +404,7 @@ spec:
           automountServiceAccountToken: false
           restartPolicy: Never
           nodeSelector:
-            kubernetes.io/hostname: restricted-node-6dc3f140f9
+            kubernetes.io/hostname: r640
           imagePullSecrets:
           - name: studio-registry-reader
           securityContext:
@@ -415,7 +415,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: collect
-            image: registry.re8ch.com/studio-toolkit/api@sha256:8eb7d0c6a7702f3739bb729ddf284ca193f25dd2edfbc11ff8e6e587d4514e0e
+            image: registry.re8ch.com/studio-toolkit/api@sha256:464849d200f577041cf55c3d67c5ea12a04c718601b88513a2db9d944c52c03a
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
@@ -535,7 +535,7 @@ spec:
       automountServiceAccountToken: false
       restartPolicy: OnFailure
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       imagePullSecrets:
       - name: studio-registry-reader
       securityContext:
