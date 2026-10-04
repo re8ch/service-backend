@@ -9,6 +9,7 @@ TOOLS = {
     "plugin.capabilities.list": "plugin_capabilities.catalog",
     "plugin.openapi.get": "plugin_capabilities.openapi",
     "anatomy.runtimediff.create": "anatomy_diff_operation.call",
+    "anatomy.runtimediff.delete": "anatomy_diff_operation.delete",
     "nodes.list": "nodes_list",
     "nodes.get": "nodes_get",
     "nodes.reachability": "node_reachability",
