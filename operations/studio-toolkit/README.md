@@ -41,7 +41,9 @@ Intended runtime:
 - `api.re8ch.com/studio`: stateless API behind the existing HTTPS listener.
 - `db-ro.re8ch.com/studio` and `db-rw.re8ch.com/studio`: product PostgREST with
   RLS roles; runtime APIs never connect using PostgreSQL wire protocol.
-- Shared CephFS holds bounded source media and result archives.
+- Shared `cephfs-r640` holds bounded source media and result archives. This
+  intentionally shares the restricted-node-6dc3f140f9 failure domain and is not cross-node HA; it
+  follows the cluster default policy without a replicated-storage exception.
 - An outbound-only worker pinned to restricted-node-6dc3f140f9 renders with CPU Cycles and FFmpeg.
 - Operator migration jobs provision the dedicated database using the established
   `supabase-pg-re8ch` bootstrap pattern. Runtime roles cannot administer databases.
