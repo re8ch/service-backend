@@ -52,13 +52,14 @@ SCHEMAS: dict[str, dict[str, Any]] = {
 
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 MIHOMOS_BY_NAME = {tool["name"]: tool for tool in MIHOMOS_TOOLS}
+from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL
 
 GENERATED_PLUGIN_TOOLS = {
     item["name"]: item for item in json.loads(
         Path(__file__).with_name("plugin-operation-tools.json").read_text()
     )["tools"]
 }
-PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
+PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
 WRITE_TOOLS = {"node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
@@ -88,6 +89,7 @@ def tool_list(identity: Identity) -> list[dict[str, Any]]:
         result.append({"name": name, "description": description, "inputSchema": schema(properties, REQUIRED.get(name))})
     if writable:
         result.extend(MIHOMOS_TOOLS)
+        result.append(ANATOMY_DIFF_TOOL)
         result.extend({key: item[key] for key in ("name", "description", "inputSchema", "annotations", "_meta")}
                       for item in GENERATED_PLUGIN_TOOLS.values())
     return result
@@ -137,6 +139,9 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
         if name == "mihomos.controllers.list":
             return mihomos_capabilities.controllers(service)
         return mihomos_capabilities.controller_read(service, args["pod"], args["uid"], MIHOMOS_BY_NAME[name]["_meta"]["re8ch"]["operationId"], args.get("path"))
+    if name == ANATOMY_DIFF_TOOL["name"]:
+        from anatomy_diff_operation import call
+        return call(service, args)
     if name in GENERATED_PLUGIN_TOOLS:
         import plugin_capabilities
         item = GENERATED_PLUGIN_TOOLS[name]
