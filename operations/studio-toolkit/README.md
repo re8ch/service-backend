@@ -57,11 +57,13 @@ directory and temporary registry authorization is removed on exit.
 
 Because action-download setup uses the host's broken direct GitHub path, the
 publisher has no `uses:` steps. It retrieves only the helper files at its exact
-workflow commit through its scoped transport. The same-run build artifact uses
-eight bounded parallel HTTPS ranges, preferring direct transfer with scoped proxy
-fallback. Range offsets, sizes, allowed ZIP entries and archive checksums must
-match before image publication. The publisher allows up to 180 minutes for
-constrained cross-region transfers. Final
+workflow commit through its scoped transport. Eight download workers dynamically
+claim bounded 8 MiB HTTPS ranges from the same-run build artifact, preferring
+direct transfer with scoped proxy fallback. Range headers, byte counts, allowed
+ZIP entries and archive checksums are checked before OCI verification. Small
+ranges prevent a slow connection from owning a large fraction of the archive
+until its request timeout. The publisher allows up to 180 minutes for constrained
+cross-region transfers. Final
 scan/signature/digest and encrypted reader evidence is uploaded to a **draft**
 private GitHub release `studio-toolkit-<source SHA>`. The `studio-oci` workflow
 artifact retains the portable source build for three days. A draft release does
