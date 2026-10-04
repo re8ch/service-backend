@@ -1,5 +1,7 @@
 name: Studio Toolkit Harbor release
 on:
+  pull_request:
+    paths: ['operations/studio-toolkit/**', '.github/workflows/studio-toolkit-release.yml']
   workflow_dispatch:
     inputs:
       source_sha:
@@ -13,7 +15,17 @@ on:
 permissions: {contents: read, id-token: write}
 concurrency: {group: studio-toolkit-release, cancel-in-progress: false}
 jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    permissions: {contents: read}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install PyYAML==6.0.2
+      - run: python operations/studio-toolkit/test_release.py
   publish:
+    needs: verify-release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
