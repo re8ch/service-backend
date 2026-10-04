@@ -41,6 +41,10 @@ class RuntimeTests(unittest.TestCase):
                 self.assertEqual(route['spec']['parentRefs'][0]['name'], 're8ch-gateway-canary')
             migration = next(d for d in docs if d['kind'] == 'Job')
             self.assertEqual(migration['metadata']['namespace'], 'supabase-pg-re8ch')
+            for container in migration['spec']['template']['spec']['initContainers'] + migration['spec']['template']['spec']['containers']:
+                for bound in ['requests', 'limits']:
+                    self.assertIn('cpu', container['resources'][bound])
+                    self.assertIn('memory', container['resources'][bound])
             self.assertNotIn('Secret', [d['kind'] for d in docs])
 
     def test_rejects_mutable_or_foreign_images(self):

@@ -519,7 +519,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: studio-database-bootstrap-v1
+  name: studio-database-bootstrap-v2
   namespace: supabase-pg-re8ch
 spec:
   backoffLimit: 6
@@ -545,6 +545,13 @@ spec:
       initContainers:
       - name: source-migration
         image: registry.re8ch.com/studio-toolkit/api@sha256:8eb7d0c6a7702f3739bb729ddf284ca193f25dd2edfbc11ff8e6e587d4514e0e
+        resources:
+          requests:
+            cpu: 25m
+            memory: 16Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
         command:
         - python
         - -c
