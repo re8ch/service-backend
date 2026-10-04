@@ -21,6 +21,13 @@ retained in the release artifact, including per-package findings from Harbor’s
 [vulnerability addition API](https://github.com/goharbor/harbor/blob/main/api/v2.0/swagger.yaml).
 A missing detailed report fails publication; a successful scan is not a clean scan.
 Review affected packages, available fixes and exposure before activation.
+The `studio-toolkit` Harbor project has a 5 GiB storage quota, increased from
+512 MiB through the Harbor quota API on 2026-10-05 with administrator approval.
+The change was read back from quota ID 35 as 5,368,709,120 bytes; existing images
+were retained. Release run `37226737325`, attempt 2, reuses the successful hosted
+build after attempt 1 exhausted the previous quota. Before subsequent releases,
+check project storage usage and available capacity; `prepare` currently verifies
+project privacy but does not automatically increase or preflight the quota.
 The optional initial-reader step creates a pull-only Harbor robot and emits two
 SOPS-encrypted Kubernetes Secrets, one for the runtime and one for the database
 migration namespace. Only encrypted secrets and the robot reference are uploaded.
