@@ -8,6 +8,7 @@ on:
       - operations/plugin-capabilities/**
       - plugins/**
       - tests/test_plugin_capabilities.py
+      - tests/test_plugin_http_conformance.py
       - tests/test_mihomos_capabilities.py
       - tests/test_plugin_declaration_audit.py
       - tests/test_cloud_platform*.py
@@ -36,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python3 -m pip install 'PyYAML==6.0.2' 'jsonschema==4.23.0' 'pytest>=8.3' 'schemathesis==4.29.1'
-      - run: python3 -m pytest -q tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_plugin_capabilities.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py
+      - run: python3 -m pytest -q tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py
       - name: Verify generated contracts and native schema enumeration
         run: |
           python3 operations/plugin-capabilities/generate.py
@@ -49,12 +50,12 @@ jobs:
       - name: Smoke test packaged tool discovery
         run: |
           docker run --rm --network none --entrypoint python re8ch-cloud-platform:pr -c '
-          import server
+          import server, schemathesis, plugin_http_conformance, plugin_http_transport
           from runtime import Identity
           admin = Identity("build-smoke", (server.ADMIN_GROUP,))
           tools = {tool["name"] for tool in server.tool_list(admin)}
           assert set(server.GENERATED_PLUGIN_TOOLS) <= tools
-          assert {"plugin.operations.list", "plugin.operation.read", "mihomos.workloads.list"} <= tools
+          assert {"plugin.operations.list", "plugin.operation.read", "plugin.operation.http-check", "mihomos.workloads.list"} <= tools
           viewer = {tool["name"] for tool in server.tool_list(Identity("viewer", ()))}
           assert not (server.PRIVILEGED_TOOLS & viewer)
           print("Packaged tool discovery and privilege filtering passed")

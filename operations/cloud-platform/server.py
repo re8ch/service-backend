@@ -29,6 +29,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "plugin.capabilities.list": {},
     "plugin.operations.list": {"groupVersion": {"type": "string"}},
     "plugin.operation.read": {"groupVersion": {"type": "string"}, "operationId": {"type": "string"}, "schemaHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "parameters": {"type": "object"}},
+    "plugin.operation.http-check": {"groupVersion": {"type": "string"}, "operationId": {"type": "string"}, "schemaHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "parameters": {"type": "object"}},
     "plugin.openapi.get": {"groupVersion": {"type": "string", "pattern": r"^(?:api/[a-z0-9]+|apis/[a-z0-9.-]+/[a-z0-9]+)$"}},
     "nodes.list": {},
     "nodes.get": {"name": {"type": "string"}},
@@ -57,7 +58,7 @@ GENERATED_PLUGIN_TOOLS = {
         Path(__file__).with_name("plugin-operation-tools.json").read_text()
     )["tools"]
 }
-PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, "plugin.operation.read", *GENERATED_PLUGIN_TOOLS}
+PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
 WRITE_TOOLS = {"node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
@@ -65,6 +66,7 @@ WRITE_TOOLS = {"node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.res
 REQUIRED = {
     "plugin.operations.list": ["groupVersion"],
     "plugin.operation.read": ["groupVersion", "operationId", "schemaHash"],
+    "plugin.operation.http-check": ["groupVersion", "operationId", "schemaHash"],
     "plugin.openapi.get": ["groupVersion"],
     "nodes.get": ["name"], "nodes.reachability": ["name"], "node.ssh.exec": ["name", "argv"], "kubectl.exec": ["argv"],
     **{f"kube.resource.{verb}": ["resource"] for verb in ("get", "list", "watch", "apply", "patch", "delete")},
@@ -81,7 +83,9 @@ def tool_list(identity: Identity) -> list[dict[str, Any]]:
     for name, properties in SCHEMAS.items():
         if name in WRITE_TOOLS | PRIVILEGED_TOOLS and not writable:
             continue
-        result.append({"name": name, "description": f"RE8CH typed operation {name}", "inputSchema": schema(properties, REQUIRED.get(name))})
+        description = ("Validate one bound native GET response with Schemathesis; returns checks only, not response contents. Admin only; no whole-operation acceptance claim."
+                       if name == "plugin.operation.http-check" else f"RE8CH typed operation {name}")
+        result.append({"name": name, "description": description, "inputSchema": schema(properties, REQUIRED.get(name))})
     if writable:
         result.extend(MIHOMOS_TOOLS)
         result.extend({key: item[key] for key in ("name", "description", "inputSchema", "annotations", "_meta")}
@@ -120,6 +124,9 @@ def authenticate(header: str) -> Identity | None:
 def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
+    if name == "plugin.operation.http-check":
+        from plugin_http_conformance import conformance
+        return conformance(service, args.get("groupVersion"), args.get("operationId"), args.get("schemaHash"), args.get("parameters"))
     if name in MIHOMOS_BY_NAME:
         from jsonschema import Draft202012Validator
         import mihomos_capabilities

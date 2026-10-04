@@ -112,6 +112,7 @@
         "plugin.openapi.get": true,
         "plugin.operations.list": true,
         "plugin.operation.read": true,
+        "plugin.operation.http-check": true,
         "advfab-legacy.advancedfabric.get.98c75b6bc14f": true,
         "advfab-legacy.advancedfabric.get.caad28e28f90": true,
         "advfab-legacy.advancedfabric.list.0b76245edb89": true,

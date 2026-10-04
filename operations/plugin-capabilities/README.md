@@ -280,3 +280,23 @@ The registry database metadata limit is explicitly 1 MiB (`database.maxMetaSize`
 covering the combined native inventory and tool definitions. CI checks each
 entry against this bound as well as the ConfigMap size bound. This changes no
 replica count or resource requests/limits.
+
+## Real HTTP acceptance entrypoint
+
+`plugin.operation.http-check` is an administrator-only self-service tool. It uses
+`groupVersion`, `operationId`, `schemaHash` and `parameters` from the same native
+read contract as `plugin.operation.read`. It performs one finite GET through a
+private Unix-socket kubectl proxy using the backend's existing identity, then
+runs Schemathesis 4.29.1 status-code, content-type, response-header and response
+schema checks. Response bodies, headers, credentials and diagnostic reproductions
+are not included in the report. The process and socket are removed after use.
+
+Limits: reviewed Kubernetes groups only, exact bound path, 4 MiB response,
+30-second HTTP deadline, no redirects, no watch or mutations, and no external
+schema references. A documented 401/403/404 is not successful read coverage.
+A passed report proves only the supplied case's HTTP response; it does not prove
+all parameters, generated negative cases, mutation lifecycles or UI semantics.
+It does not automatically update directory-wide acceptance flags. Live execution
+and evidence collection follow signed runtime promotion.
+
+Reference: https://schemathesis.readthedocs.io/en/latest/reference/python/
