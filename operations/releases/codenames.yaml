@@ -904,6 +904,10 @@ modules:
       digest: sha256:d8232158cdb5bb9a3c0fdfc0d269b6243610dc83d34572f585ed7c3f446d765a
     - codename: tideway-ruby
       digest: sha256:57a3d1d803c9c07213ffe70812bb2069f50e7e42d5e78f0614983b226c8704f2
+    - codename: cascade-sapphire
+      digest: sha256:5fbed0cb888a21541ce17462dec2ebae1a4d0ebf1915be0cb7da26f0b8b617ab
+    - codename: confluence-sapphire
+      digest: sha256:7e1a8532f74d1e6a9cd9bf9572c5eb1ef43f5a82979d51f3da0d0e05e9cab140
   platform/hyperswitch:
     releases:
     - codename: anchor
