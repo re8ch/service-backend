@@ -78,6 +78,9 @@ jobs:
           TENANT_IMAGE_DOCKERFILE: platform/apps/tenant-mcp/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
+          # Keep Harbor OAuth token requests in BuildKit, whose disposable DNS
+          # config resolves the public registry authority instead of fake IPs.
+          BUILDKIT_NO_CLIENT_TOKEN: "1"
           SIGSTORE_CERTIFICATE_IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@${{ github.ref }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
