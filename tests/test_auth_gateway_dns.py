@@ -23,7 +23,7 @@ def test_auth_gateway_uses_stable_cluster_dns_service():
     assert env["HTTPS_PROXY"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
 
 
-def test_auth_gateway_rollout_preserves_capacity_and_public_verification():
+def test_auth_gateway_rollout_preserves_capacity_and_local_session_verification():
     deployment = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
     spec = deployment["spec"]
     assert spec["replicas"] == 2
@@ -32,17 +32,17 @@ def test_auth_gateway_rollout_preserves_capacity_and_public_verification():
     assert pod["terminationGracePeriodSeconds"] > 30
     env = {item["name"]: item.get("value") for item in pod["containers"][0]["env"]}
     assert env["IDENTITY_AUTH_URL"].startswith("https://")
-    assert env["IDENTITY_USER_URL"] == "https://db-rw.re8ch.com/auth/v1/user"
+    assert env["IDENTITY_USER_URL"] == "http://supabase-identity-auth.supabase-identity.svc.cluster.local:9999/user"
     pdb = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway-pdb.yaml").read_text())
     assert pdb["spec"]["minAvailable"] == 1
     assert pdb["spec"]["selector"] == spec["selector"]
 
 
-def test_auth_calls_use_publicedge_and_bypass_oauth_egress_proxy():
+def test_session_calls_use_cluster_services_and_other_auth_calls_use_publicedge():
     deployment = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
     env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert env["IDENTITY_RO_URL"] == "https://db-ro.re8ch.com/identity/rest/v1"
-    assert env["IDENTITY_RW_URL"] == "https://db-rw.re8ch.com/identity/rest/v1"
+    assert env["IDENTITY_RW_URL"] == "http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000"
     assert env["MGR_RPC_RO_BASE_URL"] == "https://db-ro.re8ch.com/auth"
     assert env["MGR_RPC_RW_BASE_URL"] == "https://db-rw.re8ch.com/auth"
     assert {"api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"}.issubset(set(env["NO_PROXY"].split(",")))
