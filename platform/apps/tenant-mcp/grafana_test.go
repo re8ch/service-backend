@@ -1,8 +1,26 @@
 package main
 
 import (
+	"context"
 	"testing"
 )
+
+func TestGrafanaLocalAnalysisWithoutTenantBinding(t *testing.T) {
+	s := testServer(t)
+	t.Setenv("GRAFANA_TENANT_BINDINGS_JSON", "")
+	for _, test := range []struct {
+		name string
+		args map[string]any
+	}{
+		{"grafana_analyze", map[string]any{"series": map[string]any{"sample": []any{1.0, 2.0, 3.0}}}},
+		{"grafana_indicators", map[string]any{"values": []any{1.0, 2.0, 3.0}, "indicators": []any{map[string]any{"type": "movingAverage", "window": float64(2)}}}},
+		{"grafana_correlate", map[string]any{"left": []any{1.0, 2.0, 3.0}, "right": []any{2.0, 4.0, 6.0}}},
+	} {
+		if _, err := s.callGrafana(context.Background(), "openai-review-demo", test.name, test.args); err != nil {
+			t.Errorf("%s required an unrelated Grafana binding: %v", test.name, err)
+		}
+	}
+}
 
 func TestGrafanaQueryTenantBoundary(t *testing.T) {
 	binding := grafanaBinding{TenantLabel: "acme", OrgID: 9}
