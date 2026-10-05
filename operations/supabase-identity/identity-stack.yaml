@@ -809,8 +809,8 @@ spec:
         effect: NoSchedule
       containers:
       - name: rest
-        image: mjhsdd6xkcym4k.xuanyuan.run/postgrest/postgrest:v14.12
-        imagePullPolicy: IfNotPresent
+        image: docker.io/postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+        imagePullPolicy: Never
         envFrom:
         - configMapRef:
             name: supabase-identity-env
@@ -851,7 +851,7 @@ spec:
         resources:
           requests:
             cpu: 40m
-            memory: 64Mi
+            memory: 128Mi
           limits:
-            cpu: 100m
-            memory: 256Mi
+            cpu: 250m
+            memory: 512Mi
