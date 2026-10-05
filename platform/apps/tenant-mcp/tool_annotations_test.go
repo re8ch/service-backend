@@ -25,7 +25,7 @@ func TestToolAnnotationSafetyBoundaries(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"platform_tool_call", "harbor_build_start", "tenant_kubernetes_apply"} {
+	for _, name := range []string{"platform_tool_call", "harbor_build_start", "tenant_kubernetes_apply", "dynamic_skill_submit"} {
 		if !*toolAnnotations(name).OpenWorldHint {
 			t.Errorf("%s can interact with external entities", name)
 		}

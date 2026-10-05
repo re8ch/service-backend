@@ -17,8 +17,11 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate", "tenant_kubernetes_get", "artc_kubernetes_read":
 		readOnly = true
-	case "byoc_cluster_register", "dynamic_skill_submit", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
+	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
 		// Additive operations against the configured tenant platform.
+	case "dynamic_skill_submit":
+		// Stores caller-supplied workflow text for an independently reviewed platform process.
+		openWorld = true
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
