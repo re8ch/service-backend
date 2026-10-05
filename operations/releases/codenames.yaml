@@ -908,6 +908,8 @@ modules:
       digest: sha256:5fbed0cb888a21541ce17462dec2ebae1a4d0ebf1915be0cb7da26f0b8b617ab
     - codename: confluence-sapphire
       digest: sha256:7e1a8532f74d1e6a9cd9bf9572c5eb1ef43f5a82979d51f3da0d0e05e9cab140
+    - codename: eddy-sapphire
+      digest: sha256:829fc06208c074faa4a7d3c6e5f36900c66555e1bfd6afc2316492219c58e1a6
   platform/hyperswitch:
     releases:
     - codename: anchor
