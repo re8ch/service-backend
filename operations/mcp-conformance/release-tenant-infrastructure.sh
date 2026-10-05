@@ -102,6 +102,11 @@ while ! run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker 
 done
 digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$metadata")
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
+printf '%s\n' "$immutable" | tee "${TENANT_IMAGE_ARTIFACT_NAME}.image"
+if [[ "${TENANT_IMAGE_SKIP_FINALIZE:-}" == "1" ]]; then
+  echo "Image published; SBOM and signing delegated to the hosted finalize job"
+  exit 0
+fi
 echo "Image published at ${immutable}; generating SBOM"
 if docker sbom version >/dev/null 2>&1; then
   docker sbom --platform linux/amd64 --format spdx-json "$immutable" > "${TENANT_IMAGE_ARTIFACT_NAME}.spdx.json"
@@ -124,4 +129,3 @@ else
   echo "COSIGN_KEY or GitHub Actions OIDC is required" >&2
   exit 1
 fi
-printf '%s\n' "$immutable" | tee "${TENANT_IMAGE_ARTIFACT_NAME}.image"
