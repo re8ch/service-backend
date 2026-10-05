@@ -902,6 +902,8 @@ modules:
       digest: sha256:d645056456733ee14b674d8d963db72b1a7d6cac0bb26aa38a3979e111e0f5d7
     - codename: springtide-ruby
       digest: sha256:d8232158cdb5bb9a3c0fdfc0d269b6243610dc83d34572f585ed7c3f446d765a
+    - codename: tideway-ruby
+      digest: sha256:57a3d1d803c9c07213ffe70812bb2069f50e7e42d5e78f0614983b226c8704f2
   platform/hyperswitch:
     releases:
     - codename: anchor
