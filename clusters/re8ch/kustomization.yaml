@@ -41,6 +41,7 @@ resources:
 - secrets/incidentrelay-alertmanager-tokens.sops.yaml
 - secrets/ontology-microscope-db.sops.yaml
 - secrets/ontology-microscope-evaluation.sops.yaml
+- secrets/anycam-market-demo.sops.yaml
 - secrets/zerotier-planet-env.sops.yaml
 - secrets/cloud-disk-credentials.sops.yaml
 - components/cilium/gateway-api-canary.yaml
@@ -52,6 +53,7 @@ resources:
 - components/farseer/public-web.yaml
 - components/cilium/r640-policy-update-budget.yaml
 - components/ai-operations/platform.yaml
+- components/anycam/market-demo.yaml
 - components/codex-conversation-archive/storage.yaml
 - components/ai-operations/sandbox-trials
 - components/tenancy/re8ch-managed-business-namespaces.yaml

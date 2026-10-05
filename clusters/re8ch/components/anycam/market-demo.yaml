@@ -1,0 +1,344 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: anycam-r640-model-store
+  namespace: anycam
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: anycam-market-db
+  namespace: anycam
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anycam-model-registry
+  namespace: anycam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anycam-model-registry
+  template:
+    metadata:
+      labels:
+        app: anycam-model-registry
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      containers:
+      - name: api
+        image: registry.re8ch.com/anycam/backend:market-89935be
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - anycam_backend.local_server
+        args:
+        - --serve
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8099'
+        env:
+        - name: ANYCAM_MARKET_DATA_DIR
+          value: /data/anycam-market
+        - name: ANYCAM_MARKET_BUCKET
+          value: models
+        - name: ANYCAM_MARKET_S3_ENDPOINT
+          value: http://anycam-r640-minio:9000
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: anycam-market-demo
+              key: MINIO_ROOT_USER
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anycam-market-demo
+              key: MINIO_ROOT_PASSWORD
+        - name: ANYCAM_R640_WORKER_AVAILABLE
+          value: '1'
+        - name: ANYCAM_R640_WORKER_ID
+          value: r640-anycam-model-downloader
+        envFrom:
+        - secretRef:
+            name: anycam-market-demo
+        ports:
+        - name: http
+          containerPort: 8099
+        volumeMounts:
+        - name: market-db
+          mountPath: /data/anycam-market
+        readinessProbe:
+          httpGet:
+            path: /market/registry
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: market-db
+        persistentVolumeClaim:
+          claimName: anycam-market-db
+      imagePullSecrets:
+      - name: harbor-anycam-pull
+      securityContext:
+        fsGroup: 10001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anycam-r640-minio
+  namespace: anycam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anycam-r640-minio
+  template:
+    metadata:
+      labels:
+        app: anycam-r640-minio
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      containers:
+      - name: minio
+        image: quay.io/minio/minio:RELEASE.2026-06-13T11-33-47Z
+        args:
+        - server
+        - /data
+        - --console-address
+        - :9001
+        envFrom:
+        - secretRef:
+            name: anycam-market-demo
+        ports:
+        - name: s3
+          containerPort: 9000
+        - name: console
+          containerPort: 9001
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: anycam-r640-model-store
+      imagePullSecrets:
+      - name: harbor-anycam-pull
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anycam-r640-minio
+  namespace: anycam
+spec:
+  selector:
+    app: anycam-r640-minio
+  ports:
+  - name: s3
+    port: 9000
+    targetPort: s3
+  - name: console
+    port: 9001
+    targetPort: console
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anycam-model-downloader
+  namespace: anycam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anycam-model-downloader
+  template:
+    metadata:
+      labels:
+        app: anycam-model-downloader
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      containers:
+      - name: worker
+        image: registry.re8ch.com/anycam/backend:market-89935be
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - anycam_backend.market_worker
+        - loop
+        env:
+        - name: ANYCAM_MARKET_DATA_DIR
+          value: /data/anycam-market
+        - name: ANYCAM_MARKET_BUCKET
+          value: models
+        - name: ANYCAM_MARKET_S3_ENDPOINT
+          value: http://anycam-r640-minio:9000
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: anycam-market-demo
+              key: MINIO_ROOT_USER
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anycam-market-demo
+              key: MINIO_ROOT_PASSWORD
+        - name: ANYCAM_REGISTRY_API_BASE
+          value: http://anycam-model-registry:8099
+        - name: ANYCAM_R640_STORAGE_ENDPOINT
+          value: http://anycam-r640-minio:9000
+        - name: ANYCAM_R640_BUCKET_MODELS
+          value: models
+        - name: ANYCAM_R640_BUCKET_REPORTS
+          value: reports
+        - name: ANYCAM_R640_BUCKET_EXPORTS
+          value: exports
+        envFrom:
+        - secretRef:
+            name: anycam-market-demo
+        volumeMounts:
+        - name: market-db
+          mountPath: /data/anycam-market
+      volumes:
+      - name: market-db
+        persistentVolumeClaim:
+          claimName: anycam-market-db
+      imagePullSecrets:
+      - name: harbor-anycam-pull
+      securityContext:
+        fsGroup: 10001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anycam-model-registry
+  namespace: anycam
+spec:
+  selector:
+    app: anycam-model-registry
+  ports:
+  - name: http
+    port: 8099
+    targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: anycam-market-public
+  namespace: anycam
+spec:
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: apps-wildcard-https
+  hostnames:
+  - market.apps.re8ch.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /market/
+    backendRefs:
+    - name: anycam-model-registry
+      port: 8099
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anycam-market-demo-seed
+  namespace: anycam
+data:
+  seed.py: |
+    from anycam_backend import curated_market, market_worker
+
+    revision = "4299e5c7bd07d76ccd546f27ad068d4a94adb385"
+    repository = "qualcomm/MobileNet-v2"
+    candidate = {
+        "name": "MobileNet v2 INT8",
+        "task": "classification",
+        "description": "ImageNet image classification, 224 × 224 RGB input, 1000 scores",
+        "runtime": "TFLITE",
+        "availability": "NEEDS_CONVERSION",
+        "inputSpec": {"description": "224 × 224 RGB image"},
+        "outputSpec": {"description": "1000 class scores"},
+        "files": [],
+        "source": {"kind": "huggingface", "repoId": repository,
+                   "url": "https://huggingface.co/qualcomm/MobileNet-v2",
+                   "revision": revision},
+    }
+    curated_market.discover([candidate], "hf")
+    product_id = curated_market.identity("hf", repository, "main")
+    curated_market.select(
+        product_id, revision=revision, model_license="Apache-2.0",
+        artifact_license="Apache-2.0", example_license="CC0-1.0",
+        example_url="https://commons.wikimedia.org/wiki/Special:Redirect/file/Red_apple_on_white_background.jpg",
+        example_sha256="d4a7d9c025a0606b8ac1b79b3685b82e09990ea6c2a200932b479f95d7c8ff8f",
+        artifact_url="https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/mobilenet_v2/releases/v0.63.0/mobilenet_v2-tflite-w8a8.zip",
+        artifact_sha256="2eeb390160d47519313bc7a47e9895e39724cff62eb0dbe2dad32a5a4bc76b04",
+        artifact_member="mobilenet_v2-tflite-w8a8/mobilenet_v2.tflite",
+        model_sha256="8bfa78effd1a5036f228d3b25eaf49b09d3dd07d13211d3e98639c7c103aa30c",
+        labels_member="mobilenet_v2-tflite-w8a8/labels.txt",
+    )
+    market_worker.process(product_id)
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anycam-market-demo-seed-v1
+  namespace: anycam
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
+      imagePullSecrets:
+        - name: harbor-anycam-pull
+      securityContext:
+        fsGroup: 10001
+      containers:
+        - name: seed
+          image: registry.re8ch.com/anycam/backend:market-89935be
+          command: [python, /scripts/seed.py]
+          env:
+            - name: ANYCAM_MARKET_DATA_DIR
+              value: /data/anycam-market
+            - name: ANYCAM_MARKET_BUCKET
+              value: models
+            - name: ANYCAM_MARKET_S3_ENDPOINT
+              value: http://anycam-r640-minio:9000
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef: {name: anycam-market-demo, key: MINIO_ROOT_USER}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: {name: anycam-market-demo, key: MINIO_ROOT_PASSWORD}
+          volumeMounts:
+            - {name: market-db, mountPath: /data/anycam-market}
+            - {name: seed, mountPath: /scripts, readOnly: true}
+      volumes:
+        - name: market-db
+          persistentVolumeClaim: {claimName: anycam-market-db}
+        - name: seed
+          configMap: {name: anycam-market-demo-seed}
