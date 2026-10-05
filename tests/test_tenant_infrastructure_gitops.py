@@ -280,6 +280,23 @@ def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():
     }
 
 
+def test_review_login_keeps_ordinary_personal_tenant_capabilities():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
+    personal = next(item for item in tenants if item["name"] == "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38")
+    namespace = personal["namespacePolicy"]["defaultNamespace"]
+    assert namespace.startswith(personal["namespacePolicy"]["allowedPrefixes"][0])
+    assert namespace in personal["namespacePolicy"]["bootstrapNamespaces"]
+    assert personal["namespacePolicy"]["allowCreate"] is True
+    assert personal["nativeAccess"] is True
+    assert personal["byocAllowed"] is True
+    assert {grant["consumableRef"] for grant in personal["grants"]} >= {
+        "compute.workload.v1", "storage.volume.v1",
+        "registry.harbor.v1", "observability.grafana.v1",
+    }
+    assert personal["identityBindings"] == []  # GoTrue owns ordinary membership.
+
+
 def test_tenant_namespace_outlives_helm_remediation_and_protects_sops_secrets():
     root_namespaces = documents(ROOT / "clusters/re8ch/namespaces.yaml")
     namespace = next(item for item in root_namespaces if item["metadata"]["name"] == "tenant-infrastructure")
